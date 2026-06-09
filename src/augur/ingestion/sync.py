@@ -78,8 +78,19 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
         res = ingest.store(conn, dataset, probe)   # 寬窗探測即全量，直接存（冪等）
         return {"dataset": dataset, "mode": "market", "rows": res["rows"]}
     # 2) 逐股模式（resume：每股各自從 max(date) 續）
+    # canonical-probe（實證 §一.10）：roster 依 stock_id 字串排序，前段多為 ETF/債券/權證（無基本面資料）；
+    # 故先用大型股 2330（對所有真 per-stock dataset 皆有資料）判定——回 0/錯 → 此 dataset 非 per-stock
+    # （date-based 被誤分類）→ 跳過待正確分類，避免「前段 ETF 全 0」誤殺 BalanceSheet 等真資料 dataset。
+    try:
+        canon = finmind.fetch(dataset, data_id="2330", start_date=full_start)
+    except finmind.FinMindError:
+        canon = None
+    if not canon:
+        if progress:
+            progress(f"  → {dataset}：canonical 2330 回 0/錯 → 非 per-stock（date-based）,跳過,待正確分類")
+        return {"dataset": dataset, "mode": "per-stock-non-canonical", "rows": 0, "stocks_with_data": 0}
     if progress:
-        progress(f"  → {dataset}：per-stock 模式,逐 {len(roster)} 股（每 50 股回報一次）…")
+        progress(f"  → {dataset}：per-stock 模式（canonical 2330 ✓）,逐 {len(roster)} 股（每 50 股回報一次）…")
     total = stocks = 0
     for i, sid in enumerate(roster, 1):
         start = _max_date(conn, dataset, "stock_id", sid) or full_start

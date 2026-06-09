@@ -73,3 +73,36 @@
 **誠實記錄（§一.8）**：今晚對 IP 狀態判斷修正 4 次（① ban 誤稱配額耗盡 ② 216s 過早殺正在跑的 sync ③「重啟就好」過早 ④「短測過了→今晚跑」過度樂觀）。根本教訓：應一開始就信「IP 當日已耗盡、需過夜」。
 
 **事實來源（§一.10）**：問題/error 自實跑 stdout（`/tmp/augur_fullsync.log` traceback）;IP ban 自 `finmind.fetch` + `user_info` API 回應（`status=403`/`retry_after=1408`）;表數/列數自 DB query;build 結果自 `/tmp/augur_build_result.json` + log。
+
+## §6 2026-06-10 凌晨：probe-OK 放量 → 暫時慢走 → canonical-probe 修正 → 資料大量落地
+
+**經過（全 source-traceable）**：
+1. 1hr 零負載 → **最小單位探測（2330 單股單日）= OK（1 列）** → IP 恢復（sparse access 回來）。
+2. 2s 放量 → 第一支 per-stock dataset 初期**暫時慢走**（CPU-time 凍 + finmind ESTABLISHED 等 timeout）→ 停 + 重測（2330 narrow = 0.3s、TaiwanStockPrice 寬窗 = 快）確認 **IP 本身健康** → 重啟後慢走消失（**暫時性**：launch 當下 IP 仍 warming，非持續）。
+3. 加 fail-fast（error-streak@20 → 0-row@150）→ **發現 0-row fail-fast 設計錯**：sync roster `ORDER BY stock_id`（字串排序）→ 前段全是 ETF/債券/權證（`0xxx`/`01007T`/`7xxxxx`，**無基本面資料**）→ 對 BalanceSheet 等真 dataset 回 0 → **0-row fail-fast 會誤殺真資料 dataset**（實測 `BalanceSheet 2330 = 909 列` 證明它有資料）。
+
+**修正（本次 commit）**：**canonical-2330-probe** 取代 fail-fast —— per-stock 模式前先測大型股 2330（對所有真 per-stock dataset 皆有資料）：回 0/錯 → date-based dud → 跳過（`per-stock-non-canonical`）；有資料 → 正常 loop。**不會被 roster ETF 前綴誤導**。
+
+**結果（DB-verified 快照，sync 進行中）**：
+- date-based dud 正確跳過：`GovernmentBankBuySell` / `BlockTradingDailyReport` / `TradingDailyReport` / `WarrantTradingDailyReport`（per-stock-non-canonical）。
+- 真 per-stock dataset loop + 落地（DB query 列數）：
+
+| 表 | 列數（DB-verified） |
+|---|---|
+| TaiwanStockBalanceSheet | 8,379,006 |
+| TaiwanDailyShortSaleBalances | 7,679,272 |
+| TaiwanStockFinancialStatements | 2,707,505（進行中） |
+| TaiwanStockInstitutionalInvestorsBuySell | 789,207 |
+| TaiwanStockInfo（名冊） | 4,139 |
+| **合計** | **~19,559,129 列 / audit 7,449 筆** |
+
+- 2s throttle 全程穩、**0 re-ban**、caffeinate `PSS=1`。
+
+**教訓**：
+1. **sparse probe OK ≠ sustained stream OK**（本次慢走為暫時性，休息後消失；但原則仍成立）。
+2. **roster ETF/債券前綴** 使 fundamental dataset 前段全 0 → 用 **canonical-probe** 防誤殺；（daytime）可優化 roster「公司優先」減少前綴空跑。
+3. **分類三段**：market-probe（不帶 data_id）→ per-stock → **canonical-2330-probe**。
+
+**honest scope（§一.8 / 無 AP-3）**：sync **進行中（~7/85，未完成）**；列數為 **DB query 快照**（§一.10 source (b)），持續增長。被跳過的 date-based dataset 需 **date-based 抓取**才能拿其資料（follow-up）。fail-fast 中途版（error/0-row）已被 canonical-probe 取代，僅 canonical-probe 入庫。
+
+**事實來源（§一.10）**：列數自 `augur` DB `SELECT count(*)`（isolated venv READ-ONLY）;dataset 分類/跳過自 `/tmp/augur_fullsync.log`（程式 stdout）;IP 健康自 `finmind.fetch` 最小探測回應。
