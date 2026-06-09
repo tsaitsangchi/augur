@@ -4,7 +4,8 @@
 - 對 FinMind v4 `data` API 的薄 client：給 dataset 名 + 參數（data_id/start_date/end_date…），
   回傳 `list[dict]`（API 原樣列，欄名/大小寫逐字照 API，#2；不改值、不補值，#1）。
 - token 從 `config.FINMIND_TOKEN` 取（不寫死，§一.5）。
-- 扛真實世界的不穩定（#7 韌性）：逾時 / 連線錯誤 / 額度限流（402/429）→ 指數退避重試；
+- 扛真實世界的不穩定（#7 韌性）：**主動限速**（每請求最小間隔，平滑 burst、整體壓在 FinMind ~6000/hr IP 線下，
+  防 403 ip banned）＋ 逾時 / 連線 / 額度限流 / IP 封鎖（402/429/403）→ 依回應 `retry_after` 或指數退避重試；
   參數錯 / token 錯等應用層錯誤 → 立即拋 `FinMindError`（重試也沒用）。
 - `list_datasets()`：送一個無效 dataset → FinMind 回 422，其 enum 列出全部合法 dataset 名
   → 支援 #3「`--all` 動態列舉、無 hardcoded 清單」。
@@ -27,6 +28,21 @@ API_URL = "https://api.finmindtrade.com/api/v4/data"
 _PROBE_INVALID = "__augur_probe_invalid__"   # 送無效 dataset → 422 列出全部合法 dataset
 _DATASET_RE = re.compile(r"'([A-Za-z0-9]+)'")
 
+# ── 主動限速（#7;§一.9 經驗:2026-06-09 全史 burst 觸發 403 ip banned）──
+# 每請求最小間隔 → 平滑 burst、整體壓在 FinMind ~6000/hr IP 線下;全部 fetch（驗證與全史）同走此門,
+# 一律被限速 → 無論怎麼啟動都 burst 不起來（把「驗證時手動 sleep 間隔」內建進程式）。
+MIN_INTERVAL = 0.7      # 秒/請求(上限 ~5100/hr)
+MAX_COOLDOWN = 1800     # honor retry_after 之上限(秒)
+_last_request = [0.0]   # 上次請求 monotonic 時點(list 供函式內改寫)
+
+
+def _pace():
+    """主動限速:確保距上次請求 ≥ MIN_INTERVAL 秒(平滑 burst,防 IP 限速封鎖)。"""
+    wait = MIN_INTERVAL - (time.monotonic() - _last_request[0])
+    if wait > 0:
+        time.sleep(wait)
+    _last_request[0] = time.monotonic()
+
 
 class FinMindError(RuntimeError):
     """FinMind API 應用層/連線錯誤（呼叫端可據此決定跳過/重排/中止）。"""
@@ -41,6 +57,7 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
     query = {**params, "dataset": dataset, "token": config.FINMIND_TOKEN}
     backoff = base_backoff
     for attempt in range(max_retries + 1):
+        _pace()                                   # 主動限速:每筆 fetch 先間隔(防 burst 被封)
         try:
             resp = requests.get(API_URL, params=query, timeout=timeout)
         except (requests.Timeout, requests.ConnectionError) as e:
@@ -50,12 +67,17 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
                 continue
             raise FinMindError(f"{dataset}: 連線失敗（重試 {max_retries} 次後）{type(e).__name__}") from e
 
-        if resp.status_code in (402, 429):   # 額度/限流 → 退避重試
+        if resp.status_code in (402, 429, 403):   # 額度/限流/IP 封鎖 → 依 retry_after 或退避重試
             if attempt < max_retries:
-                time.sleep(backoff)
+                ra = None
+                try:
+                    ra = resp.json().get("retry_after")   # FinMind 限速回應常附 retry_after(秒)
+                except ValueError:
+                    pass
+                time.sleep(min(float(ra), MAX_COOLDOWN) if ra else backoff)
                 backoff *= 2
                 continue
-            raise FinMindError(f"{dataset}: 額度/限流 HTTP {resp.status_code}（重試 {max_retries} 次仍失敗）")
+            raise FinMindError(f"{dataset}: 限流/封鎖 HTTP {resp.status_code}（重試 {max_retries} 次仍失敗）")
 
         try:
             body = resp.json()
@@ -72,6 +94,7 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
 
 def list_datasets(*, timeout=60):
     """回傳 FinMind 全部合法 dataset 名（送無效 dataset → 解析 422 enum）；支援 #3 動態列舉。"""
+    _pace()
     query = {"dataset": _PROBE_INVALID, "token": config.FINMIND_TOKEN}
     resp = requests.get(API_URL, params=query, timeout=timeout)
     body = resp.json()
