@@ -35,7 +35,7 @@
 14. **Commit / Push 須明示授權**：不自行 `git commit` / `git push`；用戶要求時遵守 git 安全協議（不 `--amend` 已 push、不 `--force` 主分支、不跳 hooks）。commit 訊息結尾加 `Co-Authored-By: Claude ...`。
 15. **PR / 遠端**：不自行建/關 PR、不在 issue 留言；影響遠端狀態的 `gh` 操作先確認。
 16. **研究報告**：寫入 `reports/`，命名 `<module>_<topic>_<YYYYMMDD>.md`。
-17. **新程式對齊原則精華**：碰 ingestion/feature/universe/model 時，對照 `docs/原則精華_v1.0.0.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。
+17. **新程式對齊原則精華（clean-room）**：augur 所有程式一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 / live API 實證 建立；**不讀、不移植 stock_backend 的 code**（它僅為憲章附錄 B 考古索引／反面教材，非 code 來源）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.0.0.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。
 18. **程式標頭慣例（精簡——不重蹈 stock_backend 50-230 行標頭）**：
     - **每支**：🎯 白話 docstring（這支在做什麼，給人看的）+ 一行「守原則 #X #Y」。
     - **CLI 入口程式**（sync / builder / trainer / validator）：再加簡短 usage / 指令段。

@@ -1,0 +1,81 @@
+"""augur 系統內部表 schema — infra log 表 DDL + 從 DB 推導任一表 schema 的 helper。
+
+這支在做什麼（白話）：管兩件「系統內部表 / schema 查詢」的事（不碰 API 原始表）：
+1. **infra log 表 DDL**（憲章第五部 PHASE 1「Infra bootstrap」）：
+   - `pipeline_execution_log`：每次任務跑了什麼、成敗、幾列、起訖時間。
+   - `data_audit_log`：哪個 dataset / 哪支股、做了什麼寫入或對帳、幾列。
+   這兩張是**系統自己產生的運維表**（非 API 回應）→ 沒有 API schema 可推 → 用 **explicit DDL** 建
+   （不走 generic auto-schema）。`bootstrap_infra(cur)` 建它們（冪等）。
+2. **DB-derived schema helper**：
+   - `get_dataset_columns(cur, table)`：從 `information_schema` 查任一表的 {欄位: 型別}。
+   - `get_dataset_keys(cur, table)`：查該表的 PRIMARY KEY 欄（委派 generic_schema，不重複實作）。
+   下游（reconcile / builder）藉此取得「這張表現在長怎樣」，**以 DB 為準、不另立手維白名單**（#2）。
+
+邊界：不抓 API、不算特徵、不選股；**不建 API 原始表**（那是 generic_schema 的職責）。
+infra log 表用**運維型別**（BIGSERIAL / TIMESTAMP / TEXT）——#5 的 VARCHAR(255)/NUMERIC(20,6) 是給
+**API 資料表**的規則，系統內部運維表自訂明確型別。
+
+守 #2（schema 以 DB 為準 / 不另立白名單）· 核心橫切基礎（infra 表 DDL + DB-derived schema 單一引用源，#12）。
+"""
+from __future__ import annotations
+
+from augur.core import generic_schema
+
+# ── infra log 表（憲章 PHASE 1；系統內部運維表，explicit DDL，非 API auto-schema）──
+INFRA_DDL = {
+    "pipeline_execution_log": """
+        CREATE TABLE IF NOT EXISTS pipeline_execution_log (
+            id          BIGSERIAL PRIMARY KEY,
+            task        VARCHAR(255) NOT NULL,
+            target      VARCHAR(255),
+            status      VARCHAR(255) NOT NULL,
+            rows        BIGINT,
+            started_at  TIMESTAMP NOT NULL DEFAULT now(),
+            ended_at    TIMESTAMP,
+            detail      TEXT
+        )""",
+    "data_audit_log": """
+        CREATE TABLE IF NOT EXISTS data_audit_log (
+            id          BIGSERIAL PRIMARY KEY,
+            dataset     VARCHAR(255) NOT NULL,
+            data_id     VARCHAR(255),
+            action      VARCHAR(255) NOT NULL,
+            rows        BIGINT,
+            logged_at   TIMESTAMP NOT NULL DEFAULT now(),
+            detail      TEXT
+        )""",
+}
+
+
+def bootstrap_infra(cur):
+    """建立 infra log 表（憲章 PHASE 1）；冪等（CREATE IF NOT EXISTS）。回傳已確保之表名 list。"""
+    for ddl in INFRA_DDL.values():
+        cur.execute(ddl)
+    return list(INFRA_DDL)
+
+
+# ── DB-derived schema（#2：以 DB 為準，不另立白名單）──
+def _pg_type(data_type, char_len, precision, scale):
+    """information_schema 欄位資訊 → 還原成 PG 型別字串。"""
+    dt = data_type.upper()
+    if dt in ("CHARACTER VARYING", "VARCHAR"):
+        return f"VARCHAR({char_len})" if char_len else "VARCHAR"
+    if dt == "NUMERIC":
+        return f"NUMERIC({precision},{scale})" if precision is not None else "NUMERIC"
+    if dt == "TIMESTAMP WITHOUT TIME ZONE":
+        return "TIMESTAMP"
+    return dt  # DATE / TEXT / BIGINT / INTEGER / BOOLEAN …
+
+
+def get_dataset_columns(cur, table):
+    """{col: pg_type_str}，依該表在 DB 之實況（information_schema，按欄序）；表不存在 → {}。"""
+    cur.execute(
+        "SELECT column_name, data_type, character_maximum_length, numeric_precision, numeric_scale "
+        "FROM information_schema.columns WHERE table_name=%s ORDER BY ordinal_position",
+        (table,))
+    return {r[0]: _pg_type(r[1], r[2], r[3], r[4]) for r in cur.fetchall()}
+
+
+def get_dataset_keys(cur, table):
+    """表之 PRIMARY KEY 欄（依序）；無表/無 PK → []。委派 generic_schema（#12 不重複實作）。"""
+    return generic_schema.db_primary_key(cur, table)
