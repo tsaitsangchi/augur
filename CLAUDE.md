@@ -52,6 +52,8 @@
 22. **≥30 分鐘 / 過夜任務防睡眠**：背景啟動 + 進程存活 watchdog + sentinel；WSL2/雲機**確認主機不會睡眠**（本機 Linux 端用 `systemd-inhibit`，但擋不住 Windows/雲主機睡眠——須用戶確認電源設定）；長跑須有 resume 後路。
 23. **環境前置**：首次 setup 跑 import smoke test 才進後續；OS 層依賴（OpenMP for xgboost/lightgbm、PostgreSQL headers）先補。
 24. **API 限速（對齊原則 #17）**：對 FinMind / FRED 抓取一律經 `ingestion/finmind.py` 內建主動限速 `_pace()`（最小間隔）+ honor `retry_after`；**不得高併發 / 無間隔狂打服務端**（防 IP ban，實證 2026-06-09 全史 burst → `403 ip banned`）。驗證與全史走同一 `fetch`、同一限速。
+    - **實證升級（2026-06-09 夜）**：0.7s throttle（~5100/hr，雖 < 6000/hr 硬上限）在**持續串流**下仍觸發 FinMind **sustained-abuse / 每日累積** ban——**此 ban 非 hourly quota**（`user_info` 顯示當時僅用 8/6000）。對策：放慢至 **2s/筆（~1800/hr）**，且**全市場全史接受跨日分批**（commit-per-stock resume）。教訓：「低於 hourly 上限」≠ 安全；持續高速率從單一 IP 會觸發更嚴的累積偵測。
+25. **測試用最小單位（單股單日）**：任何 API 探測/健康檢查一律用**最小單位**——單一個股 + 單一日期（`data_id=X, start_date=end_date=某日`，回 ~1 列），**不用寬窗 / 多股串流去測**（測試本身也是負載，會戳已敏感的 IP）。流程：**先最小探測確認 IP 健康，通了才放量跑 sync**；放量後緊盯前段，re-ban 立即停、退回休息（**不留無人看顧的 hang**）。實證 2026-06-09：寬窗（8013 列）/ 120 股串流測試太重，且給「短測過了」的假信心 → sync 一放量又 re-ban。
 
 ## 五、本檔升版
 

@@ -51,4 +51,25 @@
 - **全史 sync:已排程「靜置冷卻 → 自動啟動」**（`caffeinate` 包裹 `/tmp/augur_wait_sync.sh`:靜置 1hr 讓 IP-burst-ban 自然解 → 自動跑 throttled 全史 sync;5-min HB 監看;per-stock resume）。**仍未完成,啟動後結果待補**（不預先宣稱,§一.10 / 無 aspirational #15）。
 - doctrine + code:原則 #17 + `finmind.py` throttle 已 committed（`treaty-v1.2.0`）。
 
+## §5 2026-06-09 夜：持續負載 re-ban + 最小單位測試原則 + 2s/跨日 決策
+
+**經過（晚間多次嘗試，全 source-traceable）**：
+1. 1hr 靜置冷卻後 IP 短暫恢復：**寬窗實測 TaiwanStockPrice 2330 `start=1990` = 8013 列 / 0.6s**（→ **寬窗本身不慢、非瓶頸**，推翻先前「寬窗太慢」假設）；**120 股串流測試乾淨**（0 hang / 0.70s/股 / 274,554 列）。
+2. 據此啟動完整 1990- 全史（0.7s throttle）→ 跑 ~6min、第一支 per-stock dataset 中 → **CPU-time 凍 + finmind 連線卡（ESTABLISHED 等 60s timeout）+ log 凍**。
+3. 趁卡時測 3 個 dataset → **全部 fast 403** → **IP 又被封**。
+
+**關鍵發現**：
+- **此 403 非 hourly quota**：`user_info` 顯示每小時上限 6000、當時僅用 8 → 是 FinMind **更嚴的「持續高速率 / 每日累積濫用」偵測**。
+- **「低於 6000/hr」≠ 安全**：0.7s（~5100/hr）持續串流仍 re-ban；**短測過了也不代表能撐持續 sync**（120 股 / 84s 太短，未揭露）。
+- 今日該 IP 經 stock_backend 5h sync + augur 多輪 probe/build/2 次 sync 嘗試 → **當日容忍額度耗盡**，當天 cooldown-retry 都易 re-ban，需**整夜零負載重置**。
+
+**決策（明天起）**：
+- **throttle 0.7s → 2s**（~1800/hr，`finmind.py:MIN_INTERVAL=2.0`）。
+- **觀測 log**：`sync.py` 每 dataset 開始印「探測中 / per-stock 模式」+ per-stock interim **每 200 → 50 股**（消除「沒 log 看似卡死」盲點）。
+- **接受跨日分批**：全史 ~76k call 單一 IP 可能超當日總量 → 每天跑一段、commit-per-stock resume 接續。
+- **最小單位測試原則（入 CLAUDE.md rule 25）**：所有探測用單股單日（~1 列），先確認 IP 健康才放量。
+- **probe-before-launch、attended retry**：等 1hr 零負載 → 最小探測 → 通了才（有人看顧地）放量，re-ban 立即停，不留無人看顧的 hang。
+
+**誠實記錄（§一.8）**：今晚對 IP 狀態判斷修正 4 次（① ban 誤稱配額耗盡 ② 216s 過早殺正在跑的 sync ③「重啟就好」過早 ④「短測過了→今晚跑」過度樂觀）。根本教訓：應一開始就信「IP 當日已耗盡、需過夜」。
+
 **事實來源（§一.10）**：問題/error 自實跑 stdout（`/tmp/augur_fullsync.log` traceback）;IP ban 自 `finmind.fetch` + `user_info` API 回應（`status=403`/`retry_after=1408`）;表數/列數自 DB query;build 結果自 `/tmp/augur_build_result.json` + log。

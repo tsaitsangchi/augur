@@ -31,7 +31,7 @@ _DATASET_RE = re.compile(r"'([A-Za-z0-9]+)'")
 # ── 主動限速（#7;§一.9 經驗:2026-06-09 全史 burst 觸發 403 ip banned）──
 # 每請求最小間隔 → 平滑 burst、整體壓在 FinMind ~6000/hr IP 線下;全部 fetch（驗證與全史）同走此門,
 # 一律被限速 → 無論怎麼啟動都 burst 不起來（把「驗證時手動 sleep 間隔」內建進程式）。
-MIN_INTERVAL = 0.7      # 秒/請求(上限 ~5100/hr)
+MIN_INTERVAL = 2.0      # 秒/請求(~1800/hr;2026-06-09 實證 0.7s 持續串流仍觸發 IP sustained-abuse ban → 放慢更保守)
 MAX_COOLDOWN = 1800     # honor retry_after 之上限(秒)
 _last_request = [0.0]   # 上次請求 monotonic 時點(list 供函式內改寫)
 

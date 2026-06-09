@@ -64,6 +64,8 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
     """
     if ingest.is_intraday(dataset):
         return {"dataset": dataset, "mode": "skip-intraday", "rows": 0}
+    if progress:
+        progress(f"  → {dataset}：分類探測（寬窗 {full_start}-，市場別/逐股判定）…")
     # 1) 分類探測：用 full_start 寬窗（不帶 data_id）。實測 per-stock dataset 唯有寬窗才可靠回空
     #    （窄窗如今日會回「全市場最新」污染判斷）；market dataset 寬窗回全史。有資料 → 市場別。
     try:
@@ -76,6 +78,8 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
         res = ingest.store(conn, dataset, probe)   # 寬窗探測即全量，直接存（冪等）
         return {"dataset": dataset, "mode": "market", "rows": res["rows"]}
     # 2) 逐股模式（resume：每股各自從 max(date) 續）
+    if progress:
+        progress(f"  → {dataset}：per-stock 模式,逐 {len(roster)} 股（每 50 股回報一次）…")
     total = stocks = 0
     for i, sid in enumerate(roster, 1):
         start = _max_date(conn, dataset, "stock_id", sid) or full_start
@@ -85,7 +89,7 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
             continue   # 該股無此資料 → 跳過（不中斷全批）
         total += res["rows"]
         stocks += 1 if res["rows"] else 0
-        if progress and i % 200 == 0:
+        if progress and i % 50 == 0:
             progress(f"  {dataset}: {i}/{len(roster)} 股、累計 {total} 列")
     return {"dataset": dataset, "mode": "per-stock", "rows": total, "stocks_with_data": stocks}
 
