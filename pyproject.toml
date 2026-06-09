@@ -1,0 +1,32 @@
+[project]
+name = "augur"
+version = "1.0.0"
+description = "只用真實資料、誠實預測台股 — source-pure Taiwan equity forecasting"
+requires-python = ">=3.10"
+dependencies = [
+    "psycopg2-binary>=2.9",
+    "pandas>=2.0",
+    "polars>=0.20",
+    "numpy>=1.26",
+    "requests>=2.31",
+    "python-dotenv>=1.0",
+    "scikit-learn>=1.4",
+    "xgboost>=2.0",
+    "lightgbm>=4.0",
+    "catboost>=1.2",
+]
+
+[project.optional-dependencies]
+# 重型 transformer 模型隔離安裝（CPU-only 用 torch +cpu 版，避免降級主環境）
+deep = ["torch>=2.2"]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
