@@ -51,14 +51,15 @@ def ingest_fred(conn, series_id, *, audit=True, **params):
     return store(conn, FRED_TABLE, rows, data_id=series_id, audit=audit)
 
 
-def store(conn, table, rows, *, data_id=None, audit=True):
+def store(conn, table, rows, *, data_id=None, audit=True, require_keys=()):
     """落地已抓好的列（呼叫端已 fetch；如 sync 的市場別探測列，免重抓）。空列 → 回 0。
+    require_keys：必納入 PK 之欄（透傳 provision_and_upsert；如 by-date 之 ('date',)）。
 
     一段交易內 provision_and_upsert（+ 可選稽核），原子提交（#6）。"""
     if not rows:
         return {"table": table, "rows": 0, "schema": {}, "keys": []}
     with db.transaction(conn) as cur:
-        n, schema, keys = generic_schema.provision_and_upsert(cur, table, rows)
+        n, schema, keys = generic_schema.provision_and_upsert(cur, table, rows, require_keys=require_keys)
         if audit:
             cur.execute(
                 "INSERT INTO data_audit_log (dataset, data_id, action, rows) VALUES (%s, %s, %s, %s)",

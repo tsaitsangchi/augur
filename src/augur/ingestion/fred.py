@@ -67,13 +67,13 @@ def fetch(series_id, *, start_date=None, end_date=None, timeout=60, max_retries=
         if resp.status_code != 200 or "observations" not in body:
             raise FredError(f"{series_id}: HTTP {resp.status_code} {body.get('error_message', body)}")
 
+        # 只取 (series_id, date, value)：FRED 的 realtime_start/realtime_end 為「查詢日 vintage
+        # metadata」（隨查詢日變、非觀測值本身），存了破壞冪等與對帳 → 扣「只存真實值」不存。
         return [
             {
                 "series_id": series_id,
                 "date": obs.get("date"),
                 "value": None if obs.get("value") == "." else obs.get("value"),
-                "realtime_start": obs.get("realtime_start"),
-                "realtime_end": obs.get("realtime_end"),
             }
             for obs in body["observations"]
         ]

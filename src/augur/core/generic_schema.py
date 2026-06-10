@@ -113,15 +113,22 @@ def infer_schema(rows):
     return schema
 
 
-def detect_keys(rows, schema):
+def detect_keys(rows, schema, require=()):
     """貪婪挑能唯一識別 sample 列之最小候選欄組合；退回非空非 TEXT 欄（#6 主鍵穩定）。
-    主鍵不可空 → 只用 sample 全非空之欄。"""
+    主鍵不可空 → 只用 sample 全非空之欄。
+
+    require：必納入 PK 之欄（即使 sample 不需它即唯一）。用於 by-date 單期 sample——單日 sample 內
+    stock_id 已唯一會漏掉 date，require=('date',) 強制補回，防多日 upsert 互相覆蓋塌成每股 1 列。
+    """
     cols = list(schema)
     nonnull = [c for c in cols if all(not _is_null(r.get(c)) for r in rows)]
     chosen = []
     for c in (x for x in KEY_CANDIDATES if x in nonnull):
         chosen.append(c)
         if len({tuple(r.get(x) for x in chosen) for r in rows}) == len(rows):
+            for rk in require:                       # 強制納入（如 by-date 之 date，sample 單期會漏）
+                if rk in nonnull and rk not in chosen:
+                    chosen.append(rk)
             return chosen
     return [c for c in nonnull if schema[c] != "TEXT"] or nonnull or cols
 
@@ -240,10 +247,11 @@ def upsert(cur, table, rows, schema, keys):
     return len(data)
 
 
-def provision_and_upsert(cur, table, rows):
+def provision_and_upsert(cur, table, rows, require_keys=()):
     """一站式：infer_schema → ensure_table（重用既有 PK）→ upsert。
+    require_keys：必納入 PK 之欄（傳給 detect_keys；如 by-date 之 ('date',)）。
     回傳 (寫入列數, schema, effective_keys)；呼叫端負責 commit + audit。"""
     schema = infer_schema(rows)
-    keys = detect_keys(rows, schema)
+    keys = detect_keys(rows, schema, require=require_keys)
     eff = ensure_table(cur, table, schema, keys)
     return upsert(cur, table, rows, schema, eff), schema, eff

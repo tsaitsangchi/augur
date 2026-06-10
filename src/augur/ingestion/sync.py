@@ -7,8 +7,10 @@
 - **逐 dataset sync**（`sync_finmind_dataset`）：先試「市場別」（不帶 data_id）；若 FinMind 說需要
   data_id → 自動切「逐股」模式（用 roster 跑）。**adaptive**，不靠 hardcoded 分類。
 - **斷點續傳**（`_max_date` + #6）：**逐股** dataset 每股看 DB 既有 `max(date)`，只從那天起續抓；
-  無表→全史。重跑安全（generic 是 `ON CONFLICT` 冪等）。⚠️ **market dataset 目前每次重抓全史**
-  （分類探測須用寬窗才可靠）；market 增量 resume + 超大 market 表分日期段抓 = 待 production 優化。
+  無表→全史。重跑安全（generic 是 `ON CONFLICT` 冪等）。
+- **全市場增量**（`sync_by_date`）：不帶 data_id 逐「交易日」抓整個市場（一筆 = 一天全市場 ~4 萬檔），
+  DB resume 從既有 `max(date)` 起。**每日維護 request 從 3100（逐股）→ 範圍內交易日數（個位數）**。
+  適用「不帶 data_id 即回整日全市場」之 dataset；需 data_id 者回 `not-by-date-capable`。
 - `sync_fred`：對給定 FRED series 清單做同樣 resume sync（落 `fred_series`）。
 - `sync_all`：PHASE 2→4 一條龍（可傳 roster/dataset 子集做小範圍測試）。
 
@@ -21,6 +23,8 @@
 守 #3（動態列舉、無 hardcoded 清單）· #4（intraday 不收）· #6（冪等 + DB-driven 斷點續傳）· #1/#2（忠實落地）。
 """
 from __future__ import annotations
+
+from datetime import date, timedelta
 
 from augur.core import db, schema
 from augur.ingestion import finmind, fred, ingest
@@ -105,6 +109,49 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
     return {"dataset": dataset, "mode": "per-stock", "rows": total, "stocks_with_data": stocks}
 
 
+def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
+    """全市場增量 by-date sync：不帶 data_id 逐交易日抓整個市場（一筆=一天全市場）+ DB resume。
+
+    適用「不帶 data_id 即回整日全市場」之日頻 dataset（價量/法人/融資券…）；需 data_id 之 dataset
+    回 mode='not-by-date-capable'。每日維護 request 從 3100（逐股）→ 範圍內交易日數（通常個位數）。
+    start 預設 = DB 既有 max(date)（resume，重抓該日補結算）；DB 空且未給 start → 拒絕（首次全史請
+    用 sync_finmind_dataset 逐股）。end 預設 = 今日。
+    """
+    if ingest.is_intraday(dataset):
+        return {"dataset": dataset, "mode": "skip-intraday", "rows": 0}
+    if start is None:
+        start = _max_date(conn, dataset)
+        if start is None:
+            raise ValueError(f"{dataset}：DB 無既有資料且未指定 start；by-date 為增量用途，"
+                             f"首次全史請用 sync_finmind_dataset（逐股）或明確給 start")
+    end = end or date.today().isoformat()
+    cur, last = date.fromisoformat(start[:10]), date.fromisoformat(end[:10])
+    total = tdays = reqs = 0
+    while cur <= last:
+        if cur.weekday() >= 5:                    # 週末無交易 → 不發請求（#17 省 request）
+            cur += timedelta(days=1)
+            continue
+        day = cur.isoformat()
+        try:
+            rows = finmind.fetch(dataset, start_date=day, end_date=day)   # by-date：不帶 data_id = 整日全市場
+        except finmind.FinMindError as e:
+            if reqs == 0 and "data_id" in str(e):                         # 首筆即需 data_id → 不支援 by-date
+                return {"dataset": dataset, "mode": "not-by-date-capable", "rows": 0}
+            reqs += 1
+            cur += timedelta(days=1)
+            continue                                                      # 某日錯 → 跳過該日，不中斷
+        reqs += 1
+        if rows:
+            # require_keys=('date',)：by-date 單日 sample 內 stock_id 已唯一會漏掉 date，強制 date 入 PK
+            # 防多日 upsert 互相覆蓋塌成每股 1 列（pilot 實證 bug）
+            total += ingest.store(conn, dataset, rows, require_keys=("date",))["rows"]
+            tdays += 1
+        cur += timedelta(days=1)
+        if progress and reqs % 20 == 0:
+            progress(f"  {dataset} by-date {day}: {tdays} 交易日 / {total} 列 / {reqs} 筆")
+    return {"dataset": dataset, "mode": "by-date", "rows": total, "trading_days": tdays, "requests": reqs}
+
+
 def sync_fred(conn, series_ids, *, full_start=FULL_START, progress=None):
     """sync 給定 FRED series 清單（落 fred_series，每 series resume）。回 summary。"""
     total = 0
@@ -138,4 +185,26 @@ def sync_all(conn, *, roster=None, datasets=None, fred_series=None, full_start=F
             progress(f"[{i}/{len(datasets)}] {ds}: {r['mode']} {r['rows']} 列")
     if fred_series:
         results.append(sync_fred(conn, fred_series, full_start=full_start, progress=progress))
+    return results
+
+
+def sync_all_by_date(conn, *, datasets=None, end=None, progress=print):
+    """每日維護入口：對所有（或給定）日頻 dataset 跑 by-date 全市場增量（resume）。
+
+    每 dataset 的 mode：`by-date`（成功增量）/ `no-baseline`（DB 無基線，需先 sync_finmind_dataset
+    逐股初載）/ `not-by-date-capable`（需 data_id，須走逐股或逐 id 路徑）/ `skip-intraday`。
+    """
+    if datasets is None:
+        datasets = daily_datasets()
+    if progress:
+        progress(f"每日維護 by-date：{len(datasets)} 日頻 dataset")
+    results = []
+    for i, ds in enumerate(datasets, 1):
+        try:
+            r = sync_by_date(conn, ds, end=end, progress=progress)
+        except ValueError:
+            r = {"dataset": ds, "mode": "no-baseline", "rows": 0}   # DB 無既有資料 → 需先逐股初載
+        results.append(r)
+        if progress:
+            progress(f"[{i}/{len(datasets)}] {ds}: {r['mode']} {r.get('rows', 0)} 列 / {r.get('requests', '-')} 筆")
     return results
