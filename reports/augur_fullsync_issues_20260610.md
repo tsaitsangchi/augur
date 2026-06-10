@@ -4,3 +4,5 @@
 
 | dataset | 類型 | 細節 |
 |---|---|---|
+| `TaiwanStockGovernmentBankBuySell` | 對帳 FAIL（疑幻像/不一致） | VM=0 EX=412111 MIS=412111 |
+| `TaiwanStockInstitutionalInvestorsBuySell` | 對帳 FAIL（疑幻像/不一致） | VM=3 EX=0 MIS=2627750 |

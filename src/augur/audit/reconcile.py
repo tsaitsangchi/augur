@@ -45,7 +45,9 @@ def _norm(v):
 
 
 def _key(row, pk):
-    return tuple(str(row.get(c)) for c in pk)
+    # 用 _norm（與值比對一致）：數值 PK 欄 DB(NUMERIC Decimal) 與 API(raw str) 正規化為同值，
+    # 否則寬 PK（含數值欄）之 DB/API key 永遠對不上 → 100% false EX/MIS（2026-06-11 GovBank 實證）。
+    return tuple(_norm(row.get(c)) for c in pk)
 
 
 def compare(db_rows, api_rows, pk, valcols):
