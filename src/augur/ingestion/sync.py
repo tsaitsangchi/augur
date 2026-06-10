@@ -43,8 +43,9 @@ def seed_roster(conn):
 
 
 def daily_datasets():
-    """PHASE 4 列舉：FinMind 全 dataset 去掉 intraday（#4）→ 日頻清單（#3 動態、無 hardcoded）。"""
-    return [d for d in finmind.list_datasets() if not ingest.is_intraday(d)]
+    """PHASE 4 列舉：FinMind 全 dataset 去掉 intraday（#4）+ 範圍外（#3 OUT_OF_UNIT）→ 日頻清單（#3 動態、無 hardcoded）。"""
+    return [d for d in finmind.list_datasets()
+            if not ingest.is_intraday(d) and d not in ingest.OUT_OF_UNIT]
 
 
 def _max_date(conn, table, id_col=None, id_val=None):
@@ -68,6 +69,8 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
     """
     if ingest.is_intraday(dataset):
         return {"dataset": dataset, "mode": "skip-intraday", "rows": 0}
+    if dataset in ingest.OUT_OF_UNIT:                      # #3 範圍外（sub-stock/非股標的）→ 明文排除
+        return {"dataset": dataset, "mode": "excluded-out-of-unit", "rows": 0}
     if progress:
         progress(f"  → {dataset}：分類探測（寬窗 {full_start}-，市場別/逐股判定）…")
     # 1) 分類探測：用 full_start 寬窗（不帶 data_id）。實測 per-stock dataset 唯有寬窗才可靠回空
@@ -90,8 +93,13 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
     except finmind.FinMindError:
         canon = None
     if not canon:
+        # 非 per-stock → fall through 試 by-date（全市場逐交易日、不帶 data_id）。adaptive，不靠 hardcoded 清單。
+        # sync_by_date 首筆若需 data_id 會自回 not-by-date-capable（自我守門）→ 此時才真的非 canonical。
         if progress:
-            progress(f"  → {dataset}：canonical 2330 回 0/錯 → 非 per-stock（date-based）,跳過,待正確分類")
+            progress(f"  → {dataset}：canonical 2330 回 0/錯 → 改試 by-date（全市場逐交易日）…")
+        bd = sync_by_date(conn, dataset, start=(_max_date(conn, dataset) or full_start), progress=progress)
+        if bd.get("mode") == "by-date":
+            return bd
         return {"dataset": dataset, "mode": "per-stock-non-canonical", "rows": 0, "stocks_with_data": 0}
     if progress:
         progress(f"  → {dataset}：per-stock 模式（canonical 2330 ✓）,逐 {len(roster)} 股（每 50 股回報一次）…")
@@ -119,6 +127,8 @@ def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
     """
     if ingest.is_intraday(dataset):
         return {"dataset": dataset, "mode": "skip-intraday", "rows": 0}
+    if dataset in ingest.OUT_OF_UNIT:                      # #3 範圍外 → 明文排除（與 sync_finmind_dataset 一致，增量路徑亦守）
+        return {"dataset": dataset, "mode": "excluded-out-of-unit", "rows": 0}
     if start is None:
         start = _max_date(conn, dataset)
         if start is None:
