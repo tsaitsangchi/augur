@@ -24,7 +24,7 @@ augur＝stock_backend 的 **clean-room** 重啟，「只用真實資料、誠實
 | ingestion | `finmind.py`(主動限速)·`fred.py`(只存series_id/date/value)·`ingest.py`(#4 intraday守門)·`sync.py`(seed/列舉/per-stock canonical-2330-probe/**sync_by_date 全市場增量**/sync_all_by_date) | |
 | audit | `reconcile.py` | #7 DB↔API byte對帳(matched/VM/MIS/EX)+per_date+fixable/flagged+**heal_by_date** |
 | features | `builder.py` | **14 source-pure 價量特徵**(缺列/無hardcoded/anti-leakage) |
-| universe | `builder.py` | **純完整度 gate**(無評分排名/pan-historical/反硬編canonical) |
+| universe | `core_gate.py` | **純完整度 gate**(無評分排名/pan-historical/反硬編canonical) |
 | scripts | `full_market_sync.py`(從零全量+逐dataset#7對帳+問題記錄)·`daily_maintenance.py`(by-date增量+對帳) | |
 
 ## 4. ⚠️ NOT in git（machine-local — 新機沒有，須自建）
