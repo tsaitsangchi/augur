@@ -61,6 +61,32 @@ def _max_date(conn, table, id_col=None, id_val=None):
     return str(row[0]) if row and row[0] else None
 
 
+def _bydate_data_start(dataset, full_start, *, end=None):
+    """API-driven 起點探測（#18 不空抓）：自 end 往回逐年探（每年取樣 6 個分散日避假日、不探未來日），
+    找到資料年後再往回一年無資料即抵達邊界 → 回最早有資料之年。只觸碰資料年 + 1 邊界年（最小空抓，
+    不從 full_start 空掃 30 年）。全程無資料 → 回 end（等同不抓，由呼叫端判 not-by-date-capable）。"""
+    end_s = end or date.today().isoformat()
+    end_y, start_y = int(end_s[:4]), int(full_start[:4])
+    earliest = None
+    for y in range(end_y, start_y - 1, -1):                    # 自近往遠
+        found = False
+        for md in ("-11-15", "-08-15", "-05-15", "-02-15", "-12-15", "-06-15"):
+            day = f"{y}{md}"
+            if day > end_s:                                   # 不探未來日
+                continue
+            try:
+                if finmind.fetch(dataset, start_date=day, end_date=day):
+                    found = True
+                    break
+            except finmind.FinMindError:
+                pass
+        if found:
+            earliest = y
+        elif earliest is not None:                            # 已有資料年、再往回一年無資料 → 抵起點邊界 → 停
+            break
+    return f"{earliest}-01-01" if earliest else end_s
+
+
 def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progress=None):
     """sync 一個 FinMind dataset：市場別探測有資料→市場別；回空/需 data_id→逐股（resume）。回 summary。
 
@@ -96,8 +122,9 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
         # 非 per-stock → fall through 試 by-date（全市場逐交易日、不帶 data_id）。adaptive，不靠 hardcoded 清單。
         # sync_by_date 首筆若需 data_id 會自回 not-by-date-capable（自我守門）→ 此時才真的非 canonical。
         if progress:
-            progress(f"  → {dataset}：canonical 2330 回 0/錯 → 改試 by-date（全市場逐交易日）…")
-        bd = sync_by_date(conn, dataset, start=(_max_date(conn, dataset) or full_start), progress=progress)
+            progress(f"  → {dataset}：canonical 2330 回 0/錯 → 改試 by-date（先探資料起始年,免空抓無資料年份）…")
+        bd_start = _max_date(conn, dataset) or _bydate_data_start(dataset, full_start)
+        bd = sync_by_date(conn, dataset, start=bd_start, progress=progress)
         if bd.get("mode") == "by-date":
             return bd
         return {"dataset": dataset, "mode": "per-stock-non-canonical", "rows": 0, "stocks_with_data": 0}

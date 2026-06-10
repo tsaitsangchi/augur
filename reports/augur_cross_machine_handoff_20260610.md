@@ -14,7 +14,7 @@ augur＝stock_backend 的 **clean-room** 重啟，「只用真實資料、誠實
 - **關鍵 tags**：`treaty-v1.2.0`（治權檔）· `schema-catalog-v1.1`（80表 schema 目錄）· `f0-f1-v0.1.0`（地基+ingestion）· `f1-bydate-audit-v0.2.0`（by-date增量+對帳/heal）· `f2-features-universe-v0.3.0`（特徵+核心gate）· `fullsync-progress-20260610`（sync 進度快照）
 
 ## 2. 先讀（治權 SSOT，改 code 一律只依這 5 份）
-`docs/系統核心思想_v1.0.0.md`（靈魂）· `docs/原則精華_v1.2.0.md`（**17 條不可違反**）· `docs/系統架構大憲章_v1.2.0.md`（憲法+12-PHASE）· `CLAUDE.md`（AI 工具規則）· `README.md`。
+`docs/系統核心思想_v1.0.0.md`（靈魂）· `docs/原則精華_v1.3.0.md`（**18 條不可違反**）· `docs/系統架構大憲章_v1.3.0.md`（憲法+12-PHASE）· `CLAUDE.md`（AI 工具規則）· `README.md`。
 三敵人×三基石：**#1 零幻像 / #8 anti-leakage / #15 誠實**。**#16 clean-room：產生 augur code 絕不讀/移植 stock_backend**。對話**繁體中文**。
 
 ## 3. 已建 code（committed，全 clean-room，14 檔）
