@@ -1,7 +1,7 @@
 # CLAUDE.md — Augur AI 協作工具規則 v1.0
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
-**位階**：系統 doctrine 以 `docs/系統核心思想_v1.0.0.md` + `docs/原則精華_v1.3.0.md` + 憲章為準；
+**位階**：系統 doctrine 以 `docs/系統核心思想_v1.0.0.md` + `docs/原則精華_v1.4.0.md` + 憲章為準；
 本檔只管「**如何用 AI 工具編輯本專案**」這層短半衰期協作規則。
 **語言**：與用戶**所有對話一律繁體中文**（程式碼/識別碼/英文專名可保留原文）。
 
@@ -35,7 +35,7 @@
 14. **Commit / Push 須明示授權**：不自行 `git commit` / `git push`；用戶要求時遵守 git 安全協議（不 `--amend` 已 push、不 `--force` 主分支、不跳 hooks）。commit 訊息結尾加 `Co-Authored-By: Claude ...`。
 15. **PR / 遠端**：不自行建/關 PR、不在 issue 留言；影響遠端狀態的 `gh` 操作先確認。
 16. **研究報告**：寫入 `reports/`，命名 `<module>_<topic>_<YYYYMMDD>.md`。
-17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.3.0.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。
+17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.4.0.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。
 18. **程式標頭慣例（精簡——不重蹈 stock_backend 50-230 行標頭）**：
     - **每支**：🎯 白話 docstring（這支在做什麼，給人看的）+ 一行「守原則 #X #Y」。
     - **CLI 入口程式**（sync / builder / trainer / validator）：再加簡短 usage / 指令段。
@@ -43,7 +43,7 @@
     - **不** per-file 複述憲章 § / 治權宣言（憲章 + 原則精華為 SSOT #12；標頭只引原則 #，不改寫）。
     - **不**寫 in-file 全修訂歷程 → 交給 git（演變史進 git，不入檔；對齊「憲法只記現行法律」）。
     - 目標：讓人/AI 30 秒看懂這支做什麼、守哪些原則。
-19. **重大改動逐檔/逐段檢視 + 跨檔一致性**：實質改動**一支/一段做完讓用戶過目再進下一**，不批次傾倒（用戶 directive「一支一支來檢視」）。改動治權檔（核心思想 / 原則精華 / 憲章 / CLAUDE.md）或共用模組時，**檢查跨檔一致性**——一處改、全鏈對齊（如嚴格 source-pure 須三檔同步）。
+19. **重大改動逐檔/逐段檢視 + 跨檔一致性**：實質改動**一支/一段做完讓用戶過目再進下一**，不批次傾倒（用戶 directive「一支一支來檢視」）。改動治權檔（核心思想 / 原則精華 / 憲章 / CLAUDE.md / README）或共用模組時，**檢查跨檔一致性**——一處改、全鏈對齊（如嚴格 source-pure 須三檔同步）。
 20. **多步驟 / 破壞性任務先計畫**：≥3 步或破壞性任務**先寫計畫 + 用戶確認後執行**（可用 plan mode）；不邊想邊做大改。
 
 ## 四、Long-Running 工作流程
