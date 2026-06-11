@@ -112,6 +112,49 @@ def _bydate_data_start(dataset, full_start, *, end=None):
     return f"{earliest}-01-01" if earliest else end_s
 
 
+# 無 /datalist 之少數維度 id（官方文檔 + live-probe 證實全集，#18；非臆測白名單）
+_DOC_SEED_IDS = {
+    "TaiwanStockTotalReturnIndex": ["TAIEX", "TPEx"],   # 報酬指數:加權/櫃買(文檔+probe 證實僅此 2 個)
+}
+
+
+def _per_stock_sync(conn, dataset, roster, full_start, progress, *, mode="per-stock"):
+    """逐股抓取（roster，每股 resume DB max(date)）→ summary。"""
+    total = stocks = 0
+    for i, sid in enumerate(roster, 1):
+        start = _max_date(conn, dataset, "stock_id", sid) or full_start
+        try:
+            res = ingest.ingest_finmind(conn, dataset, data_id=sid, start_date=start)
+        except finmind.FinMindError:
+            continue   # 該股無此資料 → 跳過（不中斷全批）
+        total += res["rows"]
+        stocks += 1 if res["rows"] else 0
+        if progress and i % 50 == 0:
+            progress(f"  {dataset}: {i}/{len(roster)} 股、累計 {total} 列")
+    return {"dataset": dataset, "mode": mode, "rows": total, "stocks_with_data": stocks}
+
+
+def _dimension_sync(conn, dataset, full_start, progress):
+    """by 維度 id 抓取（#18 階層：FinMind `/datalist` → 文檔種子）。逐 id fetch+store（resume DB max(date)）。
+    無任何維度來源（非 /datalist、無文檔種子）→ 回 None（呼叫端改試 per-stock 逐股、不誤跑全 roster）。"""
+    dl = finmind.datalist(dataset)
+    ids, source = (dl, "/datalist") if dl else (_DOC_SEED_IDS.get(dataset, []), "文檔種子")
+    if not ids:
+        return None
+    if progress:
+        progress(f"  → {dataset}：by 維度 id（{len(ids)} 個、來源 {source}：{ids[:3]}…）")
+    start = _max_date(conn, dataset) or full_start
+    total = hit = 0
+    for did in ids:
+        try:
+            res = ingest.ingest_finmind(conn, dataset, data_id=did, start_date=start)
+        except finmind.FinMindError:
+            continue
+        total += res["rows"]
+        hit += 1 if res["rows"] else 0
+    return {"dataset": dataset, "mode": "by-dimension-id", "rows": total, "ids_with_data": hit}
+
+
 def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progress=None):
     """sync 一個 FinMind dataset：市場別探測有資料→市場別；回空/需 data_id→逐股（resume）。回 summary。
 
@@ -144,29 +187,38 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
     except finmind.FinMindError:
         canon = None
     if not canon:
-        # 非 per-stock → fall through 試 by-date（全市場逐交易日、不帶 data_id）。adaptive，不靠 hardcoded 清單。
-        # sync_by_date 首筆若需 data_id 會自回 not-by-date-capable（自我守門）→ 此時才真的非 canonical。
-        if progress:
-            progress(f"  → {dataset}：canonical 2330 回 0/錯 → 改試 by-date（先探資料起始年,免空抓無資料年份）…")
-        bd_start = _max_date(conn, dataset) or _bydate_data_start(dataset, full_start)
-        bd = sync_by_date(conn, dataset, start=bd_start, progress=progress)
-        if bd.get("mode") == "by-date":
-            return bd
-        return {"dataset": dataset, "mode": "per-stock-non-canonical", "rows": 0, "stocks_with_data": 0}
+        # canonical 空 → 近期多日試（不帶 data_id）判 by-date 可行性：回資料=可 by-date；全空/需 data_id
+        # = 該走 by 維度 id 或 per-stock（避免對「不帶 data_id 回 0/需 data_id」dataset 誤跑 by-date + backward-probe 空掃）
+        by_date_ok = False
+        for _bk in (0, 1, 2, 3, 7):
+            _d = (date.today() - timedelta(days=_bk)).isoformat()
+            try:
+                if finmind.fetch(dataset, start_date=_d, end_date=_d):
+                    by_date_ok = True
+                    break
+            except finmind.FinMindError as e:
+                if "data_id" in str(e):
+                    break   # 「data_id can't be none」→ 需 data_id、不可 by-date
+        if by_date_ok:
+            if progress:
+                progress(f"  → {dataset}：canonical 空、by-date 可行 → by-date（探起始年免空抓）…")
+            bd_start = _max_date(conn, dataset) or _bydate_data_start(dataset, full_start)
+            bd = sync_by_date(conn, dataset, start=bd_start, progress=progress)
+            if bd.get("mode") == "by-date":
+                return bd
+        # by-date 不行（首筆需 data_id）→ by 維度 id（#18 階層：/datalist → 文檔種子）
+        dim = _dimension_sync(conn, dataset, full_start, progress)
+        if dim is not None:   # 有維度來源（即使 rows=0 標 by-dimension-id；不誤跑全 roster）
+            return dim
+        # 無維度來源 → per-stock 逐股 fallback（per-stock 但 canonical 2330 誤判者，如 CapitalReduction 減資股稀疏）
+        ps = _per_stock_sync(conn, dataset, roster, full_start, progress, mode="per-stock-fallback")
+        if ps["stocks_with_data"]:
+            return ps
+        return {"dataset": dataset, "mode": "absent", "rows": 0}   # 已試 market/canonical/by-date/維度id/逐股
+    # canonical 2330 ✓ → per-stock
     if progress:
         progress(f"  → {dataset}：per-stock 模式（canonical 2330 ✓）,逐 {len(roster)} 股（每 50 股回報一次）…")
-    total = stocks = 0
-    for i, sid in enumerate(roster, 1):
-        start = _max_date(conn, dataset, "stock_id", sid) or full_start
-        try:
-            res = ingest.ingest_finmind(conn, dataset, data_id=sid, start_date=start)
-        except finmind.FinMindError:
-            continue   # 該股無此資料 → 跳過（不中斷全批）
-        total += res["rows"]
-        stocks += 1 if res["rows"] else 0
-        if progress and i % 50 == 0:
-            progress(f"  {dataset}: {i}/{len(roster)} 股、累計 {total} 列")
-    return {"dataset": dataset, "mode": "per-stock", "rows": total, "stocks_with_data": stocks}
+    return _per_stock_sync(conn, dataset, roster, full_start, progress)
 
 
 def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):

@@ -71,8 +71,11 @@ def store(conn, table, rows, *, data_id=None, audit=True, require_keys=()):
     一段交易內 provision_and_upsert（+ 可選稽核），原子提交（#6）。"""
     if not rows:
         return {"table": table, "rows": 0, "schema": {}, "keys": []}
+    rk = require_keys
+    if data_id is not None:   # by data_id 落地:該 data_id 對應之維度欄(值=data_id 者,如 GovBonds 之 name/匯率之 currency)強制入 PK,防不同 id 同 date 互相覆蓋塌列
+        rk = tuple(set(require_keys) | {k for k in rows[0] if str(rows[0].get(k)) == str(data_id)})
     with db.transaction(conn) as cur:
-        n, schema, keys = generic_schema.provision_and_upsert(cur, table, rows, require_keys=require_keys)
+        n, schema, keys = generic_schema.provision_and_upsert(cur, table, rows, require_keys=rk)
         if audit:
             cur.execute(
                 "INSERT INTO data_audit_log (dataset, data_id, action, rows) VALUES (%s, %s, %s, %s)",

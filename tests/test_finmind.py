@@ -101,3 +101,17 @@ def test_end_none_msg_without_end_param_no_recurse(monkeypatch):
     with pytest.raises(finmind.FinMindError):
         finmind.fetch("X", data_id="2330", start_date="2024-01-01")   # 無 end_date
     assert calls[0] == 1
+
+
+def test_datalist_returns_data_list(monkeypatch):
+    # /datalist 支援之 dataset → {data:[ids]}（#18 維度 id 全集之權威來源）
+    monkeypatch.setattr(finmind.requests, "get",
+                        lambda *a, **k: FakeResp(200, {"status": 200, "data": ["USD", "EUR", "JPY"]}))
+    assert finmind.datalist("TaiwanExchangeRate") == ["USD", "EUR", "JPY"]
+
+
+def test_datalist_unsupported_returns_empty(monkeypatch):
+    # 不支援之 dataset → {detail: enum}（無 data）→ 回 []（呼叫端改文檔種子/per-stock）
+    monkeypatch.setattr(finmind.requests, "get",
+                        lambda *a, **k: FakeResp(200, {"detail": [{"type": "enum"}]}))
+    assert finmind.datalist("TaiwanStockPrice") == []

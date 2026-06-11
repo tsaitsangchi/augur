@@ -25,6 +25,7 @@ import requests
 from augur.core import config
 
 API_URL = "https://api.finmindtrade.com/api/v4/data"
+DATALIST_URL = "https://api.finmindtrade.com/api/v4/datalist"   # /datalist:列某 dataset 之 data_id 全集(#18 維度 id 權威來源)
 _PROBE_INVALID = "__augur_probe_invalid__"   # 送無效 dataset → 422 列出全部合法 dataset
 _DATASET_RE = re.compile(r"'([A-Za-z0-9]+)'")
 
@@ -111,3 +112,16 @@ def list_datasets(*, timeout=60):
         expected = detail[0].get("ctx", {}).get("expected", "")
         return _DATASET_RE.findall(expected)
     return []
+
+
+def datalist(dataset, *, timeout=60):
+    """列某 dataset 之 data_id 全集（FinMind `/datalist`）→ `list`。僅總經/契約類支援
+    （如 GovernmentBondsYield→13 期別、TaiwanExchangeRate→幣別）；不支援之 dataset（台股 per-stock）回 `[]`。
+    #18 維度 id 全集之權威動態來源——取代臆測白名單（實證 `/datalist` > 靜態文檔）。"""
+    _pace()
+    resp = requests.get(DATALIST_URL, params={"dataset": dataset, "token": config.FINMIND_TOKEN}, timeout=timeout)
+    try:
+        data = resp.json().get("data")
+    except ValueError:
+        return []
+    return data if isinstance(data, list) else []
