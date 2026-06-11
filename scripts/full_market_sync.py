@@ -38,8 +38,10 @@ def issue(dataset, kind, detail):
 
 
 def _has_date(conn, table):
+    """有真 DATE 型別 date 欄才走 by-date 對帳；date 欄為 VARCHAR(如 FutOptTickInfo 契約月 '2026/06')走 market。"""
     with db.transaction(conn) as cur:
-        cur.execute("SELECT 1 FROM information_schema.columns WHERE table_name=%s AND column_name='date'", (table,))
+        cur.execute("SELECT 1 FROM information_schema.columns "
+                    "WHERE table_name=%s AND column_name='date' AND data_type='date'", (table,))
         return cur.fetchone() is not None
 
 

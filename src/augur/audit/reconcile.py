@@ -90,13 +90,18 @@ def _db_dicts(cur, table, cols, where="", params=()):
 
 def _blank(table):
     return {"table": table, "matched": 0, "value_mismatch": 0,
-            "missing_in_db": 0, "extra_in_db": 0, "examples": []}
+            "missing_in_db": 0, "extra_in_db": 0, "examples": [], "errors": []}
 
 
 def _merge(agg, r):
     for k in ("matched", "value_mismatch", "missing_in_db", "extra_in_db"):
         agg[k] += r[k]
     agg["examples"] = (agg["examples"] + r["examples"])[:_EXAMPLES_CAP]
+
+
+def _is_per_stock(cols):
+    """DB 表含 stock_id 欄 = per-stock 落地(DB 僅 roster 上市股);by-date 抓全市場(含權證)對帳會假 MIS → 須 roster-scoped。"""
+    return "stock_id" in cols
 
 
 def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
@@ -115,11 +120,23 @@ def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
         else:
             cur.execute(f'SELECT DISTINCT date FROM "{table}" WHERE date >= %s ORDER BY date', (since,))
         dates = [r[0] for r in cur.fetchall()]
+    per_stock = _is_per_stock(cols)   # per-stock 表只比對 DB roster 內個股,排除 API 全市場權證(scope 對齊)
+    roster_ids = None
+    if per_stock:
+        with db.transaction(conn) as cur:
+            cur.execute(f'SELECT DISTINCT stock_id FROM "{table}"')
+            roster_ids = {str(r[0]) for r in cur.fetchall()}
     for i, dt in enumerate(dates, 1):
-        d = dt.isoformat()
+        d = dt if isinstance(dt, str) else dt.isoformat()   # date 欄為 VARCHAR(如契約月 '2026/06')時 dt 是 str、無 isoformat
         with db.transaction(conn) as cur:
             dbr = _db_dicts(cur, table, cols, "date = %s", (dt,))
-        api = finmind.fetch(dataset, start_date=d, end_date=d)
+        try:
+            api = finmind.fetch(dataset, start_date=d, end_date=d)
+        except finmind.FinMindError as e:
+            agg["errors"].append({"date": d, "error": str(e)})   # 該日抓取失敗 → 記錄跳過,不中斷已對帳的日(#7 韌性)
+            continue
+        if per_stock:
+            api = [row for row in api if str(row.get("stock_id")) in roster_ids]   # 只留 DB roster 內個股(排除全市場權證)
         r = compare(dbr, api, pk, val)
         _merge(agg, r)
         if r["value_mismatch"] or r["missing_in_db"] or r["extra_in_db"]:
@@ -128,6 +145,7 @@ def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
             progress(f"  {table} {i}/{len(dates)} 日 | M{agg['matched']:,} "
                      f"VM{agg['value_mismatch']} MIS{agg['missing_in_db']:,} EX{agg['extra_in_db']}")
     agg["days"] = len(dates)
+    agg["incomplete"] = bool(agg["errors"])   # 有任何日抓取失敗 = 未完整對帳 → verdict 不給 pass
     return agg
 
 
@@ -170,7 +188,13 @@ def reconcile_market(conn, table, dataset=None, *, fetch_params=None, progress=N
     with db.transaction(conn) as cur:
         cols, pk, val = _meta(cur, table)
         dbr = _db_dicts(cur, table, cols)
-    api = finmind.fetch(dataset, **(fetch_params or {}))
+    try:
+        api = finmind.fetch(dataset, **(fetch_params or {}))
+    except finmind.FinMindError as e:
+        r = _blank(table)
+        r["errors"] = [{"error": str(e)}]
+        r["incomplete"] = True   # 抓取失敗 → 整批未對帳,verdict 不給 pass
+        return r
     r = compare(dbr, api, pk, val)
     r["table"] = table
     return r
@@ -194,10 +218,12 @@ def reconcile_fred(conn, series_ids, *, progress=None):
 
 
 def verdict(*results):
-    """彙整多表 → #7 attestation 判定（value_mismatch=0 ∧ extra_in_db=0）。"""
+    """彙整多表 → #7 attestation 判定（value_mismatch=0 ∧ extra_in_db=0 ∧ 無未完整對帳）。"""
     tvm = sum(r["value_mismatch"] for r in results)
     tex = sum(r["extra_in_db"] for r in results)
+    incomplete = any(r.get("incomplete") or r.get("errors") for r in results)   # 有抓取失敗未比對 → 無法 attest（#15:沒比到 ≠ 比過且乾淨）
     return {"matched": sum(r["matched"] for r in results),
             "value_mismatch": tvm, "extra_in_db": tex,
             "missing_in_db": sum(r["missing_in_db"] for r in results),
-            "passed": tvm == 0 and tex == 0}
+            "incomplete": incomplete,
+            "passed": tvm == 0 and tex == 0 and not incomplete}

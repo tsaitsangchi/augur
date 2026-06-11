@@ -5,7 +5,7 @@
   回傳 `list[dict]`（API 原樣列，欄名/大小寫逐字照 API，#2；不改值、不補值，#1）。
 - token 從 `config.FINMIND_TOKEN` 取（不寫死，§一.5）。
 - 扛真實世界的不穩定（#7 韌性）：**主動限速**（每請求最小間隔，平滑 burst、整體壓在 FinMind ~6000/hr IP 線下，
-  防 403 ip banned）＋ 逾時 / 連線 / 額度限流 / IP 封鎖（402/429/403）→ 依回應 `retry_after` 或指數退避重試；
+  防 403 ip banned）＋ 逾時 / 連線 / 額度限流 / IP 封鎖 / 伺服器暫時錯誤（402/429/403/5xx）→ 依回應 `retry_after` 或指數退避重試；
   參數錯 / token 錯等應用層錯誤 → 立即拋 `FinMindError`（重試也沒用）。
 - `list_datasets()`：送一個無效 dataset → FinMind 回 422，其 enum 列出全部合法 dataset 名
   → 支援 #3「`--all` 動態列舉、無 hardcoded 清單」。
@@ -33,6 +33,8 @@ _DATASET_RE = re.compile(r"'([A-Za-z0-9]+)'")
 # 一律被限速 → 無論怎麼啟動都 burst 不起來（把「驗證時手動 sleep 間隔」內建進程式）。
 MIN_INTERVAL = 1.0      # 秒/請求(~3600/hr;入憲 #17 operational 值:0.7s 曾 re-ban、2.0s 過保守 → 1.0s 為速度×安全平衡)
 MAX_COOLDOWN = 1800     # honor retry_after 之上限(秒)
+# 暫時性錯誤(重試有意義):額度/限流/IP封鎖(402/429/403) + gateway 伺服器暫時故障(500/502/503/504)
+_RETRY_STATUS = (402, 429, 403, 500, 502, 503, 504)
 _last_request = [0.0]   # 上次請求 monotonic 時點(list 供函式內改寫)
 
 
@@ -52,7 +54,7 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
     """抓一個 FinMind dataset → `list[dict]`（無資料則 `[]`）。
 
     params 例：`data_id='2330', start_date='2025-01-01', end_date='2026-06-09'`。
-    402/429（額度/限流）與逾時/連線錯誤 → 指數退避重試；應用層錯誤（參數/token）→ 立即拋。
+    402/429/403/5xx（額度/限流/封鎖/伺服器）與逾時/連線錯誤 → 指數退避重試；應用層錯誤（參數/token）→ 立即拋。
     """
     query = {**params, "dataset": dataset, "token": config.FINMIND_TOKEN}
     backoff = base_backoff
@@ -67,7 +69,7 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
                 continue
             raise FinMindError(f"{dataset}: 連線失敗（重試 {max_retries} 次後）{type(e).__name__}") from e
 
-        if resp.status_code in (402, 429, 403):   # 額度/限流/IP 封鎖 → 依 retry_after 或退避重試
+        if resp.status_code in _RETRY_STATUS:   # 額度/限流/IP封鎖/伺服器暫時錯誤 → 依 retry_after 或退避重試
             if attempt < max_retries:
                 ra = None
                 try:
@@ -77,7 +79,7 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
                 time.sleep(min(float(ra), MAX_COOLDOWN) if ra else backoff)
                 backoff *= 2
                 continue
-            raise FinMindError(f"{dataset}: 限流/封鎖 HTTP {resp.status_code}（重試 {max_retries} 次仍失敗）")
+            raise FinMindError(f"{dataset}: 限流/封鎖/伺服器錯誤 HTTP {resp.status_code}（重試 {max_retries} 次仍失敗）")
 
         try:
             body = resp.json()
