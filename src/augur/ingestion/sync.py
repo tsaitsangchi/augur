@@ -61,6 +61,31 @@ def _max_date(conn, table, id_col=None, id_val=None):
     return str(row[0]) if row and row[0] else None
 
 
+def _date_has_time(conn, dataset, start, end):
+    """dataset 之 date 是否含時間（datetime '..:..' → 24/7 事件型如 News，by-date 不跳週末；純 date
+    交易型 → 跳週末省 request）。先看 DB 既有樣本；首次無表則自 start 探首個有資料日。
+    守 #18：週末取捨依資料事實、不假設——News 週末有新聞，跳週末會漏 → 違資料來源一致性。"""
+    with db.transaction(conn) as cur:
+        if "date" in schema.get_dataset_columns(cur, dataset):
+            cur.execute(f'SELECT date FROM "{dataset}" WHERE date IS NOT NULL LIMIT 1')
+            row = cur.fetchone()
+            if row and row[0]:
+                return ":" in str(row[0])
+    probe = date.fromisoformat(start[:10])
+    last = date.fromisoformat((end or date.today().isoformat())[:10])
+    for _ in range(8):                                    # 自 start 探最多 8 日找首個有資料日 sample
+        if probe > last:
+            break
+        try:
+            rows = finmind.fetch(dataset, start_date=probe.isoformat(), end_date=probe.isoformat())
+            if rows and rows[0].get("date") is not None:
+                return ":" in str(rows[0]["date"])
+        except finmind.FinMindError:
+            pass
+        probe += timedelta(days=1)
+    return False
+
+
 def _bydate_data_start(dataset, full_start, *, end=None):
     """API-driven 起點探測（#18 不空抓）：自 end 往回逐年探（每年取樣 6 個分散日避假日、不探未來日），
     找到資料年後再往回一年無資料即抵達邊界 → 回最早有資料之年。只觸碰資料年 + 1 邊界年（最小空抓，
@@ -162,10 +187,11 @@ def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
             raise ValueError(f"{dataset}：DB 無既有資料且未指定 start；by-date 為增量用途，"
                              f"首次全史請用 sync_finmind_dataset（逐股）或明確給 start")
     end = end or date.today().isoformat()
+    skip_weekend = not _date_has_time(conn, dataset, start, end)   # 事件型(datetime)週末有資料→不跳；交易型→跳
     cur, last = date.fromisoformat(start[:10]), date.fromisoformat(end[:10])
     total = tdays = reqs = 0
     while cur <= last:
-        if cur.weekday() >= 5:                    # 週末無交易 → 不發請求（#17 省 request）
+        if skip_weekend and cur.weekday() >= 5:   # 交易型週末無交易→省 request(#17)；事件型(News)不跳→不漏週末
             cur += timedelta(days=1)
             continue
         day = cur.isoformat()

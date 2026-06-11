@@ -1,7 +1,7 @@
 """finmind.py fetch 重試/退避回歸測試（monkeypatch requests，不打 live API；clean-room）。
 
 覆蓋 2026-06-11 修正：_RETRY_STATUS 納 5xx gateway 暫時錯誤退避重試（TotalInstitutional 502）；
-應用層錯誤（參數/token）立即拋不重試。
+應用層錯誤（參數/token）立即拋不重試；單日型 dataset（News：size-too-large、end_date 須 none）自動移除 end_date 重抓單日。
 """
 import pytest
 
@@ -69,3 +69,35 @@ def test_success_returns_data_list(monkeypatch):
     monkeypatch.setattr(finmind.requests, "get",
                         lambda *a, **k: FakeResp(200, {"status": 200, "data": [{"x": 1}, {"x": 2}]}))
     assert finmind.fetch("X", data_id="2330") == [{"x": 1}, {"x": 2}]
+
+
+def test_single_day_dataset_removes_end_date(monkeypatch):
+    # 單日型 dataset（FinMind size-too-large、end_date 須 none，如 News）：帶 end_date → 自動移除後重抓單日
+    seen_end = []
+
+    def fake_get(*a, **k):
+        has_end = k["params"].get("end_date") is not None
+        seen_end.append(has_end)
+        if has_end:
+            return FakeResp(200, {"status": 400, "msg": "dataset X size is too large, "
+                                  "we only send one day data, so end_date parameter need be none."})
+        return FakeResp(200, {"status": 200, "data": [{"date": "2024-01-01 03:00:00"}]})
+
+    monkeypatch.setattr(finmind.requests, "get", fake_get)
+    out = finmind.fetch("X", data_id="2330", start_date="2024-01-01", end_date="2024-01-31")
+    assert out == [{"date": "2024-01-01 03:00:00"}]
+    assert seen_end == [True, False]   # 首帶 end 被拒 → 移除 end 重試（第二次不帶 end，無無限遞迴）
+
+
+def test_end_none_msg_without_end_param_no_recurse(monkeypatch):
+    # msg 含 end_date/none 但本就沒帶 end_date → guard 不誤觸發移除（防無限遞迴）→ 直接拋、不重試
+    calls = [0]
+
+    def fake_get(*a, **k):
+        calls[0] += 1
+        return FakeResp(200, {"status": 400, "msg": "end_date parameter need be none"})
+
+    monkeypatch.setattr(finmind.requests, "get", fake_get)
+    with pytest.raises(finmind.FinMindError):
+        finmind.fetch("X", data_id="2330", start_date="2024-01-01")   # 無 end_date
+    assert calls[0] == 1

@@ -88,8 +88,14 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
 
         if body.get("status") == 200:
             return body.get("data", [])
+        msg = body.get("msg", "")
+        # 單日型 dataset（FinMind 資料量大→一次只回一天、end_date 須 none，如 TaiwanStockNews）：移除
+        # end_date 重抓該 start_date 單日 → by-date/backward-probe 逐日路徑自動相容（catch 訊息、非 hardcoded 清單，守 #3）
+        if "end_date" in msg and "none" in msg and params.get("end_date") is not None:
+            return fetch(dataset, timeout=timeout, max_retries=max_retries, base_backoff=base_backoff,
+                         **{k: v for k, v in params.items() if k != "end_date"})
         # 應用層錯誤（如「Token is illegal」「parameter data_id can't be none」）→ 重試無益，直接拋
-        raise FinMindError(f"{dataset}: status={body.get('status')} msg={body.get('msg')}")
+        raise FinMindError(f"{dataset}: status={body.get('status')} msg={msg}")
 
     raise FinMindError(f"{dataset}: 重試耗盡")   # 理論上到不了（迴圈內已處理）
 
