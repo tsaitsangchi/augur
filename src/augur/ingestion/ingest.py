@@ -25,11 +25,13 @@ INTRADAY = frozenset({
     "USStockPriceMinute", "TaiwanStockEvery5SecondsIndex",
 })
 
-# 治權排除（#3 範圍外 + #18「無法不空抓地可靠取範圍」排除清單，非白名單）：低於/外於系統「個股 × 日」單位 → 不收 raw。
-# 實證 2026-06-10：皆「單 id/單日」查（無範圍查、無 metadata 取範圍）+ sub-stock/非股 → 無法不空抓地可靠抓。
+# `OUT_OF_UNIT`（v1.4.0 #3 重定義）：非「資料維度排除」，而是「規模物理不可行之 operational 暫緩」。
+# 資料維度上合格（日級，符合 #4 唯一資料本質排除準則）；僅因 FinMind 限「單 id × 單日」查（無範圍查、
+# 無 metadata 取範圍）致全市場抓取規模物理不可行 → 暫緩、待有能力補通用多維度抓取(#18)再抓，非治權排除。
+# 實證 2026-06-10 規模：
 # - TaiwanStockTradingDailyReport：券商分點進出明細（券商 × 股 × 日，sub-stock；單股×單日 only × 3100 股 = 數十億列）。
-# - TaiwanStockWarrantTradingDailyReport：權證日成交（非系統預測標的；權證宇宙 126,368 檔）。
-# - TaiwanStockBlockTradingDailyReport：鉅額交易（券商 × 股 × 日，sub-stock；稀疏 → backward-probe 無法可靠定起點/漏歷史）。
+# - TaiwanStockWarrantTradingDailyReport：權證日成交（權證宇宙 126,368 檔）。
+# - TaiwanStockBlockTradingDailyReport：鉅額交易（稀疏 → backward-probe 取樣多落空、難可靠定起點）。
 OUT_OF_UNIT = frozenset({
     "TaiwanStockTradingDailyReport",
     "TaiwanStockWarrantTradingDailyReport",
