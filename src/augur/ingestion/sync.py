@@ -24,13 +24,18 @@
 """
 from __future__ import annotations
 
+import concurrent.futures as cf
 from datetime import date, timedelta
 
 from augur.core import db, schema
 from augur.ingestion import finmind, fred, ingest
 
 ROSTER_TABLE = "TaiwanStockInfo"
-FULL_START = "1990-01-01"   # 早於 FinMind 任何資料 → 等同全史
+FULL_START = "1990-01-01"   # **僅 FinMind** backward-search / 寬窗探測之 outer-bound（早於任何 FinMind 資料、API 只回實際範圍→等同全史,#18 最早日由 API 決定）。
+                            # 非 per-stock fetch 起點（用 _data_era_start 取 API 元年）、非 FRED 起點（FRED 有 pre-1990 → start=None 全史,見 sync_fred）
+PER_STOCK_WORKERS = 4       # 逐股抓並發數（fetch 並發、DB 寫序列；start rate 仍受 _pace 約束在 ~1/s 安全值）
+                            # 實證 2026-06-11:3/4 並發皆 0 ban、throughput ~1/s（pace-bound）;4 在 API 中速(3-8s)時較 3 有 headroom
+                            # 安全來源:thread-safe _pace 預約時槽 → start rate ≤1/s（與單流同,IP 對外速率不變,#17/#24）
 
 
 def seed_roster(conn):
@@ -112,25 +117,70 @@ def _bydate_data_start(dataset, full_start, *, end=None):
     return f"{earliest}-01-01" if earliest else end_s
 
 
+def _data_era_start(dataset, full_start, *, canon=None):
+    """per-stock fetch 起點 floor 由 **API 探得之資料元年** 決定（#18：起點由 API 探測、不寫死）。
+    無資料股若以寫死 full_start（如 1990）對 API 寬窗空掃 → 極慢（實證:1990-2026 空掃 ~18s／檔;
+    自資料元年起空掃僅 ~0.2s）。canon（2330 全史,主路徑已抓）有資料 → 取 min(date);
+    否則探幾檔大型老股取最早有資料日;全空（罕見 sparse dataset）→ full_start。"""
+    rows = list(canon) if canon else None
+    if not rows:
+        for sid in ("2317", "2454", "1101", "2002"):      # 大型老股(2330=canon、空才到此 → 不重探)
+            try:
+                rows = finmind.fetch(dataset, data_id=sid, start_date=full_start)
+            except finmind.FinMindError:
+                rows = None
+            if rows:
+                break
+    dates = [r["date"] for r in (rows or []) if r.get("date")]
+    return min(dates) if dates else full_start
+
+
 # 無 /datalist 之少數維度 id（官方文檔 + live-probe 證實全集，#18；非臆測白名單）
 _DOC_SEED_IDS = {
     "TaiwanStockTotalReturnIndex": ["TAIEX", "TPEx"],   # 報酬指數:加權/櫃買(文檔+probe 證實僅此 2 個)
 }
 
 
-def _per_stock_sync(conn, dataset, roster, full_start, progress, *, mode="per-stock"):
-    """逐股抓取（roster，每股 resume DB max(date)）→ summary。"""
+def _fetch_for_store(dataset, sid, start):
+    """並發 fetch 一股（**僅 API、不碰 conn/DB → thread-safe**）。回 (sid, rows|None)。
+    錯誤（該股無此資料等）→ rows=None（跳過,不中斷全批）。"""
+    try:
+        return sid, finmind.fetch(dataset, data_id=sid, start_date=start)
+    except finmind.FinMindError:
+        return sid, None
+
+
+def _per_stock_sync(conn, dataset, roster, start_floor, progress, *, mode="per-stock", workers=None):
+    """逐股抓取（roster，每股 resume DB max(date)）→ summary。
+
+    並發（workers>1）：**fetch 並發（僅 API）、DB 寫入仍主執行緒序列**（免 conn race）；start rate 由
+    finmind._pace thread-safe 維持 ≥MIN_INTERVAL → IP 對外速率＝單流安全值（#17/#24），只是回應等待重疊。
+    """
+    workers = workers or PER_STOCK_WORKERS
+    # resume 起點:有 DB 列→各自 max(date) 續抓,無→ API 資料元年 floor（#18,非寫死）。
+    # 一次 GROUP BY 取全 roster 之 max(date),取代逐股 N+1 查詢（實證:3101 筆 ~250s → 單查 ~秒）。
+    db_max = {}
+    with db.transaction(conn) as cur:
+        if "date" in schema.get_dataset_columns(cur, dataset):
+            cur.execute(f'SELECT stock_id, max(date) FROM "{dataset}" GROUP BY stock_id')
+            db_max = {str(r[0]): str(r[1]) for r in cur.fetchall() if r[1]}
+    starts = {sid: (db_max.get(str(sid)) or start_floor) for sid in roster}
     total = stocks = 0
-    for i, sid in enumerate(roster, 1):
-        start = _max_date(conn, dataset, "stock_id", sid) or full_start
-        try:
-            res = ingest.ingest_finmind(conn, dataset, data_id=sid, start_date=start)
-        except finmind.FinMindError:
-            continue   # 該股無此資料 → 跳過（不中斷全批）
-        total += res["rows"]
-        stocks += 1 if res["rows"] else 0
-        if progress and i % 50 == 0:
-            progress(f"  {dataset}: {i}/{len(roster)} 股、累計 {total} 列")
+
+    def _consume(pairs):                          # pairs: iterable of (sid, rows|None)；DB 寫入序列於主執行緒
+        nonlocal total, stocks
+        for i, (sid, rows) in enumerate(pairs, 1):
+            if rows:
+                total += ingest.store(conn, dataset, rows, data_id=sid)["rows"]
+                stocks += 1
+            if progress and i % 50 == 0:
+                progress(f"  {dataset}: {i}/{len(roster)} 股、累計 {total} 列（{workers} 並發）")
+
+    if workers > 1:
+        with cf.ThreadPoolExecutor(max_workers=workers) as ex:
+            _consume(ex.map(lambda s: _fetch_for_store(dataset, s, starts[s]), roster))
+    else:
+        _consume(_fetch_for_store(dataset, s, starts[s]) for s in roster)
     return {"dataset": dataset, "mode": mode, "rows": total, "stocks_with_data": stocks}
 
 
@@ -211,14 +261,16 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
         if dim is not None:   # 有維度來源（即使 rows=0 標 by-dimension-id；不誤跑全 roster）
             return dim
         # 無維度來源 → per-stock 逐股 fallback（per-stock 但 canonical 2330 誤判者，如 CapitalReduction 減資股稀疏）
-        ps = _per_stock_sync(conn, dataset, roster, full_start, progress, mode="per-stock-fallback")
+        era = _data_era_start(dataset, full_start)   # canon 空 → helper 探大型股取元年（#18 不寫死起點）
+        ps = _per_stock_sync(conn, dataset, roster, era, progress, mode="per-stock-fallback")
         if ps["stocks_with_data"]:
             return ps
         return {"dataset": dataset, "mode": "absent", "rows": 0}   # 已試 market/canonical/by-date/維度id/逐股
-    # canonical 2330 ✓ → per-stock
+    # canonical 2330 ✓ → per-stock；起點 floor = API 探得之資料元年（canon min(date)），不寫死 full_start（#18）
+    era = _data_era_start(dataset, full_start, canon=canon)
     if progress:
-        progress(f"  → {dataset}：per-stock 模式（canonical 2330 ✓）,逐 {len(roster)} 股（每 50 股回報一次）…")
-    return _per_stock_sync(conn, dataset, roster, full_start, progress)
+        progress(f"  → {dataset}：per-stock 模式（canonical 2330 ✓、資料元年 {era}）,逐 {len(roster)} 股（每 50 股回報一次）…")
+    return _per_stock_sync(conn, dataset, roster, era, progress)
 
 
 def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
@@ -267,13 +319,14 @@ def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
     return {"dataset": dataset, "mode": "by-date", "rows": total, "trading_days": tdays, "requests": reqs}
 
 
-def sync_fred(conn, series_ids, *, full_start=FULL_START, progress=None):
-    """sync 給定 FRED series 清單（落 fred_series，每 series resume）。回 summary。"""
+def sync_fred(conn, series_ids, *, progress=None):
+    """sync 給定 FRED series 清單（落 fred_series，每 series 全抓）。回 summary。"""
     total = 0
     for sid in series_ids:
-        start = _max_date(conn, ingest.FRED_TABLE, "series_id", sid) or full_start
+        # FRED 一律抓全史（每 series 單一 call、資料小、idempotent ON CONFLICT）:確保完整含 pre-1990 + 取最新修訂;
+        # 不 resume——_max_date 起點會永久漏掉首抓被 1990 截掉的史 → 須每次全抓回填;#18 最早日由 API 決定(start=None)
         try:
-            res = ingest.ingest_fred(conn, sid, start_date=start)
+            res = ingest.ingest_fred(conn, sid, start_date=None)
         except fred.FredError:
             continue
         total += res["rows"]
@@ -299,7 +352,7 @@ def sync_all(conn, *, roster=None, datasets=None, fred_series=None, full_start=F
         if progress:
             progress(f"[{i}/{len(datasets)}] {ds}: {r['mode']} {r['rows']} 列")
     if fred_series:
-        results.append(sync_fred(conn, fred_series, full_start=full_start, progress=progress))
+        results.append(sync_fred(conn, fred_series, progress=progress))
     return results
 
 

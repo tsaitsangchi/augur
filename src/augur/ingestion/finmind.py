@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import re
+import threading
 import time
 
 import requests
@@ -32,19 +33,28 @@ _DATASET_RE = re.compile(r"'([A-Za-z0-9]+)'")
 # ── 主動限速（#7;§一.9 經驗:2026-06-09 全史 burst 觸發 403 ip banned）──
 # 每請求最小間隔 → 平滑 burst、整體壓在 FinMind ~6000/hr IP 線下;全部 fetch（驗證與全史）同走此門,
 # 一律被限速 → 無論怎麼啟動都 burst 不起來（把「驗證時手動 sleep 間隔」內建進程式）。
-MIN_INTERVAL = 1.0      # 秒/請求(~3600/hr;入憲 #17 operational 值:0.7s 曾 re-ban、2.0s 過保守 → 1.0s 為速度×安全平衡)
+MIN_INTERVAL = 1.0      # operational(#17/#19):2026-06-12 實證 FinMind 對「sustained 負載」throttle —— burst/短測快(~1.39/s)、但 sustained 跑(數分鐘)降到 ~0.2/s(bimodal latency)。
+                        # 試過 0.6s(soft-throttle 5-18s)、0.75s(sustained 仍 ~0.2/s);結論:binding 是 sustained-throttle 非 pace,過度試探會深化 throttle → 守已驗證安全 1.0s、讓 IP 休養。
 MAX_COOLDOWN = 1800     # honor retry_after 之上限(秒)
 # 暫時性錯誤(重試有意義):額度/限流/IP封鎖(402/429/403) + gateway 伺服器暫時故障(500/502/503/504)
 _RETRY_STATUS = (402, 429, 403, 500, 502, 503, 504)
-_last_request = [0.0]   # 上次請求 monotonic 時點(list 供函式內改寫)
+_next_slot = [0.0]      # 下一可發請求之 monotonic 時點(list 供函式內改寫)
+_pace_lock = threading.Lock()   # thread-safe:多執行緒並發 fetch 時,start 仍序列化於 ≥MIN_INTERVAL
 
 
 def _pace():
-    """主動限速:確保距上次請求 ≥ MIN_INTERVAL 秒(平滑 burst,防 IP 限速封鎖)。"""
-    wait = MIN_INTERVAL - (time.monotonic() - _last_request[0])
+    """主動限速:確保請求 start 間隔 ≥ MIN_INTERVAL 秒(平滑 burst,防 IP 封鎖)。
+
+    thread-safe:鎖內「預約」下一時槽(各執行緒 start 仍 ≥MIN_INTERVAL 間隔、IP 對外速率不變),
+    sleep 在鎖外 → 並發時各請求之回應等待重疊、但 start rate 維持單流安全值(#17/#24)。
+    """
+    with _pace_lock:
+        now = time.monotonic()
+        slot = max(now, _next_slot[0])      # 我的發送時槽
+        _next_slot[0] = slot + MIN_INTERVAL  # 預約下一時槽(下個執行緒至少再隔 MIN_INTERVAL)
+    wait = slot - now
     if wait > 0:
         time.sleep(wait)
-    _last_request[0] = time.monotonic()
 
 
 class FinMindError(RuntimeError):
