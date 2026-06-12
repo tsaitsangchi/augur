@@ -27,6 +27,7 @@ from augur.core import config
 
 API_URL = "https://api.finmindtrade.com/api/v4/data"
 DATALIST_URL = "https://api.finmindtrade.com/api/v4/datalist"   # /datalist:列某 dataset 之 data_id 全集(#18 維度 id 權威來源)
+TRANSLATION_URL = "https://api.finmindtrade.com/api/v4/translation"   # /translation:欄位中文對照(schema comment 權威來源)
 _PROBE_INVALID = "__augur_probe_invalid__"   # 送無效 dataset → 422 列出全部合法 dataset
 _DATASET_RE = re.compile(r"'([A-Za-z0-9]+)'")
 
@@ -37,6 +38,16 @@ MIN_INTERVAL = 0.8      # operational(#17/#19):2026-06-12 實證 FinMind 對「s
                         # 試過 0.6s(soft-throttle 5-18s)、0.75s(sustained 仍 ~0.2/s);結論:binding 是 sustained-throttle 非 pace,過度試探會深化 throttle → 守已驗證安全 1.0s、讓 IP 休養。
 MAX_COOLDOWN = 1800     # honor retry_after 之上限(秒)
 QUOTA_COOLDOWN = 1800   # 403 額度耗盡/IP 限流之固定冷卻(秒;用戶決策 2026-06-12 #24):撞 403 直接等額度 hourly 重置,不短退避反覆撞(防惡化成 sustained ban,handoff §4.B 教訓)
+
+# ── 主動額度閘(#24 用戶方向 2026-06-12:撞 403 前先停)──
+# 實證:FinMind 額度為 rolling 視窗(零 call 期間錶仍連續下退)、計數含未知成分(probe 403 時錶讀 5507<6000)
+# → 不本地計數、閉環問權威錶 /user_info(實證:403 期間可讀、且讀錶不自計額度)。
+USERINFO_URL = "https://api.web.finmindtrade.com/v2/user_info"
+QUOTA_HEADROOM = 200    # 暫停閾值 = api_request_limit − 此頭寸(兩次讀錶間 worker 競態 + 人工診斷 probe 的緩衝)
+QUOTA_METER_EVERY = 120 # 每 N 次 data call 讀一次錶(< HEADROOM → 兩次讀錶間衝不過上限)
+QUOTA_POLL = 150        # 暫停期間每隔幾秒再讀錶(rolling 視窗連續退 → 退夠即自動續,不固定睡死)
+_quota_state = {"calls": 0, "t": 0.0}
+_quota_lock = threading.Lock()
 # 暫時性錯誤(重試有意義):額度/限流/IP封鎖(402/429/403) + gateway 伺服器暫時故障(500/502/503/504)
 _RETRY_STATUS = (402, 429, 403, 500, 502, 503, 504)
 _next_slot = [0.0]      # 下一可發請求之 monotonic 時點(list 供函式內改寫)
@@ -62,6 +73,43 @@ class FinMindError(RuntimeError):
     """FinMind API 應用層/連線錯誤（呼叫端可據此決定跳過/重排/中止）。"""
 
 
+def _user_quota(timeout=15):
+    """權威額度錶:/user_info → (user_count, api_request_limit)。讀失敗拋例外(呼叫端寬容)。"""
+    resp = requests.get(USERINFO_URL, headers={"Authorization": f"Bearer {config.FINMIND_TOKEN}"}, timeout=timeout)
+    j = resp.json()
+    return int(j["user_count"]), int(j.get("api_request_limit") or 6000)
+
+
+def _quota_gate():
+    """主動額度閘:每 QUOTA_METER_EVERY 次 call(或 >120s)讀一次錶;錶 ≥ limit−HEADROOM →
+    持鎖暫停(所有 worker 一起等、不再發 call)、每 QUOTA_POLL 秒再讀,退到一半以下續抓。
+    錶失聯 → 放行(403 → QUOTA_COOLDOWN 保險網接手)。閾值隨 limit 動態(token 降級自動適配)。"""
+    with _quota_lock:
+        _quota_state["calls"] += 1
+        if _quota_state["calls"] < QUOTA_METER_EVERY and time.monotonic() - _quota_state["t"] < 120:
+            return
+        _quota_state["calls"] = 0
+        _quota_state["t"] = time.monotonic()
+        try:
+            count, limit = _user_quota()
+        except Exception:
+            return
+        high = limit - QUOTA_HEADROOM
+        if count < high:
+            return
+        print(f"[finmind] 額度 {count}/{limit} ≥ {high} → 主動暫停(每 {QUOTA_POLL}s 檢錶,≤{high // 2} 續)", flush=True)
+        while True:
+            time.sleep(QUOTA_POLL)
+            try:
+                count, limit = _user_quota()
+            except Exception:
+                break
+            if count <= (limit - QUOTA_HEADROOM) // 2:
+                break
+        print(f"[finmind] 額度退到 {count} → 續抓", flush=True)
+        _quota_state["t"] = time.monotonic()
+
+
 def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
     """抓一個 FinMind dataset → `list[dict]`（無資料則 `[]`）。
 
@@ -71,6 +119,7 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
     query = {**params, "dataset": dataset, "token": config.FINMIND_TOKEN}
     backoff = base_backoff
     for attempt in range(max_retries + 1):
+        _quota_gate()                             # 主動額度閘:錶快滿先停(撞 403 前),退夠自動續
         _pace()                                   # 主動限速:每筆 fetch 先間隔(防 burst 被封)
         try:
             resp = requests.get(API_URL, params=query, timeout=timeout)
@@ -117,6 +166,7 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
 
 def list_datasets(*, timeout=60):
     """回傳 FinMind 全部合法 dataset 名（送無效 dataset → 解析 422 enum）；支援 #3 動態列舉。"""
+    _quota_gate()
     _pace()
     query = {"dataset": _PROBE_INVALID, "token": config.FINMIND_TOKEN}
     resp = requests.get(API_URL, params=query, timeout=timeout)
@@ -128,10 +178,38 @@ def list_datasets(*, timeout=60):
     return []
 
 
+def translation_datasets(*, timeout=60):
+    """回傳 `/translation` 支援之 dataset 全集（送無效 dataset → 解析 422 enum;同 `list_datasets` 模式,#18 動態、無白名單）。"""
+    _quota_gate()
+    _pace()
+    resp = requests.get(TRANSLATION_URL, params={"dataset": _PROBE_INVALID, "token": config.FINMIND_TOKEN}, timeout=timeout)
+    try:
+        detail = resp.json().get("detail")
+    except ValueError:
+        return []
+    if isinstance(detail, list) and detail:
+        return _DATASET_RE.findall(detail[0].get("ctx", {}).get("expected", ""))
+    return []
+
+
+def translation(dataset, *, timeout=60):
+    """某 dataset 之欄位中文對照（FinMind `/translation`）→ list（查無/不支援 → `[]`）。
+    schema comment 中文之權威來源（#18 問 API、不抄文檔）；與 data fetch 同一防護（#17）。"""
+    _quota_gate()
+    _pace()
+    resp = requests.get(TRANSLATION_URL, params={"dataset": dataset, "token": config.FINMIND_TOKEN}, timeout=timeout)
+    try:
+        data = resp.json().get("data")
+    except ValueError:
+        return []
+    return data if isinstance(data, list) else []
+
+
 def datalist(dataset, *, timeout=60):
     """列某 dataset 之 data_id 全集（FinMind `/datalist`）→ `list`。僅總經/契約類支援
     （如 GovernmentBondsYield→13 期別、TaiwanExchangeRate→幣別）；不支援之 dataset（台股 per-stock）回 `[]`。
     #18 維度 id 全集之權威動態來源——取代臆測白名單（實證 `/datalist` > 靜態文檔）。"""
+    _quota_gate()
     _pace()
     resp = requests.get(DATALIST_URL, params={"dataset": dataset, "token": config.FINMIND_TOKEN}, timeout=timeout)
     try:
