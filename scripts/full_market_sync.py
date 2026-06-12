@@ -12,6 +12,7 @@ DB-driven resume + 冪等 upsert）。
 守 #1/#2（忠實落地 + API 即權威）· #6（冪等 + resume）· #7（逐 dataset byte 對帳，無幻像）· #15（問題誠實記錄）· #17（限速）。
 用法：python scripts/full_market_sync.py   （可重跑續傳）
 """
+import argparse
 import time
 import traceback
 
@@ -57,7 +58,21 @@ def verify(conn, table):
         return None, str(e)
 
 
+def _has_data(conn, table):
+    """DB 已有該表且有資料 → True（--new-only 跳過已有表,交 daily_maintenance by-date 增量）。"""
+    with db.transaction(conn) as cur:
+        cur.execute("SELECT 1 FROM information_schema.tables WHERE table_name=%s", (table,))
+        if not cur.fetchone():
+            return False
+        cur.execute(f'SELECT 1 FROM "{table}" LIMIT 1')
+        return cur.fetchone() is not None
+
+
 def main():
+    ap = argparse.ArgumentParser(description="augur 全市場 sync + 逐 dataset #7 對帳")
+    ap.add_argument("--new-only", action="store_true",
+                    help="只跑 DB 尚無資料的新 dataset(已有表交 daily_maintenance by-date 增量,省 per-stock resume)")
+    new_only = ap.parse_args().new_only
     t0 = time.monotonic()
     with open(ISSUES_MD, "w") as f:
         f.write("# augur 全市場全量 sync 問題記錄 (2026-06-10)\n\n")
@@ -82,25 +97,32 @@ def main():
             log(f"  ❌ seed 失敗: {e}")
             return
 
-        log("PHASE 2b FRED")
-        try:
-            rf = sync.sync_fred(conn, FRED_SERIES)
-            log(f"  FRED {rf['rows']} 列 / {rf['series']} series")
-            rr = reconcile.reconcile_fred(conn, FRED_SERIES)
-            fp = reconcile.verdict(rr)["passed"]
-            log(f"  FRED 對帳: {'PASS' if fp else 'FAIL'} (VM={rr['value_mismatch']} EX={rr['extra_in_db']})")
-            if not fp:
-                issue("fred_series", "對帳 FAIL", f"VM={rr['value_mismatch']} EX={rr['extra_in_db']}")
-        except Exception as e:
-            issue("fred_series", "FRED error", e)
-            log(f"  ❌ FRED: {e}")
+        if new_only and _has_data(conn, "fred_series"):
+            log("PHASE 2b FRED：--new-only 跳過(已有,已對帳 PASS)")
+        else:
+            log("PHASE 2b FRED")
+            try:
+                rf = sync.sync_fred(conn, FRED_SERIES)
+                log(f"  FRED {rf['rows']} 列 / {rf['series']} series")
+                rr = reconcile.reconcile_fred(conn, FRED_SERIES)
+                fp = reconcile.verdict(rr)["passed"]
+                log(f"  FRED 對帳: {'PASS' if fp else 'FAIL'} (VM={rr['value_mismatch']} EX={rr['extra_in_db']})")
+                if not fp:
+                    issue("fred_series", "對帳 FAIL", f"VM={rr['value_mismatch']} EX={rr['extra_in_db']}")
+            except Exception as e:
+                issue("fred_series", "FRED error", e)
+                log(f"  ❌ FRED: {e}")
 
         log("PHASE 4+5 全日頻 dataset 逐個 sync + 對帳")
         datasets = sync.daily_datasets()
         log(f"  {len(datasets)} 日頻 dataset")
-        done = ok = 0
+        done = ok = skipped = 0
         for i, ds in enumerate(datasets, 1):
             el = (time.monotonic() - t0) / 60
+            if new_only and _has_data(conn, ds):
+                skipped += 1
+                log(f"[{i}/{len(datasets)}] {ds}: 已有資料 → --new-only 跳過")
+                continue
             try:
                 r = sync.sync_finmind_dataset(conn, ds, roster, progress=log)
                 done += 1
@@ -127,7 +149,9 @@ def main():
             except Exception as e:
                 issue(ds, "exception", traceback.format_exc()[-180:])
                 log(f"    ❌❌ {type(e).__name__}: {e}")
-        log(f"DONE {done} dataset sync / {ok} 對帳 PASS / 總 {(time.monotonic()-t0)/60:.0f}min")
+        log(f"DONE {done} sync / {ok} 對帳 PASS"
+            + (f" / {skipped} 已有跳過" if new_only else "")
+            + f" / 總 {(time.monotonic()-t0)/60:.0f}min")
 
 
 if __name__ == "__main__":
