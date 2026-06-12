@@ -11,7 +11,7 @@ Augur 從 FinMind / FRED 抓進可溯源的日級資料，算成 source-pure 特
 
 它的每一條紀律都在防三個敵人：**① 假資料 · ② 偷看未來 · ③ 自我欺騙**。
 
-> 🚧 **狀態**：早期開發中。治權文件（靈魂 / 原則精華 / 憲章 / CLAUDE.md）已立；code 正依憲章 12-PHASE 從零建置。下方架構與指令為**目標設計**。
+> 🚧 **狀態**：開發中。治權 v1.6.0（20 條）已立；`core / ingestion / audit / features / universe` 已建並實跑（全市場 raw 全史 sync + 逐 dataset #7 對帳進行中）；`models / evaluation`（F3）未建。
 
 ---
 
