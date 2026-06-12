@@ -36,6 +36,7 @@ _DATASET_RE = re.compile(r"'([A-Za-z0-9]+)'")
 MIN_INTERVAL = 0.8      # operational(#17/#19):2026-06-12 實證 FinMind 對「sustained 負載」throttle —— burst/短測快(~1.39/s)、但 sustained 跑(數分鐘)降到 ~0.2/s(bimodal latency)。
                         # 試過 0.6s(soft-throttle 5-18s)、0.75s(sustained 仍 ~0.2/s);結論:binding 是 sustained-throttle 非 pace,過度試探會深化 throttle → 守已驗證安全 1.0s、讓 IP 休養。
 MAX_COOLDOWN = 1800     # honor retry_after 之上限(秒)
+QUOTA_COOLDOWN = 1800   # 403 額度耗盡/IP 限流之固定冷卻(秒;用戶決策 2026-06-12 #24):撞 403 直接等額度 hourly 重置,不短退避反覆撞(防惡化成 sustained ban,handoff §4.B 教訓)
 # 暫時性錯誤(重試有意義):額度/限流/IP封鎖(402/429/403) + gateway 伺服器暫時故障(500/502/503/504)
 _RETRY_STATUS = (402, 429, 403, 500, 502, 503, 504)
 _next_slot = [0.0]      # 下一可發請求之 monotonic 時點(list 供函式內改寫)
@@ -65,7 +66,7 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
     """抓一個 FinMind dataset → `list[dict]`（無資料則 `[]`）。
 
     params 例：`data_id='2330', start_date='2025-01-01', end_date='2026-06-09'`。
-    402/429/403/5xx（額度/限流/封鎖/伺服器）與逾時/連線錯誤 → 指數退避重試；應用層錯誤（參數/token）→ 立即拋。
+    402/429/5xx（限流/伺服器）與逾時/連線錯誤 → 指數退避；**403（額度耗盡/IP 限流）→ 固定冷卻 `QUOTA_COOLDOWN` 秒**等額度重置(不短退避反覆撞)；應用層錯誤（參數/token）→ 立即拋。
     """
     query = {**params, "dataset": dataset, "token": config.FINMIND_TOKEN}
     backoff = base_backoff
@@ -87,8 +88,11 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
                     ra = resp.json().get("retry_after")   # FinMind 限速回應常附 retry_after(秒)
                 except ValueError:
                     pass
-                time.sleep(min(float(ra), MAX_COOLDOWN) if ra else backoff)
-                backoff *= 2
+                if resp.status_code == 403:               # 額度耗盡/IP 限流:固定冷卻等 hourly 重置/IP 平息(不短退避反覆撞 → 防惡化成 sustained ban,handoff §4.B)
+                    time.sleep(max(QUOTA_COOLDOWN, float(ra) if ra else 0))
+                else:                                     # 429/5xx 暫時錯誤:honor retry_after 或指數退避
+                    time.sleep(min(float(ra), MAX_COOLDOWN) if ra else backoff)
+                    backoff *= 2
                 continue
             raise FinMindError(f"{dataset}: 限流/封鎖/伺服器錯誤 HTTP {resp.status_code}（重試 {max_retries} 次仍失敗）")
 
