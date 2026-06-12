@@ -33,7 +33,7 @@ _DATASET_RE = re.compile(r"'([A-Za-z0-9]+)'")
 # ── 主動限速（#7;§一.9 經驗:2026-06-09 全史 burst 觸發 403 ip banned）──
 # 每請求最小間隔 → 平滑 burst、整體壓在 FinMind ~6000/hr IP 線下;全部 fetch（驗證與全史）同走此門,
 # 一律被限速 → 無論怎麼啟動都 burst 不起來（把「驗證時手動 sleep 間隔」內建進程式）。
-MIN_INTERVAL = 1.0      # operational(#17/#19):2026-06-12 實證 FinMind 對「sustained 負載」throttle —— burst/短測快(~1.39/s)、但 sustained 跑(數分鐘)降到 ~0.2/s(bimodal latency)。
+MIN_INTERVAL = 0.8      # operational(#17/#19):2026-06-12 實證 FinMind 對「sustained 負載」throttle —— burst/短測快(~1.39/s)、但 sustained 跑(數分鐘)降到 ~0.2/s(bimodal latency)。
                         # 試過 0.6s(soft-throttle 5-18s)、0.75s(sustained 仍 ~0.2/s);結論:binding 是 sustained-throttle 非 pace,過度試探會深化 throttle → 守已驗證安全 1.0s、讓 IP 休養。
 MAX_COOLDOWN = 1800     # honor retry_after 之上限(秒)
 # 暫時性錯誤(重試有意義):額度/限流/IP封鎖(402/429/403) + gateway 伺服器暫時故障(500/502/503/504)

@@ -33,7 +33,7 @@ from augur.ingestion import finmind, fred, ingest
 ROSTER_TABLE = "TaiwanStockInfo"
 FULL_START = "1990-01-01"   # **僅 FinMind** backward-search / 寬窗探測之 outer-bound（早於任何 FinMind 資料、API 只回實際範圍→等同全史,#18 最早日由 API 決定）。
                             # 非 per-stock fetch 起點（用 _data_era_start 取 API 元年）、非 FRED 起點（FRED 有 pre-1990 → start=None 全史,見 sync_fred）
-PER_STOCK_WORKERS = 4       # 逐股抓並發數（fetch 並發、DB 寫序列；start rate 仍受 _pace 約束在 ~1/s 安全值）
+PER_STOCK_WORKERS = 8       # 逐股抓並發數（fetch 並發、DB 寫序列；start rate 仍受 _pace 約束在 ~1/s 安全值）
                             # 實證 2026-06-11:3/4 並發皆 0 ban、throughput ~1/s（pace-bound）;4 在 API 中速(3-8s)時較 3 有 headroom
                             # 安全來源:thread-safe _pace 預約時槽 → start rate ≤1/s（與單流同,IP 對外速率不變,#17/#24）
 
@@ -92,9 +92,9 @@ def _date_has_time(conn, dataset, start, end):
 
 
 def _bydate_data_start(dataset, full_start, *, end=None):
-    """API-driven 起點探測（#18 不空抓）：自 end 往回逐年探（每年取樣 6 個分散日避假日、不探未來日），
-    找到資料年後再往回一年無資料即抵達邊界 → 回最早有資料之年。只觸碰資料年 + 1 邊界年（最小空抓，
-    不從 full_start 空掃 30 年）。全程無資料 → 回 end（等同不抓，由呼叫端判 not-by-date-capable）。"""
+    """API-driven 起點探測（#18 不空抓）：自 end 往回逐年探（每年取樣 6 個分散日避假日、不探未來日）找最早
+    有資料年，再**年內逐月精確到第一個有資料月**（回月初）→ by-date 空跑從「full_start 起 30 年」縮到「該月初幾日」。
+    全程無資料 → 回 end（等同不抓，由呼叫端判 not-by-date-capable）。"""
     end_s = end or date.today().isoformat()
     end_y, start_y = int(end_s[:4]), int(full_start[:4])
     earliest = None
@@ -114,7 +114,21 @@ def _bydate_data_start(dataset, full_start, *, end=None):
             earliest = y
         elif earliest is not None:                            # 已有資料年、再往回一年無資料 → 抵起點邊界 → 停
             break
-    return f"{earliest}-01-01" if earliest else end_s
+    if not earliest:
+        return end_s
+    # 年內精確化（#18 消除年初空跑）：earliest 只定到「年」、年初無資料月仍逐日空跑（如 GovBank 元年 2021
+    # 但年中才有資料）→ 年內逐月探（每月 2 取樣日）第一個有資料月、回該月初，空跑從「年初」縮到「月初」。
+    for m in range(1, 13):
+        for dd in ("-10", "-20"):
+            day = f"{earliest}-{m:02d}{dd}"
+            if day > end_s:
+                return f"{earliest}-{m:02d}-01"
+            try:
+                if finmind.fetch(dataset, start_date=day, end_date=day):
+                    return f"{earliest}-{m:02d}-01"
+            except finmind.FinMindError:
+                pass
+    return f"{earliest}-01-01"
 
 
 def _data_era_start(dataset, full_start, *, canon=None):
