@@ -31,7 +31,7 @@
 
 ## 三、本專案編輯規則
 
-13. **編輯位置**：一律寫 `/home/hugo/project/augur/`；不寫 worktree 鏡像目錄。
+13. **編輯位置**：一律寫專案**真實工作目錄**（隨機器而定，如本機 `/Users/hugo/project/augur/`、WSL2 `/home/hugo/project/augur/`）；不寫 worktree 鏡像目錄。
 14. **Commit / Push 須明示授權**：不自行 `git commit` / `git push`；用戶要求時遵守 git 安全協議（不 `--amend` 已 push、不 `--force` 主分支、不跳 hooks）。commit 訊息結尾加 `Co-Authored-By: Claude ...`。
 15. **PR / 遠端**：不自行建/關 PR、不在 issue 留言；影響遠端狀態的 `gh` 操作先確認。
 16. **研究報告**：寫入 `reports/`，命名 `<module>_<topic>_<YYYYMMDD>.md`。
