@@ -218,6 +218,16 @@ def ensure_table(cur, table, schema, keys):
             precision = max(p1 - s1, (ep or 0) - (es or 0)) + scale
             if precision > ep or scale > (es or 0):
                 cur.execute(f'ALTER TABLE "{table}" ALTER COLUMN "{c}" TYPE NUMERIC({precision},{scale})')
+        elif dt in ("NUMERIC", "DATE") and base != dt:
+            # 跨型別降級（#5 值域只擴不縮的延伸）：首批樣本全數字/日期 → 推 NUMERIC/DATE，後續批出現
+            # 不相容值 → 降級為字串容納 API 全值域（API 即權威 #2；不丟列 #1）。衝突全集＝「批推導 ≠ DB 型別」：
+            # 含字串撞數字欄（spread 契約月 '200710/200711'、週選 '201211W4'）與「長得像數字的 sentinel」
+            # 撞日期欄（'-1' 會被推成 NUMERIC、非字串 → 不能只比對 VARCHAR/TEXT，2026-06-13 實測）。
+            # NUMERIC 用 trim_scale 去尾零（200710.000000→'200710'，與 API 原字串 byte-equal，守 #7）；
+            # DATE ::text 即 ISO 原樣。同族 NUMERIC 加寬走上一分支；base==dt 不動。
+            target = "TEXT" if base == "TEXT" else f"VARCHAR({VARCHAR_LEN})"
+            using = f'trim_scale("{c}")::text' if dt == "NUMERIC" else f'"{c}"::text'
+            cur.execute(f'ALTER TABLE "{table}" ALTER COLUMN "{c}" TYPE {target} USING {using}')
     return db_primary_key(cur, table) or list(keys)
 
 
