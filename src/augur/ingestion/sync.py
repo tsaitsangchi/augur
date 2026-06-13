@@ -27,6 +27,8 @@ from __future__ import annotations
 import concurrent.futures as cf
 from datetime import date, timedelta
 
+import psycopg2
+
 from augur.core import db, schema
 from augur.ingestion import finmind, fred, ingest
 
@@ -198,12 +200,44 @@ def _per_stock_sync(conn, dataset, roster, start_floor, progress, *, mode="per-s
     return {"dataset": dataset, "mode": mode, "rows": total, "stocks_with_data": stocks}
 
 
+def _info_roster_ids(conn, dataset, progress):
+    """#18 階層 (b)：同家族 Info 表作維度 id 權威來源（`XXXPrice`→`XXXInfo`，以 list_datasets 動態驗證
+    存在、非臆測白名單；catalog 實證國際股 Price/Info 成對）。Info 表 DB 無則先抓（market 小表）。
+    回 stock_id 全集；非 Price 家族 / 無對應 Info → []。"""
+    if not dataset.endswith("Price"):
+        return []
+    info = dataset[:-5] + "Info"
+    if info not in finmind.list_datasets():
+        return []
+    with db.transaction(conn) as cur:
+        has_info = "stock_id" in schema.get_dataset_columns(cur, info)
+    if not has_info:
+        if progress:
+            progress(f"  → {dataset}：先抓 {info} 作 id roster…")
+        try:
+            ingest.ingest_finmind(conn, info)
+        except finmind.FinMindError:
+            return []
+    with db.transaction(conn) as cur:
+        if "stock_id" not in schema.get_dataset_columns(cur, info):
+            return []
+        cur.execute(f'SELECT DISTINCT stock_id FROM "{info}" WHERE stock_id IS NOT NULL ORDER BY stock_id')
+        return [r[0] for r in cur.fetchall()]
+
+
 def _dimension_sync(conn, dataset, full_start, progress):
-    """by 維度 id 抓取（#18 階層：FinMind `/datalist` → 文檔種子）。逐 id fetch+store（resume DB max(date)）。
-    無任何維度來源（非 /datalist、無文檔種子）→ 回 None（呼叫端改試 per-stock 逐股、不誤跑全 roster）。"""
+    """by 維度 id 抓取（#18 階層：FinMind `/datalist` → 文檔種子 → 同家族 Info roster）。
+    /datalist／文檔種子（總經小表）：逐 id fetch+store（共用 resume max(date)）。
+    Info roster（國際股 Price，數千 ticker）：複用 `_per_stock_sync`（每 id 各自 resume + 並發 + _pace）。
+    無任何維度來源 → 回 None（呼叫端改試 per-stock 逐股、不誤跑全 roster）。"""
     dl = finmind.datalist(dataset)
     ids, source = (dl, "/datalist") if dl else (_DOC_SEED_IDS.get(dataset, []), "文檔種子")
     if not ids:
+        ids = _info_roster_ids(conn, dataset, progress)
+        if ids:
+            if progress:
+                progress(f"  → {dataset}：by 維度 id（{len(ids)} 個、來源 Info roster）→ 逐 id resume 抓…")
+            return _per_stock_sync(conn, dataset, ids, full_start, progress, mode="by-dimension-id")
         return None
     if progress:
         progress(f"  → {dataset}：by 維度 id（{len(ids)} 個、來源 {source}：{ids[:3]}…）")
@@ -240,8 +274,19 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
             raise   # 真錯誤（非「需要 data_id」）→ 上拋
         probe = []
     if probe:
-        res = ingest.store(conn, dataset, probe)   # 寬窗探測即全量，直接存（冪等）
-        return {"dataset": dataset, "mode": "market", "rows": res["rows"]}
+        try:
+            res = ingest.store(conn, dataset, probe)   # 寬窗探測即全量，直接存（冪等）
+            return {"dataset": dataset, "mode": "market", "rows": res["rows"]}
+        except psycopg2.IntegrityError as e:
+            # market 寬窗批含 PK-null 髒列（實證 2026-06-13：USStockPrice 1997-09-30 stock_id=null，
+            # 無法歸屬標的）→ 整批棄用、改走維度 id 路徑（#18 (b) Info roster；逐 id 抓乾淨且各自 resume，
+            # 用戶決策：不丟列硬塞、整表換抓法）。無維度來源才上拋原錯。
+            if progress:
+                progress(f"  → {dataset}：market 批 PK-null 髒列（{type(e).__name__}）→ 改 by 維度 id")
+            dim = _dimension_sync(conn, dataset, full_start, progress)
+            if dim is not None:
+                return dim
+            raise
     # 2) 逐股模式（resume：每股各自從 max(date) 續）
     # canonical-probe（實證 §一.10）：roster 依 stock_id 字串排序，前段多為 ETF/債券/權證（無基本面資料）；
     # 故先用大型股 2330（對所有真 per-stock dataset 皆有資料）判定——回 0/錯 → 此 dataset 非 per-stock
