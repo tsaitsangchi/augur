@@ -20,7 +20,7 @@ from augur.audit import reconcile
 from augur.core import db, schema
 from augur.ingestion import finmind, fred, sync
 
-ISSUES_MD = "reports/augur_fullsync_issues_20260610.md"
+ISSUES_MD = "reports/augur_fullsync_issues_20260613.md"
 RECENT = "2026-05-01"   # 逐 dataset 對帳之近窗取樣（非全史對帳，避免 double 全量）
 
 # FRED 總經 series（augur 自選之標準 macro 因子：利率/殖利率曲線/失業/通膨/工業生產/匯率/油/信用利差；
@@ -75,7 +75,7 @@ def main():
     new_only = ap.parse_args().new_only
     t0 = time.monotonic()
     with open(ISSUES_MD, "w") as f:
-        f.write("# augur 全市場全量 sync 問題記錄 (2026-06-10)\n\n")
+        f.write("# augur 全市場全量 sync 問題記錄 (2026-06-13)\n\n")
         f.write("實跑 source-traceable（#15）；對帳=近窗取樣 #7（VM/EX）。resume-capable。\n\n")
         f.write("| dataset | 類型 | 細節 |\n|---|---|---|\n")
 

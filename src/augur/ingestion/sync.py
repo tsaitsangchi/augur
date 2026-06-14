@@ -35,7 +35,7 @@ from augur.ingestion import finmind, fred, ingest
 ROSTER_TABLE = "TaiwanStockInfo"
 FULL_START = "1990-01-01"   # **僅 FinMind** backward-search / 寬窗探測之 outer-bound（早於任何 FinMind 資料、API 只回實際範圍→等同全史,#18 最早日由 API 決定）。
                             # 非 per-stock fetch 起點（用 _data_era_start 取 API 元年）、非 FRED 起點（FRED 有 pre-1990 → start=None 全史,見 sync_fred）
-PER_STOCK_WORKERS = 8       # 逐股抓並發數（fetch 並發、DB 寫序列；start rate 仍受 _pace 約束在 ~1/s 安全值）
+PER_STOCK_WORKERS = 16       # 逐股抓並發數（fetch 並發、DB 寫序列；start rate 仍受 _pace 約束在 ~1/s 安全值）
                             # 實證 2026-06-11:3/4 並發皆 0 ban、throughput ~1/s（pace-bound）;4 在 API 中速(3-8s)時較 3 有 headroom
                             # 安全來源:thread-safe _pace 預約時槽 → start rate ≤1/s（與單流同,IP 對外速率不變,#17/#24）
 
