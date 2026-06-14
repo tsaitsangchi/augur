@@ -26,6 +26,7 @@
 """
 from __future__ import annotations
 
+import datetime
 import re
 
 # ── 型別規則（#5 型別紀律）────────────────────────────────
@@ -68,7 +69,13 @@ def _is_num(v) -> bool:
 
 
 def _is_date(v) -> bool:
-    return isinstance(v, str) and _DATE_RE.match(v.strip()) is not None
+    if not (isinstance(v, str) and _DATE_RE.match(v.strip())):
+        return False
+    try:                                       # 格式對仍須驗日期合法性:1911-00-00 / 2026-13-01 等
+        datetime.date.fromisoformat(v.strip())  # 格式合法、值非法者 → 非 DATE → 存字串(#1 不丟列、#2 API 原值)
+        return True
+    except ValueError:
+        return False
 
 
 def _digits(v):

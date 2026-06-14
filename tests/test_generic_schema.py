@@ -25,6 +25,9 @@ def test_is_date():
     assert gs._is_date("2026-06-10") is True
     for v in ("2026/06", "2026-6-1", "x", "20260610"):
         assert gs._is_date(v) is False
+    # 格式合法但值非法(月/日越界)→ False(2026-06-14 修:防 1911-00-00 等格式對值錯者撞 DATE cast 失敗)
+    for v in ("1911-00-00", "2026-13-01", "2026-02-30", "0000-00-00"):
+        assert gs._is_date(v) is False
 
 
 # ── infer_schema 型別推導（#5）──

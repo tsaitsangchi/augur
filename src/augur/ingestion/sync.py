@@ -370,8 +370,14 @@ def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
         if rows:
             # require_keys=('date',)：by-date 單日 sample 內 stock_id 已唯一會漏掉 date，強制 date 入 PK
             # 防多日 upsert 互相覆蓋塌成每股 1 列（pilot 實證 bug）
-            total += ingest.store(conn, dataset, rows, require_keys=("date",))["rows"]
-            tdays += 1
+            try:
+                total += ingest.store(conn, dataset, rows, require_keys=("date",))["rows"]
+                tdays += 1
+            except psycopg2.IntegrityError:
+                # by-date 批含 PK-null 髒列（國際股如 USStockPrice 之彙總/髒行 stock_id=null 撞 NOT NULL PK）→
+                # by-date 不適合此 dataset：回非 by-date mode，sync_finmind_dataset fall through 至 _dimension_sync
+                # 走 by-dim-id（Info roster 逐 ticker、每行必有 id，根除 null PK；整表換抓法、不丟列硬塞，#3 adaptive）
+                return {"dataset": dataset, "mode": "pk-null-needs-dim", "rows": total}
         cur += timedelta(days=1)
         if progress and reqs % 20 == 0:
             progress(f"  {dataset} by-date {day}: {tdays} 交易日 / {total} 列 / {reqs} 筆")
