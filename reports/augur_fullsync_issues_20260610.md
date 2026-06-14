@@ -16,3 +16,6 @@
 | `TaiwanOptionDealerTradingVolumeDaily` | 對帳 FAIL（疑幻像/不一致） | VM=0 EX=25858 MIS=25858 |
 | `GovernmentBondsYield` | 對帳 FAIL（疑幻像/不一致） | VM=0 EX=364 MIS=0 |
 | `TaiwanStockTotalReturnIndex` | 對帳 FAIL（疑幻像/不一致） | VM=0 EX=0 MIS=0 |
+| `TaiwanStockConvertibleBondDailyOverview` | exception | 9-04-12','2009-06-10',0.0,NULL,NULL,NULL,0.0,'1911-00-0...                                                              ^ HINT:  Perhaps you need a different "datestyle" setting.   |
+| `TaiwanStockMarginShortSaleSuspension` | 對帳 FAIL（疑幻像/不一致） | VM=1 EX=0 MIS=0 |
+| `TaiwanFuturesFinalSettlementPrice` | exception | nput syntax for type numeric: "202101W1" LINE 1: ...ing_code", "notional_value") VALUES ('2021-01-06','202101W1'...                                                              ^   |
