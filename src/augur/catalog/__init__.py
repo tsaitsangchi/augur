@@ -16,8 +16,83 @@
 """
 from datetime import date, timedelta
 
-from augur.core import db, generic_schema, schema
+from augur.core import config, db, generic_schema, schema
 from augur.ingestion import finmind, ingest, sync
+
+# ── 官方 FinMind dataset 參考（docs/finmind-references/datasets.md；入憲、抓法元資料權威源）──
+# tier / intraday / sponsor 從官方解析驅動,取代硬編白名單(守 #3/#18);官方原檔可刷新(curl 覆蓋),
+# 官方未列或解析失敗 → 退回硬編/probe 備援(不脆)。section 級 tier:Real-Time→Sponsor、Convertible Bond→Backer。
+_OFFICIAL_REF = config.PROJECT_ROOT / "docs" / "finmind-references" / "datasets.md"
+_SUBDAY_KW = ("tick", "kbar", "minute", "5second", "每5秒", "分k", "分鐘")   # sub-day 特徵詞(非硬編表名);「逐筆」太寬(BlockTrade 日級)不用
+
+
+def _parse_official_datasets(path=_OFFICIAL_REF):
+    """解析官方 datasets.md(markdown 表格)→ {dataset: {section, tier, params, desc, is_realtime}}。
+    各 section 表頭欄不一 → 依表頭動態對映;section 級 tier 宣告(Real-Time 全 Sponsor、Convertible Bond
+    全 Backer)在行無 Tier 欄時套用。解析失敗回 {}(呼叫端退回硬編/probe 備援、不脆)。"""
+    out, section, headers = {}, None, None
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return out
+    for ln in lines:
+        s = ln.strip()
+        if s.startswith("## "):
+            section, headers = s[3:].strip(), None
+        elif s.startswith("|") and "Dataset" in s:
+            headers = [h.strip() for h in s.strip("|").split("|")]
+        elif s.startswith("|") and headers and "---" not in s:
+            cells = [c.strip() for c in s.strip("|").split("|")]
+            if len(cells) != len(headers):
+                continue
+            row = dict(zip(headers, cells))
+            ds = row.get("Dataset", "").strip()
+            if not ds or ds == "Dataset":
+                continue
+            rt = bool(section and "Real-Time" in section)
+            sec_tier = "Sponsor" if rt else ("Backer" if section and "Convertible Bond" in section else None)
+            out[ds] = {"section": section, "tier": row.get("Tier") or sec_tier,
+                       "params": row.get("Params", ""), "desc": row.get("Description", ""), "is_realtime": rt}
+    return out
+
+
+_OFFICIAL = _parse_official_datasets()
+_OFFICIAL_LOWER = {k.lower(): v for k, v in _OFFICIAL.items()}   # 大小寫不敏感索引(容官方文檔 typo)
+
+
+def _off(ds):
+    """取官方記錄(大小寫不敏感、容官方 typo 如 TaiwanOptionTIck);無 → {}。"""
+    return _OFFICIAL.get(ds) or _OFFICIAL_LOWER.get(ds.lower(), {})
+
+
+def _official_tier(ds):
+    """官方 tier 文字 → catalog 碼(F/F(id)/B/S);無記錄 → None(呼叫端備援)。"""
+    t = (_off(ds).get("tier") or "").lower()
+    if "sponsor" in t:
+        return "S"
+    if "backer" in t:
+        return "B"
+    if "data_id" in t:
+        return "F(id)"
+    if "free" in t:
+        return "F"
+    return None
+
+
+def _official_is_intraday(ds):
+    """官方判 intraday(單位小於日、不抓):sub-day 歷史(tick/分K/每5秒/分鐘),排除 Real-Time snapshot(可抓)。
+    依官方 section/desc/名稱關鍵詞、非硬編表名(#18)。無官方記錄 → False(呼叫端退回硬編 INTRADAY 備援)。"""
+    m = _off(ds)
+    if not m or m.get("is_realtime"):
+        return False
+    blob = (ds + " " + m["desc"] + " " + m["params"]).lower()
+    return any(k in blob for k in _SUBDAY_KW)
+
+
+def _official_single_day(ds):
+    """官方 params 標 'single day' → True(逐日 end_date none 型)。"""
+    return "single day" in (_off(ds).get("params") or "").lower()
+
 
 # ── curated 報告知識 seed（provenance=doc；**非 fetch 白名單**，是特殊抓法/edge-case 註解，可刷新）──
 # 對映 reports/augur_datasource_finmind_fred_20260615（A2/A3/A5/A8/A9）+ finmind-fetch-methods 記憶。
@@ -96,6 +171,8 @@ def optimal_mode(c):
     """依 catalog 原料算「最少呼叫」之抓取模式 + 預估呼叫數 → (mode, est_calls)。"""
     if c.get("excluded"):
         return ("excluded", 0)
+    if c.get("source") == "fred":                      # FRED:逐 series_id 各 1 call(走 sync_fred、非 by-date 逐日)
+        return ("per-series", c.get("n_dimension_ids") or 0)
     freq = c.get("frequency")
     if freq in ("snapshot", "single-series"):          # 單一序列 / 名冊快照：一次寬查
         return ("market", 1)
@@ -183,17 +260,8 @@ def _fmt_pg(dtype, clen, prec, scale):
     return dtype
 
 
-def _is_intraday_data(rows):
-    """資料事實判定 intraday（#4 by-fact，補硬編 `ingest.INTRADAY` 之不足）：某單一日曆日內有
-    密集 sub-day 時間戳（> 48 個 ＝ sub-30-min 規律取樣）→ intraday（如 GoldPrice 5-min 288/日）；
-    區別事件型（News 少量不規律/日 → 非 intraday、仍逐日抓）。heuristic、以單次探測日為據（refresh 可校）。"""
-    by_day = {}
-    for r in rows[:3000]:
-        d = str(r.get("date", "")).replace("T", " ")
-        day, _, t = d.partition(" ")
-        if ":" in t:
-            by_day.setdefault(day, set()).add(t)
-    return any(len(times) > 48 for times in by_day.values())
+# _is_intraday_data（單日 sub-day 時間戳 heuristic）已移除：intraday 改由官方 datasets.md 判定
+# （_official_is_intraday，#18/#20——憑數據 heuristic 會誤判 News 事件流/snapshot 多合約為 intraday）。
 
 
 def _roster_count(cur):
@@ -398,19 +466,19 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
     """
     is_finmind = ds != "fred_series"
     meta = {"dataset": ds, "source": "finmind" if is_finmind else "fred", "excluded": False}
-    # 靜態 fetch recipe（curated 報告知識；含 excluded 者亦記、保留「怎麼抓」的正解，如分點 dedicated URL）
+    # tier / 抓法分類:官方 datasets.md 驅動(權威、取代硬編);官方未列 → 硬編/probe 備援(不脆)
+    meta["tier"] = _official_tier(ds) or ("S" if ds in _SPONSOR_ONLY else None)
+    is_sponsor = meta["tier"] == "S"
     meta["endpoint"] = _endpoint(ds, is_finmind)
     meta["dedicated_url"] = _DEDICATED_URL.get(ds)
-    meta["single_day_only"] = ds in _SINGLE_DAY
-    meta["quota_expiry"] = QUOTA_EXPIRY if ds in _SPONSOR_ONLY else None
-    if ds in _SPONSOR_ONLY:
-        meta["tier"] = "S"
-    if ingest.is_intraday(ds):
-        meta.update(excluded=True, excluded_reason="intraday（#4 日為最小單位 gate）",
-                    frequency="intraday", source_provenance="ingest.INTRADAY")
+    meta["single_day_only"] = _official_single_day(ds) or ds in _SINGLE_DAY
+    meta["quota_expiry"] = QUOTA_EXPIRY if is_sponsor else None
+    if _official_is_intraday(ds) or ingest.is_intraday(ds):   # 官方 sub-day(主)+ 硬編 INTRADAY(備援);單位小於日不抓(#4)
+        meta.update(excluded=True, excluded_reason="單位小於日 intraday（官方 sub-day / #4 日為最小單位、不抓）",
+                    frequency="intraday", source_provenance="official/INTRADAY")   # ≤VARCHAR(32)
         return meta, []
-    if ds in ingest.OUT_OF_UNIT:
-        meta.update(excluded=True, excluded_reason="規模物理不可行 operational 暫緩（#3）",
+    if ds in ingest.OUT_OF_UNIT:                              # 規模 operational 暫緩(augur-specific、官方無此概念)
+        meta.update(excluded=True, excluded_reason="規模物理不可行 operational 暫緩（#3、augur-specific）",
                     source_provenance="ingest.OUT_OF_UNIT")
         return meta, []
 
@@ -423,10 +491,6 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
         single_hint = None                                 # landed：由 n_rows≈n_dates 判單一序列（見下）
     elif is_finmind:
         sample, src, n_dim, n_stocks, earliest = _classify_unlanded(conn, ds, roster_n or 0)
-        if sample and _is_intraday_data(sample):           # #4 by-fact：補硬編 INTRADAY 之漏（如 GoldPrice 5-min）
-            meta.update(excluded=True, excluded_reason="intraday by-data（單日密集 sub-day 時間戳 >48，#4）",
-                        frequency="intraday", source_provenance="probe(intraday-by-data)")
-            return meta, []
         col_types = generic_schema.infer_schema(sample) if sample else {}
         pk = set(generic_schema.detect_keys(sample, col_types)) if sample else set()
         has_time = bool(sample) and ":" in str(sample[0].get("date", ""))
@@ -449,6 +513,10 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
             meta["data_id_source"] = "roster"
         elif "series_id" in col_types:
             meta["data_id_source"] = "series"
+            if not is_finmind:                          # FRED:n_dimension_ids = DB distinct series_id(供 per-series calls)
+                with db.transaction(conn) as cur:
+                    cur.execute(f'SELECT count(DISTINCT series_id) FROM "{ds}"')
+                    meta["n_dimension_ids"] = cur.fetchone()[0]
         else:
             meta["data_id_source"] = "none"
 
