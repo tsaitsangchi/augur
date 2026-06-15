@@ -143,7 +143,7 @@ def build(conn, datasets=None, progress=None):
     with db.transaction(conn) as cur:
         bootstrap_catalog_tables(cur)
         roster_n = _roster_count(cur)
-    targets = datasets or (list(sync.daily_datasets()) + ["fred_series"])
+    targets = datasets or (finmind.list_datasets() + ["fred_series"])   # 全集(含 excluded、亦記其抓法);daily_datasets 會濾掉 intraday/OUT_OF_UNIT
     done = 0
     for ds in targets:
         meta, cols = probe_dataset(conn, ds, progress=progress, roster_n=roster_n)
@@ -224,6 +224,21 @@ def _days_between(earliest, latest):
         return None
 
 
+def _safe_date(s):
+    """正規化 earliest 為合法 YYYY-MM-DD（DATE 欄可存）；月頻 `2026/06`→月初、含時間→取日、非法→None。"""
+    if not s:
+        return None
+    p = str(s)[:10].replace("/", "-").split("-")
+    try:
+        if len(p) >= 3:
+            return date(int(p[0]), int(p[1]), int(p[2])).isoformat()
+        if len(p) == 2:
+            return date(int(p[0]), int(p[1]), 1).isoformat()
+    except (ValueError, TypeError):
+        pass
+    return None
+
+
 def _db_metadata(conn, ds):
     """已落地表 metadata 全讀 DB（無 API、用 pg 統計估避千萬列慢查）→
     (col_types, pk_set, earliest, n_stocks, n_dates, has_time, n_rows)。n_dates/n_stocks/n_rows 為估值。"""
@@ -290,6 +305,9 @@ def _classify_unlanded(conn, ds, roster_n):
             single = not has_stock and len(s) <= 2                     # 1列/日=單一序列(CnnFearGreed)；多列/日=by-date多維(期貨契約)
             return s, ("single" if single else "none"), None, \
                 (1 if single else (roster_n if has_stock else None)), sync._bydate_data_start(ds, fs)
+    for params in ({"start_date": fs}, {}):                           # 4b 寬窗/無參（月頻 market/名冊 Info special:{}、by-date 單日探不到）→ 1 call market
+        if s := _try(**params):
+            return s, "single", None, None, _earliest(s)
     info = sync._info_roster_ids(conn, ds, None)                       # 5 Info roster（國際股）
     if info and (s := _try(data_id=info[0], start_date=fs)):
         return s, "info-roster", len(info), len(info), _earliest(s)
@@ -434,6 +452,7 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
         else:
             meta["data_id_source"] = "none"
 
+    earliest = _safe_date(earliest)                        # 正規化(月頻 2026/06→月初、非法→None)再供 frequency/estimate/storage
     has_stock = "stock_id" in col_types
     if single_hint is None:                                # landed 單序列判：無 stock、非維度、~1 列/日
         single_hint = (not has_stock and meta["data_id_source"] not in ("datalist", "doc")
