@@ -5,7 +5,7 @@
   `UNRATE` 失業率），回傳該 series 的觀測列 `list[dict]`。
 - **每列補上 `series_id`**：FRED 回應本身不含 series_id；補上後 generic_schema 才推得出
   `(series_id, date)` 複合主鍵（所有 series 同落 `fred_series` 一張表，#2）。
-- 認證用 `config.FRED_API_KEY`（不寫死）；同 #7 韌性：逾時/限流（429）→ 指數退避重試；
+- 認證用 `config.FRED_API_KEY`（不寫死）；同 #17 韌性：逾時/限流（429）→ 指數退避重試（FRED 限速寬、單層退避足夠）；
   api_key/series_id 錯 → 立即拋 `FredError`。
 - FRED 缺值回 `"."`（其「無觀測」佔位）→ 轉成 `None`（存 NULL）：那是「無值」非真實值，
   轉 NULL **不違 #1**；其餘為數值字串，交 generic_schema 推成 NUMERIC、PG 精確 cast。
@@ -13,7 +13,7 @@
 邊界：只抓 FRED 資料（不建表/不寫 DB——ingest.py + generic_schema 負責）；不算特徵、不選股。
 具體要抓哪些 series 由呼叫端（feature 設計）決定，本 client 不持 hardcoded series 清單。
 
-守 #7（節流/退避/重試韌性）· #2（欄名照 API + 補 series_id 成主鍵）· #1（"." 佔位 → NULL，不捏造值）。
+守 #17（節流/退避/重試韌性）· #2（欄名照 API + 補 series_id 成主鍵）· #1（"." 佔位 → NULL，不捏造值）。
 """
 from __future__ import annotations
 

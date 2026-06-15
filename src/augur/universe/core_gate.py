@@ -11,7 +11,7 @@
 canonical 特徵集**由資料判定**（取面板內最大特徵集，反硬編 §0.0-I 精神）——不寫死特徵數。
 
 邊界：不算特徵、不訓練、**不評分排名**（無 CoreScore / 無 top-N 上限）；selection 唯一判準＝資料完整
-（source-pure）。自建 core_universe 表（builder-owned DDL，CREATE IF NOT EXISTS）。
+（source-pure）。自建 core_universe 表（自建 DDL，CREATE IF NOT EXISTS）。
 
 守 #1（只收 source-pure 完整股）· #10（質>量，可少、不評分不排名）· #5（型別）。
 """
@@ -20,7 +20,7 @@ from __future__ import annotations
 from psycopg2.extras import execute_values
 
 from augur.core import db
-from augur.features.builder import FEATURE_TABLE
+from augur.features.panel import FEATURE_TABLE
 
 CORE_TABLE = "core_universe"
 DDL = f"""
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS {CORE_TABLE} (
 
 
 def bootstrap(cur):
-    """建 core_universe 表（builder-owned DDL，冪等）。"""
+    """建 core_universe 表（自建 DDL，冪等）。"""
     cur.execute(DDL)
 
 

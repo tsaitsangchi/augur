@@ -4,4 +4,3 @@
 
 | dataset | 類型 | 細節 |
 |---|---|---|
-| `fred_series` | 對帳 FAIL | VM=0 EX=1 |

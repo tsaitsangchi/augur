@@ -11,7 +11,7 @@ Augur 從 FinMind / FRED 抓進可溯源的日級資料，算成 source-pure 特
 
 它的每一條紀律都在防三個敵人：**① 假資料 · ② 偷看未來 · ③ 自我欺騙**。
 
-> 🚧 **狀態**：開發中。治權 v1.6.0（20 條）已立；`core / ingestion / audit / features / universe` 已建並實跑（全市場 raw 全史 sync + 逐 dataset #7 對帳進行中）；`models / evaluation`（F3）未建。
+> 🚧 **狀態**：開發中。治權已立（原則精華 v1.6.0・20 條法律；憲章 v1.7.0・含 catalog 橫切元資料登錄）；`core / ingestion / audit / features / universe` 已建並實跑，raw 全市場全史 sync 暫停、轉 catalog-driven 規劃（已產 `docs/datasets_zh.md` 全 83 表逐欄 catalog + 抓取最佳化計畫/token 預算）；`models / evaluation`（F3）未建。
 
 ---
 
@@ -33,9 +33,9 @@ raw (FinMind/FRED) → feature (source-pure) → universe (核心股) → model 
 ## 目錄
 
 ```
-src/augur/   core / ingestion / features / universe / models / evaluation / audit
+src/augur/   core / ingestion / features / universe / models / evaluation / audit / catalog
 scripts/     薄 CLI entrypoints（呼叫 src，不放邏輯）
-docs/        治權三件套 + archive(舊版考古索引)
+docs/        治權三件套 + datasets_zh.md(資料源逐欄 catalog) + archive(考古索引)
 reports/     研究報告產出
 tests/       單元測試
 ```

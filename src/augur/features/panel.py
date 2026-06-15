@@ -1,4 +1,4 @@
-"""augur 特徵引擎 — 從 source-pure raw 算每股每面板之特徵（嚴格 source-pure）。
+"""augur 特徵面板 — 從 source-pure raw 算每股每面板之特徵（嚴格 source-pure）。
 
 這支在做什麼（白話）：給一個 as-of 面板日期 + 一批股，對每股拉它 ≤ 該日的價量序列
 （`TaiwanStockPrice`），算成一組數值特徵（報酬 / 動能 / 波動 / 流動性 / 位置）存進 `feature_values`。
@@ -9,7 +9,7 @@
 知識字典 / 特定閾值**（無 Pareto 0.80、無 K-wave 40-60、無 theme keyword）。
 anti-leakage（#8）：面板日 t 之特徵只用價量 ≤ t（純後向 rolling）；label（未來報酬）**不在此層**。
 
-邊界：只算特徵（不抓 API、不選股）；自建 `feature_values` 表（builder-owned DDL，CREATE IF NOT EXISTS）。
+邊界：只算特徵（不抓 API、不選股）；自建 `feature_values` 表（自建 DDL，CREATE IF NOT EXISTS）。
 
 守 #1（算不出即缺列、不存無源值）· #9（無 hardcoded 特定值）· #8（as-of ≤t 後向）· #5（NUMERIC 型別）。
 """
@@ -39,7 +39,7 @@ _PRICE_SQL = (
 
 
 def bootstrap(cur):
-    """建 feature_values 表（builder-owned DDL，冪等）。"""
+    """建 feature_values 表（自建 DDL，冪等）。"""
     cur.execute(DDL)
 
 

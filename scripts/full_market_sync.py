@@ -6,7 +6,7 @@
 DB-driven resume + 冪等 upsert）。
 
 序列：PHASE 1 bootstrap → 2 seed 名冊 → 2b FRED → 4 全日頻 dataset(逐個 sync) → 5 逐 dataset 對帳。
-速率：finmind.py 內建 1.0s 主動限速（#17，~3600/hr，production-safe；長跑不 burst 被封）。
+速率：finmind.py 內建主動限速（#17，現行值見該檔；長跑不 burst 被封）。
 ⚠️ long-running（全 82 dataset 全史 ~數天，跨日）；須確保主機不進睡眠（依環境設電源：Linux `systemd-inhibit` / macOS `caffeinate` / 雲機電源設定）+ DB-driven resume 後路（中斷可續）。
 
 守 #1/#2（忠實落地 + API 即權威）· #6（冪等 + resume）· #7（逐 dataset byte 對帳，無幻像）· #15（問題誠實記錄）· #17（限速）。
@@ -18,7 +18,7 @@ import traceback
 
 from augur.audit import reconcile
 from augur.core import db, schema
-from augur.ingestion import finmind, fred, sync
+from augur.ingestion import finmind, sync
 
 ISSUES_MD = "reports/augur_fullsync_issues_20260613.md"
 RECENT = "2026-05-01"   # 逐 dataset 對帳之近窗取樣（非全史對帳，避免 double 全量）

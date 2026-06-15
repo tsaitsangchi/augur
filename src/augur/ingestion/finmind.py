@@ -4,7 +4,7 @@
 - 對 FinMind v4 `data` API 的薄 client：給 dataset 名 + 參數（data_id/start_date/end_date…），
   回傳 `list[dict]`（API 原樣列，欄名/大小寫逐字照 API，#2；不改值、不補值，#1）。
 - token 從 `config.FINMIND_TOKEN` 取（不寫死，§一.5）。
-- 扛真實世界的不穩定（#7 韌性）：**主動限速**（每請求最小間隔，平滑 burst、整體壓在 FinMind ~6000/hr IP 線下，
+- 扛真實世界的不穩定（#17 韌性）：**主動限速**（每請求最小間隔，平滑 burst、整體壓在 FinMind ~6000/hr IP 線下，
   防 403 ip banned）＋ 逾時 / 連線 / 額度限流 / IP 封鎖 / 伺服器暫時錯誤（402/429/403/5xx）→ 依回應 `retry_after` 或指數退避重試；
   參數錯 / token 錯等應用層錯誤 → 立即拋 `FinMindError`（重試也沒用）。
 - `list_datasets()`：送一個無效 dataset → FinMind 回 422，其 enum 列出全部合法 dataset 名
@@ -13,7 +13,7 @@
 邊界：**只抓資料**（不建表、不寫 DB——那是 ingest.py + generic_schema）；不算特徵、不選股；
 **不決定抓不抓 intraday**（日為最小單位 #4 之守門在 ingest.py，不在這層）。
 
-守 #7（節流/退避/重試韌性）· #3（dataset 動態列舉、無 hardcoded 清單）· #2（欄名/大小寫照 API）· #1（回 API 原值，不捏造）。
+守 #17（節流/退避/重試韌性：主動限速三層防護）· #3（dataset 動態列舉、無 hardcoded 清單）· #2（欄名/大小寫照 API）· #1（回 API 原值，不捏造）。
 """
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ TRANSLATION_URL = "https://api.finmindtrade.com/api/v4/translation"   # /transla
 _PROBE_INVALID = "__augur_probe_invalid__"   # 送無效 dataset → 422 列出全部合法 dataset
 _DATASET_RE = re.compile(r"'([A-Za-z0-9]+)'")
 
-# ── 主動限速（#7;§一.9 經驗:2026-06-09 全史 burst 觸發 403 ip banned）──
+# ── 主動限速（#17;§一.9 經驗:2026-06-09 全史 burst 觸發 403 ip banned）──
 # 每請求最小間隔 → 平滑 burst、整體壓在 FinMind ~6000/hr IP 線下;全部 fetch（驗證與全史）同走此門,
 # 一律被限速 → 無論怎麼啟動都 burst 不起來（把「驗證時手動 sleep 間隔」內建進程式）。
 MIN_INTERVAL = 0.8      # operational(#17/#19):2026-06-12 實證 FinMind 對「sustained 負載」throttle —— burst/短測快(~1.39/s)、但 sustained 跑(數分鐘)降到 ~0.2/s(bimodal latency)。

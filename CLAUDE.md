@@ -1,4 +1,4 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.3
+# CLAUDE.md — Augur AI 協作工具規則 v1.4
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.2.0.md` + `docs/原則精華_v1.6.0.md` + 憲章為準；
@@ -36,13 +36,17 @@
 15. **PR / 遠端**：不自行建/關 PR、不在 issue 留言；影響遠端狀態的 `gh` 操作先確認。
 16. **研究報告**：寫入 `reports/`，命名 `<module>_<topic>_<YYYYMMDD>.md`。
 17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.6.0.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。
-18. **程式標頭慣例（精簡——不重蹈 stock_backend 50-230 行標頭）**：
+18. **程式標頭與命名慣例（精簡——不重蹈 stock_backend 50-230 行標頭）**：
     - **每支**：🎯 白話 docstring（這支在做什麼，給人看的）+ 一行「守原則 #X #Y」。
     - **CLI 入口程式**（sync / builder / trainer / validator）：再加簡短 usage / 指令段。
     - **library 模組**：白話 docstring 即可，不需指令矩陣。
     - **不** per-file 複述憲章 § / 治權宣言（憲章 + 原則精華為 SSOT #12；標頭只引原則 #，不改寫）。
     - **不**寫 in-file 全修訂歷程 → 交給 git（演變史進 git，不入檔；對齊「憲法只記現行法律」）。
-    - 目標：讓人/AI 30 秒看懂這支做什麼、守哪些原則。
+    - 標頭目標：讓人/AI 30 秒看懂這支做什麼、守哪些原則。
+    - **命名慣例（screaming architecture + DDD ubiquitous language + PEP 8；理論定位見憲章附錄 C）**：`package`（`src/augur/<pkg>/`）＝管線階段或橫切元件（靈魂架構元素、screaming）。
+    - **library 模組**（`src/augur/`）＝**領域名詞**（這支是「什麼」）：`finmind`·`reconcile`·`generic_schema`·`catalog`；**禁通用角色名**——`build`·`registry`·`probe`·`util`·`helper`·`manager`·`handler`·`service`（別的領域也能用＝會撞、看不出做什麼）。
+    - **CLI script**（`scripts/`）＝**動作動詞片語**（做什麼）：`full_market_sync`·`build_catalog`。
+    - **一看就懂測試**：`augur.<package>.<module>` 單看即知做什麼、不必開檔；命名前自問 (a) 是領域詞嗎？(b) `package.module` 讀起來＝做什麼嗎？(c) 別的領域會搶這名（太通用）嗎？→ (c) 中即重取領域概念、合成單一內聚模組。
 19. **重大改動逐檔/逐段檢視 + 跨檔一致性**：實質改動**一支/一段做完讓用戶過目再進下一**，不批次傾倒（用戶 directive「一支一支來檢視」）。改動治權檔（核心思想 / 原則精華 / 憲章 / CLAUDE.md / README）或共用模組時，**檢查跨檔一致性**——一處改、全鏈對齊（如嚴格 source-pure 須三檔同步）。
 20. **多步驟 / 破壞性任務先計畫**：≥3 步或破壞性任務**先寫計畫 + 用戶確認後執行**（可用 plan mode）；不邊想邊做大改。
 
