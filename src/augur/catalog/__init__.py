@@ -536,6 +536,9 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
                 data_id_required=src in ("datalist", "doc", "roster", "info-roster", "series"),
                 reconcile_scope=_reconcile_scope(meta["frequency"], src),
                 single_day_only=meta["single_day_only"] or meta["frequency"] == "single-day")
+    if ds in ingest._AGGREGATE_DAILY:   # intraday-source→聚合日級(augur-specific;官方標 daily 但 FinMind 回 intraday)
+        meta["notes"] = ("intraday-source→聚合日級末筆(%s);官方 daily 但 FinMind 回 intraday、augur 聚合存(#4)"
+                         % ingest._AGGREGATE_DAILY[ds])
     if progress:
         progress(f"  probe {ds}: {len(col_types)}欄·{meta['frequency']}·最早{earliest}·{src}")
     return meta, _build_cols(ds, col_types, pk)

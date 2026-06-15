@@ -50,6 +50,32 @@ def is_intraday(dataset) -> bool:
     return dataset in INTRADAY
 
 
+# `_AGGREGATE_DAILY`（augur-specific、官方 datasets.md 無此概念）：FinMind 回 intraday 但「無日級替代表」者，
+# 抓後聚合日級衍生存（#4「只存日級衍生」、不存 intraday 原始）。值＝聚合法。實證：GoldPrice 5-min（~288 筆/日，
+# 2018-）、官方標 macro daily 但實際回 intraday → 聚合每日末筆 close；早期（1990-2016）已日級（1 筆/日）亦正確。
+# 別於 INTRADAY（純 sub-day、有日級替代如 TaiwanStockPrice → 完全不收）。
+_AGGREGATE_DAILY = {"GoldPrice": "close"}
+
+
+def _aggregate_daily(rows, method="close"):
+    """intraday-source rows → 日級衍生（#4）。method='close'：每日末筆（date 字串最大者）、date 規約為純日級
+    （去時間）→ generic_schema 推 DATE 不降級回 varchar。早期已日級者（1 筆/日）該筆即末筆、亦正確。"""
+    by_day = {}
+    for r in rows:
+        d = str(r.get("date", ""))[:10]
+        if not d:
+            continue
+        cur = by_day.get(d)
+        if cur is None or str(r["date"]) > str(cur["date"]):   # 取每日末筆（date 字串最大＝最晚時間）
+            by_day[d] = r
+    out = []
+    for d in sorted(by_day):
+        nr = dict(by_day[d])
+        nr["date"] = d                                          # date 規約純日級（去時間）
+        out.append(nr)
+    return out
+
+
 def ingest_finmind(conn, dataset, *, audit=True, **params):
     """抓並落地一個 FinMind dataset（表名 = dataset）。intraday → 拒絕。回 result dict。"""
     if dataset in INTRADAY:
@@ -71,6 +97,8 @@ def store(conn, table, rows, *, data_id=None, audit=True, require_keys=()):
     一段交易內 provision_and_upsert（+ 可選稽核），原子提交（#6）。"""
     if not rows:
         return {"table": table, "rows": 0, "schema": {}, "keys": []}
+    if table in _AGGREGATE_DAILY:   # intraday-source（如 GoldPrice 5-min）→ 聚合日級衍生（#4）、不存 intraday 原始
+        rows = _aggregate_daily(rows, _AGGREGATE_DAILY[table])
     rk = require_keys
     if data_id is not None:   # by data_id 落地:該 data_id 對應之維度欄(值=data_id 者,如 GovBonds 之 name/匯率之 currency)強制入 PK,防不同 id 同 date 互相覆蓋塌列
         rk = tuple(set(require_keys) | {k for k in rows[0] if str(rows[0].get(k)) == str(data_id)})
