@@ -253,6 +253,43 @@ def _dimension_sync(conn, dataset, full_start, progress):
     return {"dataset": dataset, "mode": "by-dimension-id", "rows": total, "ids_with_data": hit}
 
 
+def _catalog_plan(conn, dataset):
+    """讀 dataset_catalog 之 (fetch_mode, data_id_source, earliest)——SQL 直讀、**不 import catalog 避循環**
+    （catalog 模組 import sync）。無 catalog 表 / 無記錄 / excluded → None（呼叫端 adaptive fallback、不脆）。"""
+    with db.transaction(conn) as cur:
+        cur.execute("SELECT to_regclass('dataset_catalog')")
+        if cur.fetchone()[0] is None:                          # 無 catalog 表 → adaptive
+            return None
+        cur.execute("SELECT fetch_mode, data_id_source, earliest_date::text "
+                    "FROM dataset_catalog WHERE dataset=%s AND NOT excluded", (dataset,))
+        return cur.fetchone()
+
+
+def _sync_by_plan(conn, dataset, roster, plan, full_start, progress):
+    """catalog 驅動抓取（階段 F）：按 catalog fetch_mode 走正解，**復用** sync_by_date / _dimension_sync /
+    _per_stock_sync / market store（不重造）。成功回 summary；失敗 / 未覆蓋 mode → None（呼叫端 adaptive fallback）。
+    起點 = DB max(date) resume（#6）或 catalog earliest 或 full_start。"""
+    mode, _src, earliest = plan
+    start = _max_date(conn, dataset) or earliest or full_start
+    try:
+        if mode in ("by-date", "single-day"):                  # 逐交易日全市場（single-day 事件型亦逐日）
+            r = sync_by_date(conn, dataset, start=start, progress=progress)
+            return r if r.get("mode") == "by-date" else None   # not-by-date-capable / pk-null → adaptive
+        if mode == "by-dim-id":                                 # 逐維度 id（總經/契約，datalist 驅動）
+            return _dimension_sync(conn, dataset, full_start, progress)
+        if mode == "per-stock":                                 # 逐股（roster）
+            return _per_stock_sync(conn, dataset, roster, earliest or full_start, progress)
+        if mode == "market":                                    # 市場單批（snapshot/單序列；GoldPrice 經 ingest 聚合 hook）
+            rows = finmind.fetch(dataset, start_date=start)
+            res = ingest.store(conn, dataset, rows) if rows else {"rows": 0}
+            return {"dataset": dataset, "mode": "catalog-market", "rows": res["rows"]}
+    except (finmind.FinMindError, psycopg2.Error) as e:
+        if progress:
+            progress(f"  → {dataset}：catalog 驅動({mode})失敗 → adaptive fallback：{str(e)[:60]}")
+        return None
+    return None                                                 # 未覆蓋 mode（per-series 等）→ adaptive
+
+
 def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progress=None):
     """sync 一個 FinMind dataset：市場別探測有資料→市場別；回空/需 data_id→逐股（resume）。回 summary。
 
@@ -263,6 +300,15 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
         return {"dataset": dataset, "mode": "skip-intraday", "rows": 0}
     if dataset in ingest.OUT_OF_UNIT:                      # #3 範圍外（sub-stock/非股標的）→ 明文排除
         return {"dataset": dataset, "mode": "excluded-out-of-unit", "rows": 0}
+    # catalog 驅動（階段 F）：讀 catalog fetch_mode 走正解、取代 adaptive 探測（省探測 overhead + 用正解抓法，
+    # 如 4 截斷表 by-date/by-dim-id）；catalog 無/異常/未覆蓋 mode → 回落下方 adaptive（守 #18 fallback、不脆）。
+    cat = _catalog_plan(conn, dataset)
+    if cat and cat[0]:
+        planned = _sync_by_plan(conn, dataset, roster, cat, full_start, progress)
+        if planned is not None:
+            if progress:
+                progress(f"  → {dataset}：catalog 驅動 {cat[0]} → {planned.get('rows', 0)} 列")
+            return planned
     if progress:
         progress(f"  → {dataset}：分類探測（寬窗 {full_start}-，市場別/逐股判定）…")
     # 1) 分類探測：用 full_start 寬窗（不帶 data_id）。實測 per-stock dataset 唯有寬窗才可靠回空
