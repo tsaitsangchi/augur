@@ -204,29 +204,50 @@ def _roster_count(cur):
     return cur.fetchone()[0]
 
 
+def _pg_ndistinct(cur, table, col, n_rows):
+    """pg_stats 估 distinct 數（instant、避千萬列 count-distinct 慢查；負值=比例×n_rows）；
+    無統計（未 ANALYZE）→ 回 None（**絕不做慢 count-distinct**，呼叫端改用 span 估，保 build 快）。
+    catalog 本是可刷新估值（#15）；refresh 前可對大表 ANALYZE 提升估準度。"""
+    cur.execute("SELECT n_distinct FROM pg_stats WHERE tablename=%s AND attname=%s", (table, col))
+    r = cur.fetchone()
+    if r and r[0] is not None:
+        nd = r[0]
+        return int(nd) if nd >= 0 else max(1, int(-nd * (n_rows or 0)))
+    return None
+
+
+def _days_between(earliest, latest):
+    """min/max 日之間交易日估（~0.69×日曆日）；供 datetime date（News）或無統計時 n_dates 估。"""
+    try:
+        return max(1, round((date.fromisoformat(latest) - date.fromisoformat(earliest)).days * 0.69))
+    except (ValueError, TypeError):
+        return None
+
+
 def _db_metadata(conn, ds):
-    """已落地表 metadata 全讀 DB（無 API）→ (col_types, pk_set, earliest, n_stocks, n_dates, has_time)。"""
+    """已落地表 metadata 全讀 DB（無 API、用 pg 統計估避千萬列慢查）→
+    (col_types, pk_set, earliest, n_stocks, n_dates, has_time, n_rows)。n_dates/n_stocks/n_rows 為估值。"""
     with db.transaction(conn) as cur:
         cur.execute("SELECT column_name, data_type, character_maximum_length, numeric_precision, numeric_scale "
                     "FROM information_schema.columns WHERE table_name=%s ORDER BY ordinal_position", (ds,))
         rows = cur.fetchall()
         pk = set(generic_schema.db_primary_key(cur, ds))
         cset = {r[0] for r in rows}
+        cur.execute("SELECT reltuples::bigint FROM pg_class WHERE relname=%s", (ds,))   # n_rows 估(instant)
+        rr = cur.fetchone()
+        n_rows = rr[0] if rr and rr[0] and rr[0] > 0 else None
         earliest = n_stocks = n_dates = None
         has_time = False
-        if "date" in cset:   # n_dates 數 distinct 日（非 timestamp 數——News datetime date 否則爆 155 萬）
-            cur.execute(f'SELECT min(date), count(DISTINCT left(date::text, 10)) FROM "{ds}"')
+        if "date" in cset:
+            cur.execute(f'SELECT min(date), max(date) FROM "{ds}"')                      # fast(min/max)
             r = cur.fetchone()
             earliest = str(r[0])[:10] if r and r[0] else None
-            n_dates = r[1] if r else None
-            cur.execute(f'SELECT date FROM "{ds}" WHERE date IS NOT NULL LIMIT 1')
-            d = cur.fetchone()
-            has_time = ":" in str(d[0]) if d and d[0] else False
+            latest = str(r[1])[:10] if r and r[1] else None
+            has_time = ":" in str(r[0]) if r and r[0] else False
+            n_dates = (_days_between(earliest, latest) if has_time                       # datetime→日跨度估(避數 timestamp)
+                       else _pg_ndistinct(cur, ds, "date", n_rows) or _days_between(earliest, latest))
         if "stock_id" in cset:
-            cur.execute(f'SELECT count(DISTINCT stock_id) FROM "{ds}"')
-            n_stocks = cur.fetchone()[0]
-        cur.execute(f'SELECT count(*) FROM "{ds}"')
-        n_rows = cur.fetchone()[0]
+            n_stocks = _pg_ndistinct(cur, ds, "stock_id", n_rows)
     return ({r[0]: _fmt_pg(r[1], r[2], r[3], r[4]) for r in rows},
             pk, earliest, n_stocks, n_dates, has_time, n_rows)
 
