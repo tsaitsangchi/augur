@@ -100,11 +100,97 @@ def _official_columns(ds):
     return _off(ds).get("columns") or []
 
 
+_CATEGORY_FALLBACK = {   # 官方 datasets.md 無 section 之表 → 領域分類(完整性 #20;domain 判定、非資料捏造)
+    "ExchangeRate": "Global Economic Data",
+    "TaiwanFutOptInstitutionalInvestors": "TW-Derivative",
+    "TaiwanFuturesSpreadTick": "TW-Derivative",
+    "TaiwanStockBlockTradingDailyReport": "TW-Chip",
+    "TaiwanStockInstitutionalInvestorsBuySellWide": "TW-Chip",
+    "TaiwanStockDayTradingBorrowingFeeRate": "TW-Technical",
+}
+
+
 def _category(ds):
     """category＝官方 datasets.md section（功能分類:Technical/Chip/Fundamental/Derivative/International…）；
-    'Taiwan Market - X'→'TW-X' 縮短入 VARCHAR(32)；無 section → None（呼叫端對 FRED 給 'Macro'）。"""
+    'Taiwan Market - X'→'TW-X' 縮短入 VARCHAR(32)；官方無 section → _CATEGORY_FALLBACK 領域分類（呼叫端對 FRED 給 'Macro'）。"""
     sec = (_off(ds).get("section") or "").replace("Taiwan Market - ", "TW-")
-    return sec[:32] or None
+    return sec[:32] or _CATEGORY_FALLBACK.get(ds)
+
+
+_DATASETS_ZH = config.PROJECT_ROOT / "docs" / "datasets_zh.md"
+# 表級/欄級 curated 中文名已移入 docs/datasets_zh.md（單一策展 SSOT「## 補充」段）——不留 code 補丁 dict（用戶 directive「不要用補的」）。seed 一律讀 datasets_zh.md。
+
+
+def _parse_datasets_zh(path=_DATASETS_ZH):
+    """解析 docs/datasets_zh.md（curated 金融用語 SSOT）→ {(dataset, col_en): (col_zh, zh_source)}。
+    結構:'### <DS>｜<中文>　`tier`' 標 dataset + '| 欄位(EN) | 中文 | 來源 | 型別 |' 表逐欄。"""
+    out, ds = {}, None
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        s = line.strip()
+        if s.startswith("### "):
+            ds = s[4:].split("｜")[0].split("　")[0].split("`")[0].strip() or None
+        elif s.startswith("|") and ds and "欄位" not in s and "---" not in s:
+            cells = [c.strip() for c in s.strip("|").split("|")]
+            if len(cells) >= 3 and cells[0] and cells[1]:
+                out[(ds, cells[0])] = (cells[1], cells[2])
+    return out
+
+
+def seed_column_zh(conn, path=_DATASETS_ZH):
+    """從 curated datasets_zh.md seed column_catalog.column_name_zh + zh_source（no-API、設計之「另行 seed」）。
+    FinMind 無欄名中文（/translation 翻科目值非欄名、實測 0 逐欄清單）→ 金融專業用語(#15 誠實)。
+    精確 (dataset,col) 配對優先；doc 未列之表(後補 8 表等)→ 同欄名最常見中文通用 fallback(標 zh_source=金融通用)。回更新欄數。"""
+    from collections import Counter
+    parsed = _parse_datasets_zh(path)
+    freq = {}
+    for (ds, col), (zh, _s) in parsed.items():
+        freq.setdefault(col, Counter())[zh] += 1
+    glob = {col: c.most_common(1)[0][0] for col, c in freq.items()}   # 同欄名最常見中文(date/stock_id/price 等標準欄跨表一致)
+    n = 0
+    with db.transaction(conn) as cur:
+        for (ds, col), (col_zh, src) in parsed.items():                # 精確 (dataset,col) 配對
+            cur.execute("UPDATE column_catalog SET column_name_zh=%s, zh_source=%s WHERE dataset=%s AND column_name=%s AND column_name_zh IS NULL",
+                        (col_zh, src, ds, col))
+            n += cur.rowcount
+        for col, col_zh in glob.items():                              # doc 未列表之同名欄 → 通用中文(透明標記)
+            cur.execute("UPDATE column_catalog SET column_name_zh=%s, zh_source='金融通用' WHERE column_name=%s AND column_name_zh IS NULL",
+                        (col_zh, col))
+            n += cur.rowcount
+    return n
+
+
+def _parse_table_zh(path=_DATASETS_ZH):
+    """解析 datasets_zh.md 表頭 '### <DS>｜<中文>　`tier`' → {dataset: table_zh}（表級中文名來源）。"""
+    out = {}
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        s = line.strip()
+        if s.startswith("### ") and "｜" in s:
+            head = s[4:]
+            ds = head.split("｜")[0].split("　")[0].split("`")[0].strip()
+            zh = head.split("｜")[1].split("　")[0].split("`")[0].strip()
+            if ds and zh:
+                out[ds] = zh
+    return out
+
+
+def seed_table_zh(conn, path=_DATASETS_ZH):
+    """從 datasets_zh.md 表頭 seed dataset_catalog.table_name_zh（no-API、表級中文名）。
+    datasets_zh.md＝單一策展 SSOT（含「## 補充」段涵蓋 intraday/tick/deferred 表）、無 code 補丁。回更新表數。"""
+    parsed = _parse_table_zh(path)
+    n = 0
+    with db.transaction(conn) as cur:
+        for ds, zh in parsed.items():
+            cur.execute("UPDATE dataset_catalog SET table_name_zh=%s WHERE dataset=%s AND table_name_zh IS NULL", (zh, ds))
+            n += cur.rowcount
+    return n
 
 
 # ── curated 報告知識 seed（provenance=doc；**非 fetch 白名單**，是特殊抓法/edge-case 註解，可刷新）──
@@ -119,6 +205,7 @@ _SPONSOR_ONLY = frozenset({           # 6/24 到期後抓不到，報告 A3/A5
     "TaiwanStockTradingDailyReport", "TaiwanStockTradingDailyReportSecIdAgg",
     "TaiwanStockWarrantTradingDailyReport", "TaiwanStockGovernmentBankBuySell",
     "TaiwanStockBlockTrade", "TaiwanStockLoanCollateralBalance",
+    "TaiwanStockBlockTradingDailyReport",   # 鉅額分點(broker-level securities_trader 欄、同分點/權證分點 sponsor 級)
 })
 _SINGLE_DAY = frozenset({"TaiwanStockNews"})   # size-too-large→end_date 須 none 逐日（非 intraday 者），報告 A9
 _DIRTY_VALUE_NOTES = {                # 欄級已知髒值（建表前即知該存字串、防型別爆炸重演），報告 A8
@@ -137,6 +224,7 @@ def bootstrap_catalog_tables(cur):
     cur.execute("""
         CREATE TABLE IF NOT EXISTS dataset_catalog (
             dataset            VARCHAR(255) PRIMARY KEY,
+            table_name_zh      VARCHAR(255),         -- 表級中文名（datasets_zh.md 表頭｜後 / curated 金融用語）
             source             VARCHAR(16),          -- finmind / fred
             category           VARCHAR(32),
             tier               VARCHAR(16),          -- F / F(id) / B / S
@@ -178,6 +266,7 @@ def bootstrap_catalog_tables(cur):
             PRIMARY KEY (dataset, column_name)
         )
     """)
+    cur.execute("ALTER TABLE dataset_catalog ADD COLUMN IF NOT EXISTS table_name_zh VARCHAR(255)")  # 既有表 migrate 表級中文名（#6 冪等）
 
 
 # ── 動態最優模式（存原料、即時重算；不凍結會變的 n_dates，設計 §3.3）──
@@ -246,7 +335,11 @@ def build(conn, datasets=None, progress=None):
         if progress:
             progress(f"[{done}/{len(targets)}] {ds}: {meta['fetch_mode']}(~{est} calls) · "
                      f"{len(cols)} 欄 · 最早 {meta.get('earliest_date')}")
-    return {"datasets": done}
+    n_tzh = seed_table_zh(conn)                            # 表級中文名(datasets_zh.md 表頭｜後 + curated；完整性 #20:表級＋欄級一次補齊)
+    n_zh = seed_column_zh(conn)                            # 欄級中文(金融用語、no-API)
+    if progress:
+        progress(f"seed 中文: 表名 {n_tzh} 表 + 欄名 {n_zh} 欄")
+    return {"datasets": done, "table_zh": n_tzh, "column_zh": n_zh}
 
 
 # ── 探測 helper（landed 全讀 DB 真值、un-landed 復用 sync 分類探測；皆復用既有引擎、不重造）──
@@ -390,6 +483,13 @@ def _classify_unlanded(conn, ds, roster_n):
     for params in ({"start_date": fs}, {}):                           # 4b 寬窗/無參（月頻 market/名冊 Info special:{}、by-date 單日探不到）→ 1 call market
         if s := _try(**params):
             return s, "single", None, None, _earliest(s)
+    win = (date.today() - timedelta(days=95)).isoformat()             # 4c 短窗 fallback:稀疏-windowed 表(月結算 FinalSettlement——單日漏結算日、寬窗 size-too-large 回0、3 個月短窗 catches columns)
+    if s := _try(start_date=win, end_date=date.today().isoformat()):
+        early = _earliest(s)
+        idcol = next((k for k in ("futures_id", "option_id") if s[0].get(k)), None)
+        if idcol and (wide := _try(data_id=s[0][idcol], start_date=fs)):  # 用樣本契約 id 寬查取真 earliest(短窗 min 僅近期、非真起點)
+            early = _earliest(wide) or early
+        return s, "none", None, None, early
     info = sync._info_roster_ids(conn, ds, None)                       # 5 Info roster（國際股）
     if info and (s := _try(data_id=info[0], start_date=fs)):
         return s, "info-roster", len(info), len(info), _earliest(s)
@@ -456,14 +556,17 @@ def _build_cols(dataset, col_types, pk):
     cols = []
     for i, (c, t) in enumerate(col_types.items()):
         base = _base_type(t)
+        dirty = _DIRTY_VALUE_NOTES.get((dataset, c))
+        if dirty and base not in ("VARCHAR", "TEXT"):          # 已知髒值(價差碼 200710/200711、週選碼 201211W4、sentinel -1)→ 樣本剛好純數字也須存 VARCHAR(防型別爆炸重演)
+            base, t = "VARCHAR", "VARCHAR(64)"
         caveat = ("date 欄被推為 VARCHAR（值非純 YYYY-MM-DD：含時間/非法日）"
-                  if "date" in c.lower() and base == "VARCHAR" else None)
+                  if "date" in c.lower() and base == "VARCHAR" and not dirty else None)
         cols.append({
             "column_name": c, "ordinal": i,
             "column_name_zh": None, "zh_source": None,
             "inferred_type": base, "size": t,
             "is_pk": c in pk, "anti_leakage_flag": _anti_leakage_flag(c),
-            "dirty_value_note": _DIRTY_VALUE_NOTES.get((dataset, c)),
+            "dirty_value_note": dirty,
             "type_caveat": caveat,
         })
     return cols
@@ -493,14 +596,20 @@ def _official_earliest(ds):
     return None
 
 
-def _dedicated_probe_id(conn, ds):
-    """dedicated 表 probe 用 data_id：權證→任一權證代號(DB roster)、其餘(分點等)→2330(常存個股、跨史)。"""
+def _dedicated_probe_ids(conn, ds):
+    """dedicated 表 probe 用 data_id **候選清單**：權證→多檔權證代號(DB roster、逐檔試到有成交那檔取真樣本)、
+    其餘(分點等)→[2330](常存個股、跨史)。權證單檔常無當日成交→須備多檔(不靠 patch/推定)。"""
     if "warrant" in (_DEDICATED_URL.get(ds) or ""):
         with db.transaction(conn) as cur:
-            cur.execute("SELECT stock_id FROM \"TaiwanStockInfo\" WHERE stock_name LIKE '%購%' OR stock_name LIKE '%售%' LIMIT 1")
-            r = cur.fetchone()
-            return r[0] if r else None
-    return "2330"
+            cur.execute("SELECT stock_id FROM \"TaiwanStockInfo\" WHERE stock_name LIKE '%購%' OR stock_name LIKE '%售%' LIMIT 80")
+            return [r[0] for r in cur.fetchall()]
+    return ["2330"]
+
+
+def _dedicated_probe_id(conn, ds):
+    """單一 probe data_id（earliest 回溯用；權證取首檔、分點取 2330）。"""
+    ids = _dedicated_probe_ids(conn, ds)
+    return ids[0] if ids else None
 
 
 def _excluded_sample(conn, ds, roster_n):
@@ -515,12 +624,13 @@ def _excluded_sample(conn, ds, roster_n):
         except finmind.FinMindError:
             return None
     durl = _DEDICATED_URL.get(ds)                              # 分點/權證走專屬 endpoint(非 /data)→ 真實 probe(退役「可抓但暫緩」)
-    if durl and (did := _dedicated_probe_id(conn, ds)):
-        try:
-            if s := finmind.fetch_dedicated(durl, data_id=did, date=day, timeout=180):
-                return s, "dedicated", did, None, None
-        except finmind.FinMindError:
-            pass
+    if durl:
+        for did in _dedicated_probe_ids(conn, ds):             # 權證:逐檔試到有成交那檔取真樣本(非 patch/從分點推定)
+            try:
+                if s := finmind.fetch_dedicated(durl, data_id=did, date=day, timeout=60):
+                    return s, "dedicated", did, None, None
+            except finmind.FinMindError:
+                pass
     s = _try(data_id="2330")                                   # per-stock(tick/kbar) 或 market 忽略 data_id(gold)
     if s and ("stock_id" not in s[0] or any(str(r.get("stock_id")) == "2330" for r in s[:5])):
         has_stk = "stock_id" in s[0]
@@ -537,43 +647,101 @@ def _excluded_sample(conn, ds, roster_n):
     return None, None, None, None, None
 
 
+def _year_probe_days(conn, y):
+    """該年數個**真實交易日**(DB TaiwanStockPrice 日曆)供 earliest 回溯探;避固定日碰假日→假陰性(#15 實證教訓)。
+    DB 未涵蓋之早年 → mid-month 備援日。"""
+    try:
+        with db.transaction(conn) as cur:
+            cur.execute('SELECT DISTINCT date FROM "TaiwanStockPrice" WHERE date>=%s AND date<%s ORDER BY date',
+                        (f"{y}-01-01", f"{y+1}-01-01"))
+            cal = [str(r[0])[:10] for r in cur.fetchall()]
+        if cal:
+            return [cal[min(int(len(cal) * f), len(cal) - 1)] for f in (0.08, 0.3, 0.55, 0.8)]
+    except Exception:
+        pass
+    return [f"{y}-{md}" for md in ("03-17", "06-16", "09-16", "12-15")]
+
+
 def _excluded_earliest(conn, ds, src, dim_id):
-    """excluded 表 earliest：官方 datasets.md 標的優先（免探）；否則用該表工作抓法**單日回溯探**——
-    逐年（3 取樣日避假日）找最早有資料年 → 年內逐月→月初（精確，用戶 directive 2026-06-16：全表完整 metadata）。
-    單日 fetch 避巨量寬窗、timeout 180。回 earliest 日字串 或 None。"""
+    """excluded 表 earliest：官方 datasets.md 標的優先（免探）；否則**市場級 by-date / dedicated 單日回溯探**——
+    逐年取**真實交易日**（DB 日曆、避假日假陰性）找最早有資料年 → 年內逐月→月初。
+    ⚠️ 非 dedicated 表一律**市場級（無 data_id）**：per-stock 稀疏表（鉅額）用單股（2330）會「該股該日無交易→誤判整表無資料」→ 假陰性空掃（2026-06-16 實證：鉅額 2330 在固定日全 miss → 空掃 226 年卡死）。
+    **早停**：連 4 近年皆無資料 → None（此表標準 probe 無深史；如鉅額僅近 ~2 月滾動窗、權證單代號會到期，全史走 dedicated bulk backfill＝deferred operational、非 catalog 缺）。"""
     if off := _official_earliest(ds):
         return off
-
-    def _params(d):
-        if src == "roster":
-            return {"data_id": "2330", "start_date": d, "end_date": d}
-        if src in ("datalist", "info-roster") and dim_id:
-            return {"data_id": dim_id, "start_date": d, "end_date": d}
-        return {"start_date": d, "end_date": d}
-
     durl = _DEDICATED_URL.get(ds)
     did = _dedicated_probe_id(conn, ds) if durl else None
+
+    def _params(d):
+        if src in ("datalist", "info-roster") and dim_id:      # 維度型(契約/國際股)須 dim_id
+            return {"data_id": dim_id, "start_date": d, "end_date": d}
+        return {"start_date": d, "end_date": d}                # roster/none/single → 市場級(無 data_id),避稀疏假陰性
 
     def _has(d):
         if d > date.today().isoformat():
             return False
         try:
-            if durl and did:                                  # 分點:2330 跨史→earliest 真;權證:現存代號會到期→可能探不到真起點(資料特性、非暫緩)
-                return bool(finmind.fetch_dedicated(durl, data_id=did, date=d, timeout=180))
-            return bool(finmind.fetch(ds, timeout=180, **_params(d)))
+            if durl and did:                                  # 分點:dedicated 穩定股 2330 跨史→earliest 真;權證:單代號會到期→可能探不到、早停 None
+                return bool(finmind.fetch_dedicated(durl, data_id=did, date=d, timeout=90))
+            return bool(finmind.fetch(ds, timeout=90, **_params(d)))
         except finmind.FinMindError:
             return False
-    yr_days = ("02-14", "04-16", "06-13", "08-15", "10-14", "12-16")   # 6 取樣日跨月跨日:避「全週末→假陰性」(實證 2026-06-16:3 日全週末誤判)
+
     earliest_y = None
-    for y in range(date.today().year, 1799, -1):               # 下界 1800＝純 sanity（防無限迴圈、無金融時序早於此）、非「慣例假設」；真起點由邊界邏輯（有資料年後遇無資料年）探得，不設假設停損（窮舉到真的沒資料，2026-06-16 教訓：1990 floor 截斷 GoldPrice）
-        if any(_has(f"{y}-{md}") for md in yr_days):
+    for y in range(date.today().year, 1979, -1):               # floor 1980＝純 backstop（excluded 表皆現代市場微結構、無更早）；真起點由「有資料年後遇無資料年 break」或早停探得（非慣例假設停損；對比一般表用寬窗 fetch+min(date)）
+        if any(_has(d) for d in _year_probe_days(conn, y)):
             earliest_y = y
         elif earliest_y is not None:
             break
+        elif date.today().year - y > 3:                        # 近 4 年皆無資料 → 標準 probe 無深史,早停 None（防空掃 226 年、鉅額型 recent-only）
+            return None
     if earliest_y is None:
         return None
-    for m in range(1, 13):                                      # earliest 年內逐月 → 月初(雙取樣日避假日)
-        if any(_has(f"{earliest_y}-{m:02d}-{dd}") for dd in ("13", "21")):
+    for m in range(1, 13):                                      # earliest 年內逐月 → 月初(4 取樣日避假日)
+        if any(_has(f"{earliest_y}-{m:02d}-{dd}") for dd in ("13", "21", "07", "26")):
+            return f"{earliest_y}-{m:02d}-01"
+    return f"{earliest_y}-01-01"
+
+
+def _refine_earliest_below(conn, ds, durl, did, floor_date):
+    """earliest 卡在 FULL_START → 往更早探真起點。FULL_START 註解原假設「API 只回實際範圍」**實測為錯**——
+    API 以 start_date 為下界截斷（GoldPrice 真起點 1979 被 1990 截斷之教訓）→ 由 FULL_START 年往更早
+    **市場級 by-date / dedicated 回溯探**（無 data_id 避稀疏假陰性）、遇無資料年即止、floor 1900 sanity。
+    回更早 earliest 或原 floor_date（無更早＝FULL_START 即真起點）。"""
+    floor_y = int(floor_date[:4])
+
+    def _has_window(start, end, single):
+        """短窗探有無資料——pre-DB 早年無真實日曆、單日碰假日假陰性→用月級窗必含工作日、涵蓋月頻點、payload 小。
+        retry 3 次:國際股(UK/Europe)API 對歷史窗 **erratic 間歇回空**（實證 UK 1989 同查時回空時回 220 列→誤截 1990、真起點 ~1968）→ 重試辨真空、避假截斷。"""
+        for _ in range(3):
+            try:
+                r = (finmind.fetch_dedicated(durl, data_id=did, date=single, timeout=90) if (durl and did)
+                     else finmind.fetch(ds, start_date=start, end_date=end, timeout=90))
+                if r:
+                    return True
+            except finmind.FinMindError:
+                pass
+        return False
+
+    # 哨兵:snapshot 表忽略日期、永遠回現值（實證 TaiwanFutOptDailyInfo 1955 竟回 1323 列）→ 逐年皆「有資料」會空探到
+    # 1900 floor 垃圾值；1955 不可能有真資料、若有＝date-insensitive → earliest 無時序意義 → None。
+    if _has_window("1955-01-01", "1955-02-28", "1955-02-15"):
+        return None
+
+    def _has_year(y):   # 2 個月窗:涵蓋月頻(實證 BusinessIndicator 窄窗漏月頻點→誤判無資料)、跨月含工作日
+        return any(_has_window(f"{y}-{a}", f"{y}-{b}", f"{y}-{a}")
+                   for a, b in (("05-01", "06-30"), ("01-01", "02-28"), ("09-01", "10-31")))
+
+    earliest_y = floor_y
+    for y in range(floor_y - 1, 1899, -1):                     # 由 FULL_START-1 往更早；遇無資料年即止＝真起點
+        if _has_year(y):
+            earliest_y = y
+        else:
+            break
+    if earliest_y == floor_y:                                  # 無更早 → FULL_START 即真起點
+        return floor_date
+    for m in range(1, 13):                                      # 真起點年內逐月→最早月(全月窗避假日)
+        if _has_window(f"{earliest_y}-{m:02d}-01", f"{earliest_y}-{m:02d}-28", f"{earliest_y}-{m:02d}-16"):
             return f"{earliest_y}-{m:02d}-01"
     return f"{earliest_y}-01-01"
 
@@ -590,7 +758,7 @@ def _official_name_cols(ds):
 def _excluded_meta(conn, ds, is_finmind, roster_n, frequency):
     """excluded 表(不落地)**完整** metadata(用戶 directive 2026-06-16:不抓也要全欄完整、窮舉非逐點)。
     單日法取 sample+抓法維度+n_stocks → 真型別欄位;下游欄位(n_dates/anti_leakage/data_id_required/
-    reconcile_scope)同 fetchable 表推導;earliest 取官方 datasets.md 標的(逐年巨量回溯探另待決)。
+    reconcile_scope)同 fetchable 表推導;earliest 走 _excluded_earliest(官方優先→市場級/dedicated 真實交易日回溯探、早停)。
     回 (dataset 層 fields:dict, cols:list)。"""
     if not is_finmind:
         return {}, []
@@ -599,7 +767,8 @@ def _excluded_meta(conn, ds, is_finmind, roster_n, frequency):
     pk = set(generic_schema.detect_keys(sample, col_types)) if sample else set()
     earliest = _safe_date(_excluded_earliest(conn, ds, src, dim_id) if src else _official_earliest(ds))
     asof = [c for c in col_types if _anti_leakage_flag(c)]
-    fields = {"data_id_source": src, "n_dimension_ids": n_dim, "n_stocks": n_stocks,
+    fields = {"data_id_source": src or ("roster" if _DEDICATED_URL.get(ds) else None),   # dedicated 探測日無成交→src 空,但本質為 per-warrant/股 roster
+              "n_dimension_ids": n_dim, "n_stocks": n_stocks,
               "earliest_date": earliest,
               "n_dates": _estimate_n_dates(earliest, frequency) if earliest else None,
               "anti_leakage_note": ("as-of 欄: " + ", ".join(asof)) if asof else None,
@@ -621,7 +790,8 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
     is_finmind = ds != "fred_series"
     meta = {"dataset": ds, "source": "finmind" if is_finmind else "fred", "excluded": False}
     # tier / 抓法分類:官方 datasets.md 驅動(權威、取代硬編);官方未列 → 硬編/probe 備援(不脆)
-    meta["tier"] = _official_tier(ds) or ("S" if ds in _SPONSOR_ONLY else None)
+    meta["tier"] = (_official_tier(ds) or ("S" if ds in _SPONSOR_ONLY else None)
+                    or ("FRED" if not is_finmind else "F"))   # 官方無 tier 預設:FinMind→F(free;sponsor 由 _SPONSOR_ONLY 顯式標)、FRED 源→FRED
     meta["category"] = _category(ds) if is_finmind else "Macro"   # 官方 section 功能分類（全表補齊，完整性）
     is_sponsor = meta["tier"] == "S"
     meta["endpoint"] = _endpoint(ds, is_finmind)
@@ -681,6 +851,9 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
             meta["data_id_source"] = "none"
 
     earliest = _safe_date(earliest)                        # 正規化(月頻 2026/06→月初、非法→None)再供 frequency/estimate/storage
+    if is_finmind and earliest and str(earliest)[:7] == sync.FULL_START[:7]:   # earliest 卡 FULL_START 月(1990-01;含首交易日 01-02 等截斷,非僅 01-01)→往更早探源頭真起點(GoldPrice 1979 教訓)。**landed 表亦須**:DB min 常因當初 FULL_START sync 截斷、源頭有更早(實證 UKStockPrice 1990→源頭 1968、USStock/CrudeOil/ExchangeRate 同類)。genuine-1990 表 refine 探 1989 無資料即 no-op、安全
+        earliest = _refine_earliest_below(conn, ds, meta.get("dedicated_url"),
+                                          _dedicated_probe_id(conn, ds) if meta.get("dedicated_url") else None, earliest)
     has_stock = "stock_id" in col_types
     if single_hint is None:                                # landed 單序列判：無 stock、非維度、~1 列/日
         single_hint = (not has_stock and meta["data_id_source"] not in ("datalist", "doc")
