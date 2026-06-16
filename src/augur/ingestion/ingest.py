@@ -25,14 +25,14 @@ INTRADAY = frozenset({
     "USStockPriceMinute", "TaiwanStockEvery5SecondsIndex",
 })
 
-# `OUT_OF_UNIT`（v1.4.0 #3 重定義）：非「資料維度排除」，而是「規模物理不可行之 operational 暫緩」。
-# 資料維度上合格（日級，符合 #4 唯一資料本質排除準則）；僅因 FinMind 限「單 id × 單日」查（無範圍查、
-# 無 metadata 取範圍）致全市場抓取規模物理不可行 → 暫緩、待有能力補通用多維度抓取(#18)再抓，非治權排除。
-# 實證 2026-06-10 規模：
-# - TaiwanStockTradingDailyReport：券商分點進出明細（券商 × 股 × 日，sub-stock；單股×單日 only × 3100 股 = 數十億列）。
-# - TaiwanStockWarrantTradingDailyReport：權證日成交（權證宇宙 126,368 檔）。
-# - TaiwanStockBlockTradingDailyReport：鉅額交易（稀疏 → backward-probe 取樣多落空、難可靠定起點）。
-OUT_OF_UNIT = frozenset({
+# `BACKFILL_DEFERRED`：**可抓**、但暫緩「自動全市場全史 backfill」之 dataset（scope 待決，非物理不可行）。
+# 資料維度合格（日級，符合 #4）；抓法亦已實證可行（2026-06-16，經 finmind.fetch_dedicated / 普通 by-date）：
+# - TaiwanStockTradingDailyReport：券商分點（dedicated endpoint，data_id+date；2330 單日回 ~4838 列實證）。
+# - TaiwanStockWarrantTradingDailyReport：權證分點（dedicated endpoint，data_id+date；endpoint 已確認 200-success）。
+# - TaiwanStockBlockTradingDailyReport：券商別鉅額（普通 /data，data_id+date 範圍即可；13 列實證）。
+# 暫緩之因＝**規模/scope**（分點 per-(股,日)、權證宇宙 ~126K 檔、鉅額稀疏）→ 全市場全史很大，
+# 「抓哪些股 × 哪段窗」屬放量 scope 決策（待用戶授權）；故不放進 daily_datasets() 自動全抓——非治權排除、非物理不可行。
+BACKFILL_DEFERRED = frozenset({
     "TaiwanStockTradingDailyReport",
     "TaiwanStockWarrantTradingDailyReport",
     "TaiwanStockBlockTradingDailyReport",

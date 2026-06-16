@@ -110,25 +110,23 @@ def _quota_gate():
         _quota_state["t"] = time.monotonic()
 
 
-def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
-    """抓一個 FinMind dataset → `list[dict]`（無資料則 `[]`）。
+def _protected_get(url, query, label, *, timeout, max_retries, base_backoff):
+    """三層防護（quota_gate→pace）下對 url 發 GET，含 402/429/5xx 退避、403 固定冷卻、逾時/連線重試 → 回 body dict。
 
-    params 例：`data_id='2330', start_date='2025-01-01', end_date='2026-06-09'`。
-    402/429/5xx（限流/伺服器）與逾時/連線錯誤 → 指數退避；**403（額度耗盡/IP 限流）→ 固定冷卻 `QUOTA_COOLDOWN` 秒**等額度重置(不短退避反覆撞)；應用層錯誤（參數/token）→ 立即拋。
+    `fetch`（/data）與 `fetch_dedicated`（專屬 endpoint）共用此核心 → **同一限速防護**（#24「驗證與全史走同一 fetch、同一防護」）。
     """
-    query = {**params, "dataset": dataset, "token": config.FINMIND_TOKEN}
     backoff = base_backoff
     for attempt in range(max_retries + 1):
         _quota_gate()                             # 主動額度閘:錶快滿先停(撞 403 前),退夠自動續
-        _pace()                                   # 主動限速:每筆 fetch 先間隔(防 burst 被封)
+        _pace()                                   # 主動限速:每筆先間隔(防 burst 被封)
         try:
-            resp = requests.get(API_URL, params=query, timeout=timeout)
+            resp = requests.get(url, params=query, timeout=timeout)
         except (requests.Timeout, requests.ConnectionError) as e:
             if attempt < max_retries:
                 time.sleep(backoff)
                 backoff *= 2
                 continue
-            raise FinMindError(f"{dataset}: 連線失敗（重試 {max_retries} 次後）{type(e).__name__}") from e
+            raise FinMindError(f"{label}: 連線失敗（重試 {max_retries} 次後）{type(e).__name__}") from e
 
         if resp.status_code in _RETRY_STATUS:   # 額度/限流/IP封鎖/伺服器暫時錯誤 → 依 retry_after 或退避重試
             if attempt < max_retries:
@@ -143,25 +141,50 @@ def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
                     time.sleep(min(float(ra), MAX_COOLDOWN) if ra else backoff)
                     backoff *= 2
                 continue
-            raise FinMindError(f"{dataset}: 限流/封鎖/伺服器錯誤 HTTP {resp.status_code}（重試 {max_retries} 次仍失敗）")
+            raise FinMindError(f"{label}: 限流/封鎖/伺服器錯誤 HTTP {resp.status_code}（重試 {max_retries} 次仍失敗）")
 
         try:
-            body = resp.json()
+            return resp.json()
         except ValueError as e:
-            raise FinMindError(f"{dataset}: 非 JSON 回應 (HTTP {resp.status_code})") from e
+            raise FinMindError(f"{label}: 非 JSON 回應 (HTTP {resp.status_code})") from e
 
-        if body.get("status") == 200:
-            return body.get("data", [])
-        msg = body.get("msg", "")
-        # 單日型 dataset（FinMind 資料量大→一次只回一天、end_date 須 none，如 TaiwanStockNews）：移除
-        # end_date 重抓該 start_date 單日 → by-date/backward-probe 逐日路徑自動相容（catch 訊息、非 hardcoded 清單，守 #3）
-        if "end_date" in msg and "none" in msg and params.get("end_date") is not None:
-            return fetch(dataset, timeout=timeout, max_retries=max_retries, base_backoff=base_backoff,
-                         **{k: v for k, v in params.items() if k != "end_date"})
-        # 應用層錯誤（如「Token is illegal」「parameter data_id can't be none」）→ 重試無益，直接拋
-        raise FinMindError(f"{dataset}: status={body.get('status')} msg={msg}")
+    raise FinMindError(f"{label}: 重試耗盡")   # 理論上到不了（迴圈內已處理）
 
-    raise FinMindError(f"{dataset}: 重試耗盡")   # 理論上到不了（迴圈內已處理）
+
+def fetch(dataset, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
+    """抓一個 FinMind dataset（`/data`）→ `list[dict]`（無資料則 `[]`）。
+
+    params 例：`data_id='2330', start_date='2025-01-01', end_date='2026-06-09'`。
+    402/429/5xx（限流/伺服器）與逾時/連線錯誤 → 指數退避；**403（額度耗盡/IP 限流）→ 固定冷卻 `QUOTA_COOLDOWN` 秒**等額度重置(不短退避反覆撞)；應用層錯誤（參數/token）→ 立即拋。
+    """
+    query = {**params, "dataset": dataset, "token": config.FINMIND_TOKEN}
+    body = _protected_get(API_URL, query, dataset, timeout=timeout, max_retries=max_retries, base_backoff=base_backoff)
+    if body.get("status") == 200:
+        return body.get("data", [])
+    msg = body.get("msg", "")
+    # 單日型 dataset（FinMind 資料量大→一次只回一天、end_date 須 none，如 TaiwanStockNews）：移除
+    # end_date 重抓該 start_date 單日 → by-date/backward-probe 逐日路徑自動相容（catch 訊息、非 hardcoded 清單，守 #3）
+    if "end_date" in msg and "none" in msg and params.get("end_date") is not None:
+        return fetch(dataset, timeout=timeout, max_retries=max_retries, base_backoff=base_backoff,
+                     **{k: v for k, v in params.items() if k != "end_date"})
+    # 應用層錯誤（如「Token is illegal」「parameter data_id can't be none」）→ 重試無益，直接拋
+    raise FinMindError(f"{dataset}: status={body.get('status')} msg={msg}")
+
+
+def fetch_dedicated(path, *, timeout=60, max_retries=4, base_backoff=2.0, **params):
+    """抓 FinMind **專屬 endpoint**（非 `/data`；分點/權證/卷商統計等 special endpoint）→ `list[dict]`。
+
+    `path` 例：`/taiwan_stock_trading_daily_report`（券商分點）·`/taiwan_stock_warrant_trading_daily_report`（權證分點）·
+    `/taiwan_stock_trading_daily_report_secid_agg`（卷商分點統計，規模可行聚合版）。
+    params 例：分點/權證 `data_id='2330', date='2026-06-12'`（per-(股,日)）；secid_agg `data_id='2330', start_date=…, end_date=…`（per-股範圍）。
+    與 `fetch` 共用同一三層防護（`_protected_get`，#24）；**endpoint 即 dataset → query 不帶 `dataset` 鍵**。
+    """
+    url = API_URL.rsplit("/", 1)[0] + path
+    query = {**params, "token": config.FINMIND_TOKEN}
+    body = _protected_get(url, query, path, timeout=timeout, max_retries=max_retries, base_backoff=base_backoff)
+    if body.get("status") == 200:
+        return body.get("data", [])
+    raise FinMindError(f"{path}: status={body.get('status')} msg={body.get('msg') or body.get('detail', '')}")  # 專屬 endpoint 400 用 detail 非 msg
 
 
 def list_datasets(*, timeout=60):

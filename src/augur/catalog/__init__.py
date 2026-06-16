@@ -100,6 +100,7 @@ QUOTA_EXPIRY = "2026-06-24"           # FinMind sponsor token 到期；sponsor-o
 _DEDICATED_URL = {                    # 分點/券商聚合走專屬 URL（非 /data），報告 A2——「難抓」之正確 endpoint
     "TaiwanStockTradingDailyReport": "/taiwan_stock_trading_daily_report",
     "TaiwanStockTradingDailyReportSecIdAgg": "/taiwan_stock_trading_daily_report_secid_agg",
+    "TaiwanStockWarrantTradingDailyReport": "/taiwan_stock_warrant_trading_daily_report",   # 權證分點（2026-06-16 實證 200-success）
 }
 _SPONSOR_ONLY = frozenset({           # 6/24 到期後抓不到，報告 A3/A5
     "TaiwanStockTradingDailyReport", "TaiwanStockTradingDailyReportSecIdAgg",
@@ -220,7 +221,7 @@ def build(conn, datasets=None, progress=None):
     with db.transaction(conn) as cur:
         bootstrap_catalog_tables(cur)
         roster_n = _roster_count(cur)
-    targets = datasets or (finmind.list_datasets() + ["fred_series"])   # 全集(含 excluded、亦記其抓法);daily_datasets 會濾掉 intraday/OUT_OF_UNIT
+    targets = datasets or (finmind.list_datasets() + ["fred_series"])   # 全集(含 excluded、亦記其抓法);daily_datasets 會濾掉 intraday/BACKFILL_DEFERRED
     done = 0
     for ds in targets:
         meta, cols = probe_dataset(conn, ds, progress=progress, roster_n=roster_n)
@@ -477,9 +478,11 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
         meta.update(excluded=True, excluded_reason="單位小於日 intraday（官方 sub-day / #4 日為最小單位、不抓）",
                     frequency="intraday", source_provenance="official/INTRADAY")   # ≤VARCHAR(32)
         return meta, []
-    if ds in ingest.OUT_OF_UNIT:                              # 規模 operational 暫緩(augur-specific、官方無此概念)
-        meta.update(excluded=True, excluded_reason="規模物理不可行 operational 暫緩（#3、augur-specific）",
-                    source_provenance="ingest.OUT_OF_UNIT")
+    if ds in ingest.BACKFILL_DEFERRED:                        # 可抓但暫緩自動全市場 backfill(scope 待決)；非物理不可行
+        meta.update(excluded=True,                            # excluded＝不進自動 pipeline；抓法見 dedicated_url/notes
+                    excluded_reason="可抓但暫緩自動 backfill（規模/scope 待決，非物理不可行）；抓法已實證",
+                    notes="實證 2026-06-16：分點/權證走 dedicated endpoint（finmind.fetch_dedicated）、鉅額走 /data；全市場全史規模大→scope 屬放量決策",
+                    frequency="daily", source_provenance="ingest.BACKFILL_DEFERRED")
         return meta, []
 
     with db.transaction(conn) as cur:

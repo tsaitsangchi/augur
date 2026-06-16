@@ -50,9 +50,9 @@ def seed_roster(conn):
 
 
 def daily_datasets():
-    """PHASE 4 列舉：FinMind 全 dataset 去掉 intraday（#4）+ 範圍外（#3 OUT_OF_UNIT）→ 日頻清單（#3 動態、無 hardcoded）。"""
+    """PHASE 4 列舉：FinMind 全 dataset 去掉 intraday（#4）+ 暫緩自動 backfill（BACKFILL_DEFERRED、可抓但 scope 待決）→ 日頻清單（#3 動態、無 hardcoded）。"""
     return [d for d in finmind.list_datasets()
-            if not ingest.is_intraday(d) and d not in ingest.OUT_OF_UNIT]
+            if not ingest.is_intraday(d) and d not in ingest.BACKFILL_DEFERRED]
 
 
 def _max_date(conn, table, id_col=None, id_val=None):
@@ -298,8 +298,8 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
     """
     if ingest.is_intraday(dataset):
         return {"dataset": dataset, "mode": "skip-intraday", "rows": 0}
-    if dataset in ingest.OUT_OF_UNIT:                      # #3 範圍外（sub-stock/非股標的）→ 明文排除
-        return {"dataset": dataset, "mode": "excluded-out-of-unit", "rows": 0}
+    if dataset in ingest.BACKFILL_DEFERRED:               # 可抓但暫緩自動 backfill（scope 待決）→ 自動路徑跳過、非排除
+        return {"dataset": dataset, "mode": "deferred-backfill", "rows": 0}
     # catalog 驅動（階段 F）：讀 catalog fetch_mode 走正解、取代 adaptive 探測（省探測 overhead + 用正解抓法，
     # 如 4 截斷表 by-date/by-dim-id）；catalog 無/異常/未覆蓋 mode → 回落下方 adaptive（守 #18 fallback、不脆）。
     cat = _catalog_plan(conn, dataset)
@@ -388,8 +388,8 @@ def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
     """
     if ingest.is_intraday(dataset):
         return {"dataset": dataset, "mode": "skip-intraday", "rows": 0}
-    if dataset in ingest.OUT_OF_UNIT:                      # #3 範圍外 → 明文排除（與 sync_finmind_dataset 一致，增量路徑亦守）
-        return {"dataset": dataset, "mode": "excluded-out-of-unit", "rows": 0}
+    if dataset in ingest.BACKFILL_DEFERRED:               # 可抓但暫緩自動 backfill（與 sync_finmind_dataset 一致，增量路徑亦守）
+        return {"dataset": dataset, "mode": "deferred-backfill", "rows": 0}
     if start is None:
         start = _max_date(conn, dataset)
         if start is None:

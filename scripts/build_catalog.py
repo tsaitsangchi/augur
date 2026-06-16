@@ -7,7 +7,7 @@
 並順手 bootstrap 抓取要寫的 infra log 表（pipeline_execution_log / data_audit_log，憲章 PHASE 1）→ 換機一指令備齊全 infra。
 
 ⚠️ 放量（#17）：un-landed dataset 需 API 探測（含 earliest backward-probe）；landed 多為 DB 讀 + 少量
-API；excluded（intraday / OUT_OF_UNIT）無探測。全程經 finmind 三層防護（_pace → _quota_gate → 403 冷卻）。
+API；excluded（intraday / BACKFILL_DEFERRED）無探測（後者抓法記於 dedicated_url/notes）。全程經 finmind 三層防護（_pace → _quota_gate → 403 冷卻）。
 守 #18（探測持久化、非白名單）· #17（限速）· #15（provenance + last_verified）· #6（upsert 冪等、可重跑）。
 
 用法：PYTHONPATH=src python scripts/build_catalog.py            （全 83 + FRED）
