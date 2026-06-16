@@ -52,7 +52,8 @@ def _parse_official_datasets(path=_OFFICIAL_REF):
             rt = bool(section and "Real-Time" in section)
             sec_tier = "Sponsor" if rt else ("Backer" if section and "Convertible Bond" in section else None)
             out[ds] = {"section": section, "tier": row.get("Tier") or sec_tier,
-                       "params": row.get("Params", ""), "desc": row.get("Description", ""), "is_realtime": rt}
+                       "params": row.get("Params", ""), "desc": row.get("Description", ""), "is_realtime": rt,
+                       "columns": [c.strip() for c in (row.get("Key Columns") or "").split(",") if c.strip()]}
     return out
 
 
@@ -92,6 +93,18 @@ def _official_is_intraday(ds):
 def _official_single_day(ds):
     """官方 params 標 'single day' → True(逐日 end_date none 型)。"""
     return "single day" in (_off(ds).get("params") or "").lower()
+
+
+def _official_columns(ds):
+    """官方 datasets.md 'Key Columns' → 欄名 list(大小寫容錯)；無 → []。excluded 表據此記欄位(免 fetch)。"""
+    return _off(ds).get("columns") or []
+
+
+def _category(ds):
+    """category＝官方 datasets.md section（功能分類:Technical/Chip/Fundamental/Derivative/International…）；
+    'Taiwan Market - X'→'TW-X' 縮短入 VARCHAR(32)；無 section → None（呼叫端對 FRED 給 'Macro'）。"""
+    sec = (_off(ds).get("section") or "").replace("Taiwan Market - ", "TW-")
+    return sec[:32] or None
 
 
 # ── curated 報告知識 seed（provenance=doc；**非 fetch 白名單**，是特殊抓法/edge-case 註解，可刷新）──
@@ -456,6 +469,146 @@ def _build_cols(dataset, col_types, pk):
     return cols
 
 
+def _recent_day(conn):
+    """近期交易日(供 excluded 單日樣本探)：DB TaiwanStockPrice max(date)；無表 → 回退近週工作日。"""
+    with db.transaction(conn) as cur:
+        if "date" in generic_schema.db_columns(cur, "TaiwanStockPrice"):
+            cur.execute('SELECT max(date) FROM "TaiwanStockPrice"')
+            r = cur.fetchone()
+            if r and r[0]:
+                return str(r[0])[:10]
+    d = date.today() - timedelta(days=4)
+    while d.weekday() >= 5:
+        d -= timedelta(days=1)
+    return d.isoformat()
+
+
+def _official_earliest(ds):
+    """官方 datasets.md 描述若標日期範圍(如 '2005-04-04~now')→ earliest 日；無 → None（免探）。"""
+    desc = _off(ds).get("desc", "")
+    if "~" in desc:
+        head = desc.split("~")[0].strip()[-10:]
+        if len(head) == 10 and head[4] == "-" and head[:4].isdigit():
+            return head
+    return None
+
+
+def _dedicated_probe_id(conn, ds):
+    """dedicated 表 probe 用 data_id：權證→任一權證代號(DB roster)、其餘(分點等)→2330(常存個股、跨史)。"""
+    if "warrant" in (_DEDICATED_URL.get(ds) or ""):
+        with db.transaction(conn) as cur:
+            cur.execute("SELECT stock_id FROM \"TaiwanStockInfo\" WHERE stock_name LIKE '%購%' OR stock_name LIKE '%售%' LIMIT 1")
+            r = cur.fetchone()
+            return r[0] if r else None
+    return "2330"
+
+
+def _excluded_sample(conn, ds, roster_n):
+    """excluded 表單日樣本探 → (sample, data_id_source, dim_id, n_dimension_ids, n_stocks)；探不到 → 全 None。
+    對映診斷實證抓法:dedicated endpoint(分點/權證) → per-stock 2330 → market → /datalist → Info-roster（皆單日避巨量）。
+    註:不復用 `_classify_unlanded`（其 canonical start=1990 無 end，對 intraday 單日限定表出錯/回巨量）。"""
+    day = _recent_day(conn)
+
+    def _try(**p):
+        try:                                                  # timeout 加長:intraday 單日 payload 可達 10-20 萬列
+            return finmind.fetch(ds, start_date=day, end_date=day, timeout=180, **p)
+        except finmind.FinMindError:
+            return None
+    durl = _DEDICATED_URL.get(ds)                              # 分點/權證走專屬 endpoint(非 /data)→ 真實 probe(退役「可抓但暫緩」)
+    if durl and (did := _dedicated_probe_id(conn, ds)):
+        try:
+            if s := finmind.fetch_dedicated(durl, data_id=did, date=day, timeout=180):
+                return s, "dedicated", did, None, None
+        except finmind.FinMindError:
+            pass
+    s = _try(data_id="2330")                                   # per-stock(tick/kbar) 或 market 忽略 data_id(gold)
+    if s and ("stock_id" not in s[0] or any(str(r.get("stock_id")) == "2330" for r in s[:5])):
+        has_stk = "stock_id" in s[0]
+        return s, ("roster" if has_stk else "none"), None, None, (roster_n if has_stk else None)
+    if s := _try():                                            # market(index/orderbook-stat)
+        return s, "none", None, None, None
+    dl = finmind.datalist(ds)                                  # 維度 id(futures/option tick)
+    if dl and (s := _try(data_id=dl[0])):
+        return s, "datalist", dl[0], len(dl), None
+    base = ds.split("Price")[0] + "Price" if "Price" in ds else ds   # 變體 USStockPriceMinute→USStockPrice → USStockInfo roster
+    info = sync._info_roster_ids(conn, base, None)             # Info-roster(國際股 price/minute)
+    if info and (s := _try(data_id=info[0])):
+        return s, "info-roster", info[0], len(info), len(info)
+    return None, None, None, None, None
+
+
+def _excluded_earliest(conn, ds, src, dim_id):
+    """excluded 表 earliest：官方 datasets.md 標的優先（免探）；否則用該表工作抓法**單日回溯探**——
+    逐年（3 取樣日避假日）找最早有資料年 → 年內逐月→月初（精確，用戶 directive 2026-06-16：全表完整 metadata）。
+    單日 fetch 避巨量寬窗、timeout 180。回 earliest 日字串 或 None。"""
+    if off := _official_earliest(ds):
+        return off
+
+    def _params(d):
+        if src == "roster":
+            return {"data_id": "2330", "start_date": d, "end_date": d}
+        if src in ("datalist", "info-roster") and dim_id:
+            return {"data_id": dim_id, "start_date": d, "end_date": d}
+        return {"start_date": d, "end_date": d}
+
+    durl = _DEDICATED_URL.get(ds)
+    did = _dedicated_probe_id(conn, ds) if durl else None
+
+    def _has(d):
+        if d > date.today().isoformat():
+            return False
+        try:
+            if durl and did:                                  # 分點:2330 跨史→earliest 真;權證:現存代號會到期→可能探不到真起點(資料特性、非暫緩)
+                return bool(finmind.fetch_dedicated(durl, data_id=did, date=d, timeout=180))
+            return bool(finmind.fetch(ds, timeout=180, **_params(d)))
+        except finmind.FinMindError:
+            return False
+    yr_days = ("02-14", "04-16", "06-13", "08-15", "10-14", "12-16")   # 6 取樣日跨月跨日:避「全週末→假陰性」(實證 2026-06-16:3 日全週末誤判)
+    earliest_y = None
+    for y in range(date.today().year, 1799, -1):               # 下界 1800＝純 sanity（防無限迴圈、無金融時序早於此）、非「慣例假設」；真起點由邊界邏輯（有資料年後遇無資料年）探得，不設假設停損（窮舉到真的沒資料，2026-06-16 教訓：1990 floor 截斷 GoldPrice）
+        if any(_has(f"{y}-{md}") for md in yr_days):
+            earliest_y = y
+        elif earliest_y is not None:
+            break
+    if earliest_y is None:
+        return None
+    for m in range(1, 13):                                      # earliest 年內逐月 → 月初(雙取樣日避假日)
+        if any(_has(f"{earliest_y}-{m:02d}-{dd}") for dd in ("13", "21")):
+            return f"{earliest_y}-{m:02d}-01"
+    return f"{earliest_y}-01-01"
+
+
+def _official_name_cols(ds):
+    """探不到樣本(需未知 id)→ 官方 datasets.md 欄名(型別 NULL、誠實 #15)。"""
+    return [{"column_name": n, "ordinal": i, "column_name_zh": None, "zh_source": None,
+             "inferred_type": None, "size": None, "is_pk": False,
+             "anti_leakage_flag": _anti_leakage_flag(n), "dirty_value_note": None,
+             "type_caveat": "官方 datasets.md 欄名（樣本探測未取得、未定型別）"}
+            for i, n in enumerate(_official_columns(ds))]
+
+
+def _excluded_meta(conn, ds, is_finmind, roster_n, frequency):
+    """excluded 表(不落地)**完整** metadata(用戶 directive 2026-06-16:不抓也要全欄完整、窮舉非逐點)。
+    單日法取 sample+抓法維度+n_stocks → 真型別欄位;下游欄位(n_dates/anti_leakage/data_id_required/
+    reconcile_scope)同 fetchable 表推導;earliest 取官方 datasets.md 標的(逐年巨量回溯探另待決)。
+    回 (dataset 層 fields:dict, cols:list)。"""
+    if not is_finmind:
+        return {}, []
+    sample, src, dim_id, n_dim, n_stocks = _excluded_sample(conn, ds, roster_n)
+    col_types = generic_schema.infer_schema(sample) if sample else {}
+    pk = set(generic_schema.detect_keys(sample, col_types)) if sample else set()
+    earliest = _safe_date(_excluded_earliest(conn, ds, src, dim_id) if src else _official_earliest(ds))
+    asof = [c for c in col_types if _anti_leakage_flag(c)]
+    fields = {"data_id_source": src, "n_dimension_ids": n_dim, "n_stocks": n_stocks,
+              "earliest_date": earliest,
+              "n_dates": _estimate_n_dates(earliest, frequency) if earliest else None,
+              "anti_leakage_note": ("as-of 欄: " + ", ".join(asof)) if asof else None,
+              "data_id_required": src in ("datalist", "doc", "roster", "info-roster"),
+              "reconcile_scope": _reconcile_scope(frequency, src)}
+    cols = _build_cols(ds, col_types, pk) if sample else _official_name_cols(ds)
+    return fields, cols
+
+
 def probe_dataset(conn, ds, *, progress=None, roster_n=None):
     """探測單一 dataset → (meta:dict, cols:list[dict])。
 
@@ -469,6 +622,7 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
     meta = {"dataset": ds, "source": "finmind" if is_finmind else "fred", "excluded": False}
     # tier / 抓法分類:官方 datasets.md 驅動(權威、取代硬編);官方未列 → 硬編/probe 備援(不脆)
     meta["tier"] = _official_tier(ds) or ("S" if ds in _SPONSOR_ONLY else None)
+    meta["category"] = _category(ds) if is_finmind else "Macro"   # 官方 section 功能分類（全表補齊，完整性）
     is_sponsor = meta["tier"] == "S"
     meta["endpoint"] = _endpoint(ds, is_finmind)
     meta["dedicated_url"] = _DEDICATED_URL.get(ds)
@@ -477,13 +631,16 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
     if _official_is_intraday(ds) or ingest.is_intraday(ds):   # 官方 sub-day(主)+ 硬編 INTRADAY(備援);單位小於日不抓(#4)
         meta.update(excluded=True, excluded_reason="單位小於日 intraday（官方 sub-day / #4 日為最小單位、不抓）",
                     frequency="intraday", source_provenance="official/INTRADAY")   # ≤VARCHAR(32)
-        return meta, []
-    if ds in ingest.BACKFILL_DEFERRED:                        # 可抓但暫緩自動全市場 backfill(scope 待決)；非物理不可行
-        meta.update(excluded=True,                            # excluded＝不進自動 pipeline；抓法見 dedicated_url/notes
-                    excluded_reason="可抓但暫緩自動 backfill（規模/scope 待決，非物理不可行）；抓法已實證",
-                    notes="實證 2026-06-16：分點/權證走 dedicated endpoint（finmind.fetch_dedicated）、鉅額走 /data；全市場全史規模大→scope 屬放量決策",
-                    frequency="daily", source_provenance="ingest.BACKFILL_DEFERRED")
-        return meta, []
+        fields, cols = _excluded_meta(conn, ds, is_finmind, roster_n, "intraday")   # 不落地，但全欄 metadata 補齊(窮舉非逐點，用戶 directive)
+        meta.update(fields)
+        return meta, cols
+    if ds in ingest.BACKFILL_DEFERRED:                        # 分點/權證/鉅額:抓法+metadata 真實 probe(退役「可抓但暫緩」placeholder)
+        meta.update(excluded=True,                            # excluded＝不進「自動全史 bulk sync」(per-(股,日)規模);catalog metadata 為真實 probe
+                    excluded_reason="抓法+欄位/earliest 已實證真實 probe（分點/權證 dedicated endpoint、鉅額 /data）；全史 bulk 落地屬 sync operational（per-(股,日)規模）、非 catalog 缺資料",
+                    frequency="daily", source_provenance="dedicated-probe")
+        fields, cols = _excluded_meta(conn, ds, is_finmind, roster_n, "daily")   # 真實 probe 全欄 metadata(dedicated-aware)
+        meta.update(fields)
+        return meta, cols
 
     with db.transaction(conn) as cur:
         landed = bool(generic_schema.db_columns(cur, ds))
