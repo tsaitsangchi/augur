@@ -284,7 +284,7 @@ def optimal_mode(c):
     if freq == "single-day":                           # News / tick：逐日
         return ("single-day", c.get("n_dates") or 0)
     cands = []
-    if c.get("n_stocks"):
+    if c.get("n_stocks") and c.get("data_id_source") == "roster":   # per-stock 僅台股 roster 來源(canonical 2330 命中);國際股 src="none"(by-date 全市場命中、n_stocks 誤填台股 roster)無 per-stock roster → 排除走 by-date,防用台股 id 漏抓 UK/Europe/US/Japan(2026-06-16 實證 bug)
         cands.append(("per-stock", c["n_stocks"]))     # 逐股各一次全史
     if c.get("n_dates"):
         cands.append(("by-date", c["n_dates"]))        # 逐日各一次全市場
