@@ -182,6 +182,63 @@ def heal_by_date(conn, table, dataset=None, *, since=None, progress=None):
             "passed": after["value_mismatch"] == 0 and after["extra_in_db"] == 0}
 
 
+def reconcile_per_stock(conn, table, dataset=None, *, since=None, sample_n=None, progress=None):
+    """per-stock 對帳：逐股以 per-stock 端點重抓（data_id=股）、逐股 compare——對齊抓取端點。
+
+    per-stock 抓的表（catalog `reconcile_scope='roster-scoped'`）若改用 by-date 重抓對帳，會因
+    FinMind by-date/per-stock 兩端點對同列回值之極小差 → 假 VM（2026-06-17 三大法人 VM=73 實證）。
+    改以 per-stock 重抓（同寫入端點）比同源：殘餘 VM 即真差異（近日修訂），交 heal 重抓修、不被掩蓋。
+
+    `sample_n`：等距抽樣限重抓股數（per-stock 1 call/股，全 roster 太貴）；None=全 roster。
+    **取樣＝部分覆蓋（非全股 attest），呼叫端須知會（#7 不靜默縮覆蓋）**。
+    回傳含 `per_stock`：{stock_id:{VM,MIS,EX}}（只列有差異股）+ `stocks`（實對股數）、`sampled`（是否抽樣）。
+    """
+    dataset = dataset or table
+    agg = _blank(table)
+    agg["per_stock"] = {}
+    with db.transaction(conn) as cur:
+        cols, pk, val = _meta(cur, table)
+        cur.execute(f'SELECT DISTINCT stock_id FROM "{table}" ORDER BY stock_id')
+        stocks = [str(r[0]) for r in cur.fetchall()]
+        cur.execute(f'SELECT max(date) FROM "{table}"')   # 窗上限=DB 最新日：避免同日 API 較新→假 MIS（對齊 by_date DB-date 驅動 / fred 同窗）
+        _mx = cur.fetchone()[0]
+    dbmax = _mx.isoformat() if _mx is not None and not isinstance(_mx, str) else _mx
+    agg["sampled"] = bool(sample_n and len(stocks) > sample_n)
+    if agg["sampled"]:
+        step = len(stocks) / sample_n          # 等距抽樣（deterministic、可重現，不用 random）
+        stocks = [stocks[int(i * step)] for i in range(sample_n)]
+    for i, sid in enumerate(stocks, 1):
+        where, params = "stock_id = %s", [sid]
+        if since:
+            where += " AND date >= %s"
+            params.append(since)
+        with db.transaction(conn) as cur:
+            dbr = _db_dicts(cur, table, cols, where, tuple(params))
+        fp = {"data_id": sid}
+        if since:
+            fp["start_date"] = since
+        if dbmax:
+            fp["end_date"] = dbmax
+        try:
+            api = finmind.fetch(dataset, **fp)                              # 同抓取端點（per-stock）
+        except finmind.FinMindError as e:
+            agg["errors"].append({"stock_id": sid, "error": str(e)})        # 該股失敗 → 記錄跳過,不中斷（#7 韌性）
+            continue
+        api = [row for row in api                                           # 對齊 DB 窗 [since, dbmax]（per-stock 抓回全史/含當日較新）
+               if (not since or str(row.get("date")) >= since)
+               and (not dbmax or str(row.get("date")) <= dbmax)]
+        r = compare(dbr, api, pk, val)
+        _merge(agg, r)
+        if r["value_mismatch"] or r["missing_in_db"] or r["extra_in_db"]:
+            agg["per_stock"][sid] = {k: r[k] for k in ("value_mismatch", "missing_in_db", "extra_in_db")}
+        if progress and i % 10 == 0:
+            progress(f"  {table} {i}/{len(stocks)} 股 | M{agg['matched']:,} "
+                     f"VM{agg['value_mismatch']} MIS{agg['missing_in_db']:,} EX{agg['extra_in_db']}")
+    agg["stocks"] = len(stocks)
+    agg["incomplete"] = bool(agg["errors"])    # 有股抓取失敗 = 未完整對帳 → verdict 不給 pass
+    return agg
+
+
 def reconcile_market(conn, table, dataset=None, *, fetch_params=None, progress=None):
     """單批對帳：DB 全表 vs API 一次抓（roster / 市場別 dataset）。"""
     dataset = dataset or table

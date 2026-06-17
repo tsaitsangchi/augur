@@ -22,6 +22,7 @@ from augur.ingestion import finmind, sync
 
 ISSUES_MD = "reports/augur_fullsync_issues_20260613.md"
 RECENT = "2026-05-01"   # 逐 dataset 對帳之近窗取樣（非全史對帳，避免 double 全量）
+PERSTOCK_SAMPLE = 60    # per-stock 對帳抽樣股數（1 call/股；平衡覆蓋 vs API 量；見 reconcile_per_stock）
 
 # FRED 總經 series（augur 自選之標準 macro 因子：利率/殖利率曲線/失業/通膨/工業生產/匯率/油/信用利差；
 # clean-room——非參考 stock_backend，為標準總經指標）
@@ -46,10 +47,24 @@ def _has_date(conn, table):
         return cur.fetchone() is not None
 
 
+def _reconcile_scope(conn, table):
+    """查 catalog `reconcile_scope`（對帳方法路由）；無 catalog 記錄 → None。"""
+    with db.transaction(conn) as cur:
+        cur.execute("SELECT reconcile_scope FROM dataset_catalog WHERE dataset=%s", (table,))
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
 def verify(conn, table):
-    """逐 API #7 對帳（近窗取樣，無幻像）。回 (passed|None, result|errstr)。"""
+    """逐 API #7 對帳（近窗取樣，無幻像）。回 (passed|None, result|errstr)。
+
+    路由（依 catalog reconcile_scope）：roster-scoped（per-stock 落地）→ per-stock 對帳（對齊抓取
+    端點，避免 by-date 端點差之假 VM）；否則有 date 欄→by-date、無→market。
+    """
     try:
-        if _has_date(conn, table):
+        if _reconcile_scope(conn, table) == "roster-scoped":
+            r = reconcile.reconcile_per_stock(conn, table, since=RECENT, sample_n=PERSTOCK_SAMPLE)
+        elif _has_date(conn, table):
             r = reconcile.reconcile_by_date(conn, table, since=RECENT)
         else:
             r = reconcile.reconcile_market(conn, table)
