@@ -258,8 +258,16 @@ def reconcile_market(conn, table, dataset=None, *, fetch_params=None, progress=N
 
 
 def reconcile_fred(conn, series_ids, *, progress=None):
-    """逐 series 對帳 fred_series：DB vs FRED API。"""
+    """逐 series 對帳 fred_series：DB vs FRED API。
+
+    **FRED vintage 容忍（2026-06-17）**：FRED 會事後修訂 / 重對齊日期（實證 `BAMLH0A0HYM2` 2023-06-16
+    →06-19、同值 4.15、Juneteenth 假日重對齊）→ DB 留當初 source-traceable 真值、API 把值移到鄰日 →
+    假 `extra_in_db`。判定：DB 有 API 無之筆,若其 value 在 API 同 series 有同值（值還在、僅日期移）→
+    合法 FRED restatement、**不計 EX**（同 PriceAdj 回溯 / 季頻未定案之容忍，#7「對帳以 API 當前值為準、
+    容忍合法 restatement」;**不刪 DB 真值**守 #12/#15）。回傳含 `fred_vintage`（容忍筆數）。
+    """
     agg = _blank(FRED_TABLE)
+    agg["fred_vintage"] = 0
     with db.transaction(conn) as cur:
         cols, pk, val = _meta(cur, FRED_TABLE)
     for sid in series_ids:
@@ -268,7 +276,14 @@ def reconcile_fred(conn, series_ids, *, progress=None):
             cur.execute(f'SELECT min(date) FROM "{FRED_TABLE}" WHERE series_id = %s', (sid,))
             start = cur.fetchone()[0]
         api = fred.fetch(sid, start_date=start.isoformat() if start else None)   # 同 DB 窗，避免 pre-sync 史誤判 missing
-        _merge(agg, compare(dbr, api, pk, val))
+        r = compare(dbr, api, pk, val)
+        if r["extra_in_db"]:   # FRED vintage 容忍:DB 有 API 無之筆,value 在 API 有同值(僅日期移)→ 合法 restatement、不計 EX
+            apk = {_key(a, pk) for a in api}
+            api_vals = {_norm(a.get("value")) for a in api}
+            vintage = sum(1 for d in dbr if _key(d, pk) not in apk and _norm(d.get("value")) in api_vals)
+            r["extra_in_db"] -= vintage
+            agg["fred_vintage"] += vintage
+        _merge(agg, r)
         if progress:
             progress(f"  FRED {sid}: M{agg['matched']:,} VM{agg['value_mismatch']} EX{agg['extra_in_db']}")
     return agg
