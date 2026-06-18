@@ -53,13 +53,26 @@ def is_intraday(dataset) -> bool:
 # `_AGGREGATE_DAILY`（augur-specific、官方 datasets.md 無此概念）：FinMind 回 intraday 但「無日級替代表」者，
 # 抓後聚合日級衍生存（#4「只存日級衍生」、不存 intraday 原始）。值＝聚合法。實證：GoldPrice 5-min（~288 筆/日，
 # 2018-）、官方標 macro daily 但實際回 intraday → 聚合每日末筆 close；早期（1990-2016）已日級（1 筆/日）亦正確。
+# TaiwanStockNews（秒級時間戳新聞流、漏網 intraday）→ method='all'：date 去時間、保留同日多則（同日同 PK 交 upsert 去重）。
 # 別於 INTRADAY（純 sub-day、有日級替代如 TaiwanStockPrice → 完全不收）。
-_AGGREGATE_DAILY = {"GoldPrice": "close"}
+_AGGREGATE_DAILY = {"GoldPrice": "close", "TaiwanStockNews": "all"}
 
 
 def _aggregate_daily(rows, method="close"):
-    """intraday-source rows → 日級衍生（#4）。method='close'：每日末筆（date 字串最大者）、date 規約為純日級
-    （去時間）→ generic_schema 推 DATE 不降級回 varchar。早期已日級者（1 筆/日）該筆即末筆、亦正確。"""
+    """intraday-source rows → 日級衍生（#4「只存日級衍生」）。date 一律規約純日級（去時間）→ generic_schema
+    推 DATE 不降級回 varchar。
+    method='close'：每日末筆（date 字串最大者）→ 1 筆/日（價格類，如 GoldPrice 5-min;早期已日級該筆即末筆）。
+    method='all'：保留同日所有列、僅 date 去時間 → 多筆/日（事件流，如 News 同日多則;同日同 PK 交 upsert 去重）。"""
+    if method == "all":
+        out = []
+        for r in rows:
+            d = str(r.get("date", ""))[:10]
+            if not d:
+                continue
+            nr = dict(r)
+            nr["date"] = d                                      # date 規約純日級（去時間）、保留同日所有列
+            out.append(nr)
+        return out
     by_day = {}
     for r in rows:
         d = str(r.get("date", ""))[:10]

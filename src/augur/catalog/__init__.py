@@ -540,14 +540,17 @@ def _endpoint(ds, is_finmind):
     return _DEDICATED_URL.get(ds, "/data")
 
 
-def _reconcile_scope(frequency, data_id_source):
-    """對帳範圍（防假 MIS / 假 PASS，報告實戰 §1.H/I/J）：低頻全史、per-stock roster-scoped、維度 by-dim-id。"""
+def _reconcile_scope(frequency, data_id_source, col_types=None):
+    """對帳範圍（防假 MIS / 假 PASS，報告實戰 §1.H/I/J）：低頻全史、per-stock roster-scoped、維度 by-dim-id、
+    新聞/文本流 coverage（無數值 value 欄 → 逐條 byte 對帳不適用、改列數/覆蓋率）。"""
     if frequency in ("quarterly", "monthly", "yearly"):
         return "full-history"          # 低頻近窗空 → 須全史對帳（排未定案最新季）
     if data_id_source == "roster":
         return "roster-scoped"         # per-stock 落地 → 只比 roster 股（排權證、防假 MIS）
     if data_id_source in ("datalist", "doc", "info-roster", "series"):
         return "by-dim-id"
+    if col_types and not any(str(t).upper().startswith("NUMERIC") for t in col_types.values()):
+        return "coverage"              # 全文本無數值 value 欄(如 News link/source/title、date 帶時間戳)→ byte 不適用
     return "by-date"
 
 
@@ -775,7 +778,7 @@ def _excluded_meta(conn, ds, is_finmind, roster_n, frequency):
               "n_dates": _estimate_n_dates(earliest, frequency) if earliest else None,
               "anti_leakage_note": ("as-of 欄: " + ", ".join(asof)) if asof else None,
               "data_id_required": src in ("datalist", "doc", "roster", "info-roster"),
-              "reconcile_scope": _reconcile_scope(frequency, src)}
+              "reconcile_scope": _reconcile_scope(frequency, src, col_types)}
     cols = _build_cols(ds, col_types, pk) if sample else _official_name_cols(ds)
     return fields, cols
 
@@ -869,7 +872,7 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
     meta.update(earliest_date=earliest, n_stocks=n_stocks, n_dates=n_dates,
                 anti_leakage_note=("as-of 欄: " + ", ".join(asof)) if asof else None,
                 data_id_required=src in ("datalist", "doc", "roster", "info-roster", "series"),
-                reconcile_scope=_reconcile_scope(meta["frequency"], src),
+                reconcile_scope=_reconcile_scope(meta["frequency"], src, col_types),
                 single_day_only=meta["single_day_only"] or meta["frequency"] == "single-day")
     if ds in ingest._AGGREGATE_DAILY:   # intraday-source→聚合日級(augur-specific;官方標 daily 但 FinMind 回 intraday)
         meta["notes"] = ("intraday-source→聚合日級末筆(%s);官方 daily 但 FinMind 回 intraday、augur 聚合存(#4)"

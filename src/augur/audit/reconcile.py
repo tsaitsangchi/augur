@@ -30,6 +30,8 @@ from augur.ingestion.ingest import FRED_TABLE
 
 _NULL = {"", "none", "null", "nan", "nat"}
 _EXAMPLES_CAP = 10
+COVERAGE_SAMPLE = 5            # coverage 對帳抽樣日曆日數(新聞流逐日)
+COVERAGE_MISS_TOL = 0.2       # coverage:DB 漏抓占 API 容忍比(新聞去重/時序差、非逐條 byte)
 
 
 def _norm(v):
@@ -299,6 +301,41 @@ def reconcile_market(conn, table, dataset=None, *, fetch_params=None, progress=N
     r = compare(dbr, api, pk, val)
     r["table"] = table
     return r
+
+
+def reconcile_coverage(conn, table, dataset=None, *, since=None, sample_days=COVERAGE_SAMPLE, progress=None):
+    """覆蓋率/列數對帳：新聞/文本時序流（date 帶時間戳、無數值 value 欄）逐條 byte 對帳不適用。
+
+    不逐 distinct 時間戳重抓（如 News distinct date 156 萬→API 爆炸＋必然 incomplete）；改按**日曆日**
+    （date 前 10 字）聚合，取近 sample_days 個 DB 日曆日各重抓 API by-date，比 DB 該日列數 vs API 列數
+    **量級**——新聞會去重/增刪、不逐條 byte 比，但 DB 應覆蓋 API（漏抓占比 ≤ COVERAGE_MISS_TOL）。
+    `coverage_ok` = 抽樣日皆抓到（not incomplete）∧ DB 漏抓占 API ≤ 容忍。`since` 保留簽名一致（未用：
+    取近 sample_days 日本即近窗）。回傳標準 agg（value_mismatch 恆 0：不比 value）+ coverage_ok + per_day。
+    """
+    dataset = dataset or table
+    agg = _blank(table)
+    agg["per_day"] = {}
+    with db.transaction(conn) as cur:
+        cur.execute(f'SELECT substring(CAST("date" AS TEXT), 1, 10) d, count(*) '
+                    f'FROM "{table}" GROUP BY d ORDER BY d DESC LIMIT %s', (sample_days,))
+        db_days = cur.fetchall()
+    for d, db_n in db_days:
+        try:
+            api = finmind.fetch(dataset, start_date=d, end_date=d)
+        except finmind.FinMindError as e:
+            agg["errors"].append({"date": d, "error": str(e)})
+            continue
+        api_n = len(api)
+        agg["matched"] += min(db_n, api_n)
+        agg["missing_in_db"] += max(0, api_n - db_n)   # API 多於 DB → DB 該日漏抓（記錄；容忍去重差）
+        agg["per_day"][d] = (db_n, api_n)
+    total_api = sum(a for _, a in agg["per_day"].values())
+    agg["incomplete"] = bool(agg["errors"]) or not db_days
+    agg["coverage_ok"] = (not agg["incomplete"]) and (total_api == 0 or agg["missing_in_db"] <= total_api * COVERAGE_MISS_TOL)
+    if progress:
+        progress(f"  {table} coverage {len(agg['per_day'])}/{sample_days} 日 · 漏 {agg['missing_in_db']}/{total_api} · "
+                 f"{'OK' if agg['coverage_ok'] else 'FAIL'}")
+    return agg
 
 
 def reconcile_fred(conn, series_ids, *, progress=None):

@@ -68,6 +68,9 @@ def verify(conn, table):
             r = reconcile.reconcile_per_stock(conn, table, since=RECENT, sample_n=PERSTOCK_SAMPLE)
         elif scope == "by-dim-id":
             r = reconcile.reconcile_by_dim_id(conn, table, since=RECENT)
+        elif scope == "coverage":
+            r = reconcile.reconcile_coverage(conn, table, since=RECENT)
+            return r["coverage_ok"], r   # 新聞/文本流覆蓋率對帳自帶判定(無數值 value、verdict VM/EX 不適用)
         elif _has_date(conn, table):
             r = reconcile.reconcile_by_date(conn, table, since=RECENT)
         else:
