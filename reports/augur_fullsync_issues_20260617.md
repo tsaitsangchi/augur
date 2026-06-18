@@ -6,3 +6,4 @@
 |---|---|---|
 | `fred_series` | 對帳 FAIL | VM=0 EX=1 |
 | `TaiwanStockInstitutionalInvestorsBuySell` | 對帳 FAIL（疑幻像/不一致） | VM=1 EX=0 MIS=0 |
+| `TaiwanStockNews` | 對帳 FAIL（疑幻像/不一致） | VM=0 EX=0 MIS=0 |
