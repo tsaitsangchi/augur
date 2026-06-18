@@ -239,6 +239,50 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, sample_n=None,
     return agg
 
 
+def reconcile_by_dim_id(conn, table, dataset=None, *, since=None, progress=None):
+    """by-dim-id 對帳：逐 datalist 維度 id 重抓（data_id=維度）累積 → 對 DB 全窗 compare（對齊抓取端點）。
+
+    by-dim-id 抓的表（catalog `reconcile_scope='by-dim-id'`，如 CrudeOilPrices Brent/WTI、ExchangeRate 幣別）
+    若用 by-date 重抓（不帶 data_id）回空 → 假 MIS（2026-06-18 實證）。改逐維度 id 重抓比同源。
+    維度 id 取自 datalist（同 `_dimension_sync` 抓取來源）；datalist 空 → incomplete（不誤判 EX/MIS）。
+    """
+    dataset = dataset or table
+    agg = _blank(table)
+    with db.transaction(conn) as cur:
+        cols, pk, val = _meta(cur, table)
+        dbr = _db_dicts(cur, table, cols, "date >= %s" if since else "", (since,) if since else ())
+        cur.execute(f'SELECT max(date) FROM "{table}"')
+        _mx = cur.fetchone()[0]
+    dbmax = _mx.isoformat() if _mx is not None and not isinstance(_mx, str) else _mx
+    dim_ids = finmind.datalist(dataset) or []
+    agg["dim_ids"] = len(dim_ids)
+    if not dim_ids:
+        agg["errors"].append({"error": "datalist 無維度 id → 無法逐維度對帳"})
+        agg["incomplete"] = True
+        return agg
+    api = []
+    for i, did in enumerate(dim_ids, 1):
+        fp = {"data_id": did}
+        if since:
+            fp["start_date"] = since
+        if dbmax:
+            fp["end_date"] = dbmax
+        try:
+            api.extend(finmind.fetch(dataset, **fp))                 # 同抓取端點（逐維度 id）
+        except finmind.FinMindError as e:
+            agg["errors"].append({"dim_id": did, "error": str(e)})   # 該維度失敗 → 記錄跳過（#7 韌性）
+            continue
+        if progress and i % 10 == 0:
+            progress(f"  {table} {i}/{len(dim_ids)} 維度 | M{agg['matched']:,}")
+    api = [row for row in api                                        # 對齊 DB 窗 [since, dbmax]
+           if (not since or str(row.get("date")) >= since)
+           and (not dbmax or str(row.get("date")) <= dbmax)]
+    r = compare(dbr, api, pk, val)
+    _merge(agg, r)
+    agg["incomplete"] = bool(agg["errors"])    # 有維度抓取失敗 = 未完整對帳 → verdict 不給 pass
+    return agg
+
+
 def reconcile_market(conn, table, dataset=None, *, fetch_params=None, progress=None):
     """單批對帳：DB 全表 vs API 一次抓（roster / 市場別 dataset）。"""
     dataset = dataset or table

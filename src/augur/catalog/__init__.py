@@ -328,6 +328,8 @@ def build(conn, datasets=None, progress=None):
     for ds in targets:
         meta, cols = probe_dataset(conn, ds, progress=progress, roster_n=roster_n)
         meta["fetch_mode"], est = optimal_mode(meta)
+        if meta.get("fetch_mode") == "by-date" and meta.get("reconcile_scope") in ("roster-scoped", "by-dim-id"):
+            meta["reconcile_scope"] = "by-date"   # 對帳須對齊抓取端點:by-date 寫的表(roster 來源 n_dates<n_stocks、或 series/doc 來源選 by-date)不可用 per-stock/by-dim-id 端點對帳 → 假 MIS(MarketValueWeight per-stock 回空 / TotalReturnIndex 無 datalist,2026-06-18)
         with db.transaction(conn) as cur:
             _upsert_dataset(cur, meta)
             _upsert_columns(cur, ds, cols)

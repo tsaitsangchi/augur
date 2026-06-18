@@ -59,11 +59,15 @@ def verify(conn, table):
     """逐 API #7 對帳（近窗取樣，無幻像）。回 (passed|None, result|errstr)。
 
     路由（依 catalog reconcile_scope）：roster-scoped（per-stock 落地）→ per-stock 對帳（對齊抓取
-    端點，避免 by-date 端點差之假 VM）；否則有 date 欄→by-date、無→market。
+    端點，避免 by-date 端點差之假 VM）；by-dim-id（CrudeOilPrices/ExchangeRate 等需 data_id 維度）
+    → 逐維度 id 對帳（避免 by-date 抓回空之假 MIS）；否則有 date 欄→by-date、無→market。
     """
     try:
-        if _reconcile_scope(conn, table) == "roster-scoped":
+        scope = _reconcile_scope(conn, table)
+        if scope == "roster-scoped":
             r = reconcile.reconcile_per_stock(conn, table, since=RECENT, sample_n=PERSTOCK_SAMPLE)
+        elif scope == "by-dim-id":
+            r = reconcile.reconcile_by_dim_id(conn, table, since=RECENT)
         elif _has_date(conn, table):
             r = reconcile.reconcile_by_date(conn, table, since=RECENT)
         else:
