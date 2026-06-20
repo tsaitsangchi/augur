@@ -81,9 +81,10 @@ def _user_quota(timeout=15):
 
 
 def _quota_gate():
-    """主動額度閘:每 QUOTA_METER_EVERY 次 call(或 >120s)讀一次錶;錶 ≥ limit−HEADROOM →
-    持鎖暫停(所有 worker 一起等、不再發 call)、每 QUOTA_POLL 秒再讀,退到一半以下續抓。
-    錶失聯 → 放行(403 → QUOTA_COOLDOWN 保險網接手)。閾值隨 limit 動態(token 降級自動適配)。"""
+    """[2026-06-17 Mac 本地操作、未 commit] Mac token user_count 黑箱失準(零 call 卻卡/自漲、與真實
+    call 不符;IP 健康實測能抓為證)→ **禁用 user_count 預防暫停閘**,純靠 `_pace` 限速 + 撞真 403 之
+    `QUOTA_COOLDOWN` 冷卻(WSL 經驗「錶有雜訊→以 DB 列數成長為真在抓訊號」)。仍週期讀錶 log 供監控、不暫停。
+    **錶可靠之機台應 git restore 還原此閘**(原為主動額度閘:錶≥limit−HEADROOM 持鎖暫停、退半續)。"""
     with _quota_lock:
         _quota_state["calls"] += 1
         if _quota_state["calls"] < QUOTA_METER_EVERY and time.monotonic() - _quota_state["t"] < 120:
@@ -92,22 +93,9 @@ def _quota_gate():
         _quota_state["t"] = time.monotonic()
         try:
             count, limit = _user_quota()
+            print(f"[finmind] 額度錶 {count}/{limit}(閘已禁用、純靠 _pace+403;IP 健康)", flush=True)
         except Exception:
-            return
-        high = limit - QUOTA_HEADROOM
-        if count < high:
-            return
-        print(f"[finmind] 額度 {count}/{limit} ≥ {high} → 主動暫停(每 {QUOTA_POLL}s 檢錶,≤{high // 2} 續)", flush=True)
-        while True:
-            time.sleep(QUOTA_POLL)
-            try:
-                count, limit = _user_quota()
-            except Exception:
-                break
-            if count <= (limit - QUOTA_HEADROOM) // 2:
-                break
-        print(f"[finmind] 額度退到 {count} → 續抓", flush=True)
-        _quota_state["t"] = time.monotonic()
+            pass
 
 
 def _protected_get(url, query, label, *, timeout, max_retries, base_backoff):

@@ -157,16 +157,19 @@ _DOC_SEED_IDS = {
 }
 
 
-def _fetch_for_store(dataset, sid, start):
-    """並發 fetch 一股（**僅 API、不碰 conn/DB → thread-safe**）。回 (sid, rows|None)。
-    錯誤（該股無此資料等）→ rows=None（跳過,不中斷全批）。"""
+def _fetch_for_store(dataset, sid, start, *, dedicated=None):
+    """並發 fetch 一 id（**僅 API、不碰 conn/DB → thread-safe**）。回 (sid, rows|None)。
+    `dedicated`=special endpoint path（分點/權證）→ 走 fetch_dedicated（per-id、同 start_date 範圍慣例）；
+    否則普通 /data fetch。錯誤（該 id 無此資料等）→ rows=None（跳過,不中斷全批）。"""
     try:
+        if dedicated:
+            return sid, finmind.fetch_dedicated(dedicated, data_id=sid, start_date=start)
         return sid, finmind.fetch(dataset, data_id=sid, start_date=start)
     except finmind.FinMindError:
         return sid, None
 
 
-def _per_stock_sync(conn, dataset, roster, start_floor, progress, *, mode="per-stock", workers=None):
+def _per_stock_sync(conn, dataset, roster, start_floor, progress, *, mode="per-stock", workers=None, dedicated=None):
     """逐股抓取（roster，每股 resume DB max(date)）→ summary。
 
     並發（workers>1）：**fetch 並發（僅 API）、DB 寫入仍主執行緒序列**（免 conn race）；start rate 由
@@ -182,6 +185,7 @@ def _per_stock_sync(conn, dataset, roster, start_floor, progress, *, mode="per-s
             db_max = {str(r[0]): str(r[1]) for r in cur.fetchall() if r[1]}
     starts = {sid: (db_max.get(str(sid)) or start_floor) for sid in roster}
     total = stocks = 0
+    failed = []                                   # 抓取失敗(403/cooldown 用盡→rows is None)之 sid=漏抓、供 sync 完精準 heal(#8)
 
     def _consume(pairs):                          # pairs: iterable of (sid, rows|None)；DB 寫入序列於主執行緒
         nonlocal total, stocks
@@ -189,15 +193,18 @@ def _per_stock_sync(conn, dataset, roster, start_floor, progress, *, mode="per-s
             if rows:
                 total += ingest.store(conn, dataset, rows, data_id=sid)["rows"]
                 stocks += 1
+            elif rows is None:                    # None=抓取失敗(漏抓)→記;[]=真無資料→不記(_fetch_for_store 兩者區分)
+                failed.append(sid)
             if progress and i % 50 == 0:
                 progress(f"  {dataset}: {i}/{len(roster)} 股、累計 {total} 列（{workers} 並發）")
 
     if workers > 1:
         with cf.ThreadPoolExecutor(max_workers=workers) as ex:
-            _consume(ex.map(lambda s: _fetch_for_store(dataset, s, starts[s]), roster))
+            _consume(ex.map(lambda s: _fetch_for_store(dataset, s, starts[s], dedicated=dedicated), roster))
     else:
-        _consume(_fetch_for_store(dataset, s, starts[s]) for s in roster)
-    return {"dataset": dataset, "mode": mode, "rows": total, "stocks_with_data": stocks}
+        _consume(_fetch_for_store(dataset, s, starts[s], dedicated=dedicated) for s in roster)
+    return {"dataset": dataset, "mode": mode, "rows": total, "stocks_with_data": stocks,
+            "failed_ids": failed}
 
 
 def _info_roster_ids(conn, dataset, progress):

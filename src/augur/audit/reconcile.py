@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from augur.core import db, generic_schema, schema
 from augur.ingestion import finmind, fred, sync
-from augur.ingestion.ingest import FRED_TABLE
+from augur.ingestion.ingest import FRED_TABLE, _AGGREGATE_DAILY, _aggregate_daily
 
 _NULL = {"", "none", "null", "nan", "nat"}
 _EXAMPLES_CAP = 10
@@ -137,6 +137,8 @@ def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
         except finmind.FinMindError as e:
             agg["errors"].append({"date": d, "error": str(e)})   # 該日抓取失敗 → 記錄跳過,不中斷已對帳的日(#7 韌性)
             continue
+        if dataset in _AGGREGATE_DAILY:   # intraday-source（GoldPrice 5分鐘）→ 套 ingest 同聚合對齊 DB 日級落地（#4）;否則 raw intraday vs 日級聚合 → 假 MIS
+            api = _aggregate_daily(api, _AGGREGATE_DAILY[dataset])
         if per_stock:
             api = [row for row in api if str(row.get("stock_id")) in roster_ids]   # 只留 DB roster 內個股(排除全市場權證)
         r = compare(dbr, api, pk, val)

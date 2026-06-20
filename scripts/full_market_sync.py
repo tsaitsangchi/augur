@@ -149,6 +149,9 @@ def main():
                 r = sync.sync_finmind_dataset(conn, ds, roster, progress=log)
                 done += 1
                 log(f"[{i}/{len(datasets)}] {ds}: {r['mode']} {r['rows']:,} 列  (elapsed {el:.0f}min)")
+                if r.get("failed_ids"):           # per-stock 漏抓(403/cooldown 用盡 rows=None)→ 記錄供 sync 完精準 heal(#8)
+                    log(f"    ⚠️ {len(r['failed_ids'])} 股抓取失敗(疑 cooldown 漏抓)→ sync 完 reconcile heal")
+                    issue(ds, "cooldown漏抓", f"{len(r['failed_ids'])} 股 rows=None: {r['failed_ids'][:30]}")
                 if r["mode"] in ("not-by-date-capable", "per-stock-non-canonical"):
                     issue(ds, "date-based/需特定id", f"{r['mode']}（需 by-date 或 data_id 專路徑）")
                     continue
