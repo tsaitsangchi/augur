@@ -51,5 +51,23 @@
 
 **待 sync 完(打 API)**：probe(#6/#9/#12)→ heal(#7/#8/#4)→ 全 84 表 re-verify(#2-6)→ deferred 放量(#9)。
 
+## #13 [59] ConvertibleBondDailyOverview 不完整（2026-06-20 重啟副作用）
+- 為上「主動閘」重啟 sync（--new-only）時，舊 run 已開始抓 [59] ConvertibleBondDailyOverview（抓到 2010-02 被 kill）→ --new-only 跳過（它有部分資料）→ **DB 僅 2010-01~02、缺 2010-02 之後到 2026**。
+- ⚠️ **reconcile_audit 近窗對帳抓不到**：只對 DB 既有日期（2010 頭）近窗比對 → 會 PASS、不會發現缺後段（盲點）。
+- **解法**：sync 完**明確** `sync.sync_by_date('TaiwanStockConvertibleBondDailyOverview', start=<earliest>, end=<today>)` 全史補抓（冪等覆蓋）；不靠對帳自動發現。或 truncate 後重抓。
+- **同類 [63] TaiwanStockMonthPrice 不完整**（2026-06-20 第二次重啟[回禁用閘]副作用）：per-stock、--new-only 跳過時僅 1950/3105 股 → 缺 ~1155 股。解法：sync 完 per-stock heal（`_per_stock_sync` 對缺股重抓，或 truncate 後重抓全 roster）。reconcile_per_stock 抽樣對帳也可能漏（只抽 50 股）→ 須明確全 roster 補。
+- **同類 [64] TaiwanStockWeekPrice 不完整**（2026-06-20 第三次重啟[MIN_INTERVAL 0.9]副作用）：per-stock、--new-only 跳過時僅 1300/3105 股 → 缺 ~1805 股。解法同 [63]（全 roster per-stock heal）。
+- **heal 清單合計 3 表**（重啟 --new-only 跳過進行中表的代價）：[59]/[63]/[64]，全須 sync 完明確全史/全 roster 補（對帳盲點抓不到）。
+
+## #14 [62] TaiwanTotalExchangeMarginMaintenance VM=1（2026-06-20 新 run 對帳 FAIL）
+- 新 run [62] 對帳 FAIL VM=1 EX=0（market by-date、大盤融資維持率每日一值）。非 roster-scoped 假 VM。
+- 最可能=**最新日維持率近日修訂/未定案**。full_market_sync verify() 無 unsettled buffer，但 `reconcile_audit`（本 session 改）有（排除最近 2 日）→ sync 完 re-verify 應被吸收 PASS。
+- 解法：sync 完 `reconcile_audit.py --tables TaiwanTotalExchangeMarginMaintenance` re-verify 確認（已含在全 84 表 re-verify）。
+
+## #15 新閘 HEADROOM 對 per-stock 32 並發 burst 偏薄（2026-06-20 實證）
+- 新閘暫停閾值 limit−HEADROOM=5800，但 per-stock 32 並發在「每 120 call 讀錶」間隙 + in-flight call 衝過閾值 → 實證額度 rolling 計數衝到 **6013 > 6000**（[63] MonthPrice）。
+- **未撞 403**：暫停後不發新 call、in-flight 是暫停前額度<6000 發出的（服務端已接受），6013 只是 rolling 計數、非 403。退續門檻 5000<6000 → 續抓安全。功能達標（防 403/漏抓）。
+- **未來可選優化**：調 HEADROOM 200→800（閾值降到 5200、留 600 buffer 給 32 並發 burst），讓額度真停在 ~5400 不越 6000。但需重啟 sync（會讓當下進行中的 per-stock 表被 --new-only 跳過變不完整）→ 擇機（如 sync 自然結束後）再調。
+
 ## 執行時機
 所有 code 改 = 現在(護欄內);所有 probe/heal/re-verify/放量 = **sync 完成後**(剩 ~28 表、勿並發 #24)。放量/commit/push 須用戶明示授權。
