@@ -603,9 +603,12 @@ def _official_earliest(ds):
 
 def _dedicated_probe_ids(conn, ds):
     """dedicated 表 probe 用 data_id **候選清單**：權證→多檔權證代號(DB roster、逐檔試到有成交那檔取真樣本)、
-    其餘(分點等)→[2330](常存個股、跨史)。權證單檔常無當日成交→須備多檔(不靠 patch/推定)。"""
+    其餘(分點等)→[2330](常存個股、跨史)。權證單檔常無當日成交→須備多檔(不靠 patch/推定)。
+    名冊(TaiwanStockInfo)未落地(from-scratch)→ 回 [](呼叫端降級、不崩；與本檔其他 probe helper 一致防護)。"""
     if "warrant" in (_DEDICATED_URL.get(ds) or ""):
         with db.transaction(conn) as cur:
+            if "stock_id" not in generic_schema.db_columns(cur, "TaiwanStockInfo"):
+                return []
             cur.execute("SELECT stock_id FROM \"TaiwanStockInfo\" WHERE stock_name LIKE '%購%' OR stock_name LIKE '%售%' LIMIT 80")
             return [r[0] for r in cur.fetchall()]
     return ["2330"]
