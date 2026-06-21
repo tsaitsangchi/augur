@@ -18,17 +18,12 @@ import traceback
 
 from augur.audit import reconcile
 from augur.core import db, schema
+from augur.features import macro
 from augur.ingestion import finmind, sync
 
 ISSUES_MD = "reports/augur_fullsync_issues_20260613.md"
 RECENT = "2026-05-01"   # 逐 dataset 對帳之近窗取樣（非全史對帳，避免 double 全量）
 PERSTOCK_SAMPLE = 60    # per-stock 對帳抽樣股數（1 call/股；平衡覆蓋 vs API 量；見 reconcile_per_stock）
-
-# FRED 總經 series（augur 自選之標準 macro 因子：利率/殖利率曲線/失業/通膨/工業生產/匯率/油/信用利差；
-# clean-room——非參考 stock_backend，為標準總經指標）
-FRED_SERIES = ["T10Y2Y", "T10Y3M", "DGS10", "DGS2", "FEDFUNDS", "UNRATE",
-               "CPIAUCSL", "INDPRO", "VIXCLS", "DTWEXBGS", "DCOILWTICO", "BAMLH0A0HYM2"]
-
 
 def log(m):
     print(f"[{int(time.time())%100000:05d}] {m}", flush=True)
@@ -124,9 +119,10 @@ def main():
         else:
             log("PHASE 2b FRED")
             try:
-                rf = sync.sync_fred(conn, FRED_SERIES)
+                fred_series, fred_vintage = macro.series_ids(), macro.vintage_map()
+                rf = sync.sync_fred(conn, fred_series, vintage_map=fred_vintage)
                 log(f"  FRED {rf['rows']} 列 / {rf['series']} series")
-                rr = reconcile.reconcile_fred(conn, FRED_SERIES)
+                rr = reconcile.reconcile_fred(conn, fred_series, vintage_map=fred_vintage)
                 fp = reconcile.verdict(rr)["passed"]
                 log(f"  FRED 對帳: {'PASS' if fp else 'FAIL'} (VM={rr['value_mismatch']} EX={rr['extra_in_db']})")
                 if not fp:

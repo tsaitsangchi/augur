@@ -1218,32 +1218,20 @@
 
 ## 十、FRED（Federal Reserve Economic Data，第二資料源）
 
-FRED `/series/observations` 每列 `realtime_start, realtime_end, date, value`；augur `fred.py` 落地只取 `(series_id, date, value)`（補 series_id、丟 realtime、`"."`→NULL）。⚠️ #8：FRED 值事後修訂，嚴格 PIT 須走 vintage/ALFRED（見 `augur_datasource_finmind_fred_20260615.md` §B6）。
+FRED `/series/observations` 每列 `realtime_start, realtime_end, date, value`；augur `fred.py` 落地 `(series_id, date, realtime_start, value)`（補 series_id、`realtime_end` 隨查詢日變不存、`"."`→NULL）。⚠️ #8：FRED 值事後修訂 → **Tier B（月/季/週經濟）走 ALFRED vintage**（逐版存真 `realtime_start`、PIT 取版）、**Tier A（每日市場）`realtime_start`＝觀測日**（當日可見、非近似）。tier/清單見 `src/augur/features/macro.py`（SSOT）；技術細節見 `augur_datasource_finmind_fred_20260615.md` §B6。
 
 ### fred_series｜FRED 總經序列（augur 落地表）
-> 🔌 FRED `/series/observations`（series_id+date+value；丟 realtime、`.`→NULL） · 📅 最早 依 series（如 DGS10 1962）
+> 🔌 FRED `/series/observations`（series_id+date+realtime_start+value；Tier B 走 ALFRED vintage、`.`→NULL） · 📅 最早 依 series（如 DGS10 1962）
 
 | 欄位 (EN) | 中文 | 來源 | 推定型別 |
 |---|---|---|---|
 | series_id | 序列代號 | 派生（augur 補）| VARCHAR |
 | date | 觀測日期 | FRED | DATE |
+| realtime_start | 版本可見起日（PIT 取版鍵）| FRED/派生 | DATE |
 | value | 觀測值 | FRED | NUMERIC |
 
-### augur 採用之 12 個 FRED series（中文＝金融用語）
-| series_id | 中文 | 頻率 | 單位 |
-|---|---|---|---|
-| T10Y2Y | 10年期−2年期公債利差 | 日 | % |
-| T10Y3M | 10年期−3月期公債利差 | 日 | % |
-| DGS10 | 10年期公債殖利率 | 日 | % |
-| DGS2 | 2年期公債殖利率 | 日 | % |
-| FEDFUNDS | 聯邦資金有效利率 | 月 | % |
-| UNRATE | 失業率 | 月 | % |
-| CPIAUCSL | 消費者物價指數（CPI，季調）| 月 | 指數 |
-| INDPRO | 工業生產指數 | 月 | 指數 |
-| VIXCLS | VIX 波動率指數 | 日 | 指數 |
-| DTWEXBGS | 美元廣義名目指數 | 日 | 指數 |
-| DCOILWTICO | WTI 原油現貨價 | 日 | 美元/桶 |
-| BAMLH0A0HYM2 | 美國高收益債信用利差（OAS）| 日 | % |
+### augur 採用之 FRED series 清單
+> SSOT＝`src/augur/features/macro.py`（逐檔 `series_id` + 中文 + tier A/B + 是否走 vintage；現 31 檔：Tier A 22 每日市場 + Tier B 9 月/季/週經濟）。此處不複列、以免 drift（#12 SSOT；曾因人工複列 stale 為 12 檔）。
 
 ---
 

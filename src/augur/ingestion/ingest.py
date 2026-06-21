@@ -98,9 +98,13 @@ def ingest_finmind(conn, dataset, *, audit=True, **params):
 
 
 def ingest_fred(conn, series_id, *, audit=True, **params):
-    """抓並落地一個 FRED series（落地表 = fred_series）。回 result dict。"""
+    """抓並落地一個 FRED series（落地表 = fred_series）。回 result dict。
+    vintage 旗標經 **params 透傳 fred.fetch；**無論 tier** 強制 (series_id, date, realtime_start)
+    複合鍵（Tier A 之 realtime_start＝觀測日），令兩 tier 共表 PK 一致——否則 Tier A 先落地（PK 只到
+    date）會使 Tier B vintage 多版於 ON CONFLICT 互相覆蓋＝資料流失（#8）。"""
     rows = fred.fetch(series_id, **params)
-    return store(conn, FRED_TABLE, rows, data_id=series_id, audit=audit)
+    return store(conn, FRED_TABLE, rows, data_id=series_id, audit=audit,
+                 require_keys=("date", "realtime_start"))
 
 
 def store(conn, table, rows, *, data_id=None, audit=True, require_keys=()):

@@ -345,11 +345,12 @@ def build(conn, datasets=None, progress=None):
 
 
 # ── 探測 helper（landed 全讀 DB 真值、un-landed 復用 sync 分類探測；皆復用既有引擎、不重造）──
-_ASOF_HINTS = ("announcement", "announce", "create_time", "recentlydeclare", "update_time", "publish")
+_ASOF_HINTS = ("announcement", "announce", "create_time", "recentlydeclare", "update_time", "publish", "realtime")
 
 
 def _anti_leakage_flag(col):
-    """欄名是否為 API 自帶公告/as-of 時點欄（#8 金礦:AnnouncementDate/create_time/RecentlyDeclareDate）。"""
+    """欄名是否為 API 自帶公告/as-of 時點欄（#8 金礦:AnnouncementDate/create_time/RecentlyDeclareDate；
+    FRED vintage 之 realtime_start＝該值版本可見起日、亦為 PIT 取版鍵）。"""
     c = col.lower()
     return any(h in c for h in _ASOF_HINTS)
 

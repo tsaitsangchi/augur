@@ -19,6 +19,7 @@ import sys
 
 from augur.audit import reconcile
 from augur.core import db
+from augur.features import macro
 from augur.ingestion.ingest import FRED_TABLE, _AGGREGATE_DAILY
 
 SKIP = {"data_audit_log", "pipeline_execution_log"}   # infra log,非 API 資料 → 不對帳
@@ -76,7 +77,8 @@ def _audit(conn, dataset, scope, recent_days):
             cur.execute("SELECT DISTINCT series_id FROM fred_series ORDER BY series_id")
             sids = [r[0] for r in cur.fetchall()]
         _p(f"[{dataset}] fred:{len(sids)} series 全史")
-        return _summary(dataset, "fred", reconcile.reconcile_fred(conn, sids, progress=_p))
+        return _summary(dataset, "fred",
+                        reconcile.reconcile_fred(conn, sids, vintage_map=macro.vintage_map(), progress=_p))
 
     since = _recent_since(conn, dataset, recent_days)
     sincestr = _iso(since) if since else "全史"
@@ -119,7 +121,7 @@ def _summary(dataset, kind, agg, *, unsettled=None):
     if agg.get("sampled"):
         note = (note + " ｜ " if note else "") + f"抽樣 {agg.get('stocks', '?')} 股(部分覆蓋 #7)"
     if agg.get("fred_vintage"):
-        note = (note + " ｜ " if note else "") + f"vintage 容忍 {agg['fred_vintage']}"
+        note = (note + " ｜ " if note else "") + f"Tier A restatement 容忍 {agg['fred_vintage']}"
     # by-date examples 混未定案日差異(無 date 無法乾淨過濾)→ 不放,定案日真差異另查
     examples = [] if kind == "by-date" else agg.get("examples", [])[:3]
     return {"table": dataset, "kind": kind, "matched": agg.get("matched", 0),

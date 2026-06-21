@@ -437,24 +437,32 @@ def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
     return {"dataset": dataset, "mode": "by-date", "rows": total, "trading_days": tdays, "requests": reqs}
 
 
-def sync_fred(conn, series_ids, *, progress=None):
-    """sync 給定 FRED series 清單（落 fred_series，每 series 全抓）。回 summary。"""
+def sync_fred(conn, series_ids, *, vintage_map=None, progress=None):
+    """sync 給定 FRED series 清單（落 fred_series，每 series 全抓）。回 summary。
+
+    vintage_map：`{series_id: 是否走 ALFRED vintage}`——Tier B=True 取全 vintage（保留各版真
+    realtime_start，供 point-in-time）、Tier A=False 取最新值（realtime_start=觀測日）；未列入者預設
+    False。由呼叫端（features/macro）決定，本引擎不持清單（#3 / 層次：ingestion 不反相依 feature）。"""
+    vmap = vintage_map or {}
     total = 0
     for sid in series_ids:
         # FRED 一律抓全史（每 series 單一 call、資料小、idempotent ON CONFLICT）:確保完整含 pre-1990 + 取最新修訂;
         # 不 resume——_max_date 起點會永久漏掉首抓被 1990 截掉的史 → 須每次全抓回填;#18 最早日由 API 決定(start=None)
+        # vintage=True 者連全 vintage 一併抓（realtime 全範圍），同屬「全史回填」語意。
         try:
-            res = ingest.ingest_fred(conn, sid, start_date=None)
+            res = ingest.ingest_fred(conn, sid, start_date=None, vintage=vmap.get(sid, False))
         except fred.FredError:
             continue
         total += res["rows"]
         if progress:
-            progress(f"  FRED {sid}: +{res['rows']} 列")
+            progress(f"  FRED {sid}: +{res['rows']} 列{'（vintage）' if vmap.get(sid) else ''}")
     return {"table": ingest.FRED_TABLE, "series": len(series_ids), "rows": total}
 
 
-def sync_all(conn, *, roster=None, datasets=None, fred_series=None, full_start=FULL_START, progress=print):
-    """PHASE 2→4 一條龍。roster/datasets/fred_series 可傳子集做小範圍；None → 全量（long-running）。"""
+def sync_all(conn, *, roster=None, datasets=None, fred_series=None, fred_vintage=None,
+             full_start=FULL_START, progress=print):
+    """PHASE 2→4 一條龍。roster/datasets/fred_series 可傳子集做小範圍；None → 全量（long-running）。
+    fred_vintage：`{series_id: vintage}` 透傳 sync_fred（Tier B 須帶，否則 Tier B 會被當非 vintage 落地＝洩漏）。"""
     if roster is None:
         if progress:
             progress("PHASE 2：seed roster…")
@@ -470,7 +478,7 @@ def sync_all(conn, *, roster=None, datasets=None, fred_series=None, full_start=F
         if progress:
             progress(f"[{i}/{len(datasets)}] {ds}: {r['mode']} {r['rows']} 列")
     if fred_series:
-        results.append(sync_fred(conn, fred_series, progress=progress))
+        results.append(sync_fred(conn, fred_series, vintage_map=fred_vintage, progress=progress))
     return results
 
 

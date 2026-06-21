@@ -38,10 +38,12 @@ NUMERIC_SCALE = 6
 # 順序即偵測優先序：主體識別碼 → 日期 → 維度（逐步構成複合鍵）。
 # id 必須排在 date 前：逐 series/逐股樣本之 id 恆定 → 單 id 非唯一 → 續加 date 成 (id, date)；
 # 若 date 先行會誤判單 date 主鍵，跨 id 之 ON CONFLICT 將互相覆蓋。
+# realtime_start 緊接 date：FRED ALFRED vintage 同 (series_id, date) 有多版 → 需 realtime_start 區辨成
+# (series_id, date, realtime_start)（point-in-time 取版，#8）；其餘資料源無此欄、不受影響。
 KEY_CANDIDATES = (
     "stock_id", "securities_trader_id", "series_id", "futures_id", "option_id",
     "cb_id", "dealer_code", "currency", "country", "code",
-    "date", "Time", "time",
+    "date", "realtime_start", "Time", "time",
     "year", "ymonth", "yweek",
     "type", "name", "institutional_investors", "contract_type",
     "put_call", "call_put", "trading_session", "transaction_type",
