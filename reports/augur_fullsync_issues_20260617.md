@@ -1,3 +1,7 @@
+⚠️ **SUPERSEDED** by [`augur_issue_consolidated_20260622.md`](augur_issue_consolidated_20260622.md)。本檔保留為**歷史**(2026-06-17 sync cooldown 漏抓 3 表之原始 log;PriceLimit/LoanCollateralBalance heal 已 ✅、BlockTrade 待全 roster heal)。
+
+---
+
 # augur 全市場全量 sync 問題記錄 (2026-06-13)
 
 實跑 source-traceable（#15）；對帳=近窗取樣 #7（VM/EX）。resume-capable。

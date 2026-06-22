@@ -1,3 +1,7 @@
+⚠️ **SUPERSEDED** by [`augur_issue_consolidated_20260622.md`](augur_issue_consolidated_20260622.md)。本檔為 sync milestone(疑 Mac 機 84 表完整);**本機 WSL2 實證 45 表缺**(見 consolidated §0、§2.A)。接續事項已併入 consolidated §2-§4。
+
+---
+
 # augur 全市場全量 sync 完成 + 接續記錄 (2026-06-22)
 
 > 🎯 **這份在做什麼**：記錄 from-zero/`--new-only` 全 83 dataset sync 達成里程碑（in-scope 84 表 100% 完整）+ sync 完接續（heal / re-verify / deferred）狀態與本次發現的 #8 記錄缺陷。

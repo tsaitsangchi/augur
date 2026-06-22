@@ -1,3 +1,7 @@
+⚠️ **SUPERSEDED** by [`augur_issue_consolidated_20260622.md`](augur_issue_consolidated_20260622.md)(整合 8 個 issue 報告 + 本機真實 DB 實證之單一 issue tracker)。本檔保留為**歷史紀錄**(2026-06-10 sync 第一輪之 exception/對帳 FAIL 原始 log;所列 16 筆之 root cause 已全數 commit 修正、見 consolidated §1)。
+
+---
+
 # augur 全市場全量 sync 問題記錄 (2026-06-10)
 
 實跑 source-traceable（#15）；對帳=近窗取樣 #7（VM/EX）。resume-capable。

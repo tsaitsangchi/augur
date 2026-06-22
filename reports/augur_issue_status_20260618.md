@@ -1,3 +1,7 @@
+⚠️ **SUPERSEDED** by [`augur_issue_consolidated_20260622.md`](augur_issue_consolidated_20260622.md)(更新版 issue tracker、含本機 WSL2 真實 DB 實證)。本檔為 2026-06-18 階段性狀態(過時)。
+
+---
+
 # augur 全市場 sync 問題處理狀態總表 (2026-06-18)
 
 > 🎯 **這份在做什麼**：把 `reports/` 下 5 個 issue 檔記錄之 ~19 個 dataset 問題,逐一核出**目前處理狀態**(已閉環 / 待 re-verify / 待重抓),供 mac-resume from-zero sync 跑完後以當前 code(`scripts/reconcile_audit.py`)全表 re-verify 時**逐項核對閉環**用。

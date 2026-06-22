@@ -1,3 +1,7 @@
+⚠️ **SUPERSEDED** by [`augur_issue_consolidated_20260622.md`](augur_issue_consolidated_20260622.md)(更新版 issue tracker;15 個 issue 之 root cause 已全 commit、見 consolidated §1)。本檔為 2026-06-20 階段性盤點。
+
+---
+
 # augur 抓取資料問題總盤點 + 解決方案 (2026-06-20)
 
 > 🎯 **這份在做什麼**：把 augur **ingestion（抓取）層**所有已知問題系統化——逐項記錄「根因 → 解決方案 → 狀態 → code 改動」，供逐一修正 + sync 完接續核閉環。整合本 session 發現 + `augur_fullsync_issues_20260617.md`(9 FAIL) + `augur_issue_status_20260618.md` + memory。

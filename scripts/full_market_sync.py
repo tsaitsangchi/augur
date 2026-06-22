@@ -15,13 +15,15 @@ DB-driven resume + 冪等 upsert）。
 import argparse
 import time
 import traceback
+from datetime import date
 
 from augur.audit import reconcile
 from augur.core import db, schema
 from augur.features import macro
 from augur.ingestion import finmind, sync
 
-ISSUES_MD = "reports/augur_fullsync_issues_20260613.md"
+# 動態日期(2026-06-22 改):每次新 sync 寫到當日新檔、不覆寫舊歷史檔(舊 hardcode `20260613` 每次跑覆寫致歷史 SUPERSEDED 標被清)
+ISSUES_MD = f"reports/augur_fullsync_issues_{date.today().strftime('%Y%m%d')}.md"
 RECENT = "2026-05-01"   # 逐 dataset 對帳之近窗取樣（非全史對帳，避免 double 全量）
 PERSTOCK_SAMPLE = 60    # per-stock 對帳抽樣股數（1 call/股；平衡覆蓋 vs API 量；見 reconcile_per_stock）
 
@@ -30,8 +32,10 @@ def log(m):
 
 
 def issue(dataset, kind, detail):
+    """寫 issue 行;**不截斷 detail**(2026-06-22 教訓:`failed_ids[:30]`+ 180 字截斷 → BlockTrade 190 股
+    清單行止於 `'2`、無閉合 `]` → heal regex parse 不到)。改:不截斷 list、僅 newline 規約為空格。"""
     with open(ISSUES_MD, "a") as f:
-        f.write(f"| `{dataset}` | {kind} | {str(detail)[:180].replace(chr(10), ' ')} |\n")
+        f.write(f"| `{dataset}` | {kind} | {str(detail).replace(chr(10), ' ')} |\n")
 
 
 def _has_date(conn, table):
@@ -146,8 +150,11 @@ def main():
                 done += 1
                 log(f"[{i}/{len(datasets)}] {ds}: {r['mode']} {r['rows']:,} 列  (elapsed {el:.0f}min)")
                 if r.get("failed_ids"):           # per-stock 漏抓(403/cooldown 用盡 rows=None)→ 記錄供 sync 完精準 heal(#8)
-                    log(f"    ⚠️ {len(r['failed_ids'])} 股抓取失敗(疑 cooldown 漏抓)→ sync 完 reconcile heal")
-                    issue(ds, "cooldown漏抓", f"{len(r['failed_ids'])} 股 rows=None: {r['failed_ids'][:30]}")
+                    # 2026-06-22 教訓:逐股清單於 markdown 寫入截斷(`'2` 無閉合)+ regex parse 不到 → heal 一律走全 roster resume
+                    # (`_per_stock_sync` 有資料股 resume from max、漏股從 floor 補),清單只作參考、不作 heal 依據。
+                    n_fail = len(r["failed_ids"])
+                    log(f"    ⚠️ {n_fail} 股抓取失敗(疑 cooldown 漏抓)→ sync 完走全 roster heal(_per_stock_sync resume)")
+                    issue(ds, "cooldown漏抓-需全roster heal", f"{n_fail} 股 rows=None;heal 走 _per_stock_sync resume(不依此清單),樣本前 5: {r['failed_ids'][:5]}")
                 if r["mode"] in ("not-by-date-capable", "per-stock-non-canonical"):
                     issue(ds, "date-based/需特定id", f"{r['mode']}（需 by-date 或 data_id 專路徑）")
                     continue

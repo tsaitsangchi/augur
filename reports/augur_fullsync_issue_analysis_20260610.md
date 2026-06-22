@@ -1,3 +1,7 @@
+⚠️ **SUPERSEDED** by [`augur_issue_consolidated_20260622.md`](augur_issue_consolidated_20260622.md)(整合 issue tracker)。本檔保留為**歷史**(GovBank/Institutional 兩 issue 之深度根因分析,所述 root cause `_key→_norm`(fadba1a) + per-stock 對帳(e8ef8c4) 已 commit、分析價值仍在)。
+
+---
+
 # augur 全市場全量 sync — #7 對帳 FAIL 根因分析 (2026-06-10/11)
 
 **結論先講(#15 誠實)**：截至 dataset 8/82,出現 2 個 #7 對帳 FAIL,**經 live API + DB 實證,兩者皆為 reconcile 方法學 artifact,非資料損毀 / 非 AI 幻像 / 非真缺口**。已落地之 raw 資料對 augur roster(上市股)universe 而言**正確且完整**。
