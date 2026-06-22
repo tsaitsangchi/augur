@@ -228,9 +228,9 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, sample_n=None,
         except finmind.FinMindError as e:
             agg["errors"].append({"stock_id": sid, "error": str(e)})        # 該股失敗 → 記錄跳過,不中斷（#7 韌性）
             continue
-        api = [row for row in api                                           # 對齊 DB 窗 [since, dbmax]（per-stock 抓回全史/含當日較新）
-               if (not since or str(row.get("date")) >= since)
-               and (not dbmax or str(row.get("date")) <= dbmax)]
+        api = [row for row in api                                           # 對齊 DB 窗 [since, dbmax]（since/dbmax 可能 date/str → 統一 str 字典序比、免型別錯）
+               if (not since or str(row.get("date")) >= str(since))
+               and (not dbmax or str(row.get("date")) <= str(dbmax))]
         r = compare(dbr, api, pk, val)
         _merge(agg, r)
         if r["value_mismatch"] or r["missing_in_db"] or r["extra_in_db"]:
@@ -278,9 +278,9 @@ def reconcile_by_dim_id(conn, table, dataset=None, *, since=None, progress=None)
             continue
         if progress and i % 10 == 0:
             progress(f"  {table} {i}/{len(dim_ids)} 維度 | M{agg['matched']:,}")
-    api = [row for row in api                                        # 對齊 DB 窗 [since, dbmax]
-           if (not since or str(row.get("date")) >= since)
-           and (not dbmax or str(row.get("date")) <= dbmax)]
+    api = [row for row in api                                        # 對齊 DB 窗 [since, dbmax]（since/dbmax 可能 date 或 str → 統一 str 字典序比、免型別錯）
+           if (not since or str(row.get("date")) >= str(since))
+           and (not dbmax or str(row.get("date")) <= str(dbmax))]
     r = compare(dbr, api, pk, val)
     _merge(agg, r)
     agg["incomplete"] = bool(agg["errors"])    # 有維度抓取失敗 = 未完整對帳 → verdict 不給 pass

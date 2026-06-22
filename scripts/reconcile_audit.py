@@ -55,7 +55,7 @@ def _recent_since(conn, table, recent_days):
             cur.execute(f'SELECT DISTINCT date FROM "{table}" ORDER BY date DESC LIMIT %s',
                         (recent_days + UNSETTLED_BUFFER,))
             dates = [r[0] for r in cur.fetchall()]
-        return dates[-1] if dates else None
+        return _iso(dates[-1]) if dates else None   # 回 str(isoformat)：reconcile 各函數 since 比較/SQL/fetch 一律期望 str，免 str>=date 型別錯
     except Exception:
         return None
 
