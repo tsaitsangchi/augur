@@ -25,13 +25,12 @@ INTRADAY = frozenset({
     "USStockPriceMinute", "TaiwanStockEvery5SecondsIndex",
 })
 
-# `BACKFILL_DEFERRED`：**可抓**、但暫緩「自動全市場全史 backfill」之 dataset（scope 待決，非物理不可行）。
-# 資料維度合格（日級，符合 #4）；抓法亦已實證可行（2026-06-16，經 finmind.fetch_dedicated / 普通 by-date）：
-# - TaiwanStockTradingDailyReport：券商分點（dedicated endpoint，data_id+date；2330 單日回 ~4838 列實證）。
-# - TaiwanStockWarrantTradingDailyReport：權證分點（dedicated endpoint，data_id+date；endpoint 已確認 200-success）。
-# - TaiwanStockBlockTradingDailyReport：券商別鉅額（普通 /data，data_id+date 範圍即可；13 列實證）。
-# 暫緩之因＝**規模/scope**（分點 per-(股,日)、權證宇宙 ~126K 檔、鉅額稀疏）→ 全市場全史很大，
-# 「抓哪些股 × 哪段窗」屬放量 scope 決策（待用戶授權）；故不放進 daily_datasets() 自動全抓——非治權排除、非物理不可行。
+# `BACKFILL_DEFERRED`：dedicated/special endpoint dataset，**皆可抓**、走 dedicated 專抓腳本；excluded＝不進 daily_datasets 自動 by-date bulk（per-(股/券商,日) 規模大、非缺資料）。
+# 資料維度合格（日級 #4）；2026-06-22/23 probe + 官方（llms-full.txt）實證各表 dedicated 抓法（catalog excluded_reason 記抓法）：
+# - 分點 TradingDailyReport：data_id=股+date 單日（per-(股,日)、2330 單日 4739 列）或 data_id=券商代碼+start_date（per-券商）。
+# - 權證 WarrantTradingDailyReport：data_id=權證代號(6碼,如 084655)/券商代碼 + start_date（官方範例）。
+# - 鉅額分點 BlockTradingDailyReport：/data data_id=股 + start_date 範圍（per-股、13 列實證）。
+# token 續約後分批抓全史（用戶 2026-06-23 directive：不趕到期、試各抓法抓全；data_id 來源＝券商 TaiwanSecuritiesTraderInfo / 權證代號 TaiwanStockInfo / 股 roster）。
 BACKFILL_DEFERRED = frozenset({
     "TaiwanStockTradingDailyReport",
     "TaiwanStockWarrantTradingDailyReport",

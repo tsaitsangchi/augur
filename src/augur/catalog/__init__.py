@@ -813,10 +813,15 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
         fields, cols = _excluded_meta(conn, ds, is_finmind, roster_n, "intraday")   # 不落地，但全欄 metadata 補齊(窮舉非逐點，用戶 directive)
         meta.update(fields)
         return meta, cols
-    if ds in ingest.BACKFILL_DEFERRED:                        # 分點/權證/鉅額:抓法+metadata 真實 probe(退役「可抓但暫緩」placeholder)
-        meta.update(excluded=True,                            # excluded＝不進「自動全史 bulk sync」(per-(股,日)規模);catalog metadata 為真實 probe
-                    excluded_reason="抓法+欄位/earliest 已實證真實 probe（分點/權證 dedicated endpoint、鉅額 /data）；全史 bulk 落地屬 sync operational（per-(股,日)規模）、非 catalog 缺資料",
-                    frequency="daily", source_provenance="dedicated-probe")
+    if ds in ingest.BACKFILL_DEFERRED:                        # 分點/權證/鉅額:dedicated/special endpoint、皆可抓;excluded=不進自動 by-date bulk(規模大)、走 dedicated 專抓
+        fetch_how = {
+            "TaiwanStockTradingDailyReport": "data_id=股+date 單日 或 券商代碼+start_date",
+            "TaiwanStockWarrantTradingDailyReport": "data_id=權證代號(6碼)/券商代碼+start_date",
+            "TaiwanStockBlockTradingDailyReport": "/data data_id=股+start_date 範圍",
+        }.get(ds, "dedicated endpoint")
+        reason = (f"dedicated 可抓（2026-06-23 probe+官方實證）：{fetch_how}；"
+                  "excluded=規模大不進自動 by-date bulk、走 dedicated 專抓、token 續約後分批抓全史")
+        meta.update(excluded=True, excluded_reason=reason, frequency="daily", source_provenance="dedicated-probe")
         fields, cols = _excluded_meta(conn, ds, is_finmind, roster_n, "daily")   # 真實 probe 全欄 metadata(dedicated-aware)
         meta.update(fields)
         return meta, cols
