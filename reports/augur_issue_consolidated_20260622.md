@@ -80,9 +80,25 @@ EuropeStockPrice、GovernmentBondsYield、InterestRate、JapanStockPrice、Taiwa
 | `TaiwanStockNews` | 6/13 incomplete | 走 `reconcile_coverage`(已落、待執行) |
 | `fred_series` | 6/13/17/18 EX=1 | 走 `reconcile_fred` vintage 容忍 → 預 PASS |
 | `TaiwanDailyShortSaleBalances` | 6/16 EX=68 | per-stock 對帳已修 → 預 PASS |
-| `TaiwanFutures/OptionDealerTradingVolumeDaily` | 6/10 EX≡MIS=154k/25k(PK key 錯位) | sync 完 probe 1 天定論哪欄(疑 volume 數值/dealer_name 全半形/is_after_hour 型別)→ 修 `_norm`/收窄 PK |
+| `TaiwanFutures/OptionDealerTradingVolumeDaily` | 6/13/22 EX≡MIS=172k/30k(PK key 錯位) | **純 DB 已定位根因(見下)**;修法=KEY_CANDIDATES 加 `is_after_hour` + 重建兩表(volume 移出 PK);重建/定論觸發 須 sync 完(#24)|
 
 **動作**:跑 `PYTHONPATH=src venv/bin/python scripts/reconcile_audit.py`(catalog 驅動全 39 有資料表 scope 路由)、約 30-60 分;**走 FinMind+FRED API、額度敏感**(須先 IP cooldown)。
+
+#### ⭐ Dealer 兩表 EX≡MIS 根因(2026-06-22 純 DB 診斷、零 API、source-traceable）
+
+**現象**:`TaiwanFuturesDealerTradingVolumeDaily` EX=172173≡MIS=172173、`TaiwanOptionDealerTradingVolumeDaily` EX=29623≡MIS=29623。EX≡MIS 完全相等 = **PK key 系統性錯位**（DB↔API 同批同列數、但每列 key 對不上）、**非資料缺失/非幻像**（資料已正確落地 541 萬 / 134 萬列）。
+
+**根因（純 DB query 實證）**：
+1. 兩表 DB 實際 PK = **退回全 6 欄** `(date, dealer_code, dealer_name, futures_id/option_id, volume, is_after_hour)`。
+2. `detect_keys` 退回 fallback「全非空非 TEXT 欄」之因：**`is_after_hour`（日盤/夜盤真維度欄）不在 `generic_schema.KEY_CANDIDATES`** → 貪婪加完 `(futures_id, dealer_code, date)` 仍不唯一（歷史同券商同商品同日有日盤+夜盤 2 筆）→ 候選用盡 → 退回全欄。
+3. 實證 `is_after_hour` 真維度：全表 `false` 321 萬 / `true` 221 萬 列。
+4. 實證正確 PK = **4 維度欄** `(date, dealer_code, id, is_after_hour)`：單日 distinct = 總列數（1377/1377、258/258）；`dealer_name` 冗餘（dealer_code 1:1，加它不增 distinct）、`volume` 為測量值（全整數、min=0 max=667 萬、無 NULL，乾淨但非識別維度）。
+5. **錯位觸發 = `volume` 測量值入 PK**：dealer 成交量若被 FinMind 事後修訂，DB 存抓取當下值、reconcile by-date 重抓回修訂後值 → `volume` 入 key → 整列 key 錯位 → 全 EX≡MIS。`dealer_name` 排除（無全形空白）。
+
+**修法（三步、後二步須 sync 完 #24）**：
+1. `generic_schema.KEY_CANDIDATES` 加 `is_after_hour`（日夜盤維度欄、放 `trading_session` 旁；副作用零——`is_after_hour` 欄僅此 2 表有）→ `detect_keys` 改選 4 維度欄 PK。〔護欄內 code 改、不打 API、不影響跑中 sync；待用戶過目〕
+2. 重建兩表（drop + 重抓 by-date）→ 新 4 欄 PK 生效、`volume` 移出 PK 成 value 欄。〔打 API、等 sync 完〕
+3. re-verify：key 對得上 → 對帳 PASS（殘 `volume` 修訂差異報為 VM、可 heal 或近窗容忍，非 EX≡MIS）；順帶 probe 1 天 DB volume vs API volume 定論修訂假說。〔打 API、等 sync 完〕
 
 ### Class C — **catalog 元資料 probe**(可選、不阻塞)
 

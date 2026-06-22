@@ -40,13 +40,15 @@ NUMERIC_SCALE = 6
 # 若 date 先行會誤判單 date 主鍵，跨 id 之 ON CONFLICT 將互相覆蓋。
 # realtime_start 緊接 date：FRED ALFRED vintage 同 (series_id, date) 有多版 → 需 realtime_start 區辨成
 # (series_id, date, realtime_start)（point-in-time 取版，#8）；其餘資料源無此欄、不受影響。
+# is_after_hour/trading_session：日盤/夜盤維度——Dealer 表同 (date, dealer_code, futures/option_id) 有日盤+夜盤 2 筆，
+# 不納入則加完仍不唯一 → detect_keys 退回全欄 fallback、把 volume 測量值塞進 PK → 對帳 by-date 時值一改即 key 錯位（EX≡MIS）。
 KEY_CANDIDATES = (
     "stock_id", "securities_trader_id", "series_id", "futures_id", "option_id",
     "cb_id", "dealer_code", "currency", "country", "code",
     "date", "realtime_start", "Time", "time",
     "year", "ymonth", "yweek",
     "type", "name", "institutional_investors", "contract_type",
-    "put_call", "call_put", "trading_session", "transaction_type",
+    "put_call", "call_put", "trading_session", "is_after_hour", "transaction_type",
     "HoldingSharesLevel", "industry_category", "origin_name", "item",
 )
 FORCE_STR = frozenset({"stock_id", "securities_trader_id", "year", "cb_id"})  # 數值樣貌之識別碼/期別

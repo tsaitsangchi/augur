@@ -80,6 +80,17 @@ def test_detect_keys_id_before_date():
     keys = gs.detect_keys(rows, gs.infer_schema(rows))
     assert keys.index("stock_id") < keys.index("date")
 
+def test_detect_keys_dealer_after_hour_not_volume():
+    # Dealer 表:同 (date,dealer_code,futures_id) 有日盤+夜盤 2 筆 → is_after_hour 須入 PK；
+    # 否則加完仍不唯一 → 退回全欄 fallback 把 volume 測量值塞進 PK（值一改即對帳 EX≡MIS，2026-06-22 實證）
+    rows = [{"date": "2021-04-01", "dealer_code": "F002000", "dealer_name": "元大",
+             "futures_id": "TX", "volume": "100", "is_after_hour": "false"},
+            {"date": "2021-04-01", "dealer_code": "F002000", "dealer_name": "元大",
+             "futures_id": "TX", "volume": "50", "is_after_hour": "true"}]
+    keys = gs.detect_keys(rows, gs.infer_schema(rows), require=("date",))
+    assert "is_after_hour" in keys
+    assert "volume" not in keys and "dealer_name" not in keys
+
 
 # ── numeric auto-widen（#5 只擴不縮）──
 def test_numeric_type_default():
