@@ -157,19 +157,21 @@ _DOC_SEED_IDS = {
 }
 
 
-def _fetch_for_store(dataset, sid, start, *, dedicated=None):
+def _fetch_for_store(dataset, sid, start, *, dedicated=None, end=None):
     """並發 fetch 一 id（**僅 API、不碰 conn/DB → thread-safe**）。回 (sid, rows|None)。
-    `dedicated`=special endpoint path（分點/權證）→ 走 fetch_dedicated（per-id、同 start_date 範圍慣例）；
-    否則普通 /data fetch。錯誤（該 id 無此資料等）→ rows=None（跳過,不中斷全批）。"""
+    `dedicated`=special endpoint path → 走 fetch_dedicated；否則普通 /data fetch。
+    `end`=範圍上界（鉅額分點等 /data `start_date`-only 會 timeout 者須 `end_date` 限窗、probe 實證 2026-06-23）。
+    錯誤（該 id 無此資料等）→ rows=None（跳過,不中斷全批）。"""
+    ep = {"end_date": end} if end else {}
     try:
         if dedicated:
-            return sid, finmind.fetch_dedicated(dedicated, data_id=sid, start_date=start)
-        return sid, finmind.fetch(dataset, data_id=sid, start_date=start)
+            return sid, finmind.fetch_dedicated(dedicated, data_id=sid, start_date=start, **ep)
+        return sid, finmind.fetch(dataset, data_id=sid, start_date=start, **ep)
     except finmind.FinMindError:
         return sid, None
 
 
-def _per_stock_sync(conn, dataset, roster, start_floor, progress, *, mode="per-stock", workers=None, dedicated=None):
+def _per_stock_sync(conn, dataset, roster, start_floor, progress, *, mode="per-stock", workers=None, dedicated=None, end=None):
     """逐股抓取（roster，每股 resume DB max(date)）→ summary。
 
     並發（workers>1）：**fetch 並發（僅 API）、DB 寫入仍主執行緒序列**（免 conn race）；start rate 由
@@ -200,9 +202,9 @@ def _per_stock_sync(conn, dataset, roster, start_floor, progress, *, mode="per-s
 
     if workers > 1:
         with cf.ThreadPoolExecutor(max_workers=workers) as ex:
-            _consume(ex.map(lambda s: _fetch_for_store(dataset, s, starts[s], dedicated=dedicated), roster))
+            _consume(ex.map(lambda s: _fetch_for_store(dataset, s, starts[s], dedicated=dedicated, end=end), roster))
     else:
-        _consume(_fetch_for_store(dataset, s, starts[s], dedicated=dedicated) for s in roster)
+        _consume(_fetch_for_store(dataset, s, starts[s], dedicated=dedicated, end=end) for s in roster)
     return {"dataset": dataset, "mode": mode, "rows": total, "stocks_with_data": stocks,
             "failed_ids": failed}
 
