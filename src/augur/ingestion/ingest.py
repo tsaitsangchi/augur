@@ -25,15 +25,19 @@ INTRADAY = frozenset({
     "USStockPriceMinute", "TaiwanStockEvery5SecondsIndex",
 })
 
-# `BACKFILL_DEFERRED`：dedicated/special endpoint dataset，**皆可抓**、走 dedicated 專抓腳本；excluded＝不進 daily_datasets 自動 by-date bulk（per-(股/券商,日) 規模大、非缺資料）。
-# 資料維度合格（日級 #4）；2026-06-22/23 probe + 官方（llms-full.txt）實證各表 dedicated 抓法（catalog excluded_reason 記抓法）：
-# - 分點 TradingDailyReport：data_id=股+date 單日（per-(股,日)、2330 單日 4739 列）或 data_id=券商代碼+start_date（per-券商）。
-# - 權證 WarrantTradingDailyReport：data_id=權證代號(6碼,如 084655)/券商代碼 + start_date（官方範例）。
-# - 鉅額分點 BlockTradingDailyReport：/data data_id=股 + start_date 範圍（per-股、13 列實證）。
-# token 續約後分批抓全史（用戶 2026-06-23 directive：不趕到期、試各抓法抓全；data_id 來源＝券商 TaiwanSecuritiesTraderInfo / 權證代號 TaiwanStockInfo / 股 roster）。
-BACKFILL_DEFERRED = frozenset({
+# `OUT_OF_UNIT`：資料量規模物理界限**排除**（doctrine 原則精華 #3/#4 · 憲章 #18、probe 實證 2026-06-23）——日級合格（#4）但全市場全史資料量物理裝不下/抓不完（非實作懶、非抓法不會）。
+# 抓法已找到（dedicated by-broker：`securities_trader_id`+`date`、一 call 回該券商當日全交易），唯資料量物理不可行：
+# - 分點 TradingDailyReport：per-(券商,股,日) 數十億列 TB 級（Mac DB 39GB 裝不下）。
+# - 權證 WarrantTradingDailyReport：~數千萬列 + ~178萬 calls（券商 ~2370 × 日）。
+# 排除（非暫緩）；data_id 來源備存（券商 TaiwanSecuritiesTraderInfo / 權證代號 TaiwanStockInfo）供未來擴儲後重議。
+OUT_OF_UNIT = frozenset({
     "TaiwanStockTradingDailyReport",
     "TaiwanStockWarrantTradingDailyReport",
+})
+
+# `BACKFILL_DEFERRED`：dedicated/special endpoint、**可抓**、走 dedicated 專抓；excluded＝不進 daily_datasets 自動 by-date bulk（規模、非缺資料）。
+# - 鉅額分點 BlockTradingDailyReport：/data data_id=股 + start_date 範圍（per-股 ~3105 calls、稀疏、13 列實證可抓）。token 續約後分批抓全史。
+BACKFILL_DEFERRED = frozenset({
     "TaiwanStockBlockTradingDailyReport",
 })
 
