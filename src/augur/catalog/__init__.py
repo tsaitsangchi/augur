@@ -813,20 +813,20 @@ def probe_dataset(conn, ds, *, progress=None, roster_n=None):
         fields, cols = _excluded_meta(conn, ds, is_finmind, roster_n, "intraday")   # 不落地，但全欄 metadata 補齊(窮舉非逐點，用戶 directive)
         meta.update(fields)
         return meta, cols
-    if ds in ingest.OUT_OF_UNIT:                              # 分點/權證:資料量規模物理界限排除(#3/#4、probe 實證 2026-06-23)
+    if ds in ingest.OUT_OF_UNIT:                              # 分點/權證/鉅額分點:資料量規模物理界限排除(#3/#4、probe 實證 2026-06-23/24)
         how = {
             "TaiwanStockTradingDailyReport": "分點 per-(券商,股,日) 數十億列 TB 級（DB 裝不下）",
             "TaiwanStockWarrantTradingDailyReport": "權證 ~數千萬列+~178萬 calls（券商×日）",
+            "TaiwanStockBlockTradingDailyReport": "鉅額分點 endpoint 不吃 end_date+單 call 同股同日 17+ 列 schema PK bug 16+→1 覆蓋",
         }.get(ds, "")
-        reason = (f"資料量規模物理界限排除（OUT_OF_UNIT、probe 實證 2026-06-23）：{how}；"
-                  "抓法已知（dedicated by-broker securities_trader_id+date）但全市場全史資料量物理裝不下、非暫緩")
+        reason = (f"資料量規模物理界限排除（OUT_OF_UNIT、probe 實證 2026-06-23/24）：{how}；"
+                  "抓法已知但資料量+schema 物理界限、非暫緩")
         meta.update(excluded=True, excluded_reason=reason, frequency="daily", source_provenance="out-of-unit")
         fields, cols = _excluded_meta(conn, ds, is_finmind, roster_n, "daily")
         meta.update(fields)
         return meta, cols
-    if ds in ingest.BACKFILL_DEFERRED:                        # 鉅額分點:dedicated/special、可抓、走 dedicated 專抓;excluded=不進自動 by-date bulk
-        reason = ("dedicated 可抓（2026-06-23 probe 實證）：鉅額分點 /data data_id=股+start_date 範圍（per-股 ~3105 calls、稀疏）；"
-                  "excluded=不進自動 by-date bulk、走 dedicated 專抓、token 續約後分批抓全史")
+    if ds in ingest.BACKFILL_DEFERRED:                        # 框架保留(目前 set 空、鉅額已移入 OUT_OF_UNIT);未來有可抓 dedicated dataset 時填入
+        reason = "dedicated 可抓但暫緩自動 backfill（BACKFILL_DEFERRED、scope 待決）"
         meta.update(excluded=True, excluded_reason=reason, frequency="daily", source_provenance="dedicated-probe")
         fields, cols = _excluded_meta(conn, ds, is_finmind, roster_n, "daily")   # 真實 probe 全欄 metadata(dedicated-aware)
         meta.update(fields)
