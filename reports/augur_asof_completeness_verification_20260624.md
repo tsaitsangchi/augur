@@ -3,7 +3,7 @@
 **日期**：2026-06-24
 **觸發**：用戶 directive「先確認目前在 database 的資料到 2026 年 5 月 31 日止已全部抓取完成」
 **判準依據**：資料完整性判準（原則精華 v1.7.1 / 憲章 v1.9.1，2026-06-24 入憲）—— 完整＝每股及相關資料自 API 最早日 → **as-of 2026-05-31** 滿足無缺；固定截止日使完整可定案、可驗證。
-**結論**：**84/84 資料表到 as-of 完整**。發現 GoldPrice 唯一真漏抓（2022-2026）、本輪補齊。
+**結論**：**84/84 資料表到 as-of 完整**。發現 GoldPrice 唯一真漏抓（2022-2026）、本輪補齊；per-stock by-date 整批漏抓掃描（L2）核心日頻表 ＝ 0。
 
 ---
 
@@ -74,22 +74,39 @@ GoldPrice 補後進入「max ≥ as-of」之 70 表，達 **84/84 完整**。
 
 ---
 
-## 五、三層驗證（2026-06-24 二次確認加驗第二層）
+## 五、多層完整性驗證（2026-06-24）
 
 | 層級 | 驗證 | 結果 |
 |---|---|---|
 | **第一層 — 表級** | 84 表 `max(date)` vs as-of + 漏抓/停更判別 | 70 直達 + 12 可解釋 + 2 snapshot = **84/84** ✅ |
 | **第二層 — 市場級交易日** | 核心 8 日頻表 2026-05 交易日 coverage（基準＝大盤指數日曆 20 交易日）| 全 **20/20** 無 gap ✅ |
 | **第二層 — 全史交易日 gap** | TaiwanStockPrice vs 大盤指數日曆全史重疊期（2003-01-02 ~ 2026-05-29、5760 官方交易日）| 缺漏 **0** 天、多餘 **0** 天 ✅ |
+| **第三層 — per-stock by-date 整批漏抓（L2）** | 49 per-stock 表 L1 缺日掃描 → 鄰日突變精煉 → 核心 7 日頻表 9 突變候選日 API 確認 | 整批漏抓 **0**（9 候選全為半日/特殊交易日、多數 DB≥API）✅ |
 
 8 核心日頻表（Price/PER/Institutional/Margin/DayTrading/Shareholding/TotalInstitutional/TotalMargin）2026-05 全 20/20 交易日齊全；TaiwanStockPrice 全史 5760 個官方交易日零缺漏 → 不只 max 到 as-of，**中間無 gap**。
+
+### 第三層方法（L2 — 為何不必逐缺日打 API）
+
+逐缺日確認百萬千萬級不可行；真漏抓的訊號是 **by-date 整批驟降**（某市場日大量股漏），個股停牌則零星、不影響當日全市場股數。三步精煉：
+
+1. **L1 純 DB 缺日掃描**（49 表、110s）→ 36 億「缺日」，但 9 成 false positive：`TaiwanStockNews`（date 為 datetime，35 億假）、`InfoWithWarrantSummary`（權證彙總 9836 萬）、及事件型/稀疏表（處置/停資券/鉅額/借券——本就稀疏，「缺日」屬常態）。naive「每股每交易日都該有」僅適用日頻規律表。
+2. **鄰日 window 均值精煉**（排除市場規模漸變：1994 年台股就 188 家上市、2001 融資標的 410 家——早期股數少是歷史規模非漏抓）→ 核心 7 日頻表全史僅 **9 個**突變候選日（當日股數 < 前後 11 日均值 ×0.5）。
+3. **L2 API by-date 確認** 9 候選：全部非漏抓 —
+   - `InstitutionalInvestorsBuySell` 2016-06-04：DB 594 > API 548（DB 反而更全）
+   - `MarginPurchaseShortSale` 7 日（2012-08-02…2016-09-28）：DB 有 437~580 股、API 今回 **0**（特殊日 API 不回、DB 當年已抓）
+   - `DayTrading` 2016-01-29：DB 392 ＝ API 392（完全一致）
+   - 皆半日/特殊交易日（市場本就少股），無一真漏抓。
+
+**時間實證**：L1+L2 全程**約 5 分鐘**（突變精煉讓 L2 從百萬缺日降至 9 候選、API 確認秒級）。對照若 L3 全量重抓（49 表 × 數千股，或核心表 by-date 全量 ~5 萬 call）→ 約半天~1 天（受 FinMind 限流）。
 
 ## 六、教訓與限制
 
 **教訓（#20 rigor 完整性）**：sync 跑「全市場全史」**不保證每表到 as-of**。GoldPrice 漏抓 2022-2026 唯有逐表驗證 `max(date)` 才察覺——正是完整性判準入憲後該做的實證驗證，不靠「我以為 sync 全史已完整」。
 
-**未做（如需可續）**：per-stock 級逐股逐日 gap（每支個股自上市日到 as-of 每交易日齊全）——本輪由先前 heal（補漏抓股）+ reconcile（by-date 對帳）間接保證，未逐股重掃。全史交易日 gap 以 TaiwanStockPrice（核心價格表）為證，其餘日頻表驗至 2026-05（最後一月、最易漏處）。
+**已驗（L2，第三層）**：per-stock by-date 整批漏抓掃描 → 核心 7 日頻表全史整批漏抓 ＝ **0**（9 突變候選全證實半日/特殊交易日，多數 DB≥API）。
+
+**未做（L3，如需可續）**：個股級零星漏抓（單股某日漏、當日全市場股數正常）——被個股停牌混淆、by-date 維度抓不到；徹底分離需 per-stock 全量重抓（49 表 × 數千股，或核心表 by-date 全量 ~5 萬 call）→ 約半天~1 天（受 FinMind 限流、屬放量 #24 需授權 + 過夜防睡眠）。個股零星漏抓危害遠小於整批，且 reconcile by-date 已抽樣驗證近期。全史交易日 gap 以 TaiwanStockPrice（核心價格表）為證，其餘日頻表驗至 2026-05（最後一月、最易漏處）。
 
 ---
 
-*數據來源：DB query（information_schema + max(date)）、FinMind API probe、sync/reconcile stdout。全數可溯源（原則精華 #9/#10）。*
+*數據來源：DB query（information_schema + max(date) + by-date 股數 window）、FinMind API probe（GoldPrice 補抓、ExchangeRate 判別、L2 by-date 9 候選確認）、sync/reconcile stdout。全數可溯源（原則精華 #9/#10）。*
