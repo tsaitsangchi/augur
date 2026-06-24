@@ -24,6 +24,14 @@ def test_norm_string_strip():
     assert reconcile._norm("  定價 ") == "定價"
     assert reconcile._norm(" Foreign_Investor ") == "Foreign_Investor"
 
+def test_norm_bool_not_coerced_to_number():
+    # bool 須在 float 前判：DB varchar 'true'/'false' vs API bool True/False 之 PK key 須匹配。
+    # 否則 float(True)=1.0 把布林誤轉數值 → DB 'true' vs API 1.0 → PK 永不匹配 → 100% false
+    # EX≡MIS（Dealer is_after_hour ∈PK 實證 2026-06-24：178395/31343 假 EX≡MIS）。
+    assert reconcile._norm(True) == reconcile._norm("true") == "true"
+    assert reconcile._norm(False) == reconcile._norm("false") == "false"
+    assert reconcile._norm(True) != 1.0          # 不可被 float(True) 誤轉為數值
+
 
 # ── _key 用 _norm（寬 PK 含數值欄）──
 def test_key_numeric_pk_matches_decimal_vs_raw():

@@ -35,9 +35,11 @@ COVERAGE_MISS_TOL = 0.2       # coverage:DB 漏抓占 API 容忍比(新聞去重
 
 
 def _norm(v):
-    """比對正規化：null/placeholder→None；可轉數字→round(float,6)；其餘→str.strip()。"""
+    """比對正規化：null/placeholder→None；bool→小寫字串；可轉數字→round(float,6)；其餘→str.strip()。"""
     if v is None:
         return None
+    if isinstance(v, bool):                 # bool 須在 float 前判（float(True)=1.0 把布林誤轉數值 →
+        return str(v).lower()               # DB varchar 'true' vs API bool True 之 PK key 永不匹配 → 100% false EX≡MIS，Dealer is_after_hour 實證 2026-06-24）
     if isinstance(v, str) and v.strip().lower() in _NULL:
         return None
     try:
