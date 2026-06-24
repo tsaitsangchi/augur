@@ -40,8 +40,12 @@ def _norm(v):
         return None
     if isinstance(v, bool):                 # bool 須在 float 前判（float(True)=1.0 把布林誤轉數值 →
         return str(v).lower()               # DB varchar 'true' vs API bool True 之 PK key 永不匹配 → 100% false EX≡MIS，Dealer is_after_hour 實證 2026-06-24）
-    if isinstance(v, str) and v.strip().lower() in _NULL:
-        return None
+    if isinstance(v, str):
+        s = v.strip()
+        if s.lower() in _NULL:
+            return None
+        if len(s) > 1 and s[0] == "0" and s.isdigit():   # 前導零識別碼（ETF '0050'、'009802'）→ 保留 str、不轉 float
+            return s                                       # （否則 float('009802')=9802.0 與 '9802' 碰撞 → 假 VM/EX/MIS，DayTrading 實證 2026-06-24）
     try:
         return round(float(v), 6)
     except (TypeError, ValueError):

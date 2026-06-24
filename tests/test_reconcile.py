@@ -32,6 +32,14 @@ def test_norm_bool_not_coerced_to_number():
     assert reconcile._norm(False) == reconcile._norm("false") == "false"
     assert reconcile._norm(True) != 1.0          # 不可被 float(True) 誤轉為數值
 
+def test_norm_leading_zero_id_not_coerced():
+    # 前導零識別碼（ETF '0050'、'009802'）須保留 str、不轉 float；否則 float('009802')=9802.0
+    # 與 '9802' 碰撞 → 不同股共用 PK key → compare 取錯列 → 假 VM/EX/MIS（DayTrading 實證 2026-06-24）。
+    assert reconcile._norm("009802") == "009802"
+    assert reconcile._norm("0050") == "0050"
+    assert reconcile._norm("009802") != reconcile._norm("9802")   # 前導零股 ≠ 無前導零股
+    assert reconcile._norm("9802") == 9802.0                       # 無前導零數字仍轉 float（數值欄比對不受影響）
+
 
 # ── _key 用 _norm（寬 PK 含數值欄）──
 def test_key_numeric_pk_matches_decimal_vs_raw():
