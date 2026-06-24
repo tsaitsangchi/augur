@@ -36,6 +36,37 @@ _PRICE_SQL = (
     '"Trading_turnover" AS turnover, "max" AS high, "min" AS low '
     'FROM "TaiwanStockPrice" WHERE stock_id = %s AND date <= %s ORDER BY date'
 )
+# 基本面 D:月營收 YoY(log)——最近月 vs 12 個月前;算不出(無歷史 / revenue≤0 / 缺 -12 月那筆)→ 缺列(#1)
+_REVENUE_SQL = (
+    'SELECT date, revenue FROM "TaiwanStockMonthRevenue" '
+    'WHERE stock_id = %s AND date <= %s ORDER BY date DESC LIMIT 14'
+)
+
+
+def _compute_revenue_yoy(rev_rows):
+    """月營收 YoY(log return,nat log)——最近月 vs 該月 -12 月之 revenue。逐筆對 (年-1, 同月) 回查。
+    算不出(無資料/<13 筆/revenue<=0/查無 -12 月那筆)→ None(缺列、嚴格 source-pure)。"""
+    if len(rev_rows) < 13:
+        return None
+    last_d, last_r = rev_rows[0]
+    try:
+        last_r = float(last_r) if last_r is not None else 0
+    except (TypeError, ValueError):
+        return None
+    if last_r <= 0:
+        return None
+    target_year, target_month = last_d.year - 1, last_d.month
+    for d, r in rev_rows[1:]:
+        if d.year == target_year and d.month == target_month:
+            try:
+                r12 = float(r) if r is not None else 0
+            except (TypeError, ValueError):
+                return None
+            if r12 > 0:
+                v = float(np.log(last_r / r12))
+                return v if np.isfinite(v) else None
+            return None
+    return None
 
 
 def bootstrap(cur):
@@ -87,10 +118,15 @@ def build_panel(conn, panel_date, stock_ids, *, progress=None):
         with db.transaction(conn) as cur:
             cur.execute(_PRICE_SQL, (sid, panel_date))
             rows = cur.fetchall()
+            cur.execute(_REVENUE_SQL, (sid, panel_date))                 # D:月營收(部分股無 → 自然缺列)
+            rev_rows = cur.fetchall()
         if not rows:
             continue
         df = pd.DataFrame(rows, columns=["date", "close", "volume", "money", "turnover", "high", "low"])
         feats = compute_features(df)
+        rev_yoy = _compute_revenue_yoy(rev_rows)                        # D:加月營收 YoY(算不出→缺列,自然排除非營利股/新上市無歷史股)
+        if rev_yoy is not None:
+            feats["monthly_revenue_yoy"] = rev_yoy
         if not feats:
             continue
         data = [(panel_date, sid, f, v) for f, v in feats.items()]

@@ -55,17 +55,40 @@ def canonical_features(cur, panel_dates):
     return sorted(r[0] for r in cur.fetchall())
 
 
-def build_universe(conn, panel_dates, *, features=None):
+def build_universe(conn, panel_dates, *, features=None, liquidity_pct=None):
     """核心 ＝ 候選空間（真台股個股、非 ETF）∩ 全 panel 全 canonical 特徵齊；commit 新快照。
 
-    回 {core(數量), panels, canonical_features, stock_ids}。
+    `liquidity_pct`(0-100、預設 None=不過濾)：流動性下界（百分位）——以**最近 panel** 之
+    `dollar_volume_log_20d` 全市場分布為基準算 percentile_cont 閾值，剔除低於該分位者。**動態相對分位數、不
+    寫死值（#9 思想≠特定值之兼容）**。
+    回 {core(數量), panels, canonical_features, stock_ids, liquidity_threshold(若有)}。
     """
     panel_dates = list(panel_dates)
+    extra = {}
     with db.transaction(conn) as cur:
         bootstrap(cur)
         feats = sorted(features) if features else canonical_features(cur, panel_dates)
         required = len(panel_dates) * len(feats)
-        # 完整度 gate + 候選空間過濾:真股票代碼(數字開頭)∧ 非 ETF(industry_category 屬 ETF 類)∧ 全 panel × 全 feature 齊
+
+        # E:流動性 gate(動態相對分位數、可選)——latest panel 之 dollar_volume_log_20d P(liquidity_pct) 為下界
+        liq_filter, liq_params = "", []
+        if liquidity_pct is not None:
+            latest = max(panel_dates)
+            cur.execute(
+                "SELECT percentile_cont(%s) WITHIN GROUP (ORDER BY value) FROM feature_values "
+                "WHERE panel_date=%s AND feature='dollar_volume_log_20d'",
+                (liquidity_pct / 100.0, latest))
+            thr = cur.fetchone()[0]
+            extra["liquidity_threshold"] = float(thr) if thr is not None else None
+            extra["liquidity_pct"] = liquidity_pct
+            if thr is not None:
+                liq_filter = (
+                    "AND EXISTS (SELECT 1 FROM feature_values lq "
+                    "WHERE lq.stock_id=fv.stock_id AND lq.panel_date=%s "
+                    "AND lq.feature='dollar_volume_log_20d' AND lq.value >= %s) ")
+                liq_params = [latest, thr]
+
+        # 完整度 gate + 候選空間過濾:真股票代碼(數字開頭)∧ 非 ETF ∧ 流動性≥分位閾值 ∧ 全 panel × 全 feature 齊
         cur.execute(
             f"SELECT stock_id FROM {FEATURE_TABLE} fv "
             f"WHERE panel_date = ANY(%s) AND feature = ANY(%s) "
@@ -73,8 +96,9 @@ def build_universe(conn, panel_dates, *, features=None):
             f"  AND NOT EXISTS ("                                                   # 排 ETF
             f"    SELECT 1 FROM \"TaiwanStockInfo\" si "
             f"    WHERE si.stock_id = fv.stock_id AND si.industry_category IN %s) "
+            f"  {liq_filter}"                                                       # E:流動性 gate(可選)
             f"GROUP BY stock_id HAVING count(*) = %s ORDER BY stock_id",
-            (panel_dates, feats, ETF_INDUSTRY, required))
+            (panel_dates, feats, ETF_INDUSTRY, *liq_params, required))
         core = [r[0] for r in cur.fetchall()]
         cur.execute(f"DELETE FROM {CORE_TABLE}")          # commit 新快照（取代舊核心名單）
         if core:
@@ -83,4 +107,4 @@ def build_universe(conn, panel_dates, *, features=None):
                 f"INSERT INTO {CORE_TABLE} (stock_id, panels, features) VALUES %s",
                 [(s, len(panel_dates), len(feats)) for s in core])
     return {"core": len(core), "panels": len(panel_dates),
-            "canonical_features": len(feats), "stock_ids": core}
+            "canonical_features": len(feats), "stock_ids": core, **extra}
