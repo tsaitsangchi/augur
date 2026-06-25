@@ -16,13 +16,14 @@
 邊界:不抓 API、不選股;只算特徵(#3)。所有特徵以「panel_date 當下已知」之 raw 計算(P/E 類、anti-leakage #8;
 但籌碼盤後公布之 T+1 規則此版採保守 date<=panel_date 同日含、上線後待 probe 公布時刻);算不出即缺列(#1)。
 
-⚠️ 已知限制(2026-06-25 v3 實證、待 P/E 重構):本 7 features 含**稀疏 E 類**——`lending_fee_rate_mean_30d`(借券費率)
-/`sbl_short_balance_log`(借券餘額)/`gov_bank_net_buy_60d`(官股淨買)為借券/官股事件型、非每股每期有。
-目前全當 P 類「算不出即缺列」→ 入完整度必齊 gate 時變過嚴排除器(借券標的每期變動、跨多 panel 交集→0,
-v3 原版實證核心=0 股)。**正解**(F2 roadmap E 類定義):E 類應真零語意(無借券=無放空壓力=0、不缺列)、
-不入完整度必齊集;唯連續 P 類(`foreign_holding_pct`/`margin_usage_ratio`/`institutional_net_buy_ratio_20d`
-/`top_holders_pct`、活躍股每期有)入 gate。實證:2014+ × 19 連續 features → 742 核心。詳見
-reports/augur_phase78_core_universe_pilot_v3_20260625.md。
+**E/P 類設計(2026-06-25 E 類已改真零)**:本 7 features 分兩類——
+- **連續 P 類**(4):`institutional_net_buy_ratio_20d`/`margin_usage_ratio`/`foreign_holding_pct`/`top_holders_pct`
+  (活躍股每期有)→ 算不出即缺列(#1)、入完整度 gate。
+- **稀疏 E 類**(3):`sbl_short_balance_log`/`lending_fee_rate_mean_30d`/`gov_bank_net_buy_60d`(借券/官股事件型)
+  → **真零語意**:無事件填中性 0(無賣壓/無成本/無官股介入)、全 roster 皆得真值。前提=該 3 表 sync 完整至 as-of
+  (#7/#1「無列=真無事件」,實證 2026-06-25:max date 皆到 as-of、覆蓋符合事件型稀疏)。
+原誤當 P 類「算不出即缺列」→ 入完整度 gate 跨多 panel 交集→0(v3 原版核心=0 股之教訓);真零後可安全入 gate
+(全 roster 有值、不誤殺)。詳見 reports/augur_phase78_core_universe_pilot_v3_20260625.md。
 
 守 #1(算不出即缺列、不存無源值)· #8(籌碼 as-of ≤t)· #5(numeric)· F2 roadmap F2b。
 """
@@ -115,29 +116,26 @@ def compute_chip_features(cur, sid, panel_date):
         if np.isfinite(v) and 0.0 <= v <= 100.0:
             out["top_holders_pct"] = float(v)
 
-    # f5 SBL 借券餘額 log1p(≥0);無 → 缺
+    # ── f5-f7 稀疏 E 類事件型 → 真零語意（F2 roadmap E 類定義 + pilot v3 修正）──
+    # 前提（#7/#1）：3 表 sync 完整至 as-of（實證 2026-06-25：max date 皆到 as-of、覆蓋符合事件型稀疏）
+    # → 「無列＝真無事件」成立 → 無事件填中性 0（非缺列）、全 roster 皆得真值、不入完整度 gate 時誤殺。
+    # 別於 P 類「算不出即缺列」：E 類「有事件用真值、無事件＝0」（無賣壓/無成本/無官股介入之中性值）；
+    # 去 P 類少樣本門檻（原 ≥5/≥30）——有 1 筆事件即真實訊號，門檻是 P 類思維、不適 E 類（pilot v3 教訓）。
+
+    # f5 SBL 借券賣空餘額 log1p（無借券賣空＝無賣壓＝0）
     cur.execute(_SBL_SQL, (sid, panel_date))
     row = cur.fetchone()
-    if row and row[0] is not None and row[0] >= 0:
-        v = float(np.log1p(row[0]))
-        if np.isfinite(v):
-            out["sbl_short_balance_log"] = v
+    bal = float(row[0]) if row and row[0] is not None and row[0] >= 0 else 0.0
+    out["sbl_short_balance_log"] = float(np.log1p(bal))
 
-    # f6 借券費率 30 日平均;<5 筆 → 缺
+    # f6 借券費率 30 日平均（無借券＝無放空成本壓力＝0；有借券即用真實費率均值）
     cur.execute(_LEND_SQL, (sid, panel_date))
     fees = [r[0] for r in cur.fetchall() if r[0] is not None]
-    if len(fees) >= 5:
-        v = float(np.mean(fees))
-        if np.isfinite(v):
-            out["lending_fee_rate_mean_30d"] = v
+    out["lending_fee_rate_mean_30d"] = float(np.mean(fees)) if fees else 0.0
 
-    # f7 官股 60 日淨買金額(sign × log1p(|net|));<30 日有官股交易 → 缺
+    # f7 官股 60 日淨買 sign × log1p(|net|)（無官股交易＝無介入＝0；累計有幾日算幾日）
     cur.execute(_GOVBANK_SQL, (sid, panel_date))
-    rows = cur.fetchall()
-    if len(rows) >= 30:
-        total = sum(r[1] or 0 for r in rows[:60])
-        v = float(np.sign(total) * np.log1p(abs(total)))
-        if np.isfinite(v):
-            out["gov_bank_net_buy_60d"] = v
+    total = sum((r[1] or 0) for r in cur.fetchall()[:60])
+    out["gov_bank_net_buy_60d"] = float(np.sign(total) * np.log1p(abs(total)))
 
     return out
