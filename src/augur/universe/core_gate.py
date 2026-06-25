@@ -55,12 +55,13 @@ def canonical_features(cur, panel_dates):
     return sorted(r[0] for r in cur.fetchall())
 
 
-def build_universe(conn, panel_dates, *, features=None, liquidity_pct=None):
-    """核心 ＝ 候選空間（真台股個股、非 ETF）∩ 全 panel 全 canonical 特徵齊；commit 新快照。
+def build_universe(conn, panel_dates, *, features=None, liquidity_pct=None, conditional=None):
+    """核心 ＝ 候選空間（真台股個股、非 ETF）∩ universal 特徵全齊 ∩ conditional 特徵(豁免產業免/其他齊) ∩ 流動性；commit 新快照。
 
     `liquidity_pct`(0-100、預設 None=不過濾)：流動性下界（百分位）——以**最近 panel** 之
-    `dollar_volume_log_20d` 全市場分布為基準算 percentile_cont 閾值，剔除低於該分位者。**動態相對分位數、不
-    寫死值（#9 思想≠特定值之兼容）**。
+    `dollar_volume_log_20d` 全市場分布為基準算 percentile_cont 閾值，剔除低於該分位者。**動態相對分位數、不寫死值（#9）**。
+    `conditional`: {feature: (exempt_industries,)} — 該特徵對指定產業**豁免完整度要求**（該產業結構性無此特徵、
+    不因此誤排除：如月營收對金融保險業——金融業無月營收申報制度、靠財報）；非豁免產業仍須該特徵全 panel 齊。預設 None=全 universal。
     回 {core(數量), panels, canonical_features, stock_ids, liquidity_threshold(若有)}。
     """
     panel_dates = list(panel_dates)
@@ -68,7 +69,9 @@ def build_universe(conn, panel_dates, *, features=None, liquidity_pct=None):
     with db.transaction(conn) as cur:
         bootstrap(cur)
         feats = sorted(features) if features else canonical_features(cur, panel_dates)
-        required = len(panel_dates) * len(feats)
+        cond = conditional or {}
+        universal = [f for f in feats if f not in cond]   # 所有股必齊（conditional 特徵移出 universal、改條件式要求）
+        required = len(panel_dates) * len(universal)
 
         # E:流動性 gate(動態相對分位數、可選)——latest panel 之 dollar_volume_log_20d P(liquidity_pct) 為下界
         liq_filter, liq_params = "", []
@@ -88,7 +91,17 @@ def build_universe(conn, panel_dates, *, features=None, liquidity_pct=None):
                     "AND lq.feature='dollar_volume_log_20d' AND lq.value >= %s) ")
                 liq_params = [latest, thr]
 
-        # 完整度 gate + 候選空間過濾:真股票代碼(數字開頭)∧ 非 ETF ∧ 流動性≥分位閾值 ∧ 全 panel × 全 feature 齊
+        # conditional gate:每個 conditional 特徵 → 屬豁免產業 OR 該特徵全 panel 齊（HAVING 後接、per-stock 子查詢）
+        cond_filter, cond_params = "", []
+        for feat, exempt in cond.items():
+            cond_filter += (
+                " AND (EXISTS (SELECT 1 FROM \"TaiwanStockInfo\" ci "
+                "WHERE ci.stock_id=fv.stock_id AND ci.industry_category IN %s) "
+                "OR (SELECT count(*) FROM feature_values cf WHERE cf.stock_id=fv.stock_id "
+                "AND cf.panel_date=ANY(%s) AND cf.feature=%s)=%s) ")
+            cond_params += [tuple(exempt), panel_dates, feat, len(panel_dates)]
+
+        # 完整度 gate + 候選空間過濾:真股票代碼 ∧ 非 ETF ∧ 流動性 ∧ universal 全齊 ∧ conditional(豁免/齊)
         cur.execute(
             f"SELECT stock_id FROM {FEATURE_TABLE} fv "
             f"WHERE panel_date = ANY(%s) AND feature = ANY(%s) "
@@ -97,8 +110,8 @@ def build_universe(conn, panel_dates, *, features=None, liquidity_pct=None):
             f"    SELECT 1 FROM \"TaiwanStockInfo\" si "
             f"    WHERE si.stock_id = fv.stock_id AND si.industry_category IN %s) "
             f"  {liq_filter}"                                                       # E:流動性 gate(可選)
-            f"GROUP BY stock_id HAVING count(*) = %s ORDER BY stock_id",
-            (panel_dates, feats, ETF_INDUSTRY, *liq_params, required))
+            f"GROUP BY stock_id HAVING count(*) = %s {cond_filter} ORDER BY stock_id",
+            (panel_dates, universal, ETF_INDUSTRY, *liq_params, required, *cond_params))
         core = [r[0] for r in cur.fetchall()]
         cur.execute(f"DELETE FROM {CORE_TABLE}")          # commit 新快照（取代舊核心名單）
         if core:

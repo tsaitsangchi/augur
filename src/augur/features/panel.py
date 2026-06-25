@@ -91,9 +91,10 @@ def compute_features(df):
         for w in (5, 20, 60, 120, 252):            # 動能：跨 週/月/季/半年/年（calendar 慣例）
             if n > w:
                 out[f"momentum_{w}d"] = np.log(c.iloc[-1] / c.iloc[-1 - w])
-        for w in (20, 60):                         # 波動：日報酬 rolling std
-            if ret.iloc[-w:].notna().sum() >= w:
-                out[f"volatility_{w}d"] = ret.iloc[-w:].std()
+        fin_ret = ret[np.isfinite(ret)]            # 有效報酬（剔停牌 close=0 致之 ±inf/nan;notna() 擋不住 inf）
+        for w in (20, 60):                         # 波動：最近 w 個有效報酬之 std（對停牌 robust、往前補足、無 magic number）
+            if len(fin_ret) >= w:
+                out[f"volatility_{w}d"] = fin_ret.iloc[-w:].std()
         if n >= 20:                                # 流動性 / 區間
             out["dollar_volume_log_20d"] = np.log(df["money"].iloc[-20:].astype(float).mean())
             out["turnover_mean_20d"] = df["turnover"].iloc[-20:].astype(float).mean()
