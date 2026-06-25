@@ -20,7 +20,7 @@ import pandas as pd
 from psycopg2.extras import execute_values
 
 from augur.core import db
-from augur.features import chip                                              # F2b 籌碼模組
+from augur.features import chip, valuation                                   # F2b 籌碼 + F2c 估值模組
 
 FEATURE_TABLE = "feature_values"
 DDL = f"""
@@ -123,6 +123,7 @@ def build_panel(conn, panel_date, stock_ids, *, progress=None):
             cur.execute(_REVENUE_SQL, (sid, panel_date))                 # D:月營收(部分股無 → 自然缺列)
             rev_rows = cur.fetchall()
             chip_feats = chip.compute_chip_features(cur, sid, panel_date)  # F2b 籌碼 7 features(同 transaction)
+            val_feats = valuation.compute_valuation_features(cur, sid, panel_date)  # F2c 估值 features(同 transaction)
         if not rows:
             continue
         df = pd.DataFrame(rows, columns=["date", "close", "volume", "money", "turnover", "high", "low"])
@@ -131,6 +132,7 @@ def build_panel(conn, panel_date, stock_ids, *, progress=None):
         if rev_yoy is not None:
             feats["monthly_revenue_yoy"] = rev_yoy
         feats.update(chip_feats)                                        # F2b:加 7 籌碼 features(各自算不出已過濾)
+        feats.update(val_feats)                                         # F2c:加估值 features(各自算不出已過濾)
         if not feats:
             continue
         data = [(panel_date, sid, f, v) for f, v in feats.items()]

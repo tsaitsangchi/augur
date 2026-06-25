@@ -36,6 +36,18 @@ CREATE TABLE IF NOT EXISTS {CORE_TABLE} (
     committed_at TIMESTAMP NOT NULL DEFAULT now()
 )"""
 
+# as-of 快照表（point-in-time 核心）:每個 as_of_date 一份「截至當日完整度核心」名單（#8 消 survivorship）
+ASOF_TABLE = "core_universe_asof"
+DDL_ASOF = f"""
+CREATE TABLE IF NOT EXISTS {ASOF_TABLE} (
+    as_of_date   DATE NOT NULL,
+    stock_id     VARCHAR(255) NOT NULL,
+    panels       INTEGER NOT NULL,
+    features     INTEGER NOT NULL,
+    committed_at TIMESTAMP NOT NULL DEFAULT now(),
+    PRIMARY KEY (as_of_date, stock_id)
+)"""
+
 # 候選空間定義（PHASE 6 前置;結構性排除、非完整度判定）—— 非 ETF、真台股個股代碼
 # ETF industry_category 全集（TaiwanStockInfo 實證 2026-06-24:'ETF' 261+'上櫃指數股票型基金(ETF)' 125+'上櫃ETF' 119=505 檔）
 ETF_INDUSTRY = ("ETF", "上櫃指數股票型基金(ETF)", "上櫃ETF")
@@ -55,6 +67,60 @@ def canonical_features(cur, panel_dates):
     return sorted(r[0] for r in cur.fetchall())
 
 
+def _select_core(cur, panel_dates, feats, *, liquidity_pct=None, conditional=None):
+    """完整度 + 候選空間 gate 純查詢 → (core stock_ids, extra)。供 build_universe / build_universe_asof 共用。
+
+    候選空間（真台股個股 ∧ 非 ETF）∩ universal 全齊 ∩ conditional(豁免產業免/其他齊) ∩ 流動性(可選)。
+    liquidity 以這批 panel 之 latest（max）為基準算分位（as-of 時即 t 當時流動性、point-in-time）。
+    """
+    panel_dates = list(panel_dates)
+    cond = conditional or {}
+    universal = [f for f in feats if f not in cond]   # 所有股必齊（conditional 特徵移出 universal、改條件式要求）
+    required = len(panel_dates) * len(universal)
+    extra = {}
+
+    # E:流動性 gate(動態相對分位數、可選)——latest panel 之 dollar_volume_log_20d P(liquidity_pct) 為下界
+    liq_filter, liq_params = "", []
+    if liquidity_pct is not None:
+        latest = max(panel_dates)
+        cur.execute(
+            "SELECT percentile_cont(%s) WITHIN GROUP (ORDER BY value) FROM feature_values "
+            "WHERE panel_date=%s AND feature='dollar_volume_log_20d'",
+            (liquidity_pct / 100.0, latest))
+        thr = cur.fetchone()[0]
+        extra["liquidity_threshold"] = float(thr) if thr is not None else None
+        extra["liquidity_pct"] = liquidity_pct
+        if thr is not None:
+            liq_filter = (
+                "AND EXISTS (SELECT 1 FROM feature_values lq "
+                "WHERE lq.stock_id=fv.stock_id AND lq.panel_date=%s "
+                "AND lq.feature='dollar_volume_log_20d' AND lq.value >= %s) ")
+            liq_params = [latest, thr]
+
+    # conditional gate:每個 conditional 特徵 → 屬豁免產業 OR 該特徵全 panel 齊（HAVING 後接、per-stock 子查詢）
+    cond_filter, cond_params = "", []
+    for feat, exempt in cond.items():
+        cond_filter += (
+            " AND (EXISTS (SELECT 1 FROM \"TaiwanStockInfo\" ci "
+            "WHERE ci.stock_id=fv.stock_id AND ci.industry_category IN %s) "
+            "OR (SELECT count(*) FROM feature_values cf WHERE cf.stock_id=fv.stock_id "
+            "AND cf.panel_date=ANY(%s) AND cf.feature=%s)=%s) ")
+        cond_params += [tuple(exempt), panel_dates, feat, len(panel_dates)]
+
+    # 完整度 gate + 候選空間過濾:真股票代碼 ∧ 非 ETF ∧ 流動性 ∧ universal 全齊 ∧ conditional(豁免/齊)
+    cur.execute(
+        f"SELECT stock_id FROM {FEATURE_TABLE} fv "
+        f"WHERE panel_date = ANY(%s) AND feature = ANY(%s) "
+        f"  AND {_REAL_STOCK_PREDICATE} "                                       # 真股票代碼(排污染:產業名/指數名)
+        f"  AND NOT EXISTS ("                                                   # 排 ETF
+        f"    SELECT 1 FROM \"TaiwanStockInfo\" si "
+        f"    WHERE si.stock_id = fv.stock_id AND si.industry_category IN %s) "
+        f"  {liq_filter}"                                                       # E:流動性 gate(可選)
+        f"GROUP BY stock_id HAVING count(*) = %s {cond_filter} ORDER BY stock_id",
+        (panel_dates, universal, ETF_INDUSTRY, *liq_params, required, *cond_params))
+    return [r[0] for r in cur.fetchall()], extra
+
+
 def build_universe(conn, panel_dates, *, features=None, liquidity_pct=None, conditional=None):
     """核心 ＝ 候選空間（真台股個股、非 ETF）∩ universal 特徵全齊 ∩ conditional 特徵(豁免產業免/其他齊) ∩ 流動性；commit 新快照。
 
@@ -62,57 +128,14 @@ def build_universe(conn, panel_dates, *, features=None, liquidity_pct=None, cond
     `dollar_volume_log_20d` 全市場分布為基準算 percentile_cont 閾值，剔除低於該分位者。**動態相對分位數、不寫死值（#9）**。
     `conditional`: {feature: (exempt_industries,)} — 該特徵對指定產業**豁免完整度要求**（該產業結構性無此特徵、
     不因此誤排除：如月營收對金融保險業——金融業無月營收申報制度、靠財報）；非豁免產業仍須該特徵全 panel 齊。預設 None=全 universal。
-    回 {core(數量), panels, canonical_features, stock_ids, liquidity_threshold(若有)}。
+    回 {core(數量), panels, canonical_features, stock_ids, liquidity_threshold(若有)}。**pan-historical 單名單**（含 look-ahead，
+    嚴格 walk-forward 應改用 build_universe_asof）。
     """
     panel_dates = list(panel_dates)
-    extra = {}
     with db.transaction(conn) as cur:
         bootstrap(cur)
         feats = sorted(features) if features else canonical_features(cur, panel_dates)
-        cond = conditional or {}
-        universal = [f for f in feats if f not in cond]   # 所有股必齊（conditional 特徵移出 universal、改條件式要求）
-        required = len(panel_dates) * len(universal)
-
-        # E:流動性 gate(動態相對分位數、可選)——latest panel 之 dollar_volume_log_20d P(liquidity_pct) 為下界
-        liq_filter, liq_params = "", []
-        if liquidity_pct is not None:
-            latest = max(panel_dates)
-            cur.execute(
-                "SELECT percentile_cont(%s) WITHIN GROUP (ORDER BY value) FROM feature_values "
-                "WHERE panel_date=%s AND feature='dollar_volume_log_20d'",
-                (liquidity_pct / 100.0, latest))
-            thr = cur.fetchone()[0]
-            extra["liquidity_threshold"] = float(thr) if thr is not None else None
-            extra["liquidity_pct"] = liquidity_pct
-            if thr is not None:
-                liq_filter = (
-                    "AND EXISTS (SELECT 1 FROM feature_values lq "
-                    "WHERE lq.stock_id=fv.stock_id AND lq.panel_date=%s "
-                    "AND lq.feature='dollar_volume_log_20d' AND lq.value >= %s) ")
-                liq_params = [latest, thr]
-
-        # conditional gate:每個 conditional 特徵 → 屬豁免產業 OR 該特徵全 panel 齊（HAVING 後接、per-stock 子查詢）
-        cond_filter, cond_params = "", []
-        for feat, exempt in cond.items():
-            cond_filter += (
-                " AND (EXISTS (SELECT 1 FROM \"TaiwanStockInfo\" ci "
-                "WHERE ci.stock_id=fv.stock_id AND ci.industry_category IN %s) "
-                "OR (SELECT count(*) FROM feature_values cf WHERE cf.stock_id=fv.stock_id "
-                "AND cf.panel_date=ANY(%s) AND cf.feature=%s)=%s) ")
-            cond_params += [tuple(exempt), panel_dates, feat, len(panel_dates)]
-
-        # 完整度 gate + 候選空間過濾:真股票代碼 ∧ 非 ETF ∧ 流動性 ∧ universal 全齊 ∧ conditional(豁免/齊)
-        cur.execute(
-            f"SELECT stock_id FROM {FEATURE_TABLE} fv "
-            f"WHERE panel_date = ANY(%s) AND feature = ANY(%s) "
-            f"  AND {_REAL_STOCK_PREDICATE} "                                       # 真股票代碼(排污染:產業名/指數名)
-            f"  AND NOT EXISTS ("                                                   # 排 ETF
-            f"    SELECT 1 FROM \"TaiwanStockInfo\" si "
-            f"    WHERE si.stock_id = fv.stock_id AND si.industry_category IN %s) "
-            f"  {liq_filter}"                                                       # E:流動性 gate(可選)
-            f"GROUP BY stock_id HAVING count(*) = %s {cond_filter} ORDER BY stock_id",
-            (panel_dates, universal, ETF_INDUSTRY, *liq_params, required, *cond_params))
-        core = [r[0] for r in cur.fetchall()]
+        core, extra = _select_core(cur, panel_dates, feats, liquidity_pct=liquidity_pct, conditional=conditional)
         cur.execute(f"DELETE FROM {CORE_TABLE}")          # commit 新快照（取代舊核心名單）
         if core:
             execute_values(
@@ -121,3 +144,29 @@ def build_universe(conn, panel_dates, *, features=None, liquidity_pct=None, cond
                 [(s, len(panel_dates), len(feats)) for s in core])
     return {"core": len(core), "panels": len(panel_dates),
             "canonical_features": len(feats), "stock_ids": core, **extra}
+
+
+def build_universe_asof(conn, panel_dates, *, features=None, liquidity_pct=None, conditional=None):
+    """point-in-time 核心:逐 as-of 面板 t 用 ≤t 的 panels 算完整度核心 → 存 core_universe_asof（#8 消 survivorship）。
+
+    每個 t 的核心 = 「在 [首panel, t] 所有 panel 都齊 canonical 特徵」之候選空間股——**只用 t 當時已知資訊**，
+    不以「未來才知道完整」之 pan-historical 名單回填歷史（後者 = look-ahead，IC 會高估）。canonical 特徵集固定取全期
+    （feats 跨全 panel_dates，與 M-1 可比），完整度則逐 t 用該 t 之子集判定。liquidity 用各 t 當時分位（point-in-time）。
+    回 {as_of_date: core 數量}。
+    """
+    pds = sorted(panel_dates)
+    summary = {}
+    with db.transaction(conn) as cur:
+        cur.execute(DDL_ASOF)
+        feats = sorted(features) if features else canonical_features(cur, pds)
+        cur.execute(f"DELETE FROM {ASOF_TABLE}")          # 重建全 as-of 快照
+        for i, t in enumerate(pds):
+            sub = pds[: i + 1]                            # ≤ t 的 panels（point-in-time、不看未來）
+            core, _ = _select_core(cur, sub, feats, liquidity_pct=liquidity_pct, conditional=conditional)
+            if core:
+                execute_values(
+                    cur,
+                    f"INSERT INTO {ASOF_TABLE} (as_of_date, stock_id, panels, features) VALUES %s",
+                    [(t, s, len(sub), len(feats)) for s in core])
+            summary[t] = len(core)
+    return summary
