@@ -14,12 +14,12 @@
 
 | # | 基建 | 內容 | 守 | 現況 |
 |---|---|---|---|---|
-| A1 | **全鏈 build CLI**（`scripts/`，動詞片語命名 #18、冪等可重跑） | `build_feature_panel.py`（呼叫 `features.panel.build_panel`，全 panel）· `build_core_universe.py`（呼叫 `core_gate.build_universe` ＋ `build_universe_asof`）· `run_evaluation.py`（呼叫 `evaluation.baseline.run_ladder` → 基準階梯 IC） | #12 口徑一致、#18 命名 | ❌ 待建（靠 /tmp 臨時腳本）|
-| A2 | **五鏡 audit 模組**（`src/augur/audit/feature_diagnostics.py`，領域名詞 #18） | 把 /tmp 臨時五鏡正式化：① 單因子有號 IC＋sign 穩定 ② 共線群（feature_values 相關矩陣）③ leave-one-out 必要性（`run_ladder` feats 去一）④ ensemble SHAP（GBDT）⑤ purged-CV（walkforward 已備） | #11 五鏡、#12 | ❌ 待建（audit/ 只有 reconcile）|
-| A3 | **`core_universe_asof` 表本機補建** | `build_universe_asof` 寫入（逐 t≤t、消 survivorship #8）→ 評估 as-of 口徑可重現 | #8 | ⚠️ 本機缺（M-2 在另機建）|
+| A1 | **全鏈 build CLI**（`scripts/`，動詞片語命名 #18、冪等可重跑） | `build_feature_panel.py`（呼叫 `features.panel.build_panel`，全 panel）· `build_core_universe.py`（呼叫 `core_gate.build_universe` ＋ `build_universe_asof`）· `run_evaluation.py`（呼叫 `evaluation.baseline.run_ladder` → 基準階梯 IC） | #12 口徑一致、#18 命名 | ✅ 已建並驗收（2026-06-26）：3 支 CLI 上線；run_evaluation 精確重現 M-1（H60 as-of Ridge +0.132/t6.13/勝率0.96）、build_core_universe 精確重現 371（配方 `--since 2014-01-01 --liquidity-pct 25 --exempt-revenue-financial`）|
+| A2 | **五鏡 audit 模組**（`src/augur/audit/feature_diagnostics.py`，領域名詞 #18） | 把 /tmp 臨時五鏡正式化：① 單因子有號 IC＋sign 穩定 ② 共線群（feature_values 相關矩陣）③ leave-one-out 必要性（`run_ladder` feats 去一）④ ensemble SHAP（GBDT）⑤ purged-CV（walkforward 已備） | #11 五鏡、#12 | ✅ 已建並驗收（2026-06-26）：`audit/feature_diagnostics.py`（single_factor_ic/collinearity/leave_one_out/shap_importance/five_mirror）；五鏡重現 alpha 結構（估值+循環 top、動能弱、range_mean~volatility +0.907 共線）+ 產 drop?/collinear 裁定 |
+| A3 | **`core_universe_asof` 表本機補建** | `build_universe_asof` 寫入（逐 t≤t、消 survivorship #8）→ 評估 as-of 口徑可重現 | #8 | ✅ 已存在並可重建（2026-06-26）：本機已有 13192 列；build_core_universe --asof 重建 asof 364..777 |
 | A4 | **`context_values` 表**（`context_values(panel_date, feature, value)` ＋ panel 有效性檢查） | X 類 context 落地容器（缺=panel 無效、非排除股）| 架構 | ⏳ 階段 6 才需、屆時建 |
 
-> A1-A3 為起跑前置（階段 0-1 前完成）；A4 延後至階段 6。建完即**驗收可重跑**（重現 M-1 as-of Ridge H60 rank IC ≈ +0.13）。
+> A1-A3 為起跑前置；A4 延後至階段 6。**✅ A1-A3 + 階段 0 已於 2026-06-26 完成驗收（M-feat-0 達成）**：CLI＋五鏡模組上線、本機 DB 實證已 27 feat（非舊盤點之 22）、run_evaluation 精確重現 M-1（as-of Ridge H60 +0.132）。實證重發現：本機 Mac DB 早已 27 feat×35 panel＋core_universe 371＋asof 13192 列；執行藍圖報告 §1 之「22 feat / CLI 全無 / 五鏡未正式化」係別機或更早時點之快照、與本機 2026-06-26 實證不符（本表為準）。
 
 ---
 
