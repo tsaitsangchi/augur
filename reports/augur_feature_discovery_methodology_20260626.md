@@ -124,7 +124,7 @@ flowchart TD
 
 ## 四、發現漏斗：從「候選假說」到「有用特徵」
 
-生成只是開始。**「有用」要穿過四道漏斗**（逐層淘汰；第 4 道為入生產前強制提拔關卡）：
+生成只是開始。**「有用」要穿過四道漏斗（逐層淘汰特徵；第 4 道為入生產前強制提拔關卡）＋ 一道系統級收尾關卡（經濟價值驗證 #14）**：前四道篩「哪些特徵留」、收尾道驗「整個特徵集＋模型有無真經濟價值」。
 
 1. **紀律閘（過不了連測都不測）**：`#1` source-pure（算不出即缺列、不補值/不 zero-fill）→ `#8` anti-leakage（t 當下真可得）→ `#9` 不硬編（一律相對化、樹自學分界）。
 2. **五鏡治理（#11，存廢唯一裁判）**：① 有號 IC + sign 穩定 ② 共線群 ③ leave-one-out 必要性 ④ ensemble SHAP ⑤ purged-CV——**不得單一指標（尤不得單看 gain）判生死**；「不顯影（SHAP≈0）且 ablation-safe」必移。
@@ -134,6 +134,10 @@ flowchart TD
    - **(b) 去相關 Eff-t（強制）**：IC 顯著性一律用 **Newey-West/HAC 去相關 t-stat**（`metrics.effective_t_hac`）、**禁裸用 iid `effective_t`**（重疊 label 窗致 IC 自相關、iid 高估顯著,#15/審查 G8）;`|HAC-t|≥2` 方算顯著。
    - **(c) 多因子增量 + 多 seed**：候選加入現有生產特徵集,run_ladder（≥3 seed、stochastic #15）之 Ridge/GBDT mean IC **須穩定為正增量**;Δ≤0 即冗餘（已被既有特徵涵蓋）、依 #11「ablation-safe 必移」**不提拔**。
    > **紀律精神（#15）**：寬鬆口徑（pan-hist / 單因子 / iid Eff-t）看似有潛力者,過此關卡常雙雙淘汰（實證 2026-06-27：pb_self_pctile_252d 單獨顯著但冗餘、inst_govbank_divergence as-of 不顯著 → 皆淘汰）。**撒更多網 = 多重檢定假陽性升（#11/審查 S5）;此關卡才是真價值,不是無限探索。** 淘汰結論一律 source-traceable 記錄（為何淘汰、#15）。
+5. **收尾關卡：經濟價值驗證（系統級、#14；2026-06-27 入憲）**：前四道篩出特徵後,**整個特徵集＋模型仍須過經濟價值驗證才算成功**——`scripts/run_economic_eval.py`（`evaluation/portfolio.py`）以 purged walk-forward 預測組投組（long top 分位 / long-short）、算 **CAGR / Sharpe / MaxDD / Calmar** 並對比等權基準。判準:**風險調整後（Sharpe/Calmar）須優於基準、MaxDD 可控**才算有真經濟價值。
+   > **靈魂成功定義是經濟價值、非 IC（#14）**:**rank IC 撐住 ≠ 可交易 alpha**——須轉成經濟指標方為終局驗證。實證 2026-06-27:Ridge long top20% Sharpe 1.21 vs 基準 0.97、Calmar 1.13 vs 0.9(成立、適度);但 long-short Sharpe 0.23（空方無效）→ **alpha 在 long 側、edge 須拆 long/short 各驗**。經濟驗證須含交易成本/換手率/容量之後續深化（#14）。
+
+> **完整工具鏈(各關卡實作、SSOT 對映)**:相關探索 `run_field_correlation`/`run_lens_correlation`(底料)→ 候選 `audit/feature_candidate`+`features/concentration`/`phase` → 漏斗2 五鏡 `run_feature_audit --asof --loo`(`audit/feature_diagnostics`)→ 漏斗3 `evaluation/baseline:run_ladder` → 漏斗4 提拔 `verify_candidate_promotion`/`verify_lens_promotion`/`verify_interaction_candidates`/`verify_matthew_candidates`(去相關 `metrics:effective_t_hac`)→ 收尾 `run_economic_eval`(`evaluation/portfolio`)→ 衛生 `verify_hygiene`。欄位三鏡頭潛力 `field_lens_map`。
 
 ---
 

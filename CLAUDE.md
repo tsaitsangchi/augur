@@ -1,4 +1,4 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.8
+# CLAUDE.md — Augur AI 協作工具規則 v1.9
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.2.0.md` + `docs/原則精華_v1.7.1.md` + 憲章為準；
@@ -26,7 +26,7 @@
    **(a)** 程式輸出（stdout / JSON / log）｜ **(b)** DB query 結果 ｜ **(c)** API 回應。
    **禁止**：記憶 / 推測 / 估算 / 為完整度補 placeholder / 從相似 model 推估。
 10. **可溯源**：每個量化數字能 trace 回 (a)(b)(c)；對比表兩邊都要有真實來源。
-11. **Stochastic 多跑**：含隨機性的 production metric ≥3 次取統計（min/median/max/mean）；單次極值須註明。**特徵候選提拔生產前一律走方法論 §四「第 4 道提拔關卡」**（as-of 口徑 + 去相關 Eff-t `evaluation/metrics.py:effective_t_hac` + 多 seed 多因子增量,工具 `scripts/verify_candidate_promotion.py`）；**IC 顯著性禁裸用 iid `effective_t`**（重疊窗高估、審查 G8）。詳法 SSOT＝`reports/augur_feature_discovery_methodology_20260626.md` §四（此處僅引、不複述）。
+11. **Stochastic 多跑**：含隨機性的 production metric ≥3 次取統計（min/median/max/mean）；單次極值須註明。**特徵候選提拔生產前一律走方法論 §四「第 4 道提拔關卡」**（as-of 口徑 + 去相關 Eff-t `evaluation/metrics.py:effective_t_hac` + 多 seed 多因子增量,工具 `scripts/verify_candidate_promotion.py`）；**IC 顯著性禁裸用 iid `effective_t`**（重疊窗高估、審查 G8）。**特徵集＋模型最終須過 §四收尾「經濟價值驗證」(#14、工具 `scripts/run_economic_eval.py`/`evaluation/portfolio.py`)——IC 撐住 ≠ 可交易、靈魂成功定義是經濟價值非 IC**。詳法 SSOT＝`reports/augur_feature_discovery_methodology_20260626.md` §四(此處僅引、不複述);特徵發現完整工具鏈見 memory `augur-feature-toolkit`。
 12. **不 hand-patch 已 committed 資料**：發現錯誤改 writer code + 重建，不手動 UPDATE 補值。
 
 ## 三、本專案編輯規則
