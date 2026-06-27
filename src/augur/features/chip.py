@@ -29,7 +29,25 @@
 """
 from __future__ import annotations
 
+from datetime import date
+
 import numpy as np
+
+# 源表覆蓋起始日快取(E 類真零前提、審查 G2/G3):某表最早 date;表未覆蓋 panel 時「無列」＝未 sync、非真無事件 → 該 E 特徵缺列、不填 0(防捏造零、守 #1)。
+_TABLE_MIN_DATE = {}
+
+
+def _table_covers(cur, table, panel_date):
+    """源表是否已覆蓋 panel_date(min(date) <= panel)。表 min(date) 查一次快取(table-level、非 per-stock)。"""
+    if table not in _TABLE_MIN_DATE:
+        cur.execute(f'SELECT min(date) FROM "{table}"')
+        _TABLE_MIN_DATE[table] = cur.fetchone()[0]
+    mn = _TABLE_MIN_DATE[table]
+    if mn is None:
+        return False
+    p = panel_date if hasattr(panel_date, "year") else date.fromisoformat(str(panel_date)[:10])
+    m = mn if hasattr(mn, "year") else date.fromisoformat(str(mn)[:10])
+    return m <= p
 
 # 1) 法人買賣(多 name/日,各法人別 buy/sell 金額;group 由 date sum 為當日合計後算 20 日比)
 _INST_SQL = (
@@ -122,20 +140,26 @@ def compute_chip_features(cur, sid, panel_date):
     # 別於 P 類「算不出即缺列」：E 類「有事件用真值、無事件＝0」（無賣壓/無成本/無官股介入之中性值）；
     # 去 P 類少樣本門檻（原 ≥5/≥30）——有 1 筆事件即真實訊號，門檻是 P 類思維、不適 E 類（pilot v3 教訓）。
 
-    # f5 SBL 借券賣空餘額 log1p（無借券賣空＝無賣壓＝0）
-    cur.execute(_SBL_SQL, (sid, panel_date))
-    row = cur.fetchone()
-    bal = float(row[0]) if row and row[0] is not None and row[0] >= 0 else 0.0
-    out["sbl_short_balance_log"] = float(np.log1p(bal))
+    # 真零前提（審查 G2/G3）：源表須已覆蓋該 panel；未覆蓋（如 gov_bank 表 2021-07 起,早於此之 panel）
+    # →「無列」＝未 sync 非真無事件 → 缺列、不填 0（防捏造零;sbl/lending 表 2003/2005 早於窗、恆覆蓋）。
+
+    # f5 SBL 借券賣空餘額 log1p（無借券賣空＝無賣壓＝0；表覆蓋下之真零）
+    if _table_covers(cur, "TaiwanDailyShortSaleBalances", panel_date):
+        cur.execute(_SBL_SQL, (sid, panel_date))
+        row = cur.fetchone()
+        bal = float(row[0]) if row and row[0] is not None and row[0] >= 0 else 0.0
+        out["sbl_short_balance_log"] = float(np.log1p(bal))
 
     # f6 借券費率 30 日平均（無借券＝無放空成本壓力＝0；有借券即用真實費率均值）
-    cur.execute(_LEND_SQL, (sid, panel_date))
-    fees = [r[0] for r in cur.fetchall() if r[0] is not None]
-    out["lending_fee_rate_mean_30d"] = float(np.mean(fees)) if fees else 0.0
+    if _table_covers(cur, "TaiwanStockSecuritiesLending", panel_date):
+        cur.execute(_LEND_SQL, (sid, panel_date))
+        fees = [r[0] for r in cur.fetchall() if r[0] is not None]
+        out["lending_fee_rate_mean_30d"] = float(np.mean(fees)) if fees else 0.0
 
     # f7 官股 60 日淨買 sign × log1p(|net|)（無官股交易＝無介入＝0；累計有幾日算幾日）
-    cur.execute(_GOVBANK_SQL, (sid, panel_date))
-    total = sum((r[1] or 0) for r in cur.fetchall()[:60])
-    out["gov_bank_net_buy_60d"] = float(np.sign(total) * np.log1p(abs(total)))
+    if _table_covers(cur, "TaiwanStockGovernmentBankBuySell", panel_date):
+        cur.execute(_GOVBANK_SQL, (sid, panel_date))
+        total = sum((r[1] or 0) for r in cur.fetchall()[:60])
+        out["gov_bank_net_buy_60d"] = float(np.sign(total) * np.log1p(abs(total)))
 
     return out

@@ -26,9 +26,13 @@ ASOF_TABLE = "core_universe_asof"
 
 
 def canonical_features(conn, panel_dates):
-    """feature_values 在這些 panel 出現之全部 distinct 特徵（排序固定、由資料判定、反硬編）。"""
+    """模型特徵集 = 在**每個 panel 都出現**之特徵（交集）——某特徵僅部分 panel 覆蓋（如 gov_bank 早於源表
+    2021-07、早期 panel 缺列）則排除,確保跨 panel 特徵維度一致、不因部分缺格使整 panel 落空（審查 G9 評估層對偶；
+    由資料判定、反硬編）。"""
+    pds = list(panel_dates)
     with db.transaction(conn) as cur:
-        cur.execute(f"SELECT DISTINCT feature FROM {FEATURE_TABLE} WHERE panel_date = ANY(%s)", (list(panel_dates),))
+        cur.execute(f"SELECT feature FROM {FEATURE_TABLE} WHERE panel_date = ANY(%s) "
+                    f"GROUP BY feature HAVING count(DISTINCT panel_date) = %s", (pds, len(pds)))
         return sorted(r[0] for r in cur.fetchall())
 
 

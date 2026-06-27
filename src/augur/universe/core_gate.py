@@ -76,8 +76,15 @@ def _select_core(cur, panel_dates, feats, *, liquidity_pct=None, conditional=Non
     panel_dates = list(panel_dates)
     cond = conditional or {}
     universal = [f for f in feats if f not in cond]   # 所有股必齊（conditional 特徵移出 universal、改條件式要求）
-    required = len(panel_dates) * len(universal)
-    extra = {}
+    # required = 實際可用 (panel, universal 特徵) 組合數（market-wide ≥1 股）——某特徵在某 panel 全市場 0 覆蓋
+    # （如 gov_bank 早於源表 2021-07、缺列）不計入 required，避免「結構性不存在」誤殺核心或靜默 0-core
+    # （審查 G9/R6：逐 panel 可用性，非 union 假設每 panel 皆有該特徵；HAVING count=available 仍要求股備齊所有「可用」格）。
+    cur.execute(
+        f"SELECT count(*) FROM (SELECT DISTINCT panel_date, feature FROM {FEATURE_TABLE} "
+        f"WHERE panel_date = ANY(%s) AND feature = ANY(%s)) t", (panel_dates, universal))
+    required = cur.fetchone()[0]
+    extra = {"available_combos": required,
+             "absent_combos": len(panel_dates) * len(universal) - required}   # #15 揭露結構性缺格、不靜默
 
     # E:流動性 gate(動態相對分位數、可選)——latest panel 之 dollar_volume_log_20d P(liquidity_pct) 為下界
     liq_filter, liq_params = "", []
