@@ -27,7 +27,7 @@ import pandas as pd
 from psycopg2.extras import execute_values
 
 from augur.core import db
-from augur.features import chip, valuation                                   # F2b 籌碼 + F2c 估值模組
+from augur.features import chip, concentration, phase, valuation             # F2b 籌碼 + F2c 估值 + 八二集中度 + 康波相位
 
 FEATURE_TABLE = "feature_values"
 # recency gate(operational、透明揭露;審查 R3/R4/R7):最近還原價距 panel 超過此日數＝下市/長停更 →
@@ -102,7 +102,7 @@ def compute_features(df):
             if n > w:
                 out[f"momentum_{w}d"] = np.log(c.iloc[-1] / c.iloc[-1 - w])
         fin_ret = ret[np.isfinite(ret)]            # 有效報酬（剔停牌 close=0 致之 ±inf/nan;notna() 擋不住 inf）
-        for w in (20, 60):                         # 波動：最近 w 個有效報酬之 std（對停牌 robust、往前補足、無 magic number）
+        for w in (60,):                            # 波動：最近 w 個有效報酬之 std（volatility_20d 經五鏡剪枝——與 range_mean_20d 共線 +0.94、ablation-safe）
             if len(fin_ret) >= w:
                 out[f"volatility_{w}d"] = fin_ret.iloc[-w:].std()
         if n >= 20:                                # 流動性 / 區間
@@ -149,6 +149,9 @@ def build_panel(conn, panel_date, stock_ids, *, progress=None):
             feats["monthly_revenue_yoy"] = rev_yoy
         feats.update(chip_feats)                                        # F2b:加 7 籌碼 features(各自算不出已過濾)
         feats.update(val_feats)                                         # F2c:加估值 features(各自算不出已過濾)
+        feats.update(concentration.compute_concentration_features(df))  # 八二 P3 量能集中(純 df、存活軸)
+        with db.transaction(conn) as cur:                              # 康波相位 C2/C4(C4 需 cur 查法人累計流;各自算不出已過濾)
+            feats.update(phase.compute_phase_features(cur, sid, panel_date, df))
         if not feats:
             continue
         data = [(panel_date, sid, f, v) for f, v in feats.items()]

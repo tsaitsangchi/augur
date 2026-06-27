@@ -32,9 +32,13 @@ def _panel_dates(cur, since, explicit):
     return [r[0] for r in cur.fetchall()]
 
 
-def _roster(cur):
-    """全 roster：TaiwanStockInfo 之 distinct stock_id（build_panel 自會跳過無價量列之股）。"""
-    cur.execute('SELECT DISTINCT stock_id FROM "TaiwanStockInfo" ORDER BY stock_id')
+def _roster(cur, asof=False):
+    """股清單：預設全 roster（TaiwanStockInfo distinct）；--asof 則限 as-of 宇宙（core_universe_asof distinct，
+    驗證/省算用，不為可能被漏斗淘汰之新特徵算全 roster，#28）。build_panel 自跳過無價量列之股。"""
+    if asof:
+        cur.execute("SELECT DISTINCT stock_id FROM core_universe_asof ORDER BY stock_id")
+    else:
+        cur.execute('SELECT DISTINCT stock_id FROM "TaiwanStockInfo" ORDER BY stock_id')
     return [r[0] for r in cur.fetchall()]
 
 
@@ -42,13 +46,14 @@ def main():
     ap = argparse.ArgumentParser(description="build feature_values 面板（冪等可重跑）")
     ap.add_argument("--since", help="只建此日(含)以後之既有面板 YYYY-MM-DD")
     ap.add_argument("--panels", help="指定面板日(逗號分隔)，覆寫 --since/既有")
+    ap.add_argument("--asof", action="store_true", help="只建 as-of 宇宙(core_universe_asof)之股、非全 roster(驗證/省算)")
     args = ap.parse_args()
     explicit = [p.strip() for p in args.panels.split(",")] if args.panels else None
 
     with db.connect() as conn:
         with db.transaction(conn) as cur:
             pds = _panel_dates(cur, args.since, explicit)
-            roster = _roster(cur)
+            roster = _roster(cur, asof=args.asof)
         if not pds:
             print("無面板可建（feature_values 空且未指定 --panels）")
             return
