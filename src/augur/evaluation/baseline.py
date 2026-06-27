@@ -84,7 +84,7 @@ def _fold_xy(conn, panels, stocks, feats, h, calendar=None, asof=False):
     return np.vstack(Xs), np.concatenate(ys)
 
 
-def run_ladder(conn, panel_dates, h, stocks, *, feats=None, seed=42, mom_feature="momentum_20d", asof=False):
+def run_ladder(conn, panel_dates, h, stocks, *, feats=None, seed=42, mom_feature="momentum_20d", asof=False, robust=False):
     """跑基準階梯 B0/B1/B2/M1 之 purged walk-forward → {model: metrics.summarize}。
 
     每折：train panels 組 (X,y) fit → test panel predict → rank IC（vs test forward label）。
@@ -93,7 +93,7 @@ def run_ladder(conn, panel_dates, h, stocks, *, feats=None, seed=42, mom_feature
     """
     from lightgbm import LGBMRegressor
     from sklearn.linear_model import Ridge
-    from sklearn.preprocessing import StandardScaler
+    from sklearn.preprocessing import RobustScaler, StandardScaler   # robust=True 用 RobustScaler(median/IQR、抗離群、解 pe_ratio 尾 C1)
 
     feats = feats or canonical_features(conn, panel_dates)
     mom_idx = feats.index(mom_feature) if mom_feature in feats else None
@@ -124,8 +124,8 @@ def run_ladder(conn, panel_dates, h, stocks, *, feats=None, seed=42, mom_feature
         # B1 動能（test 的 momentum 值直接排序）
         if mom_idx is not None:
             ic["B1_momentum"][test_pd] = metrics.rank_ic(dict(zip(ts_sids, Xte[:, mom_idx])), ylab)
-        # B2 Ridge（標準化 + 線性）
-        sc = StandardScaler().fit(Xtr)
+        # B2 Ridge（標準化 + 線性;robust=True 用 RobustScaler 抗離群）
+        sc = (RobustScaler() if robust else StandardScaler()).fit(Xtr)
         rdg = Ridge(alpha=1.0).fit(sc.transform(Xtr), ytr)
         ic["B2_ridge"][test_pd] = metrics.rank_ic(dict(zip(ts_sids, rdg.predict(sc.transform(Xte)))), ylab)
         # M1 GBDT
