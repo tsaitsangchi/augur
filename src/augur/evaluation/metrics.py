@@ -81,3 +81,28 @@ def summarize(ic_by_panel):
     return {"n_panels": n, "mean_ic": mean_ic, "ic_std": ic_std,
             "effective_t": eff_t, "hit_rate": float((arr > 0).mean()),
             "min_ic": float(arr.min()), "max_ic": float(arr.max())}
+
+
+def effective_t_hac(ic_by_panel, *, lag=None):
+    """IC 序列之 Newey-West（HAC）去相關 t-stat——校正 IC 序列自相關（重疊 label 窗致 IC 正相關 →
+    iid `effective_t` 高估顯著性,審查 G8）。Bartlett 核;lag=None → 經驗法則 floor(4*(n/100)^(2/9))。
+
+    LRV = γ0 + 2·Σ_{l=1}^L (1−l/(L+1))·γ_l;se = √(LRV/n);t = mean/se。n<3 或 LRV≤0 → None。
+    """
+    ics = list(ic_by_panel.values()) if isinstance(ic_by_panel, dict) else list(ic_by_panel)
+    ics = [x for x in ics if x is not None and np.isfinite(x)]
+    n = len(ics)
+    if n < 3:
+        return None
+    x = np.array(ics, dtype=float)
+    e = x - x.mean()
+    if lag is None:
+        lag = max(1, int(np.floor(4 * (n / 100) ** (2 / 9))))
+    lrv = float(e @ e) / n                                   # γ0
+    for l in range(1, min(lag, n - 1) + 1):
+        w = 1 - l / (lag + 1)                                # Bartlett 權
+        lrv += 2 * w * float(e[l:] @ e[:-l]) / n             # 2·w·γ_l
+    if lrv <= 0:
+        return None
+    se = (lrv / n) ** 0.5
+    return float(x.mean() / se) if se > 0 else None

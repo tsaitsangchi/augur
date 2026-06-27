@@ -74,5 +74,31 @@
 
 **Caveat**：Eff-t 未去相關（G8、顯著性上界）、pan-hist 非 as-of、單 seed、背離 n=18;**屬初步通過、非定論**——須 as-of + 去相關 Eff-t + ≥3 seed 複核才提拔生產（未過完整漏斗不入生產）。五鏡 ③LOO/④SHAP 未跑。實驗候選列驗後已 `--clear`、未留 feature_values。
 
+## D. 提拔複核判決（2026-06-27、as-of + 去相關 Eff-t + 多 seed）→ **兩候選皆淘汰**
+
+對 §C 初步通過之 2 候選做提拔前完整漏斗複核(`scripts/verify_candidate_promotion.py`):as-of 口徑(消完整度 look-ahead)+ Newey-West HAC Eff-t(去相關、解 G8)+ 3 seed 多因子增量。
+
+**1. as-of 單因子 IC + iid vs HAC Eff-t**
+| 候選 | H60 as-of IC | iid-t | HAC-t | 判定 |
+|---|---|---|---|---|
+| `pb_self_pctile_252d` | +0.052 | 2.40 | **2.31** | 單獨顯著(去相關後仍 ≥2)|
+| `inst_govbank_divergence` | +0.032 | 1.80 | **1.67** | ❌ 不顯著(pan-hist 2.53 → as-of 1.80、n=18)|
+
+→ HAC 幾乎不削 t（自相關對這兩者影響小、G8 非主因）;**殺手是 as-of**（divergence 之 pan-hist 顯著是完整度 look-ahead 撐高）。
+
+**2. 多 seed（3）增量:`pb_self_pctile_252d` 加入 26-feat 生產集**
+| H | 模型 | 基準 | +候選 | Δ |
+|---|---|---|---|---|
+| 60 | Ridge | +0.1326 | +0.1278 | **−0.0048** |
+| 60 | GBDT | +0.0997 | +0.1029 | +0.0033 |
+| 20 | Ridge | +0.1122 | +0.1095 | −0.0027 |
+| 20 | GBDT | +0.1046 | +0.1035 | −0.0011 |
+→ 4 中 3 負、1 微正 → **對多因子零增量**、訊號已被現有 26 特徵涵蓋(冗餘)。
+
+**判決(淘汰、#15 記錄)**:
+- `pb_self_pctile_252d`:單獨顯著但**ablation-safe（多因子 Δ≤0）→ 依 #11「不顯影且 ablation-safe 必移」不提拔**。
+- `inst_govbank_divergence`:**as-of+HAC 不顯著、n=18 太少 → 不提拔**。
+- **教訓**:兩候選在寬鬆篩(pan-hist/單因子/iid)看似有潛力,過完整漏斗(as-of+去相關+多因子增量)後雙雙淘汰——驗證審查 S3/S6/G8(寬鬆口徑高估)。**目前 27 特徵已足,這兩個不加。** 漏斗工具(`effective_t_hac`、`verify_candidate_promotion.py`)留作日後候選之標準關卡。
+
 ## 可追溯
-- 模組 `src/augur/audit/field_correlation.py`、`audit/feature_candidate.py`；CLI `scripts/run_field_correlation.py`、`scripts/validate_feature_candidates.py`；表 `field_correlation` / `field_return_leadlag`（各 374 股）。重印:`run_field_correlation.py --report-only`。
+- 模組 `audit/field_correlation.py`、`audit/feature_candidate.py`；CLI `run_field_correlation.py`、`validate_feature_candidates.py`、`verify_candidate_promotion.py`；去相關 helper `evaluation/metrics.py:effective_t_hac`;表 `field_correlation`/`field_return_leadlag`(各 374 股)。重印:`run_field_correlation.py --report-only`。
