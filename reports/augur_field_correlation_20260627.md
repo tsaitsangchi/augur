@@ -58,5 +58,21 @@
 - **同日 ≠ 可交易**:A 部 contemporaneous(法人買↔價漲是同步),非 alpha。
 - 殘留:`pe_ratio` 極端值未 winsorize(C1,獨立議題)。
 
+## C. 候選五鏡橫斷面 IC 驗證（2026-06-27 續）
+
+把兩潛力依方法論母原則③做成正式候選（`audit/feature_candidate.py`），對 374 核心跑橫斷面 rank IC（五鏡①⑤）+ 共線（②）：
+
+| 候選 | H60 IC / Eff-t / 勝率 | 判定 |
+|---|---|---|
+| `pb_ratio`（raw 基準） | −0.045 / −1.71 / 0.41 | 弱、不顯著 |
+| `pb_xsec_rank`（橫斷面 rank） | −0.045 / −1.71 | ❌ **與 raw 逐位元相同**（rank IC 對單調變換不變）|
+| `pb_industry_demean`（產業 demean） | −0.034 / −1.86 | ❌ 未強化 + 與 raw 共線 0.966 |
+| **`pb_self_pctile_252d`（自身 252d 百分位）** | **+0.054 / 2.40 / 0.70** | ✅ **PASS**：符號翻正、顯著、低共線=估值再評價動能（新訊號）|
+| **`inst_govbank_divergence`（背離）** | **+0.044 / 2.53 / 0.72**（n=18） | ✅ **PASS**：顯著、與估值低共線=新增量（govbank 2021-07+、樣本少）|
+
+**三結論**：(1) **橫斷面 rank「相對化」對單因子 IC 零增益**（rank-invariance，實證 S20/G20——只助多因子）;(2) 真強化=**自身歷史百分位**（valuation momentum、與 raw 橫斷面 value 正交）;(3) **govbank×inst 背離為真新增量**。
+
+**Caveat**：Eff-t 未去相關（G8、顯著性上界）、pan-hist 非 as-of、單 seed、背離 n=18;**屬初步通過、非定論**——須 as-of + 去相關 Eff-t + ≥3 seed 複核才提拔生產（未過完整漏斗不入生產）。五鏡 ③LOO/④SHAP 未跑。實驗候選列驗後已 `--clear`、未留 feature_values。
+
 ## 可追溯
-- 模組 `src/augur/audit/field_correlation.py`、CLI `scripts/run_field_correlation.py`；表 `field_correlation` / `field_return_leadlag`（各 374 股）。重印:`python scripts/run_field_correlation.py --report-only`。
+- 模組 `src/augur/audit/field_correlation.py`、`audit/feature_candidate.py`；CLI `scripts/run_field_correlation.py`、`scripts/validate_feature_candidates.py`；表 `field_correlation` / `field_return_leadlag`（各 374 股）。重印:`run_field_correlation.py --report-only`。
