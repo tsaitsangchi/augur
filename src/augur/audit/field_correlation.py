@@ -64,11 +64,22 @@ _SRC = [
     ("retail_pct",     "SELECT date, percent::float8 FROM \"TaiwanStockHoldingSharesPer\" WHERE stock_id=%s AND \"HoldingSharesLevel\"='1-999'"),
     ("holder_count",   "SELECT date, people::float8 FROM \"TaiwanStockHoldingSharesPer\" WHERE stock_id=%s AND \"HoldingSharesLevel\"='total'"),
     ("lending_volume", 'SELECT date, sum(volume)::float8 FROM "TaiwanStockSecuritiesLending" WHERE stock_id=%s GROUP BY date'),
+    # ── 擴充未檢視域(2026-06-28、制度資產驅動):當沖投機 / 鉅額 / 融資券 flow ──
+    ("day_trade_volume", 'SELECT date, "Volume"::float8 FROM "TaiwanStockDayTrading" WHERE stock_id=%s'),
+    ("day_trade_buy",    'SELECT date, "BuyAmount"::float8 FROM "TaiwanStockDayTrading" WHERE stock_id=%s'),
+    ("day_trade_sell",   'SELECT date, "SellAmount"::float8 FROM "TaiwanStockDayTrading" WHERE stock_id=%s'),
+    ("block_money",      'SELECT date, sum(trading_money)::float8 FROM "TaiwanStockBlockTrade" WHERE stock_id=%s GROUP BY date'),
+    ("margin_buy",       'SELECT date, "MarginPurchaseBuy"::float8 FROM "TaiwanStockMarginPurchaseShortSale" WHERE stock_id=%s'),
+    ("margin_sell",      'SELECT date, "MarginPurchaseSell"::float8 FROM "TaiwanStockMarginPurchaseShortSale" WHERE stock_id=%s'),
+    ("short_sell",       'SELECT date, "ShortSaleSell"::float8 FROM "TaiwanStockMarginPurchaseShortSale" WHERE stock_id=%s'),
+    ("short_buy",        'SELECT date, "ShortSaleBuy"::float8 FROM "TaiwanStockMarginPurchaseShortSale" WHERE stock_id=%s'),
 ]
 _FFILL = {"revenue"}   # 月頻欄 as-of 前向填補到日；其餘日頻、缺即 NaN（不補）
 
 # 最終參與相關之欄位（含衍生）；helper 欄（high/low/margin_limit/tenyr）算完衍生後剔除
-_DROP_AFTER_DERIVE = ("high", "low", "margin_limit", "tenyr")
+_DROP_AFTER_DERIVE = ("high", "low", "margin_limit", "tenyr",
+                      "day_trade_volume", "day_trade_buy", "day_trade_sell", "block_money",
+                      "margin_buy", "margin_sell", "short_sell", "short_buy")   # helper、算完衍生即剔
 
 
 def bootstrap(cur):
@@ -99,6 +110,12 @@ def build_stock_panel(conn, stock_id):
         df["inst_net_ratio"] = df["inst_net"] / df["inst_gross"].where(df["inst_gross"] > 0)
         df["price_to_10yr"] = df["close"] / df["tenyr"].where(df["tenyr"] > 0)
         df["short_margin_ratio"] = df["short_sale_balance"] / df["margin_balance"].where(df["margin_balance"] > 0)  # 券資比(經典籌碼指標)
+        df["day_trade_ratio"] = df["day_trade_volume"] / df["volume"].where(df["volume"] > 0)                       # 當沖佔比(投機度)
+        _dt = df["day_trade_buy"] + df["day_trade_sell"]
+        df["day_trade_imbalance"] = (df["day_trade_buy"] - df["day_trade_sell"]) / _dt.where(_dt > 0)               # 當沖買賣不均
+        df["block_share"] = df["block_money"] / df["money"].where(df["money"] > 0)                                  # 鉅額佔總成交比
+        df["margin_net_flow"] = df["margin_buy"] - df["margin_sell"]                                               # 融資淨買流量
+        df["short_net_flow"] = df["short_sell"] - df["short_buy"]                                                  # 融券淨賣流量
     df = df.drop(columns=[c for c in _DROP_AFTER_DERIVE if c in df.columns])
     return df.replace([np.inf, -np.inf], np.nan)
 

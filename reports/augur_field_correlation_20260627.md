@@ -116,5 +116,19 @@
 **結論(誠實 #15)**:6 新欄位全部 |IC|≤0.027——**比既有估值訊號弱 5 倍**(pb level −0.116);`foreign_room` 機械冗餘、短券偏 size、`retail_pct` 弱反向。**無強新 alpha**。cross-field 亦多機械(`foreign_holding~foreign_room −0.989`、`short_margin~short_sale +0.852`)。
 > ⚠️ **越撒網 = 多重檢定假陽性升(審查 S5)**:`retail_pct` 以前例(pb_self_pctile 0.052 都因冗餘淘汰)判,幾乎必過不了第 4 道提拔關卡。**真價值在過濾關卡(§D)、非無限探索**——停止撒網,回方法論主線。
 
+## F. 擴充未檢視域 + 當沖候選(2026-06-28、制度資產驅動)→ ❌ 淘汰、飽和定論
+
+依 `field_lens_map` 系統性補檢**尚未檢視之 per-stock 域**:當沖(DayTrading 374/374)、鉅額(BlockTrade 348/374)、融資券 flow。`field_correlation` 擴至 33 欄(656,570 cross + 135,124 lead-lag)。
+
+**lead-lag**:僅當沖兩欄為新訊號、皆弱:`day_trade_imbalance` H20 −0.021(72% 負)、`day_trade_ratio` H20 −0.018(67% 訊號);margin/short flow ≈0;cross-field 多機械(flow~balance +0.54)。
+
+**當沖候選過漏斗**(`verify_daytrade_candidates.py`、as-of 20d 均):
+| 候選 | 單因子 HAC-t | 共線 | 多因子增量 Δ(H60 Ridge)| 判定 |
+|---|---|---|---|---|
+| x_day_trade_ratio_20d | −2.09(H20 臨界)| **range_mean +0.791** | **−0.0233** | ❌ 量軸冗餘+有害 |
+| x_day_trade_imbalance_20d | −1.37 | — | — | ❌ 不顯著 |
+
+**飽和定論(#15)**:本 session 四輪擴張探索——相關撒網(無 alpha)、Track A 交互(線性冗餘)、Track B 馬太(動能冗餘)、當沖(量軸冗餘+有害)——**全淘汰**。**34 特徵集已飽和、per-stock raw 欄位 alpha 已榨乾**;當沖 ratio 甚至臨界顯著卻**加進去傷模型 −0.023**(波動代理、冗餘+噪音)。制度漏斗反覆證實:**繼續 per-stock 撒網 = 多重檢定假陽性(S5)、低期望值**。前瞻價值在 phase-2 需 infra 之軸(營收/產業 share、財報循環、景氣)+ 經濟層深化(交易成本/long-only),**非更多 raw 撒網**。
+
 ## 可追溯
-- 模組 `audit/field_correlation.py`(28 欄)、`audit/feature_candidate.py`；CLI `run_field_correlation.py`、`validate_feature_candidates.py`、`verify_candidate_promotion.py`；去相關 helper `evaluation/metrics.py:effective_t_hac`;表 `field_correlation`(485,782)/`field_return_leadlag`(116,484)、各 374 股。重印:`run_field_correlation.py --report-only`。
+- 模組 `audit/field_correlation.py`(33 欄、含當沖/鉅額/融資券 flow)、`audit/feature_candidate.py`；CLI `run_field_correlation.py`、`verify_candidate_promotion/lens_promotion/interaction/matthew/daytrade_candidates.py`;去相關 `evaluation/metrics.py:effective_t_hac`;表 `field_correlation`/`field_return_leadlag`(各 374 股)。重印:`run_field_correlation.py --report-only`。
