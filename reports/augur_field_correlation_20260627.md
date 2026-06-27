@@ -100,5 +100,21 @@
 - `inst_govbank_divergence`:**as-of+HAC 不顯著、n=18 太少 → 不提拔**。
 - **教訓**:兩候選在寬鬆篩(pan-hist/單因子/iid)看似有潛力,過完整漏斗(as-of+去相關+多因子增量)後雙雙淘汰——驗證審查 S3/S6/G8(寬鬆口徑高估)。**目前 27 特徵已足,這兩個不加。** 漏斗工具(`effective_t_hac`、`verify_candidate_promotion.py`)留作日後候選之標準關卡。
 
+## E. 擴充欄位探索（2026-06-27、欄位集 22→28 重跑）→ 無強新 alpha
+
+加入 6 個未探索 raw 欄位值（短券側/外資空間/散戶集中度/借券）重跑全 374（cross-field 485,782 + lead-lag 116,484 列）:`short_sale_balance`(融券餘額)、`short_margin_ratio`(券資比)、`foreign_room`(外資可加碼空間)、`retail_pct`(散戶比 1-999)、`holder_count`(股東人數)、`lending_volume`(借券量)。
+
+**lead-lag 可預測性(新欄位、X_t vs 未來報酬)**
+| 新欄位 | H20 level IC | 一致性 | 解讀 |
+|---|---|---|---|
+| `retail_pct`(散戶比) | −0.024 | 61% 負、74% 訊號 | 散戶比高→未來弱(反向指標)——唯一可解釋新訊號,**但弱** |
+| `short_sale_balance` | −0.027 | 70% 負 | 偏 size 效應 |
+| `foreign_room` | +0.024 | 67% 正 | =foreign_holding 機械反向(−0.989、無新資訊) |
+| `short_margin_ratio`/`holder_count` | ±0.016~0.018 | 弱 | 弱 |
+| 全 change basis | ≈0 | — | 日變化仍不預測(與 B1 一致) |
+
+**結論(誠實 #15)**:6 新欄位全部 |IC|≤0.027——**比既有估值訊號弱 5 倍**(pb level −0.116);`foreign_room` 機械冗餘、短券偏 size、`retail_pct` 弱反向。**無強新 alpha**。cross-field 亦多機械(`foreign_holding~foreign_room −0.989`、`short_margin~short_sale +0.852`)。
+> ⚠️ **越撒網 = 多重檢定假陽性升(審查 S5)**:`retail_pct` 以前例(pb_self_pctile 0.052 都因冗餘淘汰)判,幾乎必過不了第 4 道提拔關卡。**真價值在過濾關卡(§D)、非無限探索**——停止撒網,回方法論主線。
+
 ## 可追溯
-- 模組 `audit/field_correlation.py`、`audit/feature_candidate.py`；CLI `run_field_correlation.py`、`validate_feature_candidates.py`、`verify_candidate_promotion.py`；去相關 helper `evaluation/metrics.py:effective_t_hac`;表 `field_correlation`/`field_return_leadlag`(各 374 股)。重印:`run_field_correlation.py --report-only`。
+- 模組 `audit/field_correlation.py`(28 欄)、`audit/feature_candidate.py`；CLI `run_field_correlation.py`、`validate_feature_candidates.py`、`verify_candidate_promotion.py`；去相關 helper `evaluation/metrics.py:effective_t_hac`;表 `field_correlation`(485,782)/`field_return_leadlag`(116,484)、各 374 股。重印:`run_field_correlation.py --report-only`。

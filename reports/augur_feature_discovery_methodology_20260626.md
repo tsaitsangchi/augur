@@ -124,11 +124,16 @@ flowchart TD
 
 ## 四、發現漏斗：從「候選假說」到「有用特徵」
 
-生成只是開始。**「有用」要穿過三道漏斗**（逐層淘汰）：
+生成只是開始。**「有用」要穿過四道漏斗**（逐層淘汰；第 4 道為入生產前強制提拔關卡）：
 
 1. **紀律閘（過不了連測都不測）**：`#1` source-pure（算不出即缺列、不補值/不 zero-fill）→ `#8` anti-leakage（t 當下真可得）→ `#9` 不硬編（一律相對化、樹自學分界）。
 2. **五鏡治理（#11，存廢唯一裁判）**：① 有號 IC + sign 穩定 ② 共線群 ③ leave-one-out 必要性 ④ ensemble SHAP ⑤ purged-CV——**不得單一指標（尤不得單看 gain）判生死**；「不顯影（SHAP≈0）且 ablation-safe」必移。
 3. **out-of-sample walk-forward**：purged + embargo 切分；rank IC 撐住、半年重跑一致才算數（#15 可重現＝靈魂的成功定義）。
+4. **提拔關卡（漏斗 4、入生產前強制；2026-06-27 入憲）**：候選通過五鏡寬篩**仍不得逕入生產**——須過完整提拔複核（`scripts/verify_candidate_promotion.py`），三項全過才提拔：
+   - **(a) as-of 口徑**：用 `core_universe_asof`（point-in-time、消完整度 look-ahead）算 IC,**非** pan-historical（pan-hist 會高估,實證 inst_govbank_divergence pan-hist Eff-t 2.53 → as-of 1.67）。
+   - **(b) 去相關 Eff-t（強制）**：IC 顯著性一律用 **Newey-West/HAC 去相關 t-stat**（`metrics.effective_t_hac`）、**禁裸用 iid `effective_t`**（重疊 label 窗致 IC 自相關、iid 高估顯著,#15/審查 G8）;`|HAC-t|≥2` 方算顯著。
+   - **(c) 多因子增量 + 多 seed**：候選加入現有生產特徵集,run_ladder（≥3 seed、stochastic #15）之 Ridge/GBDT mean IC **須穩定為正增量**;Δ≤0 即冗餘（已被既有特徵涵蓋）、依 #11「ablation-safe 必移」**不提拔**。
+   > **紀律精神（#15）**：寬鬆口徑（pan-hist / 單因子 / iid Eff-t）看似有潛力者,過此關卡常雙雙淘汰（實證 2026-06-27：pb_self_pctile_252d 單獨顯著但冗餘、inst_govbank_divergence as-of 不顯著 → 皆淘汰）。**撒更多網 = 多重檢定假陽性升（#11/審查 S5）;此關卡才是真價值,不是無限探索。** 淘汰結論一律 source-traceable 記錄（為何淘汰、#15）。
 
 ---
 

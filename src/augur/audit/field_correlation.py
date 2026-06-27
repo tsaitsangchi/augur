@@ -58,6 +58,12 @@ _SRC = [
     ("market_value",   'SELECT date, market_value::float8 FROM "TaiwanStockMarketValue" WHERE stock_id=%s'),
     ("tenyr",          'SELECT date, close::float8 FROM "TaiwanStock10Year" WHERE stock_id=%s'),
     ("revenue",        'SELECT date, revenue::float8 FROM "TaiwanStockMonthRevenue" WHERE stock_id=%s'),   # 月頻 → ffill
+    # ── 擴充欄位值(2026-06-27 探索更多未知相關):短券側/外資空間/散戶集中度/借券活動 ──
+    ("short_sale_balance", 'SELECT date, "ShortSaleTodayBalance"::float8 FROM "TaiwanStockMarginPurchaseShortSale" WHERE stock_id=%s'),
+    ("foreign_room",   'SELECT date, "ForeignInvestmentRemainRatio"::float8 FROM "TaiwanStockShareholding" WHERE stock_id=%s'),
+    ("retail_pct",     "SELECT date, percent::float8 FROM \"TaiwanStockHoldingSharesPer\" WHERE stock_id=%s AND \"HoldingSharesLevel\"='1-999'"),
+    ("holder_count",   "SELECT date, people::float8 FROM \"TaiwanStockHoldingSharesPer\" WHERE stock_id=%s AND \"HoldingSharesLevel\"='total'"),
+    ("lending_volume", 'SELECT date, sum(volume)::float8 FROM "TaiwanStockSecuritiesLending" WHERE stock_id=%s GROUP BY date'),
 ]
 _FFILL = {"revenue"}   # 月頻欄 as-of 前向填補到日；其餘日頻、缺即 NaN（不補）
 
@@ -92,6 +98,7 @@ def build_stock_panel(conn, stock_id):
         df["margin_usage"] = df["margin_balance"] / df["margin_limit"].where(df["margin_limit"] > 0)
         df["inst_net_ratio"] = df["inst_net"] / df["inst_gross"].where(df["inst_gross"] > 0)
         df["price_to_10yr"] = df["close"] / df["tenyr"].where(df["tenyr"] > 0)
+        df["short_margin_ratio"] = df["short_sale_balance"] / df["margin_balance"].where(df["margin_balance"] > 0)  # 券資比(經典籌碼指標)
     df = df.drop(columns=[c for c in _DROP_AFTER_DERIVE if c in df.columns])
     return df.replace([np.inf, -np.inf], np.nan)
 
