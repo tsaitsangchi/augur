@@ -1,7 +1,12 @@
 """augur 特徵面板 — 從 source-pure raw 算每股每面板之特徵（嚴格 source-pure）。
 
 這支在做什麼（白話）：給一個 as-of 面板日期 + 一批股，對每股拉它 ≤ 該日的價量序列
-（`TaiwanStockPrice`），算成一組數值特徵（報酬 / 動能 / 波動 / 流動性 / 位置）存進 `feature_values`。
+（**`TaiwanStockPriceAdj` 還原價**），算成一組數值特徵（報酬 / 動能 / 波動 / 流動性 / 位置）存進 `feature_values`。
+
+價格基準（2026-06-27 修，審查 R1/R5/CG1-4）：價量特徵一律用**還原價** `TaiwanStockPriceAdj`（與 `label.py` 同源、
+合方法論 §73）——(a) 除權息跳空非真報酬，原始價會污染動能/區間位置；(b) 該表**無停牌 close=0 哨兵列**
+（raw 有 28 萬列），故改還原價即**自動剔停牌**，免 252 窗 min 被 lo=0 污染（cycle 退化）。另 `close>0` 防衛 +
+**recency gate**（最近還原價距 panel 過遠＝下市/長停更 → 整股價量缺列，不輸出 stale 偽 as-of，審查 R3/R4/R7）。
 
 嚴格 source-pure（#1）：特徵一律「真實 API 價量值經數學轉換（log/ratio/rolling）」；**算不出**
 （歷史不足 / 除零 / NaN / inf）→ **不寫該列（缺列），不存 fake / 不存 zero-fill**。完整度交 universe 層判定。
@@ -15,6 +20,8 @@ anti-leakage（#8）：面板日 t 之特徵只用價量 ≤ t（純後向 rolli
 """
 from __future__ import annotations
 
+from datetime import date
+
 import numpy as np
 import pandas as pd
 from psycopg2.extras import execute_values
@@ -23,6 +30,9 @@ from augur.core import db
 from augur.features import chip, valuation                                   # F2b 籌碼 + F2c 估值模組
 
 FEATURE_TABLE = "feature_values"
+# recency gate(operational、透明揭露;審查 R3/R4/R7):最近還原價距 panel 超過此日數＝下市/長停更 →
+# 整股價量特徵缺列(不以陳舊窗算出偽當期 as-of)。值取「明顯停更」之保守界(遠大於假日/短停牌、足以排下市)。
+MAX_STALE_CALENDAR_DAYS = 45
 DDL = f"""
 CREATE TABLE IF NOT EXISTS {FEATURE_TABLE} (
     panel_date  DATE NOT NULL,
@@ -35,7 +45,7 @@ CREATE TABLE IF NOT EXISTS {FEATURE_TABLE} (
 _PRICE_SQL = (
     'SELECT date, close, "Trading_Volume" AS volume, "Trading_money" AS money, '
     '"Trading_turnover" AS turnover, "max" AS high, "min" AS low '
-    'FROM "TaiwanStockPrice" WHERE stock_id = %s AND date <= %s ORDER BY date'
+    'FROM "TaiwanStockPriceAdj" WHERE stock_id = %s AND date <= %s AND close > 0 ORDER BY date'
 )
 # 基本面 D:月營收 YoY(log)——最近月 vs 12 個月前;算不出(無歷史 / revenue≤0 / 缺 -12 月那筆)→ 缺列(#1)
 _REVENUE_SQL = (
@@ -124,6 +134,12 @@ def build_panel(conn, panel_date, stock_ids, *, progress=None):
             rev_rows = cur.fetchall()
             chip_feats = chip.compute_chip_features(cur, sid, panel_date)  # F2b 籌碼 7 features(同 transaction)
             val_feats = valuation.compute_valuation_features(cur, sid, panel_date)  # F2c 估值 features(同 transaction)
+        if rows:                                                          # recency gate(審查 R3/R4/R7):最近還原價距 panel 過遠＝下市/長停更 → 視同無當期價量、整股價量缺列(不輸出 stale 偽 as-of)
+            _last = rows[-1][0]
+            _pdt = panel_date if isinstance(panel_date, date) else date.fromisoformat(str(panel_date)[:10])
+            _ldt = _last if isinstance(_last, date) else date.fromisoformat(str(_last)[:10])
+            if (_pdt - _ldt).days > MAX_STALE_CALENDAR_DAYS:
+                rows = []
         if not rows:
             continue
         df = pd.DataFrame(rows, columns=["date", "close", "volume", "money", "turnover", "high", "low"])
