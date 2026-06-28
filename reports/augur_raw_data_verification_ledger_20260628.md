@@ -23,11 +23,15 @@
 
 | 域 | 結構驗 | 深層理解 |
 |---|---|---|
-| **程式 src/augur(25 .py)** | ✅ **全編譯 0 錯 + 全有 🎯 docstring**(#18) | ✅ 核心深懂(features/evaluation/audit/verify 本 session 寫改)；🟡 ingestion(finmind/fred/sync/ingest)/core(generic_schema)屬 **purpose-level**(懂職責、未逐行) |
-| **scripts(31 .py)** | ✅ 全編譯 0 錯 + 全有 docstring | ✅ 多本 session 寫(profiler/verify/build/run);早期(full_market_sync 等)purpose-level |
-| **reports(65 份)** | ✅ 全有標題、已清點 | ✅ 近期 0626-28(方法論/三鏡頭/驗證/字典)自寫深懂；🟡 早期 0610-25 **purpose-level**(知主題、未逐份逐數重讀) |
+| **程式 src/augur(25 .py)** | ✅ **全編譯 0 錯 + 全有 🎯 docstring**(#18) | ✅ 核心 + **ingestion 4 模組(finmind/fred/sync/ingest)2026-06-28 逐行深讀**(三層限速/vintage PIT/adaptive 引擎/canonical-probe/by-date vs per-stock)；🟡 core/generic_schema purpose-level |
+| **scripts(31 .py)** | ✅ 全編譯 0 錯 + 全有 docstring | ✅ 多本 session 寫;`full_market_sync`/`build_catalog` 等 CLI purpose-level(薄 wrapper、邏輯在 src 已讀) |
+| **reports(65 份)** | ✅ 全有標題、已清點 | ✅ 近期 0626-28 自寫深懂;**早期 0610-25 已 digest**(設計三鏡頭原始/評估/稽核/資料源/架構理論)；handoff 系列僅總述 |
 
-> **誠實**:「編譯+docstring」=結構一致(非深層語意);核心模組深懂、ingestion 層 + 早期 reports 屬 purpose-level(知做什麼、未逐行/逐數)。
+> **誠實**:ingestion 已逐行;core/generic_schema + 早期 reports 細節屬 digest-level(懂實質、未逐行/逐數重讀)。
+
+**cashflow 逐 type 累計乾淨驗(2026-06-28、|Q4|/|Q1| 法、取代有缺陷的 |value|-單調)**:34 type → **20 累計YTD**(營業/投資/融資現金流、capex 4.8、折舊…)、**4 單季**(CashBalancesBegin/End=現金餘額時點水位、ratio≈1 合理)、6 混合(營運資本變動項邊界)、4 不足。**確立:現金流主體累計、現金餘額項為水位。**
+
+**🔎 release_lag 精進機會(早期報告揭)**:部分 dataset 自帶**公告日欄**(`Dividend.AnnouncementDate` 最乾淨;`MonthRevenue.create_time`、`Shareholding.RecentlyDeclareDate` **待實證是否=真公告時點**)→ 比現用法定 lag 更精準。現 `release_lag` 用法定 lag(保守安全);若 create_time 證實=公告日可改用。**待驗**。
 
 ## 二、FRED 12 series 定義(✅ 已驗、標準碼)
 
