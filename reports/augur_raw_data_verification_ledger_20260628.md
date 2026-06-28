@@ -23,7 +23,7 @@
 
 | 域 | 結構驗 | 深層理解 |
 |---|---|---|
-| **程式 src/augur(25 .py)** | ✅ **全編譯 0 錯 + 全有 🎯 docstring**(#18) | ✅ 核心 + **ingestion 4 模組(finmind/fred/sync/ingest)2026-06-28 逐行深讀**(三層限速/vintage PIT/adaptive 引擎/canonical-probe/by-date vs per-stock)；🟡 core/generic_schema purpose-level |
+| **程式 src/augur(25 .py)** | ✅ **全編譯 0 錯 + 全有 🎯 docstring**(#18) | ✅ 核心 + **ingestion 4 + core/generic_schema 2026-06-28 逐行深讀**(三層限速/vintage PIT/adaptive 引擎/canonical-probe;auto-schema 值推型/detect_keys/SAVEPOINT 併發/跨型別降級 trim_scale byte-equal) |
 | **scripts(31 .py)** | ✅ 全編譯 0 錯 + 全有 docstring | ✅ 多本 session 寫;`full_market_sync`/`build_catalog` 等 CLI purpose-level(薄 wrapper、邏輯在 src 已讀) |
 | **reports(65 份)** | ✅ 全有標題、已清點 | ✅ 近期 0626-28 自寫深懂;**早期 0610-25 已 digest**(設計三鏡頭原始/評估/稽核/資料源/架構理論)；handoff 系列僅總述 |
 
@@ -31,7 +31,11 @@
 
 **cashflow 逐 type 累計乾淨驗(2026-06-28、|Q4|/|Q1| 法、取代有缺陷的 |value|-單調)**:34 type → **20 累計YTD**(營業/投資/融資現金流、capex 4.8、折舊…)、**4 單季**(CashBalancesBegin/End=現金餘額時點水位、ratio≈1 合理)、6 混合(營運資本變動項邊界)、4 不足。**確立:現金流主體累計、現金餘額項為水位。**
 
-**🔎 release_lag 精進機會(早期報告揭)**:部分 dataset 自帶**公告日欄**(`Dividend.AnnouncementDate` 最乾淨;`MonthRevenue.create_time`、`Shareholding.RecentlyDeclareDate` **待實證是否=真公告時點**)→ 比現用法定 lag 更精準。現 `release_lag` 用法定 lag(保守安全);若 create_time 證實=公告日可改用。**待驗**。
+**✅ release_lag 公告日實證(2026-06-28、定論)**:probe DB 得——
+- `MonthRevenue.create_time`:**❌ 不可用作公告日**(2023-01 營收之 create_time 多為空、餘為 `2026-05-19` ingestion 時戳,非逐筆公告日)→ **現用法定 lag(次月10日)正確**。
+- `Dividend.AnnouncementDate`+`AnnouncementTime`:**✅ 存在**(真公告日)→ 未來做股利特徵時可用 PIT(現未用 Dividend)。
+- `Shareholding.RecentlyDeclareDate`:**✅ 存在** → 可精化外資持股 PIT(惟外資持股~日頻、date lag 小)。
+**結論:`release_lag` 法定 lag 做法正確、無須改;公告日欄存在但不在現有 lag-critical 特徵路徑。此項解決。**
 
 ## 二、FRED 12 series 定義(✅ 已驗、標準碼)
 
@@ -65,12 +69,13 @@
 
 期貨/選擇權表共通:`long/short_deal_volume/amount`=法人多/空成交量/額、`long/short_open_interest_balance`=多/空未平倉餘額(口/金額)、`settlement_price`=結算價、`open_interest`=未平倉量(口)、`strike_price`=履約價。`*OpenInterestLargeTraders`:`buy/sell_top5/10_trader_open_interest(_per)`=前5/10大交易人多空未平倉(占比)＝**部位集中度**(>100% 因含跨月);`specific`=特定法人。`*AfterHours`=盤後。**標準衍生語意已釋;FinMind 各欄精確邊界(如 _per 分母)待文件**。皆 out-of-scope 台股單股特徵、可作 regime context。
 
-## 五、⏳ 待驗清單(誠實、尚未做)
+## 五、⏳ 待驗清單(誠實;剩餘**多需外部文件或屬低優先**——data/code 可掃的已大致掃盡)
 
-1. **224 財報 type 罕見 legacy 碼精確會計定義**(ExtraordinaryItems/CumulativeEffectOfChanges… 需 FinMind 文件/會計準則對照)。
-2. **cashflow 逐 type 累計乾淨驗**:表級確立累計YTD(capex 等確認),但 |value| 測對變號科目不準、未逐 34 type 乾淨驗。
-3. **月/週/事件表「事件完整度」**(如 Dividend 是否漏公司、Delisting 是否齊)未逐一驗。
-4. **衍生 FinMind 欄精確邊界**(_per 分母定義等)。
+1. **224 財報 type 罕見 legacy 碼精確會計定義**(ExtraordinaryItems/CumulativeEffectOfChanges… )——**需 FinMind 文件/會計準則對照**,clean-room #1/#17 不杜撰。
+2. **衍生 FinMind 欄精確邊界**(_per 分母定義等)——**需 FinMind 文件**。
+3. **月/週/事件表「事件完整度」**(如 Dividend 是否漏公司、Delisting 是否齊)——**可數據掃、但低優先**(非 lag-critical、非橫斷面核心訊號)。
+
+> **已從待驗移除(本 session 完成)**:逐欄單位(`verify_units`)、cashflow 逐 type 累計(`verify_cashflow_cumulative`:20累計/4水位/6混合)、ingestion+generic_schema 逐行、release_lag 公告日實證(法定 lag 正確)、早期 reports digest。
 
 ## 五、誠實立場
 - **已達**:核心台股訊號表 + 財報表層語意 + FRED + 髒值 + 覆蓋 = **據實已驗、夠專案用**。
