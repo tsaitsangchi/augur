@@ -103,4 +103,5 @@ def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
     return {"portfolio_gross": _metrics(gross, ppy), "portfolio_net": _metrics(net, ppy),
             "benchmark_net": _metrics(bench, ppy), "avg_turnover": float(np.mean(turns)),
             "bench_turnover": float(np.mean(bturns)), "n_periods": len(dates),
-            "periods_per_year": round(ppy, 2), "span": f"{dates[0]}..{dates[-1]}"}
+            "periods_per_year": round(ppy, 2), "span": f"{dates[0]}..{dates[-1]}",
+            "dates": dates, "net_series": net, "gross_series": gross, "bench_series": bench, "ppy": ppy}
