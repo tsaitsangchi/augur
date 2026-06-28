@@ -19,6 +19,16 @@
 | 衍生品(期/權)機制 | ✅ 知識補 / ⏳ FinMind 細節 | 見 §四:OI=未平倉量(口)、結算、大額交易人占比=集中度、法人多空 deal——標準衍生語意已釋;FinMind 欄精確細節待文件 |
 | 逐欄精確單位 | ✅ 核心交叉驗(`verify_units`) | money=元/vol=股/close=元/財報=元/融資餘額=**張(千股)**/持股unit=股;**⚠️月營收=元(catalog 原誤標「千元」已修正)** |
 
+## 一-b、程式 + reports 驗證(2026-06-28 擴、`verify_code_reports`)
+
+| 域 | 結構驗 | 深層理解 |
+|---|---|---|
+| **程式 src/augur(25 .py)** | ✅ **全編譯 0 錯 + 全有 🎯 docstring**(#18) | ✅ 核心深懂(features/evaluation/audit/verify 本 session 寫改)；🟡 ingestion(finmind/fred/sync/ingest)/core(generic_schema)屬 **purpose-level**(懂職責、未逐行) |
+| **scripts(31 .py)** | ✅ 全編譯 0 錯 + 全有 docstring | ✅ 多本 session 寫(profiler/verify/build/run);早期(full_market_sync 等)purpose-level |
+| **reports(65 份)** | ✅ 全有標題、已清點 | ✅ 近期 0626-28(方法論/三鏡頭/驗證/字典)自寫深懂；🟡 早期 0610-25 **purpose-level**(知主題、未逐份逐數重讀) |
+
+> **誠實**:「編譯+docstring」=結構一致(非深層語意);核心模組深懂、ingestion 層 + 早期 reports 屬 purpose-level(知做什麼、未逐行/逐數)。
+
 ## 二、FRED 12 series 定義(✅ 已驗、標準碼)
 
 | series | 定義 | 範圍 | 用途 |
