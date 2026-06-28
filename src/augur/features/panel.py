@@ -27,7 +27,7 @@ import pandas as pd
 from psycopg2.extras import execute_values
 
 from augur.core import db
-from augur.features import chip, concentration, phase, release_lag, valuation  # F2b 籌碼 + F2c 估值 + 八二集中度 + 康波相位 + 發布日 gate
+from augur.features import chip, concentration, margin_cycle, phase, release_lag, valuation  # F2b 籌碼 + F2c 估值 + 八二集中度 + 康波相位/毛利循環 + 發布日 gate
 
 FEATURE_TABLE = "feature_values"
 # recency gate(operational、透明揭露;審查 R3/R4/R7):最近還原價距 panel 超過此日數＝下市/長停更 →
@@ -152,8 +152,9 @@ def build_panel(conn, panel_date, stock_ids, *, progress=None):
         feats.update(chip_feats)                                        # F2b:加 7 籌碼 features(各自算不出已過濾)
         feats.update(val_feats)                                         # F2c:加估值 features(各自算不出已過濾)
         feats.update(concentration.compute_concentration_features(df))  # 八二 P3 量能集中(純 df、存活軸)
-        with db.transaction(conn) as cur:                              # 康波相位 C2/C4(C4 需 cur 查法人累計流;各自算不出已過濾)
+        with db.transaction(conn) as cur:                              # 康波相位 C2/C4 + C3 毛利循環(需 cur 查法人累計流/財報;各自算不出已過濾)
             feats.update(phase.compute_phase_features(cur, sid, panel_date, df))
+            feats.update(margin_cycle.compute_margin_cycle_features(cur, sid, panel_date))  # C3 毛利循環相位(發布日 gate、過四道漏斗+#14+#15)
         if not feats:
             continue
         data = [(panel_date, sid, f, v) for f, v in feats.items()]
