@@ -15,7 +15,7 @@
 | **覆蓋完整度** | ✅ 全表掃 → ⚠️ 見 §三 | `scan_coverage`:**僅 BalanceSheet 真缺季**;餘為邊際年假象 |
 | FRED 12 series 定義 | ✅ | 標準碼、見 §二 |
 | 髒值哨兵 | ✅ 核心 | catalog 22 dirty_note(停牌0/PER=-1/percent負/國際overflow…)|
-| 224 財報 type 碼**精確會計定義** | ✅ 常用 ~20 / ⏳ 罕見 legacy | 標準科目知曉;ExtraordinaryItems 等罕見碼**待 FinMind 文件**(不杜撰 #1/#17)|
+| 224 財報 type 碼**精確會計定義** | ✅ **全 224 解碼**(原 ⏳ 已解除)| **資料自身 `origin_name` 欄載每碼中文**(62/128/34 = 100%)→ 非需外部文件、source-pure;字典 `reports/augur_financial_typecodes_dictionary_20260628.md`(`-`=合併前非屬共控股權損益、OTHNOE=其他收益及費損淨額…)|
 | 衍生品(期/權)機制 | ✅ 知識補 / ⏳ FinMind 細節 | 見 §四:OI=未平倉量(口)、結算、大額交易人占比=集中度、法人多空 deal——標準衍生語意已釋;FinMind 欄精確細節待文件 |
 | 逐欄精確單位 | ✅ 核心交叉驗(`verify_units`) | money=元/vol=股/close=元/財報=元/融資餘額=**張(千股)**/持股unit=股;**⚠️月營收=元(catalog 原誤標「千元」已修正)** |
 
@@ -90,11 +90,12 @@
 
 期貨/選擇權表共通:`long/short_deal_volume/amount`=法人多/空成交量/額、`long/short_open_interest_balance`=多/空未平倉餘額(口/金額)、`settlement_price`=結算價、`open_interest`=未平倉量(口)、`strike_price`=履約價。`*OpenInterestLargeTraders`:`buy/sell_top5/10_trader_open_interest(_per)`=前5/10大交易人多空未平倉(占比)＝**部位集中度**(>100% 因含跨月);`specific`=特定法人。`*AfterHours`=盤後。**標準衍生語意已釋;FinMind 各欄精確邊界(如 _per 分母)待文件**。皆 out-of-scope 台股單股特徵、可作 regime context。
 
-## 五、⏳ 待驗清單(誠實;剩餘**多需外部文件或屬低優先**——data/code 可掃的已大致掃盡)
+## 五、⏳ 待驗清單(誠實;**欄位層已無缺口**——剩餘屬衍生 out-of-scope 或低優先)
 
-1. **224 財報 type 罕見 legacy 碼精確會計定義**(ExtraordinaryItems/CumulativeEffectOfChanges… )——**需 FinMind 文件/會計準則對照**,clean-room #1/#17 不杜撰。
-2. **衍生 FinMind 欄精確邊界**(_per 分母定義等)——**需 FinMind 文件**。
-3. **Suspended 表史短**(僅 2025-03~)——待 FinMind 文件確認是否該表本就史短 vs 漏抓。
+1. **衍生 FinMind 欄精確邊界**(期/權 _per 分母定義等)——衍生屬 out-of-scope 台股單股訊號、非核心欄位;待文件。
+2. **Suspended 表史短**(僅 2025-03~)——待 FinMind 文件確認該表本就史短 vs 漏抓。
+
+> **欄位層(所有 raw data 欄)誠實狀態:已無待驗缺口。** 結構/中文/值域/null/單位/語意/覆蓋/髒值全已驗;**224 財報 type 碼亦由 in-data `origin_name` 全解碼**(原以為需外部文件、實證可由資料自身解);唯衍生 out-of-scope 欄之 FinMind 精確邊界 + Suspended 史長待文件(皆非核心台股欄位)。
 
 > **已從待驗移除(本 session 完成)**:逐欄單位(`verify_units`)、cashflow 逐 type 累計(`verify_cashflow_cumulative`:20累計/4水位/6混合)、ingestion+generic_schema 逐行、release_lag 公告日實證(法定 lag 正確)、早期 reports digest、**事件表完整度(§一-c:8 表掃、揪出 Dividend 塌列 bug、碼已修待 token 重建)**。
 
