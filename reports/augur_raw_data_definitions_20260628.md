@@ -93,6 +93,16 @@
 7. **國際股 Adj_Close overflow/負**:不可用。
 8. **TaiwanStock10Year=各股 10 年線**(非大盤)。
 
+## I. 財報 type 逐一語意驗證(2026-06-28 續、`verify_financial_type_semantics.py`)→ 驗證反揭兩真發現
+
+對 224 type 跨股驗累計語意,**驗證本身揭露兩個問題**(#15 誠實):
+1. **損益(income)= 單季**:31 常用 type 跨股 Q-over-Q 波動(非累計)→ 數據確認單季。29 罕見/legacy type(ExtraordinaryItems/ConsolidatedNetIncome…)2023 無資料、低相關。
+2. **現金流 = 累計 YTD**:2330 capex −3025→−5530→−7797→−9498(2023 四季單調)確認;**但我的多股 |value| 單調測對「會變號的現金流」方法不準**(投資現金流某季可淨流入)→ 結果之「混合?」是**測試假象、非真語意**。教訓:|value|-monotonicity 非好的累計偵測器。
+3. **資產負債 = 時點 snapshot**(存量、定義上),累計測 N/A。
+4. **⚠️ 新發現:BalanceSheet 不規則覆蓋缺口**——Inventories 等:2020/21 四季全、**2022 缺Q4、2023 僅Q1Q2、2024 僅Q3Q4**、2025 四季全(損益/現金流同期四季全)。**用 balance-sheet 科目於 2022-24 panel 須注意缺季**(C3 庫存循環受影響)。
+
+> **誠實限制**:此驗證確立**表層 accumulation 語意**(income 單季/cashflow 累計/balance snapshot,且會計原則保證表內一致),但**未逐一確認 224 type 碼之精確會計定義**(常用標準科目知曉、罕見 legacy 碼需 FinMind 文件、不杜撰 #1/#17)。**每輪驗證都還在揭新東西(此輪揭方法缺陷 + 覆蓋缺口)→「完全懂」是漸近、非已達**。
+
 ## 可追溯
-- 工具 `scripts/profile_raw_data.py`(全表 profiler、可重跑 `--table X`)。
+- 工具 `scripts/profile_raw_data.py`(全表 profiler)、`scripts/verify_financial_type_semantics.py`(逐 type 累計驗、|value| 測對現金流有限)。
 - 中文定義源 `column_catalog`(751 欄 zh);本報告補語意/累計/髒值(catalog dirty_note/type_caveat 原僅 5/19、宜據此回填)。
