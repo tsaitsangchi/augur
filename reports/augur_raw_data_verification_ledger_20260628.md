@@ -16,8 +16,8 @@
 | FRED 12 series 定義 | ✅ | 標準碼、見 §二 |
 | 髒值哨兵 | ✅ 核心 | catalog 22 dirty_note(停牌0/PER=-1/percent負/國際overflow…)|
 | 224 財報 type 碼**精確會計定義** | ✅ 常用 ~20 / ⏳ 罕見 legacy | 標準科目知曉;ExtraordinaryItems 等罕見碼**待 FinMind 文件**(不杜撰 #1/#17)|
-| 衍生品(期/權)機制 | ⏳ 待驗 | 值域+中文名有、未平倉/結算/大額交易人機制**未深究** |
-| 逐欄精確單位 | 🟡 部分推斷 | 財報元/營收千元已確;部分(張vs股)推斷未全驗 |
+| 衍生品(期/權)機制 | ✅ 知識補 / ⏳ FinMind 細節 | 見 §四:OI=未平倉量(口)、結算、大額交易人占比=集中度、法人多空 deal——標準衍生語意已釋;FinMind 欄精確細節待文件 |
+| 逐欄精確單位 | ✅ 核心交叉驗(`verify_units`) | money=元/vol=股/close=元/財報=元/融資餘額=**張(千股)**/持股unit=股;**⚠️月營收=元(catalog 原誤標「千元」已修正)** |
 
 ## 二、FRED 12 series 定義(✅ 已驗、標準碼)
 
@@ -47,13 +47,16 @@
 
 > 其餘 48 表「缺口」經查皆**邊際年假象**:2026=當前半年(~110 交易日)、1994/2005/2007=起始半年——**非真缺口**。
 
-## 四、⏳ 待驗清單(誠實、尚未做)
+## 四、衍生品語意(✅ 知識補、標準衍生概念)
+
+期貨/選擇權表共通:`long/short_deal_volume/amount`=法人多/空成交量/額、`long/short_open_interest_balance`=多/空未平倉餘額(口/金額)、`settlement_price`=結算價、`open_interest`=未平倉量(口)、`strike_price`=履約價。`*OpenInterestLargeTraders`:`buy/sell_top5/10_trader_open_interest(_per)`=前5/10大交易人多空未平倉(占比)＝**部位集中度**(>100% 因含跨月);`specific`=特定法人。`*AfterHours`=盤後。**標準衍生語意已釋;FinMind 各欄精確邊界(如 _per 分母)待文件**。皆 out-of-scope 台股單股特徵、可作 regime context。
+
+## 五、⏳ 待驗清單(誠實、尚未做)
 
 1. **224 財報 type 罕見 legacy 碼精確會計定義**(ExtraordinaryItems/CumulativeEffectOfChanges… 需 FinMind 文件/會計準則對照)。
-2. **衍生品機制**(期貨/選擇權未平倉/結算/大額交易人占比之精確語意)。
-3. **逐欄精確單位**全驗(部分張vs股、元vs千元仍推斷)。
-4. **其他表逐年覆蓋**已掃(僅 BalanceSheet 真缺);但**月/週/事件表的「事件完整度」**(如 Dividend 是否漏公司)未逐一驗。
-5. **cashflow 逐 type 累計**:表級確立累計YTD,但 |value| 測對變號科目不準、未逐 type 乾淨驗(僅 capex+表級確認)。
+2. **cashflow 逐 type 累計乾淨驗**:表級確立累計YTD(capex 等確認),但 |value| 測對變號科目不準、未逐 34 type 乾淨驗。
+3. **月/週/事件表「事件完整度」**(如 Dividend 是否漏公司、Delisting 是否齊)未逐一驗。
+4. **衍生 FinMind 欄精確邊界**(_per 分母定義等)。
 
 ## 五、誠實立場
 - **已達**:核心台股訊號表 + 財報表層語意 + FRED + 髒值 + 覆蓋 = **據實已驗、夠專案用**。
