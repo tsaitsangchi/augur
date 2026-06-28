@@ -16,6 +16,16 @@ from augur.evaluation import portfolio
 COST_TW = 0.00585   # 台股來回:手續費 2×0.1425% + 證交稅 0.3%(保守、未計折讓)
 
 
+def _nonoverlap(panels, h):
+    """貪婪挑非重疊再平衡 panel(持有 h 交易日 ≈ h×1.45 日曆日)——長 horizon 經濟回測免重疊雙計。"""
+    need = h * 1.45 * 0.9                                  # h 交易日轉日曆、留 10% 容差
+    out = [panels[0]]
+    for p in panels[1:]:
+        if (p - out[-1]).days >= need:
+            out.append(p)
+    return out
+
+
 def _fmt(m):
     if not m:
         return "(n<3)"
@@ -35,7 +45,8 @@ def main():
         with db.transaction(conn) as cur:
             cur.execute("SELECT DISTINCT panel_date FROM feature_values WHERE panel_date>=%s ORDER BY panel_date", (args.since,))
             panels = [r[0] for r in cur.fetchall()]
-        print(f"經濟回測:{len(panels)} panel（{args.since}+）× h={args.h} × 來回成本 {args.cost:.3%}（as-of、purged walk-forward）")
+        panels = _nonoverlap(panels, args.h)              # 非重疊再平衡(h=60 季度為 no-op、h=120/252 抽半年/年)
+        print(f"經濟回測:{len(panels)} 非重疊 panel（{args.since}+）× h={args.h} × 來回成本 {args.cost:.3%}（as-of、purged walk-forward）")
         for model in ("B2_ridge", "M1_gbdt"):
             print(f"\n══ {model}（long-only）══")
             for top in (0.1, 0.2, 0.3):
