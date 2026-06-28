@@ -37,6 +37,27 @@
 - `Shareholding.RecentlyDeclareDate`:**✅ 存在** → 可精化外資持股 PIT(惟外資持股~日頻、date lag 小)。
 **結論:`release_lag` 法定 lag 做法正確、無須改;公告日欄存在但不在現有 lag-critical 特徵路徑。此項解決。**
 
+## 一-c、事件表完整度掃描(2026-06-28)+ ⚠️ 揪出 TaiwanStockDividend 塌列 bug
+
+8 事件表覆蓋(roster 全市場 3106 股):
+
+| 表 | 列 | 股 | 範圍 | 2330 | 判 |
+|---|---|---|---|---|---|
+| **Dividend(股利政策)** | 2411 | 2411 | 2005~2026 | **1** | ⚠️ **塌列 bug**(下) |
+| DividendResult(除權息結果) | 30161 | 2336 | 2003~2026 | 45 | ✅ 正常 |
+| CapitalReduction(減資) | 676 | 447 | 2011~2026 | 0 | ✅(2330 未減資)|
+| Delisting(下市) | 341 | 341 | 2001~2026 | 0 | ✅ PK=stock_id 正確(一股下市一次)|
+| SplitPrice(分割) | 31 | 29 | 2019~2026 | 0 | ✅ 罕見 |
+| ParValueChange(面額) | 16 | 15 | 2019~2025 | 0 | ✅ 罕見 |
+| Suspended(暫停) | 2190 | 2106 | **2025-03~2026** | 0 | 🟡 僅~1年(FinMind 該表史短?待文件)|
+| News(新聞) | 248萬 | 2912 | 2010~2026 | 42282 | ✅ 完整 |
+
+**⚠️ bug:`TaiwanStockDividend` PK=`stock_id` 單欄(表卻有 `date`/`year`)→ 同股多年股利經 `ON CONFLICT(stock_id)` 互蓋、僅存最新 1 筆**(2411 股各 1 列;2330 僅存 2026-06-17、史失;對比 DividendResult 2330=45 筆證明 2330 確有多年事件)。
+- **根因**:`_per_stock_sync` 首股窄樣本(某股僅 1 筆股利)→ `detect_keys` 鎖 PK=stock_id → 表建後固定 → 其餘股多年塌列。
+- **碼修(已改 `sync.py:_per_stock_sync`)**:per-stock store 亦傳 `require_keys=('date',)` 強制 date 入 PK(同 by-date 機制);單元驗證:首股 1 筆樣本下 PK 由 `[stock_id]`→`[stock_id,date]`。**date 不存則 detect_keys 自略過、無害既有表**。
+- **⏳ 資料重建待 token**:既有表 ensure_table 沿用舊 PK → 須 **DROP + re-sync** 才生效;**FinMind token 2026-06-24 到期 → 現無法 re-sync 驗證**。**未佯稱已修好資料(#7)**;token 續期後:`DROP TABLE "TaiwanStockDividend"` + 重跑 per-stock sync。
+- **影響評估**:Dividend 現未入任何生產特徵(34 特徵無股利因子)→ **不影響現 alpha**;惟若未來建股利特徵須先修。
+
 ## 二、FRED 12 series 定義(✅ 已驗、標準碼)
 
 | series | 定義 | 範圍 | 用途 |
@@ -73,9 +94,9 @@
 
 1. **224 財報 type 罕見 legacy 碼精確會計定義**(ExtraordinaryItems/CumulativeEffectOfChanges… )——**需 FinMind 文件/會計準則對照**,clean-room #1/#17 不杜撰。
 2. **衍生 FinMind 欄精確邊界**(_per 分母定義等)——**需 FinMind 文件**。
-3. **月/週/事件表「事件完整度」**(如 Dividend 是否漏公司、Delisting 是否齊)——**可數據掃、但低優先**(非 lag-critical、非橫斷面核心訊號)。
+3. **Suspended 表史短**(僅 2025-03~)——待 FinMind 文件確認是否該表本就史短 vs 漏抓。
 
-> **已從待驗移除(本 session 完成)**:逐欄單位(`verify_units`)、cashflow 逐 type 累計(`verify_cashflow_cumulative`:20累計/4水位/6混合)、ingestion+generic_schema 逐行、release_lag 公告日實證(法定 lag 正確)、早期 reports digest。
+> **已從待驗移除(本 session 完成)**:逐欄單位(`verify_units`)、cashflow 逐 type 累計(`verify_cashflow_cumulative`:20累計/4水位/6混合)、ingestion+generic_schema 逐行、release_lag 公告日實證(法定 lag 正確)、早期 reports digest、**事件表完整度(§一-c:8 表掃、揪出 Dividend 塌列 bug、碼已修待 token 重建)**。
 
 ## 五、誠實立場
 - **已達**:核心台股訊號表 + 財報表層語意 + FRED + 髒值 + 覆蓋 = **據實已驗、夠專案用**。

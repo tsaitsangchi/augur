@@ -193,7 +193,10 @@ def _per_stock_sync(conn, dataset, roster, start_floor, progress, *, mode="per-s
         nonlocal total, stocks
         for i, (sid, rows) in enumerate(pairs, 1):
             if rows:
-                total += ingest.store(conn, dataset, rows, data_id=sid)["rows"]
+                # require_keys=('date',):per-stock 亦強制 date 入 PK(同 by-date 機制)。防首股窄樣本(如某股僅
+                # 1 筆股利)→ detect_keys 鎖 PK=stock_id 單欄 → 其餘股多年事件 ON CONFLICT 互蓋塌列(實證
+                # 2026-06-28 TaiwanStockDividend:2411 股各僅 1 列、2330 史失)。date 不存則 detect_keys 自略過、無害。
+                total += ingest.store(conn, dataset, rows, data_id=sid, require_keys=("date",))["rows"]
                 stocks += 1
             elif rows is None:                    # None=抓取失敗(漏抓)→記;[]=真無資料→不記(_fetch_for_store 兩者區分)
                 failed.append(sid)
