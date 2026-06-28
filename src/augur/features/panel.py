@@ -27,7 +27,7 @@ import pandas as pd
 from psycopg2.extras import execute_values
 
 from augur.core import db
-from augur.features import chip, concentration, phase, valuation             # F2b 籌碼 + F2c 估值 + 八二集中度 + 康波相位
+from augur.features import chip, concentration, phase, release_lag, valuation  # F2b 籌碼 + F2c 估值 + 八二集中度 + 康波相位 + 發布日 gate
 
 FEATURE_TABLE = "feature_values"
 # recency gate(operational、透明揭露;審查 R3/R4/R7):最近還原價距 panel 超過此日數＝下市/長停更 →
@@ -50,7 +50,7 @@ _PRICE_SQL = (
 # 基本面 D:月營收 YoY(log)——最近月 vs 12 個月前;算不出(無歷史 / revenue≤0 / 缺 -12 月那筆)→ 缺列(#1)
 _REVENUE_SQL = (
     'SELECT date, revenue FROM "TaiwanStockMonthRevenue" '
-    'WHERE stock_id = %s AND date <= %s ORDER BY date DESC LIMIT 14'
+    'WHERE stock_id = %s AND date <= %s ORDER BY date DESC LIMIT 16'   # LIMIT 16:過發布日 gate 剔 ≤2 未公告月後仍 ≥13 供 YoY
 )
 
 
@@ -144,7 +144,9 @@ def build_panel(conn, panel_date, stock_ids, *, progress=None):
             continue
         df = pd.DataFrame(rows, columns=["date", "close", "volume", "money", "turnover", "high", "low"])
         feats = compute_features(df)
-        rev_yoy = _compute_revenue_yoy(rev_rows)                        # D:加月營收 YoY(算不出→缺列,自然排除非營利股/新上市無歷史股)
+        rev_rel = [(d, r) for d, r in rev_rows                          # 發布日 gate(#8 修洩漏):剔未公告月營收(次月15日才公開)
+                   if release_lag.revenue_released(d if isinstance(d, date) else date.fromisoformat(str(d)[:10]), _pdt)]
+        rev_yoy = _compute_revenue_yoy(rev_rel)                         # D:月營收 YoY(已過發布日 gate;算不出→缺列)
         if rev_yoy is not None:
             feats["monthly_revenue_yoy"] = rev_yoy
         feats.update(chip_feats)                                        # F2b:加 7 籌碼 features(各自算不出已過濾)
