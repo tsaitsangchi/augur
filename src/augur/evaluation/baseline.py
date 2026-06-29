@@ -18,6 +18,7 @@ from __future__ import annotations
 import numpy as np
 
 from augur.core import db
+from augur.evaluation import cross_section
 from augur.evaluation import label as label_mod
 from augur.evaluation import metrics, walkforward
 
@@ -63,15 +64,19 @@ def _asof_stocks(conn, panel_date):
         return [r[0] for r in cur.fetchall()]
 
 
-def _fold_xy(conn, panels, stocks, feats, h, calendar=None, asof=False):
+def _fold_xy(conn, panels, stocks, feats, h, calendar=None, asof=False, interactions=None):
     """組多 panel 之 (X, y_rank, panel_index)：y=H 日 forward 橫斷面 rank label。供 train 用。
-    asof=True 則每 panel 用該 panel 之 as-of 核心（point-in-time、#8）；False 用固定 stocks。"""
+    asof=True 則每 panel 用該 panel 之 as-of 核心（point-in-time、#8）；False 用固定 stocks。
+    interactions（opt-in）：每 panel 在 _panel_matrix 後、vstack 前對該 panel 橫斷面算交互 z 乘積
+    （cross_section.augment、綁當下宇宙 #8）；None＝不動既有行為。"""
     Xs, ys = [], []
     for pd_ in panels:
         sub = _asof_stocks(conn, pd_) if asof else stocks
         sids, X = _panel_matrix(conn, pd_, sub, feats)
         if len(sids) == 0:
             continue
+        if interactions:
+            X, _ = cross_section.augment(X, feats, interactions)          # 逐 panel 橫斷面 z 乘積（vstack 前、當下宇宙）
         lab = label_mod.labels(conn, pd_, sids, h, calendar=calendar)      # {sid: rank}
         keep = [(i, s) for i, s in enumerate(sids) if s in lab]
         if not keep:
@@ -80,11 +85,11 @@ def _fold_xy(conn, panels, stocks, feats, h, calendar=None, asof=False):
         Xs.append(X[idx])
         ys.append(np.array([lab[s] for _, s in keep]))
     if not Xs:
-        return np.empty((0, len(feats))), np.empty(0)
+        return np.empty((0, len(feats) + len(interactions or []))), np.empty(0)
     return np.vstack(Xs), np.concatenate(ys)
 
 
-def run_ladder(conn, panel_dates, h, stocks, *, feats=None, seed=42, mom_feature="momentum_20d", asof=False, robust=False):
+def run_ladder(conn, panel_dates, h, stocks, *, feats=None, seed=42, mom_feature="momentum_20d", asof=False, robust=False, interactions=None):
     """跑基準階梯 B0/B1/B2/M1 之 purged walk-forward → {model: metrics.summarize}。
 
     每折：train panels 組 (X,y) fit → test panel predict → rank IC（vs test forward label）。
@@ -108,6 +113,8 @@ def run_ladder(conn, panel_dates, h, stocks, *, feats=None, seed=42, mom_feature
         ts_sids, Xte = _panel_matrix(conn, test_pd, test_stocks, feats)
         if len(ts_sids) < 5:
             continue
+        if interactions:
+            Xte, _ = cross_section.augment(Xte, feats, interactions)     # test 側逐 panel 橫斷面 z（同 train 口徑、當下宇宙）
         lab = label_mod.labels(conn, test_pd, ts_sids, h, calendar=cal)  # test 真 label
         keep = [i for i, s in enumerate(ts_sids) if s in lab]
         if len(keep) < 5:
@@ -115,7 +122,7 @@ def run_ladder(conn, panel_dates, h, stocks, *, feats=None, seed=42, mom_feature
         Xte, ts_sids = Xte[keep], [ts_sids[i] for i in keep]
         ylab = {s: lab[s] for s in ts_sids}
 
-        Xtr, ytr = _fold_xy(conn, fold["train"], stocks, feats, h, calendar=cal, asof=asof)
+        Xtr, ytr = _fold_xy(conn, fold["train"], stocks, feats, h, calendar=cal, asof=asof, interactions=interactions)
         if len(ytr) < 50:                                              # train 樣本太少 → 跳折
             continue
 

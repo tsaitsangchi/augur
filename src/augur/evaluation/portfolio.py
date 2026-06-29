@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from augur.evaluation import baseline, walkforward
+from augur.evaluation import baseline, cross_section, walkforward
 from augur.evaluation import label as label_mod
 
 
@@ -42,7 +42,7 @@ def _turnover(cur_ids, prev_ids):
 
 
 def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
-                 long_short=False, weight="equal", seed=42, asof=True, cost=0.0):
+                 long_short=False, weight="equal", seed=42, asof=True, cost=0.0, interactions=None):
     """模型預測 → 投組 → 經濟指標(gross/net)+ 等權基準。
 
     weight：'equal'（等權 top）或 'pred'（預測值 rank 加權，正權重）。cost：來回成本（如 0.00585）套於換手。
@@ -63,11 +63,13 @@ def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
         sids, Xte = baseline._panel_matrix(conn, tpd, stocks, feats)
         if len(sids) < 10:
             continue
+        if interactions:
+            Xte, _ = cross_section.augment(Xte, feats, interactions)     # test 側逐 panel 橫斷面 z（當下宇宙、同 train 口徑）
         fwd = label_mod.forward_returns(conn, tpd, sids, h, calendar=cal)
         common = [s for s in sids if s in fwd]
         if len(common) < 10:
             continue
-        Xtr, ytr = baseline._fold_xy(conn, fold["train"], stocks, feats, h, calendar=cal, asof=asof)
+        Xtr, ytr = baseline._fold_xy(conn, fold["train"], stocks, feats, h, calendar=cal, asof=asof, interactions=interactions)
         if len(ytr) < 50:
             continue
         ci = [sids.index(s) for s in common]

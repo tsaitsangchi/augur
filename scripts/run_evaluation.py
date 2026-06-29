@@ -46,11 +46,11 @@ def _fmt(s):
     return f"IC {s['mean_ic']:+.3f}{t}{hr} (n={s['n_panels']})"
 
 
-def _run(conn, panels, h, core, asof, seeds):
+def _run(conn, panels, h, core, asof, seeds, interactions=None):
     """單 seed 直接 run_ladder；多 seed 對 4 模型 mean_ic 取平均（#15 stochastic）。"""
     if seeds <= 1:
-        return baseline.run_ladder(conn, panels, h, core, asof=asof)
-    runs = [baseline.run_ladder(conn, panels, h, core, seed=42 + k, asof=asof) for k in range(seeds)]
+        return baseline.run_ladder(conn, panels, h, core, asof=asof, interactions=interactions)
+    runs = [baseline.run_ladder(conn, panels, h, core, seed=42 + k, asof=asof, interactions=interactions) for k in range(seeds)]
     agg = {}
     for m in MODELS:
         ics = [r[m]["mean_ic"] for r in runs if r[m]["mean_ic"] is not None]
@@ -66,8 +66,10 @@ def main():
     ap.add_argument("--h", default="20,60", help="forward horizon 交易日（逗號分隔）")
     ap.add_argument("--asof", action="store_true", help="加跑 as-of point-in-time 口徑（消 survivorship）")
     ap.add_argument("--seeds", type=int, default=1, help="GBDT 多 seed 取統計（#15 stochastic）")
+    ap.add_argument("--interactions", default=None, help="加入交互特徵（逗號分隔、如 inter_fh_x_p10yr；eval 層橫斷面 z 乘積、見 cross_section.INTERACTIONS）")
     args = ap.parse_args()
     hs = [int(x) for x in args.h.split(",")]
+    inter = [s.strip() for s in args.interactions.split(",")] if args.interactions else None
 
     with db.connect() as conn:
         with db.transaction(conn) as cur:
@@ -77,12 +79,12 @@ def main():
             print("無面板或無核心股（先跑 build_feature_panel / build_core_universe）")
             return
         print(f"評估：{len(panels)} 面板（{panels[0]}..{panels[-1]}）× {len(core)} 核心股"
-              f" / H={hs} / seeds={args.seeds}")
+              f" / H={hs} / seeds={args.seeds}" + (f" / interactions={inter}" if inter else ""))
         modes = [("pan-hist", False)] + ([("as-of ", True)] if args.asof else [])
         for h in hs:
             print(f"\n── H={h} ──")
             for name, asof in modes:
-                res = _run(conn, panels, h, core, asof, args.seeds)
+                res = _run(conn, panels, h, core, asof, args.seeds, inter)
                 print(f"  [{name}]")
                 for m in MODELS:
                     print(f"    {m:12s} {_fmt(res[m])}")
