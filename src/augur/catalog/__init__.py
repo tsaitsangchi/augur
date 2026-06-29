@@ -317,15 +317,38 @@ def _upsert_columns(cur, dataset, cols):
 
 
 # ── 探測填表（orchestration + 逐 dataset 探測）──
-def build(conn, datasets=None, progress=None):
+def build(conn, datasets=None, progress=None, db_only=False):
     """探測 FinMind+FRED 全 dataset → 填 2 表。datasets=None 則全 `sync.daily_datasets()` + FRED。
-    ⚠️ 放量 #17（probe 經 finmind 三層限速）；須授權後跑。"""
+    ⚠️ 放量 #17（probe 經 finmind 三層限速）；須授權後跑。
+    db_only=True：純 DB 欄級 refresh——landed 表只從 DB 重算 column_catalog 型別/PK/髒值（`_db_metadata`+`_build_cols`），
+    **不打 API、不動 dataset_catalog 表級 metadata**；供 token 過期時對齊 catalog↔DB（#12 改 writer 重建、非 hand-patch）。"""
     with db.transaction(conn) as cur:
         bootstrap_catalog_tables(cur)
         roster_n = _roster_count(cur)
     targets = datasets or (finmind.list_datasets() + ["fred_series"])   # 全集(含 excluded、亦記其抓法);daily_datasets 會濾掉 intraday/BACKFILL_DEFERRED
     done = 0
     for ds in targets:
+        if db_only:                                        # 純 DB 欄級 refresh（無 API、不動表級;保留現有策展 dirty/caveat/中文）
+            with db.transaction(conn) as cur:
+                if not generic_schema.db_columns(cur, ds):
+                    continue
+                cur.execute("SELECT column_name, dirty_value_note, type_caveat, column_name_zh, zh_source "
+                            "FROM column_catalog WHERE dataset=%s", (ds,))
+                keep = {r[0]: r[1:] for r in cur.fetchall()}   # 現有策展（DB 回填之 dirty/caveat、中文）
+            col_types, pk = _db_metadata(conn, ds)[:2]
+            cols = _build_cols(ds, col_types, pk)              # DB 真值之型別/PK（+ code 字典 dirty）
+            for c in cols:                                     # 校正型別/PK，**保留現有策展**（dirty/caveat/中文不因 refresh 丟失）
+                k = keep.get(c["column_name"])
+                if k:
+                    c["dirty_value_note"] = c["dirty_value_note"] or k[0]
+                    c["type_caveat"] = c["type_caveat"] or k[1]
+                    c["column_name_zh"], c["zh_source"] = k[2], k[3]
+            with db.transaction(conn) as cur:
+                _upsert_columns(cur, ds, cols)
+            done += 1
+            if progress:
+                progress(f"[{done}] {ds}: DB-only 欄級 refresh · {len(col_types)} 欄")
+            continue
         meta, cols = probe_dataset(conn, ds, progress=progress, roster_n=roster_n)
         meta["fetch_mode"], est = optimal_mode(meta)
         if meta.get("fetch_mode") == "by-date" and meta.get("reconcile_scope") in ("roster-scoped", "by-dim-id"):
@@ -337,7 +360,7 @@ def build(conn, datasets=None, progress=None):
         if progress:
             progress(f"[{done}/{len(targets)}] {ds}: {meta['fetch_mode']}(~{est} calls) · "
                      f"{len(cols)} 欄 · 最早 {meta.get('earliest_date')}")
-    n_tzh = seed_table_zh(conn)                            # 表級中文名(datasets_zh.md 表頭｜後 + curated；完整性 #20:表級＋欄級一次補齊)
+    n_tzh = 0 if db_only else seed_table_zh(conn)          # 表級中文名(db_only 不動表級;datasets_zh.md 表頭｜後 + curated；完整性 #20)
     n_zh = seed_column_zh(conn)                            # 欄級中文(金融用語、no-API)
     if progress:
         progress(f"seed 中文: 表名 {n_tzh} 表 + 欄名 {n_zh} 欄")

@@ -22,12 +22,14 @@ from augur import catalog
 def main():
     ap = argparse.ArgumentParser(description="探測 FinMind+FRED 填 metadata catalog（放量 #17）")
     ap.add_argument("--datasets", help="逗號分隔子集；省略＝全 sync.daily_datasets() + FRED")
+    ap.add_argument("--db-only", action="store_true",
+                    help="純 DB 欄級 refresh（不打 API、不動表級 dataset_catalog；對齊 column_catalog↔DB、token 過期可用）")
     args = ap.parse_args()
     targets = args.datasets.split(",") if args.datasets else None
     with db.connect() as conn:
         with db.transaction(conn) as cur:
             schema.bootstrap_infra(cur)   # 順手建抓取要寫的 infra log 表（憲章 PHASE 1）→ 換機一指令備齊全 infra
-        result = catalog.build(conn, datasets=targets, progress=print)
+        result = catalog.build(conn, datasets=targets, progress=print, db_only=args.db_only)
     print(f"完成: {result}")
 
 
