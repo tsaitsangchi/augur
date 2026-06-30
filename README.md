@@ -11,7 +11,7 @@ Augur 從 FinMind / FRED 抓進可溯源的日級資料，算成 source-pure 特
 
 它的每一條紀律都在防三個敵人：**① 假資料 · ② 偷看未來 · ③ 自我欺騙**。
 
-> 🚧 **狀態**：開發中。治權已立（原則精華 v1.7.1・20 條法律；憲章 v1.15.0・catalog 橫切元資料登錄 + 官方 datasets.md 入憲 + 特徵發現方法論入憲 + 配額感知暫停/續跑 + 特徵提拔關卡入憲 + 經濟價值驗證收尾關卡入憲 + 執行省 usage × 理解 ultracode 窮盡二分）；`core / ingestion / audit / features / universe` 已建並實跑，特徵層三鏡頭 8 特徵入生產（27→34）、經濟回測基礎(`evaluation/portfolio.py`)已建；raw 全市場全史 sync 暫停、轉 catalog-driven 規劃；`models`（F3）續建中。
+> 🚧 **狀態**：開發中。治權已立（原則精華 v1.7.1・20 條法律；憲章 v1.16.0・catalog 橫切元資料登錄 + 官方 datasets.md 入憲 + 特徵發現方法論入憲 + 配額感知暫停/續跑 + 特徵提拔關卡入憲 + 經濟價值驗證收尾關卡入憲 + 執行省 usage × 理解 ultracode 窮盡二分 + 投資哲學框架層入憲）；`core / ingestion / audit / features / universe` 已建並實跑，特徵層三鏡頭 8 特徵入生產（27→34）、經濟回測基礎(`evaluation/portfolio.py`)已建；raw 全市場全史 sync 暫停、轉 catalog-driven 規劃；`models`（F3）續建中。
 
 ---
 
@@ -19,9 +19,9 @@ Augur 從 FinMind / FRED 抓進可溯源的日級資料，算成 source-pure 特
 
 | 文件 | 角色 |
 |---|---|
-| [`docs/系統核心思想_v1.2.0.md`](docs/系統核心思想_v1.2.0.md) | **靈魂**：系統是什麼、為什麼、什麼絕不能違反 |
+| [`docs/系統核心思想_v1.3.0.md`](docs/系統核心思想_v1.3.0.md) | **靈魂**：系統是什麼、為什麼、什麼絕不能違反 |
 | [`docs/原則精華_v1.7.1.md`](docs/原則精華_v1.7.1.md) | **20 條不可違反原則**（三條基石：#1 / #8 / #15） |
-| [`docs/系統架構大憲章_v1.15.0.md`](docs/系統架構大憲章_v1.15.0.md) | **憲法**：三個敵人 × 管線 + 12-PHASE 維運 + 升版規則（+ 橫切 catalog 元資料登錄 + 官方 datasets.md 入憲 + 特徵發現方法論入憲 + 配額感知暫停/續跑 + 特徵提拔關卡 + 經濟價值驗證收尾關卡 + 執行省 usage × 理解 ultracode 窮盡二分入憲）|
+| [`docs/系統架構大憲章_v1.16.0.md`](docs/系統架構大憲章_v1.16.0.md) | **憲法**：三個敵人 × 管線 + 12-PHASE 維運 + 升版規則（+ 橫切 catalog 元資料登錄 + 官方 datasets.md 入憲 + 特徵發現方法論入憲 + 配額感知暫停/續跑 + 特徵提拔關卡 + 經濟價值驗證收尾關卡 + 執行省 usage × 理解 ultracode 窮盡二分 + 投資哲學框架層入憲）|
 | [`CLAUDE.md`](CLAUDE.md) | AI 協作工具規則 |
 
 ## 管線
