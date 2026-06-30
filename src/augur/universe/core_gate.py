@@ -48,6 +48,25 @@ CREATE TABLE IF NOT EXISTS {ASOF_TABLE} (
     PRIMARY KEY (as_of_date, stock_id)
 )"""
 
+# build 參數出處表（provenance）—— 每次 build 寫一列,使「這批核心股用什麼參數產生」可考、可精確重現
+# （解 2026-06-29 痛點:dump 成品之 core_universe 參數不可考。append 歷史、最新列＝當前快照之參數）
+META_TABLE = "core_universe_build_meta"
+DDL_META = f"""
+CREATE TABLE IF NOT EXISTS {META_TABLE} (
+    build_id            SERIAL PRIMARY KEY,
+    committed_at        TIMESTAMP NOT NULL DEFAULT now(),
+    scope               VARCHAR(16) NOT NULL,        -- 'pan_hist' | 'asof'
+    panel_start         DATE NOT NULL,
+    panel_end           DATE NOT NULL,
+    panel_count         INTEGER NOT NULL,
+    liquidity_pct       DOUBLE PRECISION,            -- 流動性下界百分位（NULL=不過濾）
+    liquidity_threshold DOUBLE PRECISION,            -- 算出之 dollar_volume_log_20d 閾值（asof=最新 panel）
+    conditional         TEXT,                         -- conditional 設定序列化（如 monthly_revenue_yoy=金融保險業|金控業）
+    feat_count          INTEGER NOT NULL,
+    feat_list           TEXT NOT NULL,               -- universal 特徵清單（逗號;使「用哪些 feat」可考）
+    core_count          INTEGER NOT NULL             -- 產出核心股數（asof=最新 panel）
+)"""
+
 # 候選空間定義（PHASE 6 前置;結構性排除、非完整度判定）—— 非 ETF、真台股個股代碼
 # ETF industry_category 全集（TaiwanStockInfo 實證 2026-06-24:'ETF' 261+'上櫃指數股票型基金(ETF)' 125+'上櫃ETF' 119=505 檔）
 ETF_INDUSTRY = ("ETF", "上櫃指數股票型基金(ETF)", "上櫃ETF")
@@ -57,8 +76,27 @@ _REAL_STOCK_PREDICATE = "stock_id ~ '^[0-9]'"
 
 
 def bootstrap(cur):
-    """建 core_universe 表（自建 DDL，冪等）。"""
+    """建 core_universe + build_meta 表（自建 DDL，冪等）。"""
     cur.execute(DDL)
+    cur.execute(DDL_META)
+
+
+def _conditional_str(conditional):
+    """conditional dict 序列化為可考字串（如 monthly_revenue_yoy=金融保險業|金控業;None→None）。"""
+    if not conditional:
+        return None
+    return ";".join(f"{k}={'|'.join(v)}" for k, v in conditional.items())
+
+
+def _write_build_meta(cur, scope, pds, feats, liquidity_pct, liquidity_threshold, conditional, core_count):
+    """寫 build 出處列（參數可考、可精確重現;append 歷史、最新列＝當前快照）。"""
+    cur.execute(DDL_META)
+    cur.execute(
+        f"INSERT INTO {META_TABLE} (scope, panel_start, panel_end, panel_count, "
+        f"liquidity_pct, liquidity_threshold, conditional, feat_count, feat_list, core_count) "
+        f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (scope, min(pds), max(pds), len(pds), liquidity_pct, liquidity_threshold,
+         _conditional_str(conditional), len(feats), ",".join(feats), core_count))
 
 
 def canonical_features(cur, panel_dates):
@@ -149,6 +187,8 @@ def build_universe(conn, panel_dates, *, features=None, liquidity_pct=None, cond
                 cur,
                 f"INSERT INTO {CORE_TABLE} (stock_id, panels, features) VALUES %s",
                 [(s, len(panel_dates), len(feats)) for s in core])
+        _write_build_meta(cur, "pan_hist", panel_dates, feats, liquidity_pct,
+                          extra.get("liquidity_threshold"), conditional, len(core))
     return {"core": len(core), "panels": len(panel_dates),
             "canonical_features": len(feats), "stock_ids": core, **extra}
 
@@ -167,13 +207,17 @@ def build_universe_asof(conn, panel_dates, *, features=None, liquidity_pct=None,
         cur.execute(DDL_ASOF)
         feats = sorted(features) if features else canonical_features(cur, pds)
         cur.execute(f"DELETE FROM {ASOF_TABLE}")          # 重建全 as-of 快照
+        last_extra = {}
         for i, t in enumerate(pds):
             sub = pds[: i + 1]                            # ≤ t 的 panels（point-in-time、不看未來）
-            core, _ = _select_core(cur, sub, feats, liquidity_pct=liquidity_pct, conditional=conditional)
+            core, last_extra = _select_core(cur, sub, feats, liquidity_pct=liquidity_pct, conditional=conditional)
             if core:
                 execute_values(
                     cur,
                     f"INSERT INTO {ASOF_TABLE} (as_of_date, stock_id, panels, features) VALUES %s",
                     [(t, s, len(sub), len(feats)) for s in core])
             summary[t] = len(core)
+        if pds:                                           # 寫 build 出處（asof 用最新 panel 之閾值/核心數）
+            _write_build_meta(cur, "asof", pds, feats, liquidity_pct,
+                              last_extra.get("liquidity_threshold"), conditional, summary[pds[-1]])
     return summary

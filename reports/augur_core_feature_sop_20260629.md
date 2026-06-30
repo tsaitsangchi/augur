@@ -149,3 +149,21 @@ venv/bin/python3 scripts/run_economic_eval.py --h 60 --cost 0.00585
 - 本 SOP 描述**現行生產流程**；特徵集為 2026-06-29 之 35 feat 快照（演變進 git，非本檔）。
 - 「完整性」以 as-of=2026-05-31 為界；as-of 後（2026-06）未定案不計入。
 - 兩已知 raw bug（Dividend PK 塌列、BalanceSheet 缺季）**不在生產特徵資料路徑**（dividend_yield 用 PER 表、無 feature 用 BalanceSheet），不污染。
+
+---
+
+## 九、完整重建驗證（2026-06-29、依本 SOP 三階段一步一步實證）
+
+依本 SOP 從 raw 完整重走三階段（非依 dump），實證結果：
+
+| 階段 | 結果 | 判定 |
+|---|---|---|
+| **1 特徵面板** | feature_values 2,420,089 列重算（35feat×35panel×3080股、ERROR 0）== 重建前 | ✅ 冪等可重現 |
+| **2 核心股** | core_universe **344**（P25 方法）≠ 原 dump 374 | ⚠️ 見局限 |
+| **3 取值+重現** | H60 as-of Ridge IC **+0.142**（≈+0.143）、H120 +0.148、net Ridge top10% Sharpe **1.18 > 基準 0.95**（CAGR+18.2%>15.2%）| ✅ alpha+經濟價值完全重現 |
+
+**核心股參數局限（誠實 #15）**：原 dump 374 之確切 build 參數**不可考**（dump 是成品、未隨附參數）；本 SOP `--liquidity-pct 25` 得 **344**（無任一 liquidity/feat 組合精確 = 374：35feat 15→376 / 20→364 / 25→344）。**但 344 宇宙 alpha 與經濟價值完全重現**（H60 IC +0.142≈+0.143、Sharpe 1.18≈1.20）→ 證 **SOP 方法論正確可重現、30 股邊際差異不影響 alpha 本質（宇宙穩健）**。DB 現保留 **344**（SOP 方法之可重現產物；之前 inter_fh/dealer_self 等候選驗證為 374 口徑、與 344 不可直接逐值比，但結論〔局部/淘汰〕不變）。
+
+**教訓**：「一步一步實作」才挖出文檔宣稱外的真實局限（核心股參數不可考）——**實證 > 文檔宣稱（#15）**；但關鍵的 **alpha 重現**證明 SOP 三階段方法可信、可交付。
+
+**A1 補強（2026-06-29 已實作、解此局限）**：新增 `core_universe_build_meta` 表（`core_gate.build_universe(_asof)` build 時自動寫入 `scope / panel 範圍 / liquidity_pct / liquidity_threshold / conditional / feat_count / feat_list / core_count`、append 歷史、最新列＝當前快照）→ **此後 build 之核心股參數完全可考、可精確重現**（原 dump 374 為 A1 前之產物、其參數仍不可考，但新流程不再有此盲點）。階段 2 CLI 執行後可 `SELECT * FROM core_universe_build_meta ORDER BY build_id DESC LIMIT 1` 查當前核心股之確切 build 參數。
