@@ -15,10 +15,13 @@ import re
 import sys
 import time
 import json
+import socket
 import urllib.request
 import urllib.parse
 
 from augur.core import db
+
+socket.setdefaulttimeout(45)   # 防 DNS/連線層 hang(補跑曾卡 0% CPU、urllib timeout 擋不住連線層)
 
 UA = {"User-Agent": "augur-research/1.0 (public-domain philosophy archival)"}
 CHAP_RE = r"^\s*(BOOK [IVXLC]+|THE [A-Z]+ BOOK|CHAPTER [IVXLC]+|MEDITATION [IVX]+|PART [IVX]+|SECTION [IVX]+)\.?\s*$"
@@ -58,7 +61,11 @@ def strip_gutenberg(txt):
     start = s.end() if s else 0
     e = re.search(r"\*\*\* ?END OF TH[EI][^*]*\*\*\*", txt) or re.search(r"\nEnd of (?:the )?Project Gutenberg", txt)
     end = e.start() if e else len(txt)
-    return txt[start:end].strip()
+    body = txt[start:end].strip()
+    body = re.sub(r"\[\[[^\]]*?\]\]", "", body).replace("[[", "").replace("]]", "")   # 去 [[pg]]/[[Greek]] 等標記
+    body = "\n".join(l for l in body.split("\n")
+                     if "Project Gutenberg" not in l and not l[:40].strip().startswith(("Produced by", "Transcribed", "E-text")))
+    return body.strip()
 
 
 def split_chapters(body):
