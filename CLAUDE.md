@@ -1,4 +1,4 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.12
+# CLAUDE.md — Augur AI 協作工具規則 v1.13
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.4.0.md` + `docs/原則精華_v1.7.1.md` + 憲章為準；
@@ -35,7 +35,7 @@
 14. **Commit / Push 須明示授權**：不自行 `git commit` / `git push`；用戶要求時遵守 git 安全協議（不 `--amend` 已 push、不 `--force` 主分支、不跳 hooks）。commit 訊息結尾加 `Co-Authored-By: Claude ...`。
 15. **PR / 遠端**：不自行建/關 PR、不在 issue 留言；影響遠端狀態的 `gh` 操作先確認。
 16. **研究報告**：寫入 `reports/`，命名 `<module>_<topic>_<YYYYMMDD>.md`。
-17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.7.1.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。**哲學素養框架層（憲章 v1.17.0 橫切 philosophy：投資哲學因子假說 ＋ 廣博哲學素養）之內容一律來源真實權威文獻（書籍／論文／原始文獻／公版原典），禁從 AI 平台生成內容入庫當真兆（敵人① / clean-room；`work_type` 禁 `ai_generated`、`license` 限 `public_domain`）；原典全文限**公版**、本地抓取解析（維基文庫 raw wikitext／Gutenberg）零 usage（#28）逐字無 AI 摘要（#1）；**納人類哲學經典**（投資哲學／戰略／行為財務＝因子假說來源；東西方哲學經典＝解讀／素養層）、**排除非哲學離題**（純物理／自然科學如相對論——「能抓≠該抓」）；廣博哲學全文量化零價值、僅素養／解讀、不產因子、不取代真實資料預測。**
+17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.7.1.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。**哲學素養框架層（憲章 v1.18.0 橫切 philosophy：投資哲學因子假說 ＋ 廣博哲學素養）之內容一律來源真實權威文獻（書籍／論文／原始文獻／公版原典），禁從 AI 平台生成內容入庫當真兆（敵人① / clean-room；`work_type` 禁 `ai_generated`、`license` 限 `public_domain`）；原典全文限**公版**、本地抓取解析（維基文庫 raw wikitext／Gutenberg）零 usage（#28）逐字無 AI 摘要（#1）；**納人類哲學經典**（投資哲學／戰略／行為財務＝因子假說來源；東西方哲學經典＝解讀／素養層）、**排除非哲學離題**（純物理／自然科學如相對論——「能抓≠該抓」）；廣博哲學全文量化零價值、僅素養／解讀、不產因子、不取代真實資料預測；**現代版權著作全文不可抓（法律 + #1），其核心精神經**真實文獻出處**的 `philosophy_principle` 條目 → `principle_factor_map` 因子假說 → **#14 經濟價值驗證**入庫（採用由 #14 裁決、非大師權威）；**嚴禁 AI 整理／摘要版權著作內容入庫**——AI 生成假兆（違 #1）＋ 侵權、`work_type`／`license` DB CHECK 硬擋（憲章 v1.18.0）**。**
 18. **程式標頭與命名慣例（精簡——不重蹈 stock_backend 50-230 行標頭）**：
     - **每支**：🎯 白話 docstring（這支在做什麼，給人看的）+ 一行「守原則 #X #Y」。
     - **CLI 入口程式**（sync / builder / trainer / validator）：再加簡短 usage / 指令段。
