@@ -62,6 +62,30 @@ DDL = [
         n_factor_map INTEGER NOT NULL,
         n_sources    INTEGER NOT NULL
     )""",
+    """CREATE TABLE IF NOT EXISTS philosophy_thinker (
+        thinker_id   SERIAL PRIMARY KEY,
+        name         VARCHAR(128) NOT NULL UNIQUE,    -- 英文/原文名（唯一）
+        name_zh      VARCHAR(128),
+        birth_year   INTEGER,                          -- 真實事實（不確定則 NULL、不杜撰 #1）
+        death_year   INTEGER,
+        nationality  VARCHAR(64),
+        bio          TEXT                              -- 簡介（真實事實、可溯源）
+    )""",
+    """CREATE TABLE IF NOT EXISTS philosophy_work (
+        work_id      SERIAL PRIMARY KEY,
+        thinker_id   INTEGER NOT NULL REFERENCES philosophy_thinker(thinker_id) ON DELETE CASCADE,
+        title        TEXT NOT NULL,                    -- 著作原題（真實已出版）
+        title_zh     VARCHAR(256),
+        year         INTEGER,                          -- 出版年（真實事實）
+        work_type    VARCHAR(32) NOT NULL,             -- book|paper|shareholder_letter（禁 ai_generated）
+        note         TEXT,
+        CHECK (work_type <> 'ai_generated')            -- #1：禁 AI 生成入庫（DB 層強制）
+    )""",
+    """CREATE TABLE IF NOT EXISTS school_thinker (
+        school_id    INTEGER NOT NULL REFERENCES philosophy_school(school_id) ON DELETE CASCADE,
+        thinker_id   INTEGER NOT NULL REFERENCES philosophy_thinker(thinker_id) ON DELETE CASCADE,
+        PRIMARY KEY (school_id, thinker_id)            -- 多對多：一學派多人、一人多學派
+    )""",
 ]
 
 # 首批策展（真實權威文獻、人工策展 #1/#15）。direction＝文獻預期 IC 方向（假說，validated_ic 待 P3 實證）。
@@ -168,6 +192,61 @@ SEED = [
                      "hypothesis": "待建 macro_regime（景氣對策信號/利率位階 context）調節報酬。",
                      "factors": [("macro_regime", 1)]}],
      "sources": [("Dalio, Principles for Navigating Big Debt Crises, 2018", "book")]},
+    {"name": "sun_tzu", "name_zh": "孫子兵法（戰略思維·類比）", "proponents": "孫武",
+     "thesis": "以兵法戰略（知彼知己 / 形勢 / 虛實 / 不戰而屈人之兵）類比投資之攻守、時機與風險管理。【類比框架、非學術因子;對映多為現有因子之共因子】",
+     "principles": [
+        {"statement": "「知彼知己,百戰不殆」——掌握對手（市場主力/法人）動向。",
+         "hypothesis": "【類比】籌碼動向（法人/外資淨買）正向預測（與 smart_money 共因子）。",
+         "factors": [("institutional_net_buy_ratio_20d", 1), ("foreign_holding_pct", 1)]},
+        {"statement": "「兵之形,避實而擊虛」——避高估（實）、擊低估（虛）。",
+         "hypothesis": "【類比】低估值（pe 低）＝虛、報酬高（與 value 共因子）。",
+         "factors": [("pe_ratio", -1)]},
+        {"statement": "「其勢險,其節短」「兵貴神速」——順勢而為、把握節奏。",
+         "hypothesis": "【類比】順勢動能/位階正向（與 momentum / cycle 共因子）。",
+         "factors": [("momentum_60d", 1), ("range_position_120d", 1)]},
+        {"statement": "「先為不可勝」「不戰而屈人之兵」——先立於不敗、控制風險。",
+         "hypothesis": "【類比】低波動（不敗之地）風險調整後較佳（與 low_vol 共因子）。",
+         "factors": [("volatility_60d", -1)]},
+     ],
+     "sources": [("孫武, 孫子兵法（十三篇）, 約西元前 5 世紀", "book"),
+                 ("曹操（魏武帝）注, 孫子略解, 約 200 AD", "book"),
+                 ("Samuel B. Griffith (trans.), Sun Tzu: The Art of War, Oxford University Press, 1963", "book")]},
+    {"name": "reflexivity", "name_zh": "反身性", "proponents": "George Soros（1930–、匈牙利裔美國、量子基金創辦人）",
+     "thesis": "市場反身性——參與者認知與市場互為因果、形成自我強化之盛衰循環（boom-bust）。",
+     "principles": [{"statement": "趨勢自我強化（盛衰循環）——順勢直到反轉。",
+                     "hypothesis": "【類比】趨勢動能/位階正向（與 momentum / cycle 共因子）。",
+                     "factors": [("momentum_120d", 1), ("range_position_120d", 1)]}],
+     "sources": [("Soros, The Alchemy of Finance, 1987", "book")]},
+    {"name": "livermore", "name_zh": "趨勢投機", "proponents": "Jesse Livermore（1877–1940、美國）",
+     "thesis": "順大勢、在關鍵點（pivotal point）進場、嚴設停損。",
+     "principles": [{"statement": "順勢、突破關鍵點。",
+                     "hypothesis": "【類比】動能/創新高正向（與 momentum 共因子）。",
+                     "factors": [("momentum_60d", 1), ("days_since_high_252d", -1)]}],
+     "sources": [("Lefèvre, Reminiscences of a Stock Operator, 1923", "book")]},
+    {"name": "wyckoff", "name_zh": "量價籌碼", "proponents": "Richard Wyckoff（1873–1934、美國）",
+     "thesis": "由量價行為判主力（composite operator）吸籌/出貨階段。",
+     "principles": [{"statement": "量價/籌碼集中揭示主力動向。",
+                     "hypothesis": "【類比】量能集中 + 法人動向正向（與 concentration / smart_money 共因子）。",
+                     "factors": [("volume_gini_60d", 1), ("institutional_net_buy_ratio_20d", 1)]}],
+     "sources": [("Wyckoff, The Richard D. Wyckoff Method of Trading in Stocks, 1931", "book")]},
+    {"name": "canslim", "name_zh": "CANSLIM（成長動能）", "proponents": "William O'Neil（1933–2023、美國、IBD 創辦人）",
+     "thesis": "CANSLIM——盈餘成長 + 創新高動能 + 機構認養之綜合成長股法。",
+     "principles": [{"statement": "盈餘/營收成長 + 價格動能 + 機構買進綜合。",
+                     "hypothesis": "【類比】成長 + 動能 + 籌碼正向（與 growth / momentum / smart_money 共因子）。",
+                     "factors": [("monthly_revenue_yoy", 1), ("momentum_60d", 1), ("institutional_net_buy_ratio_20d", 1)]}],
+     "sources": [("O'Neil, How to Make Money in Stocks, 1988", "book")]},
+    {"name": "templeton", "name_zh": "逆向全球", "proponents": "John Templeton（1912–2008、美國/巴哈馬）",
+     "thesis": "在極度悲觀點（point of maximum pessimism）買進、全球分散。",
+     "principles": [{"statement": "極度悲觀/超跌點買進。",
+                     "hypothesis": "【類比】超跌反轉（與 contrarian 共因子）。",
+                     "factors": [("days_since_high_252d", -1)]}],
+     "sources": [("Templeton & Phillips, Investing the Templeton Way, 2008", "book")]},
+    {"name": "kostolany", "name_zh": "心理週期", "proponents": "André Kostolany（1906–1999、匈牙利裔德國）",
+     "thesis": "市場短期由心理驅動、長期由基本面；雞蛋理論之週期位階。",
+     "principles": [{"statement": "心理週期位階（過熱/過冷）預測反轉。",
+                     "hypothesis": "【類比】週期位階（與 cycle 共因子）。",
+                     "factors": [("cycle_position_252d", 1)]}],
+     "sources": [("Kostolany, Die Kunst über Geld nachzudenken（一個投機者的告白）, 2000", "book")]},
 ]
 
 
@@ -201,4 +280,91 @@ def build(conn, seed=SEED):
                 n_map += len(rows)
         cur.execute("INSERT INTO philosophy_build_meta (n_schools, n_principles, n_factor_map, n_sources) "
                     "VALUES (%s,%s,%s,%s)", (n_sch, n_pri, n_map, n_src))
-    return {"schools": n_sch, "principles": n_pri, "factor_map": n_map, "sources": n_src}
+    people = build_people(conn)                        # 思想家 + 著作 + school↔thinker 關聯
+    return {"schools": n_sch, "principles": n_pri, "factor_map": n_map, "sources": n_src, **people}
+
+
+# 投資思想家個人資料 + 主要著作（真實策展、#1/#15 可溯源）。誠實邊界：策展**主要/代表著作**、非窮舉全目錄；
+# birth/death 不確定則 None（不杜撰）。著作為真實已出版物（可查證 title/year）。
+THINKERS = [
+    {"name": "Benjamin Graham", "zh": "班傑明·葛拉漢", "birth": 1894, "death": 1976, "nat": "美國（英國出生）",
+     "bio": "價值投資之父、哥倫比亞大學教授、巴菲特導師。", "schools": ["value"],
+     "works": [("Security Analysis", "證券分析", 1934, "book", "與 David Dodd 合著、價值投資奠基"),
+               ("The Intelligent Investor", "智慧型投資人", 1949, "book", "安全邊際、市場先生")]},
+    {"name": "Warren Buffett", "zh": "華倫·巴菲特", "birth": 1930, "death": None, "nat": "美國",
+     "bio": "波克夏·海瑟威董事長、價值投資實踐者。", "schools": ["quality", "value"],
+     "works": [("Berkshire Hathaway Shareholder Letters", "波克夏股東信", 1977, "shareholder_letter", "1977 年起每年、護城河與資本配置")]},
+    {"name": "Philip Fisher", "zh": "菲利普·費雪", "birth": 1907, "death": 2004, "nat": "美國",
+     "bio": "成長投資先驅、scuttlebutt 調查法。", "schools": ["growth"],
+     "works": [("Common Stocks and Uncommon Profits", "非常潛力股", 1958, "book", "成長股 15 要點")]},
+    {"name": "Howard Marks", "zh": "霍華·馬克斯", "birth": 1946, "death": None, "nat": "美國",
+     "bio": "橡樹資本創辦人、市場週期與風險。", "schools": ["cycle"],
+     "works": [("The Most Important Thing", "投資最重要的事", 2011, "book", "第二層思考、風險"),
+               ("Mastering the Market Cycle", "掌握市場週期", 2018, "book", "週期位階")]},
+    {"name": "Peter Lynch", "zh": "彼得·林區", "birth": 1944, "death": None, "nat": "美國",
+     "bio": "富達麥哲倫基金、GARP/PEG。", "schools": ["peg"],
+     "works": [("One Up on Wall Street", "選股戰略", 1989, "book", "PEG、買你懂的"),
+               ("Beating the Street", "征服股海", 1993, "book", None)]},
+    {"name": "Ray Dalio", "zh": "瑞·達利歐", "birth": 1949, "death": None, "nat": "美國",
+     "bio": "橋水基金創辦人、債務週期與原則。", "schools": ["macro_cycle"],
+     "works": [("Principles", "原則", 2017, "book", "生活與工作原則"),
+               ("Principles for Navigating Big Debt Crises", "大債危機", 2018, "book", "債務週期")]},
+    {"name": "George Soros", "zh": "喬治·索羅斯", "birth": 1930, "death": None, "nat": "美國（匈牙利裔）",
+     "bio": "量子基金、反身性理論。", "schools": ["reflexivity"],
+     "works": [("The Alchemy of Finance", "金融煉金術", 1987, "book", "反身性、盛衰循環")]},
+    {"name": "Jesse Livermore", "zh": "傑西·李佛摩", "birth": 1877, "death": 1940, "nat": "美國",
+     "bio": "傳奇投機客、趨勢與關鍵點。", "schools": ["livermore"],
+     "works": [("How to Trade in Stocks", "股票作手操盤術", 1940, "book", "關鍵點、停損")]},
+    {"name": "Richard Wyckoff", "zh": "理查·威科夫", "birth": 1873, "death": 1934, "nat": "美國",
+     "bio": "量價分析、主力 composite operator。", "schools": ["wyckoff"],
+     "works": [("The Richard D. Wyckoff Method of Trading in Stocks", "威科夫操盤法", 1931, "book", "量價、吸籌出貨階段")]},
+    {"name": "William O'Neil", "zh": "威廉·歐尼爾", "birth": 1933, "death": 2023, "nat": "美國",
+     "bio": "IBD 創辦人、CANSLIM。", "schools": ["canslim"],
+     "works": [("How to Make Money in Stocks", "笑傲股市", 1988, "book", "CANSLIM 法則")]},
+    {"name": "John Templeton", "zh": "約翰·坦伯頓", "birth": 1912, "death": 2008, "nat": "美國/巴哈馬",
+     "bio": "坦伯頓基金、逆向全球投資。", "schools": ["templeton"],
+     "works": [("Investing the Templeton Way", "坦伯頓教你逆向投資", 2008, "book", "與 Lauren Templeton 合著、極度悲觀點")]},
+    {"name": "André Kostolany", "zh": "安德烈·科斯托蘭尼", "birth": 1906, "death": 1999, "nat": "德國（匈牙利裔）",
+     "bio": "投機大師、雞蛋理論、心理週期。", "schools": ["kostolany"],
+     "works": [("Die Kunst über Geld nachzudenken", "一個投機者的告白", 2000, "book", "心理與週期")]},
+    {"name": "David Dreman", "zh": "大衛·卓曼", "birth": 1936, "death": None, "nat": "美國（加拿大裔）",
+     "bio": "逆向投資、過度反應理論。", "schools": ["contrarian"],
+     "works": [("Contrarian Investment Strategies", "逆向投資策略", 1998, "book", "低本益比逆向")]},
+    {"name": "Joel Greenblatt", "zh": "喬伊·葛林布拉特", "birth": 1957, "death": None, "nat": "美國",
+     "bio": "哥譚資本、神奇公式。", "schools": ["quality"],
+     "works": [("The Little Book That Beats the Market", "打敗大盤的獲利公式", 2005, "book", "神奇公式 ROC+EY"),
+               ("You Can Be a Stock Market Genius", "你也可以成為股市天才", 1997, "book", None)]},
+    {"name": "Daniel Kahneman", "zh": "丹尼爾·康納曼", "birth": 1934, "death": 2024, "nat": "美國（以色列裔）",
+     "bio": "心理學家、行為經濟學、2002 諾貝爾經濟學獎。", "schools": ["behavioral"],
+     "works": [("Thinking, Fast and Slow", "快思慢想", 2011, "book", "系統一/系統二"),
+               ("Prospect Theory: An Analysis of Decision under Risk", "展望理論", 1979, "paper", "與 Tversky、Econometrica")]},
+    {"name": "Eugene Fama", "zh": "尤金·法馬", "birth": 1939, "death": None, "nat": "美國",
+     "bio": "芝加哥大學、效率市場與因子模型、2013 諾貝爾經濟學獎。", "schools": ["size", "factor_carhart"],
+     "works": [("The Cross-Section of Expected Stock Returns", "預期股票報酬橫斷面", 1992, "paper", "與 French、三因子奠基")]},
+    {"name": "孫武", "zh": "孫武", "birth": None, "death": None, "nat": "中國（春秋齊國，約西元前 6 世紀）",
+     "bio": "兵聖、孫子兵法作者、吳國將領。", "schools": ["sun_tzu"],
+     "works": [("孫子兵法（十三篇）", "孫子兵法", None, "book", "約西元前 5 世紀、世界最早兵書之一")]},
+]
+
+
+def build_people(conn):
+    """落地投資思想家 + 主要著作（真實策展）+ school↔thinker 關聯。DELETE 重建（冪等）。"""
+    n_th = n_wk = n_link = 0
+    with db.transaction(conn) as cur:
+        cur.execute("SELECT name, school_id FROM philosophy_school")
+        sch_id = {r[0]: r[1] for r in cur.fetchall()}
+        cur.execute("DELETE FROM philosophy_thinker")          # CASCADE 連帶清 work + school_thinker
+        for t in THINKERS:
+            cur.execute("INSERT INTO philosophy_thinker (name, name_zh, birth_year, death_year, nationality, bio) "
+                        "VALUES (%s,%s,%s,%s,%s,%s) RETURNING thinker_id",
+                        (t["name"], t["zh"], t.get("birth"), t.get("death"), t.get("nat"), t.get("bio")))
+            tid = cur.fetchone()[0]; n_th += 1
+            for w in t.get("works", []):
+                cur.execute("INSERT INTO philosophy_work (thinker_id, title, title_zh, year, work_type, note) "
+                            "VALUES (%s,%s,%s,%s,%s,%s)", (tid, w[0], w[1], w[2], w[3], w[4]))
+                n_wk += 1
+            for sn in t.get("schools", []):
+                if sn in sch_id:
+                    cur.execute("INSERT INTO school_thinker (school_id, thinker_id) VALUES (%s,%s) ON CONFLICT DO NOTHING",
+                                (sch_id[sn], tid)); n_link += 1
+    return {"thinkers": n_th, "works": n_wk, "links": n_link}

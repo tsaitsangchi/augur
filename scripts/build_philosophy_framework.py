@@ -16,6 +16,7 @@ def main():
         res = framework.build(conn)
         print(f"投資哲學框架落地:{res['schools']} 學派 / {res['principles']} 原則 / "
               f"{res['factor_map']} 因子映射 / {res['sources']} 文獻來源（首批真實策展）")
+        print(f"思想家傳記:{res['thinkers']} 大師 / {res['works']} 著作 / {res['links']} school↔thinker 關聯")
 
 
 if __name__ == "__main__":
