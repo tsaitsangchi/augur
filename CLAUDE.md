@@ -1,4 +1,4 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.13
+# CLAUDE.md — Augur AI 協作工具規則 v1.14
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.4.0.md` + `docs/原則精華_v1.7.1.md` + 憲章為準；
@@ -38,7 +38,7 @@
 17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.7.1.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。**哲學素養框架層（憲章 v1.18.0 橫切 philosophy：投資哲學因子假說 ＋ 廣博哲學素養）之內容一律來源真實權威文獻（書籍／論文／原始文獻／公版原典），禁從 AI 平台生成內容入庫當真兆（敵人① / clean-room；`work_type` 禁 `ai_generated`、`license` 限 `public_domain`）；原典全文限**公版**、本地抓取解析（維基文庫 raw wikitext／Gutenberg）零 usage（#28）逐字無 AI 摘要（#1）；**納人類哲學經典**（投資哲學／戰略／行為財務＝因子假說來源；東西方哲學經典＝解讀／素養層）、**排除非哲學離題**（純物理／自然科學如相對論——「能抓≠該抓」）；廣博哲學全文量化零價值、僅素養／解讀、不產因子、不取代真實資料預測；**現代版權著作全文不可抓（法律 + #1），其核心精神經**真實文獻出處**的 `philosophy_principle` 條目 → `principle_factor_map` 因子假說 → **#14 經濟價值驗證**入庫（採用由 #14 裁決、非大師權威）；**嚴禁 AI 整理／摘要版權著作內容入庫**——AI 生成假兆（違 #1）＋ 侵權、`work_type`／`license` DB CHECK 硬擋（憲章 v1.18.0）**。**
 18. **程式標頭與命名慣例（精簡——不重蹈 stock_backend 50-230 行標頭）**：
     - **每支**：🎯 白話 docstring（這支在做什麼，給人看的）+ 一行「守原則 #X #Y」。
-    - **CLI 入口程式**（sync / builder / trainer / validator）：再加簡短 usage / 指令段。
+    - **CLI 入口程式**（sync / builder / trainer / validator）：再加**執行指令矩陣**（各用法實例，見 #29）。
     - **library 模組**：白話 docstring 即可，不需指令矩陣。
     - **不** per-file 複述憲章 § / 治權宣言（憲章 + 原則精華為 SSOT #12；標頭只引原則 #，不改寫）。
     - **不**寫 in-file 全修訂歷程 → 交給 git（演變史進 git，不入檔；對齊「憲法只記現行法律」）。
@@ -49,6 +49,13 @@
     - **一看就懂測試**：`augur.<package>.<module>` 單看即知做什麼、不必開檔；命名前自問 (a) 是領域詞嗎？(b) `package.module` 讀起來＝做什麼嗎？(c) 別的領域會搶這名（太通用）嗎？→ (c) 中即重取領域概念、合成單一內聚模組。
 19. **重大改動逐檔/逐段檢視 + 跨檔一致性**：實質改動**一支/一段做完讓用戶過目再進下一**，不批次傾倒（用戶 directive「一支一支來檢視」）。改動治權檔（核心思想 / 原則精華 / 憲章 / CLAUDE.md / README）或共用模組時，**檢查跨檔一致性**——一處改、全鏈對齊（如嚴格 source-pure 須三檔同步）。
 20. **多步驟 / 破壞性任務先計畫**：≥3 步或破壞性任務**先寫計畫 + 用戶確認後執行**（可用 plan mode）；不邊想邊做大改。
+
+29. **Script 個別可執行 × 資料驅動不 hardcode（用戶 directive 2026-07-02 入憲）**：`scripts/` 每支程式須滿足四件事——
+    - **(a) 個別可執行**：任何 cwd 直接 `python scripts/X.py` 即跑，**不依賴 `PYTHONPATH=src` 前置**——每支於 `import augur` 前 `import _bootstrap`（`scripts/_bootstrap.py` 自動插 `src/` 進 path、#12 單一住所），並與 `pip install -e .`（README 標準 setup）並存相容。無參數執行須 graceful（印指令矩陣或跑安全預設），不得裸 traceback。
+    - **(b) 資料驅動、不 hardcode 資料**：策展資料（人名冊 / 書目 / citation / 清單類）一律住 `data/` JSON（或 DB），程式為**通用引擎**讀檔執行；**新增資料＝加資料列（或新資料檔），不改程式**（呼應 #3 無白名單、#12 SSOT；datum 與 engine 分離）。實例：`seed_thinkers.py` + `data/philosophy/thinkers_management.json`。
+    - **(c) 通用可重用**：同型 script 合併為單一參數化工具（如 seed 三支引擎 thinkers/works/citations 取代六支 hardcode 批次檔），設計為未來不同情境重覆使用、擴充靠資料與參數。
+    - **(d) 指令矩陣 + 實測**：標頭 docstring 寫「**執行指令矩陣**」（各用法實例指令），且**須實測可執行**（#7；安全驗證分級：唯讀類實跑、放量類 import 級 + 最小單位 #25，不為驗證而觸 API 放量）。
+    - **效益**：用戶可自行執行零 usage（#28 本地優先）、新增資料不需 AI 改碼、script 數量收斂可維護。
 
 ## 四、Long-Running 工作流程
 
