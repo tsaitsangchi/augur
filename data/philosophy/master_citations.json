@@ -1,0 +1,102 @@
+[
+ {
+  "proponent": "Charlie Munger",
+  "school_zh": "品質/護城河",
+  "citation": "Munger, Poor Charlie's Almanack, 2005"
+ },
+ {
+  "proponent": "Seth Klarman",
+  "school_zh": "價值投資",
+  "citation": "Klarman, Margin of Safety, 1991"
+ },
+ {
+  "proponent": "Aswath Damodaran",
+  "school_zh": "價值投資",
+  "citation": "Damodaran, The Little Book of Valuation, 2011"
+ },
+ {
+  "proponent": "Nassim Taleb",
+  "school_zh": "逆向",
+  "citation": "Taleb, The Black Swan, 2007"
+ },
+ {
+  "proponent": "Nassim Taleb",
+  "school_zh": "低波動異常",
+  "citation": "Taleb, Antifragile, 2012"
+ },
+ {
+  "proponent": "Peter Lynch",
+  "school_zh": "成長價值（PEG）",
+  "citation": "Lynch, One Up on Wall Street, 1989"
+ },
+ {
+  "proponent": "William O'Neil",
+  "school_zh": "CANSLIM（成長動能）",
+  "citation": "O'Neil, How to Make Money in Stocks, 1988"
+ },
+ {
+  "proponent": "George Soros",
+  "school_zh": "反身性",
+  "citation": "Soros, The Alchemy of Finance, 1987"
+ },
+ {
+  "proponent": "Ray Dalio",
+  "school_zh": "總經/債務週期",
+  "citation": "Dalio, Big Debt Crises, 2018"
+ },
+ {
+  "proponent": "Robert Shiller",
+  "school_zh": "行為財務",
+  "citation": "Shiller, Irrational Exuberance, 2000"
+ },
+ {
+  "proponent": "Daniel Kahneman",
+  "school_zh": "行為財務",
+  "citation": "Kahneman, Thinking, Fast and Slow, 2011"
+ },
+ {
+  "proponent": "Richard Thaler",
+  "school_zh": "行為財務",
+  "citation": "Thaler, Misbehaving, 2015"
+ },
+ {
+  "proponent": "Philip Fisher",
+  "school_zh": "成長投資",
+  "citation": "Fisher, Common Stocks and Uncommon Profits, 1958"
+ },
+ {
+  "proponent": "Jesse Livermore",
+  "school_zh": "趨勢投機",
+  "citation": "Lefevre, Reminiscences of a Stock Operator, 1923"
+ },
+ {
+  "proponent": "André Kostolany",
+  "school_zh": "心理週期",
+  "citation": "Kostolany, Die Kunst über Geld nachzudenken, 2000"
+ },
+ {
+  "proponent": "John Templeton",
+  "school_zh": "逆向全球",
+  "citation": "Templeton, Investing the Templeton Way, 2008"
+ },
+ {
+  "proponent": "David Dreman",
+  "school_zh": "逆向",
+  "citation": "Dreman, Contrarian Investment Strategies, 1998"
+ },
+ {
+  "proponent": "Howard Marks",
+  "school_zh": "市場週期",
+  "citation": "Marks, Mastering the Market Cycle, 2018"
+ },
+ {
+  "proponent": "John Bogle",
+  "school_zh": "低波動異常",
+  "citation": "Bogle, Common Sense on Mutual Funds, 1999 (被動/低成本對照觀點)"
+ },
+ {
+  "proponent": "Burton Malkiel",
+  "school_zh": "低波動異常",
+  "citation": "Malkiel, A Random Walk Down Wall Street, 1973 (效率市場對照觀點)"
+ }
+]

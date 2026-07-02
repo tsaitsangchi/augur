@@ -1,0 +1,1066 @@
+[
+ {
+  "name_zh": "哈利·馬可維茲",
+  "name": "Harry Markowitz",
+  "birth_year": 1927,
+  "death_year": 2023,
+  "nationality": "美國",
+  "bio": "現代投資組合理論(MPT)、效率前緣,諾貝爾經濟學獎。"
+ },
+ {
+  "name_zh": "威廉·夏普",
+  "name": "William F. Sharpe",
+  "birth_year": 1934,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "資本資產定價模型(CAPM)、夏普比率,諾貝爾獎。"
+ },
+ {
+  "name_zh": "肯尼斯·法蘭奇",
+  "name": "Kenneth French",
+  "birth_year": 1954,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "Fama-French 三因子/五因子模型共同提出者。"
+ },
+ {
+  "name_zh": "法蘭科·莫迪利安尼",
+  "name": "Franco Modigliani",
+  "birth_year": 1918,
+  "death_year": 2003,
+  "nationality": "美國",
+  "bio": "MM 資本結構定理、生命週期假說,諾貝爾獎。"
+ },
+ {
+  "name_zh": "默頓·米勒",
+  "name": "Merton Miller",
+  "birth_year": 1923,
+  "death_year": 2000,
+  "nationality": "美國",
+  "bio": "MM 定理共同提出者,諾貝爾獎。"
+ },
+ {
+  "name_zh": "費雪·布萊克",
+  "name": "Fischer Black",
+  "birth_year": 1938,
+  "death_year": 1995,
+  "nationality": "美國",
+  "bio": "Black-Scholes 選擇權定價模型。"
+ },
+ {
+  "name_zh": "邁倫·舒爾斯",
+  "name": "Myron Scholes",
+  "birth_year": 1941,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "Black-Scholes 模型,諾貝爾獎。"
+ },
+ {
+  "name_zh": "羅伯特·默頓",
+  "name": "Robert C. Merton",
+  "birth_year": 1944,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "連續時間金融、選擇權定價,諾貝爾獎。"
+ },
+ {
+  "name_zh": "史蒂芬·羅斯",
+  "name": "Stephen Ross",
+  "birth_year": 1944,
+  "death_year": 2017,
+  "nationality": "美國",
+  "bio": "套利定價理論(APT)、代理理論。"
+ },
+ {
+  "name_zh": "羅伯特·席勒",
+  "name": "Robert Shiller",
+  "birth_year": 1946,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "行為財務、CAPE 本益比、非理性繁榮,諾貝爾獎。"
+ },
+ {
+  "name_zh": "理查·塞勒",
+  "name": "Richard Thaler",
+  "birth_year": 1945,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "行為經濟學、心理帳戶、推力,諾貝爾獎。"
+ },
+ {
+  "name_zh": "約翰·柏格",
+  "name": "John Bogle",
+  "birth_year": 1929,
+  "death_year": 2019,
+  "nationality": "美國",
+  "bio": "指數基金之父、Vanguard 創辦人、低成本被動投資。"
+ },
+ {
+  "name_zh": "波頓·墨基爾",
+  "name": "Burton Malkiel",
+  "birth_year": 1932,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "《漫步華爾街》、效率市場、隨機漫步。"
+ },
+ {
+  "name_zh": "阿斯瓦斯·達摩德仁",
+  "name": "Aswath Damodaran",
+  "birth_year": 1957,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "估值學(Valuation)權威、DCF 與相對估值。"
+ },
+ {
+  "name_zh": "查理·蒙格",
+  "name": "Charlie Munger",
+  "birth_year": 1924,
+  "death_year": 2023,
+  "nationality": "美國",
+  "bio": "多元思維模型、能力圈、波克夏副董。"
+ },
+ {
+  "name_zh": "塞斯·卡拉曼",
+  "name": "Seth Klarman",
+  "birth_year": 1957,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "《安全邊際》、深度價值投資。"
+ },
+ {
+  "name_zh": "納西姆·塔雷伯",
+  "name": "Nassim Nicholas Taleb",
+  "birth_year": 1960,
+  "death_year": null,
+  "nationality": "黎巴嫩／美國",
+  "bio": "黑天鵝、反脆弱、尾部風險。"
+ },
+ {
+  "name_zh": "本華·曼德博",
+  "name": "Benoit Mandelbrot",
+  "birth_year": 1924,
+  "death_year": 2010,
+  "nationality": "法國／美國",
+  "bio": "碎形幾何、市場的(錯誤)行為、厚尾。"
+ },
+ {
+  "name_zh": "盧卡·帕西奧利",
+  "name": "Luca Pacioli",
+  "birth_year": 1447,
+  "death_year": 1517,
+  "nationality": "義大利",
+  "bio": "複式簿記之父、《算術、幾何、比與比例概要》。"
+ },
+ {
+  "name_zh": "約翰·梅納德·凱因斯",
+  "name": "John Maynard Keynes",
+  "birth_year": 1883,
+  "death_year": 1946,
+  "nationality": "英國",
+  "bio": "總體經濟學、有效需求、選美理論(投資心理)。"
+ },
+ {
+  "name_zh": "米爾頓·傅利曼",
+  "name": "Milton Friedman",
+  "birth_year": 1912,
+  "death_year": 2006,
+  "nationality": "美國",
+  "bio": "貨幣主義、自由市場,諾貝爾獎。"
+ },
+ {
+  "name_zh": "弗里德里希·海耶克",
+  "name": "Friedrich Hayek",
+  "birth_year": 1899,
+  "death_year": 1992,
+  "nationality": "奧地利／英國",
+  "bio": "奧地利學派、自發秩序、景氣循環,諾貝爾獎。"
+ },
+ {
+  "name_zh": "約瑟夫·熊彼得",
+  "name": "Joseph Schumpeter",
+  "birth_year": 1883,
+  "death_year": 1950,
+  "nationality": "奧地利／美國",
+  "bio": "創造性破壞、創新與景氣循環。"
+ },
+ {
+  "name_zh": "尼古拉·康德拉季耶夫",
+  "name": "Nikolai Kondratiev",
+  "birth_year": 1892,
+  "death_year": 1938,
+  "nationality": "俄國",
+  "bio": "長波(康波)週期理論——augur 康波鏡頭之源。"
+ },
+ {
+  "name_zh": "海曼·明斯基",
+  "name": "Hyman Minsky",
+  "birth_year": 1919,
+  "death_year": 1996,
+  "nationality": "美國",
+  "bio": "金融不穩定假說、明斯基時刻。"
+ },
+ {
+  "name_zh": "彼得·杜拉克",
+  "name": "Peter Drucker",
+  "birth_year": 1909,
+  "death_year": 2005,
+  "nationality": "奧地利／美國",
+  "bio": "現代管理學之父、目標管理、知識工作者。"
+ },
+ {
+  "name_zh": "麥可·波特",
+  "name": "Michael Porter",
+  "birth_year": 1947,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "競爭策略、五力分析、價值鏈、競爭優勢(護城河)。"
+ },
+ {
+  "name_zh": "亨利·明茲伯格",
+  "name": "Henry Mintzberg",
+  "birth_year": 1939,
+  "death_year": null,
+  "nationality": "加拿大",
+  "bio": "管理角色、策略形成、組織構型。"
+ },
+ {
+  "name_zh": "彼得·聖吉",
+  "name": "Peter Senge",
+  "birth_year": 1947,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "《第五項修練》、學習型組織、系統思考。"
+ },
+ {
+  "name_zh": "詹姆·柯林斯",
+  "name": "Jim Collins",
+  "birth_year": 1958,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "《從A到A+》、刺蝟原則、第五級領導。"
+ },
+ {
+  "name_zh": "克雷頓·克里斯汀生",
+  "name": "Clayton Christensen",
+  "birth_year": 1952,
+  "death_year": 2020,
+  "nationality": "美國",
+  "bio": "破壞式創新、創新者的兩難。"
+ },
+ {
+  "name_zh": "弗雷德里克·泰勒",
+  "name": "Frederick Winslow Taylor",
+  "birth_year": 1856,
+  "death_year": 1915,
+  "nationality": "美國",
+  "bio": "科學管理之父、時間動作研究。"
+ },
+ {
+  "name_zh": "亨利·費堯",
+  "name": "Henri Fayol",
+  "birth_year": 1841,
+  "death_year": 1925,
+  "nationality": "法國",
+  "bio": "管理程序學派、管理五功能十四原則。"
+ },
+ {
+  "name_zh": "切斯特·巴納德",
+  "name": "Chester Barnard",
+  "birth_year": 1886,
+  "death_year": 1961,
+  "nationality": "美國",
+  "bio": "組織理論、非正式組織、權威接受論。"
+ },
+ {
+  "name_zh": "伊格爾·安索夫",
+  "name": "Igor Ansoff",
+  "birth_year": 1918,
+  "death_year": 2002,
+  "nationality": "美國",
+  "bio": "策略管理之父、安索夫矩陣。"
+ },
+ {
+  "name_zh": "羅伯·卡普蘭",
+  "name": "Robert S. Kaplan",
+  "birth_year": 1940,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "平衡計分卡、作業基礎成本制(ABC)。"
+ },
+ {
+  "name_zh": "蓋瑞·哈默爾",
+  "name": "Gary Hamel",
+  "birth_year": 1954,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "核心競爭力、策略意圖、管理創新。"
+ },
+ {
+  "name_zh": "湯姆·彼得斯",
+  "name": "Tom Peters",
+  "birth_year": 1942,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "《追求卓越》、7S 架構。"
+ },
+ {
+  "name_zh": "道格拉斯·麥格雷戈",
+  "name": "Douglas McGregor",
+  "birth_year": 1906,
+  "death_year": 1964,
+  "nationality": "美國",
+  "bio": "X 理論與 Y 理論(人性假設)。"
+ },
+ {
+  "name_zh": "亞伯拉罕·馬斯洛",
+  "name": "Abraham Maslow",
+  "birth_year": 1908,
+  "death_year": 1970,
+  "nationality": "美國",
+  "bio": "需求層次理論(管理與動機)。"
+ },
+ {
+  "name_zh": "愛德華茲·戴明",
+  "name": "W. Edwards Deming",
+  "birth_year": 1900,
+  "death_year": 1993,
+  "nationality": "美國",
+  "bio": "全面品質管理(TQM)、PDCA、統計品管、日本品質革命。"
+ },
+ {
+  "name_zh": "約瑟夫·朱蘭",
+  "name": "Joseph Juran",
+  "birth_year": 1904,
+  "death_year": 2008,
+  "nationality": "美國／羅馬尼亞",
+  "bio": "品質三部曲、朱蘭品質手冊、80/20 應用。"
+ },
+ {
+  "name_zh": "大野耐一",
+  "name": "Taiichi Ohno",
+  "birth_year": 1912,
+  "death_year": 1990,
+  "nationality": "日本",
+  "bio": "豐田生產系統(TPS)、及時生產(JIT)、七大浪費。"
+ },
+ {
+  "name_zh": "詹姆斯·沃馬克",
+  "name": "James P. Womack",
+  "birth_year": 1948,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "精實生產(Lean)、《改變世界的機器》。"
+ },
+ {
+  "name_zh": "艾利·高德拉特",
+  "name": "Eliyahu Goldratt",
+  "birth_year": 1947,
+  "death_year": 2011,
+  "nationality": "以色列",
+  "bio": "限制理論(TOC)、《目標》。"
+ },
+ {
+  "name_zh": "石川馨",
+  "name": "Kaoru Ishikawa",
+  "birth_year": 1915,
+  "death_year": 1989,
+  "nationality": "日本",
+  "bio": "品質圈、石川圖(魚骨圖)。"
+ },
+ {
+  "name_zh": "菲利普·克勞斯比",
+  "name": "Philip Crosby",
+  "birth_year": 1926,
+  "death_year": 2001,
+  "nationality": "美國",
+  "bio": "零缺陷、品質免費。"
+ },
+ {
+  "name_zh": "亨利·福特",
+  "name": "Henry Ford",
+  "birth_year": 1863,
+  "death_year": 1947,
+  "nationality": "美國",
+  "bio": "流水線大量生產、福特制。"
+ },
+ {
+  "name_zh": "馬克斯·韋伯",
+  "name": "Max Weber",
+  "birth_year": 1864,
+  "death_year": 1920,
+  "nationality": "德國",
+  "bio": "科層制(官僚制)、理性化、社會學奠基者。"
+ },
+ {
+  "name_zh": "赫伯特·賽門",
+  "name": "Herbert A. Simon",
+  "birth_year": 1916,
+  "death_year": 2001,
+  "nationality": "美國",
+  "bio": "有限理性、決策理論、行政行為,諾貝爾獎。"
+ },
+ {
+  "name_zh": "詹姆斯·馬奇",
+  "name": "James G. March",
+  "birth_year": 1928,
+  "death_year": 2018,
+  "nationality": "美國",
+  "bio": "組織學習、垃圾桶決策模型、探索與利用。"
+ },
+ {
+  "name_zh": "埃德加·沙因",
+  "name": "Edgar Schein",
+  "birth_year": 1928,
+  "death_year": 2023,
+  "nationality": "美國",
+  "bio": "組織文化三層次、歷程諮詢。"
+ },
+ {
+  "name_zh": "瑪莉·派克·傅麗特",
+  "name": "Mary Parker Follett",
+  "birth_year": 1868,
+  "death_year": 1933,
+  "nationality": "美國",
+  "bio": "管理先知、衝突整合、權力共享。"
+ },
+ {
+  "name_zh": "埃爾頓·梅奧",
+  "name": "Elton Mayo",
+  "birth_year": 1880,
+  "death_year": 1949,
+  "nationality": "澳洲／美國",
+  "bio": "霍桑實驗、人際關係學派。"
+ },
+ {
+  "name_zh": "克里斯·阿吉里斯",
+  "name": "Chris Argyris",
+  "birth_year": 1923,
+  "death_year": 2013,
+  "nationality": "美國",
+  "bio": "組織學習、雙環學習、行動科學。"
+ },
+ {
+  "name_zh": "華倫·班尼斯",
+  "name": "Warren Bennis",
+  "birth_year": 1925,
+  "death_year": 2014,
+  "nationality": "美國",
+  "bio": "現代領導學奠基者。"
+ },
+ {
+  "name_zh": "弗雷德里克·赫茲伯格",
+  "name": "Frederick Herzberg",
+  "birth_year": 1923,
+  "death_year": 2000,
+  "nationality": "美國",
+  "bio": "雙因子理論(激勵—保健)。"
+ },
+ {
+  "name_zh": "約翰·科特",
+  "name": "John Kotter",
+  "birth_year": 1947,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "變革管理八步驟、領導與管理之別。"
+ },
+ {
+  "name_zh": "大衛·史文森",
+  "name": "David Swensen",
+  "birth_year": 1954,
+  "death_year": 2021,
+  "nationality": "美國",
+  "bio": "耶魯模式、機構資產配置。"
+ },
+ {
+  "name_zh": "詹姆斯·西蒙斯",
+  "name": "James Simons",
+  "birth_year": 1938,
+  "death_year": 2024,
+  "nationality": "美國",
+  "bio": "量化投資、文藝復興科技、大獎章基金。"
+ },
+ {
+  "name_zh": "愛德華·索普",
+  "name": "Edward Thorp",
+  "birth_year": 1932,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "量化投資、《擊敗莊家》《擊敗市場》、凱利公式應用。"
+ },
+ {
+  "name_zh": "保羅·都鐸·瓊斯",
+  "name": "Paul Tudor Jones",
+  "birth_year": 1954,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "全球宏觀交易、風險控制。"
+ },
+ {
+  "name_zh": "史丹利·卓肯米勒",
+  "name": "Stanley Druckenmiller",
+  "birth_year": 1953,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "宏觀交易、集中下注。"
+ },
+ {
+  "name_zh": "朱利安·羅伯遜",
+  "name": "Julian Robertson",
+  "birth_year": 1932,
+  "death_year": 2022,
+  "nationality": "美國",
+  "bio": "老虎基金、多空選股。"
+ },
+ {
+  "name_zh": "傑瑞米·西格爾",
+  "name": "Jeremy Siegel",
+  "birth_year": 1945,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "《散戶投資正典》、股票長期報酬。"
+ },
+ {
+  "name_zh": "比爾·葛洛斯",
+  "name": "Bill Gross",
+  "birth_year": 1944,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "債券天王、PIMCO。"
+ },
+ {
+  "name_zh": "井尻雄士",
+  "name": "Yuji Ijiri",
+  "birth_year": 1935,
+  "death_year": 2017,
+  "nationality": "日本／美國",
+  "bio": "會計理論、三式簿記、動量會計。"
+ },
+ {
+  "name_zh": "威廉·佩頓",
+  "name": "William Paton",
+  "birth_year": 1889,
+  "death_year": 1991,
+  "nationality": "美國",
+  "bio": "會計理論奠基、公司實體理論。"
+ },
+ {
+  "name_zh": "羅伯特·安東尼",
+  "name": "Robert N. Anthony",
+  "birth_year": 1916,
+  "death_year": 2006,
+  "nationality": "美國",
+  "bio": "管理會計、責任中心。"
+ },
+ {
+  "name_zh": "華特·休哈特",
+  "name": "Walter A. Shewhart",
+  "birth_year": 1891,
+  "death_year": 1967,
+  "nationality": "美國",
+  "bio": "統計品質管制之父、控制圖、PDCA 原型。"
+ },
+ {
+  "name_zh": "新鄉重夫",
+  "name": "Shigeo Shingo",
+  "birth_year": 1909,
+  "death_year": 1990,
+  "nationality": "日本",
+  "bio": "防呆(Poka-yoke)、快速換模(SMED)、豐田生產。"
+ },
+ {
+  "name_zh": "田口玄一",
+  "name": "Genichi Taguchi",
+  "birth_year": 1924,
+  "death_year": 2012,
+  "nationality": "日本",
+  "bio": "田口方法、品質工程、損失函數。"
+ },
+ {
+  "name_zh": "阿曼德·費根堡",
+  "name": "Armand Feigenbaum",
+  "birth_year": 1922,
+  "death_year": 2014,
+  "nationality": "美國",
+  "bio": "全面品質管制(TQC)。"
+ },
+ {
+  "name_zh": "麥可·哈默",
+  "name": "Michael Hammer",
+  "birth_year": 1948,
+  "death_year": 2008,
+  "nationality": "美國",
+  "bio": "企業流程再造(BPR)。"
+ },
+ {
+  "name_zh": "亨利·伽斯柏",
+  "name": "Henry Chesbrough",
+  "birth_year": 1956,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "開放式創新。"
+ },
+ {
+  "name_zh": "艾瑞克·馮·希培",
+  "name": "Eric von Hippel",
+  "birth_year": 1941,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "使用者創新、創新民主化。"
+ },
+ {
+  "name_zh": "埃弗雷特·羅傑斯",
+  "name": "Everett Rogers",
+  "birth_year": 1931,
+  "death_year": 2004,
+  "nationality": "美國",
+  "bio": "創新擴散理論。"
+ },
+ {
+  "name_zh": "維傑·戈溫達拉簡",
+  "name": "Vijay Govindarajan",
+  "birth_year": 1949,
+  "death_year": null,
+  "nationality": "印度／美國",
+  "bio": "逆向創新、策略創新。"
+ },
+ {
+  "name_zh": "麗塔·麥奎斯",
+  "name": "Rita McGrath",
+  "birth_year": 1959,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "暫時性競爭優勢、發現導向規劃。"
+ },
+ {
+  "name_zh": "金偉燦",
+  "name": "W. Chan Kim",
+  "birth_year": 1951,
+  "death_year": null,
+  "nationality": "韓國",
+  "bio": "藍海策略、價值創新。"
+ },
+ {
+  "name_zh": "芮妮·莫伯尼",
+  "name": "Renée Mauborgne",
+  "birth_year": 1963,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "藍海策略共同提出者。"
+ },
+ {
+  "name_zh": "理查·魯梅特",
+  "name": "Richard Rumelt",
+  "birth_year": 1942,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "《好策略・壞策略》、策略核心。"
+ },
+ {
+  "name_zh": "大前研一",
+  "name": "Kenichi Ohmae",
+  "birth_year": 1943,
+  "death_year": null,
+  "nationality": "日本",
+  "bio": "策略家的智慧、3C 模型。"
+ },
+ {
+  "name_zh": "普哈拉",
+  "name": "C. K. Prahalad",
+  "birth_year": 1941,
+  "death_year": 2010,
+  "nationality": "印度／美國",
+  "bio": "核心競爭力、金字塔底層商機。"
+ },
+ {
+  "name_zh": "菲利普·科特勒",
+  "name": "Philip Kotler",
+  "birth_year": 1931,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "現代行銷學之父、行銷管理。"
+ },
+ {
+  "name_zh": "希奧多·李維特",
+  "name": "Theodore Levitt",
+  "birth_year": 1925,
+  "death_year": 2006,
+  "nationality": "德國／美國",
+  "bio": "行銷短視症、全球化。"
+ },
+ {
+  "name_zh": "艾爾·賴茲",
+  "name": "Al Ries",
+  "birth_year": 1926,
+  "death_year": 2022,
+  "nationality": "美國",
+  "bio": "定位(Positioning)理論。"
+ },
+ {
+  "name_zh": "傑克·屈特",
+  "name": "Jack Trout",
+  "birth_year": 1935,
+  "death_year": 2017,
+  "nationality": "美國",
+  "bio": "定位理論共同提出者。"
+ },
+ {
+  "name_zh": "道格拉斯·麥格雷戈",
+  "name": "Douglas McGregor",
+  "birth_year": 1906,
+  "death_year": 1964,
+  "nationality": "美國",
+  "bio": "X 理論與 Y 理論。"
+ },
+ {
+  "name_zh": "戴夫·尤瑞奇",
+  "name": "Dave Ulrich",
+  "birth_year": 1953,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "人力資源價值主張、HR 角色模型。"
+ },
+ {
+  "name_zh": "倫西斯·李克特",
+  "name": "Rensis Likert",
+  "birth_year": 1903,
+  "death_year": 1981,
+  "nationality": "美國",
+  "bio": "組織系統(System 1-4)、李克特量表。"
+ },
+ {
+  "name_zh": "弗雷德·費德勒",
+  "name": "Fred Fiedler",
+  "birth_year": 1922,
+  "death_year": 2017,
+  "nationality": "美國／奧地利",
+  "bio": "權變領導理論。"
+ },
+ {
+  "name_zh": "稻盛和夫",
+  "name": "Kazuo Inamori",
+  "birth_year": 1932,
+  "death_year": 2022,
+  "nationality": "日本",
+  "bio": "敬天愛人、阿米巴經營、京瓷/KDDI 創辦、日航重建;經營哲學代表。"
+ },
+ {
+  "name_zh": "松下幸之助",
+  "name": "Konosuke Matsushita",
+  "birth_year": 1894,
+  "death_year": 1989,
+  "nationality": "日本",
+  "bio": "經營之神、自來水哲學、事業部制;PHP 研究所。"
+ },
+ {
+  "name_zh": "澀澤榮一",
+  "name": "Eiichi Shibusawa",
+  "birth_year": 1840,
+  "death_year": 1931,
+  "nationality": "日本",
+  "bio": "日本資本主義之父、《論語與算盤》義利合一。"
+ },
+ {
+  "name_zh": "野中郁次郎",
+  "name": "Ikujiro Nonaka",
+  "birth_year": 1935,
+  "death_year": 2025,
+  "nationality": "日本",
+  "bio": "知識創造理論(SECI)、《創造知識的企業》,管理知識論。"
+ },
+ {
+  "name_zh": "查爾斯·韓第",
+  "name": "Charles Handy",
+  "birth_year": 1932,
+  "death_year": 2024,
+  "nationality": "愛爾蘭／英國",
+  "bio": "組織哲學家、酢漿草組織、第二曲線。"
+ },
+ {
+  "name_zh": "羅伯特·格林里夫",
+  "name": "Robert K. Greenleaf",
+  "birth_year": 1904,
+  "death_year": 1990,
+  "nationality": "美國",
+  "bio": "僕人式領導(Servant Leadership)。"
+ },
+ {
+  "name_zh": "蘇曼特拉·戈沙爾",
+  "name": "Sumantra Ghoshal",
+  "birth_year": 1948,
+  "death_year": 2004,
+  "nationality": "印度／英國",
+  "bio": "跨國管理、「壞理論驅逐好管理實踐」。"
+ },
+ {
+  "name_zh": "恩斯特·修馬克",
+  "name": "E. F. Schumacher",
+  "birth_year": 1911,
+  "death_year": 1977,
+  "nationality": "德國／英國",
+  "bio": "《小即是美》、佛教經濟學、適當技術。"
+ },
+ {
+  "name_zh": "弗雷德里克·萊盧",
+  "name": "Frederic Laloux",
+  "birth_year": null,
+  "death_year": null,
+  "nationality": "比利時",
+  "bio": "《重塑組織》、青色組織演化觀。"
+ },
+ {
+  "name_zh": "迪伊·霍克",
+  "name": "Dee Hock",
+  "birth_year": 1929,
+  "death_year": 2022,
+  "nationality": "美國",
+  "bio": "VISA 創辦人、混序組織(chaordic)。"
+ },
+ {
+  "name_zh": "曾仕強",
+  "name": "Tseng Shih-chiang",
+  "birth_year": 1934,
+  "death_year": 2018,
+  "nationality": "台灣",
+  "bio": "中國式管理、易經管理哲學。"
+ },
+ {
+  "name_zh": "羅納德·寇斯",
+  "name": "Ronald Coase",
+  "birth_year": 1910,
+  "death_year": 2013,
+  "nationality": "英國／美國",
+  "bio": "廠商的本質、交易成本、寇斯定理,諾貝爾獎。"
+ },
+ {
+  "name_zh": "奧利佛·威廉森",
+  "name": "Oliver Williamson",
+  "birth_year": 1932,
+  "death_year": 2020,
+  "nationality": "美國",
+  "bio": "交易成本經濟學、治理結構,諾貝爾獎。"
+ },
+ {
+  "name_zh": "卡爾·維克",
+  "name": "Karl Weick",
+  "birth_year": 1936,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "組織意會(sensemaking)、鬆散耦合、高可靠組織。"
+ },
+ {
+  "name_zh": "傑佛瑞·菲佛",
+  "name": "Jeffrey Pfeffer",
+  "birth_year": 1946,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "組織權力、資源依賴理論、循證管理。"
+ },
+ {
+  "name_zh": "吉爾特·霍夫斯泰德",
+  "name": "Geert Hofstede",
+  "birth_year": 1928,
+  "death_year": 2020,
+  "nationality": "荷蘭",
+  "bio": "國家文化維度理論(權力距離/不確定性規避…)。"
+ },
+ {
+  "name_zh": "阿爾弗雷德·錢德勒",
+  "name": "Alfred Chandler",
+  "birth_year": 1918,
+  "death_year": 2007,
+  "nationality": "美國",
+  "bio": "《戰略與結構》《看得見的手》、經營史學。"
+ },
+ {
+  "name_zh": "阿爾弗雷德·斯隆",
+  "name": "Alfred P. Sloan",
+  "birth_year": 1875,
+  "death_year": 1966,
+  "nationality": "美國",
+  "bio": "通用汽車事業部制、《我在通用的日子》。"
+ },
+ {
+  "name_zh": "安迪·葛洛夫",
+  "name": "Andrew Grove",
+  "birth_year": 1936,
+  "death_year": 2016,
+  "nationality": "匈牙利／美國",
+  "bio": "英特爾、《十倍速時代》、OKR 管理源頭。"
+ },
+ {
+  "name_zh": "傑克·威爾許",
+  "name": "Jack Welch",
+  "birth_year": 1935,
+  "death_year": 2020,
+  "nationality": "美國",
+  "bio": "GE 執行長、數一數二策略、六標準差推廣。"
+ },
+ {
+  "name_zh": "亨利·甘特",
+  "name": "Henry Gantt",
+  "birth_year": 1861,
+  "death_year": 1919,
+  "nationality": "美國",
+  "bio": "甘特圖、任務與獎金制。"
+ },
+ {
+  "name_zh": "法蘭克·吉爾布雷斯",
+  "name": "Frank Gilbreth",
+  "birth_year": 1868,
+  "death_year": 1924,
+  "nationality": "美國",
+  "bio": "動作研究、therbligs 基本動素。"
+ },
+ {
+  "name_zh": "莉蓮·吉爾布雷斯",
+  "name": "Lillian Gilbreth",
+  "birth_year": 1878,
+  "death_year": 1972,
+  "nationality": "美國",
+  "bio": "工業心理學、動作研究,管理學第一夫人。"
+ },
+ {
+  "name_zh": "維克托·弗魯姆",
+  "name": "Victor Vroom",
+  "birth_year": 1932,
+  "death_year": 2023,
+  "nationality": "加拿大／美國",
+  "bio": "期望理論、參與式決策模型。"
+ },
+ {
+  "name_zh": "肯·布蘭查",
+  "name": "Ken Blanchard",
+  "birth_year": 1939,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "情境領導 II、《一分鐘經理人》。"
+ },
+ {
+  "name_zh": "麥可·詹森",
+  "name": "Michael Jensen",
+  "birth_year": 1939,
+  "death_year": 2024,
+  "nationality": "美國",
+  "bio": "代理理論、Jensen's alpha、高階薪酬研究。"
+ },
+ {
+  "name_zh": "斯圖爾特·邁爾斯",
+  "name": "Stewart Myers",
+  "birth_year": 1940,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "啄食順序理論、實質選擇權。"
+ },
+ {
+  "name_zh": "詹姆士·托賓",
+  "name": "James Tobin",
+  "birth_year": 1918,
+  "death_year": 2002,
+  "nationality": "美國",
+  "bio": "Tobin's Q、資產組合選擇,諾貝爾獎。"
+ },
+ {
+  "name_zh": "約翰·林特納",
+  "name": "John Lintner",
+  "birth_year": 1916,
+  "death_year": 1983,
+  "nationality": "美國",
+  "bio": "CAPM 共同創立者、股利平滑模型。"
+ },
+ {
+  "name_zh": "查爾斯·霍恩格倫",
+  "name": "Charles Horngren",
+  "birth_year": 1926,
+  "death_year": 2011,
+  "nationality": "美國",
+  "bio": "成本會計/管理會計權威教科書。"
+ },
+ {
+  "name_zh": "雷·鮑爾",
+  "name": "Ray Ball",
+  "birth_year": 1944,
+  "death_year": null,
+  "nationality": "澳洲／美國",
+  "bio": "實證會計、盈餘公告市場反應(Ball-Brown 1968)。"
+ },
+ {
+  "name_zh": "威廉·比佛",
+  "name": "William Beaver",
+  "birth_year": 1940,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "財務比率破產預測、會計資訊觀。"
+ },
+ {
+  "name_zh": "羅伯特·庫珀",
+  "name": "Robert G. Cooper",
+  "birth_year": 1943,
+  "death_year": null,
+  "nationality": "加拿大",
+  "bio": "Stage-Gate 新產品開發流程。"
+ },
+ {
+  "name_zh": "蓋瑞·皮薩諾",
+  "name": "Gary Pisano",
+  "birth_year": null,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "研發與製造策略、《製造繁榮》。"
+ },
+ {
+  "name_zh": "詹姆斯·厄特巴克",
+  "name": "James Utterback",
+  "birth_year": null,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "創新動態學、主導設計(A-U 模型)。"
+ },
+ {
+  "name_zh": "金·克拉克",
+  "name": "Kim B. Clark",
+  "birth_year": 1949,
+  "death_year": null,
+  "nationality": "美國",
+  "bio": "產品開發績效、重量級團隊,哈佛商學院前院長。"
+ },
+ {
+  "name_zh": "威廉·阿伯內西",
+  "name": "William Abernathy",
+  "birth_year": 1933,
+  "death_year": 1983,
+  "nationality": "美國",
+  "bio": "生產力困境、A-U 創新模型。"
+ },
+ {
+  "name_zh": "約翰·奈夫",
+  "name": "John Neff",
+  "birth_year": 1931,
+  "death_year": 2019,
+  "nationality": "美國",
+  "bio": "溫莎基金、低本益比投資。"
+ },
+ {
+  "name_zh": "華特·許羅斯",
+  "name": "Walter Schloss",
+  "birth_year": 1916,
+  "death_year": 2012,
+  "nationality": "美國",
+  "bio": "葛拉漢派深度價值、分散低估值。"
+ },
+ {
+  "name_zh": "安東尼·波頓",
+  "name": "Anthony Bolton",
+  "birth_year": 1950,
+  "death_year": null,
+  "nationality": "英國",
+  "bio": "富達特殊情況基金、歐洲彼得林區。"
+ },
+ {
+  "name_zh": "是川銀藏",
+  "name": "Ginzo Korekawa",
+  "birth_year": 1897,
+  "death_year": 1992,
+  "nationality": "日本",
+  "bio": "日本股神、烏龜三原則、只吃八分飽。"
+ }
+]

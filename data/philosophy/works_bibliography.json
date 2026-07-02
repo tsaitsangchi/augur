@@ -1,0 +1,1136 @@
+[
+ {
+  "thinker": "哈利·馬可維茲",
+  "title": "Portfolio Selection: Efficient Diversification of Investments",
+  "title_zh": "投資組合選擇",
+  "year": 1959,
+  "work_type": "book"
+ },
+ {
+  "thinker": "威廉·夏普",
+  "title": "Portfolio Theory and Capital Markets",
+  "title_zh": "投資組合理論與資本市場",
+  "year": 1970,
+  "work_type": "book"
+ },
+ {
+  "thinker": "羅伯特·席勒",
+  "title": "Irrational Exuberance",
+  "title_zh": "非理性繁榮",
+  "year": 2000,
+  "work_type": "book"
+ },
+ {
+  "thinker": "羅伯特·席勒",
+  "title": "Animal Spirits",
+  "title_zh": "動物本能",
+  "year": 2009,
+  "work_type": "book"
+ },
+ {
+  "thinker": "理查·塞勒",
+  "title": "Misbehaving: The Making of Behavioral Economics",
+  "title_zh": "不當行為",
+  "year": 2015,
+  "work_type": "book"
+ },
+ {
+  "thinker": "理查·塞勒",
+  "title": "Nudge",
+  "title_zh": "推力",
+  "year": 2008,
+  "work_type": "book"
+ },
+ {
+  "thinker": "約翰·柏格",
+  "title": "Common Sense on Mutual Funds",
+  "title_zh": "共同基金必勝法則",
+  "year": 1999,
+  "work_type": "book"
+ },
+ {
+  "thinker": "約翰·柏格",
+  "title": "The Little Book of Common Sense Investing",
+  "title_zh": "約翰柏格投資常識",
+  "year": 2007,
+  "work_type": "book"
+ },
+ {
+  "thinker": "波頓·墨基爾",
+  "title": "A Random Walk Down Wall Street",
+  "title_zh": "漫步華爾街",
+  "year": 1973,
+  "work_type": "book"
+ },
+ {
+  "thinker": "阿斯瓦斯·達摩德仁",
+  "title": "Investment Valuation",
+  "title_zh": "投資估價",
+  "year": 1994,
+  "work_type": "book"
+ },
+ {
+  "thinker": "阿斯瓦斯·達摩德仁",
+  "title": "The Little Book of Valuation",
+  "title_zh": "從價值投資到獲利",
+  "year": 2011,
+  "work_type": "book"
+ },
+ {
+  "thinker": "查理·蒙格",
+  "title": "Poor Charlie's Almanack",
+  "title_zh": "窮查理的普通常識",
+  "year": 2005,
+  "work_type": "book"
+ },
+ {
+  "thinker": "塞斯·卡拉曼",
+  "title": "Margin of Safety",
+  "title_zh": "安全邊際",
+  "year": 1991,
+  "work_type": "book"
+ },
+ {
+  "thinker": "納西姆·塔雷伯",
+  "title": "Fooled by Randomness",
+  "title_zh": "隨機騙局",
+  "year": 2001,
+  "work_type": "book"
+ },
+ {
+  "thinker": "納西姆·塔雷伯",
+  "title": "The Black Swan",
+  "title_zh": "黑天鵝",
+  "year": 2007,
+  "work_type": "book"
+ },
+ {
+  "thinker": "納西姆·塔雷伯",
+  "title": "Antifragile",
+  "title_zh": "反脆弱",
+  "year": 2012,
+  "work_type": "book"
+ },
+ {
+  "thinker": "本華·曼德博",
+  "title": "The (Mis)Behavior of Markets",
+  "title_zh": "股價、棉花與尼羅河密碼",
+  "year": 2004,
+  "work_type": "book"
+ },
+ {
+  "thinker": "大衛·史文森",
+  "title": "Pioneering Portfolio Management",
+  "title_zh": "耶魯操盤手",
+  "year": 2000,
+  "work_type": "book"
+ },
+ {
+  "thinker": "愛德華·索普",
+  "title": "Beat the Dealer",
+  "title_zh": "擊敗莊家",
+  "year": 1962,
+  "work_type": "book"
+ },
+ {
+  "thinker": "愛德華·索普",
+  "title": "A Man for All Markets",
+  "title_zh": "他是賭神,更是股神",
+  "year": 2017,
+  "work_type": "book"
+ },
+ {
+  "thinker": "傑瑞米·西格爾",
+  "title": "Stocks for the Long Run",
+  "title_zh": "散戶投資正典",
+  "year": 1994,
+  "work_type": "book"
+ },
+ {
+  "thinker": "約翰·梅納德·凱因斯",
+  "title": "The General Theory of Employment, Interest and Money",
+  "title_zh": "就業、利息與貨幣的一般理論",
+  "year": 1936,
+  "work_type": "book"
+ },
+ {
+  "thinker": "米爾頓·傅利曼",
+  "title": "Capitalism and Freedom",
+  "title_zh": "資本主義與自由",
+  "year": 1962,
+  "work_type": "book"
+ },
+ {
+  "thinker": "米爾頓·傅利曼",
+  "title": "A Monetary History of the United States",
+  "title_zh": "美國貨幣史",
+  "year": 1963,
+  "work_type": "book"
+ },
+ {
+  "thinker": "弗里德里希·海耶克",
+  "title": "The Road to Serfdom",
+  "title_zh": "通往奴役之路",
+  "year": 1944,
+  "work_type": "book"
+ },
+ {
+  "thinker": "約瑟夫·熊彼得",
+  "title": "Capitalism, Socialism and Democracy",
+  "title_zh": "資本主義、社會主義與民主",
+  "year": 1942,
+  "work_type": "book"
+ },
+ {
+  "thinker": "約瑟夫·熊彼得",
+  "title": "The Theory of Economic Development",
+  "title_zh": "經濟發展理論",
+  "year": 1911,
+  "work_type": "book"
+ },
+ {
+  "thinker": "海曼·明斯基",
+  "title": "Stabilizing an Unstable Economy",
+  "title_zh": "穩定不穩定的經濟",
+  "year": 1986,
+  "work_type": "book"
+ },
+ {
+  "thinker": "彼得·杜拉克",
+  "title": "The Practice of Management",
+  "title_zh": "管理的實踐",
+  "year": 1954,
+  "work_type": "book"
+ },
+ {
+  "thinker": "彼得·杜拉克",
+  "title": "The Effective Executive",
+  "title_zh": "有效的管理者",
+  "year": 1966,
+  "work_type": "book"
+ },
+ {
+  "thinker": "彼得·杜拉克",
+  "title": "Innovation and Entrepreneurship",
+  "title_zh": "創新與創業精神",
+  "year": 1985,
+  "work_type": "book"
+ },
+ {
+  "thinker": "麥可·波特",
+  "title": "Competitive Strategy",
+  "title_zh": "競爭策略",
+  "year": 1980,
+  "work_type": "book"
+ },
+ {
+  "thinker": "麥可·波特",
+  "title": "Competitive Advantage",
+  "title_zh": "競爭優勢",
+  "year": 1985,
+  "work_type": "book"
+ },
+ {
+  "thinker": "亨利·明茲伯格",
+  "title": "The Rise and Fall of Strategic Planning",
+  "title_zh": "策略規劃的興衰",
+  "year": 1994,
+  "work_type": "book"
+ },
+ {
+  "thinker": "彼得·聖吉",
+  "title": "The Fifth Discipline",
+  "title_zh": "第五項修練",
+  "year": 1990,
+  "work_type": "book"
+ },
+ {
+  "thinker": "詹姆·柯林斯",
+  "title": "Good to Great",
+  "title_zh": "從A到A+",
+  "year": 2001,
+  "work_type": "book"
+ },
+ {
+  "thinker": "詹姆·柯林斯",
+  "title": "Built to Last",
+  "title_zh": "基業長青",
+  "year": 1994,
+  "work_type": "book"
+ },
+ {
+  "thinker": "克雷頓·克里斯汀生",
+  "title": "The Innovator's Dilemma",
+  "title_zh": "創新的兩難",
+  "year": 1997,
+  "work_type": "book"
+ },
+ {
+  "thinker": "克雷頓·克里斯汀生",
+  "title": "The Innovator's Solution",
+  "title_zh": "創新者的解答",
+  "year": 2003,
+  "work_type": "book"
+ },
+ {
+  "thinker": "弗雷德里克·泰勒",
+  "title": "The Principles of Scientific Management",
+  "title_zh": "科學管理原理",
+  "year": 1911,
+  "work_type": "book"
+ },
+ {
+  "thinker": "亨利·費堯",
+  "title": "General and Industrial Management",
+  "title_zh": "工業管理與一般管理",
+  "year": 1916,
+  "work_type": "book"
+ },
+ {
+  "thinker": "切斯特·巴納德",
+  "title": "The Functions of the Executive",
+  "title_zh": "經理人員的職能",
+  "year": 1938,
+  "work_type": "book"
+ },
+ {
+  "thinker": "伊格爾·安索夫",
+  "title": "Corporate Strategy",
+  "title_zh": "企業策略",
+  "year": 1965,
+  "work_type": "book"
+ },
+ {
+  "thinker": "羅伯·卡普蘭",
+  "title": "The Balanced Scorecard",
+  "title_zh": "平衡計分卡",
+  "year": 1996,
+  "work_type": "book"
+ },
+ {
+  "thinker": "蓋瑞·哈默爾",
+  "title": "Competing for the Future",
+  "title_zh": "競爭大未來",
+  "year": 1994,
+  "work_type": "book"
+ },
+ {
+  "thinker": "湯姆·彼得斯",
+  "title": "In Search of Excellence",
+  "title_zh": "追求卓越",
+  "year": 1982,
+  "work_type": "book"
+ },
+ {
+  "thinker": "道格拉斯·麥格雷戈",
+  "title": "The Human Side of Enterprise",
+  "title_zh": "企業的人性面",
+  "year": 1960,
+  "work_type": "book"
+ },
+ {
+  "thinker": "亞伯拉罕·馬斯洛",
+  "title": "Motivation and Personality",
+  "title_zh": "動機與人格",
+  "year": 1954,
+  "work_type": "book"
+ },
+ {
+  "thinker": "愛德華茲·戴明",
+  "title": "Out of the Crisis",
+  "title_zh": "轉危為安",
+  "year": 1986,
+  "work_type": "book"
+ },
+ {
+  "thinker": "愛德華茲·戴明",
+  "title": "The New Economics",
+  "title_zh": "新經濟學",
+  "year": 1993,
+  "work_type": "book"
+ },
+ {
+  "thinker": "約瑟夫·朱蘭",
+  "title": "Juran's Quality Handbook",
+  "title_zh": "朱蘭品質手冊",
+  "year": 1951,
+  "work_type": "book"
+ },
+ {
+  "thinker": "大野耐一",
+  "title": "Toyota Production System",
+  "title_zh": "豐田生產方式",
+  "year": 1978,
+  "work_type": "book"
+ },
+ {
+  "thinker": "詹姆斯·沃馬克",
+  "title": "The Machine That Changed the World",
+  "title_zh": "改變世界的機器",
+  "year": 1990,
+  "work_type": "book"
+ },
+ {
+  "thinker": "詹姆斯·沃馬克",
+  "title": "Lean Thinking",
+  "title_zh": "精實革命",
+  "year": 1996,
+  "work_type": "book"
+ },
+ {
+  "thinker": "艾利·高德拉特",
+  "title": "The Goal",
+  "title_zh": "目標",
+  "year": 1984,
+  "work_type": "book"
+ },
+ {
+  "thinker": "石川馨",
+  "title": "Guide to Quality Control",
+  "title_zh": "品質管制指南",
+  "year": 1968,
+  "work_type": "book"
+ },
+ {
+  "thinker": "菲利普·克勞斯比",
+  "title": "Quality Is Free",
+  "title_zh": "品質免費",
+  "year": 1979,
+  "work_type": "book"
+ },
+ {
+  "thinker": "亨利·福特",
+  "title": "My Life and Work",
+  "title_zh": "我的生活與工作",
+  "year": 1922,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Max Weber",
+  "title": "Economy and Society",
+  "title_zh": "經濟與社會",
+  "year": 1922,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Max Weber",
+  "title": "The Protestant Ethic and the Spirit of Capitalism",
+  "title_zh": "新教倫理與資本主義精神",
+  "year": 1905,
+  "work_type": "book"
+ },
+ {
+  "thinker": "赫伯特·賽門",
+  "title": "Administrative Behavior",
+  "title_zh": "管理行為",
+  "year": 1947,
+  "work_type": "book"
+ },
+ {
+  "thinker": "詹姆斯·馬奇",
+  "title": "Organizations",
+  "title_zh": "組織",
+  "year": 1958,
+  "work_type": "book"
+ },
+ {
+  "thinker": "詹姆斯·馬奇",
+  "title": "A Behavioral Theory of the Firm",
+  "title_zh": "企業行為理論",
+  "year": 1963,
+  "work_type": "book"
+ },
+ {
+  "thinker": "埃德加·沙因",
+  "title": "Organizational Culture and Leadership",
+  "title_zh": "組織文化與領導",
+  "year": 1985,
+  "work_type": "book"
+ },
+ {
+  "thinker": "瑪莉·派克·傅麗特",
+  "title": "Creative Experience",
+  "title_zh": "創造性經驗",
+  "year": 1924,
+  "work_type": "book"
+ },
+ {
+  "thinker": "埃爾頓·梅奧",
+  "title": "The Human Problems of an Industrial Civilization",
+  "title_zh": "工業文明中的人性問題",
+  "year": 1933,
+  "work_type": "book"
+ },
+ {
+  "thinker": "克里斯·阿吉里斯",
+  "title": "Organizational Learning",
+  "title_zh": "組織學習",
+  "year": 1978,
+  "work_type": "book"
+ },
+ {
+  "thinker": "華倫·班尼斯",
+  "title": "On Becoming a Leader",
+  "title_zh": "領導,不需要頭銜",
+  "year": 1989,
+  "work_type": "book"
+ },
+ {
+  "thinker": "弗雷德里克·赫茲伯格",
+  "title": "The Motivation to Work",
+  "title_zh": "工作的激勵",
+  "year": 1959,
+  "work_type": "book"
+ },
+ {
+  "thinker": "約翰·科特",
+  "title": "Leading Change",
+  "title_zh": "領導變革",
+  "year": 1996,
+  "work_type": "book"
+ },
+ {
+  "thinker": "井尻雄士",
+  "title": "The Foundations of Accounting Measurement",
+  "title_zh": "會計計量的基礎",
+  "year": 1967,
+  "work_type": "book"
+ },
+ {
+  "thinker": "華特·休哈特",
+  "title": "Economic Control of Quality of Manufactured Product",
+  "title_zh": "製造產品品質的經濟管制",
+  "year": 1931,
+  "work_type": "book"
+ },
+ {
+  "thinker": "新鄉重夫",
+  "title": "A Study of the Toyota Production System",
+  "title_zh": "豐田生產方式研究",
+  "year": 1981,
+  "work_type": "book"
+ },
+ {
+  "thinker": "田口玄一",
+  "title": "Introduction to Quality Engineering",
+  "title_zh": "品質工程導論",
+  "year": 1986,
+  "work_type": "book"
+ },
+ {
+  "thinker": "麥可·哈默",
+  "title": "Reengineering the Corporation",
+  "title_zh": "企業再造",
+  "year": 1993,
+  "work_type": "book"
+ },
+ {
+  "thinker": "亨利·伽斯柏",
+  "title": "Open Innovation",
+  "title_zh": "開放式創新",
+  "year": 2003,
+  "work_type": "book"
+ },
+ {
+  "thinker": "艾瑞克·馮·希培",
+  "title": "The Sources of Innovation",
+  "title_zh": "創新的來源",
+  "year": 1988,
+  "work_type": "book"
+ },
+ {
+  "thinker": "艾瑞克·馮·希培",
+  "title": "Democratizing Innovation",
+  "title_zh": "創新的民主化",
+  "year": 2005,
+  "work_type": "book"
+ },
+ {
+  "thinker": "埃弗雷特·羅傑斯",
+  "title": "Diffusion of Innovations",
+  "title_zh": "創新的擴散",
+  "year": 1962,
+  "work_type": "book"
+ },
+ {
+  "thinker": "金偉燦",
+  "title": "Blue Ocean Strategy",
+  "title_zh": "藍海策略",
+  "year": 2005,
+  "work_type": "book"
+ },
+ {
+  "thinker": "理查·魯梅特",
+  "title": "Good Strategy Bad Strategy",
+  "title_zh": "好策略・壞策略",
+  "year": 2011,
+  "work_type": "book"
+ },
+ {
+  "thinker": "大前研一",
+  "title": "The Mind of the Strategist",
+  "title_zh": "策略家的智慧",
+  "year": 1982,
+  "work_type": "book"
+ },
+ {
+  "thinker": "普哈拉",
+  "title": "The Fortune at the Bottom of the Pyramid",
+  "title_zh": "金字塔底層大商機",
+  "year": 2004,
+  "work_type": "book"
+ },
+ {
+  "thinker": "菲利普·科特勒",
+  "title": "Marketing Management",
+  "title_zh": "行銷管理",
+  "year": 1967,
+  "work_type": "book"
+ },
+ {
+  "thinker": "艾爾·賴茲",
+  "title": "Positioning: The Battle for Your Mind",
+  "title_zh": "定位",
+  "year": 1981,
+  "work_type": "book"
+ },
+ {
+  "thinker": "戴夫·尤瑞奇",
+  "title": "Human Resource Champions",
+  "title_zh": "人力資源最佳實務",
+  "year": 1997,
+  "work_type": "book"
+ },
+ {
+  "thinker": "倫西斯·李克特",
+  "title": "New Patterns of Management",
+  "title_zh": "管理的新模式",
+  "year": 1961,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Martin Heidegger",
+  "title": "Being and Time",
+  "title_zh": "存在與時間",
+  "year": 1927,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Jean-Paul Sartre",
+  "title": "Being and Nothingness",
+  "title_zh": "存在與虛無",
+  "year": 1943,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Michel Foucault",
+  "title": "Discipline and Punish",
+  "title_zh": "規訓與懲罰",
+  "year": 1975,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Michel Foucault",
+  "title": "The Order of Things",
+  "title_zh": "詞與物",
+  "year": 1966,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Ludwig Wittgenstein",
+  "title": "Tractatus Logico-Philosophicus",
+  "title_zh": "邏輯哲學論",
+  "year": 1921,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Ludwig Wittgenstein",
+  "title": "Philosophical Investigations",
+  "title_zh": "哲學研究",
+  "year": 1953,
+  "work_type": "book"
+ },
+ {
+  "thinker": "John Rawls",
+  "title": "A Theory of Justice",
+  "title_zh": "正義論",
+  "year": 1971,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Karl Popper",
+  "title": "The Logic of Scientific Discovery",
+  "title_zh": "科學發現的邏輯",
+  "year": 1934,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Karl Popper",
+  "title": "The Open Society and Its Enemies",
+  "title_zh": "開放社會及其敵人",
+  "year": 1945,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Thomas Kuhn",
+  "title": "The Structure of Scientific Revolutions",
+  "title_zh": "科學革命的結構",
+  "year": 1962,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Jacques Derrida",
+  "title": "Of Grammatology",
+  "title_zh": "論文字學",
+  "year": 1967,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Jürgen Habermas",
+  "title": "The Theory of Communicative Action",
+  "title_zh": "溝通行動理論",
+  "year": 1981,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Hannah Arendt",
+  "title": "The Human Condition",
+  "title_zh": "人的條件",
+  "year": 1958,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Hannah Arendt",
+  "title": "The Origins of Totalitarianism",
+  "title_zh": "極權主義的起源",
+  "year": 1951,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Maurice Merleau-Ponty",
+  "title": "Phenomenology of Perception",
+  "title_zh": "知覺現象學",
+  "year": 1945,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Robert Nozick",
+  "title": "Anarchy, State, and Utopia",
+  "title_zh": "無政府、國家與烏托邦",
+  "year": 1974,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Isaiah Berlin",
+  "title": "Two Concepts of Liberty",
+  "title_zh": "自由的兩種概念",
+  "year": 1958,
+  "work_type": "book"
+ },
+ {
+  "thinker": "Richard Rorty",
+  "title": "Philosophy and the Mirror of Nature",
+  "title_zh": "哲學和自然之鏡",
+  "year": 1979,
+  "work_type": "book"
+ },
+ {
+  "thinker": "稻盛和夫",
+  "title": "Ikikata (A Compass to Fulfillment)",
+  "title_zh": "活法",
+  "year": 2004,
+  "work_type": "book"
+ },
+ {
+  "thinker": "稻盛和夫",
+  "title": "Amoeba Management",
+  "title_zh": "阿米巴經營",
+  "year": 2006,
+  "work_type": "book"
+ },
+ {
+  "thinker": "松下幸之助",
+  "title": "Michi wo Hiraku (The Path)",
+  "title_zh": "路是無限的寬廣",
+  "year": 1968,
+  "work_type": "book"
+ },
+ {
+  "thinker": "澀澤榮一",
+  "title": "Rongo to Soroban (The Analects and the Abacus)",
+  "title_zh": "論語與算盤",
+  "year": 1916,
+  "work_type": "book"
+ },
+ {
+  "thinker": "野中郁次郎",
+  "title": "The Knowledge-Creating Company",
+  "title_zh": "創造知識的企業",
+  "year": 1995,
+  "work_type": "book"
+ },
+ {
+  "thinker": "查爾斯·韓第",
+  "title": "The Age of Unreason",
+  "title_zh": "非理性的時代",
+  "year": 1989,
+  "work_type": "book"
+ },
+ {
+  "thinker": "查爾斯·韓第",
+  "title": "The Second Curve",
+  "title_zh": "第二曲線",
+  "year": 2015,
+  "work_type": "book"
+ },
+ {
+  "thinker": "羅伯特·格林里夫",
+  "title": "Servant Leadership",
+  "title_zh": "僕人領導學",
+  "year": 1977,
+  "work_type": "book"
+ },
+ {
+  "thinker": "蘇曼特拉·戈沙爾",
+  "title": "Managing Across Borders",
+  "title_zh": "跨界管理",
+  "year": 1989,
+  "work_type": "book"
+ },
+ {
+  "thinker": "恩斯特·修馬克",
+  "title": "Small Is Beautiful",
+  "title_zh": "小即是美",
+  "year": 1973,
+  "work_type": "book"
+ },
+ {
+  "thinker": "弗雷德里克·萊盧",
+  "title": "Reinventing Organizations",
+  "title_zh": "重塑組織",
+  "year": 2014,
+  "work_type": "book"
+ },
+ {
+  "thinker": "迪伊·霍克",
+  "title": "Birth of the Chaordic Age",
+  "title_zh": "混序時代的誕生",
+  "year": 1999,
+  "work_type": "book"
+ },
+ {
+  "thinker": "曾仕強",
+  "title": "Chinese-style Management",
+  "title_zh": "中國式管理",
+  "year": null,
+  "work_type": "book"
+ },
+ {
+  "thinker": "羅納德·寇斯",
+  "title": "The Nature of the Firm",
+  "title_zh": "廠商的本質",
+  "year": 1937,
+  "work_type": "paper"
+ },
+ {
+  "thinker": "羅納德·寇斯",
+  "title": "The Problem of Social Cost",
+  "title_zh": "社會成本問題",
+  "year": 1960,
+  "work_type": "paper"
+ },
+ {
+  "thinker": "奧利佛·威廉森",
+  "title": "The Economic Institutions of Capitalism",
+  "title_zh": "資本主義的經濟制度",
+  "year": 1985,
+  "work_type": "book"
+ },
+ {
+  "thinker": "卡爾·維克",
+  "title": "The Social Psychology of Organizing",
+  "title_zh": "組織的社會心理學",
+  "year": 1969,
+  "work_type": "book"
+ },
+ {
+  "thinker": "卡爾·維克",
+  "title": "Sensemaking in Organizations",
+  "title_zh": "組織中的意會",
+  "year": 1995,
+  "work_type": "book"
+ },
+ {
+  "thinker": "傑佛瑞·菲佛",
+  "title": "The External Control of Organizations",
+  "title_zh": "組織的外部控制",
+  "year": 1978,
+  "work_type": "book"
+ },
+ {
+  "thinker": "吉爾特·霍夫斯泰德",
+  "title": "Culture's Consequences",
+  "title_zh": "文化的後果",
+  "year": 1980,
+  "work_type": "book"
+ },
+ {
+  "thinker": "阿爾弗雷德·錢德勒",
+  "title": "Strategy and Structure",
+  "title_zh": "戰略與結構",
+  "year": 1962,
+  "work_type": "book"
+ },
+ {
+  "thinker": "阿爾弗雷德·錢德勒",
+  "title": "The Visible Hand",
+  "title_zh": "看得見的手",
+  "year": 1977,
+  "work_type": "book"
+ },
+ {
+  "thinker": "阿爾弗雷德·斯隆",
+  "title": "My Years with General Motors",
+  "title_zh": "我在通用的日子",
+  "year": 1963,
+  "work_type": "book"
+ },
+ {
+  "thinker": "安迪·葛洛夫",
+  "title": "High Output Management",
+  "title_zh": "葛洛夫給經理人的第一課",
+  "year": 1983,
+  "work_type": "book"
+ },
+ {
+  "thinker": "安迪·葛洛夫",
+  "title": "Only the Paranoid Survive",
+  "title_zh": "十倍速時代",
+  "year": 1996,
+  "work_type": "book"
+ },
+ {
+  "thinker": "傑克·威爾許",
+  "title": "Winning",
+  "title_zh": "致勝",
+  "year": 2005,
+  "work_type": "book"
+ },
+ {
+  "thinker": "亨利·甘特",
+  "title": "Work, Wages, and Profits",
+  "title_zh": "工作、工資與利潤",
+  "year": 1910,
+  "work_type": "book"
+ },
+ {
+  "thinker": "法蘭克·吉爾布雷斯",
+  "title": "Motion Study",
+  "title_zh": "動作研究",
+  "year": 1911,
+  "work_type": "book"
+ },
+ {
+  "thinker": "莉蓮·吉爾布雷斯",
+  "title": "The Psychology of Management",
+  "title_zh": "管理心理學",
+  "year": 1914,
+  "work_type": "book"
+ },
+ {
+  "thinker": "維克托·弗魯姆",
+  "title": "Work and Motivation",
+  "title_zh": "工作與激勵",
+  "year": 1964,
+  "work_type": "book"
+ },
+ {
+  "thinker": "肯·布蘭查",
+  "title": "The One Minute Manager",
+  "title_zh": "一分鐘經理人",
+  "year": 1982,
+  "work_type": "book"
+ },
+ {
+  "thinker": "麥可·詹森",
+  "title": "Theory of the Firm: Managerial Behavior, Agency Costs and Ownership Structure",
+  "title_zh": "廠商理論:代理成本與所有權結構",
+  "year": 1976,
+  "work_type": "paper"
+ },
+ {
+  "thinker": "斯圖爾特·邁爾斯",
+  "title": "The Capital Structure Puzzle",
+  "title_zh": "資本結構之謎",
+  "year": 1984,
+  "work_type": "paper"
+ },
+ {
+  "thinker": "詹姆士·托賓",
+  "title": "Liquidity Preference as Behavior Towards Risk",
+  "title_zh": "流動性偏好作為風險行為",
+  "year": 1958,
+  "work_type": "paper"
+ },
+ {
+  "thinker": "約翰·林特納",
+  "title": "The Valuation of Risk Assets and the Selection of Risky Investments",
+  "title_zh": "風險資產評價與風險投資選擇",
+  "year": 1965,
+  "work_type": "paper"
+ },
+ {
+  "thinker": "查爾斯·霍恩格倫",
+  "title": "Cost Accounting: A Managerial Emphasis",
+  "title_zh": "成本會計:管理重點",
+  "year": 1962,
+  "work_type": "book"
+ },
+ {
+  "thinker": "雷·鮑爾",
+  "title": "An Empirical Evaluation of Accounting Income Numbers",
+  "title_zh": "會計盈餘數字之實證評價",
+  "year": 1968,
+  "work_type": "paper"
+ },
+ {
+  "thinker": "威廉·比佛",
+  "title": "Financial Ratios as Predictors of Failure",
+  "title_zh": "財務比率作為破產預測指標",
+  "year": 1966,
+  "work_type": "paper"
+ },
+ {
+  "thinker": "羅伯特·庫珀",
+  "title": "Winning at New Products",
+  "title_zh": "新產品完全開發手冊",
+  "year": 1986,
+  "work_type": "book"
+ },
+ {
+  "thinker": "蓋瑞·皮薩諾",
+  "title": "Producing Prosperity",
+  "title_zh": "製造繁榮",
+  "year": 2012,
+  "work_type": "book"
+ },
+ {
+  "thinker": "詹姆斯·厄特巴克",
+  "title": "Mastering the Dynamics of Innovation",
+  "title_zh": "掌握創新動態",
+  "year": 1994,
+  "work_type": "book"
+ },
+ {
+  "thinker": "金·克拉克",
+  "title": "Product Development Performance",
+  "title_zh": "產品開發績效",
+  "year": 1991,
+  "work_type": "book"
+ },
+ {
+  "thinker": "威廉·阿伯內西",
+  "title": "The Productivity Dilemma",
+  "title_zh": "生產力困境",
+  "year": 1978,
+  "work_type": "book"
+ },
+ {
+  "thinker": "約翰·奈夫",
+  "title": "John Neff on Investing",
+  "title_zh": "約翰·奈夫談投資",
+  "year": 1999,
+  "work_type": "book"
+ },
+ {
+  "thinker": "安東尼·波頓",
+  "title": "Investing Against the Tide",
+  "title_zh": "逆勢出擊",
+  "year": 2009,
+  "work_type": "book"
+ },
+ {
+  "thinker": "是川銀藏",
+  "title": "Soubashi Ichidai (A Speculator's Life)",
+  "title_zh": "股市之神:是川銀藏",
+  "year": 1992,
+  "work_type": "book"
+ },
+ {
+  "thinker": "比爾·葛洛斯",
+  "title": "Bill Gross on Investing",
+  "title_zh": "葛洛斯談投資",
+  "year": 1997,
+  "work_type": "book"
+ },
+ {
+  "thinker": "威廉·佩頓",
+  "title": "Accounting Theory",
+  "title_zh": "會計理論",
+  "year": 1922,
+  "work_type": "book"
+ },
+ {
+  "thinker": "羅伯特·安東尼",
+  "title": "Planning and Control Systems: A Framework for Analysis",
+  "title_zh": "規劃與控制系統",
+  "year": 1965,
+  "work_type": "book"
+ },
+ {
+  "thinker": "阿曼德·費根堡",
+  "title": "Total Quality Control",
+  "title_zh": "全面品質管制",
+  "year": 1961,
+  "work_type": "book"
+ },
+ {
+  "thinker": "維傑·戈溫達拉簡",
+  "title": "Reverse Innovation",
+  "title_zh": "逆向創新",
+  "year": 2012,
+  "work_type": "book"
+ },
+ {
+  "thinker": "麗塔·麥奎斯",
+  "title": "The End of Competitive Advantage",
+  "title_zh": "瞬時競爭優勢",
+  "year": 2013,
+  "work_type": "book"
+ },
+ {
+  "thinker": "希奧多·李維特",
+  "title": "Marketing Myopia",
+  "title_zh": "行銷短視症",
+  "year": 1960,
+  "work_type": "paper"
+ },
+ {
+  "thinker": "傑克·屈特",
+  "title": "Differentiate or Die",
+  "title_zh": "區隔或死亡",
+  "year": 2000,
+  "work_type": "book"
+ },
+ {
+  "thinker": "弗雷德·費德勒",
+  "title": "A Theory of Leadership Effectiveness",
+  "title_zh": "領導效能理論",
+  "year": 1967,
+  "work_type": "book"
+ },
+ {
+  "thinker": "盧卡·帕西奧利",
+  "title": "Summa de arithmetica, geometria, proportioni et proportionalita",
+  "title_zh": "算術、幾何、比與比例概要",
+  "year": 1494,
+  "work_type": "book"
+ },
+ {
+  "thinker": "尼古拉·康德拉季耶夫",
+  "title": "The Major Economic Cycles",
+  "title_zh": "大經濟週期",
+  "year": 1925,
+  "work_type": "book"
+ }
+]
