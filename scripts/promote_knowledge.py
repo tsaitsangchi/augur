@@ -13,6 +13,7 @@
   python scripts/promote_knowledge.py --entity-type work --domain management
   python scripts/promote_knowledge.py --entity-type thinker --dry-run  # 只看會晉升什麼、不寫
 """
+import re
 import sys
 import json
 import argparse
@@ -21,19 +22,28 @@ import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 
+def _year(v):
+    """容 '1714' / '1714-01-01' / '-0428' / int / None(壞值→None 不編造)。"""
+    if v in (None, ""):
+        return None
+    m = re.match(r"^(-?\d{1,4})", str(v).strip())
+    return int(m.group(1)) if m else None
+
+
 def promote_thinker(cur, p, source_key=None):
-    name, name_zh = p.get("name"), p.get("name_zh")
+    name, name_zh = p.get("name"), p.get("name_zh") or p.get("zh")
     if not (name or name_zh):
         return "rejected"
     cur.execute("SELECT 1 FROM philosophy_thinker WHERE name_zh=%s OR name=%s", (name_zh or name, name or name_zh))
     if cur.fetchone():
         return "dup"
-    birth = p.get("birth_year") or p.get("birth")
-    death = p.get("death_year") or p.get("death")
+    birth = _year(p.get("birth_year") or p.get("birth"))
+    death = _year(p.get("death_year") or p.get("death"))
+    if birth and death and death < birth:                 # 資料錯(如 BC 存正)→ 清 NULL 不入錯值
+        birth = death = None
     cur.execute("INSERT INTO philosophy_thinker (name,name_zh,birth_year,death_year,nationality,bio,source) "
                 "VALUES (%s,%s,%s,%s,%s,%s,%s)",
-                (name, name_zh, int(birth) if birth else None, int(death) if death else None,
-                 p.get("nationality"), p.get("bio"), source_key))
+                (name, name_zh, birth, death, p.get("nationality"), p.get("bio"), source_key))
     return "ok"
 
 
