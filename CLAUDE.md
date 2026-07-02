@@ -1,4 +1,4 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.14
+# CLAUDE.md — Augur AI 協作工具規則 v1.15
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.4.0.md` + `docs/原則精華_v1.7.1.md` + 憲章為準；
@@ -52,8 +52,8 @@
 
 29. **Script 個別可執行 × 資料驅動不 hardcode（用戶 directive 2026-07-02 入憲）**：`scripts/` 每支程式須滿足四件事——
     - **(a) 個別可執行**：任何 cwd 直接 `python scripts/X.py` 即跑，**不依賴 `PYTHONPATH=src` 前置**——每支於 `import augur` 前 `import _bootstrap`（`scripts/_bootstrap.py` 自動插 `src/` 進 path、#12 單一住所），並與 `pip install -e .`（README 標準 setup）並存相容。無參數執行須 graceful（印指令矩陣或跑安全預設），不得裸 traceback。
-    - **(b) 資料驅動、不 hardcode 資料**：策展資料（人名冊 / 書目 / citation / 清單類）一律住 `data/` JSON（或 DB），程式為**通用引擎**讀檔執行；**新增資料＝加資料列（或新資料檔），不改程式**（呼應 #3 無白名單、#12 SSOT；datum 與 engine 分離）。實例：`seed_thinkers.py` + `data/philosophy/thinkers_management.json`。
-    - **(c) 通用可重用**：同型 script 合併為單一參數化工具（如 seed 三支引擎 thinkers/works/citations 取代六支 hardcode 批次檔），設計為未來不同情境重覆使用、擴充靠資料與參數。
+    - **(b) 資料驅動、來源住 DB、不 hardcode 資料（v1.15 升級,用戶 directive 2026-07-02:repo JSON 檔=另一種 hardcode）**：策展/擷取資料一律住**本地 PostgreSQL**,以**三層知識管線**運作（鏡射 raw→下游）——**來源定義表 `knowledge_source`**（adapter+查詢模板 registry）→ `acquire_knowledge.py`（通用擷取引擎,從外部真實來源 DBpedia/Gutenberg/維基文庫/手動策展抓入）→ **暫存表 `knowledge_staging`**（payload JSONB+provenance,#1 可溯源,pending 待審）→ `promote_knowledge.py`（晉升引擎,審核後冪等寫正式表）。**擴新領域（如能源材料 know-how）＝ INSERT 一列 knowledge_source（換 domain/查詢模板）,零 code 變動**;新「來源協定」才寫新 adapter、新 entity_type 才加 mapping 函式（本質是 code,合理）。JSON/CSV 僅為 manual_file adapter 之**傳輸工件**（匯入口/備份),**非來源 SSOT**;跨機遷移用 `pg_dump -t knowledge_source -t knowledge_staging`。內容納入範圍仍受治權判準約束（憲章 v1.17.0「能抓≠該抓」,新領域是否入庫=決策層人拍板）。
+    - **(c) 通用可重用**：同型 script 合併為單一參數化工具（如 acquire+promote 兩支引擎取代九支 hardcode/JSON seed 批次檔）,設計為未來不同情境重覆使用、擴充靠 DB 資料列與參數。
     - **(d) 指令矩陣 + 實測**：標頭 docstring 寫「**執行指令矩陣**」（各用法實例指令），且**須實測可執行**（#7；安全驗證分級：唯讀類實跑、放量類 import 級 + 最小單位 #25，不為驗證而觸 API 放量）。
     - **效益**：用戶可自行執行零 usage（#28 本地優先）、新增資料不需 AI 改碼、script 數量收斂可維護。
 

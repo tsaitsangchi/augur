@@ -34,8 +34,8 @@ raw (FinMind/FRED) → feature (source-pure) → universe (核心股) → model 
 
 ```
 src/augur/   core / ingestion / features / universe / models / evaluation / audit / catalog
-scripts/     薄 CLI entrypoints（呼叫 src，不放邏輯；個別可執行 + 資料驅動不 hardcode，CLAUDE #29）
-data/        策展資料檔（JSON；seed 引擎讀此擴充，新增資料不改程式）
+scripts/     薄 CLI entrypoints（呼叫 src，不放邏輯；個別可執行 + 資料驅動不 hardcode，CLAUDE #29；
+             知識擷取=DB 三層管線 knowledge_source→acquire→staging→promote，新增領域=INSERT 來源列零 code）
 docs/        治權三件套 + datasets_zh.md(資料源逐欄 catalog) + archive(考古索引)
 reports/     研究報告產出
 tests/       單元測試
