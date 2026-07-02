@@ -7,7 +7,7 @@
 守 #1(逐字無 AI 摘要、源經對抗驗證)· #15(限公版 license CHECK)· #28(本地零 usage)· #25(限速友善)。
 ⚠️ 僅抓 confirmed(對抗驗證通過)者;版權/未確認一律不抓(命門:寧缺勿抓假/侵權)。
 
-用法:PYTHONPATH=src python scripts/fetch_confirmed_fulltext.py <confirmed.json>
+執行指令矩陣:python scripts/fetch_confirmed_fulltext.py <confirmed.json>
 """
 import re
 import sys
@@ -16,6 +16,7 @@ import time
 import socket
 import urllib.request
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 socket.setdefaulttimeout(45)
@@ -96,6 +97,9 @@ def split_cjk(body):
 
 
 def main():
+    if len(sys.argv) < 2:
+        print(__doc__.split("執行指令矩陣:")[1].strip())
+        return
     conf = json.load(open(sys.argv[1]))
     added = skip = fail = 0
     with db.connect() as conn:

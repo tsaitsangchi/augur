@@ -10,13 +10,14 @@ DB-driven resume + 冪等 upsert）。
 ⚠️ long-running（全 82 dataset 全史 ~數天，跨日）；須確保主機不進睡眠（依環境設電源：Linux `systemd-inhibit` / macOS `caffeinate` / 雲機電源設定）+ DB-driven resume 後路（中斷可續）。
 
 守 #1/#2（忠實落地 + API 即權威）· #6（冪等 + resume）· #7（逐 dataset byte 對帳，無幻像）· #15（問題誠實記錄）· #17（限速）。
-用法：python scripts/full_market_sync.py   （可重跑續傳）
+執行指令矩陣:python scripts/full_market_sync.py   （可重跑續傳）
 """
 import argparse
 import time
 import traceback
 from datetime import date
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import reconcile
 from augur.core import db, schema
 from augur.features import macro

@@ -6,13 +6,14 @@
 
 cutoff-free(比率/不均、20d 均;#9)、as-of ≤t(#8)、算不出缺列(#1)。實驗 x_ 前綴、驗後 --clear。
 守 #8 · #9 · #11 · #12 · #15 · #28。
-用法:PYTHONPATH=src python scripts/verify_daytrade_candidates.py --seeds 3 --h 20,60 [--clear]
+執行指令矩陣:python scripts/verify_daytrade_candidates.py --seeds 3 --h 20,60 [--clear]
 """
 import argparse
 
 import numpy as np
 from psycopg2.extras import execute_values
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import feature_candidate as fc
 from augur.audit import feature_diagnostics as fd
 from augur.core import db

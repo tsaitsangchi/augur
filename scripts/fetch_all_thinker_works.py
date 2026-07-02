@@ -9,7 +9,7 @@
 ⚠️ 僅公版(現代/在世哲學家版權著作 Gutenberg 無→自然不抓、合法);冷僻哲學家 Gutenberg 多無。
 ⚠️ 哲學全文量化零價值、不進預測管線(憲章 v1.17.0 邊界)。
 
-用法:PYTHONPATH=src python scripts/fetch_all_thinker_works.py [--per-author N] [--limit M]
+執行指令矩陣:python scripts/fetch_all_thinker_works.py [--per-author N] [--limit M]
 """
 import re
 import sys
@@ -19,6 +19,7 @@ import socket
 import urllib.request
 import urllib.parse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 socket.setdefaulttimeout(45)   # 防 DNS/連線層 hang(補跑曾卡 0% CPU、urllib timeout 擋不住連線層)

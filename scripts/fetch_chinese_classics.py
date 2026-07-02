@@ -6,7 +6,7 @@
    哲學素養庫窮舉補齊之中文缺口。本地零 usage、逐字無 AI 摘要、冪等(已有全文則跳)。
 守 #1(逐字、禁 AI 摘要)· #15(公版可溯源 license CHECK)· #28(本地零 usage)· #18。
 
-用法:PYTHONPATH=src python scripts/fetch_chinese_classics.py
+執行指令矩陣:python scripts/fetch_chinese_classics.py
 """
 import re
 import sys
@@ -16,6 +16,7 @@ import socket
 import urllib.request
 import urllib.parse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 socket.setdefaulttimeout(30)

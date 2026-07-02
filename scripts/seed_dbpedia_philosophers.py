@@ -6,7 +6,7 @@
 守 #1/#15(實證真實來源、非 AI 編造;來源 DBpedia 可溯源)· #28(本地零 usage)· #17/#18。
 ⚠️ 人物 metadata、不進預測管線;生卒為 DBpedia 資料、古代 BC 年可能需校(DBpedia 存正數)。
 
-用法:PYTHONPATH=src python scripts/seed_dbpedia_philosophers.py [--limit N]
+執行指令矩陣:python scripts/seed_dbpedia_philosophers.py [--limit N]
 """
 import re
 import sys
@@ -15,6 +15,7 @@ import time
 import urllib.request
 import urllib.parse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 ENDPOINT = "https://dbpedia.org/sparql"

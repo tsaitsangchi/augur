@@ -6,11 +6,12 @@
 守 #1(embedding 是檢索用數值指紋、非真兆、絕不進 feature/預測管線)· #28(本地 CPU、零 LLM API)·
    #22(長跑 resume-safe)· #18。model_tag 供重嵌溯源。
 
-用法:PYTHONPATH=src python scripts/embed_philosophy_chunks.py [--limit N] [--smoke]
+執行指令矩陣:python scripts/embed_philosophy_chunks.py [--limit N] [--smoke]
 """
 import sys
 import time
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 MODEL = "intfloat/multilingual-e5-small"   # 多語(含 CJK)、384 維、CPU 快;bge-m3 CPU 53.7h 太久(D2)

@@ -6,13 +6,14 @@
 此支修正:候選缺值以**該 panel 橫斷面中位數補滿**(中性、rank 居中)→ 全 asof 宇宙保留 → base 與
 +候選跑**同一宇宙**,Δ 才真反映候選增量。對 step-1 已 as-of 顯著之候選(dealer_net_r/foreign_pct×turnover/
 foreign_trust_div)定真生死。守 #8 · #11 · #15(揭並修自身測之瑕疵)· #28。
-用法:PYTHONPATH=src python scripts/verify_incremental_fair.py --h 20,60 --seeds 3
+執行指令矩陣:python scripts/verify_incremental_fair.py --h 20,60 --seeds 3
 """
 import argparse
 
 import numpy as np
 from psycopg2.extras import execute_values
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline
 from augur.evaluation import label as label_mod

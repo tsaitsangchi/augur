@@ -9,7 +9,7 @@
    #15(來源限公版、source_url 可溯源、license DB CHECK=public_domain)· #18。
 ⚠️ 誠實:古典全文不進預測管線、對量化無 alpha;僅原典參考素材。
 
-用法:PYTHONPATH=src python scripts/fetch_public_domain_classics.py [--force]
+執行指令矩陣:python scripts/fetch_public_domain_classics.py [--force]
 """
 import re
 import sys
@@ -17,6 +17,7 @@ import time
 import urllib.request
 import urllib.parse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 UA = {"User-Agent": "augur-research/1.0 (public-domain classics archival)"}

@@ -6,10 +6,11 @@
 join column_catalog 取中文名。輸出供 synthesis 成定義參考 + 回填 catalog dirty_note/type_caveat(現幾乎空)。
 
 唯讀、本地計算、零 Claude usage(#28)。守 #15(據實 profile、非推測)。
-用法:PYTHONPATH=src python scripts/profile_raw_data.py [--table X]
+執行指令矩陣:python scripts/profile_raw_data.py [--table X]
 """
 import argparse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 SKIP = {"feature_values", "core_universe", "core_universe_asof", "pipeline_execution_log",

@@ -10,12 +10,13 @@
 如此一次答「新特徵該不該進、舊特徵該不該剪」。實驗讀既有 feature_values、不寫不刪。
 
 守 #8(as-of)· #11(五鏡)· #12(SSOT helper)· #15(雙口徑 t、誠實)· #28(本地、零 usage)。
-用法:PYTHONPATH=src python scripts/verify_lens_promotion.py --seeds 3 --h 20,60
+執行指令矩陣:python scripts/verify_lens_promotion.py --seeds 3 --h 20,60
 """
 import argparse
 
 import numpy as np
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline, metrics
 from augur.evaluation import label as label_mod

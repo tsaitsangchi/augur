@@ -6,10 +6,11 @@
 答:**邊際扛得住成本嗎?最佳 top 分位/加權?**(空方 Track D 已證無效 → 專注 long-only)。
 
 守 #8 · #12 · #14 · #15(gross/net 雙報、換手揭露)· #28(本地零 usage)。
-用法:PYTHONPATH=src python scripts/run_economic_eval.py --since 2021-01-01 --h 60 --cost 0.00585
+執行指令矩陣:python scripts/run_economic_eval.py --since 2021-01-01 --h 60 --cost 0.00585
 """
 import argparse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import portfolio
 

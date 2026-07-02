@@ -13,11 +13,12 @@
 
 守 #8（Tier B vintage＝anti-leakage PIT）· #4（總經日級真兆）· #3（清單在 features/macro、引擎不持）· #6（冪等可重跑）。
 
-用法：PYTHONPATH=src python scripts/sync_macro.py                （全 31 檔 + 重探 catalog）
-      PYTHONPATH=src python scripts/sync_macro.py --no-catalog   （只 sync、不重探 catalog）
+執行指令矩陣:python scripts/sync_macro.py                （全 31 檔 + 重探 catalog）
+      python scripts/sync_macro.py --no-catalog   （只 sync、不重探 catalog）
 """
 import argparse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur import catalog
 from augur.core import db, schema
 from augur.features import macro

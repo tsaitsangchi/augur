@@ -7,13 +7,14 @@
 
 紀律:#9 不硬編燈號分界——用 sign(動能)/官方趨勢中心 100 之相對/own-history。#8 發布日 lag。#15 對比買持、誠實。
 **通過(擇時改善風險調整或大降 MaxDD)才套到投組;否則 18 季擇時不可信、不做。** 本地零 usage(#28)。
-用法:PYTHONPATH=src python scripts/verify_regime_timing.py --lag 2
+執行指令矩陣:python scripts/verify_regime_timing.py --lag 2
 """
 import argparse
 
 import numpy as np
 import pandas as pd
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 

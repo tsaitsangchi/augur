@@ -9,12 +9,13 @@
 
 守 #1（算不出即缺列）· #6（冪等可重跑）· #8（panel 特徵 as-of ≤t）· #18（命名/標頭慣例）。
 
-用法：PYTHONPATH=src python scripts/build_feature_panel.py                    （重建既有全部面板）
-      PYTHONPATH=src python scripts/build_feature_panel.py --since 2014-01-01    （只建 ≥2014 之既有面板）
-      PYTHONPATH=src python scripts/build_feature_panel.py --panels 2025-12-31,2025-09-30  （只建指定面板）
+執行指令矩陣:python scripts/build_feature_panel.py                    （重建既有全部面板）
+      python scripts/build_feature_panel.py --since 2014-01-01    （只建 ≥2014 之既有面板）
+      python scripts/build_feature_panel.py --panels 2025-12-31,2025-09-30  （只建指定面板）
 """
 import argparse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.features import panel
 

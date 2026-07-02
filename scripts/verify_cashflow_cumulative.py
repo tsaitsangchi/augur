@@ -4,9 +4,10 @@
 🎯 這支在做什麼(白話):上次 |value|-單調測對「會變號的現金流」不準。改用穩健法:累計 YTD 之 Q4(全年)
 量級應遠大於 Q1(一季)→ 跨股 median(|Q4|/|Q1|) ≥ ~2 = 累計;≈1 = 單季。逐 34 type 乾淨定論。
 用 2021(現金流四季全)。守 #15(換穩健法、逐 type 驗)。本地零 usage(#28)。
-用法:PYTHONPATH=src python scripts/verify_cashflow_cumulative.py
+執行指令矩陣:python scripts/verify_cashflow_cumulative.py
 """
 import numpy as np
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 T = "TaiwanStockCashFlowsStatement"

@@ -5,7 +5,10 @@
 (foreign_trust_div 殷鑑)。此支對翻案候選做 #14 靈魂終測:復用既有 _compute 填候選 → 補滿同宇宙 →
 base(33特徵)vs +候選 之 top10%/equal 投組、扣 0.585% 成本、Ridge+GBDT(3seed)、h20/60 → net Sharpe/Calmar/MaxDD/Δ。
 判據(#14):net Sharpe/Calmar 有感升 + MaxDD 不惡化 → 真提拔;持平/變差 → IC 邊際非真經濟 alpha。
-守 #8 · #12 · #14 · #15 · #28。用法:PYTHONPATH=src python scripts/verify_economic_reexam.py
+守 #8 · #12 · #14 · #15 · #28。用法:python scripts/verify_economic_reexam.py
+
+執行指令矩陣:
+  python scripts/verify_economic_reexam.py
 """
 import argparse
 import importlib.util
@@ -13,6 +16,7 @@ import importlib.util
 import numpy as np
 from psycopg2.extras import execute_values
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline, portfolio
 

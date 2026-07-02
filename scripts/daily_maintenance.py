@@ -5,7 +5,7 @@
 市場，每 dataset 只用「範圍內交易日數」筆請求、非逐股 3100 筆），再（可選）對帳近期日確認 DB 與
 API byte 相等。薄 CLI——邏輯都在 src（`ingestion.sync` + `audit.reconcile`），本檔只解析參數 + 串接 + 印。
 
-用法：
+執行指令矩陣:
   python scripts/daily_maintenance.py                          # 全日頻 dataset by-date 增量到今天
   python scripts/daily_maintenance.py --datasets TaiwanStockPrice TaiwanStockMarginPurchaseShortSale
   python scripts/daily_maintenance.py --end 2026-06-09         # 增量到指定日
@@ -15,6 +15,7 @@ API byte 相等。薄 CLI——邏輯都在 src（`ingestion.sync` + `audit.reco
 """
 import argparse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db, schema
 from augur.audit import reconcile
 from augur.ingestion import sync

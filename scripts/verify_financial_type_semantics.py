@@ -6,12 +6,13 @@
 資產負債表(存量)另標 snapshot(其 type 本為時點水位、非流量)。輸出每 type 之數據定論 + 測試股數。
 
 唯讀、本地、零 usage(#28)。守 #15(逐一驗、揭露測試 n、不抽樣推斷)。
-用法:PYTHONPATH=src python scripts/verify_financial_type_semantics.py
+執行指令矩陣:python scripts/verify_financial_type_semantics.py
 """
 import argparse
 
 import numpy as np
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 TABLES = {

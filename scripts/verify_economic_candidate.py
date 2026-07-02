@@ -7,13 +7,17 @@
 - base(33 特徵)vs +候選,headline 配置 top10%/equal、h=20/60、Ridge + GBDT(3 seed 均)
 - 扣台股來回成本 0.585%,對比等權基準 net
 判據(#14):net Sharpe/Calmar **有感提升**(非僅 IC 邊際)→ 提拔;持平/變差 → 維持候選(IC 邊際非真經濟 alpha)。
-守 #8 · #12 · #14 · #15(net 雙報、對基準)· #28。用法:PYTHONPATH=src python scripts/verify_economic_candidate.py
+守 #8 · #12 · #14 · #15(net 雙報、對基準)· #28。用法:python scripts/verify_economic_candidate.py
+
+執行指令矩陣:
+  python scripts/verify_economic_candidate.py
 """
 import argparse
 
 import numpy as np
 from psycopg2.extras import execute_values
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline, portfolio
 

@@ -9,8 +9,9 @@ upsert by name_zh 去重(已有跳過)、本地零 usage、冪等。
    #17(限真實史實、非 AI 觀點)· #18。
 ⚠️ 生卒/簡介為通行史實整理、可校;此為人物 metadata、不進預測管線(廣博哲學量化零價值)。
 
-用法:PYTHONPATH=src python scripts/seed_world_philosophers.py
+執行指令矩陣:python scripts/seed_world_philosophers.py
 """
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 # (name_zh, name_en, birth, death, nationality, bio);BC 用負數、在世 death=None

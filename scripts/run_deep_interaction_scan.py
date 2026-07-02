@@ -7,12 +7,13 @@
 - **多 horizon**(H=5/20/60)× 單欄 + 全對 z-乘積交互
 - **直接算 Newey-West HAC Eff-t**(去相關顯著性,審查 G8)——crude 高 t 不採信、只認 HAC
 判讀:HAC-t |≥2.5| + 跨 horizon 一致 + 交互>>成分 才標候選(需再過完整提拔關卡才入生產)。本地零 usage(#28)、#8 t+1 還原。
-用法:PYTHONPATH=src python scripts/run_deep_interaction_scan.py
+執行指令矩陣:python scripts/run_deep_interaction_scan.py
 """
 import itertools
 
 import numpy as np
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import label as label_mod
 from augur.evaluation import metrics

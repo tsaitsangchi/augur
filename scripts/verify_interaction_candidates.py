@@ -10,13 +10,14 @@
 cutoff-free(#9:OLS 係數/z/相位差皆 data-driven)、橫斷面同 panel ≤t(#8)、算不出缺列(#1)。實驗寫 x_ 前綴、驗後可清。
 
 守 #8 · #9 · #11 · #12 · #15 · #28(本地零 usage)。
-用法:PYTHONPATH=src python scripts/verify_interaction_candidates.py --seeds 3 --h 20,60 [--clear]
+執行指令矩陣:python scripts/verify_interaction_candidates.py --seeds 3 --h 20,60 [--clear]
 """
 import argparse
 
 import numpy as np
 from psycopg2.extras import execute_values
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import feature_candidate as fc
 from augur.core import db
 from augur.evaluation import baseline, metrics

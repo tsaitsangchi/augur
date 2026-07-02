@@ -5,8 +5,9 @@
 組合根:接 philosophy.framework，邏輯在 src、入口不放邏輯（#18）。
 
 守 #1（真實文獻禁 AI 生成入庫）· #14/#15（direction 為假說、validated_ic 須實證回填）· #18。
-用法:PYTHONPATH=src python scripts/build_philosophy_framework.py
+執行指令矩陣:python scripts/build_philosophy_framework.py
 """
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.philosophy import framework
 

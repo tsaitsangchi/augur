@@ -12,12 +12,13 @@
 
 守 #8(as-of)· #11(五鏡)· #12(label/metric/baseline SSOT)· #15(雙口徑 t、誠實)· #28(本地、零 usage)。
 
-用法:PYTHONPATH=src python scripts/verify_candidate_promotion.py --h 20,60 --seeds 3
+執行指令矩陣:python scripts/verify_candidate_promotion.py --h 20,60 --seeds 3
 """
 import argparse
 
 import numpy as np
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import feature_candidate as fc
 from augur.core import db
 from augur.evaluation import baseline, metrics

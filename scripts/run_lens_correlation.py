@@ -10,12 +10,13 @@ as-of 相關矩陣**按軸分群**,答三問:
 口徑 reuse evaluation/audit helper(#12 可比);as-of point-in-time(#8)。純 DB 計算、零 Claude usage(#28)。
 
 守 #8(as-of)· #11(五鏡之共線鏡延伸)· #12(SSOT helper)· #15(誠實揭露 n、係數可溯)。
-用法:PYTHONPATH=src python scripts/run_lens_correlation.py
+執行指令矩陣:python scripts/run_lens_correlation.py
 """
 from __future__ import annotations
 
 import numpy as np
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import feature_diagnostics as fd
 from augur.core import db
 

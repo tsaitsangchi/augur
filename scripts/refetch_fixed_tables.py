@@ -11,10 +11,11 @@
 
 ⚠️ long-running 放量(~2 萬+ call、會週期觸額度閘暫停、跨日);須 caffeinate + 主機不睡 + resume 後路。
 守 #1/#2(忠實落地)· #6(冪等+resume)· #7(對帳)· #17(限速)· #19(修 code 後重抓補完整性)。
-用法:PYTHONPATH=src caffeinate -dimsu nohup venv/bin/python scripts/refetch_fixed_tables.py > /tmp/augur_refetch.log 2>&1 &
+執行指令矩陣:PYTHONPATH=src caffeinate -dimsu nohup venv/bin/python scripts/refetch_fixed_tables.py > /tmp/augur_refetch.log 2>&1 &
 """
 import time
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import reconcile
 from augur.core import db, schema
 from augur.ingestion import sync

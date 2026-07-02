@@ -9,13 +9,14 @@
 3. **多 seed 增量**:加入生產特徵集,run_ladder as-of ≥3 seed,看 Ridge/GBDT IC 增量 Δ(對 34 特徵是否真增量)
 判據:as-of HAC-t 仍 |≥2| + 多 seed Δ 穩定為正 → 提拔;否則維持候選(極可能與現籌碼特徵冗餘)。
 實驗、驗後清列、不入生產。守 #8 · #11 · #12 · #15(雙口徑 t、誠實)· #28(本地零 usage)。
-用法:PYTHONPATH=src python scripts/verify_interaction_promotion.py --h 20,60 --seeds 3
+執行指令矩陣:python scripts/verify_interaction_promotion.py --h 20,60 --seeds 3
 """
 import argparse
 
 import numpy as np
 from psycopg2.extras import execute_values
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline, metrics
 from augur.evaluation import label as label_mod

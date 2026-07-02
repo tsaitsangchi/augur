@@ -12,10 +12,11 @@
 分類保守、不確定標 generic + note;機械分類非定論,實際特徵仍須過漏斗(#11)。
 
 守 #8(沿用 anti_leakage)· #9(鏡頭映射為連續泛函/相位、無硬編特定值)· #12(catalog SSOT)· #15(分類透明、不確定揭露)。
-用法:PYTHONPATH=src python scripts/build_field_lens_map.py
+執行指令矩陣:python scripts/build_field_lens_map.py
 """
 from __future__ import annotations
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 TABLE = "field_lens_map"

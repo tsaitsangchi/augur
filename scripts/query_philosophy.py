@@ -3,10 +3,11 @@
 
 🎯 驗證 L2 檢索層:給查詢 → 回 top-k 逐字段落 + 溯源 + pg_trgm 逐字回查標記。
 守 #1(逐字可溯源)· #28(本地)· #18。
-用法:PYTHONPATH=src python scripts/query_philosophy.py <查詢字串>
+執行指令矩陣:python scripts/query_philosophy.py <查詢字串>
 """
 import sys
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.philosophy.retrieval import retrieve, verify_verbatim
 
 

@@ -10,13 +10,14 @@
 
 守 #8（label t+1 + purged walk-forward）· #12（單一 helper 口徑可比）· #14（rank IC 非 AUC）· #15（多 seed 誠實）· #18。
 
-用法：PYTHONPATH=src python scripts/run_evaluation.py --since 2014-01-01 --h 20,60 --asof       （M-1/M-2 口徑）
-      PYTHONPATH=src python scripts/run_evaluation.py --since 2014-01-01 --h 60 --seeds 3 --asof  （GBDT 3 seed）
+執行指令矩陣:python scripts/run_evaluation.py --since 2014-01-01 --h 20,60 --asof       （M-1/M-2 口徑）
+      python scripts/run_evaluation.py --since 2014-01-01 --h 60 --seeds 3 --asof  （GBDT 3 seed）
 """
 import argparse
 
 import numpy as np
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline
 

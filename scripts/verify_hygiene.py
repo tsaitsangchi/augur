@@ -7,12 +7,13 @@
   → 測 drop 冗餘者 headline 是否維持(維持即精瘦、#10)。
 
 純讀既有 feature_values、不改特徵;as-of、多 seed。守 #11/#12/#15/#28(本地零 usage)。
-用法:PYTHONPATH=src python scripts/verify_hygiene.py --seeds 3
+執行指令矩陣:python scripts/verify_hygiene.py --seeds 3
 """
 import argparse
 
 import numpy as np
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline
 

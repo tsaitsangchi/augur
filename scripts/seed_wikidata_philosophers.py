@@ -6,7 +6,7 @@
 守 #1/#15(實證真實來源、非 AI 編造)· #25(429 限流退避重試)· #28(本地零 usage)· #17/#18。
 ⚠️ 人物 metadata、不進預測管線(廣博哲學量化零價值)。
 
-用法:PYTHONPATH=src python scripts/seed_wikidata_philosophers.py [--min-sitelinks N]
+執行指令矩陣:python scripts/seed_wikidata_philosophers.py [--min-sitelinks N]
 """
 import re
 import sys
@@ -15,6 +15,7 @@ import time
 import urllib.request
 import urllib.parse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 SPARQL = "https://query.wikidata.org/sparql"

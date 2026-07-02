@@ -6,7 +6,7 @@
    有公版全文者另由 fetch_* 抓 work_text。書目讓「大師↔著作」關係完整、供合規路(原則→#14)溯源。
 守 #1/#15(書目為實證事實 metadata、非 AI 摘要著作內容)· #28· #17/#18· 憲章 v1.18.0。
 
-用法:PYTHONPATH=src python scripts/seed_thinker_works_dbpedia.py
+執行指令矩陣:python scripts/seed_thinker_works_dbpedia.py
 """
 import re
 import json
@@ -15,6 +15,7 @@ import socket
 import urllib.request
 import urllib.parse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 socket.setdefaulttimeout(60)

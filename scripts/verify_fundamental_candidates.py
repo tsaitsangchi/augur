@@ -8,7 +8,7 @@
 
 發布日 gate(#8):月營收次月15日、財報季底+45/90日——只用已公告者。capex 因 YTD 累計複雜暫緩。
 cutoff-free(share/ratio/percentile/Δ、#9)。實驗 x_ 前綴、驗後 --clear。守 #8 · #9 · #11 · #12 · #15 · #28。
-用法:PYTHONPATH=src python scripts/verify_fundamental_candidates.py --seeds 3 [--clear]
+執行指令矩陣:python scripts/verify_fundamental_candidates.py --seeds 3 [--clear]
 """
 import argparse
 from datetime import date
@@ -16,6 +16,7 @@ from datetime import date
 import numpy as np
 from psycopg2.extras import execute_values
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import feature_candidate as fc
 from augur.audit import feature_diagnostics as fd
 from augur.core import db

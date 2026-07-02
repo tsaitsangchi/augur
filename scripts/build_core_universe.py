@@ -10,11 +10,12 @@ core_universe_asof。可選流動性分位 gate（--liquidity-pct、動態相對
 
 守 #1（只收 source-pure 完整股）· #8（asof 消 survivorship）· #10（純完整度、不評分排名）· #18（命名/標頭慣例）。
 
-用法：PYTHONPATH=src python scripts/build_core_universe.py --since 2014-01-01 --liquidity-pct 25 --exempt-revenue-financial --asof
-      PYTHONPATH=src python scripts/build_core_universe.py                  （pan-historical、全面板、無 gate）
+執行指令矩陣:python scripts/build_core_universe.py --since 2014-01-01 --liquidity-pct 25 --exempt-revenue-financial --asof
+      python scripts/build_core_universe.py                  （pan-historical、全面板、無 gate）
 """
 import argparse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.universe import core_gate
 

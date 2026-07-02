@@ -12,11 +12,12 @@
 
 守 #1/#8/#9 · #11（五鏡橫斷面 IC、不單指標）· #12（label/metric SSOT）· #15（誠實、n 揭露）。
 
-用法:PYTHONPATH=src python scripts/validate_feature_candidates.py --since 2014-01-01 --h 20,60
-      PYTHONPATH=src python scripts/validate_feature_candidates.py --clear   （驗後清候選、不留 feature_values）
+執行指令矩陣:python scripts/validate_feature_candidates.py --since 2014-01-01 --h 20,60
+      python scripts/validate_feature_candidates.py --clear   （驗後清候選、不留 feature_values）
 """
 import argparse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import feature_candidate as cand
 from augur.audit import feature_diagnostics as fd
 from augur.core import db

@@ -5,11 +5,12 @@
 **標出偏離該表常態頻率之年(缺口)** + 最後日期(陳舊)。財報季表逐年列缺哪季。供「已驗覆蓋」之據實基礎。
 
 唯讀、本地、零 usage(#28)。守 #15(逐表掃、標缺口、不假設完整)。
-用法:PYTHONPATH=src python scripts/scan_coverage.py
+執行指令矩陣:python scripts/scan_coverage.py
 """
 import argparse
 from collections import Counter
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 FIN = {"TaiwanStockFinancialStatements", "TaiwanStockBalanceSheet", "TaiwanStockCashFlowsStatement"}

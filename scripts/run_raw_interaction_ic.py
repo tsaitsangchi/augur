@@ -7,12 +7,13 @@
 - 單欄:cross-sectional spearman(signal, H=20 未來報酬 rank);跨 panel 取均 + t-stat
 - 交互:z_i × z_j 全 78 對 → 同樣 IC;**增量測 = |IC(交互)| vs max(|IC(成分)|)**(交互不顯著高於成分 = 線性冗餘)
 判讀:找 |IC| 高且**交互 >> 成分**者 = 真新訊號;否則證實飽和。本地零 usage(#28)、#8 t+1 還原價、#1 缺即略。
-用法:PYTHONPATH=src python scripts/run_raw_interaction_ic.py
+執行指令矩陣:python scripts/run_raw_interaction_ic.py
 """
 import itertools
 
 import numpy as np
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import label
 

@@ -6,13 +6,14 @@
 比 static(滿倉)之淨 Sharpe/MaxDD/Calmar。誠實:投組僅 18 季、regime 訊號本身才是長樣本驗過者。
 
 守 #8(發布日 lag)· #14(經濟指標)· #15(對比 static、揭露在市%)· #28(本地零 usage)。
-用法:PYTHONPATH=src python scripts/verify_regime_portfolio.py --lag 2 --cost 0.00585
+執行指令矩陣:python scripts/verify_regime_portfolio.py --lag 2 --cost 0.00585
 """
 import argparse
 
 import numpy as np
 import pandas as pd
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import portfolio
 

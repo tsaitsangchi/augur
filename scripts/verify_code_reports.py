@@ -7,7 +7,7 @@
 這驗的是**結構/一致性/可文件性**(非深層語意理解——深層靠人讀 + spot 驗、誠實標)。
 
 唯讀、本地、零 usage(#28)。守 #15(機械驗結構、誠實標未深讀者)。
-用法:PYTHONPATH=src python scripts/verify_code_reports.py
+執行指令矩陣:python scripts/verify_code_reports.py
 """
 import ast
 import pathlib

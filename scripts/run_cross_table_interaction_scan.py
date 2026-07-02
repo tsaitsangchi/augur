@@ -9,13 +9,14 @@
 - HAC-t(metrics.effective_t_hac、去重疊窗自相關 G8);增量測 = |IC| vs 兩成分單欄 max
 判讀:|IC|>成分 max 且 |HAC|≥3 且 H60/H120 多數一致 = 真新訊號;否則證實跨表也飽和。
 #1 缺即略、#8 t+1 還原價 label(label.labels)、#15 凡數字出自本次 stdout。
-用法:PYTHONPATH=src venv/bin/python3 scripts/run_cross_table_interaction_scan.py [t2lag]
+執行指令矩陣:PYTHONPATH=src venv/bin/python3 scripts/run_cross_table_interaction_scan.py [t2lag]
 """
 import sys
 import itertools
 
 import numpy as np
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline, label, metrics
 from augur.features import release_lag

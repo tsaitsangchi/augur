@@ -8,13 +8,14 @@
 4. **top 分位掃**:10/20/30% ΔCalmar 一致?
 判據(#15):逐期 Δ 多數正 + LOO 最壞仍正 + 兩子期同向 + 分位一致 → 穩健可 productionize;否則樣本噪音、不入生產。
 複用既有 _compute + run_backtest net_series(高效)。守 #8 · #12 · #14 · #15 · #28。
-用法:PYTHONPATH=src python scripts/verify_stability.py
+執行指令矩陣:python scripts/verify_stability.py
 """
 import importlib.util
 
 import numpy as np
 from psycopg2.extras import execute_values
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline, portfolio
 

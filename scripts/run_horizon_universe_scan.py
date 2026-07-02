@@ -8,12 +8,13 @@
 
 口徑 reuse baseline/label/metrics/walkforward(#12);as-of point-in-time(#8);Ridge 確定性(宇宙半免多 seed)。
 守 #8 · #12 · #15(揭露 n/規模) · #28(本地零 usage)。
-用法:PYTHONPATH=src python scripts/run_horizon_universe_scan.py --mode both --seeds 3
+執行指令矩陣:python scripts/run_horizon_universe_scan.py --mode both --seeds 3
 """
 import argparse
 
 import numpy as np
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline, walkforward
 from augur.evaluation import label as label_mod

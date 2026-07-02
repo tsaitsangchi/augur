@@ -5,7 +5,10 @@
 **稀疏籌碼/基本面候選可能被冤殺**。此支復用既有 _compute 填 7 個稀疏候選(當沖2 + 基本面5)→
 各候選缺值補 panel 中位(同宇宙)→ base vs +候選公平增量 Δ。base 算一次快取、各候選共用(省算 #28)。
 判據:公平 Δ 穩定為正(>+0.002)→ 翻案候選、續經濟價值測;否則確認原淘汰正確(非假象)。
-守 #8 · #11 · #12 · #15 · #28。用法:PYTHONPATH=src python scripts/reexam_sparse_candidates.py --seeds 3 --h 20,60
+守 #8 · #11 · #12 · #15 · #28。用法:python scripts/reexam_sparse_candidates.py --seeds 3 --h 20,60
+
+執行指令矩陣:
+  python scripts/reexam_sparse_candidates.py
 """
 import argparse
 import importlib.util
@@ -13,6 +16,7 @@ import importlib.util
 import numpy as np
 from psycopg2.extras import execute_values
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline
 from augur.evaluation import label as label_mod

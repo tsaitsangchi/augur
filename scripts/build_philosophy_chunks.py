@@ -6,11 +6,12 @@
    哲學素養框架 L2 知識檢索層基建(學習計畫 P1)。切塊邊界:段落 > 句末標點;塊間重疊 ~15%。
 守 #1(逐字不改一字、char_range 可回驗、無 AI 摘要)· #28(本地零 usage)· #6(DB-driven resume)· #18。
 
-用法:PYTHONPATH=src python scripts/build_philosophy_chunks.py [--force]
+執行指令矩陣:python scripts/build_philosophy_chunks.py [--force]
 """
 import re
 import sys
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 TARGET_TOK = 500

@@ -8,8 +8,9 @@
 - HoldingSharesPer unit 加總 vs 發行股數 → 持股單位是股或張
 
 唯讀、本地、零 usage(#28)。守 #15(交叉驗、據實定單位)。
-用法:PYTHONPATH=src python scripts/verify_units.py
+執行指令矩陣:python scripts/verify_units.py
 """
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 STK = "2330"

@@ -6,10 +6,11 @@
    哲學零加權、經濟價值 #14 為唯一裁決;不在 augur 特徵者(roe/peg/fscore…已試盡淘汰)標 NULL。
 守 #1(as-of、真實 feature_values)· #8(label t+h forward)· #14(經濟價值)· #15(誠實回填、飽和不誇大)。
 
-用法:PYTHONPATH=src python scripts/verify_philosophy_factors.py [--since 2021-01-01] [--h 60]
+執行指令矩陣:python scripts/verify_philosophy_factors.py [--since 2021-01-01] [--h 60]
 """
 import sys
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import label as label_mod, metrics, portfolio
 

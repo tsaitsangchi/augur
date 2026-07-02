@@ -9,12 +9,13 @@
 
 守 #1（真值、缺即 NaN）· #6（冪等可重跑）· #15（n_obs/股數揭露）· #28（本地批量、不 fan-out）。
 
-用法：PYTHONPATH=src python scripts/run_field_correlation.py                    （全核心 + 報告）
-      PYTHONPATH=src python scripts/run_field_correlation.py --stocks 2330,2317  （子集測試）
-      PYTHONPATH=src python scripts/run_field_correlation.py --report-only       （跳過計算、只印報告）
+執行指令矩陣:python scripts/run_field_correlation.py                    （全核心 + 報告）
+      python scripts/run_field_correlation.py --stocks 2330,2317  （子集測試）
+      python scripts/run_field_correlation.py --report-only       （跳過計算、只印報告）
 """
 import argparse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import field_correlation as fc
 from augur.core import db
 

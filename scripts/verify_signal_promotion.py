@@ -7,13 +7,17 @@
 - foreign_trust_div:wz(外資淨買比)×wz(投信淨買比)(背離交互 HAC-t -3.8)
 各候選:as-of 逐 panel IC + iid/HAC-t + 多 seed 對生產集增量 Δ(對 34 特徵是否真增量)。
 判據:HAC-t |≥2| + 多 seed Δ 穩定為正 → 提拔;否則維持候選。驗後清列、不入生產。
-守 #8 · #11 · #12 · #15 · #28。用法:PYTHONPATH=src python scripts/verify_signal_promotion.py --cands dealer_net_r,foreign_pct_x_turnover,foreign_trust_div --h 20,60 --seeds 3
+守 #8 · #11 · #12 · #15 · #28。用法:python scripts/verify_signal_promotion.py --cands dealer_net_r,foreign_pct_x_turnover,foreign_trust_div --h 20,60 --seeds 3
+
+執行指令矩陣:
+  python scripts/verify_signal_promotion.py
 """
 import argparse
 
 import numpy as np
 from psycopg2.extras import execute_values
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 from augur.evaluation import baseline, metrics
 from augur.evaluation import label as label_mod

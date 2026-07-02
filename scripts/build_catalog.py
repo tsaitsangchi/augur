@@ -10,11 +10,12 @@
 API；excluded（intraday / BACKFILL_DEFERRED）無探測（後者抓法記於 dedicated_url/notes）。全程經 finmind 三層防護（_pace → _quota_gate → 403 冷卻）。
 守 #18（探測持久化、非白名單）· #17（限速）· #15（provenance + last_verified）· #6（upsert 冪等、可重跑）。
 
-用法：PYTHONPATH=src python scripts/build_catalog.py            （全 83 + FRED）
-      PYTHONPATH=src python scripts/build_catalog.py --datasets TaiwanStockPrice,GoldPrice   （子集）
+執行指令矩陣:python scripts/build_catalog.py            （全 83 + FRED）
+      python scripts/build_catalog.py --datasets TaiwanStockPrice,GoldPrice   （子集）
 """
 import argparse
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db, schema
 from augur import catalog
 

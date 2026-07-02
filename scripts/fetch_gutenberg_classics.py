@@ -9,12 +9,13 @@
 ⚠️ 廣博哲學全文量化零價值、僅素養/解讀素材、不產因子、不進預測管線(憲章 v1.17.0 philosophy 邊界)。
 ⚠️ 範圍:納人類哲學經典、排除非哲學離題(純物理/數學);只抓公版。
 
-用法:PYTHONPATH=src python scripts/fetch_gutenberg_classics.py [--force]
+執行指令矩陣:python scripts/fetch_gutenberg_classics.py [--force]
 """
 import re
 import sys
 import urllib.request
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 UA = {"User-Agent": "augur-research/1.0 (public-domain archival)"}

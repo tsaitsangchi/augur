@@ -10,13 +10,14 @@
 全表清單 = catalog excluded=f(動態、非硬編 #18);infra log 表跳過。逐表即時印,末了彙總 #7 verdict。對帳唯讀、冪等、中斷重跑無害。
 
 守 #7(DB↔API 對帳)· #15(未定案/抽樣/coverage 誠實標註)· #24/#25(走 finmind 內建限速)· #16/#17(clean-room)。
-用法:PYTHONPATH=src caffeinate -dimsu venv/bin/python scripts/reconcile_audit.py
+執行指令矩陣:PYTHONPATH=src caffeinate -dimsu venv/bin/python scripts/reconcile_audit.py
       [--only by-date|roster-scoped|by-dim-id|coverage|fred] [--tables A,B] [--recent-days 30]
 """
 from __future__ import annotations
 
 import sys
 
+import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import reconcile
 from augur.core import db
 from augur.features import macro
