@@ -13,6 +13,8 @@ dist/
 
 # 資料 / 模型（machine-local，不進 git；由 from-zero 重建）
 data/
+!data/philosophy/
+!data/philosophy/*.json
 models/
 *.log
 
