@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """P3 互動檢索驗證 — 查詢 → 逐字可溯源哲學引用。
 
-🎯 驗證 L2 檢索層:給查詢 → 回 top-k 逐字段落 + 溯源 + pg_trgm 逐字回查標記。
+🎯 驗證 L2 檢索層:給查詢 → 回 top-k 逐字段落 + 溯源 + verbatim 逐字回查標記(原文子字串比對)。
 守 #1(逐字可溯源)· #28(本地)· #18。
 執行指令矩陣:python scripts/query_philosophy.py <查詢字串>
 """

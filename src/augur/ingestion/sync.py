@@ -33,7 +33,7 @@ from augur.core import db, schema
 from augur.ingestion import finmind, fred, ingest
 
 ROSTER_TABLE = "TaiwanStockInfo"
-FULL_START = "1990-01-01"   # **僅 FinMind** backward-search / 寬窗探測之 outer-bound（早於任何 FinMind 資料、API 只回實際範圍→等同全史,#18 最早日由 API 決定）。
+FULL_START = "1990-01-01"   # **僅 FinMind** backward-search / 寬窗探測之查詢下界（⚠️ 非全史保險:API 以 start_date 為下界截斷、不回更早資料——GoldPrice 真起點 1979 被 1990 截斷之教訓;更早資料由 catalog._refine_earliest 往前探,#18 最早日由 API 決定）。
                             # 非 per-stock fetch 起點（用 _data_era_start 取 API 元年）、非 FRED 起點（FRED 有 pre-1990 → start=None 全史,見 sync_fred）
 PER_STOCK_WORKERS = 32       # 逐股抓並發數（fetch 並發、DB 寫序列；start rate 仍受 _pace 約束在 ~1/s 安全值）
                             # 實證 2026-06-11:3/4 並發皆 0 ban、throughput ~1/s（pace-bound）;4 在 API 中速(3-8s)時較 3 有 headroom;現 32（#27 試錯逼近更高並發、start rate 仍 _pace-bound）

@@ -8,7 +8,7 @@
   防 403 ip banned）＋ 逾時 / 連線 / 額度限流 / IP 封鎖 / 伺服器暫時錯誤（402/429/403/5xx）→ 依回應 `retry_after` 或指數退避重試；
   參數錯 / token 錯等應用層錯誤 → 立即拋 `FinMindError`（重試也沒用）。
 - `list_datasets()`：送一個無效 dataset → FinMind 回 422，其 enum 列出全部合法 dataset 名
-  → 支援 #3「`--all` 動態列舉、無 hardcoded 清單」。
+  → 支援 #3「全 dataset 動態列舉、無 hardcoded 清單」。
 
 邊界：**只抓資料**（不建表、不寫 DB——那是 ingest.py + generic_schema）；不算特徵、不選股；
 **不決定抓不抓 intraday**（日為最小單位 #4 之守門在 ingest.py，不在這層）。
@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 
+import os
 import re
 import threading
 import time
@@ -81,10 +82,12 @@ def _user_quota(timeout=15):
 
 
 def _quota_gate():
-    """[2026-06-17 Mac 實證、已入版控] Mac token user_count 黑箱失準(零 call 卻卡/自漲、與真實
-    call 不符;IP 健康實測能抓為證)→ **禁用 user_count 預防暫停閘**,純靠 `_pace` 限速 + 撞真 403 之
-    `QUOTA_COOLDOWN` 冷卻(WSL 經驗「錶有雜訊→以 DB 列數成長為真在抓訊號」)。仍週期讀錶 log 供監控、不暫停。
-    **錶可靠之機台應 git restore 還原此閘**(原為主動額度閘:錶≥limit−HEADROOM 持鎖暫停、退半續)。"""
+    """主動額度閘(doctrine #17/#24 三層防護第 2 層;2026-07-03 用戶裁定恢復為預設):每 QUOTA_METER_EVERY 次
+    call(或 >120s)讀一次錶;錶 ≥ limit−HEADROOM → 持鎖暫停(所有 worker 一起等、不再發 call)、每 QUOTA_POLL
+    秒再讀,退到一半以下續抓。錶失聯 → 放行(403 → QUOTA_COOLDOWN 保險網接手)。閾值隨 limit 動態(token 降級自動適配)。
+    黑箱錶機台(實證 2026-06-17 Mac token:零 call 錶卻卡/自漲 → 閘死等)設 env `FINMIND_QUOTA_GATE=off`
+    降為「讀錶只 log、不暫停」;勿再以改 code 停閘(防 2026-06~07 版本漂移重演)。"""
+    gate_off = os.getenv("FINMIND_QUOTA_GATE", "on").strip().lower() in ("off", "0", "false")
     with _quota_lock:
         _quota_state["calls"] += 1
         if _quota_state["calls"] < QUOTA_METER_EVERY and time.monotonic() - _quota_state["t"] < 120:
@@ -93,9 +96,25 @@ def _quota_gate():
         _quota_state["t"] = time.monotonic()
         try:
             count, limit = _user_quota()
-            print(f"[finmind] 額度錶 {count}/{limit}(閘已禁用、純靠 _pace+403;IP 健康)", flush=True)
         except Exception:
-            pass
+            return
+        if gate_off:
+            print(f"[finmind] 額度錶 {count}/{limit}(FINMIND_QUOTA_GATE=off:只 log 不暫停)", flush=True)
+            return
+        high = limit - QUOTA_HEADROOM
+        if count < high:
+            return
+        print(f"[finmind] 額度 {count}/{limit} ≥ {high} → 主動暫停(每 {QUOTA_POLL}s 檢錶,≤{high // 2} 續)", flush=True)
+        while True:
+            time.sleep(QUOTA_POLL)
+            try:
+                count, limit = _user_quota()
+            except Exception:
+                break
+            if count <= (limit - QUOTA_HEADROOM) // 2:
+                break
+        print(f"[finmind] 額度退到 {count} → 續抓", flush=True)
+        _quota_state["t"] = time.monotonic()
 
 
 def _protected_get(url, query, label, *, timeout, max_retries, base_backoff):

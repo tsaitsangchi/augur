@@ -88,12 +88,16 @@ def main():
         if not args.layer:
             print(__doc__.split("執行指令矩陣:")[1])
             with db.transaction(conn) as cur:
-                for scope, q in [("lexicon", "SELECT count(*) FROM knowledge_lexicon"),
-                                 ("sentence zh", "SELECT count(*) FROM knowledge_sentence WHERE language='zh'"),
-                                 ("sentence en", "SELECT count(*) FROM knowledge_sentence WHERE language='en'")]:
+                # 已嵌計數分語言(句級嵌入表不含 language,須 JOIN 回 sentence,否則 zh 已嵌會誤列在 en)
+                for scope, q, cq in [
+                        ("lexicon", "SELECT count(*) FROM knowledge_lexicon",
+                         "SELECT count(*) FROM knowledge_lexicon_embedding"),
+                        ("sentence zh", "SELECT count(*) FROM knowledge_sentence WHERE language='zh'",
+                         "SELECT count(*) FROM knowledge_sentence_embedding e JOIN knowledge_sentence s USING (sent_id) WHERE s.language='zh'"),
+                        ("sentence en", "SELECT count(*) FROM knowledge_sentence WHERE language='en'",
+                         "SELECT count(*) FROM knowledge_sentence_embedding e JOIN knowledge_sentence s USING (sent_id) WHERE s.language='en'")]:
                     cur.execute(q); total = cur.fetchone()[0]
-                    t = "knowledge_lexicon_embedding" if scope == "lexicon" else "knowledge_sentence_embedding"
-                    cur.execute(f"SELECT count(*) FROM {t}")
+                    cur.execute(cq)
                     print(f"  {scope:12} 全量 {total:>9,} / 已嵌 {cur.fetchone()[0]:,}")
             return
         scope = "embed_lexicon" if args.layer == "lexicon" else f"embed_sentence_{args.language}"

@@ -40,9 +40,9 @@ def main():
             mr = q1(cur, "SELECT sum(revenue) FROM \"TaiwanStockMonthRevenue\" WHERE stock_id=%s "
                     "AND date>='2023-01-01' AND date<'2023-04-01'", (STK,))
             if fr and mr and mr[0]:
-                fin_rev, mon_rev = float(fr[1]), float(mr[0])      # 財報 Q1 元? vs 月營收 Q1 和 千元?
-                r2 = fin_rev / (mon_rev * 1000)                    # 若財報=元、月營收=千元 → 比≈1
-                print(f"A2 財報季Rev / (月營收和×1000) = {r2:.3f}  → {'✅ 財報=元、月營收=千元(比≈1)' if 0.8 < r2 < 1.25 else '⚠️ 比='+f'{r2:.2f}'+'(單位待究)'}")
+                fin_rev, mon_rev = float(fr[1]), float(mr[0])      # 兩源皆元(ledger 0628 裁定、2330 實證)
+                r2 = fin_rev / mon_rev                             # 同單位(元) → 比≈1
+                print(f"A2 財報季Rev / 月營收和 = {r2:.3f}  → {'✅ 財報=元、月營收=元(同單位、比≈1)' if 0.8 < r2 < 1.25 else '⚠️ 比='+f'{r2:.2f}'+'(單位待究)'}")
 
             # A3: 融資餘額 vs 發行股數(定融資單位 股/張)
             mb = q1(cur, 'SELECT "MarginPurchaseTodayBalance" FROM "TaiwanStockMarginPurchaseShortSale" WHERE stock_id=%s ORDER BY date DESC LIMIT 1', (STK,))

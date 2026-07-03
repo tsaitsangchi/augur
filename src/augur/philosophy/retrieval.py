@@ -1,8 +1,8 @@
-"""P3 混合檢索 API — 語義 kNN + pg_trgm 逐字回查、逐字可溯源引用。
+"""P3 混合檢索 API — 語義 kNN + verbatim 逐字子字串回查、逐字可溯源引用。
 
 🎯 哲學素養框架 L2 知識檢索層核心(學習計畫 P3):給查詢 → e5-small 嵌入 → pgvector cosine kNN
    → 回逐字 chunk + Citation(work/thinker/chapter/char_range/source_url),供顧問引經據典。
-   只回 DB 既存逐字字串、溯源三元組強制、pg_trgm 存在性回查閘防「潤飾原文」。
+   只回 DB 既存逐字字串、溯源三元組強制、verbatim 子字串存在性回查閘防「潤飾原文」。
    L5 擴充(text 計畫 v1.6):lexicon_lookup(公版辭書/註疏定義)+ concordance_lookup(逐字用例);
    L2/L3 表未建或庫無此詞 → 誠實回空 [](誠實率 100% 機制,配 advisor.guard 固定誠實句)。
 守 #1(只回逐字原文、不生成不改寫)· #28(本地嵌入、零 LLM API)·
@@ -72,7 +72,7 @@ def retrieve(query, k=8, work_id=None):
 
 
 def verify_verbatim(citation):
-    """pg_trgm 逐字回查:確認 citation.text 原封不動存在於來源 work_text(防潤飾/改寫)。回 bool。"""
+    """verbatim 逐字回查(DB 原文子字串比對):確認 citation.text 原封不動存在於來源 work_text(防潤飾/改寫)。回 bool。"""
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT t.content FROM philosophy_work_text t "
                     "JOIN philosophy_chunk c ON c.text_id = t.text_id WHERE c.chunk_id = %s",

@@ -4,6 +4,7 @@
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.4.0.md` + `docs/原則精華_v1.7.1.md` + 憲章為準；
 本檔只管「**如何用 AI 工具編輯本專案**」這層短半衰期協作規則。
 **語言**：與用戶**所有對話一律繁體中文**（程式碼/識別碼/英文專名可保留原文）。
+**條號導讀**：條號按**新增順序**編、按**章節分類**歸區，故非連續——一 `#1-8`｜二 `#9-12`｜三 `#13-20, 29`｜四 `#21-25, 28, 30`｜五 `#26-27`。
 
 > **條號導讀**：條號按「**新增順序**」編、按「**分類**」歸章，故**非連續**——一 `#1-8`（通用）· 二 `#9-12`（資料真實）· 三 `#13-20, 29`（編輯規則）· 四 `#21-25, 28, 30`（long-running）· 五 `#26-27`（協作模式）。
 
@@ -28,7 +29,10 @@
    **(a)** 程式輸出（stdout / JSON / log）｜ **(b)** DB query 結果 ｜ **(c)** API 回應。
    **禁止**：記憶 / 推測 / 估算 / 為完整度補 placeholder / 從相似 model 推估。
 10. **可溯源**：每個量化數字能 trace 回 (a)(b)(c)；對比表兩邊都要有真實來源。
-11. **Stochastic 多跑**：含隨機性的 production metric ≥3 次取統計（min/median/max/mean）；單次極值須註明。**特徵候選提拔生產前一律走方法論 §四「第 4 道提拔關卡」**（as-of 口徑 + 去相關 Eff-t `evaluation/metrics.py:effective_t_hac` + 多 seed 多因子增量,工具 `scripts/verify_candidate_promotion.py`）；**IC 顯著性禁裸用 iid `effective_t`**（重疊窗高估、審查 G8）。**特徵集＋模型最終須過 §四收尾「經濟價值驗證」(#14、工具 `scripts/run_economic_eval.py`/`evaluation/portfolio.py`)——IC 撐住 ≠ 可交易、靈魂成功定義是經濟價值非 IC**。詳法 SSOT＝`reports/augur_feature_discovery_methodology_20260626.md` §四(此處僅引、不複述);完整工具鏈對映見同報告 §四「完整工具鏈」段。
+11. **Stochastic 多跑 ＋ 特徵提拔/經濟驗證關卡**：含隨機性的 production metric ≥3 次取統計（min/median/max/mean）；單次極值須註明。
+    - **提拔關卡**：特徵候選入生產前一律走方法論 §四「第 4 道提拔關卡」（as-of 口徑 + 去相關 Eff-t `evaluation/metrics.py:effective_t_hac` + 多 seed 多因子增量，工具 `scripts/verify_candidate_promotion.py`）；**IC 顯著性禁裸用 iid `effective_t`**（重疊窗高估、審查 G8）。
+    - **經濟終關**：特徵集＋模型最終須過 §四收尾「經濟價值驗證」（#14、工具 `scripts/run_economic_eval.py`／`evaluation/portfolio.py`）——**IC 撐住 ≠ 可交易、靈魂成功定義是經濟價值非 IC**。
+    - 詳法 SSOT＝`reports/augur_feature_discovery_methodology_20260626.md` §四（此處僅引、不複述）；各關卡→工具對映之完整工具鏈亦見該檔 §四。
 12. **不 hand-patch 已 committed 資料**：發現錯誤改 writer code + 重建，不手動 UPDATE 補值。
 
 ## 三、本專案編輯規則
@@ -37,7 +41,8 @@
 14. **Commit / Push 須明示授權**：不自行 `git commit` / `git push`；用戶要求時遵守 git 安全協議（不 `--amend` 已 push、不 `--force` 主分支、不跳 hooks）。commit 訊息結尾加 `Co-Authored-By: Claude ...`。
 15. **PR / 遠端**：不自行建/關 PR、不在 issue 留言；影響遠端狀態的 `gh` 操作先確認。
 16. **研究報告**：寫入 `reports/`，命名 `<module>_<topic>_<YYYYMMDD>.md`。
-17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.7.1.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。**哲學素養框架層（憲章橫切 philosophy〔v1.16.0 立／v1.17.0 擴博學〕：投資哲學因子假說 ＋ 廣博哲學素養）之內容一律來源真實權威文獻（書籍／論文／原始文獻／公版原典），禁從 AI 平台生成內容入庫當真兆（敵人① / clean-room；`work_type` 禁 `ai_generated`、`license` 限 `public_domain`）；原典全文限**公版**（僅哲學 `work_text`；知識層 `knowledge_item_text` 依憲章 v1.20.0 雙軌另納 CC 白名單 cc-by/cc-by-sa/cc0、NC/ND/未明停 metadata，管線見 #29b）、本地抓取解析（維基文庫 raw wikitext／Gutenberg）零 usage（#28）逐字無 AI 摘要（#1）；**納人類哲學經典**（投資哲學／戰略／行為財務＝因子假說來源；東西方哲學經典＝解讀／素養層）、**排除非哲學離題**（純物理／自然科學如相對論——「能抓≠該抓」）；廣博哲學全文量化零價值、僅素養／解讀、不產因子、不取代真實資料預測；**現代版權著作全文不可抓（法律 + #1），其核心精神經**真實文獻出處**的 `philosophy_principle` 條目 → `principle_factor_map` 因子假說 → **#14 經濟價值驗證**入庫（採用由 #14 裁決、非大師權威）；**嚴禁 AI 整理／摘要版權著作內容入庫**——AI 生成假兆（違 #1）＋ 侵權、`work_type`／`license` DB CHECK 硬擋（憲章 v1.18.0）**。**
+17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.7.1.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。
+    - **哲學素養層內容產生**：判準 SSOT＝**憲章第三部 philosophy 層**（共同不變式：禁 AI 生成入庫；全文准入雙軌：哲學原典限公版、知識層 item_text 公版＋CC 白名單；納/排範圍「能抓≠該抓」；現代版權著作僅核心精神走合規路 principle→factor_map→#14、嚴禁 AI 整理摘要入庫）；工具層守則＝本地抓取解析零 usage（#28）、逐字無 AI 摘要改寫（#1）。
 18. **程式標頭與命名慣例（精簡——不重蹈 stock_backend 50-230 行標頭）**：
     - **每支**：🎯 白話 docstring（這支在做什麼，給人看的）+ 一行「守原則 #X #Y」。
     - **CLI 入口程式**（sync / builder / trainer / validator）：再加**執行指令矩陣**（各用法實例，見 #29）。
@@ -54,7 +59,10 @@
 
 29. **Script 個別可執行 × 資料驅動不 hardcode（用戶 directive 2026-07-02 入憲）**：`scripts/` 每支程式須滿足四件事——
     - **(a) 個別可執行**：任何 cwd 直接 `python scripts/X.py` 即跑，**不依賴 `PYTHONPATH=src` 前置**——每支於 `import augur` 前 `import _bootstrap`（`scripts/_bootstrap.py` 自動插 `src/` 進 path、#12 單一住所），並與 `pip install -e .`（README 標準 setup）並存相容。無參數執行須 graceful（印指令矩陣或跑安全預設），不得裸 traceback。
-    - **(b) 資料驅動、來源住 DB、不 hardcode 資料（v1.15 升級,用戶 directive 2026-07-02:repo JSON 檔=另一種 hardcode）**：策展/擷取資料一律住**本地 PostgreSQL**,以**三層知識管線**運作（鏡射 raw→下游）——**來源定義表 `knowledge_source`**（adapter+查詢模板 registry）→ `acquire_knowledge.py`（通用擷取引擎,從外部真實來源 DBpedia/Gutenberg/維基文庫/手動策展抓入）→ **暫存表 `knowledge_staging`**（payload JSONB+provenance,#1 可溯源,pending 待審）→ `promote_knowledge.py`（晉升引擎,審核後冪等寫正式表）;item 級批量排程走 `harvest_knowledge.py`（三型排程/entity 閘/限速熔斷）。**擴新領域（如能源材料 know-how）＝ INSERT 一列 knowledge_source（換 domain/查詢模板）,零 code 變動**;新「來源協定」才寫新 adapter、新 entity_type 才加 mapping 函式（本質是 code,合理）。JSON/CSV 僅為 manual_file adapter 之**傳輸工件**（匯入口/備份),**非來源 SSOT**;跨機遷移用 `pg_dump -t knowledge_source -t knowledge_staging`。內容納入範圍仍受治權判準約束（憲章 v1.19.0「知識層多域擴充準則」＋ v1.20.0「全文准入雙軌」,此處僅引、不複述）。
+    - **(b) 資料驅動、來源住 DB、不 hardcode 資料（v1.15 升級,用戶 directive 2026-07-02:repo JSON 檔=另一種 hardcode）**：策展/擷取資料一律住**本地 PostgreSQL**,以**三層知識管線**運作（鏡射 raw→下游）——**來源定義表 `knowledge_source`**（adapter+查詢模板 registry）→ `acquire_knowledge.py`（通用擷取引擎,從外部真實來源抓入）→ **暫存表 `knowledge_staging`**（payload JSONB+provenance,#1 可溯源,pending 待審）→ `promote_knowledge.py`（晉升引擎,審核後冪等寫正式表）;批次驅動＝`harvest_knowledge.py` 排程矩陣（`knowledge_query`×來源、resume 帳本）。
+      - **擴新領域＝ INSERT 一列 knowledge_source/query（換 domain/查詢模板）,零 code 變動**;新「來源協定」才寫新 adapter、新 entity_type 才加 mapping 函式（本質是 code,合理）。
+      - JSON/CSV 僅為 manual_file adapter 之**傳輸工件**（匯入口/備份),**非來源 SSOT**;跨機遷移用 `pg_dump -t knowledge_source -t knowledge_staging`。
+      - 內容納入範圍仍受治權判準約束（**憲章「知識層多域擴充準則」**:能抓≠該抓、新領域入庫=決策層人拍板、多域知識素養層零量化價值不進預測管線、domain 欄隔離因子鏈純度）。
     - **(c) 通用可重用**：同型 script 合併為單一參數化工具（如 acquire+promote 兩支引擎取代九支 hardcode/JSON seed 批次檔）,設計為未來不同情境重覆使用、擴充靠 DB 資料列與參數。
     - **(d) 指令矩陣 + 實測**：標頭 docstring 寫「**執行指令矩陣**」（各用法實例指令），且**須實測可執行**（#7；安全驗證分級：唯讀類實跑、放量類 import 級 + 最小單位 #25，不為驗證而觸 API 放量）。
     - **效益**：用戶可自行執行零 usage（#28 本地優先）、新增資料不需 AI 改碼、script 數量收斂可維護。
@@ -69,7 +77,10 @@
 25. **測試用最小單位（單股單日）**：任何 API 探測/健康檢查一律用**最小單位**——單一個股 + 單一日期（`data_id=X, start_date=end_date=某日`，回 ~1 列），**不用寬窗 / 多股串流去測**（測試本身也是負載，會戳已敏感的 IP）。流程：**先最小探測確認 IP 健康，通了才放量跑 sync**；放量後緊盯前段，re-ban 立即停、退回休息（**不留無人看顧的 hang**）。實證 2026-06-09：寬窗（8013 列）/ 120 股串流測試太重，且給「短測過了」的假信心 → sync 一放量又 re-ban。
 
 28. **Claude usage 經濟原則 + 配額護欄（批量/長跑通用；#24 之 Claude-配額對偶）**：批量 / 長跑作業（workflow、多 agent、過夜 sync、逐特徵 build）須**配額感知**——近額度上限即暫停、過重置點再續，**絕不在配額用盡時被硬切於半途**留下不一致狀態。#24 防的是**外部 API（FinMind/FRED）**過載；本條防的是 **Claude 自身 usage 配額**耗盡，同一精神。
-    - **最小化 usage 為總則（用戶 directive 2026-06-27）**：**本專案所有批量處理之設計與執行一律以「最小化 Claude usage 消耗」為原則**——(a) **本地優先**：能用本地 DB / Python / script 算的（build / sync / 對帳 / 大量查詢）不繞道 Claude model / subagent（本地計算零 usage）；(b) **harness 背景監看、不輪詢**：長跑用背景模式（完成自動通知），不主動反覆查狀態、不自掛喚醒鏈（每次喚醒 / 查詢皆重讀 context 耗 usage）；(c) **非必要不 fan-out**：workflow / 多 agent 僅在真需多視角 / 平行 / 對抗驗證時用、規模配合任務，可單次 main-loop 解決者不開；(d) **批次 / 向量化優於逐項**、一次做完勝過反覆來回；(e) **回報精簡**：只報關鍵、不冗長重述。經濟原則與 ultracode「窮盡」傾向衝突時，**分執行層 vs 理解層裁決（用戶 directive 2026-06-29 入憲）**：凡屬**執行／產出層（how）**——build／sync／對帳／掃描／逐特徵計算／批量落地——**一律省 usage 為先**（本地優先、非必要不 fan-out、批次、背景不輪詢；除非用戶當次明示放量）；**唯「對任務之概念性意義與定義之理解（what／why）」為保留區，仍以 ultracode 窮盡深化為最優先、不得為省 usage 打折**——含治權檔詮釋與跨檔一致、靈魂／原則意涵、資料層 table／field／raw 語意定義（尤 anti-leakage 時點欄 #8）、方法論概念、架構意義、結果之真兆假兆判讀（#15）。**判據＝交付物本質**：交付「理解了什麼意思／定義」（語意正確、一次定錨、錯則沉默污染下游 code／資料）→ 理解層 ultracode；交付「跑出結果／落地資料」（機械、冪等可續、可本地腳本化零 usage）→ 執行層省 usage。**混合任務切兩段不整段歸一邊**（語意／設計／判讀子任務走 ultracode、機械落地／計算子任務走省 usage 並本地算完餵回）；**判不準時裁決句「搞錯會不會沉默污染下游？會→歸理解軸窮盡；僅慢→歸執行軸省」，仍有疑則偏當理解層**（成本不對稱：誤解 doctrine／誤定 field 之下游污染 ≫ 少省的 usage）。**邊界不可逾**：理解再深仍只到執行層「改正確／補完整」，不因 ultracode 鬆動三敵人零容忍（#1／#8／#15）與治權判準變更須停下問（#19／#26）。**反例（禁）**：為省 token 不讀清 doctrine、靠「我以為」解釋 `FULL_START` 越描越錯＝在理解層誤用省 usage。
+    - **最小化 usage 為總則（用戶 directive 2026-06-27）**：**本專案所有批量處理之設計與執行一律以「最小化 Claude usage 消耗」為原則**——(a) **本地優先**：能用本地 DB / Python / script 算的（build / sync / 對帳 / 大量查詢）不繞道 Claude model / subagent（本地計算零 usage）；(b) **harness 背景監看、不輪詢**：長跑用背景模式（完成自動通知），不主動反覆查狀態、不自掛喚醒鏈；(c) **非必要不 fan-out**：workflow / 多 agent 僅在真需多視角 / 平行 / 對抗驗證時用；(d) **批次 / 向量化優於逐項**；(e) **回報精簡**。
+      - **執行 vs 理解二分（用戶 directive 2026-06-29 入憲；與 ultracode 衝突時之裁決）**：凡屬**執行／產出層（how）**——build／sync／對帳／掃描／逐特徵計算／批量落地——**一律省 usage 為先**（除非用戶當次明示放量）；**唯「對任務之概念性意義與定義之理解（what／why）」為保留區，仍以 ultracode 窮盡深化為最優先、不得為省 usage 打折**——含治權檔詮釋與跨檔一致、靈魂／原則意涵、資料層 table／field／raw 語意定義（尤 anti-leakage 時點欄 #8）、方法論概念、架構意義、結果之真兆假兆判讀（#15）。
+      - **判據＝交付物本質**：交付「理解了什麼意思／定義」（語意正確、一次定錨、錯則沉默污染下游 code／資料）→ 理解層 ultracode；交付「跑出結果／落地資料」（機械、冪等可續、可本地腳本化零 usage）→ 執行層省 usage。**混合任務切兩段不整段歸一邊**；**裁決句：「搞錯會不會沉默污染下游？會→歸理解軸窮盡；僅慢→歸執行軸省」，仍有疑則偏當理解層**（成本不對稱：誤解 doctrine／誤定 field 之下游污染 ≫ 少省的 usage）。
+      - **邊界不可逾**：理解再深仍只到執行層「改正確／補完整」，不因 ultracode 鬆動三敵人零容忍（#1／#8／#15）與治權判準變更須停下問（#19／#26）。**反例（禁）**：為省 token 不讀清 doctrine、靠「我以為」解釋 `FULL_START` 越描越錯＝在理解層誤用省 usage。
     - **判據與限制（誠實）**：AI **讀不到即時 usage % 儀表**（無查詢工具）；唯一可程式感知的信號＝API 回的**限額錯誤**（429 / weekly / session limit）→ 撞到即**停、不 retry 硬衝**（承 #24「見訊號即停、不重試風暴」，擴及 Claude 配額）。**用戶可設暫停閾值 / 續跑時點**（如「95% 暫停、10:10 後續」），由**用戶監看儀表發信號**或以限額錯誤近似——AI 不謊稱能自動偵測 %。
     - **resume-safe 前提**：暫停前作業須冪等可續（#6 / #22）、暫停不得損資料、不得留半完成之不可逆狀態；workflow 用 `resumeFromRunId`（同 session 快取）或 scoped 重跑續；批量 build/sync 用 DB-driven resume。
     - **不自掛長喚醒鏈（省配額）**：不為等待一個遠時點而連掛多次自我喚醒（喚醒本身重讀 context、耗配額）；改由用戶於續跑時點 ping、或排一次性續跑。

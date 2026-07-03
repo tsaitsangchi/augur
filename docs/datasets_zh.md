@@ -560,7 +560,7 @@
 |---|---|---|---|
 | date | 資料日期 | 金融 | DATE |
 | stock_id | 股票代號 | 金融 | VARCHAR |
-| revenue | 當月營收（千元）| 金融 | NUMERIC |
+| revenue | 當月營收（元）| 金融 | NUMERIC |
 | revenue_month | 營收月份 | 金融 | NUMERIC |
 | revenue_year | 營收年度 | 金融 | NUMERIC |
 
