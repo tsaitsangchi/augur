@@ -25,3 +25,4 @@ reports/*.json
 # Claude Code 本地狀態（不進 git；settings.json 共享設定如需可另 force-add）
 .claude/settings.local.json
 .claude/*.lock
+.db_export/
