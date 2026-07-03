@@ -69,3 +69,10 @@ P4 統計:taxonomy 4 levels 皆非空、query origin 分布、source enabled/dis
 - **待同步(執行層 TODO,harvest 建 taxonomy_id 欄後做)**:
   1. `expand_knowledge_registry.py` P1 衍生 SQL 改直寫 `taxonomy_id`(§八契約 1;現行寫 note,harvest 遷移 SQL 補漏中)
   2. 同 script 補 `--skip-taxonomy` 選項(P2 單獨重跑用,免重打 OpenAlex)
+
+## 十、v1.2 修訂(五鏡對抗審查 confirmed 修復,2026-07-02)
+
+1. **P3 宣稱失實更正(#15)**:計畫原列「~20 大獎項類別」,實作 `AWARDS` 僅 **12 類**、DB 亦 12 列——§九「P3 已完成」更正為「P3 完成 12/目標 20;差集 8 類(諾獎化學/物理/生醫已由域源覆蓋,其餘如 Lasker/Copley 已列程式)待補跑」。
+2. **P2 文件補正**:實程式寫入欄含 `entity_type='work'`/`domain='general'`(文件原漏列);**已知侷限誠實記**:repo 明細 HTTP 抓取失敗時仍 INSERT 空 metadata 目錄列(key/name 有效、subject/api 空),fail 計數僅含 XML ParseError 不含 HTTP-None——修正列入待同步 TODO。
+3. **未拍板域治理(重要)**:P1 衍生之 4,516 詞含**未經決策層拍板之域**(medicine/nursing/dentistry/arts 等 16 field)——治理閘=harvest `knowledge_domain_map` **僅拍板域建列**(未拍板 field 無對映列 → INNER JOIN 天然排除出排程並印統計);**未拍板域之啟用=決策層 INSERT**(呼應憲章 v1.19.0「新領域入庫=人拍板」)。taxonomy/query 表保留全集(目錄無害、排程有閘)。
+4. 待同步 TODO 增:③ re3data HTTP-None 列處置(補抓或標 note)④ 獎項差集 8 類補跑。
