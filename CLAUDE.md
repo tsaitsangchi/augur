@@ -1,4 +1,4 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.15
+# CLAUDE.md — Augur AI 協作工具規則 v1.16
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.4.0.md` + `docs/原則精華_v1.7.1.md` + 憲章為準；
@@ -72,6 +72,10 @@
     - **resume-safe 前提**：暫停前作業須冪等可續（#6 / #22）、暫停不得損資料、不得留半完成之不可逆狀態；workflow 用 `resumeFromRunId`（同 session 快取）或 scoped 重跑續；批量 build/sync 用 DB-driven resume。
     - **不自掛長喚醒鏈（省配額）**：不為等待一個遠時點而連掛多次自我喚醒（喚醒本身重讀 context、耗配額）；改由用戶於續跑時點 ping、或排一次性續跑。
     - **碰護欄即停（同 #26）**：配額近滿屬「停下問/等用戶」之護欄；過重置點且 resume-safe 才續。
+
+30. **DB 備份/遷移慣例(用戶 directive 2026-07-03 入憲;實測依據)**:
+    - **平行 dump 為預設**:`pg_dump -Fd -j 4 -Z1 -d augur -f <WSL ext4 目錄>` → 再 `cp -r` 到 Windows 碟——**先寫本地 ext4、後搬 drvfs**(drvfs 寫入慢);還原端 `pg_restore -j 4` 同樣平行。實測對照:單線程 `-Fc -Z6` 44GB 庫 ≈ 1h+(瓶頸=單核壓縮 65% CPU、~140MB/分),平行 4 工人+輕壓估 **15-20 分(3-4×)**;新安全值依 #27 重覆實證後回填本條。
+    - **dump 期間禁 DDL(鎖風暴教訓 2026-07-03 實證)**:pg_dump 持 ACCESS SHARE 鎖,`ALTER TABLE` 要 ACCESS EXCLUSIVE 被擋;且 **timeout 殺掉 client 後 postgres 後端仍掛鎖佇列**,其等待中的 EXCLUSIVE 請求會擋住後續一切查詢(連 UPDATE/SELECT 都排隊)→ 症狀=全庫查詢突然 hang;處置=查 `pg_stat_activity` 找 `state=active, wait_event_type=Lock` 之殘留後端、`pg_terminate_backend(pid)` 清除。DDL 一律排在 dump 完成後;UPDATE/INSERT(ROW EXCLUSIVE)與 dump 相容可照跑。
 
 ## 五、協作運作模式
 
