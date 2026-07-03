@@ -2,15 +2,21 @@
 """知識晉升引擎 — knowledge_staging(pending)審核晉升到正式表(philosophy_thinker/work/source)。
 
 🎯 這支在做什麼(白話):讀 `knowledge_staging` 待審列(篩 entity_type/domain/source),寫入對映正式表
-   (thinker→philosophy_thinker、work→philosophy_work、citation→philosophy_source+proponents),
-   冪等去重(已有跳過)、成功標 promoted。與 acquire_knowledge.py 成對(外部來源→staging→正式表)。
+   (thinker→philosophy_thinker、work→philosophy_work、citation→philosophy_source+proponents、
+   七類條目 paper/report/dataset/compound/material/protein/species→knowledge_item;work 無 thinker
+   歸屬且非哲學域者後援轉 knowledge_item=論文/書目 metadata),冪等去重(已有跳過)、成功標 promoted。
+   與 acquire_knowledge.py 成對(外部來源→staging→正式表)。
    新 entity_type(如 knowhow)→ 加一個 mapping 函式(本質是 schema 知識=code);來源與資料皆 DB 驅動。
-守 #1(來源可溯源、staging 帶 provenance)· #6 冪等 · #15(晉升數字實證回報)· CLAUDE #29。
+守 #1(來源可溯源、staging 帶 provenance、item lineage→staging→query→taxonomy)· #6 冪等 ·
+   #15(晉升數字實證回報)· CLAUDE #29。
 
 執行指令矩陣:
   python scripts/promote_knowledge.py                                  # 無參數:列 pending 統計+用法
   python scripts/promote_knowledge.py --entity-type thinker            # 晉升全部 pending thinker
   python scripts/promote_knowledge.py --entity-type work --domain management
+  python scripts/promote_knowledge.py --entity-type paper              # 七類條目→knowledge_item
+  python scripts/promote_knowledge.py --entity-type compound --source chembl_molecules
+  python scripts/promote_knowledge.py --entity-type thinker --source dbpedia_award_turing_award  # harvest 治理:thinker 僅單跑型來源
   python scripts/promote_knowledge.py --entity-type thinker --dry-run  # 只看會晉升什麼、不寫
 """
 import re
@@ -116,8 +122,51 @@ def promote_school(cur, p, source_key=None):
     return res
 
 
+ITEM_TYPES = ("paper", "report", "dataset", "compound", "material", "protein", "species")
+# external_id 優先序(harvest 計畫 §二5 明文;無任一 → title+year 去重鍵)
+EXTID_PRIORITY = ("doi", "arxiv_id", "chembl_id", "cid", "uniprot_id", "gbif_id",
+                  "osti_id", "openalex_id", "ia_identifier", "openlibrary_key")
+
+
+def promote_item(cur, p, source_key=None, ctx=None):
+    """七類知識條目(論文/報告/資料集/化合物/材料/蛋白/物種)→ knowledge_item;
+    亦承接 work 後援路(無 thinker 歸屬之非哲學 work,條目類取 payload work_type)。
+    taxonomy_id 由 staging.query_id→knowledge_query.taxonomy_id 回填(lineage 全鏈)。"""
+    ctx = ctx or {}
+    title = p.get("title") or p.get("name")
+    if not title:
+        return "rejected"
+    title = str(title)
+    etype = ctx.get("entity_type")
+    if etype not in ITEM_TYPES:               # work 後援路:以 payload work_type 定條目類(paper/report/book…)
+        etype = p.get("work_type") or "paper"
+    ext = next((str(p[k]) for k in EXTID_PRIORITY if p.get(k)), None)
+    year = _year(p.get("year"))
+    if ext:
+        cur.execute("SELECT 1 FROM knowledge_item WHERE entity_type=%s AND external_id=%s", (etype, ext))
+    else:                                     # 僅無 external_id 者用 title+year 去重(對齊 partial uq_item_title)
+        cur.execute("SELECT 1 FROM knowledge_item WHERE external_id IS NULL AND entity_type=%s "
+                    "AND md5(title)=md5(%s) AND COALESCE(year,0)=COALESCE(%s,0)", (etype, title, year))
+    if cur.fetchone():
+        return "dup"
+    tax = None
+    if ctx.get("query_id"):
+        cur.execute("SELECT taxonomy_id FROM knowledge_query WHERE query_id=%s", (ctx["query_id"],))
+        r = cur.fetchone()
+        tax = r[0] if r else None
+    authors = p.get("authors")
+    if isinstance(authors, list):
+        authors = "; ".join(str(a) for a in authors if a) or None
+    cur.execute("INSERT INTO knowledge_item (domain,entity_type,title,title_zh,year,authors,external_id,"
+                "venue,url,taxonomy_id,source_key,staging_id) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (ctx.get("domain") or "general", etype, title, p.get("title_zh"), year, authors, ext,
+                 p.get("venue"), ctx.get("source_url") or p.get("url") or p.get("oa_url"), tax,
+                 source_key, ctx.get("staging_id")))
+    return "ok"
+
+
 MAPPERS = {"thinker": promote_thinker, "work": promote_work, "citation": promote_citation,
-           "school": promote_school}
+           "school": promote_school, **{et: promote_item for et in ITEM_TYPES}}
 
 
 def main():
@@ -136,7 +185,15 @@ def main():
             return
         if args.etype not in MAPPERS:
             sys.exit(f"未知 entity_type: {args.etype}(現有:{list(MAPPERS)};新類型=加 mapping 函式)")
-        q = "SELECT staging_id, payload, source_key FROM knowledge_staging WHERE status='pending' AND entity_type=%s"
+        cur.execute("SELECT to_regclass('knowledge_item')")
+        has_item = cur.fetchone()[0] is not None
+        if args.etype in ITEM_TYPES and not has_item:
+            sys.exit("knowledge_item 未建——先跑 python scripts/harvest_knowledge.py --migrate-only")
+        cur.execute("SELECT 1 FROM information_schema.columns "
+                    "WHERE table_name='knowledge_staging' AND column_name='query_id'")
+        qid_col = "query_id" if cur.fetchone() else "NULL::int"   # 欄未建(未跑 harvest migrate)→ 容 NULL
+        q = (f"SELECT staging_id, payload, source_key, entity_type, domain, source_url, {qid_col} "
+             "FROM knowledge_staging WHERE status='pending' AND entity_type=%s")
         params = [args.etype]
         if args.domain:
             q += " AND domain=%s"; params.append(args.domain)
@@ -145,14 +202,21 @@ def main():
         cur.execute(q, params)
         rows = cur.fetchall()
         stats = {}
-        for sid, payload, skey in rows:
+        for sid, payload, skey, s_et, s_dom, s_url, s_qid in rows:
             p = payload if isinstance(payload, dict) else json.loads(payload)
             if args.dry_run:
                 print(f"  [dry] #{sid} {str(p)[:90]}")
                 continue
-            res = MAPPERS[args.etype](cur, p, source_key=skey)
+            ctx = {"staging_id": sid, "entity_type": s_et, "domain": s_dom, "source_url": s_url, "query_id": s_qid}
+            fn = MAPPERS[args.etype]
+            res = fn(cur, p, source_key=skey, ctx=ctx) if fn is promote_item else fn(cur, p, source_key=skey)
+            if res == "no_thinker" and args.etype == "work" and s_dom != "philosophy" and has_item:
+                # work→item 後援(harvest 計畫 §一⑤):無 thinker 歸屬之非哲學 work=論文/書目 metadata
+                # → knowledge_item;哲學域仍留 pending 人審(守審核後晉升)
+                res = {"ok": "item_ok", "dup": "item_dup"}.get(
+                    promote_item(cur, p, source_key=skey, ctx=ctx), "no_thinker")
             stats[res] = stats.get(res, 0) + 1
-            if res in ("ok", "dup"):
+            if res in ("ok", "dup", "item_ok", "item_dup"):
                 cur.execute("UPDATE knowledge_staging SET status='promoted', promoted_at=now() WHERE staging_id=%s", (sid,))
             elif res == "rejected":
                 cur.execute("UPDATE knowledge_staging SET status='rejected' WHERE staging_id=%s", (sid,))

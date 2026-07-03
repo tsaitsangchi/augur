@@ -24,6 +24,7 @@
   python scripts/acquire_knowledge.py --source unpaywall_doi --query 10.1086/294846          # DOI→OA 全文連結
   python scripts/acquire_knowledge.py --source manual_curation --file my.json --domain X --entity-type thinker
   python scripts/acquire_knowledge.py --source gutendex_search --query "Adam Smith"
+  python scripts/acquire_knowledge.py --source openalex_works --query X --query-id 123  # harvest 蓋章 staging.query_id(lineage→query→taxonomy)
   # 任一來源皆可 --domain/--entity-type 覆寫 registry 預設(九領域重覆使用同一來源)
 """
 import os
@@ -56,10 +57,18 @@ def get_json(url, headers=UA):
     return json.loads(urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=90).read().decode())
 
 
+_QUERY_ID = None        # harvest 排程蓋章(--query-id);lineage:staging.query_id→knowledge_query→taxonomy
+_HAS_QUERY_ID = False   # staging.query_id 欄存在與否(harvest_knowledge.py --migrate-only 後才有),main() 啟動偵測
+
+
 def stage(cur, src_key, domain, etype, payload, url):
-    cur.execute("INSERT INTO knowledge_staging (source_key,domain,entity_type,payload,source_url) "
-                "VALUES (%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
-                (src_key, domain, etype, json.dumps(payload, ensure_ascii=False), url))
+    cols = "source_key,domain,entity_type,payload,source_url"
+    vals = [src_key, domain, etype, json.dumps(payload, ensure_ascii=False), url]
+    if _HAS_QUERY_ID:   # 欄未建(尚未跑 harvest migrate)→ 退回原 5 欄寫入,不炸
+        cols += ",query_id"
+        vals.append(_QUERY_ID)
+    cur.execute(f"INSERT INTO knowledge_staging ({cols}) VALUES ({','.join(['%s'] * len(vals))}) "
+                "ON CONFLICT DO NOTHING", vals)
     return cur.rowcount
 
 
@@ -255,7 +264,10 @@ def main():
     ap.add_argument("--source"); ap.add_argument("--file"); ap.add_argument("--query")
     ap.add_argument("--limit", type=int); ap.add_argument("--extra-filter", dest="extra_filter")
     ap.add_argument("--domain"); ap.add_argument("--entity-type", dest="entity_type")
+    ap.add_argument("--query-id", dest="query_id", type=int)
     args, _ = ap.parse_known_args()
+    global _QUERY_ID, _HAS_QUERY_ID
+    _QUERY_ID = args.query_id
     with db.connect() as conn, db.transaction(conn) as cur:
         if not args.source:
             print(__doc__.split("執行指令矩陣:")[1])
@@ -264,6 +276,11 @@ def main():
             for r in cur.fetchall():
                 print(f"  {r[0]:28} adapter={r[1]:18} domain={r[2]:18} entity={r[3]:8} enabled={r[4]}")
             return
+        cur.execute("SELECT 1 FROM information_schema.columns "
+                    "WHERE table_name='knowledge_staging' AND column_name='query_id'")
+        _HAS_QUERY_ID = cur.fetchone() is not None
+        if args.query_id is not None and not _HAS_QUERY_ID:
+            print("⚠ staging 無 query_id 欄(先跑 harvest_knowledge.py --migrate-only);本次不寫 query_id")
         cur.execute("SELECT source_key, adapter, domain, entity_type, query_template, adapter_config FROM knowledge_source "
                     "WHERE source_key=%s AND enabled", (args.source,))
         src = cur.fetchone()
