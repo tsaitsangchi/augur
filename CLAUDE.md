@@ -5,6 +5,8 @@
 本檔只管「**如何用 AI 工具編輯本專案**」這層短半衰期協作規則。
 **語言**：與用戶**所有對話一律繁體中文**（程式碼/識別碼/英文專名可保留原文）。
 
+> **條號導讀**：條號按「**新增順序**」編、按「**分類**」歸章，故**非連續**——一 `#1-8`（通用）· 二 `#9-12`（資料真實）· 三 `#13-20, 29`（編輯規則）· 四 `#21-25, 28, 30`（long-running）· 五 `#26-27`（協作模式）。
+
 ---
 
 ## 一、通用規則
@@ -26,7 +28,7 @@
    **(a)** 程式輸出（stdout / JSON / log）｜ **(b)** DB query 結果 ｜ **(c)** API 回應。
    **禁止**：記憶 / 推測 / 估算 / 為完整度補 placeholder / 從相似 model 推估。
 10. **可溯源**：每個量化數字能 trace 回 (a)(b)(c)；對比表兩邊都要有真實來源。
-11. **Stochastic 多跑**：含隨機性的 production metric ≥3 次取統計（min/median/max/mean）；單次極值須註明。**特徵候選提拔生產前一律走方法論 §四「第 4 道提拔關卡」**（as-of 口徑 + 去相關 Eff-t `evaluation/metrics.py:effective_t_hac` + 多 seed 多因子增量,工具 `scripts/verify_candidate_promotion.py`）；**IC 顯著性禁裸用 iid `effective_t`**（重疊窗高估、審查 G8）。**特徵集＋模型最終須過 §四收尾「經濟價值驗證」(#14、工具 `scripts/run_economic_eval.py`/`evaluation/portfolio.py`)——IC 撐住 ≠ 可交易、靈魂成功定義是經濟價值非 IC**。詳法 SSOT＝`reports/augur_feature_discovery_methodology_20260626.md` §四(此處僅引、不複述);特徵發現完整工具鏈見 memory `augur-feature-toolkit`。
+11. **Stochastic 多跑**：含隨機性的 production metric ≥3 次取統計（min/median/max/mean）；單次極值須註明。**特徵候選提拔生產前一律走方法論 §四「第 4 道提拔關卡」**（as-of 口徑 + 去相關 Eff-t `evaluation/metrics.py:effective_t_hac` + 多 seed 多因子增量,工具 `scripts/verify_candidate_promotion.py`）；**IC 顯著性禁裸用 iid `effective_t`**（重疊窗高估、審查 G8）。**特徵集＋模型最終須過 §四收尾「經濟價值驗證」(#14、工具 `scripts/run_economic_eval.py`/`evaluation/portfolio.py`)——IC 撐住 ≠ 可交易、靈魂成功定義是經濟價值非 IC**。詳法 SSOT＝`reports/augur_feature_discovery_methodology_20260626.md` §四(此處僅引、不複述);完整工具鏈對映見同報告 §四「完整工具鏈」段。
 12. **不 hand-patch 已 committed 資料**：發現錯誤改 writer code + 重建，不手動 UPDATE 補值。
 
 ## 三、本專案編輯規則
@@ -35,7 +37,7 @@
 14. **Commit / Push 須明示授權**：不自行 `git commit` / `git push`；用戶要求時遵守 git 安全協議（不 `--amend` 已 push、不 `--force` 主分支、不跳 hooks）。commit 訊息結尾加 `Co-Authored-By: Claude ...`。
 15. **PR / 遠端**：不自行建/關 PR、不在 issue 留言；影響遠端狀態的 `gh` 操作先確認。
 16. **研究報告**：寫入 `reports/`，命名 `<module>_<topic>_<YYYYMMDD>.md`。
-17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.7.1.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。**哲學素養框架層（憲章 v1.18.0 橫切 philosophy：投資哲學因子假說 ＋ 廣博哲學素養）之內容一律來源真實權威文獻（書籍／論文／原始文獻／公版原典），禁從 AI 平台生成內容入庫當真兆（敵人① / clean-room；`work_type` 禁 `ai_generated`、`license` 限 `public_domain`）；原典全文限**公版**、本地抓取解析（維基文庫 raw wikitext／Gutenberg）零 usage（#28）逐字無 AI 摘要（#1）；**納人類哲學經典**（投資哲學／戰略／行為財務＝因子假說來源；東西方哲學經典＝解讀／素養層）、**排除非哲學離題**（純物理／自然科學如相對論——「能抓≠該抓」）；廣博哲學全文量化零價值、僅素養／解讀、不產因子、不取代真實資料預測；**現代版權著作全文不可抓（法律 + #1），其核心精神經**真實文獻出處**的 `philosophy_principle` 條目 → `principle_factor_map` 因子假說 → **#14 經濟價值驗證**入庫（採用由 #14 裁決、非大師權威）；**嚴禁 AI 整理／摘要版權著作內容入庫**——AI 生成假兆（違 #1）＋ 侵權、`work_type`／`license` DB CHECK 硬擋（憲章 v1.18.0）**。**
+17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.7.1.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。**哲學素養框架層（憲章橫切 philosophy〔v1.16.0 立／v1.17.0 擴博學〕：投資哲學因子假說 ＋ 廣博哲學素養）之內容一律來源真實權威文獻（書籍／論文／原始文獻／公版原典），禁從 AI 平台生成內容入庫當真兆（敵人① / clean-room；`work_type` 禁 `ai_generated`、`license` 限 `public_domain`）；原典全文限**公版**（僅哲學 `work_text`；知識層 `knowledge_item_text` 依憲章 v1.20.0 雙軌另納 CC 白名單 cc-by/cc-by-sa/cc0、NC/ND/未明停 metadata，管線見 #29b）、本地抓取解析（維基文庫 raw wikitext／Gutenberg）零 usage（#28）逐字無 AI 摘要（#1）；**納人類哲學經典**（投資哲學／戰略／行為財務＝因子假說來源；東西方哲學經典＝解讀／素養層）、**排除非哲學離題**（純物理／自然科學如相對論——「能抓≠該抓」）；廣博哲學全文量化零價值、僅素養／解讀、不產因子、不取代真實資料預測；**現代版權著作全文不可抓（法律 + #1），其核心精神經**真實文獻出處**的 `philosophy_principle` 條目 → `principle_factor_map` 因子假說 → **#14 經濟價值驗證**入庫（採用由 #14 裁決、非大師權威）；**嚴禁 AI 整理／摘要版權著作內容入庫**——AI 生成假兆（違 #1）＋ 侵權、`work_type`／`license` DB CHECK 硬擋（憲章 v1.18.0）**。**
 18. **程式標頭與命名慣例（精簡——不重蹈 stock_backend 50-230 行標頭）**：
     - **每支**：🎯 白話 docstring（這支在做什麼，給人看的）+ 一行「守原則 #X #Y」。
     - **CLI 入口程式**（sync / builder / trainer / validator）：再加**執行指令矩陣**（各用法實例，見 #29）。
@@ -52,7 +54,7 @@
 
 29. **Script 個別可執行 × 資料驅動不 hardcode（用戶 directive 2026-07-02 入憲）**：`scripts/` 每支程式須滿足四件事——
     - **(a) 個別可執行**：任何 cwd 直接 `python scripts/X.py` 即跑，**不依賴 `PYTHONPATH=src` 前置**——每支於 `import augur` 前 `import _bootstrap`（`scripts/_bootstrap.py` 自動插 `src/` 進 path、#12 單一住所），並與 `pip install -e .`（README 標準 setup）並存相容。無參數執行須 graceful（印指令矩陣或跑安全預設），不得裸 traceback。
-    - **(b) 資料驅動、來源住 DB、不 hardcode 資料（v1.15 升級,用戶 directive 2026-07-02:repo JSON 檔=另一種 hardcode）**：策展/擷取資料一律住**本地 PostgreSQL**,以**三層知識管線**運作（鏡射 raw→下游）——**來源定義表 `knowledge_source`**（adapter+查詢模板 registry）→ `acquire_knowledge.py`（通用擷取引擎,從外部真實來源 DBpedia/Gutenberg/維基文庫/手動策展抓入）→ **暫存表 `knowledge_staging`**（payload JSONB+provenance,#1 可溯源,pending 待審）→ `promote_knowledge.py`（晉升引擎,審核後冪等寫正式表）。**擴新領域（如能源材料 know-how）＝ INSERT 一列 knowledge_source（換 domain/查詢模板）,零 code 變動**;新「來源協定」才寫新 adapter、新 entity_type 才加 mapping 函式（本質是 code,合理）。JSON/CSV 僅為 manual_file adapter 之**傳輸工件**（匯入口/備份),**非來源 SSOT**;跨機遷移用 `pg_dump -t knowledge_source -t knowledge_staging`。內容納入範圍仍受治權判準約束（憲章 v1.20.0「知識層多域擴充準則」:能抓≠該抓、新領域入庫=決策層人拍板、多域知識素養層零量化價值不進預測管線、domain 欄隔離因子鏈純度）。
+    - **(b) 資料驅動、來源住 DB、不 hardcode 資料（v1.15 升級,用戶 directive 2026-07-02:repo JSON 檔=另一種 hardcode）**：策展/擷取資料一律住**本地 PostgreSQL**,以**三層知識管線**運作（鏡射 raw→下游）——**來源定義表 `knowledge_source`**（adapter+查詢模板 registry）→ `acquire_knowledge.py`（通用擷取引擎,從外部真實來源 DBpedia/Gutenberg/維基文庫/手動策展抓入）→ **暫存表 `knowledge_staging`**（payload JSONB+provenance,#1 可溯源,pending 待審）→ `promote_knowledge.py`（晉升引擎,審核後冪等寫正式表）;item 級批量排程走 `harvest_knowledge.py`（三型排程/entity 閘/限速熔斷）。**擴新領域（如能源材料 know-how）＝ INSERT 一列 knowledge_source（換 domain/查詢模板）,零 code 變動**;新「來源協定」才寫新 adapter、新 entity_type 才加 mapping 函式（本質是 code,合理）。JSON/CSV 僅為 manual_file adapter 之**傳輸工件**（匯入口/備份),**非來源 SSOT**;跨機遷移用 `pg_dump -t knowledge_source -t knowledge_staging`。內容納入範圍仍受治權判準約束（憲章 v1.19.0「知識層多域擴充準則」＋ v1.20.0「全文准入雙軌」,此處僅引、不複述）。
     - **(c) 通用可重用**：同型 script 合併為單一參數化工具（如 acquire+promote 兩支引擎取代九支 hardcode/JSON seed 批次檔）,設計為未來不同情境重覆使用、擴充靠 DB 資料列與參數。
     - **(d) 指令矩陣 + 實測**：標頭 docstring 寫「**執行指令矩陣**」（各用法實例指令），且**須實測可執行**（#7；安全驗證分級：唯讀類實跑、放量類 import 級 + 最小單位 #25，不為驗證而觸 API 放量）。
     - **效益**：用戶可自行執行零 usage（#28 本地優先）、新增資料不需 AI 改碼、script 數量收斂可維護。
@@ -62,7 +64,7 @@
 21. **≥5 分鐘任務每 5 分鐘回報**：已完成階段 + elapsed + 剩餘估計 + 已知 metrics + warning；不靜默。
 22. **≥30 分鐘 / 過夜任務防睡眠**：背景啟動 + 進程存活 watchdog + sentinel；WSL2/雲機**確認主機不會睡眠**（本機 Linux 端用 `systemd-inhibit`，但擋不住 Windows/雲主機睡眠——須用戶確認電源設定）；長跑須有 resume 後路。
 23. **環境前置**：首次 setup 跑 import smoke test 才進後續；OS 層依賴（OpenMP for xgboost/lightgbm、PostgreSQL headers）先補。
-24. **API 限速（對齊原則 #17；三層防護）**：對 FinMind / FRED 抓取一律經 `ingestion/finmind.py` 內建——(1) `_pace()` 最小間隔（基礎步調）、(2) **主動額度閘 `_quota_gate()`**（閉環輪詢 `/user_info` 權威錶，額度近滿撞前先停、退夠自動續）、(3) **403 長冷卻 `QUOTA_COOLDOWN`**（不短退避反覆撞）；honor `retry_after`；**不得高併發 / 無間隔狂打服務端**；驗證與全史走同一 `fetch`、同一防護。
+24. **API 限速（機制 SSOT＝原則精華 #17「三層防護」，此處僅列工具對映）**：對 FinMind / FRED 抓取一律經 `ingestion/finmind.py` 內建——工具對映：`_pace()`（步調）/ `_quota_gate()`（額度閘，現況見該函式 docstring）/ `QUOTA_COOLDOWN`（403 長冷卻）；honor `retry_after`；**不得高併發 / 無間隔狂打服務端**；驗證與全史走同一 `fetch`、同一防護。
     - **FinMind 限流實證地圖（2026-06-09/12）**：(a) **額度為 rolling 視窗**（零 call 期間錶連續下退、非整點清零）、且計數含未知成分（403 當下錶可 < 上限）→ 配額判斷**一律問錶（`/user_info`，403 期間可讀、讀錶不自計），不本地推算**；(b) **兩種 403**——額度型（錶滿，gate 可預防）與 **IP sustained 型**（曾 8/6000 也 ban；只能靠保守步調＋休養）；(c) **重試風暴是惡化路徑**：撞 403 後高併發短退避反覆重試 → 錶永遠滿、不自癒（實證 2026-06-12 卡死 → #25 止血）。教訓：「低於 hourly 上限」≠ 安全；見訊號即停，勿續衝。
 25. **測試用最小單位（單股單日）**：任何 API 探測/健康檢查一律用**最小單位**——單一個股 + 單一日期（`data_id=X, start_date=end_date=某日`，回 ~1 列），**不用寬窗 / 多股串流去測**（測試本身也是負載，會戳已敏感的 IP）。流程：**先最小探測確認 IP 健康，通了才放量跑 sync**；放量後緊盯前段，re-ban 立即停、退回休息（**不留無人看顧的 hang**）。實證 2026-06-09：寬窗（8013 列）/ 120 股串流測試太重，且給「短測過了」的假信心 → sync 一放量又 re-ban。
 

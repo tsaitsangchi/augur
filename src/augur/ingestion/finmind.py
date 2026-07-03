@@ -81,7 +81,7 @@ def _user_quota(timeout=15):
 
 
 def _quota_gate():
-    """[2026-06-17 Mac 本地操作、未 commit] Mac token user_count 黑箱失準(零 call 卻卡/自漲、與真實
+    """[2026-06-17 Mac 實證、已入版控] Mac token user_count 黑箱失準(零 call 卻卡/自漲、與真實
     call 不符;IP 健康實測能抓為證)→ **禁用 user_count 預防暫停閘**,純靠 `_pace` 限速 + 撞真 403 之
     `QUOTA_COOLDOWN` 冷卻(WSL 經驗「錶有雜訊→以 DB 列數成長為真在抓訊號」)。仍週期讀錶 log 供監控、不暫停。
     **錶可靠之機台應 git restore 還原此閘**(原為主動額度閘:錶≥limit−HEADROOM 持鎖暫停、退半續)。"""

@@ -11,7 +11,7 @@ Augur 從 FinMind / FRED 抓進可溯源的日級資料，算成 source-pure 特
 
 它的每一條紀律都在防三個敵人：**① 假資料 · ② 偷看未來 · ③ 自我欺騙**。
 
-> 🚧 **狀態**：開發中。治權已立（原則精華 v1.7.1・20 條法律；憲章 v1.20.0・catalog 橫切元資料登錄 + 官方 datasets.md 入憲 + 特徵發現方法論入憲 + 配額感知暫停/續跑 + 特徵提拔關卡入憲 + 經濟價值驗證收尾關卡入憲 + 執行省 usage × 理解 ultracode 窮盡二分 + 投資哲學框架層入憲 + v1.17.0 哲學素養框架擴博學〔博學投資大師 AI〕 + v1.18.0 版權著作核心精神合規路入憲〔真實文獻 principle→因子→#14、禁 AI 整理〕 + v1.19.0 知識層多域擴充準則入憲〔通用知識管線、多域素養零量化價值、domain 隔離因子鏈〕 + v1.20.0 全文准入雙軌〔哲學原典限公版不動;知識層 item_text 納 CC 白名單〕）；`core / ingestion / audit / features / universe` 已建並實跑，特徵層三鏡頭 8 特徵入生產（27→34）、經濟回測基礎(`evaluation/portfolio.py`)已建；raw 全市場全史 sync 暫停、轉 catalog-driven 規劃；`models`（F3）續建中。
+> 🚧 **狀態**：開發中。治權已立（靈魂 v1.4.0；原則精華 v1.7.1・20 條法律；憲章 v1.20.0——修訂歷程見該檔修訂表）；全管線 `raw→feature→universe→model→validate` 已打通——raw 全市場全史 sync 完成、as-of 2026-05-31 完整性逐表驗證定案（84/84）；特徵層 35 特徵入生產（三層飽和定論）；F3 as-of Ridge 於 `evaluation` walk-forward 實證 alpha、經濟價值驗證成立（#14、`evaluation/portfolio.py`；`models` package 為待建空殼，F3 驗證走 evaluation 雙軌）；philosophy / knowledge 素養層落地（素養庫＋lexicon 逐字定義＋concordance＋三粒度嵌入＋harvest 知識管線——零量化價值、不進預測管線）。
 
 ---
 
@@ -21,7 +21,7 @@ Augur 從 FinMind / FRED 抓進可溯源的日級資料，算成 source-pure 特
 |---|---|
 | [`docs/系統核心思想_v1.4.0.md`](docs/系統核心思想_v1.4.0.md) | **靈魂**：系統是什麼、為什麼、什麼絕不能違反 |
 | [`docs/原則精華_v1.7.1.md`](docs/原則精華_v1.7.1.md) | **20 條不可違反原則**（三條基石：#1 / #8 / #15） |
-| [`docs/系統架構大憲章_v1.20.0.md`](docs/系統架構大憲章_v1.20.0.md) | **憲法**：三個敵人 × 管線 + 12-PHASE 維運 + 升版規則（+ 橫切 catalog 元資料登錄 + 官方 datasets.md 入憲 + 特徵發現方法論入憲 + 配額感知暫停/續跑 + 特徵提拔關卡 + 經濟價值驗證收尾關卡 + 執行省 usage × 理解 ultracode 窮盡二分 + 投資哲學框架層入憲 + v1.17.0 哲學素養框架擴博學〔博學投資大師 AI〕 + v1.18.0 版權著作核心精神合規路入憲〔真實文獻 principle→因子→#14、禁 AI 整理〕 + v1.19.0 知識層多域擴充準則入憲〔通用知識管線、多域素養零量化價值、domain 隔離因子鏈〕 + v1.20.0 全文准入雙軌〔哲學原典限公版不動;知識層 item_text 納 CC 白名單〕）|
+| [`docs/系統架構大憲章_v1.20.0.md`](docs/系統架構大憲章_v1.20.0.md) | **憲法**：三個敵人 × 管線 + 12-PHASE 維運 + 升版規則（現行 v1.20.0；逐版特性見該檔修訂歷程） |
 | [`CLAUDE.md`](CLAUDE.md) | AI 協作工具規則 |
 
 ## 管線
@@ -33,7 +33,7 @@ raw (FinMind/FRED) → feature (source-pure) → universe (核心股) → model 
 ## 目錄
 
 ```
-src/augur/   core / ingestion / features / universe / models / evaluation / audit / catalog
+src/augur/   core / ingestion / features / universe / models / evaluation / audit / catalog / philosophy / knowledge / advisor
 scripts/     薄 CLI entrypoints（呼叫 src，不放邏輯；個別可執行 + 資料驅動不 hardcode，CLAUDE #29；
              知識擷取=DB 三層管線 knowledge_source→acquire→staging→promote，新增領域=INSERT 來源列零 code）
 docs/        治權三件套 + datasets_zh.md(資料源逐欄 catalog) + archive(考古索引)

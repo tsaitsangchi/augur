@@ -17,13 +17,13 @@
 | 資產 | 量 |
 |---|---|
 | registry | knowledge_query 4,706 詞 / knowledge_source 3,592 列(enabled 69)/ taxonomy 4,798 節點 |
-| knowledge_item | 14,602(harvest 首輪+常規批;lineage 100%) |
+| knowledge_item | **41,888**(harvest 首輪+常規批+十域窮舉 2026-07-03/04;lineage 100%;org/business/finance/energy 四域殘 ~6,000 組合待續批) |
 | philosophy_thinker | ~4,000(獎項/域源 source 欄 100%) |
 | **knowledge_lexicon** | **154,875 條逐字定義**(說文 9,831/康熙 p0 26,730/Webster 113,425/Roget 1,043/王弼 405/論語孟子注疏 3,441) |
 | knowledge_sentence | ~1.54M 句(reference 誤入 28,835 句已清) |
 | **knowledge_concordance** | **49,106,830 列 / 4.8GB**(純原典;「道」5,072/「仁」2,471/'valu' 12,659 處) |
 | corpus 治理 | 1,317 部全蓋章(provenance 523/audit 794;**有全文 NULL=0 常備不變式**)、corpus_class reference 7 部、151 部 flag 待人審 |
-| 嵌入 | chunk 63,601 既有;**W5 進行中**(lexicon+zh 句,見 §四) |
+| 嵌入 | **W5 已竣工(2026-07-04)**:lexicon 154,875 全嵌+zh 句 33,314+chunk 級+HNSW 兩索引——語意層三粒度全貫通 |
 
 ## 三、DB 遷移(⚠️ 有 snapshot 時點陷阱)
 
@@ -48,7 +48,7 @@ pg_restore -j 4 -h 127.0.0.1 -U augur -d augur <dump 檔/目錄>
 
 ## 四、進行中/未完(接續佇列)
 
-1. **W5 嵌入**(本機背景 `b2df4bado`,估至 ~21:00):p0 lexicon 154,875(~5-6h)→ p1 zh 句 → HNSW。**中斷無妨**:`knowledge_build_meta` 游標 resume-safe,新機還原後直接續跑同指令。
+1. ~~W5 嵌入~~ **已完成(2026-07-04)**——語意層竣工;§三路 A 之「等 W5」條件已成立,**換機前直接重 dump 即可**。另 2026-07-03/04 十域窮舉+454 部新全文+稽核 gate(flag 359/級聯清 7,499 chunks)亦已入 DB——**現有 20260703 dump 不含以上全部,換機務必重 dump(路 A)**。
 2. W5 完成後:跨語驗收 rank@10(**先做 junk chunk 清理工單**:「_」「----」高分污染)。
 3. v2.0 W6-W9:term_stats 統計層 → 衍生層(對齊/引文網/圖譜,合規骨架先)→ L5 answer.py/profile.py/coverage → en 句嵌入 C 子集(已拍板)。
 4. 分期債:康熙 p1(餘 174 部首)、十三經餘十一經、151 部 flag 人審(`review_flagged_works.py` 規格在 v2.0 §三,**尚未實作**)、staging pending 審、`verify_text_integrity.py`(v2.0 W2,**尚未實作**)。
