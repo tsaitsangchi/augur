@@ -83,7 +83,8 @@ SIDES = {
     "philosophy": ("philosophy_work_text", "text_id",
                    "SELECT wt.text_id, wt.content, wt.language FROM philosophy_work_text wt "
                    "JOIN philosophy_work w USING (work_id) "
-                   "WHERE w.review_flag IS NOT TRUE AND wt.text_id > %s "
+                   "WHERE w.review_flag IS NOT TRUE AND COALESCE(w.work_type,'') NOT IN ('dictionary','thesaurus') "
+                   "AND wt.text_id > %s "
                    "AND NOT EXISTS (SELECT 1 FROM knowledge_sentence s WHERE s.text_id = wt.text_id) "),
     "items": ("knowledge_item_text", "itext_id",
               "SELECT it.itext_id, it.content, it.language FROM knowledge_item_text it "
@@ -179,7 +180,7 @@ def print_info(conn):
                     "WHERE w.review_flag IS TRUE")
         flagged = cur.fetchone()[0]
         cur.execute("SELECT count(*) FROM philosophy_work_text wt JOIN philosophy_work w USING (work_id) "
-                    "WHERE w.review_flag IS NOT TRUE "
+                    "WHERE w.review_flag IS NOT TRUE AND COALESCE(w.work_type,'') NOT IN ('dictionary','thesaurus') "
                     "AND NOT EXISTS (SELECT 1 FROM knowledge_sentence s WHERE s.text_id = wt.text_id)")
         pending = cur.fetchone()[0]
         cur.execute("SELECT count(*) FROM knowledge_sentence")
