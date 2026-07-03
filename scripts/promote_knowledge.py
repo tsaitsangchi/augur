@@ -92,7 +92,32 @@ def promote_citation(cur, p, source_key=None):
     return "ok"
 
 
-MAPPERS = {"thinker": promote_thinker, "work": promote_work, "citation": promote_citation}
+def promote_school(cur, p, source_key=None):
+    """學派入庫(name_zh 去重)+ 隨附真實文獻 citation;非投資域不接 factor_map(素養層)。"""
+    name_zh = p.get("name_zh")
+    if not (name_zh and p.get("core_thesis")):
+        return "rejected"
+    cur.execute("SELECT school_id FROM philosophy_school WHERE name_zh=%s", (name_zh,))
+    r = cur.fetchone()
+    if r:
+        sid, res = r[0], "dup"
+    else:
+        cur.execute("INSERT INTO philosophy_school (name,name_zh,core_thesis,proponents,domain) "
+                    "VALUES (%s,%s,%s,%s,%s) RETURNING school_id",
+                    (p.get("name"), name_zh, p["core_thesis"], p.get("proponents"),
+                     p.get("domain", "investment")))
+        sid, res = cur.fetchone()[0], "ok"
+    cite = p.get("citation")
+    if cite:
+        cur.execute("SELECT 1 FROM philosophy_source WHERE school_id=%s AND citation=%s", (sid, cite))
+        if not cur.fetchone():
+            cur.execute("INSERT INTO philosophy_source (school_id,citation,source_type) VALUES (%s,%s,%s)",
+                        (sid, cite, p.get("source_type", "book")))
+    return res
+
+
+MAPPERS = {"thinker": promote_thinker, "work": promote_work, "citation": promote_citation,
+           "school": promote_school}
 
 
 def main():

@@ -198,7 +198,51 @@ def adapter_unpaywall(cur, src, args, dom, et):
     return stage(cur, src[0], dom, et, p, oa.get("url") or f"https://doi.org/{r.get('doi')}")
 
 
+def _walk(obj, path):
+    """dot-path 取值(支援數字索引:'titles.0.title')。"""
+    for part in str(path).split("."):
+        if obj is None:
+            return None
+        if isinstance(obj, list):
+            try:
+                obj = obj[int(part)]
+            except (ValueError, IndexError):
+                return None
+        elif isinstance(obj, dict):
+            obj = obj.get(part)
+        else:
+            return None
+    return obj
+
+
+def adapter_generic_json(cur, src, args, dom, et):
+    """通用 JSON API adapter:registry adapter_config 定義 results_path/fields 對映——新來源零 code。
+    config 例:{"results_path":"resultList.result","fields":{"title":"title","year":"pubYear"},
+               "url_path":"doi","work_type":"paper","list_key":"name"}"""
+    cfg = src[5] or {}
+    d = get_json(fill(src[4], args))
+    rows = _walk(d, cfg["results_path"]) if cfg.get("results_path") else d
+    if not isinstance(rows, list):
+        rows = [rows] if rows else []
+    n = 0
+    for r in rows[: args.limit or 20]:
+        p = {}
+        for k, path in (cfg.get("fields") or {}).items():
+            v = _walk(r, path)
+            if isinstance(v, list):
+                v = [x.get(cfg.get("list_key", "name")) if isinstance(x, dict) else x for x in v][:8]
+            if v is not None:
+                p[k] = v
+        if not p:
+            continue
+        p.setdefault("work_type", cfg.get("work_type", "paper"))
+        u = _walk(r, cfg["url_path"]) if cfg.get("url_path") else None
+        n += stage(cur, src[0], dom, et, p, str(u) if u else f"api:{src[0]}")
+    return n
+
+
 ADAPTERS = {"manual_file": adapter_manual_file, "dbpedia_sparql": adapter_dbpedia_sparql,
+            "generic_json": adapter_generic_json,
             "wikidata_sparql": adapter_wikidata_sparql, "gutendex": adapter_gutendex,
             "openalex": adapter_openalex, "crossref": adapter_crossref, "arxiv": adapter_arxiv,
             "semantic_scholar": adapter_semantic_scholar, "osti": adapter_osti,
@@ -220,7 +264,7 @@ def main():
             for r in cur.fetchall():
                 print(f"  {r[0]:28} adapter={r[1]:18} domain={r[2]:18} entity={r[3]:8} enabled={r[4]}")
             return
-        cur.execute("SELECT source_key, adapter, domain, entity_type, query_template FROM knowledge_source "
+        cur.execute("SELECT source_key, adapter, domain, entity_type, query_template, adapter_config FROM knowledge_source "
                     "WHERE source_key=%s AND enabled", (args.source,))
         src = cur.fetchone()
         if not src:
