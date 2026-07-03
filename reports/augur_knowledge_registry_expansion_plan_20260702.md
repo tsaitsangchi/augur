@@ -60,7 +60,7 @@ P4 統計:taxonomy 4 levels 皆非空、query origin 分布、source enabled/dis
 ## 八、與 harvest 落地計畫之配合(v1.1 補,2026-07-02 交叉檢視)
 
 1. **taxonomy_id 直寫(修縫隙 A)**:P1 衍生 `knowledge_query` 時,openalex_id 不再僅暫存 `note`——`knowledge_query.taxonomy_id` 欄建立後(harvest §二4),expansion script 衍生 SQL **直接帶 taxonomy_id**;harvest 之遷移 SQL 降級為冪等補漏(每次 expansion 重跑後可安全重放)。
-2. **domain slug 公式=兩計畫共同契約(修縫隙 B)**:query.domain 之 field slug 公式 `lower(replace(replace(f.name,' ','_'),',',''))` 為 SSOT(住 expansion script);harvest 的 `knowledge_domain_map` 種子**一律 `SELECT DISTINCT domain FROM knowledge_query` 資料驅動生成**(恆等列預設、含手動 14 域),再人工 UPDATE 特定對映(materials_science→energy_materials 等)——不手打 26 slug、公式改動自動跟隨。
+2. **domain slug 公式=兩計畫共同契約(修縫隙 B;v1.3 同步治理閘)**:slug 公式 SSOT 住 expansion script;harvest `knowledge_domain_map` 種子=**僅決策層已拍板之域建列**(手動 14 域恆等 + 拍板 field 覆寫;未拍板 field 不建列、INNER JOIN 天然排除——廢「SELECT DISTINCT 全恆等」舊句)。
 3. **harvest 先決=僅 P1**(分類樹,已完成);P2 re3data 目錄列 enabled=false 不在 harvest 排程,非先決。
 
 ## 九、執行狀態與計畫↔程式待同步清單(v1.1,2026-07-02)
@@ -76,3 +76,8 @@ P4 統計:taxonomy 4 levels 皆非空、query origin 分布、source enabled/dis
 2. **P2 文件補正**:實程式寫入欄含 `entity_type='work'`/`domain='general'`(文件原漏列);**已知侷限誠實記**:repo 明細 HTTP 抓取失敗時仍 INSERT 空 metadata 目錄列(key/name 有效、subject/api 空),fail 計數僅含 XML ParseError 不含 HTTP-None——修正列入待同步 TODO。
 3. **未拍板域治理(重要)**:P1 衍生之 4,516 詞含**未經決策層拍板之域**(medicine/nursing/dentistry/arts 等 16 field)——治理閘=harvest `knowledge_domain_map` **僅拍板域建列**(未拍板 field 無對映列 → INNER JOIN 天然排除出排程並印統計);**未拍板域之啟用=決策層 INSERT**(呼應憲章 v1.19.0「新領域入庫=人拍板」)。taxonomy/query 表保留全集(目錄無害、排程有閘)。
 4. 待同步 TODO 增:③ re3data HTTP-None 列處置(補抓或標 note)④ 獎項差集 8 類補跑。
+
+## 十一、v1.3 更正(雙重驗證 fix_gaps,2026-07-02)
+1. **P4 失實更正(#15)**:§九「P4 已完成」不實——實際僅圖靈獎抽測(staging +3);計畫承諾之「taxonomy 詞 × openalex_works 抽測」程式中不存在、未執行。P4 狀態=**部分完成**;TODO⑤:p4_verify 補 taxonomy 詞抽測 + subprocess `check=True`(現 check=False 失敗不擋驗收)。
+2. **諾貝爾經濟學獎零覆蓋(對投資專案最相關卻缺)**:DB 實查任何來源 query_template 皆無 economic——TODO⑥ 補 `dbpedia_award_nobel_economics`(dbc:Nobel_laureates_in_Economics 類別,執行時 #25 實測類名)。
+3. **P2 鑑別侷限誠實記**:HTTP-None 失敗列與「本就無學科/API」列在 DB 不可區分(實查 3,507 列中 109 列雙空);「解析失敗 0」宣稱僅覆蓋 XML ParseError、不含 HTTP 層;TODO③ 補抓須保守重抓全部空 metadata 列(超集)。
