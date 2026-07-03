@@ -26,7 +26,8 @@ class LexEntry(NamedTuple):
     lex_type: str              # dictionary | thesaurus | commentary
 
 
-_CJK = "㐀-鿿"         # CJK 統一表意文字(含 ExtA;計畫 §二6 一-鿿 之涵蓋超集)
+# CJK 統一表意文字:BMP(ExtA+URO)+相容區+補充平面 ExtB-ExtH(說文/康熙非 BMP 字頭如 𧆑𠍮 實證需要)
+_CJK = "㐀-鿿豈-龎\U00020000-\U0003FFFF"
 
 
 # ── 說文解字(維基文庫 wikitext,計畫規則:「【字】…也」逐字條段切;locator=卷+部首) ──
@@ -34,7 +35,7 @@ _SW_JUAN = re.compile(r"^=*\s*(卷[一二三四五六七八九十百零上中下
 _SW_RADICAL = re.compile(rf"^=+\s*([{_CJK}]{{1,3}}部)\s*=+$|^【?([{_CJK}]{{1,3}})部】?$")
 _SW_SPLIT = re.compile(rf"(?=【[{_CJK}]{{1,4}}】)")
 _SW_ENTRY_BRACKET = re.compile(rf"^【([{_CJK}]{{1,4}})】\s*(.*)$")
-_SW_ENTRY_COLON = re.compile(rf"^([{_CJK}])[：:]\s*(.+)$")   # 維基文庫常見變體「元：始也。」
+_SW_ENTRY_COLON = re.compile(rf"^([{_CJK}])[;；]?[：:]\s*(.+)$")   # 「元：始也。」;容 1 條源文 artifact「𦍧;：」
 
 
 def parse_shuowen(full_text):
@@ -88,46 +89,54 @@ def parse_shuowen(full_text):
     return entries, failed
 
 
-# ── 康熙字典(維基文庫,計畫規則:部首頁結構切;locator=集+部) ──────────────
-_KX_VOLUME = re.compile(r"([子丑寅卯辰巳午未申酉戌亥]集[上中下]?|備考|補遺)")
-_KX_RADICAL = re.compile(rf"^=+\s*([{_CJK}]{{1,3}})字?部\s*=+$|^【?([{_CJK}]{{1,3}})字?部】?$")
-_KX_ENTRY = re.compile(rf"^【?([{_CJK}])】?\s*(?=[〔【])(.*)$")   # 詞頭字後緊接〔古文〕/【韻書】引文
+# ── 康熙字典(維基文庫,格式實證 2026-07-03:「字：《唐韻》…」colon 式為主+「==字==」標題式) ──
+_KX_HEADING = re.compile(rf"^==+\s*([{_CJK}])\s*==+$")           # ==字== 章節標題式字頭
+_KX_ENTRY_COLON = re.compile(rf"^([{_CJK}])[：:]\s*(.*)$")       # 「字：定義」colon 式字頭(單 CJK 字)
+_KX_NOTE = re.compile(r"^=*\s*(考證|備考|補遺)\s*=*[：:]?")       # 前條目附註段=接續非新字頭(實證 1,460 行)
 
 
 def parse_kangxi(full_text):
-    """康熙字典:詞頭字(可帶【】)後緊接〔古文〕或【唐韻】類引文=條目起點;locator=集·部。"""
+    """康熙字典:「字：…」colon 式+「==字==」標題式雙規則(全 915 段實證);
+    考證/備考/補遺 行=前條目附註接續;locator=段內序(chapter=部首·畫數由寫入端前綴)。"""
     entries, failed = [], 0
-    volume = radical = None
+    idx = 0
     cur_term, cur_def = None, []
 
     def flush():
-        nonlocal cur_term, cur_def, failed
+        nonlocal cur_term, cur_def, failed, idx
         if cur_term is not None:
             d = "\n".join(x for x in cur_def if x).strip()
             if d:
-                loc = "·".join(x for x in (volume, radical) if x) or None
-                entries.append(LexEntry(cur_term, d, loc, "dictionary"))
+                idx += 1
+                entries.append(LexEntry(cur_term, d, str(idx), "dictionary"))
             else:
-                failed += 1
+                failed += 1              # 有字頭無定義=失敗,寧缺
         cur_term, cur_def = None, []
 
+    orphan = False                       # 段首無字頭之接續行(硬切段殘尾)=1 次失敗誠實計
     for raw in full_text.splitlines():
         line = raw.strip()
         if not line:
             continue
-        m = _KX_RADICAL.match(line)
+        if _KX_NOTE.match(line):         # 附註段:原文逐字併入當前條目(去 == 標記)
+            if cur_term is not None:
+                cur_def.append(line.strip("=").strip())
+            continue
+        m = _KX_HEADING.match(line)
         if m:
-            flush(); radical = (m.group(1) or m.group(2)) + "部"; continue
-        m = _KX_VOLUME.search(line)
-        if m and len(line) <= 20:        # 短行含「子集上」類=卷冊標題
-            flush(); volume = m.group(1); continue
-        m = _KX_ENTRY.match(line)
+            flush()
+            cur_term, cur_def = m.group(1), []
+            continue
+        m = _KX_ENTRY_COLON.match(line)
         if m:
             flush()
             cur_term, cur_def = m.group(1), [m.group(2).strip()]
             continue
         if cur_term is not None:
             cur_def.append(line)
+        elif not orphan:
+            orphan = True
+            failed += 1                  # 段首孤兒接續行(前段條目之殘尾)
     flush()
     return entries, failed
 
@@ -177,12 +186,15 @@ def parse_webster1913(full_text):
 
 # ── Roget 1911(Gutenberg 純文字,計畫規則:編號段切) ────────────────────
 _RG_HEAD = re.compile(r"^\s*#(\d+[a-z]?)\.\s*(.*)$")
-_RG_LEADING_NOTE = re.compile(r"^\[[^\]]*\]\s*")               # 段首方括號註記(如 [Absence of design.])
-_RG_TERM = re.compile(r"^([A-Za-z][A-Za-z' \-]{0,60}?)\s*(?:\.|--|—|,|\[)")
+# 段首註記:方括號/大括號群+殘餘閉括號與標點(巢狀如 [Nullibiety.[1]]、{opp. 100} 實證)
+_RG_LEADING_NOTE = re.compile(r"^(?:\[[^\]]*\]|\{[^}]*\}|[\]\}.,;:\s]+)+")
+_RG_TERM = re.compile(r"^([A-Za-z][A-Za-z' \-]{0,60}?)\s*(?:\.|--|—|,|\[|\||$)")
+_RG_TAIL_TERM = re.compile(r"([A-Z][A-Za-z' \-]{0,40}?)\s*\.?\s*$")   # 未閉合註記之尾端主題詞(#454 Topic)
 
 
 def parse_roget1911(full_text):
-    """Roget 1911:`#編號.` 行起段、至下一編號段前;term=段首主題詞;locator=#編號。"""
+    """Roget 1911:`#編號.` 行起段、至下一編號段前;term=段首主題詞
+    (前導註記剝除;字頭折行至次行時併次行再抽;皆敗時取尾端大寫詞);locator=#編號。"""
     entries, failed = [], 0
     cur_num, cur_head, cur_lines = None, None, []
 
@@ -190,7 +202,12 @@ def parse_roget1911(full_text):
         nonlocal cur_num, cur_head, cur_lines, failed
         if cur_num is not None:
             body = "\n".join(cur_lines).strip()
-            m = _RG_TERM.match(_RG_LEADING_NOTE.sub("", cur_head or ""))
+            head = _RG_LEADING_NOTE.sub("", (cur_head or "").strip())
+            if "—" not in head:                          # 字頭折行(如 #288/#468):併次個含字母行再剝註
+                nxt = next((l.strip() for l in cur_lines[1:] if re.search(r"[A-Za-z]", l)), "")
+                head = _RG_LEADING_NOTE.sub("", (head + " " + nxt).strip())
+            m = _RG_TERM.match(head) or _RG_TAIL_TERM.search(
+                _RG_LEADING_NOTE.sub("", (cur_head or "").strip()))
             if m and body:
                 entries.append(LexEntry(m.group(1).strip(), body, f"#{cur_num}", "thesaurus"))
             else:

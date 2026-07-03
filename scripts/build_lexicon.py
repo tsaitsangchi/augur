@@ -168,14 +168,17 @@ def build_source(cur, skey, cfg, limit=None, dry=False):
         if dry:
             print(f"   {name}(work {work_id}):解析 {len(rows)} 條、失敗 {failed}(dry-run 未寫)")
             continue
-        values = []
+        values, seen = [], {}
         for e in rows:
             term = norm(e.term_display)
             if not term:
                 total["norm_skip"] += 1
                 continue
+            n = seen[(term, e.locator)] = seen.get((term, e.locator), 0) + 1
+            # 同 (term, locator) 重複=跨段 idx 重置之真條目(非同列):確定性序號消歧,不丟資料
+            loc = e.locator if n == 1 else f"{e.locator or ''}〔{n}〕"
             values.append((term, e.term_display, cfg["language"], e.definition,
-                           work_id, e.locator, e.lex_type))
+                           work_id, loc, e.lex_type))
         inserted = execute_values(
             cur,
             "INSERT INTO knowledge_lexicon "
