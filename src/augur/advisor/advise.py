@@ -32,9 +32,13 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     lex_fn = lexicon_fn or lexicon_lookup
     lex_entries = [e for t in lex_terms for e in lex_fn(t)]
     if not citations and not lex_entries:
-        # 檢索全空 → 固定誠實句,不經 LLM(#15 誠實率 100% 機制保證、非自律)
-        verdict = guard_empty_retrieval(NO_KNOWLEDGE_RESPONSE, citations)
-        return {"response": NO_KNOWLEDGE_RESPONSE, "guard": verdict,
+        # 檢索全空 → 三級誠實分級(拍板3/憲章 v1.25.0):level 1(庫中確無「知識庫中無此內容」)/
+        # level 2(隔離館藏 review_flag=true 庫存但歸屬未驗「知識庫存有此著作但歸屬未驗證,不予引用」);
+        # 機械分級(answer.honesty_level 旁查 title-mention)、不經 LLM(#15 機制保證、非自律)。
+        from augur.advisor.answer import honesty_level
+        _lvl, resp = honesty_level(query, citations)
+        verdict = guard_empty_retrieval(resp, citations)
+        return {"response": resp, "guard": verdict,
                 "citations": citations, "lex_entries": lex_entries, "prompt": None}
     prompt = build_prompt(query, payload, citations, lex_entries)
     response = llm_fn(prompt)

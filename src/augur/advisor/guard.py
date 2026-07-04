@@ -112,11 +112,12 @@ def guard_knowledge(response, payload, citations, sql_numbers=()):
 
 
 def guard_empty_retrieval(response, results):
-    """檢索空之誠實閘(#15):lexicon/concordance/chunk 檢索結果全空時,回覆必須為固定誠實句
-    NO_KNOWLEDGE_RESPONSE——不得即興發揮、不得從模型記憶補答(庫外=不知道)。回 {'pass','issues'}。"""
+    """檢索空之誠實閘(#15):檢索結果全空時,回覆必須為**三級誠實固定句閉集**之一
+    (HONESTY_CLOSED_SET:(i)庫中確無 或 (ii)庫存未驗歸屬;憲章 v1.25.0/拍板3)——
+    不得即興發揮、不得從模型記憶補答(庫外/未驗=不引用)。閉集分級由 answer.honesty_level 決。回 {'pass','issues'}。"""
     issues = []
-    if not results and response.strip() != NO_KNOWLEDGE_RESPONSE:
-        issues.append(f"檢索空但回覆非固定誠實句「{NO_KNOWLEDGE_RESPONSE}」(#15)")
+    if not results and response.strip() not in HONESTY_CLOSED_SET:
+        issues.append(f"檢索空但回覆非誠實句閉集{HONESTY_CLOSED_SET}(#15)")
     return {"pass": not issues, "issues": issues}
 
 
