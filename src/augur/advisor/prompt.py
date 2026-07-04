@@ -44,8 +44,12 @@ def _payload_block(payload):
 
 def build_prompt(query, payload, citations, lex_entries=()):
     cites = "\n".join(
-        f"  [{i+1}]《{c.work_title}》{c.thinker} — {c.chapter}:\n      {c.text.strip()[:500]}\n      (源:{c.source_url})"
-        for i, c in enumerate(citations)) or f"  (無檢索結果 — 若要引哲學,須明說「{NO_KNOWLEDGE_RESPONSE}」)"
+        # getattr 相容 Citation(work_title/thinker/chapter)與 ItemCitation(item_title/domain/entity_type)——
+        # 死點① 接線後對話混引哲學 work 與知識 item,渲染不得因型別崩(#15 前案整合坑)
+        f"  [{i+1}]《{getattr(c, 'work_title', None) or getattr(c, 'item_title', '?')}》"
+        f"{getattr(c, 'thinker', '') or getattr(c, 'domain', '')} — {getattr(c, 'chapter', '') or getattr(c, 'entity_type', '')}:"
+        f"\n      {c.text.strip()[:500]}\n      (源:{c.source_url})"
+        for i, c in enumerate(citations)) or f"  (無檢索結果 — 若要引,須明說「{NO_KNOWLEDGE_RESPONSE}」)"
     lex_block = ""
     if lex_entries:
         lex = "\n".join(

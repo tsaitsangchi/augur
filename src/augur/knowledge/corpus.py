@@ -15,8 +15,9 @@
 LICENSE_WHITELIST = ("public_domain", "cc-by", "cc-by-sa", "cc0")
 
 # P4 拍板值(2026-07-04):語意層(切句/嵌入/檢索)entity_type 准入集。未列=不入(fail-closed),
-# 含 book/compound/material/dataset(metadata 檢索仍可,不經本閘)。
-SEMANTIC_ENTITY_TYPES = ("paper", "report")
+# 含 compound/material/dataset(metadata 檢索仍可,不經本閘)。
+# 'document'=admin 控制台本機檔/一般文件(死點②修,計畫拍板P2附;不硬標 'report' 造假 #15)。
+SEMANTIC_ENTITY_TYPES = ("paper", "report", "document")
 
 
 def _quoted(values):
@@ -32,12 +33,17 @@ def clean_work_sql(work_alias="w"):
     return f"{work_alias}.review_flag = false AND {work_alias}.corpus_class = 'literary'"
 
 
-def clean_item_sql(item_alias="i", itext_alias="x"):
-    """items 側 CLEAN_ITEM 述詞(SQL 片段):license 白名單 × entity_type 語意層准入(P4 拍板值)。
+def clean_item_sql(item_alias="i", itext_alias="x", access_scope=None):
+    """items 側 CLEAN_ITEM 述詞(SQL 片段):license 白名單 × entity_type 語意層准入 [× access_scope 隔離]。
 
-    item_alias  = knowledge_item 之別名(供 entity_type)
-    itext_alias = knowledge_item_text 之別名(供 license)
-    值來自模組常數封閉集(非外部輸入,無注入面);NULL 不放行。
-    """
-    return (f"({itext_alias}.license IN ({_quoted(LICENSE_WHITELIST)}) "
-            f"AND {item_alias}.entity_type IN ({_quoted(SEMANTIC_ENTITY_TYPES)}))")
+    item_alias   = knowledge_item 之別名(供 entity_type)
+    itext_alias  = knowledge_item_text 之別名(供 license/access_scope)
+    access_scope = None(預設,不濾;供**嵌入端**——public+local_private 皆嵌才可被檢索);
+                   'public'=**對外檢索**用(local_private 本機檔不入對外池,拍板P2 機器保證);
+                   'local_private'=admin 私有對話用。值來自封閉集(非外部輸入,無注入面);NULL 欄不放行。"""
+    p = (f"{itext_alias}.license IN ({_quoted(LICENSE_WHITELIST)}) "
+         f"AND {item_alias}.entity_type IN ({_quoted(SEMANTIC_ENTITY_TYPES)})")
+    if access_scope is not None:
+        assert access_scope in ("public", "local_private"), f"非法 access_scope: {access_scope}"
+        p += f" AND {itext_alias}.access_scope = '{access_scope}'"
+    return f"({p})"

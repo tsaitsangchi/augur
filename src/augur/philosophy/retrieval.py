@@ -14,6 +14,7 @@
 import unicodedata
 from dataclasses import dataclass
 from functools import lru_cache
+from itertools import zip_longest
 
 from augur.core import db
 from augur.knowledge import corpus, embedspec, textnorm
@@ -222,14 +223,15 @@ def _item_citations(cur, where, params, order, scores, via):
             for r in cur.fetchall()]
 
 
-def retrieve_items(query, k=8, domain=None, language=None):
+def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"):
     """items 側檢索(讀路徑鐵則 §3-S7):query→textnorm 全形集→(a)exact SQL 零向量優先
     →(c)ANN 補位→一律 PG JOIN 取原文;CLEAN_ITEM 閘=corpus SSOT(fail-closed,NULL 不放行)。
     (b) affinity 確定性擴展與 vectorindex(Milvus) 為既定接縫待 N3 接線,ANN 現由 pgvector(SSOT 索引)承。
+    access_scope='public'(預設,對外對話;local_private 本機檔不入,拍板P2 機器保證);admin 私有可傳其值。
     語料空/表未建 → 誠實回空 []。回 [ItemCitation](exact 先、ann 補位)。"""
     if not (query or "").strip():
         return []
-    clean = corpus.clean_item_sql("i", "x")
+    clean = corpus.clean_item_sql("i", "x", access_scope=access_scope)
     extra, extra_params = "", []
     if domain:
         extra += " AND i.domain = %s"; extra_params.append(domain)
@@ -275,6 +277,17 @@ def retrieve_items(query, k=8, domain=None, language=None):
                                             score=float(r[11]), via="ann"))
     return out
 
+
+def retrieve_all(query, k=6, access_scope="public"):
+    """work(哲學/文學語料)+ item(知識/財經/本機檔)合併檢索 — 死點① 接線(計畫 §三)。
+    對話端唯一組合檢索器:兩側各取半、交錯合併(均露臉、財經知識不被哲學語料淹沒)、cap k;
+    回混合 [Citation|ItemCitation](均含 .text/.char_start/.char_end/.source_url,verify_verbatim 型別感知、
+    prompt/guard 已 getattr 相容)。access_scope='public' 對外(local_private 不入,拍板P2)。"""
+    half = max(2, (k + 1) // 2)
+    works = retrieve(query, k=half)
+    items = retrieve_items(query, k=half, access_scope=access_scope)
+    merged = [c for pair in zip_longest(works, items) for c in pair if c is not None]
+    return merged[:k]
 
 def verify_verbatim_item(citation):
     """item_text 定位基準他證(§3-S7):citation.text 須==content 之 substring(FROM char_start+1

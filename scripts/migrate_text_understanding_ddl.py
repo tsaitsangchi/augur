@@ -103,6 +103,11 @@ DDL = [
      "CREATE UNIQUE INDEX IF NOT EXISTS uq_chunk_itext ON philosophy_chunk (itext_id, chunk_seq) WHERE itext_id IS NOT NULL"),
     ("column philosophy_work.review_flag(T-1 稽核欄)",
      "ALTER TABLE philosophy_work ADD COLUMN IF NOT EXISTS review_flag boolean"),
+    # ── admin 控制台 P0(計畫 §〇.3③/拍板P2-P3new,#1 禁AI生成+access_scope 隔離)──────────
+    ("column knowledge_item_text.source_type(禁 AI 生成硬擋)",
+     "ALTER TABLE knowledge_item_text ADD COLUMN IF NOT EXISTS source_type varchar(24)"),
+    ("column knowledge_item_text.access_scope(對外/本機私有隔離)",
+     "ALTER TABLE knowledge_item_text ADD COLUMN IF NOT EXISTS access_scope varchar(16) NOT NULL DEFAULT 'public'"),
     # ── M5/P6:嵌入表世代(收編自 embed_knowledge.py=單一住所 #12)──────────────
     # dim=384 寫死=本表世代之維度(e5-small);異維模型=新表世代(embedspec 命名),不改本表
     ("extension vector(pgvector,嵌入表依賴)", "CREATE EXTENSION IF NOT EXISTS vector"),
@@ -141,6 +146,10 @@ EMBED_PK_MIGRATION = [
 
 # (名稱, 表, 定義);ADD CONSTRAINT 無 IF NOT EXISTS → 先查 pg_constraint
 CONSTRAINTS = [
+    ("chk_itext_source_type", "knowledge_item_text",
+     "CHECK (source_type IS NULL OR source_type <> 'ai_generated')"),   # #1 禁 AI 生成入庫(admin P0)
+    ("chk_itext_access_scope", "knowledge_item_text",
+     "CHECK (access_scope IN ('public','local_private'))"),             # 對外/本機私有隔離(拍板P2)
     ("chk_chunk_src", "philosophy_chunk", "CHECK (num_nonnulls(text_id, itext_id) = 1)"),
     ("chk_chunk_work", "philosophy_chunk", "CHECK ((text_id IS NULL) = (work_id IS NULL))"),
 ]
