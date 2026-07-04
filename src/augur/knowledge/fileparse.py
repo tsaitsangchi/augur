@@ -55,6 +55,41 @@ def _read_docx(path):
     return (txt, "docx") if txt.strip() else (None, "no_text")
 
 
+def _read_pptx(path):
+    from pptx import Presentation
+    p = Presentation(path)
+    txt = "\n".join(sh.text for sl in p.slides for sh in sl.shapes if sh.has_text_frame)
+    return (txt, "pptx") if txt.strip() else (None, "no_text")
+
+
+def _read_xlsx(path):
+    import openpyxl
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    lines = []
+    for ws in wb.worksheets:
+        for row in ws.iter_rows(values_only=True):
+            cells = [str(c) for c in row if c is not None]
+            if cells:
+                lines.append("\t".join(cells))
+    wb.close()
+    txt = "\n".join(lines)
+    return (txt, "xlsx") if txt.strip() else (None, "no_text")
+
+
+def _read_epub(path):
+    import re
+    import html as _html
+    from ebooklib import epub, ITEM_DOCUMENT
+    b = epub.read_epub(path)
+    parts = []
+    for it in b.get_items_of_type(ITEM_DOCUMENT):
+        raw = it.get_content().decode("utf-8", "replace")
+        raw = re.sub(r"(?is)<(script|style).*?</\1>", " ", raw)
+        parts.append(_html.unescape(re.sub(r"(?s)<[^>]+>", " ", raw)))
+    txt = re.sub(r"\s+\n", "\n", "\n".join(parts))
+    return (txt, "epub") if txt.strip() else (None, "no_text")
+
+
 def extract_text(path):
     """回 (text|None, method_or_skipreason)。text 非 None = 抽取成功;None = 跳過(reason ∈ SKIP)。
 
@@ -74,6 +109,12 @@ def extract_text(path):
             return _read_pdf(path)
         if ext == ".docx":
             return _read_docx(path)
+        if ext == ".pptx":
+            return _read_pptx(path)
+        if ext == ".xlsx":
+            return _read_xlsx(path)
+        if ext == ".epub":
+            return _read_epub(path)
         if ext in (".html", ".htm"):
             raw, st = _read_text(path)
             if not raw:
