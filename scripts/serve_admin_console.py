@@ -40,6 +40,7 @@ SESSION_TTL = 3600          # session 秒數
 _ITER = 240000
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AUDIT_LOG = os.path.join(os.path.expanduser("~"), "augur_chat_logs", "admin_audit.log")
+LOG_DIR = os.path.dirname(AUDIT_LOG)       # harvest 背景 log 落此(與 audit 同目錄)
 MAX_UPLOAD = webupload.MAX_UPLOAD          # 單次上傳總量上限(SSOT=webupload)
 _LICENSES = webupload.LICENSES             # DB CHECK 白名單(#1 版權硬擋;SSOT=webupload)
 _SCOPES = webupload.SCOPES
@@ -127,6 +128,46 @@ def _audit(action, detail):
 
 
 _SESSIONS = {}   # token -> expiry
+_JOBS = {}       # harvest logname -> pid(背景抓取存活判定;admin 重啟後改以 log 尾標記判定)
+
+# harvest 完成標記(acquire_topic/harvest 之終行 sentinel;命中即進度頁標「完成」停輪詢)
+_DONE_MARKS = ("harvest 觸發(抓入知識層", "無對應 domain", "排程空(全部已跑")
+
+
+def _safe_log(name):
+    """harvest 進度 log 圍欄:僅 harvest_<hex>.log 且存在於 LOG_DIR;回路徑或 None(#5 拒 traversal)。"""
+    name = os.path.basename(name or "")
+    if not (name.startswith("harvest_") and name.endswith(".log")):
+        return None
+    core = name[len("harvest_"):-4]
+    if not core or any(c not in "0123456789abcdef" for c in core):
+        return None
+    fp = os.path.join(LOG_DIR, name)
+    return fp if os.path.isfile(fp) else None
+
+
+def _read_harvest_log(name):
+    """回 {ok, log(尾 400 行), done, lines}:done=終行 sentinel 命中,或(pid 已知且進程已歿=崩潰亦收尾)。"""
+    fp = _safe_log(name)
+    if not fp:
+        return {"ok": False, "error": "bad file"}
+    try:
+        with open(fp, "r", errors="replace") as f:
+            data = f.read()
+    except OSError:
+        data = ""
+    sentinel = any(m in data for m in _DONE_MARKS)
+    pid = _JOBS.get(os.path.basename((name or "").strip()))
+    alive = False
+    if pid:
+        try:
+            os.kill(pid, 0)
+            alive = True
+        except OSError:
+            alive = False
+    lines = data.splitlines()
+    return {"ok": True, "log": "\n".join(lines[-400:]),
+            "done": bool(sentinel or (pid is not None and not alive)), "lines": len(lines)}
 
 
 def _new_session():
@@ -216,6 +257,33 @@ browse('HOME');
 """)
 
 
+_PROGRESS_TMPL = """<!doctype html><meta charset=utf-8><title>抓取進度 · augur</title>
+<body style="font-family:system-ui;background:#0d1117;color:#e6edf3;max-width:900px;margin:24px auto">
+<h3>財經抓取進度 — 主題「__TOPIC__」 <span id=stat style="color:#d29922">● 執行中…</span></h3>
+<div style="color:#7d8590;font-size:13px;margin-bottom:8px">batch=__BATCH__ rounds=__ROUNDS__ · 背景執行(關閉此頁不中斷、resume-safe);限速/熔斷/續跑在引擎(#17/#22)。每 2 秒更新。</div>
+<pre id=logbox style="background:#010409;border:1px solid #21262d;border-radius:8px;padding:14px;max-height:70vh;overflow:auto;white-space:pre-wrap;font-size:12.5px">(等待引擎輸出…)</pre>
+<a href=/ style="color:#3fb950">← 返回控制台</a>
+<script>
+var LF="__LOG__"
+async function poll(){
+ try{var r=await fetch('/api/topic/log?file='+encodeURIComponent(LF));var j=await r.json()
+  if(j.ok){var box=document.getElementById('logbox')
+   var atBottom=box.scrollTop+box.clientHeight>=box.scrollHeight-40
+   box.textContent=j.log||'(等待引擎輸出…)'
+   if(atBottom)box.scrollTop=box.scrollHeight
+   if(j.done){var s=document.getElementById('stat');s.textContent='✓ 完成(共 '+j.lines+' 行)';s.style.color='#3fb950';return}}
+ }catch(e){}
+ setTimeout(poll,2000)
+}
+poll()
+</script></body>"""
+
+
+def progress_view_html(topic, logname, batch, rounds):
+    return (_PROGRESS_TMPL.replace("__TOPIC__", html.escape(topic)).replace("__LOG__", logname)
+            .replace("__BATCH__", str(batch)).replace("__ROUNDS__", str(rounds)))
+
+
 def dashboard_html(status):
     return (f"""<!doctype html><meta charset=utf-8><title>augur 知識控制台</title>
 <body style="font-family:system-ui;background:#0d1117;color:#e6edf3;max-width:720px;margin:30px auto">
@@ -223,10 +291,13 @@ def dashboard_html(status):
 <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px;margin:10px 0">
 <b>知識層狀態</b><pre>{html.escape(status)}</pre></div>
 <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px;margin:10px 0">
-<b>主題自動抓取</b>(輸入財經/化學…→展開域→觸發 harvest)
+<b>主題自動抓取</b>(輸入財經/化學…→展開域→觸發 harvest;放量=背景執行+即時進度頁)
 <form method=post action=/api/topic><input name=topic placeholder="財經" style="padding:8px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px">
+batch <input name=batch value=10 type=number min=1 max=2000 style="width:72px;padding:8px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px">
+rounds <input name=rounds value=1 type=number min=1 max=20 style="width:60px;padding:8px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px">
 <label style=font-size:13px><input type=checkbox name=run> 放量抓取(不勾=只看確認頁)</label>
-<button style="padding:8px 14px;background:#1f6feb;color:#fff;border:0;border-radius:6px">送出</button></form></div>"""
+<button style="padding:8px 14px;background:#1f6feb;color:#fff;border:0;border-radius:6px">送出</button></form>
+<div style="font-size:12px;color:#7d8590;margin-top:6px">首次建議 batch 10/rounds 1 小量探(#25);IP 健康再放大。放量後開即時進度頁(每 2 秒更新),關頁不中斷。</div></div>"""
     + PANELS +
     f"""<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px;margin:10px 0">
 <b>C · 打字輸入路徑解析</b>(power user;遞迴讀夾內任意副檔名、逐字入庫;路徑限家目錄或 /mnt 下)
@@ -287,6 +358,9 @@ class AdminHandler(BaseHTTPRequestHandler):
         if path == "/api/browse":
             p = parse_qs(parsed.query).get("path", [""])[0]
             return self._send(200, json.dumps(_list_dir(p)), "application/json")
+        if path == "/api/topic/log":
+            name = parse_qs(parsed.query).get("file", [""])[0]
+            return self._send(200, json.dumps(_read_harvest_log(name)), "application/json")
         return self._send(200, dashboard_html(_status_text()))
 
     def do_POST(self):
@@ -319,14 +393,32 @@ class AdminHandler(BaseHTTPRequestHandler):
 
         if path == "/api/topic":
             topic = g("topic")[:40]
-            run = g("run") == "on"
-            _audit("topic", f"{topic} run={run}")
-            cmd = [py, os.path.join(ROOT, "scripts", "acquire_topic.py"), "--topic", topic]
-            if run:
-                cmd += ["--run", "--batch", "10", "--rounds", "1"]   # 首輪最小 #25;放量另由 CLI
-            out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=60).stdout
-            return self._send(200, f"<pre style='font-family:system-ui;background:#0d1117;color:#e6edf3;padding:20px'>"
-                              f"{html.escape(out)}</pre><a href=/>← 返回</a>")
+            if g("run") != "on":
+                # 確認頁(不放量):短跑印域映射(唯讀、不打抓取 API)
+                cmd = [py, os.path.join(ROOT, "scripts", "acquire_topic.py"), "--topic", topic]
+                out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=60).stdout
+                _audit("topic", f"{topic} confirm")
+                return self._send(200, f"<pre style='font-family:system-ui;background:#0d1117;color:#e6edf3;padding:20px'>"
+                                  f"{html.escape(out)}</pre><a href=/>← 返回</a>")
+            # 放量:背景 detached(start_new_session=關頁/請求逾時/admin 重啟不中斷)→ logfile 即時進度(#21/#22)
+            try:
+                batch = max(1, min(2000, int(g("batch") or 10)))
+                rounds = max(1, min(20, int(g("rounds") or 1)))
+            except ValueError:
+                batch, rounds = 10, 1
+            logname = f"harvest_{secrets.token_hex(6)}.log"
+            os.makedirs(LOG_DIR, exist_ok=True)
+            cmd = [py, "-u", os.path.join(ROOT, "scripts", "acquire_topic.py"),   # -u=acquire_topic 不緩衝(進度即時)
+                   "--topic", topic, "--run", "--batch", str(batch), "--rounds", str(rounds)]
+            _audit("topic_run", f"{topic} batch={batch} rounds={rounds} log={logname}")
+            lf = open(os.path.join(LOG_DIR, logname), "w")
+            try:
+                proc = subprocess.Popen(cmd, cwd=ROOT, stdout=lf, stderr=subprocess.STDOUT,
+                                        stdin=subprocess.DEVNULL, start_new_session=True)
+                _JOBS[logname] = proc.pid
+            finally:
+                lf.close()
+            return self._send(200, progress_view_html(topic, logname, batch, rounds))
 
         if path == "/api/folder":
             safe = _safe_dir(g("dir"))
