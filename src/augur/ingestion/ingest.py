@@ -100,11 +100,31 @@ def ingest_finmind(conn, dataset, *, audit=True, **params):
     return store(conn, dataset, rows, data_id=params.get("data_id"), audit=audit)
 
 
+def _fred_pk_ok(conn):
+    """fred_series 既有 PK 是否含 realtime_start（#8 PIT 前提）。表不存在→True（首建即用正確 PK）。
+    require_keys 因『PK 首建固定』對既有舊表永不生效（稽核 2026-07-04 決1）→ 此為程式守門。"""
+    with db.transaction(conn) as cur:
+        cur.execute("SELECT to_regclass('fred_series')")
+        if cur.fetchone()[0] is None:
+            return True
+        cur.execute("SELECT a.attname FROM pg_index i JOIN pg_attribute a "
+                    "ON a.attrelid=i.indrelid AND a.attnum=ANY(i.indkey) "
+                    "WHERE i.indrelid='fred_series'::regclass AND i.indisprimary")
+        return "realtime_start" in {r[0] for r in cur.fetchall()}
+
+
 def ingest_fred(conn, series_id, *, audit=True, **params):
     """抓並落地一個 FRED series（落地表 = fred_series）。回 result dict。
     vintage 旗標經 **params 透傳 fred.fetch；**無論 tier** 強制 (series_id, date, realtime_start)
     複合鍵（Tier A 之 realtime_start＝觀測日），令兩 tier 共表 PK 一致——否則 Tier A 先落地（PK 只到
-    date）會使 Tier B vintage 多版於 ON CONFLICT 互相覆蓋＝資料流失（#8）。"""
+    date）會使 Tier B vintage 多版於 ON CONFLICT 互相覆蓋＝資料流失（#8）。
+    **落地前守門（稽核 2026-07-04 決1）**：既有 fred_series PK 不含 realtime_start 即拒落地——
+    把『vintage 靜默塌版』變成程式強制錯誤（require_keys 對舊表無效之根治=DROP 重建）。"""
+    if not _fred_pk_ok(conn):
+        raise finmind.FinMindError(
+            "fred_series 既有 PK 不含 realtime_start（#8 PIT 前提未成立）；Tier B vintage 多版會於 "
+            "ON CONFLICT 靜默塌版=資料流失。→ 決策層授權後 DROP fred_series 再跑 scripts/sync_macro.py "
+            "重建（PK 首建固定之唯一根治，稽核決1）。")
     rows = fred.fetch(series_id, **params)
     return store(conn, FRED_TABLE, rows, data_id=series_id, audit=audit,
                  require_keys=("date", "realtime_start"))

@@ -142,15 +142,21 @@ def _select_core(cur, panel_dates, feats, *, liquidity_pct=None, conditional=Non
                 "AND lq.feature='dollar_volume_log_20d' AND lq.value >= %s) ")
             liq_params = [latest, thr]
 
-    # conditional gate:每個 conditional 特徵 → 屬豁免產業 OR 該特徵全 panel 齊（HAVING 後接、per-stock 子查詢）
+    # conditional gate:每個 conditional 特徵 → 屬豁免產業 OR 該特徵**逐 panel 實際可用格全齊**
+    # （G9 對齊,稽核決5:要求數=該特徵 market-wide ≥1 股之 panel 數,非 len(panel_dates)——否則該特徵
+    #   某 panel 全市場缺席〔結構性不存在〕會誤清非豁免股;與 universal 之 available_combos 語意對稱）。
     cond_filter, cond_params = "", []
     for feat, exempt in cond.items():
+        cur.execute(
+            f"SELECT count(DISTINCT panel_date) FROM {FEATURE_TABLE} "
+            "WHERE panel_date = ANY(%s) AND feature = %s", (panel_dates, feat))
+        feat_avail = cur.fetchone()[0]
         cond_filter += (
             " AND (EXISTS (SELECT 1 FROM \"TaiwanStockInfo\" ci "
             "WHERE ci.stock_id=fv.stock_id AND ci.industry_category IN %s) "
             "OR (SELECT count(*) FROM feature_values cf WHERE cf.stock_id=fv.stock_id "
             "AND cf.panel_date=ANY(%s) AND cf.feature=%s)=%s) ")
-        cond_params += [tuple(exempt), panel_dates, feat, len(panel_dates)]
+        cond_params += [tuple(exempt), panel_dates, feat, feat_avail]
 
     # 完整度 gate + 候選空間過濾:真股票代碼 ∧ 非 ETF ∧ 流動性 ∧ universal 全齊 ∧ conditional(豁免/齊)
     cur.execute(

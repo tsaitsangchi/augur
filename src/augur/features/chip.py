@@ -10,8 +10,8 @@
 - f3 foreign_holding_pct:外資持股 %(level、軸②籌碼)
 - f4 top_holders_pct:大戶比('more than 1,000,001' 級距 percent、Pareto P1 思想)
 - f5 sbl_short_balance_log:借券賣空餘額 log(空方壓力、軸②)
-- f6 lending_fee_rate_mean_30d:借券費率 30 日均(放空成本、軸②)
-- f7 gov_bank_net_buy_60d:官股 60 日淨買金額(sign×log1p、護盤訊號、軸⑤事件型)
+- f6 lending_fee_rate_mean_30d:借券費率均(⚠️ 名「30d」實=最近 100 筆、見 _LEND_SQL 註,決8)
+- f7 gov_bank_net_buy_60d:官股淨買(sign×log1p;⚠️ 名「60d」實=60 事件日、見 _GOVBANK_SQL 註,決7)
 
 邊界:不抓 API、不選股;只算特徵(#3)。所有特徵以「panel_date 當下已知」之 raw 計算(P/E 類、anti-leakage #8;
 但籌碼盤後公布之 T+1 規則此版採保守 date<=panel_date 同日含、上線後待 probe 公布時刻);算不出即缺列(#1)。
@@ -85,13 +85,17 @@ _SBL_SQL = (
     'FROM "TaiwanDailyShortSaleBalances" WHERE stock_id=%s AND date <= %s '
     'ORDER BY date DESC LIMIT 1'
 )
-# 6) 借券費率(近 30 日各筆 fee_rate 平均)
+# 6) 借券費率均(⚠️ 名實不符,稽核 2026-07-04 決8:名為「30d」實=最近 100 筆借券成交紀錄之均,
+#    無日期下界、每日可多筆→窗跨度中位 ~1.5 年;源表=議借成交 fee_rate,非放空成本嚴格語意。
+#    保持現值不變(非 canonical、E 類真零);語意以本註+catalog 明標,full rename 漣漪 4 檔/77k 列故不改名)
 _LEND_SQL = (
     'SELECT fee_rate::float8 FROM "TaiwanStockSecuritiesLending" '
     'WHERE stock_id=%s AND date <= %s '
     'ORDER BY date DESC LIMIT 100'
 )
-# 7) 官股各銀行買賣(多 bank_name/日,group 為當日合計、取 60 日累計)
+# 7) 官股淨買(⚠️ 名實不符,稽核 2026-07-04 決7:名為「60d」實=最近 ≤60 個「官股有交易之事件日」
+#    (LIMIT 60、無日期下界)非 60 交易日/日曆日→稀疏股窗跨度可達數年;保持現值(非 canonical),
+#    語意以本註+catalog 明標「事件日口徑」,不 full rename(漣漪 4 檔/48k 列))
 _GOVBANK_SQL = (
     'SELECT date, (sum(buy_amount)-sum(sell_amount))::float8 AS net '
     'FROM "TaiwanStockGovernmentBankBuySell" '
