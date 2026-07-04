@@ -57,7 +57,10 @@ def _citations_block(citations):
     citations 為 advise() 檢索所得真兆列;此文本不經 LLM、不經 guard 逐字閘(它本身就是被引的原文)。"""
     if not citations:
         return ""
-    out = ["── 引經據典(系統逐字附上、公版可溯源)──"]
+    # Mode B(附加檔)之引用不得掛「公版可溯源」(私有附檔非公版)——依 source_url 前綴切換標頭(#15 不誤標)
+    attached = all((getattr(c, "source_url", "") or "").startswith("附加文件:") for c in citations)
+    out = ["── 你附加的文件(系統逐字附上、僅本次對話、不入庫)──" if attached
+           else "── 引經據典(系統逐字附上、公版可溯源)──"]
     for i, c in enumerate(citations):
         head = "《%s》%s" % (getattr(c, "work_title", "?"), getattr(c, "thinker", "") or "")
         chap = getattr(c, "chapter", "") or ""
@@ -99,7 +102,19 @@ def chat_completion(body, llm_fn, payload_fn=example_payload, retrieve_fn=None,
     query = _last_user_content(body.get("messages"))
     if not query:
         raise ValueError("messages 內無 user 內容")
-    result = advise(query, payload_fn(), llm_fn, k=k, retrieve_fn=retrieve_fn)
+    attach = body.get("augur_attach")
+    if isinstance(attach, dict) and (attach.get("text") or "").strip():
+        # Mode B(對話「+」附加檔只問這次):本回合注入附加檔檢索 + 文件助讀 prompt + KnowledgePayload
+        # → guard_knowledge 數字雙源(附檔段落數字放行、編造仍攔);仍走同一 advise()+guard,只換語料與人格框架。
+        from augur.philosophy.retrieval import retrieve_attached
+        from augur.advisor.prompt import build_attached_prompt
+        from augur.advisor.payload import KnowledgePayload
+        doc_text, doc_title = attach["text"], (attach.get("title") or "附加文件")
+        result = advise(query, KnowledgePayload(as_of="attached", domain="attached"), llm_fn, k=k,
+                        retrieve_fn=lambda q, k=k: retrieve_attached(q, doc_text, doc_title, k=k),
+                        prompt_fn=build_attached_prompt)
+    else:
+        result = advise(query, payload_fn(), llm_fn, k=k, retrieve_fn=retrieve_fn)
     return {
         "id": cmpl_id or f"chatcmpl-augur-{uuid.uuid4().hex[:12]}",
         "object": "chat.completion",

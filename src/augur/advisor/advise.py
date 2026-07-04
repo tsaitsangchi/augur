@@ -15,7 +15,7 @@ from augur.advisor.guard import (NO_KNOWLEDGE_RESPONSE, citation_numbers, guard,
 from augur.advisor.payload import KnowledgePayload
 
 
-def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_fn=None):
+def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_fn=None, prompt_fn=None):
     """顧問一次問答。
 
     query:      用戶問題
@@ -23,7 +23,9 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     llm_fn:     prompt(str) -> response(str) 的抽象 LLM 呼叫(可接 Claude API / 本地 / mock)
     k:          檢索引文數
     lex_terms:  需查公版定義的詞(lexicon 路徑;定義引用必附 locator)
-    retrieve_fn/lexicon_fn: 檢索抽象界面(預設 philosophy.retrieval;可 mock)
+    retrieve_fn/lexicon_fn: 檢索抽象界面(預設 philosophy.retrieval;可 mock/注入 Mode B 附加檔檢索)
+    prompt_fn:  覆寫 prompt 組裝(Mode B 附加檔用 build_attached_prompt;預設 build_prompt)——
+                guard 不變、只換人格框架與檢索語料,誠實三敵防護一致
     回:{response, guard, citations, lex_entries, prompt}
     """
     from augur.philosophy.retrieval import retrieve, lexicon_lookup, verify_verbatim
@@ -40,7 +42,7 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
         verdict = guard_empty_retrieval(resp, citations)
         return {"response": resp, "guard": verdict,
                 "citations": citations, "lex_entries": lex_entries, "prompt": None}
-    prompt = build_prompt(query, payload, citations, lex_entries)
+    prompt = (prompt_fn or build_prompt)(query, payload, citations, lex_entries)
     response = llm_fn(prompt)
     if isinstance(payload, KnowledgePayload):
         # P8 域條款(已拍板 2026-07-04):雙源=payload.numbers() ∪ 本回合檢索真兆數字集

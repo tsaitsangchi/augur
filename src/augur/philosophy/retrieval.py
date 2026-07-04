@@ -35,6 +35,21 @@ class Citation:
     score: float     # cosine 相似度(0~1)
 
 
+@dataclass
+class AttachedCitation:
+    """Mode B(對話「+」附加檔只問這次)之逐字引用 — 不入庫、僅本回合。
+    verify_verbatim 對 source_text(附加檔全文)作子字串他證(text ⊂ source_text);guard 照常對 .text 逐字比對。"""
+    text: str            # 逐字段落(== source_text 之子字串)
+    source_text: str     # 附加檔全文(verify 基準;不渲染)
+    work_title: str      # 檔名(顯示用)
+    thinker: str = ""
+    chapter: str = ""
+    char_start: int = 0
+    char_end: int = 0
+    source_url: str = ""
+    score: float = 0.0
+
+
 @lru_cache(maxsize=1)
 def _model():
     from sentence_transformers import SentenceTransformer
@@ -75,8 +90,11 @@ def retrieve(query, k=8, work_id=None):
 
 
 def verify_verbatim(citation):
-    """verbatim 逐字回查(雙側分派;M2 注入後驗共用單一入口):
-    Citation(work chunk)=原文子字串存在性比對;ItemCitation=item_text 定位他證。回 bool。"""
+    """verbatim 逐字回查(多側分派;M2 注入後驗共用單一入口):
+    Citation(work chunk)=原文子字串存在性比對;ItemCitation=item_text 定位他證;
+    AttachedCitation(Mode B 附加檔)=對附加檔全文子字串他證(不觸 DB)。回 bool。"""
+    if isinstance(citation, AttachedCitation):
+        return bool(citation.text) and citation.text in citation.source_text
     if isinstance(citation, ItemCitation):
         return verify_verbatim_item(citation)
     with db.connect() as conn, db.transaction(conn) as cur:
@@ -300,3 +318,44 @@ def verify_verbatim_item(citation):
                     (citation.char_start, n, citation.itext_id))
         row = cur.fetchone()
         return bool(row) and row[0] == citation.text
+
+
+# ── Mode B:對話「+」附加檔只問這次(不入庫、僅本回合;零嵌入零 LLM、純規則)────────────
+
+def _passages(text, size=420):
+    """把附加檔全文切成 ~size 字之段(依行邊界打包);回 [(char_start, segment)],seg==text[start:start+len]。"""
+    out, buf, start, pos = [], [], 0, 0
+    for line in text.splitlines(keepends=True):
+        if buf and (pos - start) + len(line) > size:
+            out.append((start, "".join(buf)))
+            buf, start = [], pos
+        buf.append(line)
+        pos += len(line)
+    if buf:
+        out.append((start, "".join(buf)))
+    return out
+
+
+def retrieve_attached(query, doc_text, doc_title, k=6):
+    """Mode B:把附加檔全文切段、以查詢詞重疊排序,回 [AttachedCitation](逐字對附檔他證)。
+    text 為 doc_text 之逐字子字串故 verify_verbatim(AttachedCitation) 恆真;guard 照常對 .text 逐字把關。
+    無查詢詞命中 → 回前 k 段(至少給脈絡,仍逐字);doc 空 → []。"""
+    import re
+    if not (doc_text or "").strip():
+        return []
+    toks = (set(re.findall(r"[0-9a-z]{2,}", (query or "").lower()))
+            | {ch for ch in (query or "") if "一" <= ch <= "鿿"})
+    scored = []
+    for start, seg in _passages(doc_text):
+        low = seg.lower()
+        scored.append((sum(1 for t in toks if t in low), start, seg))
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    top = [x for x in scored if x[0] > 0][:k] or scored[:k]
+    out = []
+    for s, start, seg in top:
+        t = seg.strip()
+        if t:
+            out.append(AttachedCitation(text=t, source_text=doc_text, work_title=doc_title,
+                                        char_start=start, char_end=start + len(seg),
+                                        source_url=f"附加文件:{doc_title}", score=float(s)))
+    return out

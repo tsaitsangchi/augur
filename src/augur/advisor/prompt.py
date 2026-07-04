@@ -42,14 +42,18 @@ def _payload_block(payload):
             f"選股:\n{picks}\n驗證(誠實標籤):{payload.validation}")
 
 
-def build_prompt(query, payload, citations, lex_entries=()):
-    cites = "\n".join(
-        # getattr 相容 Citation(work_title/thinker/chapter)與 ItemCitation(item_title/domain/entity_type)——
-        # 死點① 接線後對話混引哲學 work 與知識 item,渲染不得因型別崩(#15 前案整合坑)
+def _render_cites(citations, empty_note):
+    # getattr 相容 Citation(work_title/thinker/chapter)、ItemCitation(item_title/domain/entity_type)、
+    # AttachedCitation(work_title/空/空)——混引渲染不得因型別崩(#15 前案整合坑)
+    return "\n".join(
         f"  [{i+1}]《{getattr(c, 'work_title', None) or getattr(c, 'item_title', '?')}》"
         f"{getattr(c, 'thinker', '') or getattr(c, 'domain', '')} — {getattr(c, 'chapter', '') or getattr(c, 'entity_type', '')}:"
         f"\n      {c.text.strip()[:500]}\n      (源:{c.source_url})"
-        for i, c in enumerate(citations)) or f"  (無檢索結果 — 若要引,須明說「{NO_KNOWLEDGE_RESPONSE}」)"
+        for i, c in enumerate(citations)) or empty_note
+
+
+def build_prompt(query, payload, citations, lex_entries=()):
+    cites = _render_cites(citations, f"  (無檢索結果 — 若要引,須明說「{NO_KNOWLEDGE_RESPONSE}」)")
     lex_block = ""
     if lex_entries:
         lex = "\n".join(
@@ -67,3 +71,31 @@ def build_prompt(query, payload, citations, lex_entries=()):
 {query}
 
 請依三姿態用白話解讀,提到某段就標 [編號](原文由系統附上、你不必抄)。**切記:不打任何引號、不照抄古文原句。**"""
+
+
+# ── Mode B(對話「+」附加檔只問這次)之 prompt:文件助讀人格,不套投資大師框架 ──
+ATTACHED_NOTFOUND = "附加文件中找不到相關內容"
+
+ATTACHED_SYSTEM_PROMPT = f"""你是使用者附加文件的忠實助讀。使用者附上一份文件的段落,你只能根據**下方提供的段落**回答問題;不做投資建議、不談本文件以外的事。
+
+## 硬約束(違反會被機器閘攔、整則作廢)
+- (a) 只用下方段落的內容回答;段落裡沒有的,就說「{ATTACHED_NOTFOUND}」,**絕不憑記憶或常識補**。
+- (b) **完全不要打引號**(「」『』""):你一在引號裡放原文,機械閘會逐字比對、一字之差即整則作廢。要指某段就說「第 N 段/[N]」,再用你自己的白話講它的意思。
+- (c) 不要照抄、複述整句原文;用你自己的現代白話轉述其意。
+- (d) 不要自己生出任何數字,除非它就出現在下方段落裡。
+
+用白話回答使用者的問題,提到某段就標 [N](原文由系統附上、你不必抄)。"""
+
+
+def build_attached_prompt(query, payload, citations, lex_entries=()):
+    """Mode B prompt:文件助讀人格 + 只據附加段落作答(payload/lex_entries 不用,留簽名相容 advise.prompt_fn)。"""
+    cites = _render_cites(citations, f"  (無可用段落 — 明說「{ATTACHED_NOTFOUND}」)")
+    return f"""{ATTACHED_SYSTEM_PROMPT}
+
+## 附加文件段落(逐字、只能用這些)
+{cites}
+
+## 使用者問題
+{query}
+
+請只依上方段落用白話回答,提到某段標 [編號]。找不到就說「{ATTACHED_NOTFOUND}」。**不打任何引號、不編數字。**"""

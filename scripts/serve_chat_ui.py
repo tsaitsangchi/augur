@@ -4,9 +4,12 @@
 🎯 一頁式對話介面:瀏覽器 → 本頁(:8090) → advisor 殼(:8399,advise+guard) → qwen3:8b。
    純 http.server + urllib、無 HuggingFace/無 node/無 Docker(避 Open WebUI 之 HF 嵌入 crash-loop)。
    同源 proxy(頁與 /chat 同埠)故無 CORS;guard verdict 顯示於每則回覆下。
-   「+」按鈕(Claude Desktop 式):彈原生視窗選檔案/資料夾 → /ingest 逐字入知識庫(Mode A;
-   webupload 落暫存夾 → acquire_local_files;license 受 DB CHECK 白名單硬擋、access_scope=local_private)。
-守 #1(逐字入庫)· #5(上傳 traversal/大小防護)· #28(本地零 usage)· 計畫 §3-S7(對話出口=advise+guard)· #18。
+   「+」按鈕(Claude Desktop 式):彈原生視窗選檔案/資料夾,兩種語意——
+   · Mode A(入知識庫):/ingest 逐字入庫(webupload 落暫存夾 → acquire_local_files;license 受 DB CHECK
+     白名單硬擋、access_scope=local_private),之後可被引經據典;
+   · Mode B(只問這次):/attach 抽附加檔逐字文字(不入庫)→ 前端夾帶 augur_attach 轉發 advisor,
+     本回合以附加檔為引文語料、guard 對附加檔逐字比對(誠實不變、只換語料與人格框架)。
+守 #1(逐字入庫/逐字比對)· #5(上傳 traversal/大小防護)· #28(本地零 usage)· 計畫 §3-S7(對話出口=advise+guard)· #18。
 
 執行指令矩陣:
   python scripts/serve_chat_ui.py                 # 起於 127.0.0.1:8090(預設);瀏覽器開 http://localhost:8090
@@ -57,15 +60,20 @@ button:disabled{background:#30363d;cursor:wait}
 #plusmenu button{margin:4px 4px 0 0;background:#21262d;color:#e6edf3;font-size:14px;padding:8px 12px;border:1px solid #30363d;border-radius:6px;cursor:pointer}
 #plusmenu select{padding:6px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px}
 #plusmenu .hint{font-size:12px;color:#7d8590;margin-bottom:6px}
+#chip{display:none;max-width:820px;margin:0 auto 6px;background:#1f6feb22;border:1px solid #1f6feb55;border-radius:8px;padding:8px;font-size:13px;cursor:pointer;color:#e6edf3}
 </style></head><body>
 <header>誠實博學的我 <small>augur · advisor+guard · 本地 qwen3:8b(引文逐字閘;答不出即誠實說不知道)</small></header>
 <div id=log><div class=sys>問投資哲學/經典原文相關問題。回覆較慢(本地 GPU 約數分鐘),guard 會攔下非逐字引用。</div></div>
 <div id=bar>
+<div id=chip onclick="clearAttach()"></div>
 <div id=plusmenu>
- <div class=hint>附加資料夾/檔案 → 逐字入知識庫(之後可被引經據典;需公開授權,DB 硬擋只准 public_domain/cc-*)</div>
+ <div class=hint>A · 入知識庫(永久保存、之後可被引經據典;需公開授權,DB 硬擋只准 public_domain/cc-*)</div>
  授權 <select id=inlic><option>public_domain</option><option>cc-by</option><option>cc-by-sa</option><option>cc0</option></select>
  <button type=button onclick="pick('file')">📎 選檔案入庫</button>
  <button type=button onclick="pick('folder')">📁 選資料夾入庫</button>
+ <div class=hint style="margin-top:10px">B · 只問這次(不入庫、只當本次對話的文件助讀;之後提問只根據這份檔回答)</div>
+ <button type=button onclick="pickB('file')">📄 選檔案 · 只問這次</button>
+ <button type=button onclick="pickB('folder')">📁 選資料夾 · 只問這次</button>
 </div>
 <form onsubmit="return send(event)">
 <button id=plusbtn type=button onclick="togglePlus()" title="附加檔案/資料夾入庫">＋</button>
@@ -77,9 +85,11 @@ button:disabled{background:#30363d;cursor:wait}
 const log=document.getElementById('log'),q=document.getElementById('q'),b=document.getElementById('b')
 function add(cls,txt){const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;log.appendChild(d);d.scrollIntoView();return d}
 async function send(e){e.preventDefault();const text=q.value.trim();if(!text)return false
+ if(text=='/移除'||text=='/remove'){clearAttach();q.value='';return false}
  add('u',text);q.value='';b.disabled=true;const wait=add('a','思考中…(本地生成,請稍候)')
+ const payload=attached?{messages:[{role:'user',content:text}],augur_attach:attached}:{messages:[{role:'user',content:text}]}
  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({messages:[{role:'user',content:text}]})})
+   body:JSON.stringify(payload)})
   const j=await r.json();const m=j.choices?.[0]?.message?.content||'(無回覆)';const g=j.augur_guard||{}
   wait.textContent=m.split('\\n---\\n')[0]
   const gd=document.createElement('div');gd.className='g '+(g.pass?'pass':'fail')
@@ -87,10 +97,15 @@ async function send(e){e.preventDefault();const text=q.value.trim();if(!text)ret
   wait.appendChild(gd)
  }catch(err){wait.textContent='錯誤:'+err}
  b.disabled=false;q.focus();return false}
+var attached=null,_pk='A'
 function togglePlus(){var m=document.getElementById('plusmenu');m.style.display=m.style.display=='block'?'none':'block'}
-function pick(kind){document.getElementById('plusmenu').style.display='none';document.getElementById(kind=='folder'?'dpick':'fpick').click()}
-document.getElementById('fpick').onchange=function(){doIngest(this.files);this.value=''}
-document.getElementById('dpick').onchange=function(){doIngest(this.files);this.value=''}
+function pick(kind){_pk='A';document.getElementById('plusmenu').style.display='none';document.getElementById(kind=='folder'?'dpick':'fpick').click()}
+function pickB(kind){_pk='B';document.getElementById('plusmenu').style.display='none';document.getElementById(kind=='folder'?'dpick':'fpick').click()}
+document.getElementById('fpick').onchange=function(){handleFiles(this.files);this.value=''}
+document.getElementById('dpick').onchange=function(){handleFiles(this.files);this.value=''}
+function handleFiles(files){if(_pk=='B')doAttach(files);else doIngest(files)}
+function clearAttach(){if(attached){attached=null;updateChip();add('a','已解除附加。')}}
+function updateChip(){var c=document.getElementById('chip');if(attached){c.style.display='block';c.textContent='📎 附加中(只問這次):'+attached.title+' — 點此移除'}else{c.style.display='none'}}
 async function doIngest(files){
  if(!files||!files.length)return
  var lic=document.getElementById('inlic').value
@@ -100,6 +115,16 @@ async function doIngest(files){
  for(var i=0;i<files.length;i++)fd.append('file',files[i],files[i].webkitRelativePath||files[i].name)
  try{var r=await fetch('/ingest',{method:'POST',body:fd});wait.textContent=await r.text()}
  catch(e){wait.textContent='入庫失敗:'+e}
+}
+async function doAttach(files){
+ if(!files||!files.length)return
+ var wait=add('a','讀取附加檔案…(本地解析,只問這次、不入庫)')
+ var fd=new FormData();for(var i=0;i<files.length;i++)fd.append('file',files[i],files[i].webkitRelativePath||files[i].name)
+ try{var r=await fetch('/attach',{method:'POST',body:fd});var j=await r.json()
+  if(!j.ok){wait.textContent='附加失敗:'+(j.error||'無法解析');return}
+  attached={title:j.title,text:j.text};updateChip()
+  wait.textContent='📎 已附加:'+j.title+'('+j.chars+' 字'+(j.truncated?'、過長已截斷':'')+',只問這次)。之後提問只根據這份檔回答;點上方標籤或輸入 /移除 可解除。'
+ }catch(e){wait.textContent='附加失敗:'+e}
 }
 </script></body></html>"""
 
@@ -163,9 +188,43 @@ class H(BaseHTTPRequestHandler):
         return self._plain(f"【附加入庫完成】存檔 {r['saved']}(過大跳 {r['big']}、非法名跳 {r['bad']})、"
                            f"授權 {lic}\n\n{out}")
 
+    def _json(self, obj):
+        out = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(out)))
+        self.end_headers()
+        self.wfile.write(out)
+
+    def _attach(self):
+        """Mode B 附加檔:抽逐字文字回傳前端(不入庫、僅本次對話;webupload.extract_texts)。
+        治權:不落地不入庫、access 不擴;僅本回合當引文語料交 advisor,guard 對附加檔逐字比對。"""
+        ctype = self.headers.get("Content-Type", "")
+        n = int(self.headers.get("Content-Length") or 0)
+        if "multipart/form-data" not in ctype or "boundary=" not in ctype:
+            return self._json({"ok": False, "error": "需 multipart/form-data"})
+        if n > webupload.MAX_UPLOAD:
+            return self._json({"ok": False, "error": f"上傳過大(上限 {webupload.MAX_UPLOAD // 1024 // 1024}MB)"})
+        boundary = ctype.split("boundary=", 1)[1].strip().strip('"')
+        _fields, files = webupload.parse_multipart(self.rfile.read(n), boundary)
+        if not files:
+            return self._json({"ok": False, "error": "無檔案"})
+        text, meta = webupload.extract_texts(files)
+        if not (text or "").strip():
+            return self._json({"ok": False, "error": "無法抽取文字(掃描檔/加密/未支援格式)"})
+        cap = 400000
+        truncated = len(text) > cap
+        text = text[:cap]
+        title = (f"資料夾 {meta['parsed']} 檔" if meta["parsed"] > 1
+                 else (meta["titles"][0] if meta["titles"] else "附加文件"))
+        return self._json({"ok": True, "title": title, "text": text, "chars": len(text),
+                           "parsed": meta["parsed"], "skipped": meta["skipped"], "truncated": truncated})
+
     def do_POST(self):
         if self.path.rstrip("/") == "/ingest":
             return self._ingest()
+        if self.path.rstrip("/") == "/attach":
+            return self._attach()
         n = int(self.headers.get("Content-Length", 0))
         req = json.loads(self.rfile.read(n) or b"{}")
         msgs = req.get("messages", [])
@@ -184,7 +243,11 @@ class H(BaseHTTPRequestHandler):
                 sc = f"掃描失敗:{e}"
             return self._reply(f"【+資料夾 dry-run 掃描】{safe}\n\n{sc}\n"
                                "── 此為預覽(未入庫)。實際入庫請至 admin 後台(:8500)聲明 license(DB CHECK 硬擋只准公開授權檔)。")
-        payload = json.dumps({"model": "augur-advisor", "messages": msgs}).encode()
+        fwd = {"model": "augur-advisor", "messages": msgs}
+        att = req.get("augur_attach")
+        if isinstance(att, dict) and (att.get("text") or "").strip():
+            fwd["augur_attach"] = {"title": att.get("title") or "附加文件", "text": att["text"]}
+        payload = json.dumps(fwd).encode()
         try:
             r = urllib.request.Request(self.advisor + "/v1/chat/completions", payload,
                                        {"Content-Type": "application/json"})
