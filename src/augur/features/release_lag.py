@@ -1,12 +1,14 @@
 """augur 發布滯後 gate — 期間型財報/營收之「公開可得日」(#8 anti-leakage 命門)。
 
-🎯 這支在做什麼(白話):財報/月營收的 `date` 是**資料期間**(季底/月份)、**非公開日**——用 date 當 as-of
-就是偷看未來(panel 3/31 不該知道 3 月營收、它 4/10 才公告)。本模組依**台灣法定公告期限**算「公開可得日」,
-供 builder 以 `release_date ≤ panel_date` 做 point-in-time gate(取代錯誤的 `date ≤ panel`)。
+🎯 這支在做什麼(白話):財報/月營收的 `date` 是資料期間或公告月、**非精確公開日**——用 date 當 as-of
+就是偷看未來。本模組依**台灣法定公告期限**算「公開可得日」,供 builder 以 `release_date ≤ panel_date`
+做 point-in-time gate(取代錯誤的 `date ≤ panel`)。
 
 法定期限(保守取上限、資料屆時必已公開):
-- **月營收**:每月 10 日前公告上月 → 月 M 之 release = 次月 15 日(法定 10 + buffer)。
-- **財報**:Q1/Q2/Q3 季底 + 45 日(法定);**年報(Q4)季底 + 90 日**(次年 3/31)。
+- **月營收**:`date` 實=**公告月**(資料月+1;DB 實證 474,246/474,246 列 date 恆=資料月+1、如 5 月營收 date=6/1)
+  → release = **該公告月 15 日**(法定 10 + buffer、保守;稽核決3 修正 2026-07-04:原誤把 date 當資料月又加次月
+  → 過度滯後約一個月、損時效)。
+- **財報**:date=季底 → Q1/Q2/Q3 +45 日(法定);**年報(Q4)季底 + 90 日**(次年 3/31)。
 
 思想≠特定值(#9):此處之 10/45/90 非「知識字典閾值」,而是**法律事實**(公告期限)——屬 #8 anti-leakage
 之正確 as-of 口徑、非預測用硬編。日期算術、無模型。
@@ -21,9 +23,9 @@ FIN_LAG_ANNUAL = 90       # 年報(Q4):季底後法定天數(次年 3/31)
 
 
 def revenue_release_date(d: date) -> date:
-    """月營收 date(該月某日)→ 公開可得日(次月 15 日)。"""
-    ny, nm = (d.year + 1, 1) if d.month == 12 else (d.year, d.month + 1)
-    return date(ny, nm, REVENUE_DAY)
+    """月營收 date(實=公告月,資料月+1)→ 公開可得日(**該公告月 15 日**;稽核決3 修正)。
+    例:5 月營收 date=6/1 → release=6/15(法定 6/10 + buffer、保守),而非舊誤算之 7/15。"""
+    return date(d.year, d.month, REVENUE_DAY)
 
 
 def financial_release_date(d: date) -> date:

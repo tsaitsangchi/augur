@@ -25,6 +25,7 @@ import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from psycopg2.extras import execute_values
 
 from augur.core import db
+from augur.knowledge import corpus   # W2.5:CLEAN 述詞 SSOT(review_flag=false ∧ corpus_class='literary')
 
 try:
     from augur.knowledge import textnorm               # §二6 契約 SSOT(三方 JOIN 鍵同一函式)
@@ -44,7 +45,7 @@ FETCH_SQL = {
     "philosophy": ("SELECT s.sent_id, s.sentence FROM knowledge_sentence s "
                    "JOIN philosophy_work_text wt ON wt.text_id = s.text_id "
                    "JOIN philosophy_work w ON w.work_id = wt.work_id "
-                   "WHERE w.review_flag IS NOT TRUE AND s.language = %s AND s.sent_id > %s "
+                   f"WHERE {corpus.clean_work_sql('w')} AND s.language = %s AND s.sent_id > %s "
                    "ORDER BY s.sent_id LIMIT %s"),
     "items": ("SELECT s.sent_id, s.sentence FROM knowledge_sentence s "
               "WHERE s.itext_id IS NOT NULL AND s.language = %s AND s.sent_id > %s "

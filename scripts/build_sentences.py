@@ -26,6 +26,7 @@ import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from psycopg2.extras import execute_values
 
 from augur.core import db
+from augur.knowledge import corpus   # W2.5:CLEAN 述詞 SSOT(review_flag=false ∧ corpus_class='literary')
 
 # ── 確定性規則(計畫 §三T3;不用 ML) ─────────────────────────────────
 CJK_RE = re.compile(r"[一-鿿]")                       # U+4E00–U+9FFF(與 §二6 term 契約同範圍)
@@ -83,7 +84,7 @@ SIDES = {
     "philosophy": ("philosophy_work_text", "text_id",
                    "SELECT wt.text_id, wt.content, wt.language FROM philosophy_work_text wt "
                    "JOIN philosophy_work w USING (work_id) "
-                   "WHERE w.review_flag IS NOT TRUE AND COALESCE(w.work_type,'') NOT IN ('dictionary','thesaurus') "
+                   f"WHERE {corpus.clean_work_sql('w')} "
                    "AND wt.text_id > %s "
                    "AND NOT EXISTS (SELECT 1 FROM knowledge_sentence s WHERE s.text_id = wt.text_id) "),
     "items": ("knowledge_item_text", "itext_id",
@@ -180,7 +181,7 @@ def print_info(conn):
                     "WHERE w.review_flag IS TRUE")
         flagged = cur.fetchone()[0]
         cur.execute("SELECT count(*) FROM philosophy_work_text wt JOIN philosophy_work w USING (work_id) "
-                    "WHERE w.review_flag IS NOT TRUE AND COALESCE(w.work_type,'') NOT IN ('dictionary','thesaurus') "
+                    f"WHERE {corpus.clean_work_sql('w')} "
                     "AND NOT EXISTS (SELECT 1 FROM knowledge_sentence s WHERE s.text_id = wt.text_id)")
         pending = cur.fetchone()[0]
         cur.execute("SELECT count(*) FROM knowledge_sentence")

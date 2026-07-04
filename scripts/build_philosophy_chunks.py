@@ -17,6 +17,7 @@ import sys
 
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
+from augur.knowledge import corpus   # W2.5:CLEAN 述詞 SSOT(review_flag=false ∧ corpus_class='literary')
 
 TARGET_TOK = 500
 OVERLAP_TOK = 75
@@ -111,10 +112,10 @@ def main():
                 cur.execute("SELECT DISTINCT itext_id FROM philosophy_chunk WHERE itext_id IS NOT NULL")
                 done_itext = {r[0] for r in cur.fetchall()}
         with db.transaction(conn) as cur:
-            # T-1 稽核閘:review_flag(true=誤配、NULL=未稽核)一律不入塊
+            # W2.5 CLEAN 閘:review_flag(誤配/未稽核)排除 ∧ corpus_class='literary'(reference 不入塊)
             phil_sql = ("SELECT t.text_id, t.work_id, NULL::int AS itext_id, t.content "
                         "FROM philosophy_work_text t JOIN philosophy_work w USING (work_id) "
-                        "WHERE NOT w.review_flag")
+                        f"WHERE {corpus.clean_work_sql('w')}")
             if itext_ok:
                 cur.execute(phil_sql + " UNION ALL "
                             "SELECT NULL::int, NULL::int, x.itext_id, x.content FROM knowledge_item_text x "

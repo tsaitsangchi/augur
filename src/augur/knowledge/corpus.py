@@ -24,8 +24,12 @@ def _quoted(values):
 
 
 def clean_work_sql(work_alias="w"):
-    """works 側 CLEAN 述詞(SQL 片段):review_flag=false 才放行;NULL(未稽核)不放行。"""
-    return f"{work_alias}.review_flag = false"
+    """works 側 CLEAN 述詞(SQL 片段,語意層 S3/S5/S7 三端同一閘):
+    (a) review_flag = false(T-1 稽核過才放行;NULL 未稽核不放行,fail-closed);
+    (b) corpus_class = 'literary'(W2.5 單一語意欄,稽核決/拍板13:取代會漏接之 work_type 白名單
+        ——Roget=book、注疏=philosophy_classic 皆 reference 卻非 dictionary/thesaurus、舊白名單漏接;
+        NULL corpus_class 不放行,fail-closed)。reference 語料只走 lexicon 路、不進切句/嵌入/檢索。"""
+    return f"{work_alias}.review_flag = false AND {work_alias}.corpus_class = 'literary'"
 
 
 def clean_item_sql(item_alias="i", itext_alias="x"):
