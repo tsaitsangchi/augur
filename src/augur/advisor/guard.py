@@ -15,6 +15,9 @@ _FUTURE_LEAK = re.compile(
     r"will (rise|fall|surge|crash|soar|plunge)|保證|必(漲|跌|賺)|下週.{0,6}(漲|跌)|明(日|天).{0,6}(漲|跌)|未來.{0,4}(會漲|會跌|必)")
 _REVERSE = re.compile(
     r"所以.{0,8}(該|應|建議).{0,4}(賣|放空|反著|做空)|建議.{0,4}(賣出|放空|做空)|reverse the (call|model|score)|sell instead")
+# 指標詞鄰接數字(IC 0.2 這類整數/1 位小數編造值也須 ∈ 白名單;稽核 2026-07-04 執5)
+_METRIC_NUM = re.compile(
+    r"(?:\b(?:IC|Sharpe|score)\b|分數)[^\d\n。,;,;]{0,8}?(\d+(?:\.\d+)?)", re.IGNORECASE)
 
 
 def guard(response, payload, citations):
@@ -27,9 +30,10 @@ def guard(response, payload, citations):
         if not any(quote in t for t in cite_texts):
             issues.append(f"引文非逐字或非庫內(#1):{quote[:40]!r}")
 
-    # ② 數字校驗:顯著小數(score/IC/Sharpe 類)須 ∈ payload(防編造預測數字)
+    # ② 數字校驗:顯著小數 + IC/Sharpe/score 鄰接數字(不論位數)須 ∈ payload(防編造預測數字)
     allowed = payload.numbers()
-    for m in re.findall(r"\d+\.\d{2,}", response):
+    suspects = set(re.findall(r"\d+\.\d{2,}", response)) | set(_METRIC_NUM.findall(response))
+    for m in sorted(suspects):
         if round(float(m), 4) not in allowed:
             issues.append(f"數字非 payload、疑編造(#1):{m}")
 

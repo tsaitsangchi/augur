@@ -23,8 +23,8 @@ HORIZONS = (5, 20, 60, 252)   # 週/月/季/年（calendar 慣例；H=252 經 pu
 
 
 def _calendar(cur, start):
-    """全市場交易日曆（PriceAdj distinct date ≥ start，升序）——進出場日對齊全市場、非個股缺日。"""
-    cur.execute(f'SELECT DISTINCT date FROM "{ADJ_TABLE}" WHERE date >= %s ORDER BY date', (start,))
+    """全市場交易日曆（PriceAdj distinct date > start，升序）——進出場日對齊全市場、非個股缺日。"""
+    cur.execute(f'SELECT DISTINCT date FROM "{ADJ_TABLE}" WHERE date > %s ORDER BY date', (start,))
     return [r[0] for r in cur.fetchall()]
 
 
@@ -40,22 +40,23 @@ def full_calendar(conn):
 
 
 def _entry_exit(calendar, h):
-    """t+1 進場口徑：calendar[0]=panel_date → entry=calendar[1]（次一交易日）、exit=calendar[1+h]。
+    """t+1 進場口徑：calendar=panel_date 之後（>）的交易日 → entry=calendar[0]（次一交易日）、exit=calendar[h]。
+    非交易日 panel（如月底週末）entry 同為次一交易日、不漂移為 t+2。
     日曆不足（panel_date 太近 max date、湊不到 1+h 個交易日）→ (None, None)（label 算不出、#8 不外推）。"""
-    if len(calendar) < h + 2:
+    if len(calendar) < h + 1:
         return None, None
-    return calendar[1], calendar[1 + h]
+    return calendar[0], calendar[h]
 
 
 def forward_returns(conn, panel_date, stock_ids, h, *, calendar=None):
     """每股 t+1 進場、持有 h 交易日之還原價 log return → {stock_id: ret}（算不出之股不含、#1 缺列）。
 
     entry/exit 日由全市場交易日曆定（t+1 / t+1+h）；close≤0（停牌/異常）或缺價 → 該股不含。
-    `calendar`（升序全市場日曆，full_calendar 取得）傳入時以記憶體 filter（≥panel_date）取代 DB 掃描，
+    `calendar`（升序全市場日曆，full_calendar 取得）傳入時以記憶體 filter（>panel_date）取代 DB 掃描，
     結果與逐 panel `_calendar` 一致——批次 evaluation 免 N² 全表掃描。
     """
     with db.transaction(conn) as cur:
-        cal = [d for d in calendar if d >= panel_date] if calendar is not None else _calendar(cur, panel_date)
+        cal = [d for d in calendar if d > panel_date] if calendar is not None else _calendar(cur, panel_date)
         entry, exit_ = _entry_exit(cal, h)
         if entry is None:
             return {}

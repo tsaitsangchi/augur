@@ -42,9 +42,10 @@ def _core(cur):
 def _fmt(s):
     if not s or s.get("mean_ic") is None:
         return "n/a"
-    t = f" / t {s['effective_t']:.2f}" if s.get("effective_t") else ""
+    hac = f" / HAC-t {s['effective_t_hac']:.2f}" if s.get("effective_t_hac") else ""
+    t = f" / raw-t {s['effective_t']:.2f}" if s.get("effective_t") else ""   # iid、重疊窗高估、非顯著性判準（#11）
     hr = f" / 勝率 {s['hit_rate']:.2f}" if s.get("hit_rate") is not None else ""
-    return f"IC {s['mean_ic']:+.3f}{t}{hr} (n={s['n_panels']})"
+    return f"IC {s['mean_ic']:+.3f}{hac}{t}{hr} (n={s['n_panels']})"
 
 
 def _run(conn, panels, h, core, asof, seeds, interactions=None):

@@ -108,8 +108,18 @@ def _merge(agg, r):
 
 
 def _is_per_stock(cols):
-    """DB 表含 stock_id 欄 = per-stock 落地(DB 僅 roster 上市股);by-date 抓全市場(含權證)對帳會假 MIS → 須 roster-scoped。"""
+    """DB 表含 stock_id 欄 = per-stock 落地;by-date 抓全市場(含名冊外雜項)對帳會假 MIS → 須 roster 過濾。"""
     return "stock_id" in cols
+
+
+def _roster_union(cur, table):
+    """對帳個股範圍 = 真名冊(sync.ROSTER_TABLE、與寫入端同 roster)∪ 表內既有股。
+    真名冊:roster 股整股缺漏(該表 0 列)之 API 列不再被濾掉 → missing_in_db 可見(修偵測盲點);
+    表內既有股:已下市/名冊外但 DB 有史之股仍保留比對、不產假 EX。"""
+    cur.execute(f'SELECT DISTINCT stock_id FROM "{table}"')
+    ids = {str(r[0]) for r in cur.fetchall()}
+    cur.execute(f'SELECT DISTINCT stock_id FROM "{sync.ROSTER_TABLE}" WHERE stock_id IS NOT NULL')
+    return ids | {str(r[0]) for r in cur.fetchall()}
 
 
 def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
@@ -128,12 +138,11 @@ def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
         else:
             cur.execute(f'SELECT DISTINCT date FROM "{table}" WHERE date >= %s ORDER BY date', (since,))
         dates = [r[0] for r in cur.fetchall()]
-    per_stock = _is_per_stock(cols)   # per-stock 表只比對 DB roster 內個股,排除 API 全市場權證(scope 對齊)
+    per_stock = _is_per_stock(cols)   # per-stock 表比對真名冊∪表內既有股,排除名冊外雜項(_roster_union)
     roster_ids = None
     if per_stock:
         with db.transaction(conn) as cur:
-            cur.execute(f'SELECT DISTINCT stock_id FROM "{table}"')
-            roster_ids = {str(r[0]) for r in cur.fetchall()}
+            roster_ids = _roster_union(cur, table)
     for i, dt in enumerate(dates, 1):
         d = dt if isinstance(dt, str) else dt.isoformat()   # date 欄為 VARCHAR(如契約月 '2026/06')時 dt 是 str、無 isoformat
         with db.transaction(conn) as cur:
@@ -146,7 +155,7 @@ def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
         if dataset in _AGGREGATE_DAILY:   # intraday-source（GoldPrice 5分鐘）→ 套 ingest 同聚合對齊 DB 日級落地（#4）;否則 raw intraday vs 日級聚合 → 假 MIS
             api = _aggregate_daily(api, _AGGREGATE_DAILY[dataset])
         if per_stock:
-            api = [row for row in api if str(row.get("stock_id")) in roster_ids]   # 只留 DB roster 內個股(排除全市場權證)
+            api = [row for row in api if str(row.get("stock_id")) in roster_ids]   # 只留真名冊∪表內既有股(排除名冊外雜項;roster 股整股缺漏入 MIS)
         r = compare(dbr, api, pk, val)
         _merge(agg, r)
         if r["value_mismatch"] or r["missing_in_db"] or r["extra_in_db"]:
@@ -192,13 +201,17 @@ def heal_by_date(conn, table, dataset=None, *, since=None, progress=None):
             "passed": after["value_mismatch"] == 0 and after["extra_in_db"] == 0}
 
 
-def reconcile_per_stock(conn, table, dataset=None, *, since=None, sample_n=None, progress=None):
+def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sample_n=None, progress=None):
     """per-stock 對帳：逐股以 per-stock 端點重抓（data_id=股）、逐股 compare——對齊抓取端點。
 
     per-stock 抓的表（catalog `reconcile_scope='roster-scoped'`）若改用 by-date 重抓對帳，會因
     FinMind by-date/per-stock 兩端點對同列回值之極小差 → 假 VM（2026-06-17 三大法人 VM=73 實證）。
     改以 per-stock 重抓（同寫入端點）比同源：殘餘 VM 即真差異（近日修訂），交 heal 重抓修、不被掩蓋。
 
+    迭代個股 = `_roster_union`（真名冊 ∪ 表內既有股）：roster 股整股缺漏（該表 0 列）之 API 列入
+    missing_in_db 可見（修偵測盲點）；表內已下市股仍保留比對、不產假 EX。
+    `until`：對帳窗上限（未定案排除，#7 類別①日頻次日校正/②季頻最新期）——DB 與 API 皆截至 until，
+    未定案期差異不入計數（呼叫端計算並誠實知會 #15）；None=DB max(date)。
     `sample_n`：等距抽樣限重抓股數（per-stock 1 call/股，全 roster 太貴）；None=全 roster。
     **取樣＝部分覆蓋（非全股 attest），呼叫端須知會（#7 不靜默縮覆蓋）**。
     回傳含 `per_stock`：{stock_id:{VM,MIS,EX}}（只列有差異股）+ `stocks`（實對股數）、`sampled`（是否抽樣）。
@@ -208,11 +221,13 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, sample_n=None,
     agg["per_stock"] = {}
     with db.transaction(conn) as cur:
         cols, pk, val = _meta(cur, table)
-        cur.execute(f'SELECT DISTINCT stock_id FROM "{table}" ORDER BY stock_id')
-        stocks = [str(r[0]) for r in cur.fetchall()]
+        stocks = sorted(_roster_union(cur, table))
         cur.execute(f'SELECT max(date) FROM "{table}"')   # 窗上限=DB 最新日：避免同日 API 較新→假 MIS（對齊 by_date DB-date 驅動 / fred 同窗）
         _mx = cur.fetchone()[0]
     dbmax = _mx.isoformat() if _mx is not None and not isinstance(_mx, str) else _mx
+    if until is not None:                     # 呼叫端未定案排除:窗上限再收至 until(str 字典序=ISO 日期序)
+        u = until if isinstance(until, str) else until.isoformat()
+        dbmax = min(dbmax, u) if dbmax else u
     agg["sampled"] = bool(sample_n and len(stocks) > sample_n)
     if agg["sampled"]:
         step = len(stocks) / sample_n          # 等距抽樣（deterministic、可重現，不用 random）
@@ -222,6 +237,9 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, sample_n=None,
         if since:
             where += " AND date >= %s"
             params.append(since)
+        if dbmax:
+            where += " AND date <= %s"        # DB 側同窗上限(until 未定案排除;until=None 時=表 max、行為不變)
+            params.append(dbmax)
         with db.transaction(conn) as cur:
             dbr = _db_dicts(cur, table, cols, where, tuple(params))
         fp = {"data_id": sid}

@@ -60,11 +60,11 @@ def main():
         res = fd.five_mirror(conn, panels, args.h, core, feats, asof=args.asof, loo=args.loo)
         pf = res["per_feature"]
         order = sorted(feats, key=lambda f: -(abs(pf[f]["ic"]) if pf[f]["ic"] is not None else 0))
-        print(f"\n{'feature':28s} {'IC':>8s} {'Eff-t':>7s} {'SHAP':>9s} {'共線':>4s} {'LOOΔ':>8s}  裁定")
+        print(f"\n{'feature':28s} {'IC':>8s} {'HAC-t':>7s} {'SHAP':>9s} {'共線':>4s} {'LOOΔ':>8s}  裁定")
         for f in order:
             d = pf[f]
             ic = f"{d['ic']:+.3f}" if d["ic"] is not None else "  n/a"
-            tt = f"{d['ic_eff_t']:.2f}" if d["ic_eff_t"] else "  -"
+            tt = f"{d['ic_eff_t_hac']:.2f}" if d["ic_eff_t_hac"] else "  -"
             sh = f"{d['shap']:.4f}" if d["shap"] is not None else "   n/a"
             co = "✓" if d["in_collinear_group"] else " "
             lo = f"{d['loo_delta']:+.4f}" if d["loo_delta"] is not None else "   -"

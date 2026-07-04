@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """augur 特徵候選五鏡驗證 — 算候選 → 橫斷面 rank IC（五鏡①⑤）+ 共線（②）→ 判 raw vs 相對化是否強化。
 
-🎯 這支在做什麼（白話）：把相關分析浮現之兩潛力做成正式候選（audit.feature_candidate）寫進 feature_values,
+🎯 這支在做什麼（白話）：把相關分析浮現之兩潛力做成正式候選（audit.feature_candidate）寫進候選 staging 表
+feature_candidate_values（audit 邊界:不寫生產表 feature_values）,
 對 374 核心跑**橫斷面 rank IC**（evaluation SSOT helper、as-of/purged 口徑、#12）比較:
 - raw `pb_ratio`（基準）vs 三層相對化 `pb_xsec_rank` / `pb_industry_demean` / `pb_self_pctile_252d`
   → 答「相對化是否強化」（母原則③ / 審查 G12-G13 消融）
@@ -13,7 +14,7 @@
 守 #1/#8/#9 · #11（五鏡橫斷面 IC、不單指標）· #12（label/metric SSOT）· #15（誠實、n 揭露）。
 
 執行指令矩陣:python scripts/validate_feature_candidates.py --since 2014-01-01 --h 20,60
-      python scripts/validate_feature_candidates.py --clear   （驗後清候選、不留 feature_values）
+      python scripts/validate_feature_candidates.py --clear   （驗後清候選、不留 staging）
 """
 import argparse
 

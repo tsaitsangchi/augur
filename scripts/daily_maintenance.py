@@ -37,6 +37,11 @@ def main():
         skipped = [r for r in results if r["mode"] != "by-date"]
         print(f"\n增量完成：{len(synced)} dataset 有更新、共 {sum(r['rows'] for r in synced):,} 列；"
               f"{len(skipped)} dataset 略過（no-baseline / not-by-date-capable / intraday）")
+        failed = [(r["dataset"], r["failed_days"]) for r in results if r.get("failed_days")]
+        if failed:   # 漏抓日（單日錯被跳過;resume 只看 max(date) 不會自補）→ 印出供 scoped 重跑（#6 不掉資料）
+            print(f"⚠ {len(failed)} dataset 有失敗日（漏抓;resume 不自補,須 sync_by_date 明確 start=該日重跑補洞）：")
+            for ds, days in failed:
+                print(f"  {ds}: {len(days)} 日 {days[:10]}{'…' if len(days) > 10 else ''}")
 
         if args.audit_since and synced:
             print(f"\n對帳（#7，since={args.audit_since}）…")

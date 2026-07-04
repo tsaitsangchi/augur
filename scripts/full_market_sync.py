@@ -55,17 +55,32 @@ def _reconcile_scope(conn, table):
     return row[0] if row else None
 
 
+def _settled_max(conn, table):
+    """full-history(季/月頻)窗上限=排除最新一期(發布/重編中未定案 #7)後之最新 distinct date;不足 → None(全窗)。"""
+    with db.transaction(conn) as cur:
+        cur.execute(f'SELECT DISTINCT date FROM "{table}" ORDER BY date DESC OFFSET 1 LIMIT 1')
+        row = cur.fetchone()
+    return None if not row else (row[0].isoformat() if hasattr(row[0], "isoformat") else str(row[0]))
+
+
 def verify(conn, table):
     """逐 API #7 對帳（近窗取樣，無幻像）。回 (passed|None, result|errstr)。
 
     路由（依 catalog reconcile_scope）：roster-scoped（per-stock 落地）→ per-stock 對帳（對齊抓取
-    端點，避免 by-date 端點差之假 VM）；by-dim-id（CrudeOilPrices/ExchangeRate 等需 data_id 維度）
-    → 逐維度 id 對帳（避免 by-date 抓回空之假 MIS）；否則有 date 欄→by-date、無→market。
+    端點，避免 by-date 端點差之假 VM）；full-history（季/月頻財報）→ per-stock 全史、排除最新一期
+    未定案；market（snapshot/單一序列，date-insensitive 不可逐日）→ 單批對帳；by-dim-id
+    （CrudeOilPrices/ExchangeRate 等需 data_id 維度）→ 逐維度 id 對帳（避免 by-date 抓回空之假 MIS）；
+    否則有 date 欄→by-date、無→market。
     """
     try:
         scope = _reconcile_scope(conn, table)
         if scope == "roster-scoped":
             r = reconcile.reconcile_per_stock(conn, table, since=RECENT, sample_n=PERSTOCK_SAMPLE)
+        elif scope == "full-history":
+            r = reconcile.reconcile_per_stock(conn, table, until=_settled_max(conn, table),
+                                              sample_n=PERSTOCK_SAMPLE)
+        elif scope == "market":
+            r = reconcile.reconcile_market(conn, table)
         elif scope == "by-dim-id":
             r = reconcile.reconcile_by_dim_id(conn, table, since=RECENT)
         elif scope == "coverage":

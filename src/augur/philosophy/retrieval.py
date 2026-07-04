@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from augur.core import db
+from augur.knowledge import textnorm
 
 MODEL = "intfloat/multilingual-e5-small"
 
@@ -111,30 +112,34 @@ def _tables_exist(cur, *names):
 
 
 def _term_forms(term):
-    """查詢詞寬鬆形:NFC 原形 + 小寫(西文)。完整正規化契約(jieba/Porter)SSOT=augur.knowledge.textnorm,
-    此處不重複實作 stemmer;呼叫端可先以 textnorm 正規化再查。"""
+    """查詢詞形集合(去重保序):NFC 原形 + 小寫 + textnorm 正規形(zh 原貌/en Porter stem),
+    履行三方 JOIN 契約(SSOT=augur.knowledge.textnorm);空詞回 []。"""
     t = unicodedata.normalize("NFC", (term or "").strip())
-    return t, t.lower()
+    if not t:
+        return []
+    forms = [t, t.lower(), textnorm.norm_headword(t, "zh"), textnorm.norm_headword(t, "en")]
+    return list(dict.fromkeys(f for f in forms if f))
 
 
 def lexicon_lookup(term):
     """辭書/註疏定義查詢(L3→L5):回 [LexEntry](逐字定義+出處+locator)。
     庫無此詞或 knowledge_lexicon 未建 → 誠實回空 [](不生成、不猜)。"""
-    t, tl = _term_forms(term)
-    if not t:
+    forms = _term_forms(term)
+    if not forms:
         return []
+    ph = ", ".join("%s" for _ in forms)
     out = []
     with db.connect() as conn, db.transaction(conn) as cur:
         if not _tables_exist(cur, "knowledge_lexicon"):
             return []
-        cur.execute("""
+        cur.execute(f"""
         SELECT l.term, l.term_display, l.language, l.definition,
                COALESCE(w.title_zh, w.title), l.source_locator, l.lex_type
         FROM knowledge_lexicon l
         JOIN philosophy_work w ON w.work_id = l.source_work_id
-        WHERE l.term IN (%s, %s) OR l.term_display IN (%s, %s)
+        WHERE l.term IN ({ph}) OR l.term_display IN ({ph})
         ORDER BY l.lex_type, l.lex_id
-        """, (t, tl, t, tl))
+        """, (*forms, *forms))
         for r in cur.fetchall():
             out.append(LexEntry(term=r[0], term_display=r[1], language=r[2], definition=r[3],
                                 work_title=r[4], source_locator=r[5], lex_type=r[6]))
@@ -144,15 +149,16 @@ def lexicon_lookup(term):
 def concordance_lookup(term, limit=10):
     """逐字用例查詢(L2→L5):回 [ConcordanceHit](原句+char_range+work/item 標題)。
     庫無此詞或 L2 表未建 → 誠實回空 []。"""
-    t, tl = _term_forms(term)
-    if not t:
+    forms = _term_forms(term)
+    if not forms:
         return []
+    ph = ", ".join("%s" for _ in forms)
     out = []
     with db.connect() as conn, db.transaction(conn) as cur:
         if not _tables_exist(cur, "knowledge_concordance", "knowledge_sentence",
                              "knowledge_item_text", "knowledge_item"):
             return []
-        cur.execute("""
+        cur.execute(f"""
         SELECT c.term, s.sentence, s.char_start, s.char_end,
                COALESCE(w.title_zh, w.title, i.title_zh, i.title, '') AS source_title,
                s.sent_id, c.position
@@ -162,10 +168,10 @@ def concordance_lookup(term, limit=10):
         LEFT JOIN philosophy_work w ON w.work_id = wt.work_id
         LEFT JOIN knowledge_item_text x ON x.itext_id = s.itext_id
         LEFT JOIN knowledge_item i ON i.item_id = x.item_id
-        WHERE c.term IN (%s, %s)
+        WHERE c.term IN ({ph})
         ORDER BY s.sent_id, c.position
         LIMIT %s
-        """, (t, tl, limit))
+        """, (*forms, limit))
         for r in cur.fetchall():
             out.append(ConcordanceHit(term=r[0], sentence=r[1], char_start=r[2], char_end=r[3],
                                       source_title=r[4], sent_id=r[5], position=r[6]))

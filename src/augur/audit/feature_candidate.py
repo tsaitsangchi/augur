@@ -1,7 +1,7 @@
 """augur 特徵候選計算 + 五鏡驗證底料 — 把相關性分析浮現之候選做成 as-of 安全特徵、供橫斷面 IC 驗。
 
 🎯 這支在做什麼（白話）：依方法論母原則③（目標相對→特徵必相對化）把兩個潛力發現做成**正式特徵候選**,
-寫進 feature_values（核心股 × panel、as-of 安全),供 `feature_diagnostics` 五鏡橫斷面 rank IC 驗證:
+寫進候選 staging 表 feature_candidate_values（核心股 × panel、as-of 安全),供 `feature_diagnostics` 五鏡橫斷面 rank IC 驗證:
 
 1. PBR-value 強化（raw pb_ratio 之三層相對化,審查 G12/G13）：
    - `pb_xsec_rank`：同日橫斷面 percentile rank（0-1、低=便宜）
@@ -12,7 +12,8 @@
 
 anti-leakage（#8）：全候選只用 panel t（含）以前之值——橫斷面 rank/z/demean 為同 panel 內運算、自身百分位
 為 ≤t 歷史窗;無未來。source-pure（#1）：算不出（無 raw / 窗不足 / 同 panel 無變異）→ 缺列、不補。
-**實驗性**：寫進 feature_values 供驗,但**不重建 core**（不入完整度 gate);通過五鏡才提拔進 features/ 生產。
+**實驗性**：候選寫獨立 staging 表、不寫 feature_values（audit 邊界:生產表由 feature 層獨佔寫入;
+staging 機制性隔離 core_gate/canonical_features 完整度 gate,非僅紀律);通過五鏡才提拔進 features/ 生產。
 
 守 #1 · #8 · #9（rank/z/demean/percentile 皆 cutoff-free、無硬編閾值）· 母原則③相對化 · #12（驗證用 evaluation SSOT helper）。
 """
@@ -24,13 +25,23 @@ from psycopg2.extras import execute_values
 
 from augur.core import db
 
-FEATURE_TABLE = "feature_values"
+PROD_TABLE = "feature_values"                 # 唯讀來源（生產特徵;audit 層不寫,憲章 audit 邊界）
+FEATURE_TABLE = "feature_candidate_values"    # 候選 staging（audit 自建;verify_* 家族以 fc.FEATURE_TABLE 為候選寫入口）
 CANDIDATES = ("pb_xsec_rank", "pb_industry_demean", "pb_self_pctile_252d", "inst_govbank_divergence")
 
 
+def ensure_candidate_table(conn):
+    """建候選 staging 表（schema 同構 feature_values;audit 自建分析表、不碰生產表）。冪等。"""
+    with db.transaction(conn) as cur:
+        cur.execute(f"CREATE TABLE IF NOT EXISTS {FEATURE_TABLE} ("
+                    "panel_date date NOT NULL, stock_id varchar(255) NOT NULL, "
+                    "feature varchar(255) NOT NULL, value numeric(20,6) NOT NULL, "
+                    "PRIMARY KEY (panel_date, stock_id, feature))")
+
+
 def _panel_feature(cur, panel_date, feature, stocks):
-    """某 panel 某特徵之 {stock_id: value}（限 stocks）。"""
-    cur.execute(f"SELECT stock_id, value FROM {FEATURE_TABLE} WHERE panel_date=%s AND feature=%s AND stock_id = ANY(%s)",
+    """某 panel 某特徵之 {stock_id: value}（限 stocks;讀生產表）。"""
+    cur.execute(f"SELECT stock_id, value FROM {PROD_TABLE} WHERE panel_date=%s AND feature=%s AND stock_id = ANY(%s)",
                 (panel_date, feature, list(stocks)))
     return {str(r[0]): float(r[1]) for r in cur.fetchall()}
 
@@ -53,9 +64,10 @@ def _zscore(d):
 
 
 def compute_candidates(conn, panel_dates, stocks, *, progress=None):
-    """對 panel_dates × stocks 算 4 候選 → 寫 feature_values（ON CONFLICT 冪等）。回寫入列數。"""
+    """對 panel_dates × stocks 算 4 候選 → 寫候選 staging 表（ON CONFLICT 冪等）。回寫入列數。"""
     stocks = [str(s) for s in stocks]
     written = 0
+    ensure_candidate_table(conn)
     # pb_self_pctile_252d 需自身 PBR 日序：一次抓全 stocks 全史,記憶體算（避免逐 panel N² 查）
     with db.transaction(conn) as cur:
         cur.execute('SELECT stock_id, date, "PBR"::float8 FROM "TaiwanStockPER" WHERE stock_id = ANY(%s) AND "PBR" IS NOT NULL ORDER BY stock_id, date',
@@ -108,7 +120,8 @@ def compute_candidates(conn, panel_dates, stocks, *, progress=None):
 
 
 def clear_candidates(conn):
-    """移除候選列（五鏡未過 → 不留 feature_values；不入生產之清理）。回刪除列數。"""
+    """移除候選列（五鏡未過 → 不留 staging；不入生產之清理）。回刪除列數。"""
+    ensure_candidate_table(conn)
     with db.transaction(conn) as cur:
         cur.execute(f"DELETE FROM {FEATURE_TABLE} WHERE feature = ANY(%s)", (list(CANDIDATES),))
         return cur.rowcount

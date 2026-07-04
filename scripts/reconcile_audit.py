@@ -3,7 +3,10 @@
 
 🎯 白話:把 DB 既有 API 資料表逐表對 FinMind/FRED 真值比對,**依 catalog `reconcile_scope` 走對的對帳法**——
 - by-date(逐交易日全市場):價量/法人/期權 → reconcile_by_date(近 recent_days 定案日;GoldPrice 等聚合表自動對齊日級)。
-- roster-scoped(per-stock 端點):籌碼/財報等逐股抓 → reconcile_per_stock(抽樣 ROSTER_SAMPLE 股、部分覆蓋知會 #7)。
+- roster-scoped(per-stock 端點):籌碼等逐股抓 → reconcile_per_stock(抽樣 ROSTER_SAMPLE 股、部分覆蓋知會 #7;
+  近 UNSETTLED_BUFFER 日未定案排除,同 by-date)。
+- full-history(季/月頻 per-stock):財報等 → reconcile_per_stock 全史,排除最新一期(發布/重編中未定案 #7 類別②)。
+- market(snapshot/單一序列):date-insensitive 表 → reconcile_market 單批寬查(逐日對帳=每史日拿現值 → 假 EX/MIS)。
 - by-dim-id(逐維度碼):總經/匯率/利率 → reconcile_by_dim_id(datalist 驅動)。
 - coverage(事件流):News 同日多則文本 → reconcile_coverage(列數量級、非逐 byte)。
 - fred_series:逐 series 全史 → reconcile_fred(走 FRED 額度、不佔 FinMind)。
@@ -11,7 +14,7 @@
 
 守 #7(DB↔API 對帳)· #15(未定案/抽樣/coverage 誠實標註)· #24/#25(走 finmind 內建限速)· #16/#17(clean-room)。
 執行指令矩陣:PYTHONPATH=src caffeinate -dimsu venv/bin/python scripts/reconcile_audit.py
-      [--only by-date|roster-scoped|by-dim-id|coverage|fred] [--tables A,B] [--recent-days 30]
+      [--only by-date|roster-scoped|full-history|market|by-dim-id|coverage|fred] [--tables A,B] [--recent-days 30]
 """
 from __future__ import annotations
 
@@ -61,14 +64,25 @@ def _recent_since(conn, table, recent_days):
         return None
 
 
-def _unsettled(conn, table):
-    """最近 UNSETTLED_BUFFER 個 distinct date(未定案、不計 verdict);表無 date → 空。"""
+def _unsettled(conn, table, n=UNSETTLED_BUFFER):
+    """最近 n 個 distinct date(未定案、不計 verdict);表無 date → 空。"""
     try:
         with db.transaction(conn) as cur:
-            cur.execute(f'SELECT DISTINCT date FROM "{table}" ORDER BY date DESC LIMIT %s', (UNSETTLED_BUFFER,))
+            cur.execute(f'SELECT DISTINCT date FROM "{table}" ORDER BY date DESC LIMIT %s', (n,))
             return {_iso(r[0]) for r in cur.fetchall()}
     except Exception:
         return set()
+
+
+def _settled_max(conn, table, skip):
+    """定案窗上限=排除最新 skip 個 distinct date(未定案)後之最新日;不足 skip+1 個日 → None(不設上限)。"""
+    try:
+        with db.transaction(conn) as cur:
+            cur.execute(f'SELECT DISTINCT date FROM "{table}" ORDER BY date DESC OFFSET %s LIMIT 1', (skip,))
+            row = cur.fetchone()
+        return _iso(row[0]) if row else None
+    except Exception:
+        return None
 
 
 def _audit(conn, dataset, scope, recent_days):
@@ -81,16 +95,28 @@ def _audit(conn, dataset, scope, recent_days):
         return _summary(dataset, "fred",
                         reconcile.reconcile_fred(conn, sids, vintage_map=macro.vintage_map(), progress=_p))
 
+    if scope == "market":                                      # snapshot/單一序列(date-insensitive):單批寬查,逐日對帳=每史日拿現值 → 假 EX/MIS
+        _p(f"[{dataset}] market:單批寬查對帳")
+        return _summary(dataset, "market", reconcile.reconcile_market(conn, dataset, progress=_p))
+    if scope == "full-history":                                # 季/月頻 per-stock 全史;最新一期發布/重編中未定案(#7 類別②)→ 排除
+        until = _settled_max(conn, dataset, skip=1)
+        unsettled = _unsettled(conn, dataset, n=1) if until else set()
+        _p(f"[{dataset}] full-history:per-stock 全史抽樣 {ROSTER_SAMPLE} 股;未定案最新期 {sorted(unsettled)}")
+        agg = reconcile.reconcile_per_stock(conn, dataset, until=until, sample_n=ROSTER_SAMPLE, progress=_p)
+        return _summary(dataset, "full-history", agg, unsettled=unsettled)
     since = _recent_since(conn, dataset, recent_days)
     sincestr = _iso(since) if since else "全史"
     if scope == "by-dim-id":
         _p(f"[{dataset}] by-dim-id:逐維度 id 重抓 since {sincestr}")
         return _summary(dataset, "by-dim-id", reconcile.reconcile_by_dim_id(conn, dataset, since=since, progress=_p))
-    if scope == "roster-scoped":
-        _p(f"[{dataset}] roster-scoped:per-stock 抽樣 {ROSTER_SAMPLE} 股 since {sincestr}")
-        return _summary(dataset, "roster-scoped",
-                        reconcile.reconcile_per_stock(conn, dataset, since=since, sample_n=ROSTER_SAMPLE, progress=_p))
-    if _AGGREGATE_DAILY.get(dataset) == "all":                 # News 事件流 → coverage(列數量級、非逐 byte)
+    if scope == "roster-scoped":                               # 日頻籌碼同有次日校正曝險(#7 類別①)→ 同 by-date 排除未定案
+        until = _settled_max(conn, dataset, skip=UNSETTLED_BUFFER)
+        unsettled = _unsettled(conn, dataset) if until else set()
+        _p(f"[{dataset}] roster-scoped:per-stock 抽樣 {ROSTER_SAMPLE} 股 since {sincestr};未定案緩衝 {sorted(unsettled)}")
+        agg = reconcile.reconcile_per_stock(conn, dataset, since=since, until=until,
+                                            sample_n=ROSTER_SAMPLE, progress=_p)
+        return _summary(dataset, "roster-scoped", agg, unsettled=unsettled)
+    if scope == "coverage" or _AGGREGATE_DAILY.get(dataset) == "all":   # 事件流 → coverage(依 catalog scope 路由;_AGGREGATE_DAILY 為備援)
         _p(f"[{dataset}] coverage:事件流列數量級對帳")
         return _summary(dataset, "coverage", reconcile.reconcile_coverage(conn, dataset, progress=_p))
     # by-date(含 GoldPrice 聚合,reconcile_by_date 內已對齊日級):排除未定案日 from verdict
@@ -113,6 +139,10 @@ def _summary(dataset, kind, agg, *, unsettled=None):
             note = f"未定案 {sorted(unsettled)} 不計 verdict"
     else:
         vm, ex, mis = agg.get("value_mismatch", 0), agg.get("extra_in_db", 0), agg.get("missing_in_db", 0)
+        if unsettled:                                          # roster-scoped/full-history:窗上限已排除未定案期(#7)
+            note = f"未定案 {sorted(unsettled)} 不計 verdict(對帳窗已排除)"
+    if vm and "PriceAdj" in dataset:                           # 還原價隨未來除權息回溯重算(#7 類別③,以抓取時點 API 現值為準)
+        note = (note + " ｜ " if note else "") + "PriceAdj VM 疑似除權息回溯重算 → 走 heal 重抓對齊現值、非幻像紅旗"
     inc = bool(agg.get("incomplete") or agg.get("errors"))
     if kind == "coverage":
         passed = bool(agg.get("coverage_ok"))

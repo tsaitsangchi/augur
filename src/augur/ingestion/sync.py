@@ -187,7 +187,7 @@ def _per_stock_sync(conn, dataset, roster, start_floor, progress, *, mode="per-s
             db_max = {str(r[0]): str(r[1]) for r in cur.fetchall() if r[1]}
     starts = {sid: (db_max.get(str(sid)) or start_floor) for sid in roster}
     total = stocks = 0
-    failed = []                                   # 抓取失敗(403/cooldown 用盡→rows is None)之 sid=漏抓、供 sync 完精準 heal(#8)
+    failed = []                                   # 抓取失敗(403/cooldown 用盡→rows is None)之 sid=漏抓、供 sync 完精準 heal(#6/#7)
 
     def _consume(pairs):                          # pairs: iterable of (sid, rows|None)；DB 寫入序列於主執行緒
         nonlocal total, stocks
@@ -255,26 +255,39 @@ def _dimension_sync(conn, dataset, full_start, progress):
         progress(f"  → {dataset}：by 維度 id（{len(ids)} 個、來源 {source}：{ids[:3]}…）")
     start = _max_date(conn, dataset) or full_start
     total = hit = 0
+    failed = []                                   # 抓取失敗之維度 id=漏抓、入 summary 供精準 heal（對齊 _per_stock_sync failed_ids，#6/#7）
     for did in ids:
         try:
             res = ingest.ingest_finmind(conn, dataset, data_id=did, start_date=start)
         except finmind.FinMindError:
+            failed.append(did)
             continue
         total += res["rows"]
         hit += 1 if res["rows"] else 0
-    return {"dataset": dataset, "mode": "by-dimension-id", "rows": total, "ids_with_data": hit}
+    if failed and progress:
+        progress(f"  ⚠ {dataset}: {len(failed)} 維度 id 抓取失敗（漏抓）: {failed[:10]}")
+    return {"dataset": dataset, "mode": "by-dimension-id", "rows": total, "ids_with_data": hit,
+            "failed_ids": failed}
 
 
 def _catalog_plan(conn, dataset):
-    """讀 dataset_catalog 之 (fetch_mode, data_id_source, earliest)——SQL 直讀、**不 import catalog 避循環**
-    （catalog 模組 import sync）。無 catalog 表 / 無記錄 / excluded → None（呼叫端 adaptive fallback、不脆）。"""
+    """讀 dataset_catalog **原料欄**（source/frequency/data_id_source/n_stocks/n_dates/n_dimension_ids）→
+    以 `catalog.optimal_mode` 共用純函數**即時重算**最優模式（設計 §3.3「fetch_mode 不寫死、由引擎即時算」；
+    fetch_mode 欄降為人看視圖、非 plan 依據）。catalog 於函式內延遲 import——模組頂層會循環（catalog import sync）。
+    無 catalog 表 / 無記錄 / excluded → None（呼叫端 adaptive fallback、不脆）。回 (mode, data_id_source, earliest)。"""
     with db.transaction(conn) as cur:
         cur.execute("SELECT to_regclass('dataset_catalog')")
         if cur.fetchone()[0] is None:                          # 無 catalog 表 → adaptive
             return None
-        cur.execute("SELECT fetch_mode, data_id_source, earliest_date::text "
-                    "FROM dataset_catalog WHERE dataset=%s AND NOT excluded", (dataset,))
-        return cur.fetchone()
+        cur.execute("SELECT source, frequency, data_id_source, n_stocks, n_dates, n_dimension_ids, "
+                    "earliest_date::text FROM dataset_catalog WHERE dataset=%s AND NOT excluded", (dataset,))
+        row = cur.fetchone()
+    if row is None:
+        return None
+    from augur import catalog                                  # 延遲 import 避循環（catalog 頂層 import sync）
+    mode, _est = catalog.optimal_mode(dict(zip(
+        ("source", "frequency", "data_id_source", "n_stocks", "n_dates", "n_dimension_ids"), row)))
+    return mode, row[2], row[6]
 
 
 def _sync_by_plan(conn, dataset, roster, plan, full_start, progress):
@@ -314,8 +327,8 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
         return {"dataset": dataset, "mode": "out-of-unit-excluded", "rows": 0}
     if dataset in ingest.BACKFILL_DEFERRED:               # 鉅額:可抓但暫緩自動 backfill（scope 待決）→ 自動路徑跳過、走 dedicated 專抓
         return {"dataset": dataset, "mode": "deferred-backfill", "rows": 0}
-    # catalog 驅動（階段 F）：讀 catalog fetch_mode 走正解、取代 adaptive 探測（省探測 overhead + 用正解抓法，
-    # 如 4 截斷表 by-date/by-dim-id）；catalog 無/異常/未覆蓋 mode → 回落下方 adaptive（守 #18 fallback、不脆）。
+    # catalog 驅動（階段 F）：_catalog_plan 由原料欄即時算 mode 走正解、取代 adaptive 探測（省探測 overhead +
+    # 用正解抓法，如 4 截斷表 by-date/by-dim-id）；catalog 無/異常/未覆蓋 mode → 回落 adaptive（守 #18 fallback、不脆）。
     cat = _catalog_plan(conn, dataset)
     if cat and cat[0]:
         planned = _sync_by_plan(conn, dataset, roster, cat, full_start, progress)
@@ -323,6 +336,29 @@ def sync_finmind_dataset(conn, dataset, roster, *, full_start=FULL_START, progre
             if progress:
                 progress(f"  → {dataset}：catalog 驅動 {cat[0]} → {planned.get('rows', 0)} 列")
             return planned
+    res = _adaptive_sync(conn, dataset, roster, full_start, progress)
+    if cat and cat[0]:   # 登錄失效（catalog 驅動失敗）→ adaptive 重探成功後回寫（憲章 catalog 邊界「重探並回寫」）
+        _writeback_fetch_mode(conn, dataset, res.get("mode"))
+    return res
+
+
+_ADAPTIVE_TO_CATALOG_MODE = {"market": "market", "by-date": "by-date", "by-dimension-id": "by-dim-id",
+                             "per-stock": "per-stock", "per-stock-fallback": "per-stock"}
+
+
+def _writeback_fetch_mode(conn, dataset, mode):
+    """catalog 登錄失效、adaptive fallback 重探成功 → 回寫 fetch_mode（人看視圖與現實對齊；plan 本身由
+    原料欄即時重算，見 _catalog_plan）。非成功抓取之 mode（absent 等）不回寫。"""
+    fm = _ADAPTIVE_TO_CATALOG_MODE.get(mode)
+    if not fm:
+        return
+    with db.transaction(conn) as cur:
+        cur.execute("UPDATE dataset_catalog SET fetch_mode=%s WHERE dataset=%s", (fm, dataset))
+
+
+def _adaptive_sync(conn, dataset, roster, full_start, progress):
+    """adaptive 分類探測抓取（市場別寬窗→canonical 2330→by-date→維度 id→逐股）——catalog 無/失效時之
+    fallback 路徑（原 sync_finmind_dataset 主體、邏輯不變）。"""
     if progress:
         progress(f"  → {dataset}：分類探測（寬窗 {full_start}-，市場別/逐股判定）…")
     # 1) 分類探測：用 full_start 寬窗（不帶 data_id）。實測 per-stock dataset 唯有寬窗才可靠回空
@@ -415,6 +451,7 @@ def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
     skip_weekend = not _date_has_time(conn, dataset, start, end)   # 事件型(datetime)週末有資料→不跳；交易型→跳
     cur, last = date.fromisoformat(start[:10]), date.fromisoformat(end[:10])
     total = tdays = reqs = 0
+    failed_days = []   # 單日 FinMindError 跳過之日=漏抓（#6:resume 只看 max(date)、不記則成永久空洞;入 summary 供 scoped 重跑）
     while cur <= last:
         if skip_weekend and cur.weekday() >= 5:   # 交易型週末無交易→省 request(#17)；事件型(News)不跳→不漏週末
             cur += timedelta(days=1)
@@ -426,8 +463,9 @@ def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
             if reqs == 0 and "data_id" in str(e):                         # 首筆即需 data_id → 不支援 by-date
                 return {"dataset": dataset, "mode": "not-by-date-capable", "rows": 0}
             reqs += 1
+            failed_days.append(day)
             cur += timedelta(days=1)
-            continue                                                      # 某日錯 → 跳過該日，不中斷
+            continue                                                      # 某日錯 → 跳過該日不中斷，但記漏（#6）
         reqs += 1
         if rows:
             # require_keys=('date',)：by-date 單日 sample 內 stock_id 已唯一會漏掉 date，強制 date 入 PK
@@ -443,7 +481,11 @@ def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
         cur += timedelta(days=1)
         if progress and reqs % 20 == 0:
             progress(f"  {dataset} by-date {day}: {tdays} 交易日 / {total} 列 / {reqs} 筆")
-    return {"dataset": dataset, "mode": "by-date", "rows": total, "trading_days": tdays, "requests": reqs}
+    if failed_days and progress:
+        progress(f"  ⚠ {dataset} by-date 失敗 {len(failed_days)} 日（漏抓、須 scoped 重跑）: "
+                 f"{failed_days[:10]}{'…' if len(failed_days) > 10 else ''}")
+    return {"dataset": dataset, "mode": "by-date", "rows": total, "trading_days": tdays, "requests": reqs,
+            "failed_days": failed_days}
 
 
 def sync_fred(conn, series_ids, *, vintage_map=None, progress=None):
@@ -454,6 +496,7 @@ def sync_fred(conn, series_ids, *, vintage_map=None, progress=None):
     False。由呼叫端（features/macro）決定，本引擎不持清單（#3 / 層次：ingestion 不反相依 feature）。"""
     vmap = vintage_map or {}
     total = 0
+    failed = []                                   # 抓取失敗之 series=漏抓、入 summary 供精準 heal（對齊 failed_ids 模式，#6/#7）
     for sid in series_ids:
         # FRED 一律抓全史（每 series 單一 call、資料小、idempotent ON CONFLICT）:確保完整含 pre-1990 + 取最新修訂;
         # 不 resume——_max_date 起點會永久漏掉首抓被 1990 截掉的史 → 須每次全抓回填;#18 最早日由 API 決定(start=None)
@@ -461,11 +504,14 @@ def sync_fred(conn, series_ids, *, vintage_map=None, progress=None):
         try:
             res = ingest.ingest_fred(conn, sid, start_date=None, vintage=vmap.get(sid, False))
         except fred.FredError:
+            failed.append(sid)
             continue
         total += res["rows"]
         if progress:
             progress(f"  FRED {sid}: +{res['rows']} 列{'（vintage）' if vmap.get(sid) else ''}")
-    return {"table": ingest.FRED_TABLE, "series": len(series_ids), "rows": total}
+    if failed and progress:
+        progress(f"  ⚠ FRED {len(failed)} series 抓取失敗（漏抓）: {failed[:10]}")
+    return {"table": ingest.FRED_TABLE, "series": len(series_ids), "rows": total, "failed_ids": failed}
 
 
 def sync_all(conn, *, roster=None, datasets=None, fred_series=None, fred_vintage=None,
@@ -509,5 +555,7 @@ def sync_all_by_date(conn, *, datasets=None, end=None, progress=print):
             r = {"dataset": ds, "mode": "no-baseline", "rows": 0}   # DB 無既有資料 → 需先逐股初載
         results.append(r)
         if progress:
-            progress(f"[{i}/{len(datasets)}] {ds}: {r['mode']} {r.get('rows', 0)} 列 / {r.get('requests', '-')} 筆")
+            fd = r.get("failed_days")
+            progress(f"[{i}/{len(datasets)}] {ds}: {r['mode']} {r.get('rows', 0)} 列 / {r.get('requests', '-')} 筆"
+                     + (f" / ⚠ 失敗 {len(fd)} 日: {fd[:5]}" if fd else ""))
     return results

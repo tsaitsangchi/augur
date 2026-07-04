@@ -32,6 +32,7 @@ def _asof_panels(cur):
 
 
 def _compute(conn, panels):
+    fc.ensure_candidate_table(conn)
     with db.transaction(conn) as cur:
         cur.execute("SELECT DISTINCT stock_id FROM core_universe_asof")
         stocks = [str(r[0]) for r in cur.fetchall()]

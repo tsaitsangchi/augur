@@ -38,7 +38,8 @@ def _asof_universe_union(cur):
 
 
 def _compute_asof_candidates(conn, panels):
-    """逐 panel 用 as-of 宇宙算 2 候選、寫 feature_values(as-of 橫斷面正確)。回寫入列數。"""
+    """逐 panel 用 as-of 宇宙算 2 候選、寫候選 staging 表(as-of 橫斷面正確)。回寫入列數。"""
+    fc.ensure_candidate_table(conn)
     with db.transaction(conn) as cur:
         union = _asof_universe_union(cur)
         cur.execute('SELECT stock_id, date, "PBR"::float8 FROM "TaiwanStockPER" WHERE stock_id = ANY(%s) AND "PBR" IS NOT NULL ORDER BY stock_id, date', (union,))

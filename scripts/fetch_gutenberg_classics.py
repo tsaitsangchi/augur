@@ -8,8 +8,14 @@
 守 #1(逐字無 AI 摘要)· #28(本地零 usage)· #15(限公版、license DB CHECK)· #18。
 ⚠️ 廣博哲學全文量化零價值、僅素養/解讀素材、不產因子、不進預測管線(憲章 v1.17.0 philosophy 邊界)。
 ⚠️ 範圍:納人類哲學經典、排除非哲學離題(純物理/數學);只抓公版。
+⚠️ CLAUDE #29b 傳輸工件(transport artifact):TH(26 思想家傳記)+GUTENBERG(50 書單)硬編策展清單為
+   一次性 seed 載體,內容已落 philosophy_thinker/work/work_text(2026-07-04 稽核實查確認),
+   預設不執行(無參數只印矩陣)。新增策展一律走 acquire_knowledge --source manual_curation →
+   promote_knowledge 管線,不回頭擴充本檔;傳記欄位 DBpedia/Wikidata 覆核與本檔退役列後續、待用戶裁示(#19)。
 
-執行指令矩陣:python scripts/fetch_gutenberg_classics.py [--force]
+執行指令矩陣:
+  python scripts/fetch_gutenberg_classics.py                  # 無參數:印本矩陣(傳輸工件、預設不執行)
+  python scripts/fetch_gutenberg_classics.py --run [--force]  # 明示重放(冪等;--force 重抓已有全文)
 """
 import re
 import sys
@@ -180,6 +186,9 @@ def upsert_thinker(cur, th):
 
 
 def main():
+    if "--run" not in sys.argv:
+        print(__doc__.split("執行指令矩陣:")[1].strip())
+        return
     force = "--force" in sys.argv
     ok = skip = fail = 0
     with db.connect() as conn:

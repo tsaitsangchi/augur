@@ -8,8 +8,14 @@
 守 #1(本地解析逐字、不靠 AI 摘要改寫→無假兆)· #28(本地優先、零 usage)·
    #15(來源限公版、source_url 可溯源、license DB CHECK=public_domain)· #18。
 ⚠️ 誠實:古典全文不進預測管線、對量化無 alpha;僅原典參考素材。
+⚠️ CLAUDE #29b 傳輸工件(transport artifact):CLASSICS(8 部+thinker 傳記)硬編策展清單為一次性
+   seed 載體,內容已落 philosophy_thinker/work/work_text(2026-07-04 稽核實查確認),預設不執行
+   (無參數只印矩陣)。新增策展一律走 acquire_knowledge --source manual_curation → promote_knowledge
+   管線,不回頭擴充本檔;傳記欄位 DBpedia/Wikidata 覆核與本檔退役列後續、待用戶裁示(#19)。
 
-執行指令矩陣:python scripts/fetch_public_domain_classics.py [--force]
+執行指令矩陣:
+  python scripts/fetch_public_domain_classics.py                  # 無參數:印本矩陣(傳輸工件、預設不執行)
+  python scripts/fetch_public_domain_classics.py --run [--force]  # 明示重放(冪等;--force 重抓已有全文)
 """
 import re
 import sys
@@ -174,6 +180,9 @@ def upsert_work(cur, c, thinker_id):
 
 
 def main():
+    if "--run" not in sys.argv:
+        print(__doc__.split("執行指令矩陣:")[1].strip())
+        return
     force = "--force" in sys.argv
     with db.connect() as conn:
         for c in CLASSICS:

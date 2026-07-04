@@ -5,8 +5,14 @@
    本 script 以 MediaWiki API 取每部諸子的子頁清單(各篇)、逐子頁抓逐字全文,對映現有 thinker。
    哲學素養庫窮舉補齊之中文缺口。本地零 usage、逐字無 AI 摘要、冪等(已有全文則跳)。
 守 #1(逐字、禁 AI 摘要)· #15(公版可溯源 license CHECK)· #28(本地零 usage)· #18。
+⚠️ CLAUDE #29b 傳輸工件(transport artifact):CLASSICS(12 部諸子對映)硬編策展清單為一次性
+   seed 載體,內容已落 philosophy_thinker/work/work_text(2026-07-04 稽核實查確認),預設不執行
+   (無參數只印矩陣)。新增策展一律走 acquire_knowledge --source manual_curation → promote_knowledge
+   管線,不回頭擴充本檔;本檔退役列後續、待用戶裁示(#19)。
 
-執行指令矩陣:python scripts/fetch_chinese_classics.py
+執行指令矩陣:
+  python scripts/fetch_chinese_classics.py                  # 無參數:印本矩陣(傳輸工件、預設不執行)
+  python scripts/fetch_chinese_classics.py --run [--force]  # 明示重放(冪等;--force 重抓已有全文)
 """
 import re
 import sys
@@ -70,6 +76,9 @@ def clean(raw):
 
 
 def main():
+    if "--run" not in sys.argv:
+        print(__doc__.split("執行指令矩陣:")[1].strip())
+        return
     force = "--force" in sys.argv
     added = 0
     with db.connect() as conn:

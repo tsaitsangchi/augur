@@ -32,6 +32,7 @@ def _asof_panels(cur):
 
 
 def _compute(conn, panels):
+    fc.ensure_candidate_table(conn)
     written = 0
     for pd_ in panels:
         with db.transaction(conn) as cur:

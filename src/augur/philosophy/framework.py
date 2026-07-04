@@ -257,27 +257,49 @@ def bootstrap(cur):
 
 
 def build(conn, seed=SEED):
-    """落地策展：DELETE 重建 school/principle/factor_map/source（冪等）+ 寫 build_meta。回計數。"""
-    from psycopg2.extras import execute_values
+    """落地策展：upsert 維護 school/principle/factor_map/source（冪等、不清他管線列）+ 寫 build_meta。回維護計數。
+
+    不用 DELETE 重建：school/thinker 下游已掛他管線資料（tag/school_thinker/promote_knowledge 之 source、
+    factor_map 之 validated_ic/econ 回填），blanket DELETE 會誤清或撞 NO ACTION FK 中止（稽核執1）。
+    """
     n_sch = n_pri = n_map = n_src = 0
     with db.transaction(conn) as cur:
         bootstrap(cur)
-        cur.execute("DELETE FROM philosophy_school")   # CASCADE 連帶清 principle/factor_map/source/tag
         for sch in seed:
             cur.execute("INSERT INTO philosophy_school (name, name_zh, core_thesis, proponents) "
-                        "VALUES (%s,%s,%s,%s) RETURNING school_id",
+                        "VALUES (%s,%s,%s,%s) ON CONFLICT (name) DO UPDATE SET "
+                        "name_zh=EXCLUDED.name_zh, core_thesis=EXCLUDED.core_thesis, proponents=EXCLUDED.proponents "
+                        "RETURNING school_id",
                         (sch["name"], sch["name_zh"], sch["thesis"], sch["proponents"]))
             sid = cur.fetchone()[0]; n_sch += 1
-            for src in sch["sources"]:
-                cur.execute("INSERT INTO philosophy_source (school_id, citation, source_type) VALUES (%s,%s,%s)",
-                            (sid, src[0], src[1])); n_src += 1
-            for pr in sch["principles"]:
-                cur.execute("INSERT INTO philosophy_principle (school_id, statement, hypothesis) "
-                            "VALUES (%s,%s,%s) RETURNING principle_id", (sid, pr["statement"], pr["hypothesis"]))
-                pid = cur.fetchone()[0]; n_pri += 1
-                rows = [(pid, f, d) for f, d in pr["factors"]]
-                execute_values(cur, "INSERT INTO principle_factor_map (principle_id, feature, direction) VALUES %s", rows)
-                n_map += len(rows)
+            for src in sch["sources"]:                 # 無唯一鍵 → 查後補缺（promote_knowledge 亦寫此表、不動其列）
+                cur.execute("SELECT 1 FROM philosophy_source WHERE school_id=%s AND citation=%s", (sid, src[0]))
+                if not cur.fetchone():
+                    cur.execute("INSERT INTO philosophy_source (school_id, citation, source_type) VALUES (%s,%s,%s)",
+                                (sid, src[0], src[1]))
+                n_src += 1
+            for pr in sch["principles"]:               # 保 principle_id/status 與 factor_map 之實證回填
+                cur.execute("SELECT principle_id FROM philosophy_principle WHERE school_id=%s AND statement=%s",
+                            (sid, pr["statement"]))
+                row = cur.fetchone()
+                if row:
+                    pid = row[0]
+                    cur.execute("UPDATE philosophy_principle SET hypothesis=%s WHERE principle_id=%s",
+                                (pr["hypothesis"], pid))
+                else:
+                    cur.execute("INSERT INTO philosophy_principle (school_id, statement, hypothesis) "
+                                "VALUES (%s,%s,%s) RETURNING principle_id", (sid, pr["statement"], pr["hypothesis"]))
+                    pid = cur.fetchone()[0]
+                n_pri += 1
+                for f, d in pr["factors"]:
+                    cur.execute("SELECT map_id FROM principle_factor_map WHERE principle_id=%s AND feature=%s", (pid, f))
+                    row = cur.fetchone()
+                    if row:
+                        cur.execute("UPDATE principle_factor_map SET direction=%s WHERE map_id=%s", (d, row[0]))
+                    else:
+                        cur.execute("INSERT INTO principle_factor_map (principle_id, feature, direction) "
+                                    "VALUES (%s,%s,%s)", (pid, f, d))
+                    n_map += 1
         cur.execute("INSERT INTO philosophy_build_meta (n_schools, n_principles, n_factor_map, n_sources) "
                     "VALUES (%s,%s,%s,%s)", (n_sch, n_pri, n_map, n_src))
     people = build_people(conn)                        # 思想家 + 著作 + school↔thinker 關聯
@@ -348,20 +370,28 @@ THINKERS = [
 
 
 def build_people(conn):
-    """落地投資思想家 + 主要著作（真實策展）+ school↔thinker 關聯。DELETE 重建（冪等）。"""
+    """落地投資思想家 + 主要著作（真實策展）+ school↔thinker 關聯。upsert 維護策展 17 位（冪等）。
+
+    不 DELETE philosophy_thinker：表內尚有 seed_*_philosophers 等管線之數千思想家、
+    著作下游掛 chunk/lexicon（NO ACTION FK 會炸、CASCADE 會誤清）；只 upsert 策展列（稽核執1）。
+    著作以 (thinker_id, title) 查後補缺、不覆寫既有列（note/review_flag 屬歸屬稽核管線）。
+    """
     n_th = n_wk = n_link = 0
     with db.transaction(conn) as cur:
         cur.execute("SELECT name, school_id FROM philosophy_school")
         sch_id = {r[0]: r[1] for r in cur.fetchall()}
-        cur.execute("DELETE FROM philosophy_thinker")          # CASCADE 連帶清 work + school_thinker
         for t in THINKERS:
             cur.execute("INSERT INTO philosophy_thinker (name, name_zh, birth_year, death_year, nationality, bio) "
-                        "VALUES (%s,%s,%s,%s,%s,%s) RETURNING thinker_id",
+                        "VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (name) DO UPDATE SET "
+                        "name_zh=EXCLUDED.name_zh, birth_year=EXCLUDED.birth_year, death_year=EXCLUDED.death_year, "
+                        "nationality=EXCLUDED.nationality, bio=EXCLUDED.bio RETURNING thinker_id",
                         (t["name"], t["zh"], t.get("birth"), t.get("death"), t.get("nat"), t.get("bio")))
             tid = cur.fetchone()[0]; n_th += 1
             for w in t.get("works", []):
-                cur.execute("INSERT INTO philosophy_work (thinker_id, title, title_zh, year, work_type, note) "
-                            "VALUES (%s,%s,%s,%s,%s,%s)", (tid, w[0], w[1], w[2], w[3], w[4]))
+                cur.execute("SELECT 1 FROM philosophy_work WHERE thinker_id=%s AND title=%s", (tid, w[0]))
+                if not cur.fetchone():
+                    cur.execute("INSERT INTO philosophy_work (thinker_id, title, title_zh, year, work_type, note) "
+                                "VALUES (%s,%s,%s,%s,%s,%s)", (tid, w[0], w[1], w[2], w[3], w[4]))
                 n_wk += 1
             for sn in t.get("schools", []):
                 if sn in sch_id:

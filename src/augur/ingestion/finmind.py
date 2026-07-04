@@ -36,7 +36,7 @@ _DATASET_RE = re.compile(r"'([A-Za-z0-9]+)'")
 # 每請求最小間隔 → 平滑 burst、整體壓在 FinMind ~6000/hr IP 線下;全部 fetch（驗證與全史）同走此門,
 # 一律被限速 → 無論怎麼啟動都 burst 不起來（把「驗證時手動 sleep 間隔」內建進程式）。
 MIN_INTERVAL = 0.9      # 2026-06-20 0.7→0.9 降 start rate(~1.4→1.1/s):per-stock 32 並發被動 rolling 平衡點 0.7s 衝 ~5850-5998 險逼 6000,用戶要 <5500 → 調大 MIN_INTERVAL 降 start rate(**降並發無效**:start rate 受 _pace 約束、非並發數);實驗值、重啟後讀錶驗證 #27。operational(#17/#19):2026-06-12 實證 FinMind 對「sustained 負載」throttle —— burst/短測快(~1.39/s)、但 sustained 跑(數分鐘)降到 ~0.2/s(bimodal latency)。
-                        # 試過 0.6s(soft-throttle 5-18s)、0.75s(sustained 仍 ~0.2/s);結論:binding 是 sustained-throttle 非 pace,過度試探會深化 throttle → 現操作值 0.7（#27 試錯逼近最佳奇異點、見訊號即停、勿過度試探深化）。
+                        # 試過 0.6s(soft-throttle 5-18s)、0.75s(sustained 仍 ~0.2/s);結論:binding 是 sustained-throttle 非 pace,過度試探會深化 throttle → 前操作值 0.7、現值以上行 code 為準（#27 試錯逼近最佳奇異點、見訊號即停、勿過度試探深化）。
 MAX_COOLDOWN = 1800     # honor retry_after 之上限(秒)
 QUOTA_COOLDOWN = 1800   # 403 額度耗盡/IP 限流之固定冷卻(秒;用戶決策 2026-06-12 #24):撞 403 直接等額度 hourly 重置,不短退避反覆撞(防惡化成 sustained ban,handoff §4.B 教訓)
 
@@ -195,12 +195,10 @@ def fetch_dedicated(path, *, timeout=60, max_retries=4, base_backoff=2.0, **para
 
 
 def list_datasets(*, timeout=60):
-    """回傳 FinMind 全部合法 dataset 名（送無效 dataset → 解析 422 enum）；支援 #3 動態列舉。"""
-    _quota_gate()
-    _pace()
+    """回傳 FinMind 全部合法 dataset 名（送無效 dataset → 解析 422 enum）；支援 #3 動態列舉。
+    與 data fetch 同一防護（#17;422 不在 `_RETRY_STATUS` → 探測 body 照樣返回解析）。"""
     query = {"dataset": _PROBE_INVALID, "token": config.FINMIND_TOKEN}
-    resp = requests.get(API_URL, params=query, timeout=timeout)
-    body = resp.json()
+    body = _protected_get(API_URL, query, "list_datasets", timeout=timeout, max_retries=4, base_backoff=2.0)
     detail = body.get("detail")
     if isinstance(detail, list) and detail:
         expected = detail[0].get("ctx", {}).get("expected", "")
@@ -209,14 +207,11 @@ def list_datasets(*, timeout=60):
 
 
 def translation_datasets(*, timeout=60):
-    """回傳 `/translation` 支援之 dataset 全集（送無效 dataset → 解析 422 enum;同 `list_datasets` 模式,#18 動態、無白名單）。"""
-    _quota_gate()
-    _pace()
-    resp = requests.get(TRANSLATION_URL, params={"dataset": _PROBE_INVALID, "token": config.FINMIND_TOKEN}, timeout=timeout)
-    try:
-        detail = resp.json().get("detail")
-    except ValueError:
-        return []
+    """回傳 `/translation` 支援之 dataset 全集（送無效 dataset → 解析 422 enum;同 `list_datasets` 模式,#18 動態、無白名單）。
+    與 data fetch 同一防護（#17）。"""
+    query = {"dataset": _PROBE_INVALID, "token": config.FINMIND_TOKEN}
+    body = _protected_get(TRANSLATION_URL, query, "translation_datasets", timeout=timeout, max_retries=4, base_backoff=2.0)
+    detail = body.get("detail")
     if isinstance(detail, list) and detail:
         return _DATASET_RE.findall(detail[0].get("ctx", {}).get("expected", ""))
     return []
@@ -225,25 +220,17 @@ def translation_datasets(*, timeout=60):
 def translation(dataset, *, timeout=60):
     """某 dataset 之欄位中文對照（FinMind `/translation`）→ list（查無/不支援 → `[]`）。
     schema comment 中文之權威來源（#18 問 API、不抄文檔）；與 data fetch 同一防護（#17）。"""
-    _quota_gate()
-    _pace()
-    resp = requests.get(TRANSLATION_URL, params={"dataset": dataset, "token": config.FINMIND_TOKEN}, timeout=timeout)
-    try:
-        data = resp.json().get("data")
-    except ValueError:
-        return []
+    query = {"dataset": dataset, "token": config.FINMIND_TOKEN}
+    body = _protected_get(TRANSLATION_URL, query, f"translation:{dataset}", timeout=timeout, max_retries=4, base_backoff=2.0)
+    data = body.get("data")
     return data if isinstance(data, list) else []
 
 
 def datalist(dataset, *, timeout=60):
     """列某 dataset 之 data_id 全集（FinMind `/datalist`）→ `list`。僅總經/契約類支援
     （如 GovernmentBondsYield→13 期別、TaiwanExchangeRate→幣別）；不支援之 dataset（台股 per-stock）回 `[]`。
-    #18 維度 id 全集之權威動態來源——取代臆測白名單（實證 `/datalist` > 靜態文檔）。"""
-    _quota_gate()
-    _pace()
-    resp = requests.get(DATALIST_URL, params={"dataset": dataset, "token": config.FINMIND_TOKEN}, timeout=timeout)
-    try:
-        data = resp.json().get("data")
-    except ValueError:
-        return []
+    #18 維度 id 全集之權威動態來源——取代臆測白名單（實證 `/datalist` > 靜態文檔）;與 data fetch 同一防護（#17）。"""
+    query = {"dataset": dataset, "token": config.FINMIND_TOKEN}
+    body = _protected_get(DATALIST_URL, query, f"datalist:{dataset}", timeout=timeout, max_retries=4, base_backoff=2.0)
+    data = body.get("data")
     return data if isinstance(data, list) else []

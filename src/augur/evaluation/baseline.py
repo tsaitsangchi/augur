@@ -24,6 +24,7 @@ from augur.evaluation import metrics, walkforward
 
 FEATURE_TABLE = "feature_values"
 ASOF_TABLE = "core_universe_asof"
+CANDIDATE_TABLE = "feature_candidate_values"   # audit 層候選 staging（憲章 audit 邊界:生產表 feature 層獨佔寫）——存在才併讀
 
 
 def canonical_features(conn, panel_dates):
@@ -44,6 +45,11 @@ def _panel_matrix(conn, panel_date, stocks, feats):
         cur.execute(f"SELECT stock_id, feature, value FROM {FEATURE_TABLE} WHERE panel_date=%s AND feature = ANY(%s)",
                     (panel_date, feats))
         rows = cur.fetchall()
+        cur.execute("SELECT to_regclass(%s) IS NOT NULL", (CANDIDATE_TABLE,))
+        if cur.fetchone()[0]:   # 候選 staging 併讀（僅補 feats 內明點名之候選;canonical_features 不看此表 → core 不受污染）
+            cur.execute(f"SELECT stock_id, feature, value FROM {CANDIDATE_TABLE} WHERE panel_date=%s AND feature = ANY(%s)",
+                        (panel_date, feats))
+            rows += cur.fetchall()
     by_stock = {}
     for sid, f, v in rows:
         sid = str(sid)
@@ -141,4 +147,6 @@ def run_ladder(conn, panel_dates, h, stocks, *, feats=None, seed=42, mom_feature
                             random_state=seed, verbose=-1).fit(Xtr, ytr)
         ic["M1_gbdt"][test_pd] = metrics.rank_ic(dict(zip(ts_sids, gbm.predict(Xte))), ylab)
 
-    return {m: metrics.summarize(d) for m, d in ic.items()}
+    # 顯著性顯示以 HAC t 為準（重疊窗自相關致 iid effective_t 高估、#11 禁裸用）
+    return {m: {**metrics.summarize(d), "effective_t_hac": metrics.effective_t_hac(d)}
+            for m, d in ic.items()}

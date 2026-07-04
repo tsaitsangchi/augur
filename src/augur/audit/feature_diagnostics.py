@@ -1,7 +1,7 @@
 """augur 特徵五鏡 audit — 訓練前特徵分診（#11 五鏡合判：不以單一指標判存廢）。
 
 🎯 這支在做什麼（白話）：對 feature_values 的每個特徵，從五個鏡頭診斷它值不值得留：
-① 有號單因子 IC ＋ sign 穩定（該特徵單獨排序之 rank IC / Eff-t / 勝率，逐 panel as-of）
+① 有號單因子 IC ＋ sign 穩定（該特徵單獨排序之 rank IC / HAC Eff-t / 勝率，逐 panel as-of；顯著性不裸用 iid t #11）
 ② 共線群（特徵兩兩相關，揪冗餘群——共線會把真訊號誤判為噪音）
 ③ leave-one-out 必要性（從全特徵集移除它、模型 IC 掉多少＝邊際必要性）
 ④ ensemble SHAP（GBDT 之 mean |SHAP|，是否顯影）
@@ -27,7 +27,7 @@ def single_factor_ic(conn, panels, h, stocks, feats, *, asof=False):
     """鏡①+⑤：每特徵單獨當分數之逐 panel rank IC → {feature: metrics.summarize}（有號 IC + sign 穩定 + 勝率）。
 
     每 panel 取核心股（asof 則 point-in-time），特徵值直接當預測分數 vs H 日 forward label rank → rank IC。
-    無訓練、天然 as-of（特徵 t vs forward label）；跨 panel summarize。
+    無訓練、天然 as-of（特徵 t vs forward label）；跨 panel summarize + HAC t（重疊窗自相關致 iid t 高估、#11 禁裸用）。
     """
     cal = label_mod.full_calendar(conn)
     per_feat = {f: {} for f in feats}
@@ -41,7 +41,8 @@ def single_factor_ic(conn, panels, h, stocks, feats, *, asof=False):
             ic = metrics.rank_ic({s: X[i, j] for i, s in enumerate(sids)}, lab)
             if ic is not None:
                 per_feat[f][pd_] = ic
-    return {f: metrics.summarize(d) for f, d in per_feat.items()}
+    return {f: {**metrics.summarize(d), "effective_t_hac": metrics.effective_t_hac(d)}
+            for f, d in per_feat.items()}
 
 
 def collinearity(conn, panels, stocks, feats, *, threshold=0.9, asof=False):
@@ -127,6 +128,7 @@ def five_mirror(conn, panels, h, stocks, feats, *, asof=False, loo=False,
             verdict = "collinear"
         else:
             verdict = "keep"
-        out[f] = {"ic": ic, "ic_eff_t": sf[f].get("effective_t"), "shap": shv,
+        out[f] = {"ic": ic, "ic_eff_t_hac": sf[f].get("effective_t_hac"),
+                  "ic_eff_t_iid": sf[f].get("effective_t"), "shap": shv,
                   "in_collinear_group": f in collinear_feats, "loo_delta": loo_d, "verdict": verdict}
     return {"per_feature": out, "high_pairs": col["high_pairs"]}

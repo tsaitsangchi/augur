@@ -243,7 +243,7 @@ def bootstrap_catalog_tables(cur):
             notes              TEXT,
             data_id_required   BOOLEAN,              -- 〔擴〕free 是否需逐股/維度 id
             single_day_only    BOOLEAN,              -- 〔擴〕size-too-large→end_date 須 none 逐日（News 等）
-            reconcile_scope    VARCHAR(32),          -- 〔擴〕roster-scoped/by-date/by-dim-id/full-history（防假 MIS/假 PASS）
+            reconcile_scope    VARCHAR(32),          -- 〔擴〕roster-scoped/by-date/by-dim-id/full-history/coverage/market（防假 MIS/假 PASS）
             dedicated_url      VARCHAR(128),         -- 〔擴〕分點/券商聚合專屬 URL（非 /data）
             quota_expiry       DATE,                 -- 〔擴〕sponsor-only 到期日（2026-06-24 前須抓）
             last_verified      TIMESTAMP
@@ -565,8 +565,10 @@ def _endpoint(ds, is_finmind):
 
 
 def _reconcile_scope(frequency, data_id_source, col_types=None):
-    """對帳範圍（防假 MIS / 假 PASS，報告實戰 §1.H/I/J）：低頻全史、per-stock roster-scoped、維度 by-dim-id、
-    新聞/文本流 coverage（無數值 value 欄 → 逐條 byte 對帳不適用、改列數/覆蓋率）。"""
+    """對帳範圍（防假 MIS / 假 PASS，報告實戰 §1.H/I/J）：snapshot/單一序列 market 單批、低頻全史、
+    per-stock roster-scoped、維度 by-dim-id、新聞/文本流 coverage（無數值 value 欄 → 逐條 byte 對帳不適用、改列數/覆蓋率）。"""
+    if frequency in ("snapshot", "single-series"):
+        return "market"                # 單批寬查(對齊 fetch_mode='market');snapshot 表 date-insensitive(忽略日期參數、永遠回現值,見 _refine_earliest 哨兵)→ 逐日對帳=每史日拿現 snapshot → 假 EX/MIS
     if frequency in ("quarterly", "monthly", "yearly"):
         return "full-history"          # 低頻近窗空 → 須全史對帳（排未定案最新季）
     if data_id_source == "roster":

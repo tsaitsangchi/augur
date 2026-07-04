@@ -43,6 +43,7 @@ def _rank_pct(cur, pd_, feat, stk):
 
 
 def _compute(conn, panels):
+    fc.ensure_candidate_table(conn)
     written = 0
     for i, pd_ in enumerate(panels):
         prior = next((p for p in reversed(panels[:i]) if (pd_ - p).days >= LOOKBACK_DAYS), None)

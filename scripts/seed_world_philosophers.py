@@ -8,9 +8,17 @@ upsert by name_zh 去重(已有跳過)、本地零 usage、冪等。
 守 #1/#15(資料為**通行史實 metadata**、可查證校正、非預測真兆——CLAUDE #17 允許之事實 metadata)·
    #17(限真實史實、非 AI 觀點)· #18。
 ⚠️ 生卒/簡介為通行史實整理、可校;此為人物 metadata、不進預測管線(廣博哲學量化零價值)。
+⚠️ CLAUDE #29b 傳輸工件(transport artifact):PHILOSOPHERS 硬編策展清單為一次性 seed 載體,
+   內容已落 philosophy_thinker(2026-07-04 稽核實查確認),預設不執行(無參數只印矩陣)。
+   新增策展一律走 acquire_knowledge --source manual_curation → promote_knowledge 管線,不回頭擴充本檔;
+   傳記欄位源自 AI 記憶整理,DBpedia/Wikidata 實證覆核與本檔退役列後續、待用戶裁示(#19)。
 
-執行指令矩陣:python scripts/seed_world_philosophers.py
+執行指令矩陣:
+  python scripts/seed_world_philosophers.py         # 無參數:印本矩陣(傳輸工件、預設不執行)
+  python scripts/seed_world_philosophers.py --run   # 明示重放 seed(冪等、已有跳過)
 """
+import sys
+
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
@@ -134,6 +142,9 @@ PHILOSOPHERS = [
 
 
 def main():
+    if "--run" not in sys.argv:
+        print(__doc__.split("執行指令矩陣:")[1].strip())
+        return
     added = skipped = 0
     with db.connect() as conn, db.transaction(conn) as cur:
         for name_zh, name, birth, death, nat, bio in PHILOSOPHERS:

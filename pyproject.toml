@@ -15,11 +15,12 @@ dependencies = [
     "lightgbm>=4.0",
     "catboost>=1.2",
     "jieba>=0.42.1",
+    "shap>=0.52",
 ]
 
 [project.optional-dependencies]
 # 重型 transformer 模型隔離安裝（CPU-only 用 torch +cpu 版，避免降級主環境）
-deep = ["torch>=2.2"]
+deep = ["torch>=2.2", "sentence-transformers>=5.6"]
 dev = ["pytest>=8.0"]
 
 [build-system]
