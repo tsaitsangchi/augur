@@ -1,15 +1,27 @@
 #!/usr/bin/env python
-"""知識全文理解層 schema 遷移(T0)— 逐字理解計畫 §二全部 DDL 一次冪等落地。
+"""知識全文理解層 schema 遷移(T0+M5+M4)— S3-S5 全部 DDL 之單一住所,一次冪等落地。
 
-🎯 這支在做什麼(白話):建立「全文→逐句→逐字理解」的接收 schema——
+🎯 這支在做什麼(白話):建立「全文→逐句→逐字理解→嵌入」的接收 schema——
    knowledge_item_text(L1 OA/CC 全文,license 白名單硬擋)、knowledge_sentence(L2 逐句,
    text_id|itext_id 二擇一)、knowledge_concordance(L2 逐字索引,HASH 16 分區)、
    knowledge_lexicon(L3 公版辭書/註疏定義,限 public_domain)、knowledge_build_meta(L2 進度游標)、
-   philosophy_chunk 泛化(L4:itext_id 補欄+二擇一 CHECK)+ philosophy_work.review_flag(T-1 稽核欄)。
-   全部 IF NOT EXISTS / 先查 pg_constraint 才 ADD,重跑零副作用;
+   philosophy_chunk 泛化(L4:itext_id 補欄+二擇一 CHECK)+ philosophy_work.review_flag(T-1 稽核欄)
+   + 嵌入表世代(M5/P6):knowledge_{lexicon,sentence}_embedding 複合鍵 (id, model_tag)
+   (既有單欄 PK 表=就地遷移;防換模重嵌 ON CONFLICT 靜默零寫入假成功)+ knowledge_embed_ledger
+   (S5 排除帳落庫非 stdout)。嵌入表 DDL 自 embed_knowledge.py 收編至此=單一住所(#12)。
+   + S4 統計層 DDL(M4,拍板 P1-P3 2026-07-04):STATS_DDL 全清單收編至此=正式住所
+   (build_cross_school_stats.py import 同一清單自舉=機器強制同步)——group_kind 四值
+   ('school','thinker','domain','taxonomy',P1)、knowledge_domain 維度表(收編 domain_map
+   為域啟用 SSOT,P2)、knowledge_item_term_stats item 側平行分母(P3,禁動 work FK 脊椎)、
+   knowledge_group_affinity.pair_rank(taxonomy pair top-K 截斷之稽核欄)、
+   method 種子 cnt_term_item/agg_domain_rollup/agg_taxonomy_rollup(四值 kind 內合法擴列)。
+   全部 IF NOT EXISTS / 先查 pg catalog 才 ADD,重跑零副作用;
    先決 = knowledge_item 已由計畫②(harvest)建成(knowledge_item_text FK 依賴)。
-守 #6(冪等、重跑安全)· #1(license CHECK 硬擋版權未明/AI 生成)· #15(驗證清單=實查 pg catalog)·
-   CLAUDE #29。SSOT=reports/augur_knowledge_text_understanding_plan_20260702.md §二。
+守 #6(冪等、重跑安全)· #1(license CHECK 硬擋版權未明/AI 生成)· #12(DDL 單一住所)·
+   #15(驗證清單=實查 pg catalog)· CLAUDE #29。
+   SSOT=reports/augur_knowledge_text_understanding_plan_20260702.md §二 +
+   reports/augur_knowhow_e2e_pipeline_plan_20260704.md §3-S4/S5/§4 M4/M5/§8 P1-P3/P6 +
+   reports/augur_cross_school_stats_schema_20260704.md。
 
 執行指令矩陣:
   python scripts/migrate_text_understanding_ddl.py           # 冪等執行全部 DDL + 印驗證清單(安全預設)
@@ -91,6 +103,40 @@ DDL = [
      "CREATE UNIQUE INDEX IF NOT EXISTS uq_chunk_itext ON philosophy_chunk (itext_id, chunk_seq) WHERE itext_id IS NOT NULL"),
     ("column philosophy_work.review_flag(T-1 稽核欄)",
      "ALTER TABLE philosophy_work ADD COLUMN IF NOT EXISTS review_flag boolean"),
+    # ── M5/P6:嵌入表世代(收編自 embed_knowledge.py=單一住所 #12)──────────────
+    # dim=384 寫死=本表世代之維度(e5-small);異維模型=新表世代(embedspec 命名),不改本表
+    ("extension vector(pgvector,嵌入表依賴)", "CREATE EXTENSION IF NOT EXISTS vector"),
+    ("table knowledge_lexicon_embedding(P6 複合鍵世代)", """
+        CREATE TABLE IF NOT EXISTS knowledge_lexicon_embedding (
+          lex_id    int NOT NULL REFERENCES knowledge_lexicon(lex_id) ON DELETE CASCADE,
+          embedding vector(384) NOT NULL,
+          model_tag varchar(64) NOT NULL,
+          PRIMARY KEY (lex_id, model_tag)
+        )"""),
+    ("table knowledge_sentence_embedding(P6 複合鍵世代)", """
+        CREATE TABLE IF NOT EXISTS knowledge_sentence_embedding (
+          sent_id   int NOT NULL REFERENCES knowledge_sentence(sent_id) ON DELETE CASCADE,
+          embedding vector(384) NOT NULL,
+          model_tag varchar(64) NOT NULL,
+          PRIMARY KEY (sent_id, model_tag)
+        )"""),
+    ("table knowledge_embed_ledger(S5 排除帳落庫非 stdout)", """
+        CREATE TABLE IF NOT EXISTS knowledge_embed_ledger (
+          ledger_id     serial PRIMARY KEY,
+          scope         varchar(32) NOT NULL,
+          model_tag     varchar(64) NOT NULL,
+          processed     int NOT NULL,
+          embedded      int NOT NULL,
+          junk_excluded int NOT NULL,
+          note          text,
+          run_at        timestamptz DEFAULT now()
+        )"""),
+]
+
+# P6:既有單欄 PK 嵌入表 → (id, model_tag) 複合鍵就地遷移(表, id 欄)
+EMBED_PK_MIGRATION = [
+    ("knowledge_lexicon_embedding", "lex_id"),
+    ("knowledge_sentence_embedding", "sent_id"),
 ]
 
 # (名稱, 表, 定義);ADD CONSTRAINT 無 IF NOT EXISTS → 先查 pg_constraint
@@ -121,13 +167,42 @@ def ensure_constraint(cur, name, table, defn):
     return "新建"
 
 
-def verify(cur):
-    """驗證清單=實查 pg catalog(#15);回傳全數通過與否。jieba 為 T2-T4 前置,缺=警告不擋 DDL。"""
+def _pk_cols(cur, table):
+    cur.execute("""SELECT a.attname FROM pg_index i
+        JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+        WHERE i.indrelid = to_regclass(%s) AND i.indisprimary""", (table,))
+    return {r[0] for r in cur.fetchall()}
+
+
+def ensure_composite_pk(cur, table, idcol):
+    """P6:單欄 PK → (idcol, model_tag) 複合鍵就地遷移(冪等;防換模重嵌 DO NOTHING 靜默假成功)。"""
+    if "model_tag" in _pk_cols(cur, table):
+        return "已在(複合鍵)"
+    cur.execute("SELECT conname FROM pg_constraint WHERE conrelid=to_regclass(%s) AND contype='p'", (table,))
+    pkname = cur.fetchone()[0]
+    cur.execute(f"ALTER TABLE {table} DROP CONSTRAINT {pkname}, ADD PRIMARY KEY ({idcol}, model_tag)")
+    return "遷移(單欄→複合鍵)"
+
+
+def verify(cur, applied=False):
+    """驗證清單=實查 pg catalog(#15);回傳全數通過與否。jieba 為 T2-T4 前置,缺=警告不擋 DDL。
+    P6 嵌入表世代物件三態:✓ 已符 / ✗ 應在而不在(applied=True 時計失敗)/ 待(--check 且遷移未執行,
+    明列不計失敗——embed_knowledge 端另有 runtime fail-closed 防呆,見該檔)。"""
     checks = []
+    pending = []
     for t in ("knowledge_item_text", "knowledge_sentence", "knowledge_concordance",
               "knowledge_lexicon", "knowledge_build_meta"):
         cur.execute("SELECT to_regclass(%s)", (t,))
         checks.append((f"table  {t}", bool(cur.fetchone()[0])))
+    for t, idcol in EMBED_PK_MIGRATION + [("knowledge_embed_ledger", None)]:
+        cur.execute("SELECT to_regclass(%s)", (t,))
+        exists = bool(cur.fetchone()[0])
+        ok = exists and (idcol is None or "model_tag" in _pk_cols(cur, t))
+        label = f"table  {t}" + (f" pkey=({idcol},model_tag)" if idcol else "")
+        if ok or applied:
+            checks.append((label, ok))
+        else:
+            pending.append(label)
     cur.execute("SELECT count(*) FROM pg_inherits WHERE inhparent = to_regclass('knowledge_concordance')")
     nparts = cur.fetchone()[0]
     checks.append((f"partitions knowledge_concordance_p0..p{N_PARTITIONS - 1}({nparts}/{N_PARTITIONS})",
@@ -155,13 +230,15 @@ def verify(cur):
     print("── 驗證清單(實查 pg catalog)──")
     for label, ok in checks:
         print(f"  {'✓' if ok else '✗'} {label}")
+    for label in pending:
+        print(f"  待 {label}(P6/M5 遷移未執行 → python scripts/migrate_text_understanding_ddl.py)")
     try:
         import jieba  # noqa: F401
         print("  ✓ import jieba(T2-T4 中文分詞前置)")
     except ImportError:
         print("  ⚠ jieba 未安裝(T2-T4 前置;不影響 DDL)→ pip install jieba")
     n_ok = sum(1 for _, ok in checks if ok)
-    print(f"→ {n_ok}/{len(checks)} 物件存在")
+    print(f"→ {n_ok}/{len(checks)} 物件存在" + (f"、{len(pending)} 項待遷移" if pending else ""))
     return n_ok == len(checks)
 
 
@@ -185,8 +262,10 @@ def main():
                 print("  DDL 執行:index idx_conc_lang_term")
                 for name, table, defn in CONSTRAINTS:
                     print(f"  constraint {table}.{name}:{ensure_constraint(cur, name, table, defn)}")
+                for table, idcol in EMBED_PK_MIGRATION:
+                    print(f"  pkey {table}:{ensure_composite_pk(cur, table, idcol)}")
         with db.transaction(conn) as cur:
-            ok = verify(cur)
+            ok = verify(cur, applied=not args.check)
     sys.exit(0 if ok else 1)
 
 

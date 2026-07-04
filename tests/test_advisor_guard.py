@@ -4,6 +4,9 @@
    + guard_empty_retrieval(檢索空固定誠實句)+ guard_definition(定義 locator 課責)
    正反例全覆蓋,防 regex/集合比對回歸靜默放行(稽核 執13)。
    數字閘之整數/1 位小數邊界屬 執5 待修判準、此處不鎖定。
+   P8 接線級(已拍板 2026-07-04):advise() 對 KnowledgePayload 分派 guard_knowledge
+   (雙源=payload.numbers() ∪ 檢索真兆數字集)+殼 mock 端到端(guard_knowledge 單閘級
+   正反例在 test_advisor_dialogue.py,此處不重複)。
 守 #1(引文/數字不編)· #8(anti-leakage)· #15(誠實率 100% 機制非自律)。
 """
 from dataclasses import dataclass
@@ -14,7 +17,7 @@ from augur.advisor.guard import (
     guard_definition,
     guard_empty_retrieval,
 )
-from augur.advisor.payload import example_payload
+from augur.advisor.payload import KnowledgePayload, example_payload
 
 
 @dataclass
@@ -133,3 +136,68 @@ def test_definition_frag_under_8_chars_not_gated():
 def test_definition_empty_entries_delegates_to_empty_retrieval():
     assert guard_definition(NO_KNOWLEDGE_RESPONSE, [])["pass"]
     assert not guard_definition("憑印象補一段定義。", [])["pass"]
+
+
+# ── P8 接線(已拍板 2026-07-04):advise() 對 KnowledgePayload 分派 guard_knowledge ──
+@dataclass
+class _KCite:  # 知識側 citation 替身(build_prompt 需 work_title/thinker/chapter/source_url)
+    text: str
+    work_title: str = "《測試文獻》"
+    thinker: str = "測試作者"
+    chapter: str = "ch1"
+    source_url: str = "http://example.org"
+
+
+_KPAYLOAD = KnowledgePayload(as_of="2026-07-04", domain="chemistry", sql_numbers=frozenset({3160.0}))
+_KCITES = [_KCite(text="the molar mass was measured as 114.32 g/mol; staging holds 3160 rows.")]
+
+
+def _kadvise(monkeypatch, llm_text, cites=None):
+    import augur.philosophy.retrieval as retr
+    from augur.advisor.advise import advise
+    monkeypatch.setattr(retr, "verify_verbatim", lambda c: True)   # DB 他證另有 M2 測;此處鎖接線分派
+    return advise("化學提問", _KPAYLOAD, lambda p: llm_text,
+                  retrieve_fn=lambda q, k: list(_KCITES if cites is None else cites))
+
+
+def test_p8_domain_numbers_dual_source_pass(monkeypatch):
+    # 域數字過:3160.00 ∈ payload.numbers()、114.32 ∈ 檢索真兆數字集(雙源、round 口徑一致)
+    out = _kadvise(monkeypatch, "staging 共 3160.00 列;文獻量測分子量 114.32 g/mol。")
+    assert out["guard"]["pass"], out["guard"]["issues"]
+
+
+def test_p8_fabricated_number_blocked(monkeypatch):
+    # 編造攔:999.99 不在雙源任一側 → 機械攔截(非自律)
+    out = _kadvise(monkeypatch, "由此推得分子量為 999.99 g/mol。")
+    assert not out["guard"]["pass"]
+    assert any("雙源白名單" in i and "999.99" in i for i in out["guard"]["issues"])
+
+
+def test_p8_honest_closed_set_unchanged(monkeypatch):
+    # 閉集不變(P8 拍板明文):固定誠實句字面不變;知識 payload 空檢索仍直回、不經 LLM
+    assert NO_KNOWLEDGE_RESPONSE == "知識庫中無此內容"
+    out = _kadvise(monkeypatch, "不該被生成的回覆", cites=[])
+    assert out["response"] == NO_KNOWLEDGE_RESPONSE and out["prompt"] is None
+
+
+def test_p8_shell_mock_e2e_knowledge_payload(monkeypatch):
+    # 殼 mock 端到端:chat_completion(payload_fn=KnowledgePayload)→advise()→guard_knowledge 同路生效
+    import augur.philosophy.retrieval as retr
+    from augur.advisor import oai_compat
+    monkeypatch.setattr(retr, "verify_verbatim", lambda c: True)
+    body = {"model": "augur-advisor", "messages": [{"role": "user", "content": "化學提問"}]}
+    ok = oai_compat.chat_completion(body, llm_fn=lambda p: "文獻量測分子量 114.32 g/mol。",
+                                    payload_fn=lambda: _KPAYLOAD,
+                                    retrieve_fn=lambda q, k: list(_KCITES))
+    assert ok["augur_guard"]["pass"] is True
+    assert "[augur-guard] pass=true" in ok["choices"][0]["message"]["content"]
+    bad = oai_compat.chat_completion(body, llm_fn=lambda p: "由此推得分子量為 999.99 g/mol。",
+                                     payload_fn=lambda: _KPAYLOAD,
+                                     retrieve_fn=lambda q, k: list(_KCITES))
+    assert bad["augur_guard"]["pass"] is False
+    # R2 架構(2026-07-04):guard fail 之安全不變式=LLM 杜撰內容不外洩(而非死比對誠實句字串);
+    # 有檢索時揭露系統逐字原文供參(_citations_block,真兆非 LLM 產出)。
+    content = bad["choices"][0]["message"]["content"]
+    body_shown = content.split("[augur-guard]")[0]          # 答覆本體(機械診斷尾註前)
+    assert "999.99" not in body_shown and "由此推得" not in body_shown  # 杜撰數字/文字不進本體(#1;尾註可診斷性報被攔值)
+    assert NO_KNOWLEDGE_RESPONSE in content or "系統逐字附上" in content  # 誠實揭露(withhold 或原文)

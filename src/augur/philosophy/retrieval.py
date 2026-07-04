@@ -4,6 +4,9 @@
    → 回逐字 chunk + Citation(work/thinker/chapter/char_range/source_url),供顧問引經據典。
    只回 DB 既存逐字字串、溯源三元組強制、verbatim 子字串存在性回查閘防「潤飾原文」。
    L5 擴充(text 計畫 v1.6):lexicon_lookup(公版辭書/註疏定義)+ concordance_lookup(逐字用例);
+   N7 擴充(e2e 計畫 §3-S7):雙側檢索——retrieve_items(items 側文獻句;CLEAN_ITEM 閘=corpus SSOT;
+   讀路徑=textnorm 全形集→exact SQL 零向量優先→ANN 補位→一律 PG JOIN 取原文)+
+   verify_verbatim 雙側分派(item 側=item_text substring(FROM char_start+1) 定位他證)。
    L2/L3 表未建或庫無此詞 → 誠實回空 [](誠實率 100% 機制,配 advisor.guard 固定誠實句)。
 守 #1(只回逐字原文、不生成不改寫)· #28(本地嵌入、零 LLM API)·
    憲章 v1.17.0(檢索層對預測表零寫入、與預測管線物理隔離)· #18。
@@ -13,9 +16,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from augur.core import db
-from augur.knowledge import textnorm
-
-MODEL = "intfloat/multilingual-e5-small"
+from augur.knowledge import corpus, embedspec, textnorm
 
 
 @dataclass
@@ -36,7 +37,7 @@ class Citation:
 @lru_cache(maxsize=1)
 def _model():
     from sentence_transformers import SentenceTransformer
-    return SentenceTransformer(MODEL, device="cpu")
+    return SentenceTransformer(embedspec.MODEL_TAG, device=embedspec.QUERY_DEVICE)
 
 
 def _query_vec(query):
@@ -73,7 +74,10 @@ def retrieve(query, k=8, work_id=None):
 
 
 def verify_verbatim(citation):
-    """verbatim 逐字回查(DB 原文子字串比對):確認 citation.text 原封不動存在於來源 work_text(防潤飾/改寫)。回 bool。"""
+    """verbatim 逐字回查(雙側分派;M2 注入後驗共用單一入口):
+    Citation(work chunk)=原文子字串存在性比對;ItemCitation=item_text 定位他證。回 bool。"""
+    if isinstance(citation, ItemCitation):
+        return verify_verbatim_item(citation)
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT t.content FROM philosophy_work_text t "
                     "JOIN philosophy_chunk c ON c.text_id = t.text_id WHERE c.chunk_id = %s",
@@ -176,3 +180,110 @@ def concordance_lookup(term, limit=10):
             out.append(ConcordanceHit(term=r[0], sentence=r[1], char_start=r[2], char_end=r[3],
                                       source_title=r[4], sent_id=r[5], position=r[6]))
     return out
+
+
+# ── items 側(N7,e2e 計畫 §3-S7)──────────────────────────────────────────────
+
+@dataclass
+class ItemCitation:
+    """一筆逐字可溯源的知識文獻句引用(items 側)。"""
+    sent_id: int
+    itext_id: int
+    item_id: int
+    item_title: str
+    domain: str
+    entity_type: str
+    char_start: int      # 相對 item_text.content 之定位(verify_verbatim_item 他證基準)
+    char_end: int
+    source_url: str
+    license: str
+    text: str            # 逐字原句(== item_text.content[char_start:char_end])
+    score: float         # via='exact':查詢詞命中比(counts 類);via='ann':cosine 相似度
+    via: str             # 'exact' | 'ann'
+
+
+_ITEM_COLS = """s.sent_id, s.itext_id, i.item_id, COALESCE(i.title_zh, i.title), i.domain,
+           i.entity_type, s.char_start, s.char_end, x.source_url, x.license, s.sentence"""
+_ITEM_JOIN = """FROM knowledge_sentence s
+        JOIN knowledge_item_text x ON x.itext_id = s.itext_id
+        JOIN knowledge_item i ON i.item_id = x.item_id"""
+
+
+def _guess_language(text):
+    """查詢語言判定(確定性、零 ML):含 CJK 即 zh,否則 en。"""
+    return "zh" if any("一" <= ch <= "鿿" for ch in text or "") else "en"
+
+
+def _item_citations(cur, where, params, order, scores, via):
+    cur.execute(f"SELECT {_ITEM_COLS} {_ITEM_JOIN} WHERE {where} ORDER BY {order}", params)
+    return [ItemCitation(sent_id=r[0], itext_id=r[1], item_id=r[2], item_title=r[3], domain=r[4],
+                         entity_type=r[5], char_start=r[6], char_end=r[7], source_url=r[8],
+                         license=r[9], text=r[10], score=scores[r[0]], via=via)
+            for r in cur.fetchall()]
+
+
+def retrieve_items(query, k=8, domain=None, language=None):
+    """items 側檢索(讀路徑鐵則 §3-S7):query→textnorm 全形集→(a)exact SQL 零向量優先
+    →(c)ANN 補位→一律 PG JOIN 取原文;CLEAN_ITEM 閘=corpus SSOT(fail-closed,NULL 不放行)。
+    (b) affinity 確定性擴展與 vectorindex(Milvus) 為既定接縫待 N3 接線,ANN 現由 pgvector(SSOT 索引)承。
+    語料空/表未建 → 誠實回空 []。回 [ItemCitation](exact 先、ann 補位)。"""
+    if not (query or "").strip():
+        return []
+    clean = corpus.clean_item_sql("i", "x")
+    extra, extra_params = "", []
+    if domain:
+        extra += " AND i.domain = %s"; extra_params.append(domain)
+    if language:
+        extra += " AND s.language = %s"; extra_params.append(language)
+    out = []
+    with db.connect() as conn, db.transaction(conn) as cur:
+        if not _tables_exist(cur, "knowledge_item", "knowledge_item_text", "knowledge_sentence"):
+            return []
+        terms = list({t for t, _ in textnorm.tokenize(query, language or _guess_language(query))})
+        if terms and _tables_exist(cur, "knowledge_concordance"):
+            cur.execute(f"""SELECT c.sent_id, count(DISTINCT c.term) AS n
+                FROM knowledge_concordance c
+                JOIN knowledge_sentence s ON s.sent_id = c.sent_id
+                JOIN knowledge_item_text x ON x.itext_id = s.itext_id
+                JOIN knowledge_item i ON i.item_id = x.item_id
+                WHERE c.term = ANY(%s) AND {clean}{extra}
+                GROUP BY c.sent_id ORDER BY n DESC, c.sent_id LIMIT %s""",
+                        (terms, *extra_params, k))
+            scores = {sid: n / len(terms) for sid, n in cur.fetchall()}
+            if scores:
+                out = _item_citations(cur, f"s.sent_id = ANY(%s) AND {clean}",
+                                      (list(scores), ), "s.sent_id", scores, "exact")
+                out.sort(key=lambda c: (-c.score, c.sent_id))
+        need = k - len(out)
+        if need > 0 and _tables_exist(cur, "knowledge_sentence_embedding"):
+            cur.execute("SELECT 1 FROM knowledge_sentence_embedding e "
+                        "JOIN knowledge_sentence s USING (sent_id) WHERE s.itext_id IS NOT NULL LIMIT 1")
+            if cur.fetchone():   # 零向量優先:items 側無嵌入=不載模型(#28)
+                qv = _query_vec(query)
+                seen = [c.sent_id for c in out]
+                dedup = " AND s.sent_id != ALL(%s)" if seen else ""
+                cur.execute(f"""SELECT {_ITEM_COLS}, 1 - (e.embedding <=> %s::vector) AS score
+                    {_ITEM_JOIN}
+                    JOIN knowledge_sentence_embedding e ON e.sent_id = s.sent_id
+                    WHERE e.model_tag = %s AND {clean}{extra}{dedup}
+                    ORDER BY e.embedding <=> %s::vector LIMIT %s""",
+                            (qv, embedspec.MODEL_TAG, *extra_params, *([seen] if seen else []), qv, need))
+                for r in cur.fetchall():
+                    out.append(ItemCitation(sent_id=r[0], itext_id=r[1], item_id=r[2], item_title=r[3],
+                                            domain=r[4], entity_type=r[5], char_start=r[6], char_end=r[7],
+                                            source_url=r[8], license=r[9], text=r[10],
+                                            score=float(r[11]), via="ann"))
+    return out
+
+
+def verify_verbatim_item(citation):
+    """item_text 定位基準他證(§3-S7):citation.text 須==content 之 substring(FROM char_start+1
+    FOR char_end-char_start)——位置+內容雙重驗證,嚴於子字串存在性(防 char_range 錯位/潤飾)。回 bool。"""
+    n = citation.char_end - citation.char_start
+    if n <= 0:
+        return False
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SELECT substring(content FROM %s + 1 FOR %s) FROM knowledge_item_text WHERE itext_id = %s",
+                    (citation.char_start, n, citation.itext_id))
+        row = cur.fetchone()
+        return bool(row) and row[0] == citation.text

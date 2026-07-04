@@ -223,7 +223,11 @@ nohup python scripts/refresh_knowledge_pipeline.py --domain chemistry > /tmp/...
 - 背景規約：nohup+log 落檔+完成單次通知；不輪詢、不自掛喚醒鏈（#28）。
 - **端到端煙測（硬要求②實證）**：單一指令走「取 1 item→text→句→嵌→Milvus→curl 殼得 guard-pass 回應」（#25 最小單位）。
 
-## 8. 拍板點（決策層；執行前逐一過目；附建議）
+## 8. 拍板點
+
+> **M4 暫緩紀錄**:2026-07-04 用戶 directive——S4 domain/taxonomy 統計延伸(M4)暫緩至化學全文累積夠量(現僅 553 句 OA 全文,跑 domain 相關性近空表);哲學 affinity 層 296 萬列已示範能力。M5/P6 遷移已完成(嵌入表 model_tag 版本化+ledger)。
+> **拍板紀錄**:2026-07-04 14:4x 用戶 directive「P1-P9 照建議」——P1(group_kind 擴 domain/taxonomy)/P4(CLEAN_ITEM=promoted∧license 白名單∧entity_type 准入集,fail-closed)/P8(guard 數字白名單擴本次真兆 SQL 結果集、誠實句閉集不變)/P9(嵌入分語言×scope 分表)全數依計畫建議值生效。P13(materials_project API key)=營運項另辦。
+（決策層；執行前逐一過目；附建議）
 
 | # | 拍板項 | 建議 |
 |---|---|---|

@@ -4,6 +4,9 @@
    任一不過 → 標記(供攔截/重生成)。這是 #1/#8/#15 在對話層的唯一可靠落地(無「哲學專屬豁免」)。
    L5 擴充(text 計畫 v1.6):定義引用必附 source_locator(guard_definition)+
    檢索空必回固定誠實句「知識庫中無此內容」(guard_empty_retrieval;誠實率 100% 之機制保證非自律)。
+   P8 知識域條款(已拍板 2026-07-04,計畫 §3-S7 N6/§8 拍板紀錄):guard_knowledge 數字雙源白名單
+   (payload.numbers() ∪ 檢索真兆數字集 citation_numbers)+已驗引文段豁免②③+無 picks ④ no-op;
+   接線=advise() 依 payload 型別分派(oai_compat 唯一出口=advise(),同路生效);誠實句閉集不變。
 守 #1(數字/引文不編、定義出處可溯)· #8(anti-leakage)· #15(誠實)·
    憲章 v1.17.0(哲學不凌駕數據、審查 C-1)。
 """
@@ -43,6 +46,61 @@ def guard(response, payload, citations):
 
     # ④ 逆向翻轉(審查 C-1):逆向不得輸出與模型分數相反的行動含義
     if _REVERSE.search(response):
+        issues.append("逆向鏡翻轉模型結論、輸出相反行動(禁、審查 C-1)")
+
+    return {"pass": not issues, "issues": issues}
+
+
+_NUM_TOKEN = re.compile(r"\d+(?:\.\d+)?")
+
+
+def citation_numbers(citations):
+    """檢索真兆數字集(P8 數字雙源之二):本回合檢索結果(真兆 SQL 查詢結果列,advise 已先過
+    verify_verbatim)原文內全部數字 token,round 口徑同閘 ②——每值可 trace 回某 citation 列(#15)。"""
+    return {round(float(n), 4) for c in citations for n in _NUM_TOKEN.findall(c.text)}
+
+
+def guard_knowledge(response, payload, citations, sql_numbers=()):
+    """知識域 guard 條款(P8 已拍板 2026-07-04,計畫 §3-S7 N6/§8 拍板紀錄;已接線——
+    advise() 依 payload 型別分派本閘,oai_compat 唯一出口=advise() 故同路生效)。
+    與 guard() 之差=P8 ②③④:
+
+    ② 數字白名單雙源=payload.numbers() ∪ sql_numbers(本回合真兆 SQL 結果集;接線端傳
+      citation_numbers(citations)=檢索真兆數字集,round 口徑一致、可溯源 #15);
+      且**已過 ① 逐字驗證之引文段內數字豁免 ②**(引文=文獻原文非系統宣稱,如 114.32 g/mol)。
+    ③ _FUTURE_LEAK 對已驗逐字引文段豁免(科學文本 "pressure will rise" 非投資建議)。
+    ④ 逆向閘於無 picks 之知識 payload 自然 no-op(無模型結論可翻轉)。
+    ① 引文逐字閘不變(與 guard() 同判準);誠實句閉集不變(P8 拍板明文)。
+    回 {'pass': bool, 'issues': [str]}。
+    """
+    issues = []
+    cite_texts = [c.text for c in citations]
+
+    # ① 引文逐字(同 guard());並記下「已驗證段」供 ②③ 豁免
+    verified = []
+    for quote in re.findall(r'[「『"]([^」』"]{8,})[」』"]', response):
+        if any(quote in t for t in cite_texts):
+            verified.append(quote)
+        else:
+            issues.append(f"引文非逐字或非庫內(#1):{quote[:40]!r}")
+
+    claims = response                      # 系統宣稱文本=回覆剔除已驗逐字引文段(豁免只給過①者,fail-closed)
+    for q in verified:
+        claims = claims.replace(q, "")
+
+    # ② 數字 ∈ 雙源白名單(payload.numbers() ∪ 本回合真兆 SQL 結果集);已驗引文段內數字已豁免
+    allowed = set(payload.numbers()) | {round(float(n), 4) for n in sql_numbers}
+    suspects = set(re.findall(r"\d+\.\d{2,}", claims)) | set(_METRIC_NUM.findall(claims))
+    for m in sorted(suspects):
+        if round(float(m), 4) not in allowed:
+            issues.append(f"數字非雙源白名單、疑編造(#1):{m}")
+
+    # ③ 未來/保證語(#8);已驗引文段豁免
+    if _FUTURE_LEAK.search(claims):
+        issues.append("含未來預測/保證語(#8)")
+
+    # ④ 逆向翻轉:無 picks(知識 payload)→ 自然 no-op
+    if getattr(payload, "picks", ()) and _REVERSE.search(response):
         issues.append("逆向鏡翻轉模型結論、輸出相反行動(禁、審查 C-1)")
 
     return {"pass": not issues, "issues": issues}

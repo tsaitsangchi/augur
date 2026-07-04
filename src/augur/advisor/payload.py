@@ -35,6 +35,25 @@ class PredictionPayload:
         return ns
 
 
+@dataclass(frozen=True)
+class KnowledgePayload:
+    """知識域對偶 payload(計畫 §3-S7 N6;P8 已拍板 2026-07-04,guard 域條款已接線——
+    advise() 對本型別分派 guard_knowledge,oai_compat 唯一出口=advise() 同路生效)。
+
+    PredictionPayload 之知識域對偶:frozen=顧問不可改一字;.numbers()=本回合真兆 SQL 結果集
+    白名單(guard 域條款 ② 數字雙源之一;每個值皆須出自 DB query,#9b 可溯源)。
+    picks 恆空 → guard ④ 逆向閘自然 no-op(無模型選股結論可翻轉,計畫 P8 ④)。
+    """
+    as_of: str               # 快照時點(防洩漏 #8)
+    domain: str              # 知識域(如 'chemistry';registry SSOT)
+    sql_numbers: frozenset = frozenset()   # 本回合真兆 SQL 結果集(唯一合法數字來源;非 SQL 產出禁入)
+    picks: tuple = ()        # 恆空:知識 payload 無模型選股
+
+    def numbers(self):
+        """回本回合真兆 SQL 結果集之白名單(供 guard 域條款 ②:輸出統計數字必須 ∈ 此集合)。"""
+        return {round(float(v), 4) for v in self.sql_numbers}
+
+
 def example_payload():
     """示範 payload(供 P5 架構測試;真實資料由量化本體 as-of 預測填入,屬後續整合)。"""
     return PredictionPayload(
