@@ -1,5 +1,4 @@
 """W8 三級誠實分級器測試(拍板3/憲章 v1.25.0)— mock 旁查、零 DB 依賴。"""
-import _bootstrap  # noqa: F401
 from augur.advisor.answer import honesty_level
 from augur.advisor.guard import NO_KNOWLEDGE_RESPONSE, UNVERIFIED_ATTRIBUTION_RESPONSE, HONESTY_CLOSED_SET
 
