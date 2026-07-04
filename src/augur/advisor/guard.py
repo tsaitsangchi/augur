@@ -12,7 +12,12 @@
 """
 import re
 
-NO_KNOWLEDGE_RESPONSE = "知識庫中無此內容"   # 檢索空之唯一合法回覆(固定句,#15 機制保證)
+NO_KNOWLEDGE_RESPONSE = "知識庫中無此內容"   # (i) 檢索空之固定句(#15 機制保證)
+# 三級誠實固定句閉集第二句(憲章 v1.25.0/拍板3):庫存著作但歸屬未驗(review_flag=true 隔離館藏旁查
+# 命中而主檢索 CLEAN 述詞排除)。閉集僅此二句;機械分級器(哪句/何時)住 answer.py(W8 落地)。
+# 閉集或分級判準之變更=憲章判準變更(v1.25.0 line 137),不得執行層自改。
+UNVERIFIED_ATTRIBUTION_RESPONSE = "知識庫存有此著作但歸屬未驗證,不予引用"
+HONESTY_CLOSED_SET = (NO_KNOWLEDGE_RESPONSE, UNVERIFIED_ATTRIBUTION_RESPONSE)
 
 _FUTURE_LEAK = re.compile(
     r"will (rise|fall|surge|crash|soar|plunge)|保證|必(漲|跌|賺)|下週.{0,6}(漲|跌)|明(日|天).{0,6}(漲|跌)|未來.{0,4}(會漲|會跌|必)")
