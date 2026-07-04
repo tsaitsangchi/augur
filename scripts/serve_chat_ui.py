@@ -12,10 +12,21 @@
 """
 import argparse
 import json
+import os
+import subprocess
+import sys
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ADVISOR = "http://127.0.0.1:8399"
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _safe_dir(path):
+    """+資料夾圍欄:realpath 須在 $HOME 下(拒 ../ 逃逸);回 realpath 或 None。"""
+    home = os.path.realpath(os.path.expanduser("~"))
+    rp = os.path.realpath(os.path.expanduser((path or "").strip()))
+    return rp if (rp == home or rp.startswith(home + os.sep)) and os.path.isdir(rp) else None
 
 PAGE = """<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
@@ -73,10 +84,35 @@ class H(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _reply(self, content):
+        out = json.dumps({"choices": [{"message": {"content": content}}],
+                          "augur_guard": {"pass": True, "issues": [], "citations": 0}}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(out)))
+        self.end_headers()
+        self.wfile.write(out)
+
     def do_POST(self):
         n = int(self.headers.get("Content-Length", 0))
         req = json.loads(self.rfile.read(n) or b"{}")
-        payload = json.dumps({"model": "augur-advisor", "messages": req.get("messages", [])}).encode()
+        msgs = req.get("messages", [])
+        last = (msgs[-1].get("content", "") if msgs else "").strip()
+        if last.startswith("+"):
+            # +資料夾語法(計畫 P4):dry-run 掃描預覽(不寫、不需 license)→ 導向 admin 後台授權入庫。
+            # 治權:chat 不逕自入庫版權未明檔;實際入庫走 admin 後台(P3)聲明 license(DB CHECK 硬擋)。
+            safe = _safe_dir(last[1:])
+            if not safe:
+                return self._reply("路徑非法或不存在(限 $HOME 下之現有資料夾、拒 ../ 逃逸)。用法:+/home/hugo/docs")
+            cmd = [sys.executable, os.path.join(_ROOT, "scripts", "acquire_local_files.py"),
+                   "--dir", safe, "--license", "public_domain", "--dry-run"]
+            try:
+                sc = subprocess.run(cmd, cwd=_ROOT, capture_output=True, text=True, timeout=120).stdout
+            except Exception as e:
+                sc = f"掃描失敗:{e}"
+            return self._reply(f"【+資料夾 dry-run 掃描】{safe}\n\n{sc}\n"
+                               "── 此為預覽(未入庫)。實際入庫請至 admin 後台(:8500)聲明 license(DB CHECK 硬擋只准公開授權檔)。")
+        payload = json.dumps({"model": "augur-advisor", "messages": msgs}).encode()
         try:
             r = urllib.request.Request(self.advisor + "/v1/chat/completions", payload,
                                        {"Content-Type": "application/json"})
