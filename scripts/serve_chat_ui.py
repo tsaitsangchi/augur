@@ -1,10 +1,12 @@
 #!/usr/bin/env python
-"""augur 誠實博學的我 — 極簡對話 Web UI(零外部依賴 stdlib;proxy 到 advisor 殼)。
+"""augur 誠實博學的我 — 極簡對話 Web UI(stdlib proxy 到 advisor 殼 + 「+」附加入庫)。
 
 🎯 一頁式對話介面:瀏覽器 → 本頁(:8090) → advisor 殼(:8399,advise+guard) → qwen3:8b。
    純 http.server + urllib、無 HuggingFace/無 node/無 Docker(避 Open WebUI 之 HF 嵌入 crash-loop)。
    同源 proxy(頁與 /chat 同埠)故無 CORS;guard verdict 顯示於每則回覆下。
-守 #28(本地零 usage)· 計畫 §3-S7(對話唯一出口=advise+guard,本頁不編排、只轉發)· #18。
+   「+」按鈕(Claude Desktop 式):彈原生視窗選檔案/資料夾 → /ingest 逐字入知識庫(Mode A;
+   webupload 落暫存夾 → acquire_local_files;license 受 DB CHECK 白名單硬擋、access_scope=local_private)。
+守 #1(逐字入庫)· #5(上傳 traversal/大小防護)· #28(本地零 usage)· 計畫 §3-S7(對話出口=advise+guard)· #18。
 
 執行指令矩陣:
   python scripts/serve_chat_ui.py                 # 起於 127.0.0.1:8090(預設);瀏覽器開 http://localhost:8090
@@ -17,6 +19,9 @@ import subprocess
 import sys
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import _bootstrap  # noqa: F401  個別可執行(#29a):附加入庫需 augur.knowledge.webupload
+from augur.knowledge import webupload
 
 ADVISOR = "http://127.0.0.1:8399"
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -47,12 +52,27 @@ header small{color:#7d8590;font-weight:400;margin-left:8px}
 button{padding:11px 18px;border:0;border-radius:8px;background:#238636;color:#fff;font-size:15px;cursor:pointer}
 button:disabled{background:#30363d;cursor:wait}
 .sys{color:#7d8590;font-size:13px;text-align:center;margin:8px}
+#plusbtn{padding:11px 14px;border:1px solid #30363d;border-radius:8px;background:#161b22;color:#e6edf3;font-size:18px;cursor:pointer}
+#plusmenu{display:none;max-width:820px;margin:0 auto 8px;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px}
+#plusmenu button{margin:4px 4px 0 0;background:#21262d;color:#e6edf3;font-size:14px;padding:8px 12px;border:1px solid #30363d;border-radius:6px;cursor:pointer}
+#plusmenu select{padding:6px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px}
+#plusmenu .hint{font-size:12px;color:#7d8590;margin-bottom:6px}
 </style></head><body>
 <header>誠實博學的我 <small>augur · advisor+guard · 本地 qwen3:8b(引文逐字閘;答不出即誠實說不知道)</small></header>
 <div id=log><div class=sys>問投資哲學/經典原文相關問題。回覆較慢(本地 GPU 約數分鐘),guard 會攔下非逐字引用。</div></div>
-<div id=bar><form onsubmit="return send(event)">
+<div id=bar>
+<div id=plusmenu>
+ <div class=hint>附加資料夾/檔案 → 逐字入知識庫(之後可被引經據典;需公開授權,DB 硬擋只准 public_domain/cc-*)</div>
+ 授權 <select id=inlic><option>public_domain</option><option>cc-by</option><option>cc-by-sa</option><option>cc0</option></select>
+ <button type=button onclick="pick('file')">📎 選檔案入庫</button>
+ <button type=button onclick="pick('folder')">📁 選資料夾入庫</button>
+</div>
+<form onsubmit="return send(event)">
+<button id=plusbtn type=button onclick="togglePlus()" title="附加檔案/資料夾入庫">＋</button>
 <input id=q placeholder="例:用經典原文談安全邊際與價值的關係" autocomplete=off>
 <button id=b type=submit>送出</button></form></div>
+<input type=file id=fpick style="display:none">
+<input type=file id=dpick webkitdirectory directory multiple style="display:none">
 <script>
 const log=document.getElementById('log'),q=document.getElementById('q'),b=document.getElementById('b')
 function add(cls,txt){const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;log.appendChild(d);d.scrollIntoView();return d}
@@ -67,6 +87,20 @@ async function send(e){e.preventDefault();const text=q.value.trim();if(!text)ret
   wait.appendChild(gd)
  }catch(err){wait.textContent='錯誤:'+err}
  b.disabled=false;q.focus();return false}
+function togglePlus(){var m=document.getElementById('plusmenu');m.style.display=m.style.display=='block'?'none':'block'}
+function pick(kind){document.getElementById('plusmenu').style.display='none';document.getElementById(kind=='folder'?'dpick':'fpick').click()}
+document.getElementById('fpick').onchange=function(){doIngest(this.files);this.value=''}
+document.getElementById('dpick').onchange=function(){doIngest(this.files);this.value=''}
+async function doIngest(files){
+ if(!files||!files.length)return
+ var lic=document.getElementById('inlic').value
+ add('u','【附加入庫】'+files.length+' 檔 · 授權 '+lic)
+ var wait=add('a','解析入庫中…(本地處理,大夾請耐心)')
+ var fd=new FormData();fd.append('license',lic);fd.append('access_scope','local_private')
+ for(var i=0;i<files.length;i++)fd.append('file',files[i],files[i].webkitRelativePath||files[i].name)
+ try{var r=await fetch('/ingest',{method:'POST',body:fd});wait.textContent=await r.text()}
+ catch(e){wait.textContent='入庫失敗:'+e}
+}
 </script></body></html>"""
 
 
@@ -93,7 +127,45 @@ class H(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(out)
 
+    def _plain(self, s):
+        out = s.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(out)))
+        self.end_headers()
+        self.wfile.write(out)
+
+    def _ingest(self):
+        """+ 按鈕附加入庫(Mode A):multipart 落暫存夾(webupload)→ acquire_local_files 逐字入庫。
+        治權:license 受 DB CHECK 白名單硬擋;access_scope=local_private(不入對外對話池,拍板P2)。"""
+        ctype = self.headers.get("Content-Type", "")
+        n = int(self.headers.get("Content-Length") or 0)
+        if "multipart/form-data" not in ctype or "boundary=" not in ctype:
+            return self._plain("需 multipart/form-data")
+        if n > webupload.MAX_UPLOAD:
+            return self._plain(f"上傳過大(上限 {webupload.MAX_UPLOAD // 1024 // 1024}MB)")
+        boundary = ctype.split("boundary=", 1)[1].strip().strip('"')
+        fields, files = webupload.parse_multipart(self.rfile.read(n), boundary)
+        lic = (fields.get("license") or "").strip()
+        scope = (fields.get("access_scope") or "local_private").strip()
+        if lic not in webupload.LICENSES:
+            return self._plain("license 非白名單(DB 硬擋只准公開授權 public_domain/cc-*)")
+        if scope not in webupload.SCOPES:
+            scope = "local_private"
+        if not files:
+            return self._plain("無檔案(請選含檔案的資料夾)")
+        r = webupload.save_upload(files)
+        if not r["saved"]:
+            return self._plain(f"無有效檔案(過大跳 {r['big']}、非法名跳 {r['bad']})")
+        cmd = [sys.executable, os.path.join(_ROOT, "scripts", "acquire_local_files.py"),
+               "--dir", r["updir"], "--license", lic, "--access-scope", scope, "--domain", "local"]
+        out = subprocess.run(cmd, cwd=_ROOT, capture_output=True, text=True, timeout=600).stdout
+        return self._plain(f"【附加入庫完成】存檔 {r['saved']}(過大跳 {r['big']}、非法名跳 {r['bad']})、"
+                           f"授權 {lic}\n\n{out}")
+
     def do_POST(self):
+        if self.path.rstrip("/") == "/ingest":
+            return self._ingest()
         n = int(self.headers.get("Content-Length", 0))
         req = json.loads(self.rfile.read(n) or b"{}")
         msgs = req.get("messages", [])
