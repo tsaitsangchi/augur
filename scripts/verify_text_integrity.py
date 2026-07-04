@@ -91,6 +91,14 @@ def verify(cur, *, full=False, sample_n=2000):
         f"SELECT count(*) FROM knowledge_item_text WHERE license NOT IN ({wl})"),
         f"#1 版權硬擋({corpus.LICENSE_WHITELIST})"))
 
+    # INV corpus_class 分類(拍板13 稽核網):lexicon 來源作品(=辭書/註疏)必 corpus_class='reference',
+    # 誤標 literary 會使其全文誤入切句/嵌入(W2.5 閘漏)——去 DEFAULT 之替代防線(混建寫入端不可靠)
+    checks.append(("INV corpus_class(lexicon 源必 reference)", _one(cur,
+        "SELECT count(DISTINCT w.work_id) FROM philosophy_work w "
+        "WHERE w.corpus_class <> 'reference' "
+        "AND EXISTS (SELECT 1 FROM knowledge_lexicon l WHERE l.source_work_id = w.work_id)"),
+        "辭書/註疏來源作品誤標 literary=違規(拍板13,防 reference 全文誤入語意層)"))
+
     return checks
 
 
