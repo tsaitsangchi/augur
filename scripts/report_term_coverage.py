@@ -44,6 +44,13 @@ def coverage(cur):
             "  AND e.src_id::text = c.term)",   # edge src 為 term 字面(若 term 圖譜已建)
             (lang, lang))
         rows.append((f"term_ingraph_rate_{lang}", n2, d2, p2, "出現字進思想圖譜之比(思想層可解率;edge 未建則 0)"))
+    # W7 school 維降級揭露(拍板4:誠實揭露先行)——七維 JOIN 之 school 維覆蓋率(school_thinker 歸派/thinker 總)
+    cur.execute("SELECT to_regclass('school_thinker')")
+    if cur.fetchone()[0] is not None:
+        n3, d3, p3 = _pct(cur, "SELECT (SELECT count(DISTINCT thinker_id) FROM school_thinker), "
+                                "(SELECT count(*) FROM philosophy_thinker)")
+        rows.append(("school_dim_coverage", n3, d3, p3,
+                     "思想家有 school 歸派之比(七維 JOIN school 維;僅策展 17 人、harvest 晉升者零回填=幾近空轉,拍板4)"))
     return rows
 
 
