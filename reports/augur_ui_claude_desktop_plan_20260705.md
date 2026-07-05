@@ -449,7 +449,9 @@ placeholder「輸入訊息…」（等同 claude.ai「Message Claude…」）。
 
 ## 7. 分階段（標 augur 現況 done / gap / 優先序）
 
-> **執行進度（2026-07-05 post-plan 已落地）**：✅ **Phase 1 全部**（`#log min-height:0` 捲動釘底 + pinned 黏底狀態機 + 回到底部鈕）· ✅ **serif/sans 二分**（§1.2）· ✅ **串流 SSE**（§4.1，mock 殼端到端驗）· ✅ 免責照抄 claude.ai（§5.7）· ✅ 左下帳號區（§3.8）· ✅ 永遠淺色 · ✅ 後台背景工作 log 選取複製（§背景工作延伸）。**剩餘 gap**：Phase 2 側欄（recents 時間分組/hover 選單/搜尋/starred）· Phase 3（think 折疊/訊息工具列/程式碼複製/Cmd+K/toast+資料BUG/錯誤卡/骨架/chips/responsive）· Phase 4（模型 pill/停止鈕/斜線選單）。
+> **執行進度（2026-07-05 UI 全部落地）**：**Phase 1-4 全數完成**（結構驗證＋mock 殼串流端到端＋134 測試通過；互動待瀏覽器確認）——
+> ✅ **Phase 1** 捲動釘底（`#log min-height:0`＋pinned 黏底＋回到底部鈕）· ✅ **Phase 2 側欄**（recents 時間分組／hover 選單重新命名·加星·複製·刪除／搜尋／starred／toast）· ✅ **Phase 3** serif/sans 二分・串流 SSE・訊息複製・程式碼複製・chips・錯誤卡・骨架脈動・**retry**・**Cmd+K 命令面板**・**responsive 抽屜** · ✅ **Phase 4** 模型 pill・停止鈕（AbortController）・斜線指令選單 · ✅ 帳號區・永遠淺色・免責照抄・後台背景工作 log 選取複製。
+> **明確不做（§8 誠實缺口／§0 非目標）**：~~think 折疊（殼 think=False、moot）~~・桌面殼・Artifacts・公開分享・圖片縮圖・編輯分叉・讚踩；§5.6 附件拖放/多卡列（low、未做）。
 
 ### Phase 0 — 已實作（現況 done，本次不動）
 暖色設計系統 + token、260px sidebar（brand/新對話/三情境/recents localStorage/健康燈/左下帳號區真實查 `app_user`）、composer（圓角 24px/＋附加/textarea Enter 送出/自動長高 180px）、訊息樣式（user 右氣泡/assistant ✻ 星章）、`mdToHtml`（標題/清單/inline code/深色 code block/粗體/連結）、`:focus-visible` 珊瑚 ring、`/health` 15s 輪詢三燈、鎖 `color-scheme:light`、後台 `.side` 分段捲動 + `.acct-box` 貼底 + 文件 md 渲染。

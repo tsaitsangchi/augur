@@ -120,6 +120,31 @@ body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe 
 .chip:hover{background:var(--bubble)}
 .errcard{background:#fbeaea;border:1px solid #e5c4c0;border-radius:10px;padding:11px 14px;color:#8a3a2f;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .errcard .retry{background:#fff;border:1px solid #e5c4c0;border-radius:7px;padding:4px 12px;color:#8a3a2f;cursor:pointer;font-size:13px;font-family:inherit}
+.dots{display:inline-flex;gap:5px;padding:5px 0}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block;animation:dpulse 1.2s infinite ease-in-out}
+.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+@keyframes dpulse{0%,60%,100%{opacity:.3}30%{opacity:1}}
+#b.stop{background:#8a8580}#b.stop:hover{background:#736f6a}
+.modelpill{flex-shrink:0;font-size:12px;color:var(--muted);padding:4px 6px;white-space:nowrap;align-self:center}
+.slashmenu{display:none;max-width:740px;margin:0 auto 8px;background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;padding:8px;box-shadow:0 4px 18px rgba(0,0,0,.06)}
+.slashmenu .si{padding:8px 12px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--text)}
+.slashmenu .si:hover{background:var(--hover)}
+.slashmenu .si b{color:var(--accent);font-weight:600}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:15}
+.scrim.show{display:block}
+#hamburger{display:none;position:absolute;left:12px;top:12px;z-index:10;width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;align-items:center;justify-content:center}
+.cmdk-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60;align-items:flex-start;justify-content:center}
+.cmdk-box{margin-top:12vh;width:min(560px,92vw);background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.2);overflow:hidden}
+#cmdkq{width:100%;padding:16px 18px;border:0;border-bottom:1px solid var(--border);background:transparent;color:var(--text);font-size:15px;font-family:inherit;outline:0}
+#cmdklist{max-height:50vh;overflow-y:auto;padding:6px}
+.cmdk-item{padding:10px 14px;border-radius:9px;font-size:14px;cursor:pointer;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmdk-item:hover{background:var(--hover)}
+@media(max-width:768px){
+ .sidebar{position:fixed;left:0;top:0;height:100vh;transform:translateX(-100%);transition:transform .22s ease;z-index:20}
+ .sidebar.open{transform:none}
+ #hamburger{display:flex}
+ #log{padding-top:56px}
+}
 .account{display:flex;align-items:center;gap:9px;padding:9px 6px 2px;margin-top:6px;border-top:1px solid var(--border)}
 .avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
 .acct{flex:1;min-width:0}
@@ -193,6 +218,7 @@ button:focus-visible,#q:focus-visible,.mode:focus-visible,.rec:focus-visible{out
  </div>
 </aside>
 <main class=main>
+<button id=hamburger onclick="toggleSide()" aria-label="選單" title="選單">☰</button>
 <div id=log><div id=greet><div class=gs>✻</div><h1>今天想聊什麼?</h1><p>問我投資哲學、經典原文與價值的關係</p></div></div>
 <button id=jump title="回到最新" onclick="jumpBottom()">↓</button>
 <div id=bar>
@@ -206,14 +232,22 @@ button:focus-visible,#q:focus-visible,.mode:focus-visible,.rec:focus-visible{out
  <button type=button onclick="pickB('file')">📄 選檔案 · 只問這次</button>
  <button type=button onclick="pickB('folder')">📁 選資料夾 · 只問這次</button>
 </div>
+<div id=slashmenu class=slashmenu>
+ <div class=si onclick="slashPick('/移除')"><b>/移除</b> — 解除附加檔</div>
+ <div class=si onclick="slashPick('/remove')"><b>/remove</b> — 解除附加檔（英文別名）</div>
+ <div class=si onclick="slashPick('+')"><b>+資料夾路徑</b> — 掃描預覽（dry-run、不入庫）</div>
+</div>
 <form class=composer onsubmit="return send(event)">
 <button id=plusbtn type=button onclick="togglePlus()" title="附加檔案/資料夾">＋</button>
 <textarea id=q rows=1 placeholder="輸入訊息…" autocomplete=off></textarea>
+<span class=modelpill title="目前本地模型">__MODEL__</span>
 <button id=b type=submit title="送出">↑</button></form>
 <div class=foot-note>誠實博學的我可能會出錯，請查證重要資訊。</div>
 </div>
 </main>
 </div>
+<div id=scrim class=scrim onclick="toggleSide()"></div>
+<div id=cmdk class=cmdk-overlay onclick="if(event.target===this)closeCmdk()"><div class=cmdk-box><input id=cmdkq placeholder="搜尋對話…" autocomplete=off oninput="cmdkRender(this.value)" onkeydown="if(event.key==='Enter'){var f=document.querySelector('#cmdklist .cmdk-item');if(f)f.click()}"><div id=cmdklist></div></div></div>
 <input type=file id=fpick style="display:none">
 <input type=file id=dpick webkitdirectory directory multiple style="display:none">
 <script>
@@ -233,7 +267,7 @@ var CURid=null
 function saveSessions(){try{localStorage.setItem('augur_sessions',JSON.stringify(SESSIONS.slice(-100)))}catch(e){}}
 function curSession(){return SESSIONS.filter(function(s){return s.id===CURid})[0]}
 function ensureSession(){var s=curSession();if(!s){CURid='s'+Date.now()+'_'+Math.floor(Math.random()*1000);s={id:CURid,mode:MODE,title:'新對話',ts:Date.now(),msgs:[]};SESSIONS.push(s)}return s}
-function recordMsg(role,content){var s=ensureSession();s.msgs.push({role:role,content:content});s.ts=Date.now();if(role==='u'&&s.title==='新對話')s.title=content.slice(0,24);saveSessions();renderRecents()}
+function recordMsg(role,content){var s=ensureSession();var m={role:role,content:content};s.msgs.push(m);s.ts=Date.now();if(role==='u'&&s.title==='新對話')s.title=content.slice(0,24);saveSessions();renderRecents();return m}
 var CHIPS={chat:['價值投資的核心是什麼?','葛拉漢的安全邊際','巴菲特的護城河'],cowork:['幫我整理這份資料的重點','列出這個任務的步驟'],code:['解釋這段程式在做什麼','幫我找出可能的 bug']}
 function chipClick(b){q.value=b.textContent;q.style.height='auto';q.style.height=Math.min(q.scrollHeight,180)+'px';q.focus()}
 function greetHtml(){var g=GREET[MODE];var cs=(CHIPS[MODE]||[]).map(function(c){return '<button class=chip type=button onclick="chipClick(this)">'+c.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</button>'}).join('');return '<div id=greet><div class=gs>✻</div><h1>'+g[0]+'</h1><p>'+g[1]+'</p><div class=chips>'+cs+'</div></div>'}
@@ -267,7 +301,19 @@ function renderRecents(){var el=document.getElementById('recents');if(!el)return
 function loadSession(id){var s=SESSIONS.filter(function(x){return x.id===id})[0];if(!s)return;CURid=id;pinned=true;log.innerHTML='';s.msgs.forEach(function(m){if(m.role==='u'){add('u',m.content)}else{var d=add('a','');d._bubble.innerHTML=mdToHtml(m.content)}});renderRecents();log.scrollTop=log.scrollHeight;toggleJump()}
 async function loadHealth(){try{var j=await (await fetch('/health')).json();var ds=document.querySelectorAll('#svc .d');if(ds.length>=3){ds[0].className='d '+(j.db?'on':'off');ds[1].className='d '+(j.advisor?'on':'off');ds[2].className='d '+(j.ollama?'on':'off')}}catch(e){}}
 loadHealth();setInterval(loadHealth,15000);renderRecents();
-q.addEventListener('input',function(){q.style.height='auto';q.style.height=Math.min(q.scrollHeight,180)+'px'})
+function toggleSide(){var sb=document.querySelector('.sidebar'),sc=document.getElementById('scrim');var open=sb.classList.toggle('open');if(sc)sc.classList.toggle('show',open)}
+function closeCmdk(){document.getElementById('cmdk').style.display='none'}
+function openCmdk(){var o=document.getElementById('cmdk');o.style.display='flex';var inp=document.getElementById('cmdkq');inp.value='';cmdkRender('');inp.focus()}
+function cmdkRender(qv){var list=document.getElementById('cmdklist');list.innerHTML='';var lq=(qv||'').toLowerCase()
+ var na=document.createElement('div');na.className='cmdk-item';na.textContent='＋ 新對話';na.onclick=function(){closeCmdk();newSession()};list.appendChild(na)
+ var ss=SESSIONS.filter(function(s){return s.mode===MODE&&s.msgs.length&&(!lq||s.title.toLowerCase().indexOf(lq)>=0)}).sort(function(a,b){return b.ts-a.ts}).slice(0,25)
+ ss.forEach(function(s){var it=document.createElement('div');it.className='cmdk-item';it.textContent=(s.starred?'★ ':'')+s.title;it.onclick=function(){closeCmdk();loadSession(s.id)};list.appendChild(it)})}
+document.addEventListener('keydown',function(e){
+ if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){e.preventDefault();openCmdk();return}
+ if((e.metaKey||e.ctrlKey)&&e.shiftKey&&(e.key==='o'||e.key==='O')){e.preventDefault();newSession();return}
+ if(e.key==='Escape'){var o=document.getElementById('cmdk');if(o&&o.style.display==='flex'){closeCmdk();return}closeMenu();var pm=document.getElementById('plusmenu');if(pm)pm.style.display='none';var sm=document.getElementById('slashmenu');if(sm)sm.style.display='none';var sb=document.querySelector('.sidebar');if(sb&&sb.classList.contains('open'))toggleSide()}
+})
+q.addEventListener('input',function(){q.style.height='auto';q.style.height=Math.min(q.scrollHeight,180)+'px';slashMenu()})
 q.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(e)}})
 function add(cls,txt){var d=document.createElement('div');d.className='msg '+cls
  var role=document.createElement('div');role.className='role';role.textContent=(cls=='u'?'你':'誠實博學的我')
@@ -292,12 +338,14 @@ function mdToHtml(t){
  return t.replace(/\\x01(\\d+)\\x01/g,function(_,i){return store[+i]})
 }
 function renderStream(wait,full){var parts=full.split('\\n---\\n').map(function(s){return s.trim()}).filter(function(s){return s&&s.indexOf('[augur-guard]')!==0});wait._bubble.innerHTML=mdToHtml(parts.join('\\n\\n'));if(pinned)log.scrollTop=log.scrollHeight}
-async function send(e){e.preventDefault();const text=q.value.trim();if(!text)return false
- var _g=document.getElementById('greet');if(_g)_g.remove();pinned=true
- if(text=='/移除'||text=='/remove'){clearAttach();q.value='';q.style.height='auto';return false}
- add('u',text);recordMsg('u',text);q.value='';q.style.height='auto';b.disabled=true;const wait=add('a','思考中…(本地生成,請稍候)')
+var CTRL=null
+function setGen(on){if(on){b.textContent='■';b.title='停止生成';b.classList.add('stop')}else{b.textContent='↑';b.title='送出';b.classList.remove('stop');b.disabled=false}}
+async function runGen(text,wait){
+ wait._bubble.innerHTML='<span class=dots><i></i><i></i><i></i></span>'
+ var og=wait.querySelector('.g');if(og)og.remove()
+ var controller=new AbortController();CTRL=controller;setGen(true)
  const payload=attached?{messages:[{role:'user',content:text}],augur_attach:attached}:{messages:[{role:'user',content:text}]}
- try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+ try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal})
   const reader=r.body.getReader(),dec=new TextDecoder();var buf='',full='',first=true
   while(true){const rd=await reader.read();if(rd.done)break
    buf+=dec.decode(rd.value,{stream:true});var lines=buf.split('\\n');buf=lines.pop()
@@ -309,12 +357,31 @@ async function send(e){e.preventDefault();const text=q.value.trim();if(!text)ret
   var allp=full.split('\\n---\\n').map(function(s){return s.trim()})
   var gl=allp.filter(function(s){return s.indexOf('[augur-guard]')===0}).join(' ')
   var body=allp.filter(function(s){return s&&s.indexOf('[augur-guard]')!==0}).join('\\n\\n')||'(無回覆)'
-  wait._bubble.innerHTML=mdToHtml(body);recordMsg('a',body)
+  wait._bubble.innerHTML=mdToHtml(body)
   var pass=gl.indexOf('pass=true')>=0
-  const gd=document.createElement('div');gd.className='g '+(pass?'pass':'fail')
-  gd.textContent='[guard] '+(pass?'通過':'攔下(改誠實句)');wait.appendChild(gd)
- }catch(err){var ec=document.createElement('div');ec.className='errcard';ec.textContent='⚠ 連線或殼錯誤：'+String(err)+'（可重新輸入送出）';wait._bubble.innerHTML='';wait._bubble.appendChild(ec)}
- b.disabled=false;q.focus();return false}
+  var gd=document.createElement('div');gd.className='g '+(pass?'pass':'fail');gd.textContent='[guard] '+(pass?'通過':'攔下(改誠實句)');wait.appendChild(gd)
+  return body
+ }catch(err){
+  if(controller.signal.aborted){wait._bubble.innerHTML=full?mdToHtml(full):'(已停止)';return full||''}
+  var ec=document.createElement('div');ec.className='errcard';ec.textContent='⚠ 連線或殼錯誤：'+String(err)+'（可重新輸入送出）';wait._bubble.innerHTML='';wait._bubble.appendChild(ec);return null
+ }finally{if(CTRL===controller)CTRL=null;setGen(false)}
+}
+function addRetry(wait,text){var a=wait.querySelector('.actions');if(!a||wait._hasRetry)return;wait._hasRetry=1
+ var rb=document.createElement('button');rb.className='act';rb.textContent='重試';rb.setAttribute('aria-label','重新生成')
+ rb.onclick=function(){if(CTRL)return;runGen(text,wait).then(function(bd){if(bd){if(wait._mi){wait._mi.content=bd;saveSessions();renderRecents()}else{wait._mi=recordMsg('a',bd)}}})}
+ a.appendChild(rb)}
+async function send(e){e.preventDefault()
+ if(CTRL){CTRL.abort();return false}
+ const text=q.value.trim();if(!text)return false
+ var _g=document.getElementById('greet');if(_g)_g.remove();pinned=true
+ if(text=='/移除'||text=='/remove'){clearAttach();q.value='';q.style.height='auto';slashMenu();return false}
+ add('u',text);recordMsg('u',text);q.value='';q.style.height='auto';slashMenu()
+ var wait=add('a','')
+ var body=await runGen(text,wait)
+ if(body){wait._mi=recordMsg('a',body);addRetry(wait,text)}
+ q.focus();return false}
+function slashMenu(){var el=document.getElementById('slashmenu');if(!el)return;el.style.display=(q.value.charAt(0)==='/')?'block':'none'}
+function slashPick(cmd){q.value=cmd;q.focus();slashMenu()}
 var attached=null,_pk='A'
 function togglePlus(){var m=document.getElementById('plusmenu');m.style.display=m.style.display=='block'?'none':'block'}
 function pick(kind){_pk='A';document.getElementById('plusmenu').style.display='none';document.getElementById(kind=='folder'?'dpick':'fpick').click()}
