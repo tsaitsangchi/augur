@@ -66,3 +66,10 @@ def example_payload():
         validation={"rank_ic": 0.1418, "sharpe": 1.26,
                     "note": "alpha 僅 long 側、long-short 無效;Sharpe 為扣成本後 purged walk-forward"},
     )
+
+
+def empty_payload():
+    """一般問答之空 payload(精準度改善 §2.4 D-1):非選股題【不注入示範選股】——去雜訊 + 避免把示範/非真實
+    數字夾進每則回覆。numbers()=∅ → guard 數字白名單為空、模型自造任何統計數字皆被攔(**更嚴不更鬆**,守 #1);
+    picks 恆空 → guard ④ 逆向閘自然 no-op。真實選股問答另走 PredictionPayload。"""
+    return KnowledgePayload(as_of="2026-05-31", domain="general", sql_numbers=frozenset())

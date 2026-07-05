@@ -176,6 +176,26 @@ def test_reply_text_keeps_mode_b_attached_block():
     assert "你附加的文件" in t            # Mode B 區塊保留、不受公版隱藏影響
 
 
+def test_query_kind_classifies():
+    """題型偵測(精準度 §2.1):投資意圖/代號→analysis、純定義→definition、其餘→general(保守不誤殺)。"""
+    from augur.advisor.prompt import _query_kind
+    assert _query_kind("會計是什麼?") == "definition"
+    assert _query_kind("PER 怎麼計算") == "definition"
+    assert _query_kind("2330 該不該買?") == "analysis"
+    assert _query_kind("台積電值得布局嗎") == "analysis"
+    assert _query_kind("今天天氣如何") == "general"
+
+
+def test_build_prompt_adapts_to_query_kind():
+    """定義題 prompt 注入『不套三姿態』hint、分析題注入『投資分析題』hint(治『回答很像』)。"""
+    from augur.advisor.prompt import build_prompt
+    from augur.advisor.payload import empty_payload
+    pdef = build_prompt("會計是什麼?", empty_payload(), [])
+    assert "定義/概念題" in pdef and ("不要套三姿態" in pdef or "不要硬套" in pdef)
+    pana = build_prompt("2330 該不該買?", empty_payload(), [])
+    assert "投資分析題" in pana
+
+
 def test_chat_completion_guard_fail_returns_fixed_honest_closed_set(monkeypatch):
     c = _completion(monkeypatch, "模型 score 高達 0.9999,保證獲利。")   # 編造數字+保證語
     content = c["choices"][0]["message"]["content"]
