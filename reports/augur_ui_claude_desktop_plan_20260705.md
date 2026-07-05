@@ -424,9 +424,9 @@ augur 已實作 `/移除`、`/remove`（解除附加）、`+路徑`（資料夾 
 - **`#chip` 升多附件卡列（gap，low）**：從單一標籤升為每卡「檔名 ellipsis + 檔型 icon + × 個別移除」，對齊 Claude chip 樣式（小圓角）。
 - **不做圖片縮圖預覽**（qwen3 文字模型、非多模態，§8）。
 
-### 5.7 placeholder / 免責（現況 done，保留）
+### 5.7 placeholder / 免責（現況 done）
 
-placeholder「輸入訊息…」（等同 claude.ai「Message Claude…」）。免責小字「本地 qwen3:8b · 引文逐字閘;答不出即誠實說不知道」——比通用「Claude can make mistakes」更具體、是 augur 誠實特性，**維持不動、勝過照抄**。
+placeholder「輸入訊息…」（等同 claude.ai「Message Claude…」）。免責小字**照抄 claude.ai 風格**〔用戶 2026-07-05 拍板「照抄 claude.ai」，**覆蓋本計劃原「維持 augur 特有版」之建議**〕：「誠實博學的我可能會出錯，請查證重要資訊。」（對齊 claude.ai「Claude can make mistakes. Check important info.」；**已落地** commit 2a4c2c4）。三情境位置（§3.10）claude.ai 無對應等價物、維持側欄 nav（Claude 式位置）。
 
 ---
 
@@ -448,6 +448,8 @@ placeholder「輸入訊息…」（等同 claude.ai「Message Claude…」）。
 ---
 
 ## 7. 分階段（標 augur 現況 done / gap / 優先序）
+
+> **執行進度（2026-07-05 post-plan 已落地）**：✅ **Phase 1 全部**（`#log min-height:0` 捲動釘底 + pinned 黏底狀態機 + 回到底部鈕）· ✅ **serif/sans 二分**（§1.2）· ✅ **串流 SSE**（§4.1，mock 殼端到端驗）· ✅ 免責照抄 claude.ai（§5.7）· ✅ 左下帳號區（§3.8）· ✅ 永遠淺色 · ✅ 後台背景工作 log 選取複製（§背景工作延伸）。**剩餘 gap**：Phase 2 側欄（recents 時間分組/hover 選單/搜尋/starred）· Phase 3（think 折疊/訊息工具列/程式碼複製/Cmd+K/toast+資料BUG/錯誤卡/骨架/chips/responsive）· Phase 4（模型 pill/停止鈕/斜線選單）。
 
 ### Phase 0 — 已實作（現況 done，本次不動）
 暖色設計系統 + token、260px sidebar（brand/新對話/三情境/recents localStorage/健康燈/左下帳號區真實查 `app_user`）、composer（圓角 24px/＋附加/textarea Enter 送出/自動長高 180px）、訊息樣式（user 右氣泡/assistant ✻ 星章）、`mdToHtml`（標題/清單/inline code/深色 code block/粗體/連結）、`:focus-visible` 珊瑚 ring、`/health` 15s 輪詢三燈、鎖 `color-scheme:light`、後台 `.side` 分段捲動 + `.acct-box` 貼底 + 文件 md 渲染。
