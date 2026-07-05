@@ -199,63 +199,31 @@ _SCOPE_OPTIONS = "".join(f"<option>{v}</option>" for v in _SCOPES)
 
 # 資料夾選取兩面板(A 頁內瀏覽器 / B 原生上傳)。純 stdlib、同源 fetch 帶 cookie;非 f-string(JS 大括號免跳脫)。
 PANELS = ("""
-<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px;margin:10px 0">
-<b>A · 頁內瀏覽選取資料夾</b>(點資料夾進入,選定即解析;可瀏覽家目錄與 Windows 磁碟,引用路徑不複製)
-<div id=rootbar style="margin:6px 0;display:flex;gap:6px;flex-wrap:wrap"></div>
-<div id=bcrumb style="font-size:12px;color:#7d8590;margin:4px 0"></div>
-<div id=dirlist style="max-height:220px;overflow:auto;border:1px solid #30363d;border-radius:6px;padding:6px;margin:4px 0"></div>
-<div id=curinfo style="font-size:12px;color:#7d8590;margin:4px 0"></div>
-<form method=post action=/api/folder onsubmit="return document.getElementById('seldir').value!=''">
-<input type=hidden name=dir id=seldir>
-<select name=license style="padding:8px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">"""
+<div class=card>
+<b>選擇檔案或資料夾入庫</b>
+<div style="font-size:13px;color:#7d8590;margin-bottom:12px">點按鈕開啟檔案管理員選取(Windows 或 WSL 內的檔皆可),逐字入知識庫。license 受 DB CHECK 硬擋只准公開授權。</div>
+<div style="margin-bottom:12px">授權 <select id=inlic style="padding:8px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">"""
 + _LIC_OPTIONS + """</select>
-<select name=access_scope style="padding:8px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">"""
-+ _SCOPE_OPTIONS + """</select>
-<button style="padding:8px 14px;background:#1f6feb;color:#fff;border:0;border-radius:6px">選此資料夾解析</button></form></div>
-
-<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px;margin:10px 0">
-<b>B · 原生視窗上傳資料夾</b>(按下彈作業系統選取視窗→上傳夾內檔案解析;抓瀏覽器所在機器之檔,大夾較重)
-<div style="margin:6px 0"><input type=file id=upfiles webkitdirectory directory multiple
- style="color:#e6edf3"></div>
-<select id=uplic style="padding:8px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">"""
-+ _LIC_OPTIONS + """</select>
-<select id=upscope style="padding:8px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">"""
-+ _SCOPE_OPTIONS + """</select>
-<button type=button onclick="doUpload()" style="padding:8px 14px;background:#1f6feb;color:#fff;border:0;border-radius:6px">上傳並解析</button>
-<pre id=upresult style="white-space:pre-wrap;color:#7d8590;font-size:13px;margin-top:8px"></pre></div>
-
+ 範圍 <select id=inscope style="padding:8px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">"""
++ _SCOPE_OPTIONS + """</select></div>
+<button type=button onclick="pick('file')" style="padding:9px 16px;background:#1f6feb;color:#fff;border:0;border-radius:8px;cursor:pointer;margin-right:8px">📄 選檔案</button>
+<button type=button onclick="pick('folder')" style="padding:9px 16px;background:#1f6feb;color:#fff;border:0;border-radius:8px;cursor:pointer">📁 選資料夾</button>
+<input type=file id=fpick style="display:none">
+<input type=file id=dpick webkitdirectory directory multiple style="display:none">
+<pre id=upresult style="white-space:pre-wrap;color:#7d8590;font-size:13px;margin-top:12px"></pre>
+</div>
 <script>
-function _mk(tag,txt){var e=document.createElement(tag);if(txt!=null)e.textContent=txt;return e}
-async function browse(p){
-  var r=await fetch('/api/browse?path='+encodeURIComponent(p||'HOME'));var j=await r.json();
-  var rb=document.getElementById('rootbar');
-  if(!rb.dataset.done && j.roots){rb.dataset.done='1';
-    j.roots.forEach(function(rt){var b=_mk('button',rt.name);b.type='button';
-      b.style.cssText='padding:5px 10px;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:6px;cursor:pointer';
-      b.onclick=function(){browse(rt.path)};rb.appendChild(b)})}
-  var list=document.getElementById('dirlist');list.innerHTML='';
-  if(!j.ok){list.appendChild(_mk('div','⚠ '+(j.error||'瀏覽失敗')));document.getElementById('seldir').value='';return}
-  document.getElementById('seldir').value=j.path;
-  document.getElementById('bcrumb').textContent='目前:'+j.path;
-  document.getElementById('curinfo').textContent='此資料夾直屬檔案 '+j.file_count+' 個'+(j.samples&&j.samples.length?'(例:'+j.samples.join('、')+')':'')+' · 子資料夾 '+j.dirs.length+' 個';
-  if(j.parent){var up=_mk('button','⬆ 上層');up.type='button';up.style.cssText='display:block;width:100%;text-align:left;padding:5px;background:transparent;color:#3fb950;border:0;cursor:pointer';up.onclick=function(){browse(j.parent)};list.appendChild(up)}
-  j.dirs.forEach(function(d){var b=_mk('button','📁 '+d.name);b.type='button';
-    b.style.cssText='display:block;width:100%;text-align:left;padding:5px;background:transparent;color:#e6edf3;border:0;cursor:pointer';
-    b.onclick=function(){browse(d.path)};list.appendChild(b)});
-  if(!j.dirs.length)list.appendChild(_mk('div','(無子資料夾;可直接選此資料夾解析)'))
+function pick(kind){document.getElementById(kind=='folder'?'dpick':'fpick').click()}
+document.getElementById('fpick').onchange=function(){doUpload(this.files);this.value=''}
+document.getElementById('dpick').onchange=function(){doUpload(this.files);this.value=''}
+async function doUpload(files){
+ if(!files||!files.length)return
+ var res=document.getElementById('upresult');res.textContent='上傳解析中…('+files.length+' 檔,大夾請耐心)'
+ var fd=new FormData();fd.append('license',document.getElementById('inlic').value);fd.append('access_scope',document.getElementById('inscope').value)
+ for(var i=0;i<files.length;i++){var f=files[i];fd.append('file',f,f.webkitRelativePath||f.name)}
+ try{var r=await fetch('/api/upload',{method:'POST',body:fd});res.textContent=await r.text()}
+ catch(e){res.textContent='上傳失敗:'+e}
 }
-async function doUpload(){
-  var inp=document.getElementById('upfiles');
-  if(!inp.files.length){alert('先選一個資料夾');return}
-  var fd=new FormData();
-  fd.append('license',document.getElementById('uplic').value);
-  fd.append('access_scope',document.getElementById('upscope').value);
-  for(var i=0;i<inp.files.length;i++){var f=inp.files[i];fd.append('file',f,f.webkitRelativePath||f.name)}
-  var res=document.getElementById('upresult');res.textContent='上傳中…('+inp.files.length+' 檔,大夾請耐心)';
-  try{var r=await fetch('/api/upload',{method:'POST',body:fd});res.textContent=await r.text()}
-  catch(e){res.textContent='上傳失敗:'+e}
-}
-browse('HOME');
 </script>
 """)
 
@@ -402,11 +370,7 @@ rounds <input name=rounds value=1 type=number min=1 max=20 style="width:60px;pad
 <section id=sec-local class=sec>
 <h1>本機匯入</h1><div class=desc>把本機或已掛載(/mnt、SSHFS)的資料夾/檔案逐字入知識庫。license 受 DB CHECK 硬擋只准公開授權。</div>"""
     + PANELS +
-    f"""<div class=card><b>C · 打字輸入路徑解析</b>(power user;遞迴讀任意副檔名、逐字入庫;路徑限家目錄或 /mnt 下)
-<form method=post action=/api/folder><input name=dir placeholder="~/docs" style="padding:8px;width:40%;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px">
-<select name=license style="padding:8px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">{_LIC_OPTIONS}</select>
-<button style="padding:8px 14px;background:#1f6feb;color:#fff;border:0;border-radius:6px">解析(private)</button></form></div>
-</section>
+    f"""</section>
 <section id=sec-remote class=sec>
 <h1>遠端 SFTP</h1><div class=desc>用 SSH 金鑰連遠端主機、瀏覽目錄樹、下載選定資料夾入庫。連線設定存 config（不存密碼）。</div>"""
     + SFTP_PANEL + NAV_SCRIPT)
