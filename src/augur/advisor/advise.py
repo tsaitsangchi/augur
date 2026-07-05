@@ -11,8 +11,10 @@
 """
 from augur.advisor.prompt import build_prompt
 from augur.advisor.guard import (NO_KNOWLEDGE_RESPONSE, citation_numbers, guard,
-                                 guard_definition, guard_empty_retrieval, guard_knowledge)
-from augur.advisor.payload import KnowledgePayload
+                                 guard_attribution, guard_definition, guard_empty_retrieval,
+                                 guard_knowledge)
+from augur.advisor.payload import KnowledgePayload, empty_payload
+from augur.advisor.safe_general import general_safe_answerable
 
 
 def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_fn=None, prompt_fn=None,
@@ -35,11 +37,26 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     lex_fn = lexicon_fn or lexicon_lookup
     lex_entries = [e for t in lex_terms for e in lex_fn(t)]
     if not citations and not lex_entries:
-        # 檢索全空 → 三級誠實分級(拍板3/憲章 v1.25.0):level 1(庫中確無「知識庫中無此內容」)/
-        # level 2(隔離館藏 review_flag=true 庫存但歸屬未驗「知識庫存有此著作但歸屬未驗證,不予引用」);
-        # 機械分級(answer.honesty_level 旁查 title-mention)、不經 LLM(#15 機制保證、非自律)。
+        # 檢索全空 → 三級誠實分級(憲章 v1.25.0)+ 誠實保守白名單放行(v1.35.0,W2b/Phase2)。
+        # 機械分級(answer.honesty_level 旁查 title-mention):level-2(隔離館藏未驗)恆不放行。
         from augur.advisor.answer import honesty_level
-        _lvl, resp = honesty_level(query, citations)
+        lvl, resp = honesty_level(query, citations)
+        # 誠實保守白名單(v1.35.0):僅 level-1(庫中確無)、非 Mode B(prompt_fn 未覆寫)、通識白名單三閘
+        # AND 命中 → 交 LLM 通識作答;放行路走 empty_payload(數字/引文白名單=∅)+ guard_knowledge +
+        # 出處斷言閘,guard 任一不過即 fail-closed 退回第一固定句(誠實下限=現行、最壞退化不惡化)。
+        if lvl == 1 and prompt_fn is None and general_safe_answerable(query):
+            ep = empty_payload()
+            gen_prompt = build_prompt(query, ep, [], lex_entries)
+            gen_resp = llm_fn(gen_prompt)
+            vk = guard_knowledge(gen_resp, ep, [], sql_numbers=())
+            va = guard_attribution(gen_resp, [])
+            verdict = {"pass": vk["pass"] and va["pass"], "issues": vk["issues"] + va["issues"]}
+            if verdict["pass"]:
+                return {"response": gen_resp, "guard": verdict,
+                        "citations": [], "lex_entries": [], "prompt": gen_prompt}
+            resp = NO_KNOWLEDGE_RESPONSE                 # guard 不過 → fail-closed
+            return {"response": resp, "guard": guard_empty_retrieval(resp, []),
+                    "citations": [], "lex_entries": [], "prompt": gen_prompt}
         verdict = guard_empty_retrieval(resp, citations)
         return {"response": resp, "guard": verdict,
                 "citations": citations, "lex_entries": lex_entries, "prompt": None}
@@ -51,6 +68,10 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
                                   sql_numbers=citation_numbers(citations))
     else:
         verdict = guard(response, payload, citations)
+    av = guard_attribution(response, citations)      # 第五條(v1.35.0):主路徑亦查出處斷言之 citation 佐證
+    if not av["pass"]:                               # (R2:撈到不相關 citation 卻捏造古典出處/錯章 → fail-closed)
+        verdict["issues"].extend(av["issues"])
+        verdict["pass"] = not verdict["issues"]
     if lex_entries:
         dv = guard_definition(response, lex_entries)
         verdict["issues"].extend(dv["issues"])

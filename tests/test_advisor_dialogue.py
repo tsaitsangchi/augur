@@ -233,3 +233,57 @@ def test_sse_events_role_first_and_done_last(monkeypatch):
     deltas = [_json.loads(e[6:]) for e in events[:-1]]                  # 去 "data: " 前綴
     text = "".join(d["choices"][0]["delta"].get("content", "") for d in deltas)
     assert "[augur-guard]" in text                                      # 尾註隨 chunk 完整送出
+
+
+# ── W2b/Phase2 空檢索誠實保守白名單放行(憲章 v1.35.0)──
+def test_general_safe_answerable_golden_set():
+    """紅隊 golden-set(對抗審查實測反例):A 類需真實資料一律 False、B 類通識 True、
+    fail-safe 偏保守。詞表增刪須過此 gate、false-positive(誤放需 citation 題)零容忍。"""
+    from augur.advisor.safe_general import general_safe_answerable as f
+    # A 類需真實資料/出處/模型 → 必 False(誤放=踩三敵①)
+    for q in ["台積電2330的EPS是多少", "2330 該不該買", "台積電 score 多少", "這個因子 IC 多少",
+              "什麼是無風險利率", "本益比怎麼算", "台積電殖利率多少", "現在通膨多少",
+              "民無信不立是孔子講的嗎", "知之為知之這是論語裡的話對吧", "誰說過知足常樂",
+              "巴菲特說過什麼名言", "論語裡怎麼講誠信", "《論語》在講什麼"]:
+        assert f(q) is False, q
+    # B 類通識(B1 定義 / B2 風險原則)→ 必 True
+    for q in ["有沒有穩賺不賠的股票", "有沒有保證獲利的投資", "存不存在零風險的標的",
+              "分散投資是什麼意思", "什麼是複利", "會計是什麼", "護城河是什麼意思"]:
+        assert f(q) is True, q
+    # 年份/金額不誤判為股號(不因誤報 A 而崩)
+    assert f("1929年大蕭條是什麼") in (True, False)      # 不 crash、不因 ticker 誤殺
+    assert f("") is False and f("x" * 61) is False       # 空/超長結構閘
+
+
+def test_guard_attribution_backing_check():
+    """出處斷言閘(第五條):空檢索任何出處斷言 fail;非空須被斷言之經典有 citation 佐證,
+    否則 fail(R2 錯章捏造);現代歸屬不擋(已接受殘餘);有佐證放行。"""
+    from augur.advisor.guard import guard_attribution as g
+    lunyu = [_Cite(text="君子務本 本立而道生", work_title="論語")]
+    augus = [_Cite(text="奧古斯丁論盲導盲", work_title="懺悔錄")]
+    assert g("民無信不立出自論語顏淵篇。", [])["pass"] is False           # 空:裸出處
+    assert g("民無信不立確實出自《論語·為政》。", augus)["pass"] is False  # 非空但無佐證=R2
+    assert g("正如《論語》所說君子務本。", lunyu)["pass"] is True         # 真引論語→佐證
+    assert g("這見於孟子公孫丑篇。", lunyu)["pass"] is False              # 斷言孟子卻只引論語
+    assert g("安全邊際源自格雷厄姆的價值投資。", augus)["pass"] is True   # 現代歸屬不擋
+    assert g("沒有穩賺不賠的股票,都有風險。", [])["pass"] is True         # 乾淨無斷言
+
+
+def test_advise_empty_retrieval_whitelist_routing(monkeypatch):
+    """空檢索路由(v1.35.0):B 放行→呼叫 LLM 回通識;A 回退→不呼叫 LLM 回固定句;
+    放行但 LLM 捏造出處→出處閘 fail-closed 退固定句(誠實下限=現行)。honesty_level 以替身免 DB。"""
+    from augur.advisor.advise import advise
+    from augur.advisor.payload import empty_payload
+    monkeypatch.setattr("augur.advisor.answer.honesty_level",
+                        lambda q, c: (1, NO_KNOWLEDGE_RESPONSE))         # 強制 level-1、免 DB sidecar
+    empty_ret = lambda q, k=6, scope=None: []
+    calls = []
+    def llm(p): calls.append(p); return "沒有穩賺不賠的股票,任何投資都有風險。"
+    r = advise("有沒有穩賺不賠的股票", empty_payload(), llm, retrieve_fn=empty_ret, scope=None)
+    assert calls and r["response"].startswith("沒有穩賺不賠") and r["guard"]["pass"]   # B2 放行
+    calls.clear()
+    r2 = advise("台積電2330的EPS是多少", empty_payload(), llm, retrieve_fn=empty_ret, scope=None)
+    assert not calls and r2["response"] == NO_KNOWLEDGE_RESPONSE                        # A 回退、零 LLM
+    r3 = advise("有沒有穩賺不賠的股票", empty_payload(),
+                lambda p: "沒有穩賺不賠,正如《論語》所說。", retrieve_fn=empty_ret, scope=None)
+    assert r3["response"] == NO_KNOWLEDGE_RESPONSE                                      # 放行但捏造出處→fail-closed

@@ -27,6 +27,20 @@ _REVERSE = re.compile(
 _METRIC_NUM = re.compile(
     r"(?:\b(?:IC|Sharpe|score)\b|分數)[^\d\n。,;,;]{0,8}?(\d+(?:\.\d+)?)", re.IGNORECASE)
 
+# 出處斷言閘(第五條 fail-close,憲章 v1.35.0):放行路無 citation 時,防「裸出處捏造」——
+# 模型輸出看似在引哲學/古典語料庫(書名號、經典+篇章、古人曰、出自X篇)但無真兆 citation 佐證。
+# 既有引文閘①只擋引號內≥8字逐字,裸出處(無引號)全漏(紅隊 R2 實證 guard PASS),此閘補之。
+# 聚焦古典/語料出處(與 augur 哲學語料庫混淆之風險);現代概念歸屬(如格雷厄姆提出安全邊際)屬
+# 一般知識、非①治理對象,不在此閘(其事實正確性為已接受殘餘、非機械可判)。
+_CLASSIC_NAMES = (r"論語|孟子|大學|中庸|道德經|老子|莊子|荀子|韓非子|墨子|孫子兵法|司馬法|"
+                  r"史記|春秋|周易|易經|詩經|尚書|資治通鑑|傳習錄|近思錄|六祖壇經")
+_ATTRIBUTION_OUT = re.compile(
+    r"《[^》]{1,30}》"
+    rf"|(?:{_CLASSIC_NAMES})[^。\n]{{0,12}}(?:篇|章|卷|曰|云|記載|寫道|提到|所言|所云)"
+    rf"|(?:出自|語出|典出|見於|載於|引自)[^。\n]{{0,15}}(?:{_CLASSIC_NAMES}|篇|章|卷)"
+    r"|(?:孔子|孟子|老子|莊子|荀子|韓非|墨子|朱熹|王陽明|曾子)[^。\n]{0,8}(?:曰|云|說道|有云|有言)")
+_CLASSIC_RE = re.compile(_CLASSIC_NAMES)
+
 
 def guard(response, payload, citations):
     """回 {'pass': bool, 'issues': [str]}。issues 非空 = 應攔截/重生成。"""
@@ -118,6 +132,28 @@ def guard_empty_retrieval(response, results):
     issues = []
     if not results and response.strip() not in HONESTY_CLOSED_SET:
         issues.append(f"檢索空但回覆非誠實句閉集{HONESTY_CLOSED_SET}(#15)")
+    return {"pass": not issues, "issues": issues}
+
+
+def guard_attribution(response, citations):
+    """出處斷言閘(第五條 fail-close,憲章 v1.35.0;放行路與主路徑皆生效):回覆含古典/語料出處斷言
+    (《書名》/經典+篇章/古人曰/出自X篇)時,須有 citation 佐證所斷言之經典——
+      · 空檢索(citations=[]):任何出處斷言即 fail(無真兆可佐、裸出處捏造);
+      · 非空:被斷言之古典書名須有某 citation 的 work_title/text 佐證,否則 fail
+        (紅隊 R2:撈到奧古斯丁卻宣稱出自《論語·為政》、錯章捏造 → 擋)。
+    既有四閘正則(①②③④)一字不動;此為並列第五條。回 {'pass','issues'}。"""
+    issues = []
+    if not _ATTRIBUTION_OUT.search(response):
+        return {"pass": True, "issues": issues}
+    if not citations:
+        issues.append("含古典/語料出處斷言但無 citation、疑裸出處捏造(#1)")
+        return {"pass": False, "issues": issues}
+    asserted = set(re.findall(r"《([^》]{1,30})》", response)) | set(_CLASSIC_RE.findall(response))
+    blob = " ".join(((getattr(c, "work_title", "") or getattr(c, "item_title", "") or "")
+                     + " " + (getattr(c, "text", "") or "")) for c in citations)
+    unbacked = [a for a in asserted if re.split(r"[·•・\s]", a)[0] not in blob]
+    if unbacked:
+        issues.append(f"出處斷言之經典無 citation 佐證、疑捏造出處(#1):{unbacked[:3]}")
     return {"pass": not issues, "issues": issues}
 
 
