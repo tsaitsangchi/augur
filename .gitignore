@@ -11,9 +11,11 @@ __pycache__/
 build/
 dist/
 
-# 資料 / 模型（machine-local，不進 git；由 from-zero 重建）
-data/
-models/
+# 資料 / 模型輸出（machine-local，不進 git；由 from-zero 重建）
+# 錨定根目錄：勿誤傷 src/augur/models/ 套件原始碼（未錨定之 models/ 會遞迴匹配任意層）
+/data/
+/models/
+/models_artifacts/
 *.log
 
 # 報告產出（JSON dump 等；.md 報告視情況 force-add）
