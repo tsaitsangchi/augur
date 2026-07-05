@@ -33,17 +33,26 @@ def clean_work_sql(work_alias="w"):
     return f"{work_alias}.review_flag = false AND {work_alias}.corpus_class = 'literary'"
 
 
-def clean_item_sql(item_alias="i", itext_alias="x", access_scope=None):
-    """items 側 CLEAN_ITEM 述詞(SQL 片段):license 白名單 × entity_type 語意層准入 [× access_scope 隔離]。
+def clean_item_sql(item_alias="i", itext_alias="x", access_scope=None,
+                   is_super=False, allowed_domains=None):
+    """items 側 CLEAN_ITEM 述詞 ＋ RBAC domain 收窄(RBAC P3,計畫 §4.2)。**回 (sql_fragment, params:list)**。
 
-    item_alias   = knowledge_item 之別名(供 entity_type)
-    itext_alias  = knowledge_item_text 之別名(供 license/access_scope)
-    access_scope = None(預設,不濾;供**嵌入端**——public+local_private 皆嵌才可被檢索);
-                   'public'=**對外檢索**用(local_private 本機檔不入對外池,拍板P2 機器保證);
-                   'local_private'=admin 私有對話用。值來自封閉集(非外部輸入,無注入面);NULL 欄不放行。"""
+    呼叫端一律 `frag, fp = clean_item_sql(...); sql += frag; params += fp`(消手工位置對齊、關 fail-open)。
+    - license 白名單 × entity_type 語意層准入(封閉集、安全字面內插);access_scope 封閉集內插。
+    - **RBAC domain(開放值 → 參數化,不內插)**:`is_super=True`→不濾 domain(embed/builder 非讀取路徑傳此);
+      否則 `allowed_domains` 空(None/[])→ `AND false`(**預設 deny**、非「不濾」——⚠ 與舊 access_scope=None 語意相反);
+      非空 → `AND domain = ANY(%s::text[])`。讀取路徑(retrieve_*)一律傳 resolve_allowed_domains 之 (is_super, allowed)。
+    """
     p = (f"{itext_alias}.license IN ({_quoted(LICENSE_WHITELIST)}) "
          f"AND {item_alias}.entity_type IN ({_quoted(SEMANTIC_ENTITY_TYPES)})")
+    params = []
     if access_scope is not None:
         assert access_scope in ("public", "local_private"), f"非法 access_scope: {access_scope}"
         p += f" AND {itext_alias}.access_scope = '{access_scope}'"
-    return f"({p})"
+    if not is_super:
+        if not allowed_domains:
+            p += " AND false"                                  # fail-closed:無授權域=零可見
+        else:
+            p += f" AND {item_alias}.domain = ANY(%s::text[])"
+            params.append(list(allowed_domains))
+    return f"({p})", params

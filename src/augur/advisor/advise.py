@@ -15,7 +15,8 @@ from augur.advisor.guard import (NO_KNOWLEDGE_RESPONSE, citation_numbers, guard,
 from augur.advisor.payload import KnowledgePayload
 
 
-def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_fn=None, prompt_fn=None):
+def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_fn=None, prompt_fn=None,
+           scope=None):
     """顧問一次問答。
 
     query:      用戶問題
@@ -30,7 +31,7 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     """
     from augur.philosophy.retrieval import retrieve, lexicon_lookup, verify_verbatim
     src_fn = retrieve if retrieve_fn is None else retrieve_fn
-    citations = [c for c in src_fn(query, k=k) if verify_verbatim(c)]  # 機械攔 stale/非逐字;注入亦一律後驗(#1,M2)
+    citations = [c for c in src_fn(query, k=k, scope=scope) if verify_verbatim(c)]  # RBAC scope 一路傳達(P3,§4.4);機械攔 stale/非逐字(#1,M2)
     lex_fn = lexicon_fn or lexicon_lookup
     lex_entries = [e for t in lex_terms for e in lex_fn(t)]
     if not citations and not lex_entries:

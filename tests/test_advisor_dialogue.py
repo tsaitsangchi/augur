@@ -115,7 +115,7 @@ def _advise(monkeypatch, verify_result):
         calls["prompt"] = prompt
         return "(mock)固定回覆。"
     out = advise("test query", example_payload(), llm,
-                 retrieve_fn=lambda q, k: list(_KCITES))
+                 retrieve_fn=lambda q, k, scope=None: list(_KCITES))
     return out, calls
 
 def test_m2_injected_citations_pass_verify(monkeypatch):
@@ -145,7 +145,7 @@ def _completion(monkeypatch, llm_text, verify_result=True):
     monkeypatch.setattr(retr, "verify_verbatim", lambda c: verify_result)
     body = {"model": "augur-advisor", "messages": [{"role": "user", "content": "問題"}]}
     return oai_compat.chat_completion(body, llm_fn=lambda p: llm_text,
-                                      retrieve_fn=lambda q, k: list(_KCITES))
+                                      retrieve_fn=lambda q, k, scope=None: list(_KCITES))
 
 def test_chat_completion_guard_pass_has_verdict_tail(monkeypatch):
     c = _completion(monkeypatch, "(mock)乾淨回覆,零數字零引號。")

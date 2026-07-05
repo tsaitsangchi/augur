@@ -110,10 +110,11 @@ def fetch_batch(cur, layer, language, side, cursor, n=2000):
             WHERE {corpus.clean_work_sql('w')} AND l.lex_id > %s ORDER BY l.lex_id LIMIT %s""", (cursor, n))
         return [(r[0], f"{PASSAGE_PREFIX}{r[1]}: {r[2]}") for r in cur.fetchall()]
     if side == "items":
+        item_clean, _ = corpus.clean_item_sql('i', 'x', is_super=True)   # 嵌入端＝非讀取路徑,不做 RBAC domain 收窄(嵌全部 CLEAN 內容)
         cur.execute(f"""SELECT s.sent_id, s.sentence FROM knowledge_sentence s
             JOIN knowledge_item_text x ON x.itext_id = s.itext_id
             JOIN knowledge_item i ON i.item_id = x.item_id
-            WHERE s.language = %s AND {corpus.clean_item_sql('i', 'x')}
+            WHERE s.language = %s AND {item_clean}
               AND s.sent_id > %s ORDER BY s.sent_id LIMIT %s""", (language, cursor, n))
     else:
         cur.execute(f"""SELECT s.sent_id, s.sentence FROM knowledge_sentence s

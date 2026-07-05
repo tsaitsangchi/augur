@@ -90,12 +90,12 @@ def _reply_text(result):
 
 
 def chat_completion(body, llm_fn, payload_fn=example_payload, retrieve_fn=None,
-                    k=6, cmpl_id=None, created=None):
+                    k=6, cmpl_id=None, created=None, scope=None):
     """POST /v1/chat/completions 主邏輯(非串流形;串流由 handler 以偽 SSE 分塊同一結果)。
 
-    唯一編排出口=advise();殼不碰檢索/prompt/guard 細節。
-    回 OpenAI chat.completion dict(額外帶 augur_guard 結構欄,client 不識則忽略);
-    請求不合法 raise ValueError(handler 轉 400)。
+    唯一編排出口=advise();殼不碰檢索/prompt/guard 細節。scope=(is_super, allowed_domains) 由 handler
+    自 session 解析(RBAC P3,§4.3)、一路傳達檢索;None → 下游 fail-closed deny(非「不濾」)。
+    回 OpenAI chat.completion dict(額外帶 augur_guard 結構欄);請求不合法 raise ValueError(handler 轉 400)。
     """
     if not isinstance(body, dict):
         raise ValueError("request body 非 JSON object")
@@ -105,16 +105,17 @@ def chat_completion(body, llm_fn, payload_fn=example_payload, retrieve_fn=None,
     attach = body.get("augur_attach")
     if isinstance(attach, dict) and (attach.get("text") or "").strip():
         # Mode B(對話「+」附加檔只問這次):本回合注入附加檔檢索 + 文件助讀 prompt + KnowledgePayload
-        # → guard_knowledge 數字雙源(附檔段落數字放行、編造仍攔);仍走同一 advise()+guard,只換語料與人格框架。
+        # → guard_knowledge 數字雙源;仍走同一 advise()+guard。Mode B lambda 顯式 scope=None(附檔是用戶自帶、
+        # 不 RBAC domain 收窄;**禁 **kw 靜默吞——否則一般模式 scope 也被丟成 fail-open,§4.4)。
         from augur.philosophy.retrieval import retrieve_attached
         from augur.advisor.prompt import build_attached_prompt
         from augur.advisor.payload import KnowledgePayload
         doc_text, doc_title = attach["text"], (attach.get("title") or "附加文件")
         result = advise(query, KnowledgePayload(as_of="attached", domain="attached"), llm_fn, k=k,
-                        retrieve_fn=lambda q, k=k: retrieve_attached(q, doc_text, doc_title, k=k),
-                        prompt_fn=build_attached_prompt)
+                        retrieve_fn=lambda q, k=k, scope=None: retrieve_attached(q, doc_text, doc_title, k=k),
+                        prompt_fn=build_attached_prompt, scope=scope)
     else:
-        result = advise(query, payload_fn(), llm_fn, k=k, retrieve_fn=retrieve_fn)
+        result = advise(query, payload_fn(), llm_fn, k=k, retrieve_fn=retrieve_fn, scope=scope)
     return {
         "id": cmpl_id or f"chatcmpl-augur-{uuid.uuid4().hex[:12]}",
         "object": "chat.completion",
@@ -158,6 +159,23 @@ class AdvisorHandler(BaseHTTPRequestHandler):
         s = self.server
         return dict(llm_fn=s.llm_fn, payload_fn=s.payload_fn, retrieve_fn=s.retrieve_fn, k=s.k)
 
+    def _resolve_scope(self):
+        """RBAC scope 解析(P3,§4.3):有 X-Augur-Internal→驗機密後以 X-Augur-Session 自查 DB 自 resolve
+        (**絕不信 body/header 帶入的 user_id/allowed_domains/is_super**);機密不符/session 無效→fail-closed deny。
+        相容期(無 internal header、前台尚未接身分 P4)→ superuser stopgap(僅 loopback 單一 admin,P4 接身分後即改由 session 決)。"""
+        internal = self.headers.get("X-Augur-Internal")
+        if internal is not None:                       # 前台已走內部身分通道
+            secret = getattr(self.server, "internal_secret", None)
+            if not (secret and internal == secret):
+                return (False, frozenset())            # 共享機密不符 → fail-closed deny
+            from augur.knowledge.identity import verify_session
+            from augur.knowledge.access import resolve_allowed_domains
+            uid = verify_session(self.headers.get("X-Augur-Session"))
+            if uid is None:
+                return (False, frozenset())            # 無效 session → deny(絕不 fallback public/全庫)
+            return resolve_allowed_domains(uid)
+        return (True, frozenset())                     # 相容期 stopgap:loopback 單一 admin、P4 前(見 §4.3.4)
+
     def _send_json(self, status, obj):
         raw = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -191,7 +209,8 @@ class AdvisorHandler(BaseHTTPRequestHandler):
             self.wfile.write(role_event(cmpl_id, created).encode("utf-8"))   # keepalive 先行,advise 可分鐘級
             self.wfile.flush()
             try:
-                completion = chat_completion(body, cmpl_id=cmpl_id, created=created, **self._deps())
+                completion = chat_completion(body, cmpl_id=cmpl_id, created=created,
+                                             scope=self._resolve_scope(), **self._deps())
             except Exception as e:                                           # 串流已開 → 以內容 chunk 誠實揭露
                 completion = {"id": cmpl_id, "created": created,
                               "choices": [{"message": {"content": f"[augur-error] {e}"}}]}
@@ -202,7 +221,7 @@ class AdvisorHandler(BaseHTTPRequestHandler):
             self.close_connection = True
             return
         try:
-            completion = chat_completion(body, **self._deps())
+            completion = chat_completion(body, scope=self._resolve_scope(), **self._deps())
         except ValueError as e:
             return self._send_json(400, {"error": {"message": str(e), "type": "invalid_request_error"}})
         except Exception as e:
@@ -212,8 +231,10 @@ class AdvisorHandler(BaseHTTPRequestHandler):
         self._send_json(200, completion)
 
 
-def make_server(host, port, llm_fn, payload_fn=example_payload, retrieve_fn=None, k=6):
-    """組好可 serve_forever() 的 ThreadingHTTPServer(依賴以 server 屬性注入 handler)。"""
+def make_server(host, port, llm_fn, payload_fn=example_payload, retrieve_fn=None, k=6, internal_secret=None):
+    """組好可 serve_forever() 的 ThreadingHTTPServer(依賴以 server 屬性注入 handler)。
+    internal_secret=前台↔殼共享機密(X-Augur-Internal;None＝無身分通道、走相容期 super stopgap,§4.3)。"""
     srv = ThreadingHTTPServer((host, port), AdvisorHandler)
     srv.llm_fn, srv.payload_fn, srv.retrieve_fn, srv.k = llm_fn, payload_fn, retrieve_fn, k
+    srv.internal_secret = internal_secret
     return srv

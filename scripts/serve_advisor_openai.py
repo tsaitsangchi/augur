@@ -60,7 +60,8 @@ def main(argv=None):
     # 死點① 接線(計畫 §三):對話端組合檢索=work(哲學/文學)+item(知識/財經/本機檔),
     # 否則抓來的知識/item 零命中(retrieve_fn=None 只走 work 側)。access_scope='public'(對外)。
     from augur.philosophy.retrieval import retrieve_all
-    srv = oai_compat.make_server(args.host, port, llm_fn, retrieve_fn=retrieve_all, k=args.k)
+    srv = oai_compat.make_server(args.host, port, llm_fn, retrieve_fn=retrieve_all, k=args.k,
+                                 internal_secret=os.environ.get("AUGUR_INTERNAL_SECRET"))
     print(f"augur-advisor 殼啟動 http://{args.host}:{port}/v1 "
           f"(llm={'mock' if args.mock_llm else model};payload=example_payload 示範;唯讀零寫;Ctrl-C 停)",
           flush=True)

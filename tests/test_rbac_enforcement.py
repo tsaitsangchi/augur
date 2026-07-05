@@ -1,0 +1,53 @@
+"""RBAC 強制越權迴歸測試(P3,計畫 §7 T1-T18 可單元化子集)— 預設 deny、fail-closed 驗收。
+
+涵蓋:T1(無群組→空集)· T2(super 不濾 domain 仍過 CLEAN)· T3(works 側非 super deny)·
+     T12(resolver 不存在/None→fail-closed)· T13(非授權邊界域對非 super deny 之 SQL 形)。
+整合型(T6-T10 IDOR/header/session)走 live smoke,非本檔。
+守 #5(fail-closed 授權)· 憲章 v1.28.0(RBAC 準則 ii/iii)。
+"""
+from augur.knowledge import access, corpus
+from augur.philosophy import retrieval
+
+
+# ── clean_item_sql fail-closed 邏輯(純單元、無 DB、無模型)──
+def test_clean_item_sql_nonsuper_empty_domains_denies():
+    """T1/T13:非 super 且無授權域(None 或空集)→ 'AND false'(預設 deny、非「不濾」)。"""
+    frag, params = corpus.clean_item_sql("i", "x", is_super=False, allowed_domains=None)
+    assert "AND false" in frag and params == []
+    frag2, _ = corpus.clean_item_sql("i", "x", is_super=False, allowed_domains=frozenset())
+    assert "AND false" in frag2
+
+
+def test_clean_item_sql_nonsuper_with_domains_parametrized():
+    """非 super 有授權域 → domain = ANY(%s)、**參數化**(開放值不內插、無注入面)。"""
+    frag, params = corpus.clean_item_sql("i", "x", is_super=False, allowed_domains={"rd_mgmt"})
+    assert "i.domain = ANY(%s::text[])" in frag
+    assert params == [["rd_mgmt"]]
+    assert "AND false" not in frag
+
+
+def test_clean_item_sql_super_no_domain_clause():
+    """T2:super → 不濾 domain,但仍過 license/entity_type CLEAN。"""
+    frag, params = corpus.clean_item_sql("i", "x", is_super=True)
+    assert "domain = ANY" not in frag and "AND false" not in frag
+    assert "license IN" in frag and "entity_type IN" in frag and params == []
+
+
+def test_clean_item_sql_returns_tuple_not_str():
+    """契約:回 (fragment, params) 二元組(呼叫端 frag,fp = ...);防退回純字串致位置參數地雷。"""
+    r = corpus.clean_item_sql("i", "x", is_super=True)
+    assert isinstance(r, tuple) and len(r) == 2 and isinstance(r[0], str) and isinstance(r[1], list)
+
+
+# ── resolver fail-closed(DB,但不存在/None 恆 deny、無 DB 狀態假設)──
+def test_resolver_failclosed_unknown_and_none():
+    """T12:user 不存在/None → (False, ∅)——絕不當 super、絕不吐全庫。"""
+    assert access.resolve_allowed_domains(None) == (False, frozenset())
+    assert access.resolve_allowed_domains(10**9) == (False, frozenset())
+
+
+# ── retrieve(works 側)非 super 預設 deny(§4.5;return [] 早於 DB、無模型)──
+def test_works_side_denies_nonsuper():
+    """T3:works 側非 super 一律 deny(A/B 裁決前 fail-closed);scope 缺亦視為非 super→deny。"""
+    assert retrieval.retrieve("安全邊際", k=4, scope=(False, frozenset())) == []
+    assert retrieval.retrieve("安全邊際", k=4, scope=None) == []

@@ -61,8 +61,12 @@ def _query_vec(query):
     return "[" + ",".join(f"{x:.6f}" for x in emb) + "]"
 
 
-def retrieve(query, k=8, work_id=None):
-    """語義檢索;回 [Citation](逐字可溯源、按相似度降序)。work_id 可限縮單一著作。"""
+def retrieve(query, k=8, work_id=None, scope=None):
+    """語義檢索(works 側)＋ RBAC(P3,§4.5):**非 super 一律 deny(return [])**——works(哲學/文學)是否
+    納入 domain 邊界屬 A/B 裁決(§8.2#5,裁決前 fail-closed);super 回 [Citation](逐字可溯源、相似度降序)。
+    scope=(is_super, allowed) 或 None(None→非 super→deny);work_id 可限縮單一著作。"""
+    if not (bool(scope[0]) if scope else False):
+        return []                                  # works 側裁決前對非 super 預設 deny(§4.5、C4/C9)
     qv = _query_vec(query)
     where = "WHERE c.work_id = %s" if work_id else ""
     sql = f"""
@@ -241,15 +245,18 @@ def _item_citations(cur, where, params, order, scores, via):
             for r in cur.fetchall()]
 
 
-def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"):
-    """items 側檢索(讀路徑鐵則 §3-S7):query→textnorm 全形集→(a)exact SQL 零向量優先
-    →(c)ANN 補位→一律 PG JOIN 取原文;CLEAN_ITEM 閘=corpus SSOT(fail-closed,NULL 不放行)。
-    (b) affinity 確定性擴展與 vectorindex(Milvus) 為既定接縫待 N3 接線,ANN 現由 pgvector(SSOT 索引)承。
-    access_scope='public'(預設,對外對話;local_private 本機檔不入,拍板P2 機器保證);admin 私有可傳其值。
+def retrieve_items(query, k=8, domain=None, language=None, access_scope="public",
+                   is_super=False, allowed_domains=None):
+    """items 側檢索(讀路徑鐵則 §3-S7)＋ RBAC domain 收窄(P3,§4.2/4.5):
+    query→textnorm 全形集→(a)exact SQL 零向量優先→(c)ANN 補位→一律 PG JOIN 取原文;
+    CLEAN_ITEM 閘＋RBAC 由 corpus.clean_item_sql 產 (frag, params)、**exact 計數/exact 取原文/ann 三段同帶**
+    (一改三處自動同帶、關 L274 與 ANN 補位兩洩漏面);fail-closed:非 super 且 allowed_domains 空 → AND false。
+    access_scope='public'(對外;local_private 本機檔不入);is_super/allowed_domains 由 resolve_allowed_domains 得。
     語料空/表未建 → 誠實回空 []。回 [ItemCitation](exact 先、ann 補位)。"""
     if not (query or "").strip():
         return []
-    clean = corpus.clean_item_sql("i", "x", access_scope=access_scope)
+    cfrag, cparams = corpus.clean_item_sql("i", "x", access_scope=access_scope,
+                                           is_super=is_super, allowed_domains=allowed_domains)
     extra, extra_params = "", []
     if domain:
         extra += " AND i.domain = %s"; extra_params.append(domain)
@@ -266,13 +273,13 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
                 JOIN knowledge_sentence s ON s.sent_id = c.sent_id
                 JOIN knowledge_item_text x ON x.itext_id = s.itext_id
                 JOIN knowledge_item i ON i.item_id = x.item_id
-                WHERE c.term = ANY(%s) AND {clean}{extra}
+                WHERE c.term = ANY(%s) AND {cfrag}{extra}
                 GROUP BY c.sent_id ORDER BY n DESC, c.sent_id LIMIT %s""",
-                        (terms, *extra_params, k))
+                        (terms, *cparams, *extra_params, k))
             scores = {sid: n / len(terms) for sid, n in cur.fetchall()}
             if scores:
-                out = _item_citations(cur, f"s.sent_id = ANY(%s) AND {clean}",
-                                      (list(scores), ), "s.sent_id", scores, "exact")
+                out = _item_citations(cur, f"s.sent_id = ANY(%s) AND {cfrag}",
+                                      (list(scores), *cparams), "s.sent_id", scores, "exact")
                 out.sort(key=lambda c: (-c.score, c.sent_id))
         need = k - len(out)
         if need > 0 and _tables_exist(cur, "knowledge_sentence_embedding"):
@@ -285,9 +292,9 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
                 cur.execute(f"""SELECT {_ITEM_COLS}, 1 - (e.embedding <=> %s::vector) AS score
                     {_ITEM_JOIN}
                     JOIN knowledge_sentence_embedding e ON e.sent_id = s.sent_id
-                    WHERE e.model_tag = %s AND {clean}{extra}{dedup}
+                    WHERE e.model_tag = %s AND {cfrag}{extra}{dedup}
                     ORDER BY e.embedding <=> %s::vector LIMIT %s""",
-                            (qv, embedspec.MODEL_TAG, *extra_params, *([seen] if seen else []), qv, need))
+                            (qv, embedspec.MODEL_TAG, *cparams, *extra_params, *([seen] if seen else []), qv, need))
                 for r in cur.fetchall():
                     out.append(ItemCitation(sent_id=r[0], itext_id=r[1], item_id=r[2], item_title=r[3],
                                             domain=r[4], entity_type=r[5], char_start=r[6], char_end=r[7],
@@ -296,14 +303,16 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
     return out
 
 
-def retrieve_all(query, k=6, access_scope="public"):
-    """work(哲學/文學語料)+ item(知識/財經/本機檔)合併檢索 — 死點① 接線(計畫 §三)。
-    對話端唯一組合檢索器:兩側各取半、交錯合併(均露臉、財經知識不被哲學語料淹沒)、cap k;
-    回混合 [Citation|ItemCitation](均含 .text/.char_start/.char_end/.source_url,verify_verbatim 型別感知、
-    prompt/guard 已 getattr 相容)。access_scope='public' 對外(local_private 不入,拍板P2)。"""
+def retrieve_all(query, k=6, access_scope="public", scope=None):
+    """work + item 合併檢索 ＋ RBAC scoped(P3,§4.5)。對話端唯一組合檢索器:兩側各取半、交錯合併、cap k。
+    **scope=(is_super, allowed_domains) 或 None**;None → fail-closed 當 (False, ∅)＝預設 deny(非「不濾」)。
+    works 側非 super 一律 deny(A/B 裁決前,§4.5);items 側經 clean_item_sql domain 收窄。
+    回混合 [Citation|ItemCitation](verify_verbatim 型別感知、prompt/guard getattr 相容)。"""
+    is_super, allowed = scope if scope else (False, frozenset())
     half = max(2, (k + 1) // 2)
-    works = retrieve(query, k=half)
-    items = retrieve_items(query, k=half, access_scope=access_scope)
+    works = retrieve(query, k=half, scope=scope)
+    items = retrieve_items(query, k=half, access_scope=access_scope,
+                           is_super=is_super, allowed_domains=allowed)
     merged = [c for pair in zip_longest(works, items) for c in pair if c is not None]
     return merged[:k]
 

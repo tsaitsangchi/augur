@@ -157,7 +157,7 @@ def _kadvise(monkeypatch, llm_text, cites=None):
     from augur.advisor.advise import advise
     monkeypatch.setattr(retr, "verify_verbatim", lambda c: True)   # DB 他證另有 M2 測;此處鎖接線分派
     return advise("化學提問", _KPAYLOAD, lambda p: llm_text,
-                  retrieve_fn=lambda q, k: list(_KCITES if cites is None else cites))
+                  retrieve_fn=lambda q, k, scope=None: list(_KCITES if cites is None else cites))
 
 
 def test_p8_domain_numbers_dual_source_pass(monkeypatch):
@@ -188,12 +188,12 @@ def test_p8_shell_mock_e2e_knowledge_payload(monkeypatch):
     body = {"model": "augur-advisor", "messages": [{"role": "user", "content": "化學提問"}]}
     ok = oai_compat.chat_completion(body, llm_fn=lambda p: "文獻量測分子量 114.32 g/mol。",
                                     payload_fn=lambda: _KPAYLOAD,
-                                    retrieve_fn=lambda q, k: list(_KCITES))
+                                    retrieve_fn=lambda q, k, scope=None: list(_KCITES))
     assert ok["augur_guard"]["pass"] is True
     assert "[augur-guard] pass=true" in ok["choices"][0]["message"]["content"]
     bad = oai_compat.chat_completion(body, llm_fn=lambda p: "由此推得分子量為 999.99 g/mol。",
                                      payload_fn=lambda: _KPAYLOAD,
-                                     retrieve_fn=lambda q, k: list(_KCITES))
+                                     retrieve_fn=lambda q, k, scope=None: list(_KCITES))
     assert bad["augur_guard"]["pass"] is False
     # R2 架構(2026-07-04):guard fail 之安全不變式=LLM 杜撰內容不外洩(而非死比對誠實句字串);
     # 有檢索時揭露系統逐字原文供參(_citations_block,真兆非 LLM 產出)。
