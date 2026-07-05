@@ -288,19 +288,22 @@ async function sbrowse(p){
 
 
 _PROGRESS_TMPL = """<!doctype html><meta charset=utf-8><title>抓取進度 · augur</title>
-<body style="font-family:system-ui;background:#faf9f5;color:#1f1e1d;max-width:900px;margin:24px auto">
+<body style="font-family:ui-sans-serif,-apple-system,'Segoe UI','Noto Sans TC',sans-serif;background:#faf9f5;color:#1f1e1d;max-width:900px;margin:24px auto;padding:0 16px">
 <h3>財經抓取進度 — 主題「__TOPIC__」 <span id=stat style="color:#b5793a">● 執行中…</span></h3>
 <div style="color:#73726c;font-size:13px;margin-bottom:8px">batch=__BATCH__ rounds=__ROUNDS__ · 背景執行(關閉此頁不中斷、resume-safe);限速/熔斷/續跑在引擎(#17/#22)。每 2 秒更新。</div>
-<pre id=logbox style="background:#f0eee6;border:1px solid #e9e6dc;border-radius:8px;padding:14px;max-height:70vh;overflow:auto;white-space:pre-wrap;font-size:12.5px">(等待引擎輸出…)</pre>
+<div style="margin-bottom:8px"><button id=copybtn onclick="copyLog()" style="padding:6px 12px;background:#fff;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:8px;cursor:pointer;font-size:13px">複製全部</button>
+ <span style="color:#73726c;font-size:12px;margin-left:8px">log 可直接選取複製;選取期間暫停自動刷新、不打斷選取</span></div>
+<pre id=logbox style="background:#f0eee6;border:1px solid #e9e6dc;border-radius:8px;padding:14px;max-height:70vh;overflow:auto;white-space:pre-wrap;font-size:12.5px;user-select:text;-webkit-user-select:text;cursor:text">(等待引擎輸出…)</pre>
 <a href=/ style="color:#5f8a5a">← 返回控制台</a>
 <script>
 var LF="__LOG__"
+function hasSel(box){var s=window.getSelection();if(!s||s.isCollapsed||!s.rangeCount)return false;var n=s.getRangeAt(0).commonAncestorContainer;return box.contains(n.nodeType===1?n:n.parentNode)}
+function copyLog(){var t=document.getElementById('logbox').textContent;var b=document.getElementById('copybtn');navigator.clipboard.writeText(t).then(function(){var o=b.textContent;b.textContent='已複製 ✓';setTimeout(function(){b.textContent=o},1500)},function(){b.textContent='複製失敗,請手動選取';setTimeout(function(){b.textContent='複製全部'},2000)})}
 async function poll(){
  try{var r=await fetch('/api/topic/log?file='+encodeURIComponent(LF));var j=await r.json()
   if(j.ok){var box=document.getElementById('logbox')
-   var atBottom=box.scrollTop+box.clientHeight>=box.scrollHeight-40
-   box.textContent=j.log||'(等待引擎輸出…)'
-   if(atBottom)box.scrollTop=box.scrollHeight
+   var nt=j.log||'(等待引擎輸出…)'
+   if(nt!==box.textContent&&!hasSel(box)){var atBottom=box.scrollTop+box.clientHeight>=box.scrollHeight-40;box.textContent=nt;if(atBottom)box.scrollTop=box.scrollHeight}
    if(j.done){var s=document.getElementById('stat');s.textContent='✓ 完成(共 '+j.lines+' 行)';s.style.color='#5f8a5a';return}}
  }catch(e){}
  setTimeout(poll,2000)
@@ -315,11 +318,16 @@ def progress_view_html(topic, logname, batch, rounds):
 
 
 ADMIN_CSS = """
-:root{--bg:#faf9f5;--sidebar:#f0eee6;--surface:#fff;--text:#1f1e1d;--muted:#73726c;--border:#e9e6dc;--border-strong:#dcd8cc;--accent:#d97757;--accent-hover:#c15f3f;--hover:#e7e4d8}
+:root{color-scheme:light;--bg:#faf9f5;--sidebar:#f0eee6;--surface:#fff;--text:#1f1e1d;--muted:#73726c;--border:#e9e6dc;--border-strong:#dcd8cc;--accent:#d97757;--accent-hover:#c15f3f;--hover:#e7e4d8}
 *{box-sizing:border-box}
 body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;background:var(--bg);color:var(--text);font-size:14.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
 .app{display:flex;min-height:100vh}
-.side{width:230px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--border);padding:14px 10px;position:sticky;top:0;height:100vh;overflow:auto}
+.side{width:230px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--border);padding:14px 10px;position:sticky;top:0;height:100vh;overflow:auto;display:flex;flex-direction:column}
+.acct-box{margin-top:auto;display:flex;align-items:center;gap:9px;padding:10px 8px 4px;border-top:1px solid var(--border)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.acct{flex:1;min-width:0}
+.acct-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acct-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;padding:6px 10px 2px}
 .brand .s{color:var(--accent);font-size:18px;line-height:1}
 .brand small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin:3px 0 0 26px}
@@ -375,14 +383,14 @@ NAV_SCRIPT = """</section>
 function nav(btn,id){document.querySelectorAll('.sec').forEach(function(s){s.classList.remove('active')});document.getElementById('sec-'+id).classList.add('active');document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('active')});btn.classList.add('active')}
 function dot(ok){var s=document.createElement('span');s.style.cssText='display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:'+(ok?'#5f8a5a':'#c15f3f');return s}
 async function loadHealth(){var el=document.getElementById('health');try{var j=await (await fetch('/api/health')).json();el.textContent='';[['PostgreSQL',j.db],['顧問殼 :8399',j.advisor],['Ollama :11434',j.ollama]].forEach(function(p,ix){el.appendChild(dot(p[1]));el.appendChild(document.createTextNode(p[0]+(ix<2?'　　':'')))})}catch(e){el.textContent='健康檢查失敗'}}
-async function loadJobs(){var el=document.getElementById('joblist');el.textContent='載入中…';try{var j=await (await fetch('/api/jobs')).json();var js=j.jobs||[];if(!js.length){el.textContent='(目前無背景工作)';return}el.innerHTML='';js.forEach(function(x){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #e9e6dc';var b=document.createElement('span');b.textContent=x.running?'● 執行中':'✓ 完成';b.style.cssText='font-size:11px;padding:2px 9px;border-radius:20px;white-space:nowrap;background:'+(x.running?'#f5e5dd':'#e7ead9')+';color:'+(x.running?'#8a4a30':'#3b6d11');var nm=document.createElement('span');nm.textContent=x.name;nm.style.cssText='flex:1;font-family:ui-monospace,monospace;font-size:12px;word-break:break-all';var ln=document.createElement('span');ln.textContent=x.lines+' 行';ln.style.cssText='color:#73726c;font-size:12px;white-space:nowrap';var a=document.createElement('a');a.textContent='檢視 ↗';a.href='/api/topic/log?file='+encodeURIComponent(x.name);a.target='_blank';a.style.cssText='color:#d97757;font-size:12px;white-space:nowrap';row.appendChild(b);row.appendChild(nm);row.appendChild(ln);row.appendChild(a);el.appendChild(row)})}catch(e){el.textContent='載入失敗'}}
+async function loadJobs(){var el=document.getElementById('joblist');el.textContent='載入中…';try{var j=await (await fetch('/api/jobs')).json();var js=j.jobs||[];if(!js.length){el.textContent='(目前無背景工作)';return}el.innerHTML='';js.forEach(function(x){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #e9e6dc';var b=document.createElement('span');b.textContent=x.running?'● 執行中':'✓ 完成';b.style.cssText='font-size:11px;padding:2px 9px;border-radius:20px;white-space:nowrap;background:'+(x.running?'#f5e5dd':'#e7ead9')+';color:'+(x.running?'#8a4a30':'#3b6d11');var nm=document.createElement('span');nm.textContent=x.name;nm.style.cssText='flex:1;font-family:ui-monospace,monospace;font-size:12px;word-break:break-all';var ln=document.createElement('span');ln.textContent=x.lines+' 行';ln.style.cssText='color:#73726c;font-size:12px;white-space:nowrap';var a=document.createElement('a');a.textContent='檢視 ↗';a.href='/progress?file='+encodeURIComponent(x.name);a.target='_blank';a.style.cssText='color:#d97757;font-size:12px;white-space:nowrap';row.appendChild(b);row.appendChild(nm);row.appendChild(ln);row.appendChild(a);el.appendChild(row)})}catch(e){el.textContent='載入失敗'}}
 async function loadDocs(){var el=document.getElementById('doclist');el.textContent='載入中…';try{var j=await (await fetch('/api/docs')).json();var ds=j.docs||[];if(!ds.length){el.textContent='(無 .md)';return}el.innerHTML='';var cur='';ds.forEach(function(d){if(d.dir!=cur){cur=d.dir;var h=document.createElement('div');h.textContent=d.dir+'/';h.style.cssText='font-size:11px;color:#73726c;margin:12px 0 4px;text-transform:uppercase';el.appendChild(h)}var it=document.createElement('div');it.textContent=d.name;it.style.cssText='padding:7px 9px;border-radius:8px;cursor:pointer;color:#4a4842;word-break:break-all;font-size:13px';it.onmouseover=function(){if(!it.dataset.sel)it.style.background='#f0eee6'};it.onmouseout=function(){if(!it.dataset.sel)it.style.background=''};it.onclick=function(){viewDoc(it,d.path)};el.appendChild(it)})}catch(e){el.textContent='載入失敗'}}
 async function viewDoc(node,p){document.querySelectorAll('#doclist div[data-sel]').forEach(function(n){n.removeAttribute('data-sel');n.style.background=''});node.dataset.sel='1';node.style.background='#e7e4d8';var v=document.getElementById('docview');v.textContent='載入中…';try{var j=await (await fetch('/api/doc?path='+encodeURIComponent(p))).json();if(!j.ok){v.textContent=j.error||'載入失敗';return}v.className='card mdbody';v.innerHTML=j.html}catch(e){v.textContent='載入失敗'}}
 loadHealth();
 </script></body></html>"""
 
 
-def dashboard_html(status):
+def dashboard_html(status, uname="admin", role=""):
     return (f"""<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
 <title>augur 知識控制台</title><style>{ADMIN_CSS}</style></head><body>
@@ -401,6 +409,10 @@ def dashboard_html(status):
 <a href="http://localhost:8090" target=_blank>誠實博學的我 ↗</a>
 <a href=/logout>登出</a>
 </nav>
+<div class=acct-box>
+<div class=avatar>{html.escape((uname[:1] or 'A').upper())}</div>
+<div class=acct><div class=acct-name>{html.escape(uname)}</div><div class=acct-sub>{html.escape(role)}</div></div>
+</div>
 </aside>
 <main class=main>
 <section id=sec-overview class="sec active">
@@ -631,6 +643,11 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self._send(200, json.dumps(_health()), "application/json")
         if path == "/api/jobs":
             return self._send(200, json.dumps({"jobs": _list_jobs()}), "application/json")
+        if path == "/progress":
+            logname = parse_qs(parsed.query).get("file", [""])[0]
+            if _safe_log(logname):        # 既有背景工作之進度頁(log 可選取複製,§背景工作)
+                return self._send(200, progress_view_html("背景工作", logname, "?", "?"))
+            return self._send(404, "bad file", ctype="text/plain")
         if path == "/api/docs":
             return self._send(200, json.dumps({"docs": _list_docs()}), "application/json")
         if path == "/api/doc":
@@ -639,7 +656,22 @@ class AdminHandler(BaseHTTPRequestHandler):
             if txt is None:
                 return self._send(404, json.dumps({"ok": False, "error": "檔案不存在或非法路徑"}), "application/json")
             return self._send(200, json.dumps({"ok": True, "path": rel, "html": _md_to_html(txt)}), "application/json")
-        return self._send(200, dashboard_html(_status_text()))
+        uname, role = self._acct()
+        return self._send(200, dashboard_html(_status_text(), uname, role))
+
+    def _acct(self):
+        """左下角帳號區:DB session→(username, role);env 緊急後門→('admin','env 後門')。"""
+        uid = identity.verify_session(self._token())
+        if uid is not None:
+            try:
+                with db.connect() as conn, db.transaction(conn) as cur:
+                    cur.execute("SELECT username, is_superuser FROM app_user WHERE user_id=%s", (uid,))
+                    r = cur.fetchone()
+                    if r:
+                        return (r[0], "superuser" if r[1] else "群組使用者")
+            except Exception:
+                pass
+        return ("admin", "env 後門")
 
     def do_POST(self):
         path = self.path.split("?")[0].rstrip("/")
