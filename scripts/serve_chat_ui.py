@@ -16,6 +16,7 @@
   python scripts/serve_chat_ui.py --port 8090 --advisor http://127.0.0.1:8399
 """
 import argparse
+import html
 import json
 import os
 import subprocess
@@ -60,9 +61,8 @@ def _safe_dir(path):
 PAGE = """<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
 <title>誠實博學的我 · augur</title><style>
-:root{color-scheme:light dark;--bg:#faf9f5;--sidebar:#f0eee6;--surface:#fff;--bubble:#f0eee6;--text:#1f1e1d;--muted:#73726c;
+:root{color-scheme:light;--bg:#faf9f5;--sidebar:#f0eee6;--surface:#fff;--bubble:#f0eee6;--text:#1f1e1d;--muted:#73726c;
  --border:#e9e6dc;--border-strong:#dcd8cc;--accent:#d97757;--accent-hover:#c15f3f;--accent-soft:#f5e5dd;--hover:#e7e4d8;--code:#f0eee6}
-@media (prefers-color-scheme:dark){:root{--bg:#262624;--sidebar:#1f1e1d;--surface:#302f2d;--bubble:#3a3836;--text:#f3f1ea;--muted:#a4a29a;--border:#3a3833;--border-strong:#4a4842;--accent:#e08a6a;--accent-hover:#e79f83;--accent-soft:#3d2c24;--hover:#333230;--code:#3a3836}}
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
@@ -92,8 +92,16 @@ body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe 
 .rec{display:block;width:100%;text-align:left;padding:7px 12px;border:0;border-radius:8px;background:transparent;color:#57554e;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .12s}
 .rec:hover{background:var(--hover)}
 .rec.active{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.main{flex:1;display:flex;flex-direction:column;min-width:0}
-#log{flex:1;overflow-y:auto;padding:26px 20px 8px}
+.account{display:flex;align-items:center;gap:9px;padding:9px 6px 2px;margin-top:6px;border-top:1px solid var(--border)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.acct{flex:1;min-width:0}
+.acct-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acct-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logout{color:var(--muted);text-decoration:none;font-size:16px;padding:4px;flex-shrink:0;transition:color .12s}
+.logout:hover{color:var(--text)}
+.main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;position:relative}
+#log{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:26px 20px 8px}
+#jump{position:absolute;left:50%;bottom:98px;transform:translateX(-50%);width:34px;height:34px;border-radius:50%;background:var(--surface);border:1px solid var(--border-strong);color:var(--muted);box-shadow:0 2px 10px rgba(0,0,0,.1);cursor:pointer;opacity:0;pointer-events:none;transition:opacity .18s;display:flex;align-items:center;justify-content:center;z-index:6;font-size:16px}
 #greet{max-width:660px;margin:13vh auto 0;text-align:center;padding:0 20px}
 #greet .gs{color:var(--accent);font-size:30px}
 #greet h1{font-family:Georgia,"Songti TC","Noto Serif TC",serif;font-weight:500;font-size:29px;margin:14px 0 8px;color:var(--text)}
@@ -104,6 +112,8 @@ body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe 
 .msg.a{position:relative;padding-left:38px}
 .msg.a::before{content:"✻";position:absolute;left:0;top:1px;color:var(--accent);font-size:16px;width:27px;height:27px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);border-radius:8px}
 .role{display:none}
+.msg.a .bubble{font-family:"Tiempos Text",Georgia,"Songti TC","Noto Serif TC",serif;font-size:15.5px}
+.msg.a .bubble code,.msg.a .bubble pre.cb,.msg.a .bubble pre.cb code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .bubble p{margin:0 0 12px}.bubble p:last-child{margin-bottom:0}
 .bubble h2,.bubble h3,.bubble h4{margin:18px 0 8px;line-height:1.3;font-weight:600}
 .bubble h2{font-size:1.3em}.bubble h3{font-size:1.14em}.bubble h4{font-size:1.02em}
@@ -114,7 +124,7 @@ body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe 
 .bubble a{color:var(--accent)}.bubble b{color:var(--text);font-weight:600}
 .g{font-size:12px;color:var(--muted);margin-top:10px}
 .g.pass{color:#5f8a5a}.g.fail{color:#b5793a}
-#bar{padding:8px 20px 18px;background:linear-gradient(180deg,rgba(250,249,245,0),var(--bg) 32%)}
+#bar{flex-shrink:0;padding:8px 20px 18px;background:linear-gradient(180deg,rgba(250,249,245,0),var(--bg) 32%)}
 #chip{display:none;max-width:740px;margin:0 auto 8px;background:var(--accent-soft);border:1px solid #eccdc0;border-radius:10px;padding:9px 12px;font-size:13px;cursor:pointer;color:#8a4a30}
 #plusmenu{display:none;max-width:740px;margin:0 auto 8px;background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;padding:14px;box-shadow:0 4px 18px rgba(0,0,0,.06)}
 #plusmenu .hint{font-size:12px;color:var(--muted);margin:2px 0 6px}
@@ -146,11 +156,16 @@ button:focus-visible,#q:focus-visible,.mode:focus-visible,.rec:focus-visible{out
  <div class=foot>
   <div id=svc class=svc><span class="d"></span>PostgreSQL<br><span class="d"></span>顧問殼<br><span class="d"></span>Ollama</div>
   <a href="http://localhost:8500" target=_blank>知識控制台 ↗</a>
-  <a href="/logout">登出</a>
+  <div class=account>
+   <div class=avatar>__INITIAL__</div>
+   <div class=acct><div class=acct-name>__USER__</div><div class=acct-sub>__MODEL__ · __ROLE__</div></div>
+   <a href="/logout" class=logout title="登出">⏻</a>
+  </div>
  </div>
 </aside>
 <main class=main>
 <div id=log><div id=greet><div class=gs>✻</div><h1>今天想聊什麼?</h1><p>問我投資哲學、經典原文與價值的關係</p></div></div>
+<button id=jump title="回到最新" onclick="jumpBottom()">↓</button>
 <div id=bar>
 <div id=chip onclick="clearAttach()"></div>
 <div id=plusmenu>
@@ -166,14 +181,19 @@ button:focus-visible,#q:focus-visible,.mode:focus-visible,.rec:focus-visible{out
 <button id=plusbtn type=button onclick="togglePlus()" title="附加檔案/資料夾">＋</button>
 <textarea id=q rows=1 placeholder="輸入訊息…" autocomplete=off></textarea>
 <button id=b type=submit title="送出">↑</button></form>
-<div class=foot-note>本地 qwen3:8b · 引文逐字閘;答不出即誠實說不知道</div>
+<div class=foot-note>誠實博學的我可能會出錯，請查證重要資訊。</div>
 </div>
 </main>
 </div>
 <input type=file id=fpick style="display:none">
 <input type=file id=dpick webkitdirectory directory multiple style="display:none">
 <script>
-const log=document.getElementById('log'),q=document.getElementById('q'),b=document.getElementById('b')
+const log=document.getElementById('log'),q=document.getElementById('q'),b=document.getElementById('b'),jump=document.getElementById('jump')
+var pinned=true
+function atBottom(){return log.scrollHeight-log.scrollTop-log.clientHeight<100}
+function toggleJump(){var on=!atBottom();jump.style.opacity=on?'1':'0';jump.style.pointerEvents=on?'auto':'none'}
+function jumpBottom(){log.scrollTo({top:log.scrollHeight,behavior:'smooth'});pinned=true;setTimeout(toggleJump,320)}
+log.addEventListener('scroll',function(){pinned=atBottom();toggleJump()})
 var MODE='chat'
 var GREET={chat:['今天想聊什麼?','問我投資哲學、經典原文與價值的關係'],
  cowork:['一起完成什麼任務?','協作情境 · 目前沿用顧問後端,專屬協作 agent 建置中'],
@@ -188,7 +208,7 @@ function greetHtml(){var g=GREET[MODE];return '<div id=greet><div class=gs>✻</
 function newSession(){CURid=null;log.innerHTML=greetHtml();attached=null;updateChip();q.value='';q.style.height='auto';renderRecents();q.focus()}
 function setMode(m,btn){MODE=m;document.querySelectorAll('.mode').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');newSession()}
 function renderRecents(){var el=document.getElementById('recents');if(!el)return;el.innerHTML='';var ss=SESSIONS.filter(function(s){return s.mode===MODE&&s.msgs.length}).sort(function(a,b){return b.ts-a.ts});if(ss.length){var h=document.createElement('div');h.className='rec-h';h.textContent='近期';el.appendChild(h)}ss.forEach(function(s){var btn=document.createElement('button');btn.className='rec'+(s.id===CURid?' active':'');btn.textContent=s.title;btn.title=s.title;btn.onclick=function(){loadSession(s.id)};el.appendChild(btn)})}
-function loadSession(id){var s=SESSIONS.filter(function(x){return x.id===id})[0];if(!s)return;CURid=id;log.innerHTML='';s.msgs.forEach(function(m){if(m.role==='u'){add('u',m.content)}else{var d=add('a','');d._bubble.innerHTML=mdToHtml(m.content)}});renderRecents()}
+function loadSession(id){var s=SESSIONS.filter(function(x){return x.id===id})[0];if(!s)return;CURid=id;pinned=true;log.innerHTML='';s.msgs.forEach(function(m){if(m.role==='u'){add('u',m.content)}else{var d=add('a','');d._bubble.innerHTML=mdToHtml(m.content)}});renderRecents();log.scrollTop=log.scrollHeight;toggleJump()}
 async function loadHealth(){try{var j=await (await fetch('/health')).json();var ds=document.querySelectorAll('#svc .d');if(ds.length>=3){ds[0].className='d '+(j.db?'on':'off');ds[1].className='d '+(j.advisor?'on':'off');ds[2].className='d '+(j.ollama?'on':'off')}}catch(e){}}
 loadHealth();setInterval(loadHealth,15000);renderRecents();
 q.addEventListener('input',function(){q.style.height='auto';q.style.height=Math.min(q.scrollHeight,180)+'px'})
@@ -196,7 +216,7 @@ q.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.prev
 function add(cls,txt){var d=document.createElement('div');d.className='msg '+cls
  var role=document.createElement('div');role.className='role';role.textContent=(cls=='u'?'你':'誠實博學的我')
  var bub=document.createElement('div');bub.className='bubble';bub.textContent=txt
- d.appendChild(role);d.appendChild(bub);log.appendChild(d);d.scrollIntoView();d._bubble=bub;return d}
+ d.appendChild(role);d.appendChild(bub);log.appendChild(d);if(pinned)log.scrollTop=log.scrollHeight;d._bubble=bub;return d}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function mdToHtml(t){
  var S=String.fromCharCode(1),store=[]
@@ -212,19 +232,28 @@ function mdToHtml(t){
  t=t.split(/\\n{2,}/).map(function(x){x=x.trim();if(!x)return '';if(/^<(h\\d|ul|ol|pre)/.test(x))return x;return '<p>'+x.replace(/\\n/g,'<br>')+'</p>'}).join('')
  return t.replace(/\\x01(\\d+)\\x01/g,function(_,i){return store[+i]})
 }
+function renderStream(wait,full){var parts=full.split('\\n---\\n').map(function(s){return s.trim()}).filter(function(s){return s&&s.indexOf('[augur-guard]')!==0});wait._bubble.innerHTML=mdToHtml(parts.join('\\n\\n'));if(pinned)log.scrollTop=log.scrollHeight}
 async function send(e){e.preventDefault();const text=q.value.trim();if(!text)return false
- var _g=document.getElementById('greet');if(_g)_g.remove()
+ var _g=document.getElementById('greet');if(_g)_g.remove();pinned=true
  if(text=='/移除'||text=='/remove'){clearAttach();q.value='';q.style.height='auto';return false}
  add('u',text);recordMsg('u',text);q.value='';q.style.height='auto';b.disabled=true;const wait=add('a','思考中…(本地生成,請稍候)')
  const payload=attached?{messages:[{role:'user',content:text}],augur_attach:attached}:{messages:[{role:'user',content:text}]}
- try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify(payload)})
-  const j=await r.json();const m=j.choices?.[0]?.message?.content||'(無回覆)';const g=j.augur_guard||{}
-  var parts=m.split('\\n---\\n').map(function(s){return s.trim()}).filter(function(s){return s&&s.indexOf('[augur-guard]')!==0})
-  wait._bubble.innerHTML=mdToHtml(parts.join('\\n\\n'));recordMsg('a',parts.join('\\n\\n'))
-  const gd=document.createElement('div');gd.className='g '+(g.pass?'pass':'fail')
-  gd.textContent='[guard] '+(g.pass?'通過':'攔下(改誠實句)')+' · 引文 '+(g.citations??'?')+' · issues '+(g.issues?.length??0)
-  wait.appendChild(gd)
+ try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+  const reader=r.body.getReader(),dec=new TextDecoder();var buf='',full='',first=true
+  while(true){const rd=await reader.read();if(rd.done)break
+   buf+=dec.decode(rd.value,{stream:true});var lines=buf.split('\\n');buf=lines.pop()
+   for(var i=0;i<lines.length;i++){var ln=lines[i];if(ln.indexOf('data:')!==0)continue
+    var dt=ln.slice(5).trim();if(!dt||dt==='[DONE]')continue
+    try{var pj=JSON.parse(dt),dl=pj.choices&&pj.choices[0]&&pj.choices[0].delta&&pj.choices[0].delta.content
+     if(dl){if(first){first=false;wait._bubble.textContent=''}full+=dl;renderStream(wait,full)}}catch(e){}}
+  }
+  var allp=full.split('\\n---\\n').map(function(s){return s.trim()})
+  var gl=allp.filter(function(s){return s.indexOf('[augur-guard]')===0}).join(' ')
+  var body=allp.filter(function(s){return s&&s.indexOf('[augur-guard]')!==0}).join('\\n\\n')||'(無回覆)'
+  wait._bubble.innerHTML=mdToHtml(body);recordMsg('a',body)
+  var pass=gl.indexOf('pass=true')>=0
+  const gd=document.createElement('div');gd.className='g '+(pass?'pass':'fail')
+  gd.textContent='[guard] '+(pass?'通過':'攔下(改誠實句)');wait.appendChild(gd)
  }catch(err){wait._bubble.textContent='錯誤:'+err}
  b.disabled=false;q.focus();return false}
 var attached=null,_pk='A'
@@ -287,11 +316,28 @@ class H(BaseHTTPRequestHandler):
             identity.revoke_session(self._token())
             return self._html(LOGIN_PAGE.replace("__MSG__", "<p style=color:#7d8590>已登出</p>"),
                               cookie="sid=; Max-Age=0; Path=/")
-        if identity.verify_session(self._token()) is None:          # 未登入 → 登入頁(RBAC P4)
+        uid = identity.verify_session(self._token())
+        if uid is None:                                             # 未登入 → 登入頁(RBAC P4)
             return self._html(LOGIN_PAGE.replace("__MSG__", ""))
         if path == "/health":
             return self._health()
-        self._html(PAGE)
+        uname, is_super = self._user_info(uid)                      # 左下角帳號區(使用者 + 模型版本)
+        model = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
+        page = (PAGE.replace("__INITIAL__", html.escape((uname[:1] or "U").upper()))
+                    .replace("__USER__", html.escape(uname))
+                    .replace("__MODEL__", html.escape(model))
+                    .replace("__ROLE__", "superuser" if is_super else "群組使用者"))
+        self._html(page)
+
+    def _user_info(self, uid):
+        """左下角帳號區資料:回 (username, is_superuser);查無/錯 → 安全預設。"""
+        try:
+            with db.connect() as conn, db.transaction(conn) as cur:
+                cur.execute("SELECT username, is_superuser FROM app_user WHERE user_id=%s", (uid,))
+                r = cur.fetchone()
+                return (r[0], bool(r[1])) if r else ("使用者", False)
+        except Exception:
+            return ("使用者", False)
 
     def _health(self):
         """running 狀態:DB / 顧問殼 / Ollama 可達性(側欄狀態燈;各 1.5s timeout)。"""
@@ -435,7 +481,7 @@ class H(BaseHTTPRequestHandler):
                 sc = f"掃描失敗:{e}"
             return self._reply(f"【+資料夾 dry-run 掃描】{safe}\n\n{sc}\n"
                                "── 此為預覽(未入庫)。實際入庫請至 admin 後台(:8500)聲明 license(DB CHECK 硬擋只准公開授權檔)。")
-        fwd = {"model": "augur-advisor", "messages": msgs}
+        fwd = {"model": "augur-advisor", "messages": msgs, "stream": True}
         att = req.get("augur_attach")
         if isinstance(att, dict) and (att.get("text") or "").strip():
             fwd["augur_attach"] = {"title": att.get("title") or "附加文件", "text": att["text"]}
@@ -444,17 +490,19 @@ class H(BaseHTTPRequestHandler):
         if _SECRET:                                             # P4:傳身分給殼(殼驗機密後自查 session 自 resolve scope,§4.3)
             headers["X-Augur-Internal"] = _SECRET
             headers["X-Augur-Session"] = self._token() or ""
+        self.send_response(200)                                 # 串流轉發:殼偽 SSE(role keepalive → 全文過閘後分塊)逐行 pipe;guard 尾註夾於文中
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
         try:
             r = urllib.request.Request(self.advisor + "/v1/chat/completions", payload, headers)
-            out = urllib.request.urlopen(r, timeout=600).read()
+            with urllib.request.urlopen(r, timeout=600) as up:
+                for line in up:
+                    self.wfile.write(line)
+                    self.wfile.flush()
         except Exception as e:
-            out = json.dumps({"choices": [{"message": {"content": f"advisor 殼錯誤:{e}"}}],
-                              "augur_guard": {"pass": False, "issues": [str(e)]}}).encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(out)))
-        self.end_headers()
-        self.wfile.write(out)
+            self.wfile.write(("data: " + json.dumps({"choices": [{"delta": {"content": f"advisor 殼錯誤:{e}"}}]}) + "\n\n").encode())
+            self.wfile.write(b"data: [DONE]\n\n")
 
 
 def main():
