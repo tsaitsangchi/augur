@@ -317,3 +317,75 @@
 7. **審查者自報後門**：試驗數 N、機制解釋、gate 參數在 `trial_ledger`/獨立因子/決策層拍板機械化之前，仍部分依賴被稽核者自報——與「機械防線非自律」原則有殘留張力。
 
 **收束精神**：溫和真邊際、非造神諭。headline 1.23 是「扣比例成本仍小贏」的溫和邊際；本 SOP 每道 gate 都在確保這個小贏是真的、可重跑、非自欺——**寧可少賺、不可自欺；寧報探索中、不報必勝**。
+
+---
+
+## 附錄 D：新增表 schema（DDL）與對應 Python〔治權要求：計畫須明確寫 schema＋Python〕
+
+§7 點名之三張新表，其完整 DDL 與對應 Python 明列於此（欄型/約束對齊 RBAC 計畫嚴謹度；DDL 住遷移器、非散落；GENERATED ALWAYS AS IDENTITY、timestamptz DEFAULT now() 對齊既有慣例）。**皆設計交付、尚未在 DB 執行**（拍板前 #19）。
+
+### D.1 `trial_ledger` — 試驗計數帳本（D3 有效試驗數 N 機械化）
+
+```sql
+CREATE TABLE IF NOT EXISTS trial_ledger (
+    trial_id    bigint       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    as_of       date         NOT NULL,          -- 該次回測之 as-of 凍結點
+    model       varchar(32)  NOT NULL,          -- 'B2_ridge' / 'M1_gbdt' …
+    top_frac    numeric(5,4) NOT NULL,          -- top 分位 (0.10/0.20/0.30)
+    weight      varchar(16)  NOT NULL,          -- 'equal' / 'pred'
+    seed        integer,                         -- 隨機模型 seed；確定性模型 NULL
+    feats_hash  char(64)     NOT NULL,          -- 特徵集 sha256（同集去重）
+    cost        numeric(6,5) NOT NULL,          -- 來回成本
+    horizon     integer      NOT NULL,          -- 預測期 H
+    net_sharpe  numeric(8,4),                    -- 該組態結果（供 DSR 取極值分布）
+    created_at  timestamptz  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_trial_ledger_config ON trial_ledger (model, feats_hash, cost, horizon);
+-- append-only（禁 UPDATE/DELETE）；有效試驗數 N = count(DISTINCT (model,top_frac,weight,feats_hash,cost,horizon))
+```
+- **建/寫**：`src/augur/evaluation/trial_ledger.py:record_trial(cfg)`（wrapper——凡呼叫 `run_ladder`/`run_backtest`/`verify_candidate_promotion` 者一律經此 append-only 落帳）；DDL 住 `scripts/migrate_eval_ledger_ddl.py`（沿用 `migrate_text_understanding_ddl.py:ensure_constraint()` 之 `pg_constraint` 冪等 guard 慣例）。
+- **讀/用**：`src/augur/evaluation/metrics.py:deflated_sharpe(sharpe, n)`——N 由 `SELECT count(DISTINCT …) FROM trial_ledger` 得出、**不由人填**（吸收紅隊「N 自報後門」§8-7）。
+
+### D.2 `prediction_ledger` — 生產預測不可變快照 ＋ 前瞻結算（P-1/P-2、D1/U1 載體）
+
+```sql
+CREATE TABLE IF NOT EXISTS prediction_ledger (
+    pred_id     bigint        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    as_of       date          NOT NULL,          -- 預測時點（凍結、不可變）
+    model       varchar(32)   NOT NULL,
+    horizon     integer       NOT NULL,
+    symbol      varchar(16)   NOT NULL,
+    rank        integer       NOT NULL,          -- 橫斷面排名
+    score       numeric(10,6) NOT NULL,          -- 模型分數（可溯源 #1）
+    source_ref  text          NOT NULL,          -- trace 回真實模型 run
+    made_at     timestamptz   NOT NULL DEFAULT now(),
+    fwd_return  numeric(12,6),                    -- 前瞻結算（P-2 事後回填；未結算 NULL）
+    settled_at  timestamptz,
+    CONSTRAINT uq_pred UNIQUE (as_of, model, horizon, symbol)
+);
+CREATE INDEX IF NOT EXISTS idx_pred_asof ON prediction_ledger (as_of, model, horizon);
+```
+- **寫（P-1）**：`scripts/write_prediction_snapshot.py`——as-of 凍結、寫後不可變（改 writer 重建、禁 hand-patch #12）。
+- **結算（P-2）**：`scripts/settle_prediction_ledger.py`——`as_of + H` 之真實 raw 到位才回填 `fwd_return`（無燃料不結算，誠實標「前瞻無法運轉、U1 不可主張」§8-5）。
+- **讀/用**：`src/augur/evaluation/forward_test.py`——D1/U1 未來超額中位/勝率/HAC-t。
+
+### D.3 `core_universe_build_meta` — Phase 0 headline 口徑凍結（防流沙蓋樓）
+
+```sql
+CREATE TABLE IF NOT EXISTS core_universe_build_meta (
+    build_id     bigint       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    as_of        date         NOT NULL,          -- 凍結之 as-of
+    horizon      integer      NOT NULL,          -- headline H
+    cost         numeric(6,5) NOT NULL,          -- headline 成本口徑
+    panel_def    jsonb        NOT NULL,          -- 非重疊 panel 定義（起點/步長/交易日窗）
+    universe_def jsonb        NOT NULL,          -- 核心股 gate 定義
+    n_panels     integer      NOT NULL,
+    frozen_by    varchar(16)  NOT NULL,          -- 決策層拍板者
+    frozen_at    timestamptz  NOT NULL DEFAULT now(),
+    note         text
+);
+```
+- **寫**：`scripts/freeze_headline_config.py`——Phase 0 決策層拍板後凍結一次（as-of/H/成本/panel/universe gate）。
+- **讀/用**：`src/augur/evaluation/run_economic_eval.py` 與 `portfolio.py`——所有下游比較讀同一凍結口徑（單一比較地基 #12，防「流沙蓋樓」§7-P0）。
+
+> **其餘新 Python（無新表、純計算/驗證程式）**：§7 之 `attribution.py`／`scan_cost_sensitivity.py`／`impact_cost.py`／`tradability.py`／`allocation.py`／`run_regime_breakdown.py`／`verify_advisor_guard.py`／`check_feature_coverage`／`monitor_feature_drift` 皆不產生資料表——結果落既有 `feature_values`／報表／上述三帳本。`metrics.deflated_sharpe`＝`metrics.py` 內新函式（無新表）。
