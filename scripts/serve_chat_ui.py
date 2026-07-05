@@ -25,6 +25,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
 
 import _bootstrap  # noqa: F401  個別可執行(#29a)
+from augur.core import db
 from augur.knowledge import webupload, identity   # identity 匯入鏈載入 .env(取 AUGUR_INTERNAL_SECRET)
 
 ADVISOR = "http://127.0.0.1:8399"
@@ -32,14 +33,22 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _SECRET = os.environ.get("AUGUR_INTERNAL_SECRET")   # 前台↔殼共享機密(P4;送 X-Augur-Internal)
 
 LOGIN_PAGE = """<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1"><title>誠實博學的我 · 登入</title></head>
-<body style="margin:0;font-family:system-ui,'Noto Sans TC',sans-serif;background:#0d1117;color:#e6edf3;display:flex;min-height:100vh;align-items:center;justify-content:center">
-<div style="width:340px;padding:32px;background:#161b22;border:1px solid #21262d;border-radius:14px">
-<h2 style="margin:0 0 4px;font-size:19px">誠實博學的我</h2>
-<p style="color:#7d8590;font-size:13px;margin:0 0 18px">登入以依你的權限檢索知識</p>__MSG__
-<form method=post action=/login><input name=username placeholder="帳號" autofocus style="width:100%;padding:11px;margin:4px 0 8px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;font-size:15px">
-<input type=password name=pw placeholder="密碼" style="width:100%;padding:11px;margin:4px 0 12px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;font-size:15px">
-<button style="width:100%;padding:11px;background:#238636;color:#fff;border:0;border-radius:8px;font-size:15px;cursor:pointer">登入</button></form></div></body></html>"""
+<meta name=viewport content="width=device-width,initial-scale=1"><title>誠實博學的我 · 登入</title>
+<style>body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;background:#faf9f5;color:#1f1e1d;display:flex;min-height:100vh;align-items:center;justify-content:center}
+.card{width:360px;padding:38px 34px;background:#fff;border:1px solid #e9e6dc;border-radius:18px;box-shadow:0 6px 28px rgba(0,0,0,.05)}
+.star{color:#d97757;font-size:27px;text-align:center}
+h2{margin:10px 0 3px;font-size:20px;text-align:center;font-weight:600}
+.sub{color:#73726c;font-size:13px;margin:0 0 22px;text-align:center}
+input{width:100%;padding:12px 14px;margin:6px 0;background:#faf9f5;border:1px solid #dcd8cc;color:#1f1e1d;border-radius:10px;font-size:15px}
+input:focus{outline:0;border-color:#d97757}
+button{width:100%;padding:12px;margin-top:12px;background:#d97757;color:#fff;border:0;border-radius:10px;font-size:15px;cursor:pointer;font-weight:500}
+button:hover{background:#c15f3f}</style></head>
+<body><div class=card>
+<div class=star>✻</div><h2>誠實博學的我</h2>
+<p class=sub>登入以依你的權限檢索知識</p>__MSG__
+<form method=post action=/login><input name=username placeholder="帳號" autofocus>
+<input type=password name=pw placeholder="密碼">
+<button>登入</button></form></div></body></html>"""
 
 
 def _safe_dir(path):
@@ -51,64 +60,139 @@ def _safe_dir(path):
 PAGE = """<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
 <title>誠實博學的我 · augur</title><style>
-:root{color-scheme:dark}
+:root{color-scheme:light dark;--bg:#faf9f5;--sidebar:#f0eee6;--surface:#fff;--bubble:#f0eee6;--text:#1f1e1d;--muted:#73726c;
+ --border:#e9e6dc;--border-strong:#dcd8cc;--accent:#d97757;--accent-hover:#c15f3f;--accent-soft:#f5e5dd;--hover:#e7e4d8;--code:#f0eee6}
+@media (prefers-color-scheme:dark){:root{--bg:#262624;--sidebar:#1f1e1d;--surface:#302f2d;--bubble:#3a3836;--text:#f3f1ea;--muted:#a4a29a;--border:#3a3833;--border-strong:#4a4842;--accent:#e08a6a;--accent-hover:#e79f83;--accent-soft:#3d2c24;--hover:#333230;--code:#3a3836}}
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,"Noto Sans TC",-apple-system,sans-serif;background:#0d1117;color:#e6edf3;font-size:15px;line-height:1.65}
-header{padding:14px 20px;border-bottom:1px solid #21262d;font-weight:600;position:sticky;top:0;background:#0d1117;z-index:5}
-header small{color:#7d8590;font-weight:400;margin-left:8px;font-size:12px}
-#log{max-width:800px;margin:0 auto;padding:20px 18px 48px}
-.msg{margin:20px 0}
-.role{font-size:12px;color:#7d8590;margin-bottom:6px;font-weight:600;letter-spacing:.3px}
-.u .bubble{background:#1f6feb1a;border:1px solid #1f6feb44;border-radius:12px;padding:12px 15px;white-space:pre-wrap}
-.a .bubble{background:transparent;padding:0 2px}
-.bubble{line-height:1.7}
+html,body{height:100%}
+body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
+ background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:260px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:12px}
+.brand{display:flex;align-items:center;gap:9px;padding:8px 8px 14px;font-weight:600;font-size:15px}
+.brand .s{color:var(--accent);font-size:19px}
+.newchat{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border:0;border-radius:10px;background:transparent;color:var(--text);font-size:14px;cursor:pointer;font-family:inherit;text-align:left}
+.newchat:hover{background:var(--hover)}
+.newchat .p{color:var(--accent);font-size:17px;font-weight:600;line-height:1}
+.side-note{padding:14px 12px;font-size:11.5px;color:var(--muted);line-height:1.55}
+.spacer{flex:1}
+.foot{border-top:1px solid var(--border);padding-top:8px}
+.foot a{display:block;padding:9px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13px}
+.foot a:hover{background:var(--hover);color:var(--text)}
+.modes{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+.mode{width:100%;padding:8px 12px;border:0;border-radius:9px;background:transparent;color:#4a4842;font-size:13.5px;cursor:pointer;font-family:inherit;text-align:left}
+.mode:hover{background:var(--hover)}
+.mode.active{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.svc{padding:6px 12px 10px;font-size:11px;color:var(--muted);line-height:1.95}
+.svc .d{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;background:#cdc7b8;vertical-align:middle}
+.svc .d.on{background:#5f8a5a}.svc .d.off{background:#c15f3f}
+.modenote{max-width:740px;margin:0 auto 16px;font-size:12px;color:#8a4a30;background:var(--accent-soft);border:1px solid #eccdc0;border-radius:10px;padding:9px 13px}
+.recents{flex:1;min-height:0;overflow-y:auto;margin-top:12px}
+.rec-h{font-size:11px;color:var(--muted);padding:6px 12px 2px;text-transform:uppercase;letter-spacing:.03em}
+.rec{display:block;width:100%;text-align:left;padding:7px 12px;border:0;border-radius:8px;background:transparent;color:#57554e;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .12s}
+.rec:hover{background:var(--hover)}
+.rec.active{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+#log{flex:1;overflow-y:auto;padding:26px 20px 8px}
+#greet{max-width:660px;margin:13vh auto 0;text-align:center;padding:0 20px}
+#greet .gs{color:var(--accent);font-size:30px}
+#greet h1{font-family:Georgia,"Songti TC","Noto Serif TC",serif;font-weight:500;font-size:29px;margin:14px 0 8px;color:var(--text)}
+#greet p{color:var(--muted);font-size:14px;margin:0}
+.msg{max-width:740px;margin:0 auto 24px;line-height:1.7}
+.msg.u{display:flex;justify-content:flex-end}
+.msg.u .bubble{background:var(--bubble);border-radius:16px;padding:11px 16px;max-width:82%;white-space:pre-wrap}
+.msg.a{position:relative;padding-left:38px}
+.msg.a::before{content:"✻";position:absolute;left:0;top:1px;color:var(--accent);font-size:16px;width:27px;height:27px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);border-radius:8px}
+.role{display:none}
 .bubble p{margin:0 0 12px}.bubble p:last-child{margin-bottom:0}
-.bubble h2,.bubble h3,.bubble h4{margin:16px 0 8px;line-height:1.3}
-.bubble h2{font-size:1.25em}.bubble h3{font-size:1.12em}.bubble h4{font-size:1.02em;color:#c9d1d9}
-.bubble ul,.bubble ol{margin:8px 0;padding-left:22px}.bubble li{margin:4px 0}
-.bubble code{background:#161b22;border:1px solid #30363d;border-radius:5px;padding:1px 5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em}
-.bubble pre.cb{background:#010409;border:1px solid #30363d;border-radius:8px;padding:12px 14px;overflow:auto;font-family:ui-monospace,monospace;font-size:.85em;line-height:1.5;white-space:pre}
-.bubble pre.cb code{background:none;border:0;padding:0}
-.bubble a{color:#58a6ff}.bubble b{color:#f0f6fc}
-.g{font-size:12px;color:#7d8590;margin-top:10px;border-top:1px dashed #30363d;padding-top:6px}
-.g.pass{color:#3fb950}.g.fail{color:#d29922}
-#bar{position:sticky;bottom:0;background:linear-gradient(180deg,#0d111700,#0d1117 22%);border-top:1px solid #21262d;padding:12px}
-#bar form{max-width:800px;margin:0 auto;display:flex;gap:8px;align-items:center}
-#q{flex:1;padding:12px 14px;border-radius:12px;border:1px solid #30363d;background:#161b22;color:#e6edf3;font-size:15px}
-#q:focus{outline:0;border-color:#1f6feb88}
-button{padding:11px 18px;border:0;border-radius:10px;background:#238636;color:#fff;font-size:15px;cursor:pointer}
-button:hover{background:#2ea043}
-button:disabled{background:#30363d;cursor:wait}
-.sys{color:#7d8590;font-size:13px;text-align:center;margin:8px}
-#plusbtn{padding:11px 15px;border:1px solid #30363d;border-radius:10px;background:#161b22;color:#e6edf3;font-size:18px;cursor:pointer}
-#plusbtn:hover{background:#21262d}
-#plusmenu{display:none;max-width:800px;margin:0 auto 8px;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px}
-#plusmenu button{margin:4px 4px 0 0;background:#21262d;color:#e6edf3;font-size:14px;padding:8px 12px;border:1px solid #30363d;border-radius:6px;cursor:pointer}
-#plusmenu select{padding:6px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px}
-#plusmenu .hint{font-size:12px;color:#7d8590;margin-bottom:6px}
-#chip{display:none;max-width:800px;margin:0 auto 6px;background:#1f6feb22;border:1px solid #1f6feb55;border-radius:8px;padding:8px;font-size:13px;cursor:pointer;color:#e6edf3}
+.bubble h2,.bubble h3,.bubble h4{margin:18px 0 8px;line-height:1.3;font-weight:600}
+.bubble h2{font-size:1.3em}.bubble h3{font-size:1.14em}.bubble h4{font-size:1.02em}
+.bubble ul,.bubble ol{margin:8px 0;padding-left:24px}.bubble li{margin:5px 0}
+.bubble code{background:var(--code);border:1px solid var(--border-strong);border-radius:5px;padding:1px 5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em}
+.bubble pre.cb{background:#2b2a27;color:#f0eee6;border-radius:10px;padding:14px 16px;overflow:auto;font-family:ui-monospace,monospace;font-size:.85em;line-height:1.5;white-space:pre}
+.bubble pre.cb code{background:none;border:0;padding:0;color:inherit}
+.bubble a{color:var(--accent)}.bubble b{color:var(--text);font-weight:600}
+.g{font-size:12px;color:var(--muted);margin-top:10px}
+.g.pass{color:#5f8a5a}.g.fail{color:#b5793a}
+#bar{padding:8px 20px 18px;background:linear-gradient(180deg,rgba(250,249,245,0),var(--bg) 32%)}
+#chip{display:none;max-width:740px;margin:0 auto 8px;background:var(--accent-soft);border:1px solid #eccdc0;border-radius:10px;padding:9px 12px;font-size:13px;cursor:pointer;color:#8a4a30}
+#plusmenu{display:none;max-width:740px;margin:0 auto 8px;background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;padding:14px;box-shadow:0 4px 18px rgba(0,0,0,.06)}
+#plusmenu .hint{font-size:12px;color:var(--muted);margin:2px 0 6px}
+#plusmenu button{margin:5px 6px 0 0;background:var(--bg);color:var(--text);font-size:13px;padding:8px 12px;border:1px solid var(--border-strong);border-radius:9px;cursor:pointer}
+#plusmenu button:hover{background:var(--bubble)}
+#plusmenu select{padding:7px;background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:8px}
+.composer{max-width:740px;margin:0 auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:24px;padding:7px 8px;display:flex;align-items:flex-end;gap:8px;box-shadow:0 2px 14px rgba(0,0,0,.05)}
+.composer:focus-within{border-color:#cdc7b8;box-shadow:0 2px 18px rgba(0,0,0,.08)}
+#plusbtn{flex-shrink:0;width:36px;height:36px;border:1px solid var(--border-strong);border-radius:50%;background:transparent;color:var(--muted);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#plusbtn:hover{background:var(--bubble);color:var(--text)}
+#q{flex:1;border:0;background:transparent;color:var(--text);font-size:15px;padding:8px 4px;resize:none;outline:0;font-family:inherit;max-height:180px;line-height:1.5}
+#b{flex-shrink:0;width:36px;height:36px;border:0;border-radius:50%;background:var(--accent);color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#b:hover{background:var(--accent-hover)}
+#b:disabled{background:#d8d3c6;cursor:default}
+.foot-note{max-width:740px;margin:9px auto 0;text-align:center;font-size:11px;color:var(--muted)}
+.newchat,.mode,.rec,#plusbtn,#b,.foot a,#plusmenu button{transition:background .12s,color .12s,border-color .12s}
+button:focus-visible,#q:focus-visible,.mode:focus-visible,.rec:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style></head><body>
-<header>誠實博學的我 <small>augur · advisor+guard · 本地 qwen3:8b(引文逐字閘;答不出即誠實說不知道)</small></header>
-<div id=log><div class=sys>問投資哲學/經典原文相關問題。回覆較慢(本地 GPU 約數分鐘),guard 會攔下非逐字引用。</div></div>
+<div class=app>
+<aside class=sidebar>
+ <div class=brand><span class=s>✻</span>augur</div>
+ <button class=newchat onclick="newSession()"><span class=p>＋</span>新對話</button>
+ <div class=modes>
+  <button class="mode active" onclick="setMode('chat',this)">對話</button>
+  <button class="mode" onclick="setMode('cowork',this)">協作</button>
+  <button class="mode" onclick="setMode('code',this)">程式</button>
+ </div>
+ <div class=recents id=recents></div>
+ <div class=foot>
+  <div id=svc class=svc><span class="d"></span>PostgreSQL<br><span class="d"></span>顧問殼<br><span class="d"></span>Ollama</div>
+  <a href="http://localhost:8500" target=_blank>知識控制台 ↗</a>
+  <a href="/logout">登出</a>
+ </div>
+</aside>
+<main class=main>
+<div id=log><div id=greet><div class=gs>✻</div><h1>今天想聊什麼?</h1><p>問我投資哲學、經典原文與價值的關係</p></div></div>
 <div id=bar>
 <div id=chip onclick="clearAttach()"></div>
 <div id=plusmenu>
- <div class=hint>A · 入知識庫(永久保存、之後可被引經據典;需公開授權,DB 硬擋只准 public_domain/cc-*)</div>
+ <div class=hint>A · 入知識庫(永久保存、之後可被引用;需公開授權,DB 硬擋只准 public_domain/cc-*)</div>
  授權 <select id=inlic><option>public_domain</option><option>cc-by</option><option>cc-by-sa</option><option>cc0</option></select>
  <button type=button onclick="pick('file')">📎 選檔案入庫</button>
  <button type=button onclick="pick('folder')">📁 選資料夾入庫</button>
- <div class=hint style="margin-top:10px">B · 只問這次(不入庫、只當本次對話的文件助讀;之後提問只根據這份檔回答)</div>
+ <div class=hint style="margin-top:10px">B · 只問這次(不入庫、只當本次對話的文件助讀)</div>
  <button type=button onclick="pickB('file')">📄 選檔案 · 只問這次</button>
  <button type=button onclick="pickB('folder')">📁 選資料夾 · 只問這次</button>
 </div>
-<form onsubmit="return send(event)">
-<button id=plusbtn type=button onclick="togglePlus()" title="附加檔案/資料夾入庫">＋</button>
-<input id=q placeholder="例:用經典原文談安全邊際與價值的關係" autocomplete=off>
-<button id=b type=submit>送出</button></form></div>
+<form class=composer onsubmit="return send(event)">
+<button id=plusbtn type=button onclick="togglePlus()" title="附加檔案/資料夾">＋</button>
+<textarea id=q rows=1 placeholder="輸入訊息…" autocomplete=off></textarea>
+<button id=b type=submit title="送出">↑</button></form>
+<div class=foot-note>本地 qwen3:8b · 引文逐字閘;答不出即誠實說不知道</div>
+</div>
+</main>
+</div>
 <input type=file id=fpick style="display:none">
 <input type=file id=dpick webkitdirectory directory multiple style="display:none">
 <script>
 const log=document.getElementById('log'),q=document.getElementById('q'),b=document.getElementById('b')
+var MODE='chat'
+var GREET={chat:['今天想聊什麼?','問我投資哲學、經典原文與價值的關係'],
+ cowork:['一起完成什麼任務?','協作情境 · 目前沿用顧問後端,專屬協作 agent 建置中'],
+ code:['要處理哪段程式?','程式情境 · 目前沿用顧問後端,專屬 code agent 建置中']}
+var SESSIONS=[];try{SESSIONS=JSON.parse(localStorage.getItem('augur_sessions')||'[]')}catch(e){SESSIONS=[]}
+var CURid=null
+function saveSessions(){try{localStorage.setItem('augur_sessions',JSON.stringify(SESSIONS.slice(-100)))}catch(e){}}
+function curSession(){return SESSIONS.filter(function(s){return s.id===CURid})[0]}
+function ensureSession(){var s=curSession();if(!s){CURid='s'+Date.now()+'_'+Math.floor(Math.random()*1000);s={id:CURid,mode:MODE,title:'新對話',ts:Date.now(),msgs:[]};SESSIONS.push(s)}return s}
+function recordMsg(role,content){var s=ensureSession();s.msgs.push({role:role,content:content});s.ts=Date.now();if(role==='u'&&s.title==='新對話')s.title=content.slice(0,24);saveSessions();renderRecents()}
+function greetHtml(){var g=GREET[MODE];return '<div id=greet><div class=gs>✻</div><h1>'+g[0]+'</h1><p>'+g[1]+'</p></div>'}
+function newSession(){CURid=null;log.innerHTML=greetHtml();attached=null;updateChip();q.value='';q.style.height='auto';renderRecents();q.focus()}
+function setMode(m,btn){MODE=m;document.querySelectorAll('.mode').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');newSession()}
+function renderRecents(){var el=document.getElementById('recents');if(!el)return;el.innerHTML='';var ss=SESSIONS.filter(function(s){return s.mode===MODE&&s.msgs.length}).sort(function(a,b){return b.ts-a.ts});if(ss.length){var h=document.createElement('div');h.className='rec-h';h.textContent='近期';el.appendChild(h)}ss.forEach(function(s){var btn=document.createElement('button');btn.className='rec'+(s.id===CURid?' active':'');btn.textContent=s.title;btn.title=s.title;btn.onclick=function(){loadSession(s.id)};el.appendChild(btn)})}
+function loadSession(id){var s=SESSIONS.filter(function(x){return x.id===id})[0];if(!s)return;CURid=id;log.innerHTML='';s.msgs.forEach(function(m){if(m.role==='u'){add('u',m.content)}else{var d=add('a','');d._bubble.innerHTML=mdToHtml(m.content)}});renderRecents()}
+async function loadHealth(){try{var j=await (await fetch('/health')).json();var ds=document.querySelectorAll('#svc .d');if(ds.length>=3){ds[0].className='d '+(j.db?'on':'off');ds[1].className='d '+(j.advisor?'on':'off');ds[2].className='d '+(j.ollama?'on':'off')}}catch(e){}}
+loadHealth();setInterval(loadHealth,15000);renderRecents();
+q.addEventListener('input',function(){q.style.height='auto';q.style.height=Math.min(q.scrollHeight,180)+'px'})
+q.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(e)}})
 function add(cls,txt){var d=document.createElement('div');d.className='msg '+cls
  var role=document.createElement('div');role.className='role';role.textContent=(cls=='u'?'你':'誠實博學的我')
  var bub=document.createElement('div');bub.className='bubble';bub.textContent=txt
@@ -129,14 +213,15 @@ function mdToHtml(t){
  return t.replace(/\\x01(\\d+)\\x01/g,function(_,i){return store[+i]})
 }
 async function send(e){e.preventDefault();const text=q.value.trim();if(!text)return false
- if(text=='/移除'||text=='/remove'){clearAttach();q.value='';return false}
- add('u',text);q.value='';b.disabled=true;const wait=add('a','思考中…(本地生成,請稍候)')
+ var _g=document.getElementById('greet');if(_g)_g.remove()
+ if(text=='/移除'||text=='/remove'){clearAttach();q.value='';q.style.height='auto';return false}
+ add('u',text);recordMsg('u',text);q.value='';q.style.height='auto';b.disabled=true;const wait=add('a','思考中…(本地生成,請稍候)')
  const payload=attached?{messages:[{role:'user',content:text}],augur_attach:attached}:{messages:[{role:'user',content:text}]}
  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify(payload)})
   const j=await r.json();const m=j.choices?.[0]?.message?.content||'(無回覆)';const g=j.augur_guard||{}
   var parts=m.split('\\n---\\n').map(function(s){return s.trim()}).filter(function(s){return s&&s.indexOf('[augur-guard]')!==0})
-  wait._bubble.innerHTML=mdToHtml(parts.join('\\n\\n'))
+  wait._bubble.innerHTML=mdToHtml(parts.join('\\n\\n'));recordMsg('a',parts.join('\\n\\n'))
   const gd=document.createElement('div');gd.className='g '+(g.pass?'pass':'fail')
   gd.textContent='[guard] '+(g.pass?'通過':'攔下(改誠實句)')+' · 引文 '+(g.citations??'?')+' · issues '+(g.issues?.length??0)
   wait.appendChild(gd)
@@ -204,7 +289,32 @@ class H(BaseHTTPRequestHandler):
                               cookie="sid=; Max-Age=0; Path=/")
         if identity.verify_session(self._token()) is None:          # 未登入 → 登入頁(RBAC P4)
             return self._html(LOGIN_PAGE.replace("__MSG__", ""))
+        if path == "/health":
+            return self._health()
         self._html(PAGE)
+
+    def _health(self):
+        """running 狀態:DB / 顧問殼 / Ollama 可達性(側欄狀態燈;各 1.5s timeout)。"""
+        h = {"db": False, "advisor": False, "ollama": False}
+        try:
+            with db.connect() as conn, db.transaction(conn) as cur:
+                cur.execute("SELECT 1")
+                h["db"] = bool(cur.fetchone())
+        except Exception:
+            pass
+        ollama = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/") + "/api/tags"
+        for k, u in (("advisor", self.advisor + "/v1/models"), ("ollama", ollama)):
+            try:
+                urllib.request.urlopen(u, timeout=1.5)
+                h[k] = True
+            except Exception:
+                pass
+        out = json.dumps(h).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(out)))
+        self.end_headers()
+        self.wfile.write(out)
 
     def _reply(self, content):
         out = json.dumps({"choices": [{"message": {"content": content}}],
@@ -247,6 +357,9 @@ class H(BaseHTTPRequestHandler):
             return self._plain(f"無有效檔案(過大跳 {r['big']}、非法名跳 {r['bad']})")
         cmd = [sys.executable, os.path.join(_ROOT, "scripts", "acquire_local_files.py"),
                "--dir", r["updir"], "--license", lic, "--access-scope", scope, "--domain", "local"]
+        uid = identity.verify_session(self._token())            # 上傳者即擁有者(local_private 擁有者收窄,§4.5)
+        if scope == "local_private" and uid is not None:
+            cmd += ["--owner-user-id", str(uid)]
         out = subprocess.run(cmd, cwd=_ROOT, capture_output=True, text=True, timeout=600).stdout
         return self._plain(f"【附加入庫完成】存檔 {r['saved']}(過大跳 {r['big']}、非法名跳 {r['bad']})、"
                            f"授權 {lic}\n\n{out}")
@@ -353,6 +466,10 @@ def main():
     if a.help:
         print(__doc__)
         return
+    if not _SECRET:      # 紅隊 HIGH 2026-07-05:無機密則無法向殼證明身分,拒啟動(不靜默降級成殼端全 deny/或誤當 super)
+        sys.exit("✗ 未設 AUGUR_INTERNAL_SECRET:前台無法向殼證明登入者身分 → RBAC 無法生效。\n"
+                 "  請於 .env 設 AUGUR_INTERNAL_SECRET(與 advisor 殼同值)再啟動;\n"
+                 "  單機免登入測試請改直連殼 :8399 並加 --insecure-loopback-admin。")
     H.advisor = a.advisor
     print(f"誠實博學的我 · 對話 UI 起於 http://127.0.0.1:{a.port}(proxy → {a.advisor};Ctrl-C 停)", flush=True)
     ThreadingHTTPServer(("127.0.0.1", a.port), H).serve_forever()
