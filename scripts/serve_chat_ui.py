@@ -40,27 +40,41 @@ PAGE = """<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
 <title>誠實博學的我 · augur</title><style>
 :root{color-scheme:dark}
-body{margin:0;font-family:system-ui,"Noto Sans TC",sans-serif;background:#0d1117;color:#e6edf3}
-header{padding:14px 18px;border-bottom:1px solid #21262d;font-weight:600}
-header small{color:#7d8590;font-weight:400;margin-left:8px}
-#log{max-width:820px;margin:0 auto;padding:18px}
-.msg{margin:14px 0;padding:12px 14px;border-radius:10px;white-space:pre-wrap;line-height:1.6}
-.u{background:#1f6feb22;border:1px solid #1f6feb55}
-.a{background:#161b22;border:1px solid #21262d}
-.g{font-size:12px;color:#7d8590;margin-top:8px;border-top:1px dashed #30363d;padding-top:6px}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,"Noto Sans TC",-apple-system,sans-serif;background:#0d1117;color:#e6edf3;font-size:15px;line-height:1.65}
+header{padding:14px 20px;border-bottom:1px solid #21262d;font-weight:600;position:sticky;top:0;background:#0d1117;z-index:5}
+header small{color:#7d8590;font-weight:400;margin-left:8px;font-size:12px}
+#log{max-width:800px;margin:0 auto;padding:20px 18px 48px}
+.msg{margin:20px 0}
+.role{font-size:12px;color:#7d8590;margin-bottom:6px;font-weight:600;letter-spacing:.3px}
+.u .bubble{background:#1f6feb1a;border:1px solid #1f6feb44;border-radius:12px;padding:12px 15px;white-space:pre-wrap}
+.a .bubble{background:transparent;padding:0 2px}
+.bubble{line-height:1.7}
+.bubble p{margin:0 0 12px}.bubble p:last-child{margin-bottom:0}
+.bubble h2,.bubble h3,.bubble h4{margin:16px 0 8px;line-height:1.3}
+.bubble h2{font-size:1.25em}.bubble h3{font-size:1.12em}.bubble h4{font-size:1.02em;color:#c9d1d9}
+.bubble ul,.bubble ol{margin:8px 0;padding-left:22px}.bubble li{margin:4px 0}
+.bubble code{background:#161b22;border:1px solid #30363d;border-radius:5px;padding:1px 5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em}
+.bubble pre.cb{background:#010409;border:1px solid #30363d;border-radius:8px;padding:12px 14px;overflow:auto;font-family:ui-monospace,monospace;font-size:.85em;line-height:1.5;white-space:pre}
+.bubble pre.cb code{background:none;border:0;padding:0}
+.bubble a{color:#58a6ff}.bubble b{color:#f0f6fc}
+.g{font-size:12px;color:#7d8590;margin-top:10px;border-top:1px dashed #30363d;padding-top:6px}
 .g.pass{color:#3fb950}.g.fail{color:#d29922}
-#bar{position:sticky;bottom:0;background:#0d1117;border-top:1px solid #21262d;padding:12px}
-#bar form{max-width:820px;margin:0 auto;display:flex;gap:8px}
-#q{flex:1;padding:11px;border-radius:8px;border:1px solid #30363d;background:#161b22;color:#e6edf3;font-size:15px}
-button{padding:11px 18px;border:0;border-radius:8px;background:#238636;color:#fff;font-size:15px;cursor:pointer}
+#bar{position:sticky;bottom:0;background:linear-gradient(180deg,#0d111700,#0d1117 22%);border-top:1px solid #21262d;padding:12px}
+#bar form{max-width:800px;margin:0 auto;display:flex;gap:8px;align-items:center}
+#q{flex:1;padding:12px 14px;border-radius:12px;border:1px solid #30363d;background:#161b22;color:#e6edf3;font-size:15px}
+#q:focus{outline:0;border-color:#1f6feb88}
+button{padding:11px 18px;border:0;border-radius:10px;background:#238636;color:#fff;font-size:15px;cursor:pointer}
+button:hover{background:#2ea043}
 button:disabled{background:#30363d;cursor:wait}
 .sys{color:#7d8590;font-size:13px;text-align:center;margin:8px}
-#plusbtn{padding:11px 14px;border:1px solid #30363d;border-radius:8px;background:#161b22;color:#e6edf3;font-size:18px;cursor:pointer}
-#plusmenu{display:none;max-width:820px;margin:0 auto 8px;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px}
+#plusbtn{padding:11px 15px;border:1px solid #30363d;border-radius:10px;background:#161b22;color:#e6edf3;font-size:18px;cursor:pointer}
+#plusbtn:hover{background:#21262d}
+#plusmenu{display:none;max-width:800px;margin:0 auto 8px;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px}
 #plusmenu button{margin:4px 4px 0 0;background:#21262d;color:#e6edf3;font-size:14px;padding:8px 12px;border:1px solid #30363d;border-radius:6px;cursor:pointer}
 #plusmenu select{padding:6px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px}
 #plusmenu .hint{font-size:12px;color:#7d8590;margin-bottom:6px}
-#chip{display:none;max-width:820px;margin:0 auto 6px;background:#1f6feb22;border:1px solid #1f6feb55;border-radius:8px;padding:8px;font-size:13px;cursor:pointer;color:#e6edf3}
+#chip{display:none;max-width:800px;margin:0 auto 6px;background:#1f6feb22;border:1px solid #1f6feb55;border-radius:8px;padding:8px;font-size:13px;cursor:pointer;color:#e6edf3}
 </style></head><body>
 <header>誠實博學的我 <small>augur · advisor+guard · 本地 qwen3:8b(引文逐字閘;答不出即誠實說不知道)</small></header>
 <div id=log><div class=sys>問投資哲學/經典原文相關問題。回覆較慢(本地 GPU 約數分鐘),guard 會攔下非逐字引用。</div></div>
@@ -83,7 +97,25 @@ button:disabled{background:#30363d;cursor:wait}
 <input type=file id=dpick webkitdirectory directory multiple style="display:none">
 <script>
 const log=document.getElementById('log'),q=document.getElementById('q'),b=document.getElementById('b')
-function add(cls,txt){const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;log.appendChild(d);d.scrollIntoView();return d}
+function add(cls,txt){var d=document.createElement('div');d.className='msg '+cls
+ var role=document.createElement('div');role.className='role';role.textContent=(cls=='u'?'你':'誠實博學的我')
+ var bub=document.createElement('div');bub.className='bubble';bub.textContent=txt
+ d.appendChild(role);d.appendChild(bub);log.appendChild(d);d.scrollIntoView();d._bubble=bub;return d}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function mdToHtml(t){
+ var S=String.fromCharCode(1),store=[]
+ function stash(h){store.push(h);return S+(store.length-1)+S}
+ t=esc(t||'')
+ t=t.replace(/```([\\s\\S]*?)```/g,function(_,c){return stash('<pre class=cb><code>'+c.replace(/^\\n/,'').replace(/\\n$/,'')+'</code></pre>')})
+ t=t.replace(/`([^`\\n]+)`/g,function(_,c){return stash('<code>'+c+'</code>')})
+ t=t.replace(/^#### (.+)$/gm,'<h4>$1</h4>').replace(/^### (.+)$/gm,'<h4>$1</h4>').replace(/^## (.+)$/gm,'<h3>$1</h3>').replace(/^# (.+)$/gm,'<h3>$1</h3>')
+ t=t.replace(/\\*\\*([^*]+)\\*\\*/g,'<b>$1</b>')
+ t=t.replace(/\\[([^\\]]+)\\]\\((https?:\\/\\/[^)\\s]+)\\)/g,'<a href="$2" target=_blank rel=noopener>$1</a>')
+ t=t.replace(/(?:^[-*] .+(?:\\n|$))+/gm,function(bl){return '<ul>'+bl.trim().split(/\\n/).map(function(l){return '<li>'+l.replace(/^[-*] /,'')+'</li>'}).join('')+'</ul>'})
+ t=t.replace(/(?:^\\d+\\. .+(?:\\n|$))+/gm,function(bl){return '<ol>'+bl.trim().split(/\\n/).map(function(l){return '<li>'+l.replace(/^\\d+\\. /,'')+'</li>'}).join('')+'</ol>'})
+ t=t.split(/\\n{2,}/).map(function(x){x=x.trim();if(!x)return '';if(/^<(h\\d|ul|ol|pre)/.test(x))return x;return '<p>'+x.replace(/\\n/g,'<br>')+'</p>'}).join('')
+ return t.replace(/\\x01(\\d+)\\x01/g,function(_,i){return store[+i]})
+}
 async function send(e){e.preventDefault();const text=q.value.trim();if(!text)return false
  if(text=='/移除'||text=='/remove'){clearAttach();q.value='';return false}
  add('u',text);q.value='';b.disabled=true;const wait=add('a','思考中…(本地生成,請稍候)')
@@ -91,11 +123,12 @@ async function send(e){e.preventDefault();const text=q.value.trim();if(!text)ret
  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify(payload)})
   const j=await r.json();const m=j.choices?.[0]?.message?.content||'(無回覆)';const g=j.augur_guard||{}
-  wait.textContent=m.split('\\n---\\n')[0]
+  var parts=m.split('\\n---\\n').map(function(s){return s.trim()}).filter(function(s){return s&&s.indexOf('[augur-guard]')!==0})
+  wait._bubble.innerHTML=mdToHtml(parts.join('\\n\\n'))
   const gd=document.createElement('div');gd.className='g '+(g.pass?'pass':'fail')
   gd.textContent='[guard] '+(g.pass?'通過':'攔下(改誠實句)')+' · 引文 '+(g.citations??'?')+' · issues '+(g.issues?.length??0)
   wait.appendChild(gd)
- }catch(err){wait.textContent='錯誤:'+err}
+ }catch(err){wait._bubble.textContent='錯誤:'+err}
  b.disabled=false;q.focus();return false}
 var attached=null,_pk='A'
 function togglePlus(){var m=document.getElementById('plusmenu');m.style.display=m.style.display=='block'?'none':'block'}
@@ -113,18 +146,18 @@ async function doIngest(files){
  var wait=add('a','解析入庫中…(本地處理,大夾請耐心)')
  var fd=new FormData();fd.append('license',lic);fd.append('access_scope','local_private')
  for(var i=0;i<files.length;i++)fd.append('file',files[i],files[i].webkitRelativePath||files[i].name)
- try{var r=await fetch('/ingest',{method:'POST',body:fd});wait.textContent=await r.text()}
- catch(e){wait.textContent='入庫失敗:'+e}
+ try{var r=await fetch('/ingest',{method:'POST',body:fd});wait._bubble.textContent=await r.text()}
+ catch(e){wait._bubble.textContent='入庫失敗:'+e}
 }
 async function doAttach(files){
  if(!files||!files.length)return
  var wait=add('a','讀取附加檔案…(本地解析,只問這次、不入庫)')
  var fd=new FormData();for(var i=0;i<files.length;i++)fd.append('file',files[i],files[i].webkitRelativePath||files[i].name)
  try{var r=await fetch('/attach',{method:'POST',body:fd});var j=await r.json()
-  if(!j.ok){wait.textContent='附加失敗:'+(j.error||'無法解析');return}
+  if(!j.ok){wait._bubble.textContent='附加失敗:'+(j.error||'無法解析');return}
   attached={title:j.title,text:j.text};updateChip()
-  wait.textContent='📎 已附加:'+j.title+'('+j.chars+' 字'+(j.truncated?'、過長已截斷':'')+',只問這次)。之後提問只根據這份檔回答;點上方標籤或輸入 /移除 可解除。'
- }catch(e){wait.textContent='附加失敗:'+e}
+  wait._bubble.textContent='📎 已附加:'+j.title+'('+j.chars+' 字'+(j.truncated?'、過長已截斷':'')+',只問這次)。之後提問只根據這份檔回答;點上方標籤或輸入 /移除 可解除。'
+ }catch(e){wait._bubble.textContent='附加失敗:'+e}
 }
 </script></body></html>"""
 
