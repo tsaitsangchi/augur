@@ -46,8 +46,8 @@ def test_resolver_failclosed_unknown_and_none():
     assert access.resolve_allowed_domains(10**9) == (False, frozenset())
 
 
-# ── retrieve(works 側)非 super 預設 deny(§4.5;return [] 早於 DB、無模型)──
-def test_works_side_denies_nonsuper():
-    """T3:works 側非 super 一律 deny(A/B 裁決前 fail-closed);scope 缺亦視為非 super→deny。"""
-    assert retrieval.retrieve("安全邊際", k=4, scope=(False, frozenset())) == []
-    assert retrieval.retrieve("安全邊際", k=4, scope=None) == []
+# ── retrieve(works 側):A/B 裁決＝B(憲章 v1.29.0)——公版素養對【登入者】公開、未登入 deny ──
+def test_works_side_public_authenticated_deny_unauth():
+    """T3(v1.29.0):works=哲學/文學公版素養對所有登入者公開;**未登入(scope=None)→ deny**(fail-closed、
+    早於 DB/模型)。已登入→works 公開(非 domain 收窄)之整合驗證見 retrieve_all 非 super→回 Citation(works)。"""
+    assert retrieval.retrieve("安全邊際", k=4, scope=None) == []   # 未登入 → deny(不載模型、快)

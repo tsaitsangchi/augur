@@ -62,13 +62,15 @@ def _query_vec(query):
 
 
 def retrieve(query, k=8, work_id=None, scope=None):
-    """語義檢索(works 側)＋ RBAC(P3,§4.5):**非 super 一律 deny(return [])**——works(哲學/文學)是否
-    納入 domain 邊界屬 A/B 裁決(§8.2#5,裁決前 fail-closed);super 回 [Citation](逐字可溯源、相似度降序)。
-    scope=(is_super, allowed) 或 None(None→非 super→deny);work_id 可限縮單一著作。"""
-    if not (bool(scope[0]) if scope else False):
-        return []                                  # works 側裁決前對非 super 預設 deny(§4.5、C4/C9)
+    """語義檢索(works 側)＋ RBAC(A/B 裁決＝B、憲章 v1.29.0/用戶拍板):**works＝哲學/文學公版素養,對【所有
+    登入者】公開、不 domain 收窄**(review_flag=false × literary 之 CLEAN 閘仍過);**未登入(scope=None)→ deny**
+    (fail-closed)。scope=(is_super, allowed) 或 None;work_id 可限縮單一著作;回 [Citation](逐字可溯源、相似度降序)。"""
+    if scope is None:
+        return []                                  # 未登入/無身分 → fail-closed deny(P4 後對話皆登入;None 僅內部誤用)
     qv = _query_vec(query)
-    where = "WHERE c.work_id = %s" if work_id else ""
+    where = "WHERE " + corpus.clean_work_sql("w")   # works 亦過 CLEAN 閘(C5 修);works 公版素養對所有登入者公開
+    if work_id:
+        where += " AND c.work_id = %s"
     sql = f"""
     SELECT c.chunk_id, c.work_id, COALESCE(w.title_zh, w.title), th.name_zh,
            t.chapter, c.char_start, c.char_end, t.source_url, c.content,
