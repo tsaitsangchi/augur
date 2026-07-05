@@ -364,6 +364,15 @@ input:focus,select:focus{outline:0;border-color:var(--accent)}
 .mdbody table.md th{background:#f0eee6;font-weight:600}
 .nav button,.nav a,.card,.mdbody a{transition:background .12s,color .12s,border-color .12s}
 button:focus-visible,input:focus-visible,select:focus-visible,.nav button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mdbody .codewrap{margin:10px 0}
+.mdbody .codebar{display:flex;justify-content:space-between;align-items:center;background:#1f1e1d;color:#8a8a80;padding:5px 12px;font-size:12px;border-radius:8px 8px 0 0}
+.mdbody .codecopy{background:transparent;border:0;color:#b8b3a8;font-size:12px;cursor:pointer;font-family:inherit}
+.mdbody .codecopy:hover{color:#fff}
+.mdbody .codewrap pre.cb{border-radius:0 0 8px 8px;margin:0}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:15}
+.scrim.show{display:block}
+#hb{display:none;position:fixed;left:12px;top:12px;z-index:20;width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;align-items:center;justify-content:center}
+@media(max-width:768px){.side{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .22s ease;z-index:25}.side.open{transform:none}.main{padding:56px 18px 40px}#hb{display:flex}}
 """
 
 NAV_SCRIPT = """</section>
@@ -379,8 +388,12 @@ NAV_SCRIPT = """</section>
 </div>
 </section>
 </main></div>
+<button id=hb onclick="toggleSide()" aria-label="選單" title="選單">☰</button>
+<div id=scrim class=scrim onclick="toggleSide()"></div>
 <script>
 function nav(btn,id){document.querySelectorAll('.sec').forEach(function(s){s.classList.remove('active')});document.getElementById('sec-'+id).classList.add('active');document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('active')});btn.classList.add('active')}
+function toggleSide(){var s=document.querySelector('.side'),sc=document.getElementById('scrim');var o=s.classList.toggle('open');if(sc)sc.classList.toggle('show',o)}
+document.addEventListener('click',function(e){if(e.target&&e.target.classList&&e.target.classList.contains('codecopy')){var w=e.target.closest('.codewrap');var c=w&&w.querySelector('pre');if(c){navigator.clipboard.writeText(c.textContent||'');e.target.textContent='已複製 ✓';setTimeout(function(){e.target.textContent='複製'},1200)}}})
 function dot(ok){var s=document.createElement('span');s.style.cssText='display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:'+(ok?'#5f8a5a':'#c15f3f');return s}
 async function loadHealth(){var el=document.getElementById('health');try{var j=await (await fetch('/api/health')).json();el.textContent='';[['PostgreSQL',j.db],['顧問殼 :8399',j.advisor],['Ollama :11434',j.ollama]].forEach(function(p,ix){el.appendChild(dot(p[1]));el.appendChild(document.createTextNode(p[0]+(ix<2?'　　':'')))})}catch(e){el.textContent='健康檢查失敗'}}
 async function loadJobs(){var el=document.getElementById('joblist');el.textContent='載入中…';try{var j=await (await fetch('/api/jobs')).json();var js=j.jobs||[];if(!js.length){el.textContent='(目前無背景工作)';return}el.innerHTML='';js.forEach(function(x){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #e9e6dc';var b=document.createElement('span');b.textContent=x.running?'● 執行中':'✓ 完成';b.style.cssText='font-size:11px;padding:2px 9px;border-radius:20px;white-space:nowrap;background:'+(x.running?'#f5e5dd':'#e7ead9')+';color:'+(x.running?'#8a4a30':'#3b6d11');var nm=document.createElement('span');nm.textContent=x.name;nm.style.cssText='flex:1;font-family:ui-monospace,monospace;font-size:12px;word-break:break-all';var ln=document.createElement('span');ln.textContent=x.lines+' 行';ln.style.cssText='color:#73726c;font-size:12px;white-space:nowrap';var a=document.createElement('a');a.textContent='檢視 ↗';a.href='/progress?file='+encodeURIComponent(x.name);a.target='_blank';a.style.cssText='color:#d97757;font-size:12px;white-space:nowrap';row.appendChild(b);row.appendChild(nm);row.appendChild(ln);row.appendChild(a);el.appendChild(row)})}catch(e){el.textContent='載入失敗'}}
@@ -531,11 +544,14 @@ def _md_to_html(text):
     while i < n:
         line = lines[i]
         if line.startswith("```"):
+            lang = line[3:].strip()
             buf = []; i += 1
             while i < n and not lines[i].startswith("```"):
                 buf.append(lines[i]); i += 1
             i += 1
-            out.append("<pre class=cb>" + "\n".join(buf) + "</pre>"); continue
+            out.append('<div class="codewrap"><div class="codebar"><span class="lang">' + lang
+                       + '</span><button class="codecopy" type="button">複製</button></div><pre class=cb>'
+                       + "\n".join(buf) + "</pre></div>"); continue
         m = re.match(r"(#{1,6})\s+(.*)", line)
         if m:
             lvl = min(len(m.group(1)) + 1, 4)
