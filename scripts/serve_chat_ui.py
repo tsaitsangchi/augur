@@ -22,12 +22,24 @@ import subprocess
 import sys
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs
 
-import _bootstrap  # noqa: F401  個別可執行(#29a):附加入庫需 augur.knowledge.webupload
-from augur.knowledge import webupload
+import _bootstrap  # noqa: F401  個別可執行(#29a)
+from augur.knowledge import webupload, identity   # identity 匯入鏈載入 .env(取 AUGUR_INTERNAL_SECRET)
 
 ADVISOR = "http://127.0.0.1:8399"
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_SECRET = os.environ.get("AUGUR_INTERNAL_SECRET")   # 前台↔殼共享機密(P4;送 X-Augur-Internal)
+
+LOGIN_PAGE = """<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><title>誠實博學的我 · 登入</title></head>
+<body style="margin:0;font-family:system-ui,'Noto Sans TC',sans-serif;background:#0d1117;color:#e6edf3;display:flex;min-height:100vh;align-items:center;justify-content:center">
+<div style="width:340px;padding:32px;background:#161b22;border:1px solid #21262d;border-radius:14px">
+<h2 style="margin:0 0 4px;font-size:19px">誠實博學的我</h2>
+<p style="color:#7d8590;font-size:13px;margin:0 0 18px">登入以依你的權限檢索知識</p>__MSG__
+<form method=post action=/login><input name=username placeholder="帳號" autofocus style="width:100%;padding:11px;margin:4px 0 8px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;font-size:15px">
+<input type=password name=pw placeholder="密碼" style="width:100%;padding:11px;margin:4px 0 12px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;font-size:15px">
+<button style="width:100%;padding:11px;background:#238636;color:#fff;border:0;border-radius:8px;font-size:15px;cursor:pointer">登入</button></form></div></body></html>"""
 
 
 def _safe_dir(path):
@@ -168,13 +180,31 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
-    def do_GET(self):
-        body = PAGE.encode()
-        self.send_response(200)
+    def _token(self):
+        for kv in self.headers.get("Cookie", "").split(";"):
+            if kv.strip().startswith("sid="):
+                return kv.strip()[4:]
+        return None
+
+    def _html(self, html, code=200, cookie=None):
+        body = html.encode("utf-8")
+        self.send_response(code)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        if cookie:
+            self.send_header("Set-Cookie", cookie)
         self.end_headers()
         self.wfile.write(body)
+
+    def do_GET(self):
+        path = self.path.split("?")[0].rstrip("/")
+        if path == "/logout":
+            identity.revoke_session(self._token())
+            return self._html(LOGIN_PAGE.replace("__MSG__", "<p style=color:#7d8590>已登出</p>"),
+                              cookie="sid=; Max-Age=0; Path=/")
+        if identity.verify_session(self._token()) is None:          # 未登入 → 登入頁(RBAC P4)
+            return self._html(LOGIN_PAGE.replace("__MSG__", ""))
+        self._html(PAGE)
 
     def _reply(self, content):
         out = json.dumps({"choices": [{"message": {"content": content}}],
@@ -254,9 +284,25 @@ class H(BaseHTTPRequestHandler):
                            "parsed": meta["parsed"], "skipped": meta["skipped"], "truncated": truncated})
 
     def do_POST(self):
-        if self.path.rstrip("/") == "/ingest":
+        path = self.path.rstrip("/")
+        if path == "/login":
+            n = int(self.headers.get("Content-Length") or 0)
+            form = parse_qs(self.rfile.read(n).decode("utf-8", "replace")) if n else {}
+            u = identity.authenticate((form.get("username", [""])[0]).strip(), form.get("pw", [""])[0])
+            if u:
+                tok = identity.issue_session(u["user_id"], client_note="chat")
+                self.send_response(303)
+                self.send_header("Location", "/")
+                self.send_header("Set-Cookie", f"sid={tok}; HttpOnly; SameSite=Strict; Path=/")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            return self._html(LOGIN_PAGE.replace("__MSG__", "<p style=color:#d29922>帳號或密碼錯誤</p>"))
+        if identity.verify_session(self._token()) is None:      # /chat//ingest//attach 皆須登入(RBAC P4;無 public fallback)
+            return self._reply("請重新登入(工作階段已失效或未登入;重新整理頁面登入)")
+        if path == "/ingest":
             return self._ingest()
-        if self.path.rstrip("/") == "/attach":
+        if path == "/attach":
             return self._attach()
         n = int(self.headers.get("Content-Length", 0))
         req = json.loads(self.rfile.read(n) or b"{}")
@@ -281,9 +327,12 @@ class H(BaseHTTPRequestHandler):
         if isinstance(att, dict) and (att.get("text") or "").strip():
             fwd["augur_attach"] = {"title": att.get("title") or "附加文件", "text": att["text"]}
         payload = json.dumps(fwd).encode()
+        headers = {"Content-Type": "application/json"}
+        if _SECRET:                                             # P4:傳身分給殼(殼驗機密後自查 session 自 resolve scope,§4.3)
+            headers["X-Augur-Internal"] = _SECRET
+            headers["X-Augur-Session"] = self._token() or ""
         try:
-            r = urllib.request.Request(self.advisor + "/v1/chat/completions", payload,
-                                       {"Content-Type": "application/json"})
+            r = urllib.request.Request(self.advisor + "/v1/chat/completions", payload, headers)
             out = urllib.request.urlopen(r, timeout=600).read()
         except Exception as e:
             out = json.dumps({"choices": [{"message": {"content": f"advisor 殼錯誤:{e}"}}],
