@@ -6,8 +6,11 @@
    (A)**頁內瀏覽器**——點目錄樹瀏覽家目錄與 Windows 磁碟(/mnt/c…),選定即解析(引用伺服器路徑、不複製);
    (B)**原生上傳鈕**——webkitdirectory 彈作業系統資料夾視窗,上傳夾內檔案落暫存夾再餵同一入庫引擎;
    (C)打字輸入路徑(power user)。**只觸發既有本地 script、不重造管線、不繞 guard**;綁 127.0.0.1 僅本機。
-安全(#5 OWASP):密碼 pbkdf2_hmac 雜湊(env AUGUR_ADMIN_PASSWORD,禁明文禁進 git;--set-password 產)、
-   session token(secrets、HttpOnly+SameSite=Strict cookie、逾時)、常數時間比對、路徑 realpath 圍欄
+登入(RBAC P1):**DB 群組使用者優先**(填帳號→`identity.authenticate` 查 `app_user` + pbkdf2 240k、
+   session 落 `app_session`);**帳號留空＝env 緊急後門**(相容期,`AUGUR_ADMIN_PASSWORD`,防鎖死;計畫 §3.3/§3.6)。
+   建帳號/群組/授權走 `scripts/manage_rbac_user.py`(DB 資料驅動、零改碼 #29)。
+安全(#5 OWASP):pbkdf2_hmac 240k 雜湊(禁明文禁進 git)、session token(secrets、HttpOnly+SameSite=Strict cookie、
+   DB 只存 sha256、fail-closed 每請求 gate)、常數時間比對、路徑 realpath 圍欄
    (限家目錄或 /mnt 下、拒 ../ 逃逸)、上傳大小上限+檔名去逃逸(防 zip bomb/traversal)、手寫 multipart(免 cgi)、
    subprocess 參數陣列 shell=False(防注入)、審計 log(誰/何時/何動作);license 仍受 DB CHECK 白名單硬擋。
 守 #5(OWASP)· #28(觸發本地引擎零 Claude usage)· #29 · 計畫 §四(admin 操作面、既有管線之 UI)。
@@ -33,7 +36,7 @@ from urllib.parse import parse_qs, urlparse
 
 import _bootstrap  # noqa: F401
 from augur.core import db, config
-from augur.knowledge import webupload, sftpbrowse
+from augur.knowledge import webupload, sftpbrowse, identity
 
 PORT = 8500
 SESSION_TTL = 3600          # session 秒數
@@ -177,6 +180,9 @@ def _new_session():
 
 
 def _valid(token):
+    # DB 群組 session(identity/app_session、fail-closed)優先;env 緊急後門用記憶體 _SESSIONS(相容期)
+    if token and identity.verify_session(token) is not None:
+        return True
     exp = _SESSIONS.get(token)
     if exp and exp > time.time():
         return True
@@ -190,7 +196,9 @@ LOGIN_HTML = """<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
 <div style="width:340px;padding:32px;background:#161b22;border:1px solid #21262d;border-radius:14px">
 <h2 style="margin:0 0 4px;font-size:19px">augur 知識控制台</h2>
 <p style="color:#7d8590;font-size:13px;margin:0 0 18px">知識層管理後台</p>{msg}
-<form method=post action=/login><input type=password name=pw placeholder="密碼" autofocus
+<form method=post action=/login><input name=username placeholder="帳號(留空＝env 緊急後門)" autofocus
+ style="width:100%;padding:11px;margin:4px 0 8px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;font-size:15px">
+<input type=password name=pw placeholder="密碼"
  style="width:100%;padding:11px;margin:4px 0 12px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;font-size:15px">
 <button style="width:100%;padding:11px;background:#238636;color:#fff;border:0;border-radius:8px;font-size:15px;cursor:pointer">登入</button></form></div></body></html>"""
 
@@ -417,7 +425,9 @@ class AdminHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/") or "/"
         if path == "/logout":
-            _SESSIONS.pop(self._token(), None)
+            tok = self._token()
+            identity.revoke_session(tok)          # 撤 DB session
+            _SESSIONS.pop(tok, None)              # 撤記憶體(env)session
             return self._send(200, LOGIN_HTML.format(msg="<p style=color:#7d8590>已登出</p>"),
                               cookie="sid=; Max-Age=0; Path=/")
         if not _valid(self._token()):
@@ -445,15 +455,26 @@ class AdminHandler(BaseHTTPRequestHandler):
         if path == "/login":
             n = int(self.headers.get("Content-Length") or 0)
             form = parse_qs(self.rfile.read(n).decode("utf-8", "replace")) if n else {}
-            pw = (form.get("pw", [""])[0]).strip()
+            pw = form.get("pw", [""])[0]
+            username = (form.get("username", [""])[0]).strip()
+            if username:                          # DB 群組使用者(app_user)優先
+                u = identity.authenticate(username, pw)
+                if u:
+                    tok = identity.issue_session(u["user_id"], client_note="admin")
+                    _audit("login", f"ok user={username} super={u['is_superuser']}")
+                    return self._send(303, "", cookie=f"sid={tok}; HttpOnly; SameSite=Strict; Path=/",
+                                      ctype="text/plain")
+                _audit("login", f"fail user={username}")
+                return self._send(200, LOGIN_HTML.format(msg="<p style=color:#d29922>帳號或密碼錯誤</p>"))
+            # 帳號留空 ＝ env 緊急後門(相容期;計畫 §3.3/§3.6)——臨時 superuser 等效、記憶體 session
             stored = os.environ.get("AUGUR_ADMIN_PASSWORD", "")
-            if stored and verify_password(pw, stored):
+            if stored and verify_password(pw.strip(), stored):
                 tok = _new_session()
-                _audit("login", "ok")
+                _audit("login", "ok emergency(env)")
                 return self._send(303, "", cookie=f"sid={tok}; HttpOnly; SameSite=Strict; Path=/",
-                                  ctype="text/plain")  # 303 見下 Location
+                                  ctype="text/plain")
             _audit("login", "fail")
-            return self._send(200, LOGIN_HTML.format(msg="<p style=color:#d29922>密碼錯誤</p>"))
+            return self._send(200, LOGIN_HTML.format(msg="<p style=color:#d29922>帳號或密碼錯誤</p>"))
 
         if not _valid(self._token()):
             return self._send(403, "未授權", ctype="text/plain")
