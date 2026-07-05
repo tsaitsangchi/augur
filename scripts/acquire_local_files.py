@@ -39,6 +39,8 @@ def main():
     ap.add_argument("--license", choices=list(corpus.LICENSE_WHITELIST))
     ap.add_argument("--access-scope", choices=["public", "local_private"], default="local_private")
     ap.add_argument("--domain", default="local")
+    ap.add_argument("--owner-user-id", type=int, default=None,
+                    help="local_private 擁有者 app_user.user_id(RBAC 擁有者收窄;僅本人+super 可檢索)")
     ap.add_argument("--dry-run", action="store_true")
     args, _ = ap.parse_known_args()
 
@@ -97,10 +99,11 @@ def main():
                     for i in range(0, len(text), SEG_CHARS):
                         cur.execute(
                             "INSERT INTO knowledge_item_text "
-                            "(item_id, seq, content, language, source_url, license, source_type, access_scope) "
-                            "VALUES (%s,%s,%s,%s,%s,%s,'local_upload',%s)",
+                            "(item_id, seq, content, language, source_url, license, source_type, access_scope, owner_user_id) "
+                            "VALUES (%s,%s,%s,%s,%s,%s,'local_upload',%s,%s)",
                             (item_id, i // SEG_CHARS + 1, text[i:i + SEG_CHARS], lang, url,
-                             args.license, args.access_scope))
+                             args.license, args.access_scope,
+                             args.owner_user_id if args.access_scope == "local_private" else None))
                         stats["rows"] += 1
                     stats["ok"] += 1
 

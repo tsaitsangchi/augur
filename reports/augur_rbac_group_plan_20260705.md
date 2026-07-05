@@ -1,6 +1,8 @@
 # augur RBAC 群組規劃計畫（企業管理為最高原則）
 
-🎯 **白話**：RBAC 機制（P1–P4）已就緒、目前 fail-closed（非 super 看不到任何 domain）。本計畫依**企業管理原則**（職能部門對映／最小權限／職責分離／需知原則／層級）把現存 40 個知識 domain 規劃成**權限群組 → domain 授權矩陣**，供決策層拍板。**本計畫＝政策設計提案（§8.2#1／#3 永遠人決策），非執行**——AI 不自建群組；你拍板後用 CLI 落地（末章）。
+🎯 **白話**：RBAC 機制（P1–P4）已就緒、目前 fail-closed（非 super 看不到任何 domain）。本計畫依**企業管理原則**（職能部門對映／最小權限／職責分離／需知原則／層級）把現存 40 個知識 domain 規劃成**權限群組 → domain 授權矩陣**。
+
+> **✅ 已建置（2026-07-05，用戶「照預設全建」拍板 §8.2#1）**：7 職能群組 + 26 授權邊界域 + grant 矩陣**已落地 DB**（`scripts/build_rbac_enterprise_groups.py --build`，冪等）；`local_private` 擁有者收窄**已接線**（讀路徑 `clean_item_sql`/`retrieve_all`、寫路徑 `acquire_local_files.py --owner-user-id`）。醫療生技部（§6.1）預設未建、`--with-medical` 可加。**尚待你做**：建帳號 + 派人入組（`manage_rbac_user.py --create-user/--add-to-group`）——群組結構已備、人事你填。
 守原則 #5（最小權限/職責分離）· #1（RBAC 只作用讀取可見性、不觸預測）· #19（決策層拍板前先攤清）· 憲章 v1.29.0（RBAC 準則 (i)-(vi)、works 側已裁）。日期：2026-07-05。
 
 > **據實接地（#1）**：40 域由 `knowledge_domain` 字典 + `knowledge_item` 內容量直查（非臆造）。8 管理域＝企業職能；32 為知識/學術素養域。
@@ -94,9 +96,26 @@
 
 ---
 
-## 5. 落地 CLI（拍板後執行；照憲章 v1.27.0 計畫完整性＝機制執行指令）
+## 5. 落地 CLI（照憲章計畫完整性＝機制執行指令）
 
-> **執行者＝決策層人**（§8.2；AI 不自動跑）。順序：拍板邊界 → 建群組 → 授權 → 建人 → 派組。範例（研發部）：
+### 5.0 一鍵全建（已執行 2026-07-05；冪等可重跑）
+§2 矩陣的**邊界 + 群組 + grant 一次落地**——矩陣資料驅動（`CORE_GROUPS` 字典）、複用 `manage_rbac_user` 之 cmd 函式（#12）、單一交易、落稽核：
+```bash
+python scripts/build_rbac_enterprise_groups.py               # 無參數:印矩陣(不寫)
+python scripts/build_rbac_enterprise_groups.py --dry-run     # 預覽
+python scripts/build_rbac_enterprise_groups.py --build       # 落地 7 群組+26 邊界(已執行)
+python scripts/build_rbac_enterprise_groups.py --build --with-medical   # 併醫療生技部(§6.1)
+```
+建帳號 + 派人入組（人事，另走）：
+```bash
+python scripts/manage_rbac_user.py --create-user --username alice        # getpass 密碼
+python scripts/manage_rbac_user.py --add-to-group --username alice --group 研發部
+python scripts/manage_rbac_user.py --explain-access --username alice     # 驗:應列研發部 12 域
+```
+
+### 5.1 逐項 CLI（granular；調單一授權/新部門用）
+
+> 順序：拍板邊界 → 建群組 → 授權 → 建人 → 派組。範例（研發部）：
 
 ```bash
 # (1) 拍板授權邊界（§4 清單逐一;此處示範研發相關）

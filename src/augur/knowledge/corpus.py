@@ -34,14 +34,17 @@ def clean_work_sql(work_alias="w"):
 
 
 def clean_item_sql(item_alias="i", itext_alias="x", access_scope=None,
-                   is_super=False, allowed_domains=None):
-    """items 側 CLEAN_ITEM 述詞 ＋ RBAC domain 收窄(RBAC P3,計畫 §4.2)。**回 (sql_fragment, params:list)**。
+                   is_super=False, allowed_domains=None, owner_user_id=None):
+    """items 側 CLEAN_ITEM 述詞 ＋ RBAC 收窄(RBAC P3/群組建置,計畫 §4.2/§4.5、憲章 v1.29.0)。**回 (sql_fragment, params:list)**。
 
     呼叫端一律 `frag, fp = clean_item_sql(...); sql += frag; params += fp`(消手工位置對齊、關 fail-open)。
     - license 白名單 × entity_type 語意層准入(封閉集、安全字面內插);access_scope 封閉集內插。
-    - **RBAC domain(開放值 → 參數化,不內插)**:`is_super=True`→不濾 domain(embed/builder 非讀取路徑傳此);
-      否則 `allowed_domains` 空(None/[])→ `AND false`(**預設 deny**、非「不濾」——⚠ 與舊 access_scope=None 語意相反);
-      非空 → `AND domain = ANY(%s::text[])`。讀取路徑(retrieve_*)一律傳 resolve_allowed_domains 之 (is_super, allowed)。
+    - **RBAC 收窄軸依 access_scope 分流(開放值 → 參數化不內插;`is_super=True` 一律不濾——embed/builder 非讀取路徑傳此)**:
+      · `access_scope='local_private'` → **擁有者收窄**(私有＝個人文件、無部門語意、**不 domain 收窄**、跨使用者 fail-closed):
+        非 super 且 `owner_user_id` 給 → `AND owner_user_id = %s`;非 super 且 owner 缺 → `AND false`(deny);super → 見全部私有。
+      · 其餘(`public`/None) → **domain 收窄**(群組 grant):非 super 且 `allowed_domains` 空(None/[]) → `AND false`(**預設 deny**);
+        非空 → `AND domain = ANY(%s::text[])`。
+    讀取路徑(retrieve_*)一律傳 resolve 之 (is_super, allowed, user_id);private 側須帶 `owner_user_id`＝登入者(#5 anti-leakage)。
     """
     p = (f"{itext_alias}.license IN ({_quoted(LICENSE_WHITELIST)}) "
          f"AND {item_alias}.entity_type IN ({_quoted(SEMANTIC_ENTITY_TYPES)})")
@@ -49,7 +52,14 @@ def clean_item_sql(item_alias="i", itext_alias="x", access_scope=None,
     if access_scope is not None:
         assert access_scope in ("public", "local_private"), f"非法 access_scope: {access_scope}"
         p += f" AND {itext_alias}.access_scope = '{access_scope}'"
-    if not is_super:
+    if access_scope == "local_private":                        # 擁有者收窄:私有＝個人文件、跨使用者 fail-closed
+        if not is_super:
+            if owner_user_id is None:
+                p += " AND false"                              # 無身分/未登入 → deny
+            else:
+                p += f" AND {itext_alias}.owner_user_id = %s"
+                params.append(owner_user_id)
+    elif not is_super:                                         # public/None → domain 收窄(群組 grant)
         if not allowed_domains:
             p += " AND false"                                  # fail-closed:無授權域=零可見
         else:

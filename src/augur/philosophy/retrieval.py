@@ -177,7 +177,10 @@ def lexicon_lookup(term):
 
 def concordance_lookup(term, limit=10):
     """逐字用例查詢(L2→L5):回 [ConcordanceHit](原句+char_range+work/item 標題)。
-    庫無此詞或 L2 表未建 → 誠實回空 []。"""
+    庫無此詞或 L2 表未建 → 誠實回空 []。
+    ⚠ RBAC(§4.5、憲章 v1.29.0):本函式回 knowledge_item 逐字內容但**不過 clean_item_sql domain/擁有者收窄**;
+      **目前未接進 advise()/retrieve_all**(僅獨立 L2 查詢)故非現行洩漏面;若未來接入顧問讀取路徑,
+      **必先加 clean_item_sql 收窄**(否則繞過 RBAC 洩漏 domain 受限/local_private 內容,破 #1/#5 命門)。"""
     forms = _term_forms(term)
     if not forms:
         return []
@@ -248,17 +251,18 @@ def _item_citations(cur, where, params, order, scores, via):
 
 
 def retrieve_items(query, k=8, domain=None, language=None, access_scope="public",
-                   is_super=False, allowed_domains=None):
-    """items 側檢索(讀路徑鐵則 §3-S7)＋ RBAC domain 收窄(P3,§4.2/4.5):
+                   is_super=False, allowed_domains=None, owner_user_id=None):
+    """items 側檢索(讀路徑鐵則 §3-S7)＋ RBAC 收窄(P3/群組建置,§4.2/4.5):
     query→textnorm 全形集→(a)exact SQL 零向量優先→(c)ANN 補位→一律 PG JOIN 取原文;
     CLEAN_ITEM 閘＋RBAC 由 corpus.clean_item_sql 產 (frag, params)、**exact 計數/exact 取原文/ann 三段同帶**
-    (一改三處自動同帶、關 L274 與 ANN 補位兩洩漏面);fail-closed:非 super 且 allowed_domains 空 → AND false。
-    access_scope='public'(對外;local_private 本機檔不入);is_super/allowed_domains 由 resolve_allowed_domains 得。
+    (一改三處自動同帶、關 L274 與 ANN 補位兩洩漏面);fail-closed:非 super 無授權 → AND false。
+    access_scope='public'→domain 收窄(is_super/allowed_domains);='local_private'→擁有者收窄(owner_user_id=登入者)。
     語料空/表未建 → 誠實回空 []。回 [ItemCitation](exact 先、ann 補位)。"""
     if not (query or "").strip():
         return []
     cfrag, cparams = corpus.clean_item_sql("i", "x", access_scope=access_scope,
-                                           is_super=is_super, allowed_domains=allowed_domains)
+                                           is_super=is_super, allowed_domains=allowed_domains,
+                                           owner_user_id=owner_user_id)
     extra, extra_params = "", []
     if domain:
         extra += " AND i.domain = %s"; extra_params.append(domain)
@@ -306,16 +310,25 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
 
 
 def retrieve_all(query, k=6, access_scope="public", scope=None):
-    """work + item 合併檢索 ＋ RBAC scoped(P3,§4.5)。對話端唯一組合檢索器:兩側各取半、交錯合併、cap k。
-    **scope=(is_super, allowed_domains) 或 None**;None → fail-closed 當 (False, ∅)＝預設 deny(非「不濾」)。
-    works 側非 super 一律 deny(A/B 裁決前,§4.5);items 側經 clean_item_sql domain 收窄。
-    回混合 [Citation|ItemCitation](verify_verbatim 型別感知、prompt/guard getattr 相容)。"""
-    is_super, allowed = scope if scope else (False, frozenset())
+    """work + item 合併檢索 ＋ RBAC scoped(P3/群組建置,§4.5、憲章 v1.29.0)。對話端唯一組合檢索器:**三路徑**各取半、
+    交錯合併、cap k——(1) works=哲學/文學公版經典**對所有登入者公開**;(2) public items 經 domain 群組收窄;
+    (3) local_private items 經**擁有者收窄**(僅本人+super)。**scope=(is_super, allowed, user_id) 或 None**;
+    None/未登入 → fail-closed 全 deny(非「不濾」)。回混合 [Citation|ItemCitation](verify/prompt/guard 型別感知相容)。
+    (access_scope 參數保留為簽章相容;三路徑內部固定分流、不再由此參數決定。)"""
+    if not scope:
+        is_super, allowed, user_id = False, frozenset(), None
+    else:                                                      # 容 2-tuple(舊)與 3-tuple(含 user_id);缺 user_id 視 None
+        is_super, allowed = scope[0], scope[1]
+        user_id = scope[2] if len(scope) > 2 else None
     half = max(2, (k + 1) // 2)
-    works = retrieve(query, k=half, scope=scope)
-    items = retrieve_items(query, k=half, access_scope=access_scope,
-                           is_super=is_super, allowed_domains=allowed)
-    merged = [c for pair in zip_longest(works, items) for c in pair if c is not None]
+    works = retrieve(query, k=half, scope=scope)                          # 路徑1:登入者公開
+    pub = retrieve_items(query, k=half, access_scope="public",
+                         is_super=is_super, allowed_domains=allowed)      # 路徑2:domain 收窄
+    priv = []
+    if is_super or user_id is not None:                                   # 路徑3:有身分才查私有(否則必 deny、省一趟)
+        priv = retrieve_items(query, k=half, access_scope="local_private",
+                              is_super=is_super, owner_user_id=user_id)   # 擁有者收窄
+    merged = [c for trio in zip_longest(works, pub, priv) for c in trio if c is not None]
     return merged[:k]
 
 def verify_verbatim_item(citation):

@@ -71,20 +71,24 @@ def _citations_block(citations):
 
 
 def _reply_text(result):
-    """對外回覆文本(R2 架構:模型只給白話解讀、系統附逐字原文)。
-    guard pass → LLM 解讀 + 系統逐字引文;guard fail → 誠實句(有檢索則揭露原文供參)+ 引文;皆附機械尾註。"""
+    """對外回覆文本(R2 架構:模型只給白話解讀)。**公版「引經據典」逐字區塊一律不顯示**(用戶 directive
+    2026-07-05 入憲/憲章 v1.30.0)——guard 內部仍以 citations 逐字校驗(honesty gate 不變、只隱藏呈現);
+    Mode B 附加檔區塊【保留】(用戶自帶文件之助讀、非公版引經據典)。
+    guard pass → LLM 解讀;guard fail(公版)→ 系統狀態句(不倒原文、不謊稱「無此內容」);皆附機械尾註。"""
     passed = result["guard"]["pass"]
     cites = result["citations"]
+    attached = bool(cites) and all((getattr(c, "source_url", "") or "").startswith("附加文件:") for c in cites)
     if passed:
         body = result["response"]
-    elif cites:
-        body = "(顧問白話解讀因不合逐字引用規則被機械閘攔下;以下為檢索到的公版原文,供你自行研讀)"
+    elif attached:
+        body = "(顧問白話解讀因不合逐字引用規則被機械閘攔下;以下為附加檔原文,供你自行研讀)"
     else:
+        # guard fail(公版):不倒引經據典原文(用戶 directive)→ 回誠實固定句閉集(不自造新句;
+        # 閉集受憲章 v1.25.0 控、不得執行層自改;此為既有測試 guard_fail_returns_fixed_honest_closed_set 之判準)
         body = NO_KNOWLEDGE_RESPONSE
     parts = [body]
-    cb = _citations_block(cites)
-    if cb:
-        parts.append(cb)
+    if attached:                        # 僅 Mode B 附加檔顯示逐字區塊;公版引經據典一律不顯示(用戶 directive)
+        parts.append(_citations_block(cites))
     parts.append(_verdict_note(result))
     return _SEP.join(parts)
 
@@ -160,21 +164,27 @@ class AdvisorHandler(BaseHTTPRequestHandler):
         return dict(llm_fn=s.llm_fn, payload_fn=s.payload_fn, retrieve_fn=s.retrieve_fn, k=s.k)
 
     def _resolve_scope(self):
-        """RBAC scope 解析(P3,§4.3):有 X-Augur-Internal→驗機密後以 X-Augur-Session 自查 DB 自 resolve
-        (**絕不信 body/header 帶入的 user_id/allowed_domains/is_super**);機密不符/session 無效→fail-closed deny。
-        相容期(無 internal header、前台尚未接身分 P4)→ superuser stopgap(僅 loopback 單一 admin,P4 接身分後即改由 session 決)。"""
+        """RBAC scope 解析(P3/群組建置,§4.3):回 **(is_super, allowed, user_id)**——有 X-Augur-Internal→驗機密後以
+        X-Augur-Session 自查 DB 自 resolve(**絕不信 body/header 帶入的 user_id/allowed_domains/is_super**),user_id
+        供 local_private 擁有者收窄;機密不符/session 無效→fail-closed deny (False, ∅, None)。
+        **無 internal header → 預設 fail-closed deny**(紅隊 HIGH 2026-07-05:舊 stopgap 預設 super,一旦忘設
+        AUGUR_INTERNAL_SECRET 即 chat_ui 不送 header→每人被當 super、RBAC 靜默全失效);單機 admin 免登入之便利
+        改為【顯式 opt-in】——僅當 server `insecure_loopback_admin=True`(--insecure-loopback-admin 旗標)才回 super、預設關。"""
         internal = self.headers.get("X-Augur-Internal")
         if internal is not None:                       # 前台已走內部身分通道
             secret = getattr(self.server, "internal_secret", None)
             if not (secret and internal == secret):
-                return (False, frozenset())            # 共享機密不符 → fail-closed deny
+                return (False, frozenset(), None)      # 共享機密不符 → fail-closed deny
             from augur.knowledge.identity import verify_session
             from augur.knowledge.access import resolve_allowed_domains
             uid = verify_session(self.headers.get("X-Augur-Session"))
             if uid is None:
-                return (False, frozenset())            # 無效 session → deny(絕不 fallback public/全庫)
-            return resolve_allowed_domains(uid)
-        return (True, frozenset())                     # 相容期 stopgap:loopback 單一 admin、P4 前(見 §4.3.4)
+                return (False, frozenset(), None)      # 無效 session → deny(絕不 fallback public/全庫)
+            is_super, allowed = resolve_allowed_domains(uid)
+            return (is_super, allowed, uid)            # user_id 帶下游供私有擁有者收窄
+        if getattr(self.server, "insecure_loopback_admin", False):
+            return (True, frozenset(), None)           # 顯式 opt-in 單機 admin(預設關;紅隊 HIGH 修)
+        return (False, frozenset(), None)              # 無身分通道 → 預設 fail-closed deny(非 super)
 
     def _send_json(self, status, obj):
         raw = json.dumps(obj, ensure_ascii=False).encode("utf-8")
@@ -231,10 +241,14 @@ class AdvisorHandler(BaseHTTPRequestHandler):
         self._send_json(200, completion)
 
 
-def make_server(host, port, llm_fn, payload_fn=example_payload, retrieve_fn=None, k=6, internal_secret=None):
+def make_server(host, port, llm_fn, payload_fn=example_payload, retrieve_fn=None, k=6,
+                internal_secret=None, insecure_loopback_admin=False):
     """組好可 serve_forever() 的 ThreadingHTTPServer(依賴以 server 屬性注入 handler)。
-    internal_secret=前台↔殼共享機密(X-Augur-Internal;None＝無身分通道、走相容期 super stopgap,§4.3)。"""
+    internal_secret=前台↔殼共享機密(X-Augur-Internal;驗身分通道)。
+    insecure_loopback_admin=無 header 時是否當單機 admin(super);**預設 False＝fail-closed deny**
+    (紅隊 HIGH 修:預設 super 會在忘設機密時令 RBAC 靜默失效);僅單機無多使用者時才顯式開。"""
     srv = ThreadingHTTPServer((host, port), AdvisorHandler)
     srv.llm_fn, srv.payload_fn, srv.retrieve_fn, srv.k = llm_fn, payload_fn, retrieve_fn, k
     srv.internal_secret = internal_secret
+    srv.insecure_loopback_admin = insecure_loopback_admin
     return srv

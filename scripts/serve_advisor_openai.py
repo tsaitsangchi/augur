@@ -41,6 +41,8 @@ def main(argv=None):
     ap.add_argument("--timeout", type=float, default=None, help="LLM 單回合秒數(預設 OLLAMA_TIMEOUT env → 300)")
     ap.add_argument("--mock-llm", action="store_true", help="llm_fn=固定句(免 Ollama;檢索/guard 仍真)")
     ap.add_argument("--k", type=int, default=6, help="檢索引文數(預設 6)")
+    ap.add_argument("--insecure-loopback-admin", action="store_true", dest="insecure_loopback_admin",
+                    help="無身分 header 之請求當單機 admin(super);預設關=fail-closed(紅隊 HIGH:預設 super 會令忘設機密時 RBAC 靜默失效)")
     args = ap.parse_args(argv)
 
     port = args.port if args.port is not None else oai_compat.DEFAULT_PORT
@@ -60,8 +62,12 @@ def main(argv=None):
     # 死點① 接線(計畫 §三):對話端組合檢索=work(哲學/文學)+item(知識/財經/本機檔),
     # 否則抓來的知識/item 零命中(retrieve_fn=None 只走 work 側)。access_scope='public'(對外)。
     from augur.philosophy.retrieval import retrieve_all
+    secret = os.environ.get("AUGUR_INTERNAL_SECRET")
+    if not secret and not args.insecure_loopback_admin:
+        print("⚠ 未設 AUGUR_INTERNAL_SECRET 且未開 --insecure-loopback-admin:所有請求 fail-closed deny(無引文);"
+              "請設機密(前台送 X-Augur-Session)或單機測試加 --insecure-loopback-admin。", flush=True)
     srv = oai_compat.make_server(args.host, port, llm_fn, retrieve_fn=retrieve_all, k=args.k,
-                                 internal_secret=os.environ.get("AUGUR_INTERNAL_SECRET"))
+                                 internal_secret=secret, insecure_loopback_admin=args.insecure_loopback_admin)
     print(f"augur-advisor 殼啟動 http://{args.host}:{port}/v1 "
           f"(llm={'mock' if args.mock_llm else model};payload=example_payload 示範;唯讀零寫;Ctrl-C 停)",
           flush=True)

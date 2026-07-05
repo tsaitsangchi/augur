@@ -39,6 +39,22 @@ def test_clean_item_sql_returns_tuple_not_str():
     assert isinstance(r, tuple) and len(r) == 2 and isinstance(r[0], str) and isinstance(r[1], list)
 
 
+# ── clean_item_sql local_private 擁有者收窄(RBAC 群組建置,§4.5;anti-leakage 命門)──
+def test_clean_item_sql_local_private_owner_scoping():
+    """local_private＝擁有者收窄(非 domain):非 super+owner→owner_user_id=%s 參數化、**不 domain 收窄**;
+    非 super+owner 缺→AND false(deny);super→見全部私有(不加收窄)。跨使用者 fail-closed(#5)。"""
+    frag, params = corpus.clean_item_sql("i", "x", access_scope="local_private",
+                                         is_super=False, owner_user_id=7)
+    assert "x.owner_user_id = %s" in frag and params == [7]
+    assert "domain = ANY" not in frag                       # 私有=個人文件、不 domain 收窄
+    frag2, p2 = corpus.clean_item_sql("i", "x", access_scope="local_private",
+                                      is_super=False, owner_user_id=None)
+    assert "AND false" in frag2 and p2 == []                # 無身分 → deny(不外洩)
+    frag3, _ = corpus.clean_item_sql("i", "x", access_scope="local_private", is_super=True)
+    assert "AND false" not in frag3 and "owner_user_id" not in frag3   # super 見全部私有
+    assert "access_scope = 'local_private'" in frag3
+
+
 # ── resolver fail-closed(DB,但不存在/None 恆 deny、無 DB 狀態假設)──
 def test_resolver_failclosed_unknown_and_none():
     """T12:user 不存在/None → (False, ∅)——絕不當 super、絕不吐全庫。"""
