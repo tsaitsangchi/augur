@@ -31,22 +31,26 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
                 guard 不變、只換人格框架與檢索語料,誠實三敵防護一致
     回:{response, guard, citations, lex_entries, prompt}
     """
-    from augur.philosophy.retrieval import retrieve, lexicon_lookup, verify_verbatim
+    from augur.philosophy.retrieval import retrieve, lexicon_lookup, verify_verbatim, is_low_content
     src_fn = retrieve if retrieve_fn is None else retrieve_fn
-    citations = [c for c in src_fn(query, k=k, scope=scope) if verify_verbatim(c)]  # RBAC scope 一路傳達(P3,§4.4);機械攔 stale/非逐字(#1,M2)
+    # RBAC scope 一路傳達(P3,§4.4);機械攔 stale/非逐字(#1,M2)+ 濾 junk 低內容 chunk(B-1 收尾,量測後定)
+    citations = [c for c in src_fn(query, k=k, scope=scope) if verify_verbatim(c) and not is_low_content(c.text)]
     lex_fn = lexicon_fn or lexicon_lookup
     lex_entries = [e for t in lex_terms for e in lex_fn(t)]
-    if not citations and not lex_entries:
-        # 檢索全空 → 三級誠實分級(憲章 v1.25.0)+ 誠實保守白名單放行(v1.35.0,W2b/Phase2)。
-        # 機械分級(answer.honesty_level 旁查 title-mention):level-2(隔離館藏未驗)恆不放行。
+    # 誠實保守白名單通識路(v1.35.0 + B-1 收尾):通識/B2 題(general_safe_answerable)即使檢索到
+    # (量測證實多為不相關之非-junk)citations,亦走乾淨通識路——忽略雜訊、避免不相關 citation 令 LLM
+    # 非決定性答壞(實證:「有沒有穩賺不賠的股票」撈到王充/韓非子/沉香 → 主路徑時好時壞)。
+    whitelist_route = (not lex_entries and prompt_fn is None and general_safe_answerable(query))
+    if whitelist_route or (not citations and not lex_entries):
+        # 三級誠實分級(憲章 v1.25.0):以空 citations 判分級(sidecar 旁查 title-mention 優先;
+        # 白名單一律忽略不相關檢索)——level-2(隔離館藏未驗)恆不放行。
         from augur.advisor.answer import honesty_level
-        lvl, resp = honesty_level(query, citations)
-        # 誠實保守白名單(v1.35.0):僅 level-1(庫中確無)、非 Mode B(prompt_fn 未覆寫)、通識白名單三閘
-        # AND 命中 → 交 LLM 通識作答;放行路走 empty_payload(數字/引文白名單=∅)+ guard_knowledge +
-        # 出處斷言閘,guard 任一不過即 fail-closed 退回第一固定句(誠實下限=現行、最壞退化不惡化)。
-        if lvl == 1 and prompt_fn is None and general_safe_answerable(query):
+        lvl, resp = honesty_level(query, [])
+        # 僅 level-1(庫中確無)、非 Mode B、通識白名單三閘 AND 命中 → 交 LLM 通識作答;放行路走
+        # empty_payload(數字/引文白名單=∅)+ guard_knowledge + 出處斷言閘,guard 任一不過即 fail-closed。
+        if lvl == 1 and whitelist_route:
             ep = empty_payload()
-            gen_prompt = build_prompt(query, ep, [], lex_entries)
+            gen_prompt = build_prompt(query, ep, [], [])
             gen_resp = llm_fn(gen_prompt)
             vk = guard_knowledge(gen_resp, ep, [], sql_numbers=())
             va = guard_attribution(gen_resp, [])
@@ -57,9 +61,9 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
             resp = NO_KNOWLEDGE_RESPONSE                 # guard 不過 → fail-closed
             return {"response": resp, "guard": guard_empty_retrieval(resp, []),
                     "citations": [], "lex_entries": [], "prompt": gen_prompt}
-        verdict = guard_empty_retrieval(resp, citations)
+        verdict = guard_empty_retrieval(resp, [])
         return {"response": resp, "guard": verdict,
-                "citations": citations, "lex_entries": lex_entries, "prompt": None}
+                "citations": [], "lex_entries": [], "prompt": None}
     prompt = (prompt_fn or build_prompt)(query, payload, citations, lex_entries)
     response = llm_fn(prompt)
     if isinstance(payload, KnowledgePayload):

@@ -287,3 +287,32 @@ def test_advise_empty_retrieval_whitelist_routing(monkeypatch):
     r3 = advise("有沒有穩賺不賠的股票", empty_payload(),
                 lambda p: "沒有穩賺不賠,正如《論語》所說。", retrieve_fn=empty_ret, scope=None)
     assert r3["response"] == NO_KNOWLEDGE_RESPONSE                                      # 放行但捏造出處→fail-closed
+
+
+def test_is_low_content_junk_filter():
+    """B-1 junk 濾(檢索相關度收尾):符號/空白 junk chunk 判 low_content、真引文不誤殺
+    (量測結論:cosine 門檻不可行故不設分數閘,唯 junk 為門檻外安全確定子集)。"""
+    from augur.philosophy.retrieval import is_low_content
+    for junk in ["--", "’”", "6\n\n", "   ", "···", "。。。"]:
+        assert is_low_content(junk) is True, junk
+    for real in ["君子敬而無失，與人恭而有禮；四海之內，皆兄弟也。",
+                 "And he was right. I sometimes think that speculation must be",
+                 "沒有穩賺不賠的股票,任何投資都有風險。"]:
+        assert is_low_content(real) is False, real
+
+
+def test_advise_whitelist_ignores_irrelevant_citations(monkeypatch):
+    """B-1 收尾:通識/B2 題即使檢索到(量測證實多不相關之非-junk)citations,仍走乾淨通識路、
+    忽略之(citations=[])——避免不相關 citation 令 LLM 非決定性答壞(穩賺不賠撈到王充/韓非子之實證)。"""
+    from augur.advisor.advise import advise
+    from augur.advisor.payload import empty_payload
+    monkeypatch.setattr("augur.advisor.answer.honesty_level", lambda q, c: (1, NO_KNOWLEDGE_RESPONSE))
+    import augur.philosophy.retrieval as retr
+    monkeypatch.setattr(retr, "verify_verbatim", lambda c: True)
+    irrelevant = [_Cite(text="王充論衡:世俗見人節行高則曰賢哲如此何不貴見人謀慮深", work_title="論衡")]
+    calls = []
+    def llm(p): calls.append(p); return "沒有穩賺不賠的股票,任何投資都有風險。"
+    r = advise("有沒有穩賺不賠的股票", empty_payload(), llm,
+               retrieve_fn=lambda q, k=6, scope=None: list(irrelevant), scope=(True, frozenset(), None))
+    assert calls and r["response"].startswith("沒有穩賺不賠")   # 走通識路(非主路徑)
+    assert r["citations"] == []                                  # 不相關 citation 被忽略、不進答案

@@ -95,6 +95,18 @@ def retrieve(query, k=8, work_id=None, scope=None):
     return out
 
 
+def is_low_content(text):
+    """低內容 junk chunk 判定(B-1 檢索相關度收尾,計畫 augur_advisor_empty_retrieval_boundary_plan §14):
+    去空白後可讀字元(字母/數字/CJK)過少或占比過低 → 非有效引文(如 '--'、'’”'、純導覽符)。
+    量測:e5-small cosine 分數 0.80~0.88 窄帶與相關性幾乎無關、絕對門檻不可行(相關/junk 重疊,故不設分數門檻);
+    唯 junk chunk(全表 52/126,609≈0.04%)會被 off-topic 題不成比例撈中 → 此為門檻外之安全確定子集。回 bool。"""
+    s = (text or "").strip()
+    if len(s) < 12:
+        return True
+    content = sum(1 for ch in s if ch.isalnum())
+    return content < 10 or content / len(s) < 0.55
+
+
 def verify_verbatim(citation):
     """verbatim 逐字回查(多側分派;M2 注入後驗共用單一入口):
     Citation(work chunk)=原文子字串存在性比對;ItemCitation=item_text 定位他證;
