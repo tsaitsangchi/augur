@@ -28,6 +28,7 @@ from urllib.parse import parse_qs
 import _bootstrap  # noqa: F401  個別可執行(#29a)
 from augur.core import db
 from augur.knowledge import webupload, identity   # identity 匯入鏈載入 .env(取 AUGUR_INTERNAL_SECRET)
+from augur.advisor import chat_history            # 對話歷史 DB(owner 收窄、住 advisor=FORBIDDEN 前綴)
 
 ADVISOR = "http://127.0.0.1:8399"
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -262,12 +263,15 @@ var MODE='chat'
 var GREET={chat:['今天想聊什麼?','問我投資哲學、經典原文與價值的關係'],
  cowork:['一起完成什麼任務?','協作情境 · 目前沿用顧問後端,專屬協作 agent 建置中'],
  code:['要處理哪段程式?','程式情境 · 目前沿用顧問後端,專屬 code agent 建置中']}
-var SESSIONS=[];try{SESSIONS=JSON.parse(localStorage.getItem('augur_sessions')||'[]')}catch(e){SESSIONS=[]}
+var SESSIONS=[]   // DB session 快取:{id,mode,title,starred,ts}(msgs 按需經 /api/messages 載;歷史存 PostgreSQL、owner 收窄)
 var CURid=null
-function saveSessions(){try{localStorage.setItem('augur_sessions',JSON.stringify(SESSIONS.slice(-100)))}catch(e){}}
-function curSession(){return SESSIONS.filter(function(s){return s.id===CURid})[0]}
-function ensureSession(){var s=curSession();if(!s){CURid='s'+Date.now()+'_'+Math.floor(Math.random()*1000);s={id:CURid,mode:MODE,title:'新對話',ts:Date.now(),msgs:[]};SESSIONS.push(s)}return s}
-function recordMsg(role,content){var s=ensureSession();var m={role:role,content:content};s.msgs.push(m);s.ts=Date.now();if(role==='u'&&s.title==='新對話')s.title=content.slice(0,24);saveSessions();renderRecents();return m}
+async function fetchSessions(){try{var j=await (await fetch('/api/sessions')).json();SESSIONS=j.sessions||[]}catch(e){SESSIONS=[]}renderRecents()}
+async function ensureSession(){if(CURid!=null)return CURid;try{var j=await (await fetch('/api/session/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:MODE})})).json();if(j.id!=null){CURid=j.id;SESSIONS.unshift({id:CURid,mode:MODE,title:'新對話',starred:false,ts:Date.now()})}return CURid}catch(e){return null}}
+async function recordMsg(role,content){var sid=await ensureSession();if(sid==null)return;var dbrole=(role==='u'||role==='user')?'user':'assistant'
+ try{await fetch('/api/session/msg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:sid,role:dbrole,content:content})})}catch(e){}
+ var s=SESSIONS.filter(function(x){return x.id===sid})[0]
+ if(s){s.ts=Date.now();if(dbrole==='user'&&(!s.title||s.title==='新對話')){s.title=content.slice(0,24);fetch('/api/session/rename',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:sid,title:s.title})}).catch(function(){})}}
+ renderRecents()}
 var CHIPS={chat:['價值投資的核心是什麼?','葛拉漢的安全邊際','巴菲特的護城河'],cowork:['幫我整理這份資料的重點','列出這個任務的步驟'],code:['解釋這段程式在做什麼','幫我找出可能的 bug']}
 function chipClick(b){q.value=b.textContent;q.style.height='auto';q.style.height=Math.min(q.scrollHeight,180)+'px';q.focus()}
 function greetHtml(){var g=GREET[MODE];var cs=(CHIPS[MODE]||[]).map(function(c){return '<button class=chip type=button onclick="chipClick(this)">'+c.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</button>'}).join('');return '<div id=greet><div class=gs>✻</div><h1>'+g[0]+'</h1><p>'+g[1]+'</p><div class=chips>'+cs+'</div></div>'}
@@ -277,11 +281,12 @@ var SEARCHQ=''
 function toast(msg){var t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);requestAnimationFrame(function(){t.classList.add('show')});setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove()},250)},2400)}
 function closeMenu(){var m=document.getElementById('recmenu');if(m)m.remove()}
 function bucketOf(ts){var t0=new Date();t0.setHours(0,0,0,0);var d=t0.getTime();if(ts>=d)return '今天';if(ts>=d-864e5)return '昨天';if(ts>=d-6048e5)return '過去 7 天';if(ts>=d-2592e6)return '過去 30 天';var dt=new Date(ts);return dt.getFullYear()+' 年 '+(dt.getMonth()+1)+' 月'}
+function apiSess(act,body){return fetch('/api/session/'+act,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(function(){})}
 function recMenu(s,anchor){closeMenu();var m=document.createElement('div');m.id='recmenu';m.className='recmenu'
- var acts=[['重新命名',function(){var t=prompt('新標題',s.title);if(t!==null){s.title=t.trim()||s.title;saveSessions();renderRecents()}}],
-  [s.starred?'取消加星':'加星',function(){s.starred=!s.starred;saveSessions();renderRecents()}],
-  ['複製為 Markdown',function(){var md=s.msgs.map(function(x){return (x.role==='u'?'**你**：':'**顧問**：')+'\\n'+x.content}).join('\\n\\n');navigator.clipboard.writeText(md);toast('已複製對話 Markdown')}],
-  ['刪除',function(){if(confirm('刪除「'+s.title+'」?')){SESSIONS=SESSIONS.filter(function(x){return x.id!==s.id});if(s.id===CURid){newSession()}else{saveSessions();renderRecents()}}}]]
+ var acts=[['重新命名',function(){var t=prompt('新標題',s.title);if(t!==null){s.title=t.trim()||s.title;apiSess('rename',{sid:s.id,title:s.title});renderRecents()}}],
+  [s.starred?'取消加星':'加星',function(){s.starred=!s.starred;apiSess('star',{sid:s.id,starred:s.starred});renderRecents()}],
+  ['複製為 Markdown',function(){fetch('/api/messages?sid='+encodeURIComponent(s.id)).then(function(r){return r.json()}).then(function(j){var md=(j.messages||[]).map(function(x){return (x.role==='user'?'**你**：':'**顧問**：')+'\\n'+x.content}).join('\\n\\n');navigator.clipboard.writeText(md);toast('已複製對話 Markdown')}).catch(function(){toast('複製失敗')})}],
+  ['刪除',function(){if(confirm('刪除「'+s.title+'」?')){apiSess('del',{sid:s.id});SESSIONS=SESSIONS.filter(function(x){return x.id!==s.id});if(s.id===CURid){newSession()}else{renderRecents()}}}]]
  acts.forEach(function(p){var it=document.createElement('div');it.className='mi';it.textContent=p[0];it.onclick=function(ev){ev.stopPropagation();closeMenu();p[1]()};m.appendChild(it)})
  var r=anchor.getBoundingClientRect();m.style.left=Math.min(r.left,window.innerWidth-170)+'px';m.style.top=(r.bottom+4)+'px';document.body.appendChild(m)
  setTimeout(function(){document.addEventListener('click',closeMenu,{once:true})},0)}
@@ -290,23 +295,25 @@ function makeRec(s){var row=document.createElement('div');row.className='rec-row
  var kb=document.createElement('button');kb.className='kebab';kb.textContent='⋯';kb.setAttribute('aria-label','更多');kb.onclick=function(e){e.stopPropagation();recMenu(s,kb)}
  row.appendChild(btn);row.appendChild(kb);return row}
 function renderRecents(){var el=document.getElementById('recents');if(!el)return;el.innerHTML=''
- var all=SESSIONS.filter(function(s){return s.mode===MODE&&s.msgs.length})
- if(SEARCHQ){var qq=SEARCHQ.toLowerCase();all=all.filter(function(s){return s.title.toLowerCase().indexOf(qq)>=0||s.msgs.some(function(m){return (m.content||'').toLowerCase().indexOf(qq)>=0})})}
+ var all=SESSIONS.filter(function(s){return s.mode===MODE})
+ if(SEARCHQ){var qq=SEARCHQ.toLowerCase();all=all.filter(function(s){return (s.title||'').toLowerCase().indexOf(qq)>=0})}
  all.sort(function(a,b){return b.ts-a.ts})
  function section(label,list){if(!list.length)return;var h=document.createElement('div');h.className='rec-h';h.textContent=label;el.appendChild(h);list.forEach(function(s){el.appendChild(makeRec(s))})}
  if(SEARCHQ){section('搜尋結果',all);return}
  section('已加星',all.filter(function(s){return s.starred}))
  var buckets={},order=[];all.filter(function(s){return !s.starred}).forEach(function(s){var b=bucketOf(s.ts);if(!buckets[b]){buckets[b]=[];order.push(b)}buckets[b].push(s)})
  order.forEach(function(b){section(b,buckets[b])})}
-function loadSession(id){var s=SESSIONS.filter(function(x){return x.id===id})[0];if(!s)return;CURid=id;pinned=true;log.innerHTML='';s.msgs.forEach(function(m){if(m.role==='u'){add('u',m.content)}else{var d=add('a','');d._bubble.innerHTML=mdToHtml(m.content)}});renderRecents();log.scrollTop=log.scrollHeight;toggleJump()}
+async function loadSession(id){var s=SESSIONS.filter(function(x){return x.id===id})[0];if(!s)return;CURid=id;pinned=true;log.innerHTML=''
+ try{var j=await (await fetch('/api/messages?sid='+encodeURIComponent(id))).json();(j.messages||[]).forEach(function(m){if(m.role==='user'){add('u',m.content)}else{var d=add('a','');d._bubble.innerHTML=mdToHtml(m.content)}})}catch(e){}
+ renderRecents();log.scrollTop=log.scrollHeight;toggleJump()}
 async function loadHealth(){try{var j=await (await fetch('/health')).json();var ds=document.querySelectorAll('#svc .d');if(ds.length>=3){ds[0].className='d '+(j.db?'on':'off');ds[1].className='d '+(j.advisor?'on':'off');ds[2].className='d '+(j.ollama?'on':'off')}}catch(e){}}
-loadHealth();setInterval(loadHealth,15000);renderRecents();
+loadHealth();setInterval(loadHealth,15000);fetchSessions();
 function toggleSide(){var sb=document.querySelector('.sidebar'),sc=document.getElementById('scrim');var open=sb.classList.toggle('open');if(sc)sc.classList.toggle('show',open)}
 function closeCmdk(){document.getElementById('cmdk').style.display='none'}
 function openCmdk(){var o=document.getElementById('cmdk');o.style.display='flex';var inp=document.getElementById('cmdkq');inp.value='';cmdkRender('');inp.focus()}
 function cmdkRender(qv){var list=document.getElementById('cmdklist');list.innerHTML='';var lq=(qv||'').toLowerCase()
  var na=document.createElement('div');na.className='cmdk-item';na.textContent='＋ 新對話';na.onclick=function(){closeCmdk();newSession()};list.appendChild(na)
- var ss=SESSIONS.filter(function(s){return s.mode===MODE&&s.msgs.length&&(!lq||s.title.toLowerCase().indexOf(lq)>=0)}).sort(function(a,b){return b.ts-a.ts}).slice(0,25)
+ var ss=SESSIONS.filter(function(s){return s.mode===MODE&&(!lq||s.title.toLowerCase().indexOf(lq)>=0)}).sort(function(a,b){return b.ts-a.ts}).slice(0,25)
  ss.forEach(function(s){var it=document.createElement('div');it.className='cmdk-item';it.textContent=(s.starred?'★ ':'')+s.title;it.onclick=function(){closeCmdk();loadSession(s.id)};list.appendChild(it)})}
 document.addEventListener('keydown',function(e){
  if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){e.preventDefault();openCmdk();return}
@@ -368,7 +375,7 @@ async function runGen(text,wait){
 }
 function addRetry(wait,text){var a=wait.querySelector('.actions');if(!a||wait._hasRetry)return;wait._hasRetry=1
  var rb=document.createElement('button');rb.className='act';rb.textContent='重試';rb.setAttribute('aria-label','重新生成')
- rb.onclick=function(){if(CTRL)return;runGen(text,wait).then(function(bd){if(bd){if(wait._mi){wait._mi.content=bd;saveSessions();renderRecents()}else{wait._mi=recordMsg('a',bd)}}})}
+ rb.onclick=function(){if(CTRL)return;runGen(text,wait)}   // 視覺重生;DB 保留原始訊息(重試不覆寫歷史)
  a.appendChild(rb)}
 async function send(e){e.preventDefault()
  if(CTRL){CTRL.abort();return false}
@@ -378,7 +385,7 @@ async function send(e){e.preventDefault()
  add('u',text);recordMsg('u',text);q.value='';q.style.height='auto';slashMenu()
  var wait=add('a','')
  var body=await runGen(text,wait)
- if(body){wait._mi=recordMsg('a',body);addRetry(wait,text)}
+ if(body){recordMsg('a',body);addRetry(wait,text)}
  q.focus();return false}
 function slashMenu(){var el=document.getElementById('slashmenu');if(!el)return;el.style.display=(q.value.charAt(0)==='/')?'block':'none'}
 function slashPick(cmd){q.value=cmd;q.focus();slashMenu()}
@@ -447,6 +454,16 @@ class H(BaseHTTPRequestHandler):
             return self._html(LOGIN_PAGE.replace("__MSG__", ""))
         if path == "/health":
             return self._health()
+        if path == "/api/sessions":                                 # 對話歷史(DB、owner 收窄):列 session
+            qs = parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
+            return self._json({"sessions": chat_history.list_sessions(uid, qs.get("mode", [None])[0])})
+        if path == "/api/messages":                                 # 載入某 session 訊息(owner 驗證於模組層)
+            qs = parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
+            try:
+                sid = int(qs.get("sid", [""])[0])
+            except (ValueError, TypeError):
+                return self._json({"messages": []})
+            return self._json({"messages": chat_history.load_messages(sid, uid)})
         uname, is_super = self._user_info(uid)                      # 左下角帳號區(使用者 + 模型版本)
         model = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
         page = (PAGE.replace("__INITIAL__", html.escape((uname[:1] or "U").upper()))
@@ -544,6 +561,13 @@ class H(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(out)
 
+    def _readjson(self):
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            return json.loads(self.rfile.read(n) or b"{}")
+        except Exception:
+            return {}
+
     def _attach(self):
         """Mode B 附加檔:抽逐字文字回傳前端(不入庫、僅本次對話;webupload.extract_texts)。
         治權:不落地不入庫、access 不擴;僅本回合當引文語料交 advisor,guard 對附加檔逐字比對。"""
@@ -583,8 +607,27 @@ class H(BaseHTTPRequestHandler):
                 self.end_headers()
                 return
             return self._html(LOGIN_PAGE.replace("__MSG__", "<p style=color:#d29922>帳號或密碼錯誤</p>"))
-        if identity.verify_session(self._token()) is None:      # /chat//ingest//attach 皆須登入(RBAC P4;無 public fallback)
+        uid = identity.verify_session(self._token())            # /chat//ingest//attach/session 皆須登入(RBAC P4;無 public fallback)
+        if uid is None:
             return self._reply("請重新登入(工作階段已失效或未登入;重新整理頁面登入)")
+        if path.startswith("/api/session/"):                    # 對話歷史 DB 寫入(owner 收窄+IDOR 防護於 chat_history 模組)
+            bd = self._readjson()
+            try:
+                sid = int(bd.get("sid")) if bd.get("sid") is not None else None
+            except (ValueError, TypeError):
+                sid = None
+            act = path[len("/api/session/"):]
+            if act == "new":
+                return self._json({"id": chat_history.create_session(uid, bd.get("mode", "chat"), bd.get("title"))})
+            if act == "msg":
+                return self._json({"id": chat_history.append_message(sid, uid, bd.get("role"), bd.get("content", ""), bd.get("guard_pass"))})
+            if act == "rename":
+                return self._json({"ok": chat_history.rename_session(sid, uid, bd.get("title"))})
+            if act == "star":
+                return self._json({"ok": chat_history.set_starred(sid, uid, bool(bd.get("starred")))})
+            if act == "del":
+                return self._json({"ok": chat_history.delete_session(sid, uid)})
+            return self._json({"ok": False})
         if path == "/ingest":
             return self._ingest()
         if path == "/attach":

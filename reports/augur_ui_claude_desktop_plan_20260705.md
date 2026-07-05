@@ -523,7 +523,9 @@ CREATE TABLE IF NOT EXISTS chat_message (
   created_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS ix_chat_message_session ON chat_message(session_id, message_id);
 ```
-Python：遷移 `scripts/migrate_chat_history_ddl.py`（冪等 guard）；讀寫 `src/augur/advisor/chat_history.py`（`create_session`/`append_message`/`list_sessions`/`load_messages`，**只讀寫這兩表、隔離不變式不觸預測/知識表**）；前台加 `/api/sessions`、`/api/session/<id>` 端點。RBAC：session 綁 `user_id`、他人不可讀（承 v1.29.0 owner 收窄）。
+Python：遷移 `scripts/migrate_chat_history_ddl.py`（冪等 guard）；讀寫 `src/augur/advisor/chat_history.py`（`create_session`/`append_message`/`rename`/`star`/`delete`/`list_sessions`/`load_messages`，**只讀寫這兩表、隔離不變式不觸預測/知識表**）；前台加 `/api/sessions`、`/api/messages`、`/api/session/{new,msg,rename,star,del}` 端點。RBAC：session 綁 `user_id`、他人不可讀（承 v1.29.0 owner 收窄）。
+
+> **✅ 已實作（2026-07-05，三鏡對抗審查定稿後）**：DDL 補 `user_id ON DELETE CASCADE`＋`mode/role CHECK`＋`ix_chat_session_user`＋非預測 `COMMENT`；`chat_history.py` 每函式帶 user_id + `WHERE user_id=%s`、`load_messages` JOIN 驗 owner（**IDOR fail-closed**）、全 try/except→安全空值不吐他人；端點一律用 `verify_session` 解出的 uid、絕不信 client 帶入 user_id。**隔離護欄（三鏡 critical）已補**：`test_philosophy_isolation.py` 擴——(a) 預測管線+core 禁字面引用 chat 表/API（`CHAT_LITERALS` 字串掃描）、(b) `scripts/` 之匯入預測 package 者禁觸及 chat/RBAC 表、(c) `chat_history` 住 advisor 之正向存在測試。前台 recents 由 localStorage 改 DB 快取（`fetchSessions`/`recordMsg`→DB/`loadSession`→`/api/messages`/`recMenu`→端點）。實測：建/寫/列/讀正確、owner 隔離/IDOR/CASCADE 全過、137 測試（+3 隔離護欄）。**互動待瀏覽器確認**。
 
 ---
 
