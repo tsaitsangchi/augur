@@ -154,6 +154,28 @@ def test_chat_completion_guard_pass_has_verdict_tail(monkeypatch):
     assert "[augur-guard] pass=true" in content
     assert c["augur_guard"]["pass"] is True
 
+def test_reply_text_never_shows_public_citation_block():
+    """回歸釘死(憲章 v1.30.0 顧問呈現層):guard-pass + 公版 citations 之回覆【絕不】含公版「引經據典」逐字區塊
+    ——只給白話解讀(guard 內部仍以 citations 逐字校驗)。防『改對了但舊服務未重啟/日後靜默回歸』(用戶 2026-07-05
+    實測 advisor 舊碼再現引經據典之教訓)。"""
+    from augur.philosophy.retrieval import Citation
+    cit = [Citation(1, 1, "論語", "孔子", "述而第七", 0, 10, "https://zh.wikisource.org/x", "君子坦蕩蕩", 0.9)]
+    t = oai_compat._reply_text({"response": "會計是評估企業價值的工具。",
+                                "guard": {"pass": True, "issues": []}, "citations": cit, "lex_entries": []})
+    assert "引經據典" not in t and "系統逐字附上" not in t, "公版引經據典區塊外洩(違憲章 v1.30.0 呈現層):\n" + t
+    assert "君子坦蕩蕩" not in t          # 逐字原文不外顯
+    assert "會計是評估" in t              # 白話解讀保留
+
+
+def test_reply_text_keeps_mode_b_attached_block():
+    """Mode B 附加檔逐字區塊【保留】(用戶自帶文件助讀、非公版引經據典;v1.30.0 明文豁免)。"""
+    from augur.philosophy.retrieval import AttachedCitation
+    att = [AttachedCitation(text="我的財報摘要", source_text="我的財報摘要全文", work_title="f.txt", source_url="附加文件:f.txt")]
+    t = oai_compat._reply_text({"response": "根據你的檔案…", "guard": {"pass": True, "issues": []},
+                                "citations": att, "lex_entries": []})
+    assert "你附加的文件" in t            # Mode B 區塊保留、不受公版隱藏影響
+
+
 def test_chat_completion_guard_fail_returns_fixed_honest_closed_set(monkeypatch):
     c = _completion(monkeypatch, "模型 score 高達 0.9999,保證獲利。")   # 編造數字+保證語
     content = c["choices"][0]["message"]["content"]
