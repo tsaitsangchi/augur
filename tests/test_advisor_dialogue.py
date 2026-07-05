@@ -196,6 +196,17 @@ def test_build_prompt_adapts_to_query_kind():
     assert "投資分析題" in pana
 
 
+def test_system_prompt_has_special_case_handling():
+    """特殊題型段(精準度 Iter 4-5，v1.34.0):未來預測/穩賺/離題創作/投資術語 4 類處置須在 SYSTEM_PROMPT，
+    且引導模型繞開 guard 觸發詞(明天漲跌/保證)以給有用誠實答——防日後靜默刪除。"""
+    from augur.advisor.prompt import SYSTEM_PROMPT
+    assert "特殊題型處置" in SYSTEM_PROMPT
+    assert "短期" in SYSTEM_PROMPT and "無法可靠預測" in SYSTEM_PROMPT      # 未來預測題
+    assert "沒有穩賺不賠" in SYSTEM_PROMPT                                  # 不可能宣稱題
+    assert "超出我作為投資顧問的範圍" in SYSTEM_PROMPT                      # 離題創作直接拒
+    assert "安全邊際" in SYSTEM_PROMPT                                      # 投資術語投資語境
+
+
 def test_chat_completion_guard_fail_returns_fixed_honest_closed_set(monkeypatch):
     c = _completion(monkeypatch, "模型 score 高達 0.9999,保證獲利。")   # 編造數字+保證語
     content = c["choices"][0]["message"]["content"]
