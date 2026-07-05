@@ -33,7 +33,7 @@ from urllib.parse import parse_qs, urlparse
 
 import _bootstrap  # noqa: F401
 from augur.core import db, config
-from augur.knowledge import webupload
+from augur.knowledge import webupload, sftpbrowse
 
 PORT = 8500
 SESSION_TTL = 3600          # session 秒數
@@ -184,12 +184,15 @@ def _valid(token):
     return False
 
 
-LOGIN_HTML = """<!doctype html><meta charset=utf-8><title>augur admin</title>
-<body style="font-family:system-ui;background:#0d1117;color:#e6edf3;max-width:360px;margin:80px auto">
-<h2>augur 知識控制台</h2>{msg}
-<form method=post action=/login><input type=password name=pw placeholder=密碼 autofocus
- style="width:100%;padding:10px;margin:8px 0;background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:6px">
-<button style="width:100%;padding:10px;background:#238636;color:#fff;border:0;border-radius:6px">登入</button></form></body>"""
+LOGIN_HTML = """<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><title>augur 知識控制台</title></head>
+<body style="margin:0;font-family:system-ui,'Noto Sans TC',sans-serif;background:#0d1117;color:#e6edf3;display:flex;min-height:100vh;align-items:center;justify-content:center">
+<div style="width:340px;padding:32px;background:#161b22;border:1px solid #21262d;border-radius:14px">
+<h2 style="margin:0 0 4px;font-size:19px">augur 知識控制台</h2>
+<p style="color:#7d8590;font-size:13px;margin:0 0 18px">知識層管理後台</p>{msg}
+<form method=post action=/login><input type=password name=pw placeholder="密碼" autofocus
+ style="width:100%;padding:11px;margin:4px 0 12px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;font-size:15px">
+<button style="width:100%;padding:11px;background:#238636;color:#fff;border:0;border-radius:8px;font-size:15px;cursor:pointer">登入</button></form></div></body></html>"""
 
 _LIC_OPTIONS = "".join(f"<option>{v}</option>" for v in _LICENSES)
 _SCOPE_OPTIONS = "".join(f"<option>{v}</option>" for v in _SCOPES)
@@ -256,6 +259,56 @@ browse('HOME');
 </script>
 """)
 
+# D · 遠端 SFTP 瀏覽入庫面板（非 f-string：JS 大括號免跳脫）
+SFTP_PANEL = ("""
+<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px;margin:10px 0">
+<b>D · 遠端 SFTP 瀏覽入庫</b>(SSH 金鑰;連線設定存 ~/.config/augur-sftp.json chmod 600、<b>不存密碼</b>)
+<div style="margin:6px 0">連線 <select id=sconn style="padding:6px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px"></select>
+ <button type=button onclick="sbrowse('.')" style="padding:6px 10px;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:6px;cursor:pointer">瀏覽</button>
+ <button type=button onclick="var a=document.getElementById('saddc');a.style.display=(a.style.display=='block'?'none':'block')" style="padding:6px 10px;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:6px;cursor:pointer">＋新增連線</button></div>
+<div id=saddc style="display:none;margin:6px 0;font-size:13px">
+ <input id=sname placeholder="名稱" style="padding:6px;width:90px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">
+ <input id=shost placeholder="host" style="padding:6px;width:130px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">
+ <input id=sport placeholder="22" value="22" style="padding:6px;width:52px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">
+ <input id=suser placeholder="user" style="padding:6px;width:90px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">
+ <input id=skey placeholder="~/.ssh/id_ed25519" style="padding:6px;width:170px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">
+ <button type=button onclick="saveConn()" style="padding:6px 10px;background:#238636;color:#fff;border:0;border-radius:6px;cursor:pointer">儲存連線</button></div>
+<div id=sbcrumb style="font-size:12px;color:#7d8590;margin:4px 0"></div>
+<div id=sdirlist style="max-height:220px;overflow:auto;border:1px solid #30363d;border-radius:6px;padding:6px;margin:4px 0"></div>
+<div id=scurinfo style="font-size:12px;color:#7d8590;margin:4px 0"></div>
+<form method=post action=/api/sftp/ingest onsubmit="return document.getElementById('spath').value!=''">
+<input type=hidden name=conn id=sconnh><input type=hidden name=path id=spath>
+<select name=license style="padding:8px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">"""
++ _LIC_OPTIONS + """</select>
+<select name=access_scope style="padding:8px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">"""
++ _SCOPE_OPTIONS + """</select>
+<button style="padding:8px 14px;background:#1f6feb;color:#fff;border:0;border-radius:6px">選此遠端資料夾解析</button></form></div>
+<script>
+(async function(){try{var r=await fetch('/api/sftp/conns');var j=await r.json();var s=document.getElementById('sconn');(j.names||[]).forEach(function(n){var o=document.createElement('option');o.textContent=n;s.appendChild(o)})}catch(e){}})()
+async function saveConn(){
+ var fd=new URLSearchParams()
+ fd.append('name',document.getElementById('sname').value);fd.append('host',document.getElementById('shost').value)
+ fd.append('port',document.getElementById('sport').value);fd.append('user',document.getElementById('suser').value)
+ fd.append('key_path',document.getElementById('skey').value)
+ var r=await fetch('/api/sftp/save',{method:'POST',body:fd});var j=await r.json()
+ if(j.ok){var s=document.getElementById('sconn');s.innerHTML='';(j.names||[]).forEach(function(n){var o=document.createElement('option');o.textContent=n;s.appendChild(o)});alert('已儲存連線')}else alert('儲存失敗:'+(j.error||''))
+}
+async function sbrowse(p){
+ var conn=document.getElementById('sconn').value;if(!conn){alert('先選或新增連線');return}
+ document.getElementById('sconnh').value=conn
+ var list=document.getElementById('sdirlist');list.innerHTML='連線中…'
+ var r=await fetch('/api/sftp/list?conn='+encodeURIComponent(conn)+'&path='+encodeURIComponent(p||'.'))
+ var j=await r.json();list.innerHTML=''
+ if(!j.ok){list.appendChild(document.createTextNode('⚠ '+(j.error||'瀏覽失敗')));document.getElementById('spath').value='';return}
+ document.getElementById('spath').value=j.path;document.getElementById('sbcrumb').textContent='遠端:'+j.path
+ document.getElementById('scurinfo').textContent='此資料夾檔案 '+j.file_count+' 個'+(j.samples&&j.samples.length?'(例:'+j.samples.join('、')+')':'')+' · 子夾 '+j.dirs.length
+ if(j.parent){var up=document.createElement('button');up.type='button';up.textContent='⬆ 上層';up.style.cssText='display:block;width:100%;text-align:left;padding:5px;background:transparent;color:#3fb950;border:0;cursor:pointer';up.onclick=function(){sbrowse(j.parent)};list.appendChild(up)}
+ j.dirs.forEach(function(d){var btn=document.createElement('button');btn.type='button';btn.textContent='📁 '+d.name;btn.style.cssText='display:block;width:100%;text-align:left;padding:5px;background:transparent;color:#e6edf3;border:0;cursor:pointer';btn.onclick=function(){sbrowse(d.path)};list.appendChild(btn)})
+ if(!j.dirs.length)list.appendChild(document.createTextNode('(無子資料夾;可直接選此資料夾解析)'))
+}
+</script>
+""")
+
 
 _PROGRESS_TMPL = """<!doctype html><meta charset=utf-8><title>抓取進度 · augur</title>
 <body style="font-family:system-ui;background:#0d1117;color:#e6edf3;max-width:900px;margin:24px auto">
@@ -284,27 +337,79 @@ def progress_view_html(topic, logname, batch, rounds):
             .replace("__BATCH__", str(batch)).replace("__ROUNDS__", str(rounds)))
 
 
+ADMIN_CSS = """
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,"Noto Sans TC",-apple-system,sans-serif;background:#0d1117;color:#e6edf3;font-size:14.5px;line-height:1.6}
+.app{display:flex;min-height:100vh}
+.side{width:210px;flex-shrink:0;border-right:1px solid #21262d;padding:16px 10px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{font-weight:700;font-size:15px;padding:4px 10px 16px;color:#f0f6fc}
+.brand small{display:block;color:#7d8590;font-weight:400;font-size:11px;margin-top:3px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button,.nav a{display:block;text-align:left;width:100%;padding:9px 12px;border:0;border-radius:8px;background:transparent;color:#c9d1d9;font-size:14px;cursor:pointer;text-decoration:none;font-family:inherit}
+.nav button:hover,.nav a:hover{background:#161b22}
+.nav button.active{background:#1f6feb26;color:#f0f6fc;font-weight:600}
+.nav .sep{border-top:1px solid #21262d;margin:10px 6px}
+.main{flex:1;padding:26px 32px 60px;max-width:900px}
+.sec{display:none}.sec.active{display:block;animation:fade .15s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sec>h1{font-size:20px;margin:0 0 4px;color:#f0f6fc}
+.sec>.desc{color:#7d8590;font-size:13px;margin:0 0 16px}
+.card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:18px;margin:14px 0}
+.card>b{color:#f0f6fc;display:block;margin-bottom:10px;font-size:14px}
+pre{white-space:pre-wrap;color:#c9d1d9;font-family:ui-monospace,monospace;font-size:12.5px;margin:0}
+input,select,form button{font-family:inherit}
+"""
+
+NAV_SCRIPT = """</section></main></div>
+<script>
+function nav(btn,id){document.querySelectorAll('.sec').forEach(function(s){s.classList.remove('active')});document.getElementById('sec-'+id).classList.add('active');document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('active')});btn.classList.add('active')}
+</script></body></html>"""
+
+
 def dashboard_html(status):
-    return (f"""<!doctype html><meta charset=utf-8><title>augur 知識控制台</title>
-<body style="font-family:system-ui;background:#0d1117;color:#e6edf3;max-width:720px;margin:30px auto">
-<h2>augur 知識控制台 <a href=/logout style=font-size:13px>登出</a></h2>
-<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px;margin:10px 0">
-<b>知識層狀態</b><pre>{html.escape(status)}</pre></div>
-<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px;margin:10px 0">
-<b>主題自動抓取</b>(輸入財經/化學…→展開域→觸發 harvest;放量=背景執行+即時進度頁)
+    return (f"""<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>augur 知識控制台</title><style>{ADMIN_CSS}</style></head><body>
+<div class=app>
+<aside class=side>
+<div class=brand>augur 控制台<small>知識層管理</small></div>
+<nav class=nav>
+<button class=active onclick="nav(this,'overview')">總覽</button>
+<button onclick="nav(this,'harvest')">主題抓取</button>
+<button onclick="nav(this,'local')">本機匯入</button>
+<button onclick="nav(this,'remote')">遠端 SFTP</button>
+<div class=sep></div>
+<a href="http://localhost:8090" target=_blank>誠實博學的我 ↗</a>
+<a href=/logout>登出</a>
+</nav>
+</aside>
+<main class=main>
+<section id=sec-overview class="sec active">
+<h1>總覽</h1><div class=desc>知識層目前狀態</div>
+<div class=card><b>知識層狀態</b><pre>{html.escape(status)}</pre></div>
+</section>
+<section id=sec-harvest class=sec>
+<h1>主題抓取</h1><div class=desc>輸入主題（財經/化學…）→ 展開 registry 域 → 觸發 harvest。放量＝背景執行 + 即時進度頁。</div>
+<div class=card>
 <form method=post action=/api/topic><input name=topic placeholder="財經" style="padding:8px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px">
 batch <input name=batch value=10 type=number min=1 max=2000 style="width:72px;padding:8px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px">
 rounds <input name=rounds value=1 type=number min=1 max=20 style="width:60px;padding:8px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px">
 <label style=font-size:13px><input type=checkbox name=run> 放量抓取(不勾=只看確認頁)</label>
 <button style="padding:8px 14px;background:#1f6feb;color:#fff;border:0;border-radius:6px">送出</button></form>
-<div style="font-size:12px;color:#7d8590;margin-top:6px">首次建議 batch 10/rounds 1 小量探(#25);IP 健康再放大。放量後開即時進度頁(每 2 秒更新),關頁不中斷。</div></div>"""
+<div style="font-size:12px;color:#7d8590;margin-top:8px">首次建議 batch 10/rounds 1 小量探(#25);IP 健康再放大。放量後開即時進度頁(每 2 秒更新),關頁不中斷。</div>
+</div>
+</section>
+<section id=sec-local class=sec>
+<h1>本機匯入</h1><div class=desc>把本機或已掛載(/mnt、SSHFS)的資料夾/檔案逐字入知識庫。license 受 DB CHECK 硬擋只准公開授權。</div>"""
     + PANELS +
-    f"""<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px;margin:10px 0">
-<b>C · 打字輸入路徑解析</b>(power user;遞迴讀夾內任意副檔名、逐字入庫;路徑限家目錄或 /mnt 下)
+    f"""<div class=card><b>C · 打字輸入路徑解析</b>(power user;遞迴讀任意副檔名、逐字入庫;路徑限家目錄或 /mnt 下)
 <form method=post action=/api/folder><input name=dir placeholder="~/docs" style="padding:8px;width:40%;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px">
 <select name=license style="padding:8px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px">{_LIC_OPTIONS}</select>
 <button style="padding:8px 14px;background:#1f6feb;color:#fff;border:0;border-radius:6px">解析(private)</button></form></div>
-<p><a href="http://localhost:8090" style=color:#3fb950>→ 開「誠實博學的我」對話(過 guard)</a></p></body>""")
+</section>
+<section id=sec-remote class=sec>
+<h1>遠端 SFTP</h1><div class=desc>用 SSH 金鑰連遠端主機、瀏覽目錄樹、下載選定資料夾入庫。連線設定存 config（不存密碼）。</div>"""
+    + SFTP_PANEL + NAV_SCRIPT)
 
 
 def _status_text():
@@ -361,6 +466,12 @@ class AdminHandler(BaseHTTPRequestHandler):
         if path == "/api/topic/log":
             name = parse_qs(parsed.query).get("file", [""])[0]
             return self._send(200, json.dumps(_read_harvest_log(name)), "application/json")
+        if path == "/api/sftp/conns":
+            return self._send(200, json.dumps({"names": sftpbrowse.connection_names()}), "application/json")
+        if path == "/api/sftp/list":
+            qp = parse_qs(parsed.query)
+            return self._send(200, json.dumps(sftpbrowse.list_dir(qp.get("conn", [""])[0], qp.get("path", ["."])[0])),
+                              "application/json")
         return self._send(200, dashboard_html(_status_text()))
 
     def do_POST(self):
@@ -437,6 +548,37 @@ class AdminHandler(BaseHTTPRequestHandler):
             out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=300).stdout
             return self._send(200, f"<pre style='font-family:system-ui;background:#0d1117;color:#e6edf3;padding:20px'>"
                               f"{html.escape(out)}</pre><a href=/>← 返回</a>")
+
+        if path == "/api/sftp/save":
+            try:
+                names = sftpbrowse.save_connection(g("name"), g("host"), g("port"), g("user"), g("key_path"))
+                return self._send(200, json.dumps({"ok": True, "names": names}), "application/json")
+            except Exception as e:
+                return self._send(200, json.dumps({"ok": False, "error": str(e)}), "application/json")
+
+        if path == "/api/sftp/ingest":
+            conn, rpath, lic = g("conn"), g("path"), g("license")
+            scope = g("access_scope") or "local_private"
+            if lic not in _LICENSES:
+                return self._send(400, "license 非白名單", ctype="text/plain")
+            if scope not in _SCOPES:
+                scope = "local_private"
+            if not (conn and rpath):
+                return self._send(400, "缺 conn/path", ctype="text/plain")
+            pre = "<pre style='font-family:system-ui;background:#0d1117;color:#e6edf3;padding:20px'>"
+            try:
+                updir, st = sftpbrowse.fetch_to_upload(conn, rpath)
+            except Exception as e:
+                return self._send(200, f"{pre}SFTP 下載失敗:{html.escape(str(e))}</pre><a href=/>← 返回</a>")
+            _audit("sftp_ingest", f"{conn}:{rpath} saved={st['saved']} license={lic} scope={scope}")
+            if not st["saved"]:
+                return self._send(200, f"{pre}遠端無可下載檔(過大跳 {st['skipped_big']})</pre><a href=/>← 返回</a>")
+            cmd = [py, os.path.join(ROOT, "scripts", "acquire_local_files.py"),
+                   "--dir", updir, "--license", lic, "--access-scope", scope, "--domain", "local"]
+            out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=600).stdout
+            head = (f"【SFTP 下載+解析】{conn}:{rpath}\n下載 {st['saved']} 檔"
+                    f"(過大跳 {st['skipped_big']}{'、截斷' if st['truncated'] else ''})、license={lic} scope={scope}\n\n")
+            return self._send(200, f"{pre}{html.escape(head + out)}</pre><a href=/>← 返回</a>")
 
         return self._send(404, "unknown", ctype="text/plain")
 
