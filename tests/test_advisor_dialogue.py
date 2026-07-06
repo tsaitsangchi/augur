@@ -110,11 +110,15 @@ def _advise(monkeypatch, verify_result):
     import augur.philosophy.retrieval as retr
     from augur.advisor.advise import advise
     monkeypatch.setattr(retr, "verify_verbatim", lambda c: verify_result)
+    # 空檢索誠實分級以替身固定 level-1(免 DB sidecar;本測鎖注入後驗、非測隔離館藏旁查)
+    monkeypatch.setattr("augur.advisor.answer.honesty_level", lambda q, c: (1, NO_KNOWLEDGE_RESPONSE))
     calls = {}
     def llm(prompt):
         calls["prompt"] = prompt
         return "(mock)固定回覆。"
-    out = advise("test query", example_payload(), llm,
+    # query 與注入 citation 內容相關(molar mass),使 T1-a relevance gate 判為有料、走主路徑
+    # (本測旨在鎖注入後驗 verify_verbatim 分派,非測 relevance;故 query 對齊 citation 主題)
+    out = advise("the molar mass of the compound", example_payload(), llm,
                  retrieve_fn=lambda q, k, scope=None: list(_KCITES))
     return out, calls
 
@@ -143,7 +147,8 @@ def test_last_user_content_str_and_parts():
 def _completion(monkeypatch, llm_text, verify_result=True):
     import augur.philosophy.retrieval as retr
     monkeypatch.setattr(retr, "verify_verbatim", lambda c: verify_result)
-    body = {"model": "augur-advisor", "messages": [{"role": "user", "content": "問題"}]}
+    # query 對齊注入 citation 主題(molar mass)使 relevance gate 判有料、走主路徑(本測旨在 guard 分派/尾註)
+    body = {"model": "augur-advisor", "messages": [{"role": "user", "content": "the molar mass of the compound"}]}
     return oai_compat.chat_completion(body, llm_fn=lambda p: llm_text,
                                       retrieve_fn=lambda q, k, scope=None: list(_KCITES))
 
@@ -316,3 +321,78 @@ def test_advise_whitelist_ignores_irrelevant_citations(monkeypatch):
                retrieve_fn=lambda q, k=6, scope=None: list(irrelevant), scope=(True, frozenset(), None))
     assert calls and r["response"].startswith("沒有穩賺不賠")   # 走通識路(非主路徑)
     assert r["citations"] == []                                  # 不相關 citation 被忽略、不進答案
+
+
+# ── T1-a 檢索相關度閘(out-of-corpus 誠實 decline;MBB 失敗根因修)──
+def test_relevance_signal_separates_off_topic_from_classical():
+    """relevance 內容詞重疊信號:離題(MBB/太陽能/半導體)遠低於閾值、經典真題遠高於閾值。
+    純機械零 usage;本機語料實測校準值見 relevance.RELEVANCE_FLOOR。"""
+    from augur.advisor.relevance import best_overlap, query_relevant, RELEVANCE_FLOOR
+    from dataclasses import dataclass
+    @dataclass
+    class C:
+        text: str; work_title: str = ""; thinker: str = ""
+    # 離題:query 內容詞與王陽明原文幾無重疊(虛字已剔)→ 低於地板 → 不相關
+    mbb_cites = [C(text="無善無惡心之體 有善有惡意之動 知善知惡是良知", work_title="王陽明全集", thinker="王陽明")]
+    assert best_overlap("多主柵MBB的核心技術優勢是什麼", mbb_cites) < RELEVANCE_FLOOR
+    assert query_relevant("多主柵MBB的核心技術優勢是什麼", mbb_cites) is False
+    # 經典真題:query「知行合一」與王陽明原文高度重疊 → 高於地板 → 相關
+    zx_cites = [C(text="知是行之始 行是知之成 知行合一 聖學只一個功夫", work_title="王陽明全集", thinker="王陽明")]
+    assert best_overlap("王陽明的知行合一是什麼", zx_cites) >= RELEVANCE_FLOOR
+    assert query_relevant("王陽明的知行合一是什麼", zx_cites) is True
+    # 空 citations → 不相關(交既有空檢索路)
+    assert query_relevant("任何問題", []) is False
+
+
+def test_advise_off_topic_citations_route_to_honest_decline(monkeypatch):
+    """T1-a 核心(MBB 修):非白名單題檢索到高分但**不相關**的 citations(e5-small 硬回離題經典)→
+    relevance gate 判實質空 → 走 honesty_level([]) 誠實 decline、**不餵 LLM**(快、不需 qwen3 生成)。
+    這是 MBB「自信講錯」的根因修:離題 context 不再偽裝成有料。"""
+    from augur.advisor.advise import advise
+    from augur.advisor.payload import empty_payload
+    monkeypatch.setattr("augur.advisor.answer.honesty_level", lambda q, c: (1, NO_KNOWLEDGE_RESPONSE))
+    import augur.philosophy.retrieval as retr
+    monkeypatch.setattr(retr, "verify_verbatim", lambda c: True)
+    # MBB 撈到離題王陽明(實測 cosine ~0.84 但內容詞不相關);query 非 B 概念白名單
+    off_topic = [_Cite(text="無善無惡心之體 有善有惡意之動 知善知惡是良知 為善去惡是格物", work_title="王陽明全集")]
+    calls = []
+    def llm(p): calls.append(p); return "MBB 是通信領域的多主控單元協調技術……"   # 若被呼叫即 confabulate
+    r = advise("多主柵MBB/SMBB的核心技術優勢是什麼", empty_payload(), llm,
+               retrieve_fn=lambda q, k=6, scope=None: list(off_topic), scope=(True, frozenset(), None))
+    assert not calls                                   # 誠實 decline 在 LLM 前觸發、零 qwen3(快)
+    assert r["response"] == NO_KNOWLEDGE_RESPONSE       # 回固定誠實句(非 confabulate)
+    assert r["citations"] == []                         # 離題 citation 不進答案
+
+
+def test_advise_relevant_citations_reach_main_path(monkeypatch):
+    """T1-a 不誤傷 in-corpus:非白名單題檢索到**相關** citations(內容詞重疊 ≥ 地板)→ 照舊走主路徑餵 LLM。
+    防「什麼都 decline 的假誠實」(計畫雙向誠實約束:in-corpus 真題敢據真兆答)。"""
+    from augur.advisor.advise import advise
+    from augur.advisor.payload import empty_payload
+    import augur.philosophy.retrieval as retr
+    monkeypatch.setattr(retr, "verify_verbatim", lambda c: True)
+    relevant = [_Cite(text="知是行之始 行是知之成 知行合一 聖學只一個功夫 更無二", work_title="王陽明全集")]
+    calls = []
+    def llm(p): calls.append(p); return "知行合一講的是認知與實踐本為一體。"
+    r = advise("王陽明的知行合一是什麼", empty_payload(), llm,
+               retrieve_fn=lambda q, k=6, scope=None: list(relevant), scope=(True, frozenset(), None))
+    assert calls                                        # 相關 → 走主路徑、餵 LLM
+    assert r["citations"] == relevant                   # 相關 citation 保留
+
+
+def test_advise_mode_b_attached_bypasses_relevance_gate(monkeypatch):
+    """Mode B 附加檔(prompt_fn 覆寫)不套 relevance gate:附檔是用戶自帶語料、相關性由用戶負責、非 augur
+    庫外題;gate 只治 augur 語料檢索之離題偽 context。"""
+    from augur.advisor.advise import advise
+    from augur.advisor.payload import KnowledgePayload
+    from augur.advisor.prompt import build_attached_prompt
+    import augur.philosophy.retrieval as retr
+    monkeypatch.setattr(retr, "verify_verbatim", lambda c: True)
+    # 附檔 citation 與 query 內容詞可低重疊,但 Mode B 不套 gate → 仍走主路徑
+    att = [_Cite(text="the molar mass was measured as 114.32 g/mol", work_title="附檔")]
+    calls = []
+    def llm(p): calls.append(p); return "根據你的檔案第 1 段……"
+    r = advise("這份文件講什麼", KnowledgePayload(as_of="attached", domain="attached"), llm,
+               retrieve_fn=lambda q, k=6, scope=None: list(att),
+               prompt_fn=build_attached_prompt, scope=(True, frozenset(), None))
+    assert calls and r["citations"] == att              # Mode B 繞過 gate、citation 保留

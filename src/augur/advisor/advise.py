@@ -32,11 +32,19 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     回:{response, guard, citations, lex_entries, prompt}
     """
     from augur.philosophy.retrieval import retrieve, lexicon_lookup, verify_verbatim, is_low_content
+    from augur.advisor.relevance import query_relevant
     src_fn = retrieve if retrieve_fn is None else retrieve_fn
     # RBAC scope 一路傳達(P3,§4.4);機械攔 stale/非逐字(#1,M2)+ 濾 junk 低內容 chunk(B-1 收尾,量測後定)
     citations = [c for c in src_fn(query, k=k, scope=scope) if verify_verbatim(c) and not is_low_content(c.text)]
     lex_fn = lexicon_fn or lexicon_lookup
     lex_entries = [e for t in lex_terms for e in lex_fn(t)]
+    # T1-a 檢索相關度閘(誠實優先、只更嚴):out-of-corpus(MBB/太陽能/半導體…)e5-small 硬回離題高分
+    # chunk(cosine 0.80~0.88 窄帶與相關無關)→ 系統誤當有料 → LLM 憑弱知識 confabulate。此閘以零 usage
+    # 內容詞重疊判定「命中但不相關」,全數不相關 → 視同實質空檢索、落既有 honesty_level([]) 誠實 decline 路。
+    # Mode B 附加檔(prompt_fn 覆寫)不套此閘(附檔是用戶自帶語料、相關性由用戶負責、非 augur 庫外題)。
+    relevant = bool(citations) and (prompt_fn is not None or query_relevant(query, citations))
+    if not relevant:
+        citations = []                                   # 全不相關 → 清空,主路徑不餵 LLM 離題 context
     # 誠實保守白名單通識路(v1.35.0 + B-1 收尾):通識/B2 題(general_safe_answerable)即使檢索到
     # (量測證實多為不相關之非-junk)citations,亦走乾淨通識路——忽略雜訊、避免不相關 citation 令 LLM
     # 非決定性答壞(實證:「有沒有穩賺不賠的股票」撈到王充/韓非子/沉香 → 主路徑時好時壞)。

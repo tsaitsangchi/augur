@@ -156,7 +156,10 @@ def _kadvise(monkeypatch, llm_text, cites=None):
     import augur.philosophy.retrieval as retr
     from augur.advisor.advise import advise
     monkeypatch.setattr(retr, "verify_verbatim", lambda c: True)   # DB 他證另有 M2 測;此處鎖接線分派
-    return advise("化學提問", _KPAYLOAD, lambda p: llm_text,
+    # 空檢索誠實分級以替身固定 level-1(免 DB sidecar;本測鎖 guard_knowledge 分派、非測隔離館藏旁查)
+    monkeypatch.setattr("augur.advisor.answer.honesty_level", lambda q, c: (1, NO_KNOWLEDGE_RESPONSE))
+    # query 對齊注入 citation 主題(molar mass)使 T1-a relevance gate 判有料、走主路徑(本測旨在 guard_knowledge 分派)
+    return advise("the molar mass of the compound", _KPAYLOAD, lambda p: llm_text,
                   retrieve_fn=lambda q, k, scope=None: list(_KCITES if cites is None else cites))
 
 
@@ -185,7 +188,7 @@ def test_p8_shell_mock_e2e_knowledge_payload(monkeypatch):
     import augur.philosophy.retrieval as retr
     from augur.advisor import oai_compat
     monkeypatch.setattr(retr, "verify_verbatim", lambda c: True)
-    body = {"model": "augur-advisor", "messages": [{"role": "user", "content": "化學提問"}]}
+    body = {"model": "augur-advisor", "messages": [{"role": "user", "content": "the molar mass of the compound"}]}
     ok = oai_compat.chat_completion(body, llm_fn=lambda p: "文獻量測分子量 114.32 g/mol。",
                                     payload_fn=lambda: _KPAYLOAD,
                                     retrieve_fn=lambda q, k, scope=None: list(_KCITES))
