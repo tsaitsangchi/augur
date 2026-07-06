@@ -665,7 +665,7 @@ class H(BaseHTTPRequestHandler):
         self.end_headers()
         try:
             r = urllib.request.Request(self.advisor + "/v1/chat/completions", payload, headers)
-            with urllib.request.urlopen(r, timeout=600) as up:
+            with urllib.request.urlopen(r, timeout=1800) as up:
                 for line in up:
                     self.wfile.write(line)
                     self.wfile.flush()
