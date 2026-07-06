@@ -53,8 +53,8 @@ def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
     from sklearn.preprocessing import StandardScaler
 
     feats = feats or baseline.canonical_features(conn, panels)
-    folds = walkforward.splits(panels, h)
     cal = label_mod.full_calendar(conn)
+    folds = walkforward.splits(panels, h, calendar=cal)   # 保證 embargo 下界 = h+62td(#8、A'-3 口徑a、逐折真實交易日)
     gross, net, bench, dates, turns, bturns = [], [], [], [], [], []
     prev_top, prev_uni = None, None
     for fold in folds:

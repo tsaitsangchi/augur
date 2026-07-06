@@ -108,8 +108,8 @@ def run_ladder(conn, panel_dates, h, stocks, *, feats=None, seed=42, mom_feature
 
     feats = feats or canonical_features(conn, panel_dates)
     mom_idx = feats.index(mom_feature) if mom_feature in feats else None
-    folds = walkforward.splits(panel_dates, h)
     cal = label_mod.full_calendar(conn)                 # 全日曆一次 query、逐折重用（免 N² 全表掃描）
+    folds = walkforward.splits(panel_dates, h, calendar=cal)   # 保證 embargo 下界 = h+62td(#8、A'-3 口徑a、逐折真實交易日)
     rng = np.random.default_rng(seed)
     ic = {m: {} for m in ("B0_random", "B1_momentum", "B2_ridge", "M1_gbdt")}
 

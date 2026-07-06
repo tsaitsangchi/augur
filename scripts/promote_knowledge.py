@@ -125,7 +125,7 @@ def promote_school(cur, p, source_key=None):
 ITEM_TYPES = ("paper", "report", "dataset", "compound", "material", "protein", "species")
 # external_id 優先序(harvest 計畫 §二5 明文;無任一 → title+year 去重鍵)
 EXTID_PRIORITY = ("doi", "arxiv_id", "chembl_id", "cid", "uniprot_id", "gbif_id",
-                  "osti_id", "openalex_id", "ia_identifier", "openlibrary_key")
+                  "osti_id", "openalex_id", "ia_identifier", "openlibrary_key", "ttai_stable_key")
 
 
 def promote_item(cur, p, source_key=None, ctx=None):
@@ -138,7 +138,7 @@ def promote_item(cur, p, source_key=None, ctx=None):
         return "rejected"
     title = str(title)
     etype = ctx.get("entity_type")
-    if etype not in ITEM_TYPES:               # work 後援路:以 payload work_type 定條目類(paper/report/book…)
+    if etype not in ITEM_TYPES and etype != "document":  # work 後援路:以 payload work_type 定條目類(paper/report/book…)
         etype = p.get("work_type") or "paper"
     ext = next((str(p[k]) for k in EXTID_PRIORITY if p.get(k)), None)
     year = _year(p.get("year"))
@@ -166,7 +166,7 @@ def promote_item(cur, p, source_key=None, ctx=None):
 
 
 MAPPERS = {"thinker": promote_thinker, "work": promote_work, "citation": promote_citation,
-           "school": promote_school, **{et: promote_item for et in ITEM_TYPES}}
+           "school": promote_school, "document": promote_item, **{et: promote_item for et in ITEM_TYPES}}
 
 
 def main():

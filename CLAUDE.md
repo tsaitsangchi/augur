@@ -42,7 +42,7 @@
 15. **PR / 遠端**：不自行建/關 PR、不在 issue 留言；影響遠端狀態的 `gh` 操作先確認。
 16. **研究報告**：寫入 `reports/`，命名 `<module>_<topic>_<YYYYMMDD>.md`。
 17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.7.1.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。
-    - **哲學素養層內容產生**：判準 SSOT＝**憲章第三部 philosophy 層**（共同不變式：禁 AI 生成入庫；全文准入雙軌：哲學原典限公版、知識層 item_text 公版＋CC 白名單；納/排範圍「能抓≠該抓」；現代版權著作僅核心精神走合規路 principle→factor_map→#14、嚴禁 AI 整理摘要入庫）；工具層守則＝本地抓取解析零 usage（#28）、逐字無 AI 摘要改寫（#1）。
+    - **哲學素養層內容產生**：判準 SSOT＝**憲章第三部 philosophy 層**（共同不變式：禁 AI 生成入庫；全文准入三軌〔v1.36.0〕：哲學原典限公版、知識層 item_text 公版＋CC 白名單＋自有私有 `owned_local`（綁 access_scope=local_private、DB CHECK guard）；納/排範圍「能抓≠該抓」；現代版權著作僅核心精神走合規路 principle→factor_map→#14、嚴禁 AI 整理摘要入庫）；工具層守則＝本地抓取解析零 usage（#28）、逐字無 AI 摘要改寫（#1）。
 18. **程式標頭與命名慣例（精簡——不重蹈 stock_backend 50-230 行標頭）**：
     - **每支**：🎯 白話 docstring（這支在做什麼，給人看的）+ 一行「守原則 #X #Y」。
     - **CLI 入口程式**（sync / builder / trainer / validator）：再加**執行指令矩陣**（各用法實例，見 #29）。

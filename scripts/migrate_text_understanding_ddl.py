@@ -45,7 +45,7 @@ DDL = [
           content    text NOT NULL,
           language   varchar(8),
           source_url text NOT NULL,
-          license    varchar(64) NOT NULL CHECK (license IN ('public_domain','cc-by','cc-by-sa','cc0')),
+          license    varchar(64) NOT NULL CHECK (license IN ('public_domain','cc-by','cc-by-sa','cc0','owned_local')),
           fetched_at timestamptz DEFAULT now(),
           UNIQUE (item_id, seq)
         )"""),

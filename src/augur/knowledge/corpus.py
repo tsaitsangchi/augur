@@ -12,7 +12,9 @@
 
 # 與 knowledge_item_text.license DB CHECK 同一封閉集(migrate_text_understanding_ddl.py);
 # 兩處必須同步變更(跨檔一致性,CLAUDE #19)。
-LICENSE_WHITELIST = ("public_domain", "cc-by", "cc-by-sa", "cc0")
+# 'owned_local'=自有私有軌〔憲章 v1.36.0 全文准入三軌〕:用戶自有專有內容(如 ERP),
+#   **硬性配 access_scope='local_private'**(DB CHECK 綁死、永不公開);安全繫於本機+私有+自有(非公開轉載),守 #1(自有即真兆、非 AI 生成)。
+LICENSE_WHITELIST = ("public_domain", "cc-by", "cc-by-sa", "cc0", "owned_local")
 
 # P4 拍板值(2026-07-04):語意層(切句/嵌入/檢索)entity_type 准入集。未列=不入(fail-closed),
 # 含 compound/material/dataset(metadata 檢索仍可,不經本閘)。

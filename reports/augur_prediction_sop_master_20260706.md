@@ -229,6 +229,8 @@ raw ──► feature ──► universe ──► model ──► validate
 ## 6. 決策層拍板清單（decision points 匯總）
 
 > 既有 SOP §14 之 **8 拍板點已於 2026-07-05 拍板**（模型選型/horizon/survivorship 排序/headline 不錨/成本深度/chip gate/上線閾值/重訓 cadence），本文**繼承不重列**。下列為本合成新增或需再確認之 decision，皆待人拍板、不擅改。
+>
+> **✅ §6 拍板記錄（2026-07-06，用戶）**：**採納全部建議預設**。7 個 🔴 重項確認——**M3**=嚴格釘死（A' 未過不進 B）；**D1**=真消 survivorship 走 (A) point-in-time roster〔empirical 前提：待實證 FinMind 上市/下市日可得性；不可得則 (B) 滾動近窗齊當過渡並標債 b 未閉環〕；**C2**=殘差 alpha 消失即 STOP（靈魂要 skill 非 beta）；**C4**=survivorship 未消時僅得「條件性 PASS、待 roster 真消復驗」、不作上線依據；**C7**=繼承 §228 樣本量閘（補 h=20 前逐空頭子期為探索性、不當硬 gate）；**G5**=分級嚴謹容忍度（骨幹先通、誠實標債、漸進補閘）；**G7**=繼承 §230 `trial_ledger` N 機械化 blocker。其餘 M/D/B/C/G 採各自預設建議。→ 計畫解鎖為**可執行（A'→B→C→D 研究序）**；此序為**多階段研究、非跑腳本**，成功定義=經濟價值（#14），**含誠實判停之可能**（台股 alpha 微弱、很可能過不了經濟終關）。
 
 ### 架構序（M）
 - **M1**：採納「12-PHASE 是建置序、A→D 是驗證序，二者對齊為單一不可跳鏈（A'/B/C 落地於 PHASE9/11 audit gate）」？（本文主張對齊為一鏈，避免兩套 gate 漂移）

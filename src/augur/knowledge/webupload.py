@@ -13,7 +13,7 @@ from augur.knowledge import fileparse
 
 UPLOAD_ROOT = os.path.join(os.path.expanduser("~"), ".augur_uploads")
 MAX_UPLOAD = 300 * 1024 * 1024        # 單次上傳總量上限(防 OOM;超過=413)
-LICENSES = ("public_domain", "cc-by", "cc-by-sa", "cc0")   # DB CHECK 白名單(#1 版權硬擋)
+LICENSES = ("public_domain", "cc-by", "cc-by-sa", "cc0", "owned_local")   # DB CHECK 白名單(#1 版權硬擋;owned_local=自有私有軌 v1.36.0,綁 local_private)
 SCOPES = ("public", "local_private")
 
 

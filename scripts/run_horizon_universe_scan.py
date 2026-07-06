@@ -49,7 +49,7 @@ def _universe_scan(conn, panels, h, feats, cal):
     """訓練於 core、測於 core vs 擴大:模型推廣 IC + 宇宙規模。"""
     from sklearn.linear_model import Ridge
     from sklearn.preprocessing import StandardScaler
-    folds = walkforward.splits(panels, h)
+    folds = walkforward.splits(panels, h, calendar=cal)   # 保證 embargo 下界 = h+62td(#8、A'-3 口徑a)
     ic_core, ic_exp, n_core, n_exp = {}, {}, [], []
     for fold in folds:
         tpd = fold["test"]
