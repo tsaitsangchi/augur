@@ -28,7 +28,8 @@ from augur.core import db
 PREDICT_ROLE = "augur_predict"
 
 # 素養層(預測 role 一律 REVOKE、零存取)——前綴 + 非前綴之明列
-FORBIDDEN_PREFIXES = ("philosophy_", "knowledge_")
+# advisor_distill_*:蒸餾(自問自答訓練)staging,界線-A 蒸餾產物零進預測管線 → DB 層亦硬擋
+FORBIDDEN_PREFIXES = ("philosophy_", "knowledge_", "advisor_distill_")
 FORBIDDEN_EXPLICIT = {
     "chat_session", "chat_message",                                    # 對話原文
     "app_user", "app_session", "user_group", "group_domain_grant",    # RBAC 身分/授權

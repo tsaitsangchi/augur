@@ -7,7 +7,8 @@
      audit/catalog)AST-walk 任一 import `augur.philosophy` / `augur.advisor` / `augur.knowledge`
      = 違規(素養/顧問層只能單向依賴預測輸出、反向零依賴)。
    - **(b) 字面旁路稽核**:預測管線 + `augur.core` 禁**字串拼 SQL** 觸及 RBAC 授權表/resolver
-     與 chat 對話表/API(import 稽核看不到 raw SQL、字串旁路是真洩漏面)。
+     與 chat 對話表/API;預測管線 + core + 素養層寫入者(knowledge/philosophy)禁觸及蒸餾
+     staging 表 `advisor_distill_*`(界線-A:蒸餾產物零回流真兆庫;import 稽核看不到 raw SQL)。
    - **(c) 對位稽核**:resolver 必住 `augur.knowledge`、chat_history 必住 `augur.advisor`
      (FORBIDDEN 前綴、預測管線零 import),絕不誤置 `augur.core`(否則 pipeline 經 core 可達)。
 
@@ -34,8 +35,14 @@ FORBIDDEN = ("augur.philosophy", "augur.advisor", "augur.knowledge")
 RBAC_LITERALS = ("app_user", "user_group", "group_domain_grant", "allowed_domains", "resolve_allowed_domains")
 # chat 對話原文表/API:禁字面被預測管線/core 觸及(對話原文禁進預測管線/當特徵;import 稽核看不到 raw SQL)
 CHAT_LITERALS = ("chat_session", "chat_message", "chat_history", "append_message", "load_messages")
+# 蒸餾(自問自答訓練)staging 表:Claude 生的 Q&A/gold 是訓練行為樣本、**非真兆**(界線-A);
+# 禁被預測管線【或 augur.core / 素養層 knowledge/philosophy writer】字面觸及——絕不成 citation、
+# 不入 knowledge_*/feature_values、不進預測 7 package(計畫 §③界線-A)。
+DISTILL_LITERALS = ("advisor_distill_question", "advisor_distill_context", "advisor_distill_")
 # grep-lint 面:預測管線 + core 皆禁字面引用 RBAC/chat(擋不 import 但字串旁路)
 SCAN_STR = PIPELINE + ("core",)
+# 蒸餾表禁被觸及之範圍=預測管線 + core + 素養層寫入者(蒸餾產物零回流真兆庫,界線-A)
+SCAN_DISTILL = PIPELINE + ("core", "knowledge", "philosophy")
 
 # 本檔:<root>/src/augur/audit/import_isolation.py → parents[1] = <root>/src/augur、parents[3] = <root>
 _AUGUR_ROOT = pathlib.Path(__file__).resolve().parents[1]      # <root>/src/augur
@@ -156,6 +163,7 @@ def check_isolation() -> list[str]:
         _import_violations()
         + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_STR], RBAC_LITERALS, "rbac")
         + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_STR], CHAT_LITERALS, "chat")
+        + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_DISTILL], DISTILL_LITERALS, "distill")
         + _placement_violations()
         + _scripts_predict_leak_violations()
     )
@@ -169,7 +177,7 @@ def main() -> int:
             print("  " + line)
         return 1
     print(f"✓ 隔離不變式通過:{' / '.join(PIPELINE)} 零 import 素養層 + 預測/core 零 RBAC/chat 字面 + "
-          f"resolver/chat_history 住對位 + scripts 預測腳本零洩漏面")
+          f"預測/core/素養層零 advisor_distill 字面(界線-A)+ resolver/chat_history 住對位 + scripts 預測腳本零洩漏面")
     return 0
 
 
