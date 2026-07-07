@@ -116,6 +116,13 @@ def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
         if model == "B2_ridge":
             sc = StandardScaler().fit(Xtr)
             pred = Ridge(alpha=1.0).fit(sc.transform(Xtr), ytr).predict(sc.transform(Xc))
+        elif model == "ENS_ridge_gbdt":   # 階段3 挑戰者:等權 rank-average(Ridge+GBDT),零調權=最低過擬合、抗 regime
+            from scipy.stats import rankdata
+            sc = StandardScaler().fit(Xtr)
+            p_r = Ridge(alpha=1.0).fit(sc.transform(Xtr), ytr).predict(sc.transform(Xc))
+            p_g = LGBMRegressor(n_estimators=200, learning_rate=0.05, num_leaves=15, min_child_samples=30,
+                                subsample=0.8, colsample_bytree=0.8, random_state=seed, verbose=-1).fit(Xtr, ytr).predict(Xc)
+            pred = (rankdata(p_r) + rankdata(p_g)) / 2.0
         else:
             pred = LGBMRegressor(n_estimators=200, learning_rate=0.05, num_leaves=15,
                                  min_child_samples=30, subsample=0.8, colsample_bytree=0.8,

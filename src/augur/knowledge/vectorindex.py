@@ -1,4 +1,4 @@
-"""向量 serving 索引 — pgvector(SSOT)之可拋棄外部索引唯一抽象+Milvus Lite adapter。
+"""向量 serving 索引 — pgvector(SSOT)之可拋棄外部索引唯一抽象+Milvus Lite / Qdrant adapter。
 
 🎯 這支在做什麼(白話):S6 serving 索引的五方法封閉介面(計畫 §3-S6:ensure_collection/
    upsert/delete/search/stats),search 只回 (pg_pk, distance)、內容永遠回 PG JOIN 取
@@ -154,6 +154,129 @@ class MilvusLiteIndex(VectorIndex):
                                      "(異維模型=新表世代,拍板 P6;不得覆用)")
                 return
         raise RuntimeError(f"collection {spec.name} 無 vector 欄(非本抽象所建,拒用)")
+
+
+class QdrantIndex(VectorIndex):
+    """Qdrant adapter(embedded path 或 server url;GPU 時代可拋棄外部索引之第二 adapter,SOP-B)。
+    介面五方法與 MilvusLiteIndex 同語意:point id=pg_pk、payload=窄 scalar 封閉集、language 等值過濾;
+    search 只回 (pg_pk, score)——score 隨 metric、呼叫端不得賦絕對值義(#紅線③、與 Milvus 同契約)。
+    pgvector 仍為 SSOT,本索引隨時可 DROP 從 PG 全量重建。"""
+
+    def __init__(self, *, url=None, path=None, api_key=None):
+        from qdrant_client import QdrantClient
+        if bool(url) == bool(path):
+            raise ValueError("QdrantIndex 須且僅須給 url(server)或 path(embedded)之一")
+        self._client = QdrantClient(url=url, api_key=api_key) if url else QdrantClient(path=str(path))
+        self._spec = None
+
+    # ── 介面五方法 ────────────────────────────────────────────────────
+    def ensure_collection(self, spec, rebuild=False):
+        from qdrant_client.models import Distance, VectorParams
+        c = self._client
+        if rebuild and c.collection_exists(spec.name):
+            c.delete_collection(spec.name)
+        if c.collection_exists(spec.name):
+            self._assert_dim(spec)
+        else:
+            metric = getattr(Distance, spec.metric.upper())   # "COSINE" → Distance.COSINE
+            c.create_collection(spec.name, vectors_config=VectorParams(size=spec.dim, distance=metric))
+        self._spec = spec
+        return spec.name
+
+    def upsert(self, rows):
+        from qdrant_client.models import PointStruct
+        name = self._require_spec().name
+        n = 0
+        for batch in _chunks(list(rows), 1000):
+            pts = []
+            for r in batch:
+                missing = [f for f in ROW_FIELDS if f not in r]
+                if missing:
+                    raise ValueError(f"upsert row 缺欄 {missing}(封閉集={ROW_FIELDS})")
+                pts.append(PointStruct(id=int(r["pg_pk"]), vector=list(map(float, r["vector"])),
+                                       payload={f: r[f] for f in PAYLOAD_FIELDS}))
+            self._client.upsert(name, points=pts, wait=True)
+            n += len(pts)
+        return n
+
+    def delete(self, pg_pks):
+        from qdrant_client.models import PointIdsList
+        name = self._require_spec().name
+        pks = [int(p) for p in pg_pks]
+        for batch in _chunks(pks, 10000):
+            self._client.delete(name, points_selector=PointIdsList(points=batch), wait=True)
+        return len(pks)
+
+    def search(self, vec, k, filters=None):
+        name = self._require_spec().name
+        res = self._client.query_points(name, query=list(map(float, vec)), limit=int(k),
+                                        query_filter=_qdrant_filter(filters),
+                                        with_payload=False, with_vectors=False)
+        return [(int(p.id), float(p.score)) for p in res.points]
+
+    def stats(self, include_pks=False, filters=None):
+        c = self._client
+        spec = self._require_spec()
+        out = {"collection": spec.name, "exists": c.collection_exists(spec.name), "row_count": 0}
+        if not out["exists"]:
+            return out
+        flt = _qdrant_filter(filters)
+        total = int(c.count(spec.name, count_filter=flt, exact=True).count)
+        out["row_count"] = total
+        if include_pks:
+            pks, offset = set(), None
+            while True:
+                pts, offset = c.scroll(spec.name, scroll_filter=flt, limit=10000, offset=offset,
+                                       with_payload=False, with_vectors=False)
+                pks.update(int(p.id) for p in pts)
+                if offset is None:
+                    break
+            if len(pks) != total:
+                raise RuntimeError(f"pk 枚舉自驗失敗:枚舉 {len(pks)} != count {total}(不得靜默對帳)")
+            out["pg_pks"] = pks
+        return out
+
+    # ── plumbing(非介面語意)─────────────────────────────────────────
+    def has(self, name):
+        return bool(self._client.collection_exists(name))
+
+    def close(self):
+        self._client.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+        return False
+
+    def _require_spec(self):
+        if self._spec is None:
+            raise RuntimeError("先呼叫 ensure_collection(spec) 綁定 collection")
+        return self._spec
+
+    def _assert_dim(self, spec):
+        vconf = self._client.get_collection(spec.name).config.params.vectors
+        dim = int(getattr(vconf, "size", 0))   # 未命名向量=VectorParams;命名向量(dict)非本抽象所建
+        if dim != spec.dim:
+            raise ValueError(f"collection {spec.name} 既存維度 {dim} != spec.dim {spec.dim}"
+                             "(異維模型=新表世代,拍板 P6;不得覆用)")
+
+
+def _qdrant_filter(filters):
+    """{payload欄:值}→Qdrant Filter(全 must 等值);欄名封閉集、值型別把關(fail loud、不注入)。
+    None/空 → None(全枚舉,Qdrant 端=無過濾)。"""
+    if not filters:
+        return None
+    from qdrant_client.models import FieldCondition, Filter, MatchValue
+    conds = []
+    for field, val in sorted(filters.items()):
+        if field not in PAYLOAD_FIELDS:
+            raise ValueError(f"filter 欄不在封閉集 {PAYLOAD_FIELDS}: {field!r}")
+        if isinstance(val, bool) or not isinstance(val, (int, str)):
+            raise ValueError(f"filter 值僅收 int/str: {field}={val!r}")
+        conds.append(FieldCondition(key=field, match=MatchValue(value=val)))
+    return Filter(must=conds)
 
 
 def _chunks(seq, n):
