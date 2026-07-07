@@ -5,6 +5,8 @@
 **方法**:{Ridge, GBDT}×H{60,120}×{LO, LS, LS+borrow2%}×since{2014,2021};數字全由作者親跑 `stage_d.py`(ground truth,非 agent)
 **守**:#8 · #14 · #15(全 config、小樣本揭露、真兆判讀)· #11(GBDT 多 seed 中位)
 
+> **⚠️ 2026-07-07 deflation 更新(#19 誠實)**:本報告各 cell 淨 Sharpe(H60 LO 1.197 等)皆**未 deflate**。2026-07-07 deflation 閘建成:headline H60 LO 2014 deflate 後**有效 Sharpe ~0.34、DSR 89.6%(N=16 未過 95%)**——16 個試驗選最好之樂觀偏誤已量化。另本報告「GBDT 回檔更深/Ridge>GBDT」對 **H120 近期(2021起 n=8)不成立**(GBDT 三項全勝:Sharpe 1.028/Calmar 1.42/MaxDD −14.8% vs Ridge 0.792/0.731/−24.1%),n=8 皆不足定論。詳見 `augur_prediction_model_improvement_plan_20260707.md`。
+
 ## 一、結果矩陣(淨 Sharpe、cost 0.585%、top10%)
 
 | since | H | config | 淨 Sharpe | 基準 | Calmar | MaxDD | n |

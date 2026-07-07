@@ -6,6 +6,8 @@
 **守**:#8 · #14 · #15(全 config 揭露、真兆假兆判讀、n 揭露)· #11(GBDT 多 seed 中位)
 **審查**:兩鏡對抗(成本誠實鏡 PASS;cherrypick 鏡對 long-short 起爭議)→ **作者親跑 --since 2014 vs 2021 定案**(下 §三)
 
+> **⚠️ 2026-07-07 deflation 更新(#19 誠實、事後修正)**:本報告「淨 Sharpe ~1.2 = 可交易真兆」是**多重比較 deflation 之前的樂觀上界**。2026-07-07 deflation 閘(`trial_ledger` + DSR，Bailey-LdP 2014)建成實算:對 16 個真試驗 deflate 後,**有效 Sharpe ~0.34、DSR 89.6%(N=16、未過 95% 顯著門檻)**;僅較寬鬆 N=8 口徑勉強 96.9%。**「可交易真兆」宜降級為「真實但薄、borderline 顯著之 edge」**。特徵側乾淨(0-B 消融 Δ IC=0,污染係誤判)。詳見 `augur_prediction_model_improvement_plan_20260707.md` 階段 0-A/0-B。
+
 ## 一、核心結果(Ridge,兩鏡+作者親跑三方一致)
 
 | cell | 淨 Sharpe(2014起 n=25) | 淨 Sharpe(2021起 n=18) | 基準 | 判定 |
