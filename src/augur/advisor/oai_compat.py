@@ -94,11 +94,14 @@ def _reply_text(result):
 
 
 def chat_completion(body, llm_fn, payload_fn=example_payload, retrieve_fn=None,
-                    k=6, cmpl_id=None, created=None, scope=None):
+                    k=6, cmpl_id=None, created=None, scope=None, picking_payload_fn=None):
     """POST /v1/chat/completions 主邏輯(非串流形;串流由 handler 以偽 SSE 分塊同一結果)。
 
     唯一編排出口=advise();殼不碰檢索/prompt/guard 細節。scope=(is_super, allowed_domains) 由 handler
     自 session 解析(RBAC P3,§4.3)、一路傳達檢索;None → 下游 fail-closed deny(非「不濾」)。
+    payload_fn=一般/知識題之空 payload(去雜訊);picking_payload_fn=選股題之真實 as-of 預測 payload
+    (D4,計畫 §5.2)——依 relevance.picking_intent(query) 分派,選股意圖 → 真 payload、否則 → payload_fn
+    (勿新造編排器,唯一出口仍 advise())。picking_payload_fn=None → 一律走 payload_fn(向後相容)。
     回 OpenAI chat.completion dict(額外帶 augur_guard 結構欄);請求不合法 raise ValueError(handler 轉 400)。
     """
     if not isinstance(body, dict):
@@ -119,7 +122,10 @@ def chat_completion(body, llm_fn, payload_fn=example_payload, retrieve_fn=None,
                         retrieve_fn=lambda q, k=k, scope=None: retrieve_attached(q, doc_text, doc_title, k=k),
                         prompt_fn=build_attached_prompt, scope=scope)
     else:
-        result = advise(query, payload_fn(), llm_fn, k=k, retrieve_fn=retrieve_fn, scope=scope)
+        # D4 payload 分派(計畫 §5.2-2):選股意圖 → 真實 as-of 預測 payload;否則 → payload_fn(去雜訊)。
+        from augur.advisor.relevance import picking_intent
+        active_fn = picking_payload_fn if (picking_payload_fn is not None and picking_intent(query)) else payload_fn
+        result = advise(query, active_fn(), llm_fn, k=k, retrieve_fn=retrieve_fn, scope=scope)
     return {
         "id": cmpl_id or f"chatcmpl-augur-{uuid.uuid4().hex[:12]}",
         "object": "chat.completion",
@@ -161,7 +167,8 @@ class AdvisorHandler(BaseHTTPRequestHandler):
 
     def _deps(self):
         s = self.server
-        return dict(llm_fn=s.llm_fn, payload_fn=s.payload_fn, retrieve_fn=s.retrieve_fn, k=s.k)
+        return dict(llm_fn=s.llm_fn, payload_fn=s.payload_fn, retrieve_fn=s.retrieve_fn, k=s.k,
+                    picking_payload_fn=getattr(s, "picking_payload_fn", None))
 
     def _resolve_scope(self):
         """RBAC scope 解析(P3/群組建置,§4.3):回 **(is_super, allowed, user_id)**——有 X-Augur-Internal→驗機密後以
@@ -242,13 +249,15 @@ class AdvisorHandler(BaseHTTPRequestHandler):
 
 
 def make_server(host, port, llm_fn, payload_fn=example_payload, retrieve_fn=None, k=6,
-                internal_secret=None, insecure_loopback_admin=False):
+                internal_secret=None, insecure_loopback_admin=False, picking_payload_fn=None):
     """組好可 serve_forever() 的 ThreadingHTTPServer(依賴以 server 屬性注入 handler)。
     internal_secret=前台↔殼共享機密(X-Augur-Internal;驗身分通道)。
     insecure_loopback_admin=無 header 時是否當單機 admin(super);**預設 False＝fail-closed deny**
-    (紅隊 HIGH 修:預設 super 會在忘設機密時令 RBAC 靜默失效);僅單機無多使用者時才顯式開。"""
+    (紅隊 HIGH 修:預設 super 會在忘設機密時令 RBAC 靜默失效);僅單機無多使用者時才顯式開。
+    picking_payload_fn=選股題之真實預測 payload builder(D4,計畫 §5.2);None → 一律走 payload_fn。"""
     srv = ThreadingHTTPServer((host, port), AdvisorHandler)
     srv.llm_fn, srv.payload_fn, srv.retrieve_fn, srv.k = llm_fn, payload_fn, retrieve_fn, k
     srv.internal_secret = internal_secret
     srv.insecure_loopback_admin = insecure_loopback_admin
+    srv.picking_payload_fn = picking_payload_fn
     return srv

@@ -51,7 +51,7 @@ def main(argv=None):
         print(__doc__)
         print(f"目前操作值:host={args.host} port={port} model={model} "
               f"base_url={ollama.base_url()} timeout={args.timeout or os.environ.get('OLLAMA_TIMEOUT', ollama.DEFAULT_TIMEOUT)}s "
-              f"payload=example_payload(示範;真實 as-of 整合屬後續)")
+              f"payload=一般題 empty_payload / 選股題 build_prediction_payload(真實 as-of H60 投組,D4)")
         return 0
 
     # R2 調校 2026-07-04:低溫(0.15)=忠實照抄真兆原文少觸 guard 逐字閘;think=False=關 qwen3 推理段
@@ -62,15 +62,18 @@ def main(argv=None):
     # 死點① 接線(計畫 §三):對話端組合檢索=work(哲學/文學)+item(知識/財經/本機檔),
     # 否則抓來的知識/item 零命中(retrieve_fn=None 只走 work 側)。access_scope='public'(對外)。
     from augur.philosophy.retrieval import retrieve_all
-    from augur.advisor.payload import empty_payload    # 一般問答不注入示範選股(精準度 §2.4 D-1)
+    from augur.advisor.payload import empty_payload, build_prediction_payload  # 一般題去雜訊 / 選股題注入真預測(D4)
     secret = os.environ.get("AUGUR_INTERNAL_SECRET")
     if not secret and not args.insecure_loopback_admin:
         print("⚠ 未設 AUGUR_INTERNAL_SECRET 且未開 --insecure-loopback-admin:所有請求 fail-closed deny(無引文);"
               "請設機密(前台送 X-Augur-Session)或單機測試加 --insecure-loopback-admin。", flush=True)
+    # D4(計畫 §5.2):選股題 → build_prediction_payload(真實 as-of H60 投組,唯讀 prediction_values);
+    # 一般/知識題 → empty_payload(去雜訊);分派由 oai_compat 依 relevance.picking_intent 判定。
     srv = oai_compat.make_server(args.host, port, llm_fn, payload_fn=empty_payload, retrieve_fn=retrieve_all, k=args.k,
-                                 internal_secret=secret, insecure_loopback_admin=args.insecure_loopback_admin)
+                                 internal_secret=secret, insecure_loopback_admin=args.insecure_loopback_admin,
+                                 picking_payload_fn=build_prediction_payload)
     print(f"augur-advisor 殼啟動 http://{args.host}:{port}/v1 "
-          f"(llm={'mock' if args.mock_llm else model};payload=example_payload 示範;唯讀零寫;Ctrl-C 停)",
+          f"(llm={'mock' if args.mock_llm else model};payload=empty/選股題=真實 H60 預測;唯讀零寫;Ctrl-C 停)",
           flush=True)
     try:
         srv.serve_forever()

@@ -73,3 +73,109 @@ def empty_payload():
     數字夾進每則回覆。numbers()=∅ → guard 數字白名單為空、模型自造任何統計數字皆被攔(**更嚴不更鬆**,守 #1);
     picks 恆空 → guard ④ 逆向閘自然 no-op。真實選股問答另走 PredictionPayload。"""
     return KnowledgePayload(as_of="2026-05-31", domain="general", sql_numbers=frozenset())
+
+
+# ── D4:真實 as-of 預測 payload(prediction_values + revalidation_ledger,計畫 §5.2)──
+# 部署主模型=Ridge H60 LO(2026-07-07 對齊):panel 2026-05-31、34 檔 in_portfolio equal-weight。
+# H120 為追蹤候選(in_portfolio=0)不出 payload。此值為 code 之部署選擇、非資料鎖;prediction_values
+# 之 in_portfolio 旗標為 DB 側 SSOT,本函式只讀不寫(隔離不變式:advisor 對預測表唯讀)。
+_DEPLOY_FAMILY = "RankRidge"          # 部署主模型家族(H60 LO ridge)
+
+# 部署模型驗證標籤之 ledger 座標(#15 每個數字 trace 回一列 revalidation_ledger,非記憶/估算)。
+# key=payload.validation 欄名;value=(stage, model, config, metric_name, 取 metric_value 或 'hac_t'/'n_periods' 欄)。
+# 部署投組=Ridge H60 LO;C 全期(since2014,n=25)為主樣本、D 近期(since2021,n=18)為小樣本 caveat 對照。
+_VALIDATION_LEDGER_KEYS = (
+    ("rank_ic",           "B", "B2_ridge", "asof_ic",      "mean_ic",      "metric_value"),
+    ("ic_hac_t",          "B", "B2_ridge", "asof_ic",      "mean_ic",      "hac_t"),
+    ("ic_n_periods",      "B", "B2_ridge", "asof_ic",      "mean_ic",      "n_periods"),
+    ("net_sharpe",        "C", "ridge",    "LO|since2014", "net_sharpe",   "metric_value"),
+    ("bench_sharpe",      "C", "ridge",    "LO|since2014", "bench_sharpe", "metric_value"),
+    ("net_maxdd",         "C", "ridge",    "LO|since2014", "net_maxdd",    "metric_value"),
+    ("net_sharpe_recent", "D", "ridge",    "LO|since2021", "net_sharpe",   "metric_value"),
+    ("net_maxdd_recent",  "D", "ridge",    "LO|since2021", "net_maxdd",    "metric_value"),
+    ("n_periods_recent",  "D", "ridge",    "LO|since2021", "net_sharpe",   "n_periods"),
+)
+
+_COST_PCT = 0.585   # 淨值假設之單邊交易成本(方法論 SSOT,plan §5.3/line 200;net_* 已扣此成本)
+
+
+def _read_validation(cur, horizon):
+    """自 revalidation_ledger 讀部署模型之驗證標籤(#15 可溯源:每值一列 ledger、附 stage source_ref)。
+    回 (validation_dict, missing_keys)——某座標查無 → 誠實列 missing(不編數字補),不 raise。"""
+    v, missing = {}, []
+    for name, stage, model, config, metric, col in _VALIDATION_LEDGER_KEYS:
+        col_expr = {"metric_value": "metric_value", "hac_t": "hac_t", "n_periods": "n_periods"}[col]
+        cur.execute(
+            f"SELECT {col_expr} FROM revalidation_ledger "
+            "WHERE horizon=%s AND stage=%s AND model=%s AND config=%s AND metric_name=%s "
+            "ORDER BY run_at DESC LIMIT 1",
+            (horizon, stage, model, config, metric))
+        row = cur.fetchone()
+        if row is None or row[0] is None:
+            missing.append(name)
+            continue
+        v[name] = int(row[0]) if col == "n_periods" else float(row[0])
+    return v, missing
+
+
+def build_prediction_payload(as_of=None, horizon=60, top_n=None):
+    """D4:自 DB 組真實 as-of 預測 payload(取代 example_payload;計畫 §5.2)。
+
+    · picks = prediction_values 部署 H60 投組(in_portfolio=true,或 top_n rank);
+      每檔 source_ref 指回 prediction_values 之 panel+model(#15 可溯源);
+    · validation = revalidation_ledger 讀出之已凍結標籤(rank_ic/HAC-t/淨 Sharpe/基準/MaxDD;#15 非記憶),
+      note 含誠實 caveat(alpha 僅 long 側、n 小 18-25 屬方向性非精確、survivorship 債 b 未閉環、
+      扣成本 0.585% 後淨值);validation source_ref 標 revalidation_ledger:stage=B/C/D。
+    · as_of=None → 取最新 panel_date;horizon=60(部署主模型);top_n=None → in_portfolio 全投組。
+    advisor 對預測/驗證表**唯讀零寫**(隔離不變式);回 frozen PredictionPayload(顧問不可改一個數字)。
+    """
+    from augur.core import db
+    with db.connect() as conn, db.transaction(conn) as cur:
+        if as_of is None:
+            cur.execute("SELECT max(panel_date) FROM prediction_values "
+                        "WHERE model_id IN (SELECT model_id FROM model_registry "
+                        "WHERE family=%s AND horizon=%s)", (_DEPLOY_FAMILY, horizon))
+            row = cur.fetchone()
+            as_of = row[0] if row else None
+        if as_of is None:
+            raise RuntimeError("prediction_values 無部署模型 panel(H%d %s)" % (horizon, _DEPLOY_FAMILY))
+        # 部署模型 model_id(同 panel 同 horizon 同家族之唯一列;有多列 → 取最新 created_at)
+        cur.execute("SELECT mr.model_id FROM model_registry mr "
+                    "WHERE mr.family=%s AND mr.horizon=%s "
+                    "AND EXISTS (SELECT 1 FROM prediction_values pv "
+                    "            WHERE pv.model_id=mr.model_id AND pv.panel_date=%s) "
+                    "ORDER BY mr.created_at DESC LIMIT 1", (_DEPLOY_FAMILY, horizon, as_of))
+        mrow = cur.fetchone()
+        if mrow is None:
+            raise RuntimeError("model_registry 無部署模型(panel=%s H%d %s)" % (as_of, horizon, _DEPLOY_FAMILY))
+        model_id = mrow[0]
+        # picks:in_portfolio 投組(預設);給 top_n 則取 rank 前 N(不論 in_portfolio)
+        if top_n is not None:
+            cur.execute("SELECT stock_id, rank, score FROM prediction_values "
+                        "WHERE panel_date=%s AND model_id=%s ORDER BY rank ASC LIMIT %s",
+                        (as_of, model_id, int(top_n)))
+        else:
+            cur.execute("SELECT stock_id, rank, score FROM prediction_values "
+                        "WHERE panel_date=%s AND model_id=%s AND in_portfolio=true ORDER BY rank ASC",
+                        (as_of, model_id))
+        rows = cur.fetchall()
+        pick_ref = "prediction_values:panel=%s,model=%s" % (as_of, model_id)
+        picks = tuple(StockPick(str(sid), int(rk), float(sc), pick_ref) for sid, rk, sc in rows)
+        vals, missing = _read_validation(cur, horizon)
+
+    # caveat 用語避開 guard _FUTURE_LEAK 禁詞(保證/必漲…)——否則 LLM 忠實轉述 caveat 反被機械閘攔、
+    # 整則作廢、誠實 caveat 反而呈現不出來(#15:誠實揭露不得被自身禁詞語卡住)。
+    caveats = ["alpha 僅在 long 側成立(long-short 已淘汰、放空成本坐實不採)",
+               "驗證期數 n 小(H60 期數 18-25),屬相對強弱之方向性排名、非精確數值",
+               "survivorship 債 b 未完全閉環(as-of 名單實為當前存活名單、帶未量化樂觀偏誤)",
+               "報酬為扣成本 %.3f%% 後之淨值(purged walk-forward、as-of 口徑防洩漏)" % _COST_PCT]
+    if missing:                        # #15 誠實:某驗證標籤在 ledger 查無 → 明說缺口、不編數字補
+        caveats.append("驗證標籤缺口(revalidation_ledger 查無):" + ", ".join(missing))
+    validation = dict(vals)
+    validation["cost_pct"] = _COST_PCT
+    validation["note"] = ";".join(caveats)
+    validation["source_ref"] = ("revalidation_ledger:stage=B(asof_ic)/C(LO|since2014)/D(LO|since2021),"
+                                "horizon=%d,model=B2_ridge/ridge" % horizon)
+    return PredictionPayload(
+        as_of=str(as_of), horizon=horizon, model="RankRidge H%d LO(部署主投組)" % horizon,
+        picks=picks, validation=validation)

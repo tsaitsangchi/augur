@@ -117,8 +117,11 @@ def _advise(monkeypatch, verify_result):
         calls["prompt"] = prompt
         return "(mock)固定回覆。"
     # query 與注入 citation 內容相關(molar mass),使 T1-a relevance gate 判為有料、走主路徑
-    # (本測旨在鎖注入後驗 verify_verbatim 分派,非測 relevance;故 query 對齊 citation 主題)
-    out = advise("the molar mass of the compound", example_payload(), llm,
+    # (本測旨在鎖注入後驗 verify_verbatim 分派,非測 relevance;故 query 對齊 citation 主題)。
+    # payload=KnowledgePayload(化學知識題之真型別、無 picks)——本測為知識場景,用無 picks payload 才能
+    # 忠實測「fail-verify → 空 citations → decline 不經 LLM」;PredictionPayload 帶 picks 時 picks 即
+    # context(D4)、不落此空檢索 decline 路,與本測旨(M2 注入後驗)無關。
+    out = advise("the molar mass of the compound", KnowledgePayload(as_of="x", domain="chemistry"), llm,
                  retrieve_fn=lambda q, k, scope=None: list(_KCITES))
     return out, calls
 

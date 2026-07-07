@@ -32,24 +32,43 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     回:{response, guard, citations, lex_entries, prompt}
     """
     from augur.philosophy.retrieval import retrieve, lexicon_lookup, verify_verbatim, is_low_content
-    from augur.advisor.relevance import query_relevant
+    from augur.advisor.relevance import relevant_citations
     src_fn = retrieve if retrieve_fn is None else retrieve_fn
-    # RBAC scope 一路傳達(P3,§4.4);機械攔 stale/非逐字(#1,M2)+ 濾 junk 低內容 chunk(B-1 收尾,量測後定)
-    citations = [c for c in src_fn(query, k=k, scope=scope) if verify_verbatim(c) and not is_low_content(c.text)]
     lex_fn = lexicon_fn or lexicon_lookup
     lex_entries = [e for t in lex_terms for e in lex_fn(t)]
-    # T1-a 檢索相關度閘(誠實優先、只更嚴):out-of-corpus(MBB/太陽能/半導體…)e5-small 硬回離題高分
-    # chunk(cosine 0.80~0.88 窄帶與相關無關)→ 系統誤當有料 → LLM 憑弱知識 confabulate。此閘以零 usage
-    # 內容詞重疊判定「命中但不相關」,全數不相關 → 視同實質空檢索、落既有 honesty_level([]) 誠實 decline 路。
-    # Mode B 附加檔(prompt_fn 覆寫)不套此閘(附檔是用戶自帶語料、相關性由用戶負責、非 augur 庫外題)。
-    relevant = bool(citations) and (prompt_fn is not None or query_relevant(query, citations))
-    if not relevant:
-        citations = []                                   # 全不相關 → 清空,主路徑不餵 LLM 離題 context
+    def _clean(cits):                                    # 機械攔 stale/非逐字(#1,M2)+ 濾 junk 低內容 chunk(B-1)
+        return [c for c in cits if verify_verbatim(c) and not is_low_content(c.text)]
+    # RBAC scope 一路傳達(P3,§4.4)。
+    # T1-a 檢索相關度閘 + translate-for-RETRIEVAL(N9,2026-07-07,誠實優先、只更嚴):
+    #   e5-small 對 out-of-corpus(MBB/太陽能/半導體…)硬回離題高分 chunk → 誤當有料令 LLM confabulate。
+    #   relevant_citations 以零 usage 內容詞重疊逐條判「命中且相關」——**只留與 query 共享夠強辨識性專詞
+    #   (perovskite/solar/孔子/知行合一…)者**,泛用字(system/energy/research/what)與單 CJK 字(能/太/心)
+    #   之巧合共現不算(擋前版「系統分析/能源效率/MBB」死因)。全數不相關 → 視同空檢索、走誠實 decline。
+    # translate-for-RETRIEVAL(**fallback**):augur 技術/財經文獻多為英文,e5-small 對 CJK 問句跨語 kNN 常把
+    #   英文正解沉在哲學/ERP 雜訊裡撈不上來。故 CJK 查詢**先以原文檢索+過濾**;哲學題此時已命中即止(不引英文
+    #   噪);**僅當**過濾後無相關引文,**才**譯英文、以英文 query 檢索+過濾(技術跨語題如 solar 靠此撈回)。
+    #   譯文**只決定用哪個 query 檢索**——不入 citation/答案/guard(命門);譯失敗(None:OOM/逾時/無 CJK)→
+    #   只有原查詢結果(誠實基線,多半 decline)、絕不 raise。Mode B 附加檔(prompt_fn)不套本閘/不翻譯。
+    raw = _clean(src_fn(query, k=k, scope=scope))
+    if prompt_fn is not None:
+        citations = raw                                  # Mode B:附檔由用戶負責相關性,不過濾、不翻譯
+    else:
+        citations = relevant_citations(query, raw)
+        if not citations:                                # 原文檢索無相關 → 英文 fallback(技術跨語題)
+            from augur.advisor.query_translation import translate_for_retrieval
+            en_query = translate_for_retrieval(query)    # 無 CJK / OOM / 逾時 → None(fail-closed,不 raise)
+            if en_query:
+                citations = relevant_citations(en_query, _clean(src_fn(en_query, k=k, scope=scope)))
     # 誠實保守白名單通識路(v1.35.0 + B-1 收尾):通識/B2 題(general_safe_answerable)即使檢索到
     # (量測證實多為不相關之非-junk)citations,亦走乾淨通識路——忽略雜訊、避免不相關 citation 令 LLM
     # 非決定性答壞(實證:「有沒有穩賺不賠的股票」撈到王充/韓非子/沉香 → 主路徑時好時壞)。
     whitelist_route = (not lex_entries and prompt_fn is None and general_safe_answerable(query))
-    if whitelist_route or (not citations and not lex_entries):
+    # D4(計畫 §5.2):PredictionPayload 帶真實 picks 時,picks 本身即 context——不得落空檢索誠實-decline
+    # 路(否則選股題永遠回「知識庫中無此內容」、picks 永不呈現)。picks 走主路徑 → build_prompt 渲染
+    # picks 區塊 + guard() 機械強制數字 ∈ payload.numbers()(捏造數字被擋);此判斷不鬆動 guard、
+    # 不繞過任何閘,只是讓「有真兆 payload」不被當成「無 context」。has_picks 對 KnowledgePayload/empty 恆 False。
+    has_picks = bool(getattr(payload, "picks", ()))
+    if not has_picks and (whitelist_route or (not citations and not lex_entries)):
         # 三級誠實分級(憲章 v1.25.0):以空 citations 判分級(sidecar 旁查 title-mention 優先;
         # 白名單一律忽略不相關檢索)——level-2(隔離館藏未驗)恆不放行。
         from augur.advisor.answer import honesty_level
