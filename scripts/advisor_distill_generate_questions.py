@@ -101,6 +101,8 @@ _OOC_TEMPLATES = [
     "{t}的核心技術優勢是什麼?",
     "請說明{t}的原理",
     "{t}目前的技術瓶頸在哪裡?",
+    "{t}的關鍵指標怎麼衡量?",
+    "{t}未來的發展方向是什麼?",
 ]
 
 # ── 情境 1b:curated 概念/字源/比較題(六類題型覆蓋,主題詞真出現於已嵌入原典)──────────
@@ -218,6 +220,7 @@ def main():
     ap.add_argument("--pilot", action="store_true", help="pilot 小批(n-incorpus=15、1 模板/主題,守 DP7 ≥55% ooc)")
     ap.add_argument("--n-incorpus", type=int, default=None, help="情境1真兆主題取樣數")
     ap.add_argument("--tpl-per-topic", type=int, default=None, help="每 in-corpus 主題套幾個問法(DP7 佔比槓桿)")
+    ap.add_argument("--ooc-tpl", type=int, default=None, help="每 out-of-corpus 主題套幾個問法(DP7 佔比槓桿)")
     ap.add_argument("--batch-tag", default="pilot")
     ap.add_argument("--stats", action="store_true", help="唯讀:只印現況統計")
     args, _ = ap.parse_known_args()
@@ -242,8 +245,9 @@ def main():
                       f"要新批用新 --batch-tag、要重生先清該 tag ──")
             else:
                 n_in = args.n_incorpus or (15 if args.pilot else 40)
-                tpt = args.tpl_per_topic or (1 if args.pilot else 2)
-                inserted, attempted = generate(cur, n_in, args.batch_tag, tpl_per_topic=tpt)
+                tpt = args.tpl_per_topic or (1 if args.pilot else 4)
+                otpl = args.ooc_tpl or (1 if args.pilot else 5)
+                inserted, attempted = generate(cur, n_in, args.batch_tag, tpl_per_topic=tpt, ooc_tpl=otpl)
                 print(f"── S2 生成(batch_tag={args.batch_tag})──")
                 print(f"  嘗試 {attempted} 題 → 新增 {inserted}(其餘為冪等去重,#6)")
         with db.transaction(conn) as cur:

@@ -52,12 +52,21 @@ def _content_tokens(text):
     return zh | en
 
 
-def grounding_ok(target, citations, floor=0.60):
-    """grounding 啟發式(界線-B 收尾):target 之事實內容詞須高比例 ⊂ context(citation 原文+著作名)。
-    誠實 decline 句(無實質事實斷言)天然高覆蓋或短、豁免;有大量 context 外內容詞 → 疑外插、fail。
-    回 (ok, coverage)。純機械、零 usage。"""
-    tt = _content_tokens(target)
-    tt = {t for t in tt if len(t) >= 2}                    # 剔單字虛詞噪音
+def _verbatim_grounded(target, ctx_blob, minlen=8):
+    """target 是否含 ≥minlen 字逐字片段 ∈ ctx_blob(直接引用 citation 之證據;白話轉述仍可夾真片段)。"""
+    for i in range(0, len(target) - minlen + 1):
+        frag = target[i:i + minlen]
+        if not frag.isspace() and frag in ctx_blob:
+            return True
+    return False
+
+
+def grounding_ok(target, citations, floor=0.30):
+    """ANSWER grounding(界線-B 收尾、**S5 專屬啟發式、非生產 guard**):
+    通過 = 內容詞覆蓋 ≥ floor(白話轉述仍共享古典關鍵詞)**或** 含 ≥8 字逐字片段 ∈ citation(直接引用)。
+    誠實 decline/refuse 由 validate_one 依 expected/閉集豁免(誠實由 guard 管、非 grounding)。
+    **硬防偽仍靠 guard_knowledge/guard_attribution(逐字/數字/出處三閘);本啟發式僅軟性 backstop**。回 (ok, coverage)。"""
+    tt = {t for t in _content_tokens(target) if len(t) >= 2}
     if not tt:
         return True, 1.0
     ctx_blob = " ".join((getattr(c, "text", "") or "") + " " +
@@ -65,27 +74,33 @@ def grounding_ok(target, citations, floor=0.60):
                         for c in citations)
     ct = _content_tokens(ctx_blob)
     covered = len(tt & ct) / len(tt)
-    return covered >= floor, round(covered, 4)
+    return (covered >= floor or _verbatim_grounded(target, ctx_blob)), round(covered, 4)
 
 
-def validate_one(query, target, context):
-    """過 guard 全閘 + grounding;回 (passed, verdict_dict)。"""
+def validate_one(query, target, context, expected=None):
+    """過 guard 全閘 + grounding(誠實 decline/refuse 豁免 grounding);回 (passed, verdict_dict)。
+    **生產 guard(guard_knowledge/attribution/empty_retrieval)恆施、一字不動**;grounding 為 S5 專屬 backstop。"""
     from augur.advisor.guard import (guard_knowledge, guard_attribution, guard_empty_retrieval,
-                                     citation_numbers)
+                                     citation_numbers, HONESTY_CLOSED_SET)
     from augur.advisor.payload import empty_payload
     cites = _rebuild_citations(context)
     issues = []
-    if not cites:                                          # 空檢索路:target 必須是誠實句閉集
+    # 誠實 decline/refuse:含固定句閉集、或 expected 標 DECLINE/REFUSE → 豁免 grounding(誠實由 guard 保證、非 grounding)
+    grounding_exempt = (expected in ("DECLINE", "REFUSE")
+                        or any(s in (target or "") for s in HONESTY_CLOSED_SET))
+    if not cites:                                          # 空檢索路:target 必須是誠實句閉集(生產 guard 恆施)
         v = guard_empty_retrieval(target, [])
         issues += v["issues"]
     else:
         vk = guard_knowledge(target, empty_payload(), cites, sql_numbers=citation_numbers(cites))
         va = guard_attribution(target, cites)
         issues += vk["issues"] + va["issues"]
-        ok, cov = grounding_ok(target, cites)
-        if not ok:
-            issues.append(f"grounding 不足(界線-B):事實內容詞覆蓋 {cov} < 0.60、疑外插 context 外事實")
-    return (not issues), {"pass": not issues, "issues": issues, "n_citations": len(cites)}
+        if not grounding_exempt:                           # ANSWER 才驗 grounding;decline/refuse 誠實由 guard 管
+            ok, cov = grounding_ok(target, cites)
+            if not ok:
+                issues.append(f"grounding 不足(界線-B):覆蓋 {cov} < 0.30 且無逐字片段、疑外插")
+    return (not issues), {"pass": not issues, "issues": issues,
+                          "n_citations": len(cites), "grounding_exempt": grounding_exempt}
 
 
 def _sft_record(query, target, context):
@@ -106,7 +121,7 @@ def _sft_record(query, target, context):
 def run(cur, out_path):
     """驗所有已生 gold、寫通過者為 SFT jsonl;回 (n_gold, n_pass, drop_rate)。"""
     cur.execute(
-        "SELECT c.context_id, q.question, c.target_response, c.context "
+        "SELECT c.context_id, q.question, c.target_response, c.context, q.expected "
         "FROM advisor_distill_context c JOIN advisor_distill_question q USING(question_id) "
         "WHERE c.target_response IS NOT NULL ORDER BY c.context_id")
     rows = cur.fetchall()
@@ -116,8 +131,8 @@ def run(cur, out_path):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     n_pass = 0
     with out_path.open("w", encoding="utf-8") as f:
-        for cid, query, target, context in rows:
-            passed, verdict = validate_one(query, target, context)
+        for cid, query, target, context, expected in rows:
+            passed, verdict = validate_one(query, target, context, expected)
             cur.execute("UPDATE advisor_distill_context SET validated=%s, validate_verdict=%s "
                         "WHERE context_id=%s", (passed, json.dumps(verdict, ensure_ascii=False), cid))
             if passed:
