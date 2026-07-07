@@ -289,7 +289,7 @@ async function sbrowse(p){
 
 _PROGRESS_TMPL = """<!doctype html><meta charset=utf-8><title>抓取進度 · augur</title>
 <body style="font-family:ui-sans-serif,-apple-system,'Segoe UI','Noto Sans TC',sans-serif;background:#faf9f5;color:#1f1e1d;max-width:900px;margin:24px auto;padding:0 16px">
-<h3>財經抓取進度 — 主題「__TOPIC__」 <span id=stat style="color:#b5793a">● 執行中…</span></h3>
+<h3>知識抓取進度 — 主題「__TOPIC__」 <span id=stat style="color:#b5793a">● 執行中…</span></h3>
 <div style="color:#73726c;font-size:13px;margin-bottom:8px">batch=__BATCH__ rounds=__ROUNDS__ · 背景執行(關閉此頁不中斷、resume-safe);限速/熔斷/續跑在引擎(#17/#22)。每 2 秒更新。</div>
 <div style="margin-bottom:8px"><button id=copybtn onclick="copyLog()" style="padding:6px 12px;background:#fff;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:8px;cursor:pointer;font-size:13px">複製全部</button>
  <span style="color:#73726c;font-size:12px;margin-left:8px">log 可直接選取複製;選取期間暫停自動刷新、不打斷選取</span></div>
@@ -434,9 +434,9 @@ def dashboard_html(status, uname="admin", role=""):
 <div class=card><b>知識層狀態</b><pre>{html.escape(status)}</pre></div>
 </section>
 <section id=sec-harvest class=sec>
-<h1>主題抓取</h1><div class=desc>輸入主題（財經/化學…）→ 展開 registry 域 → 觸發 harvest。放量＝背景執行 + 即時進度頁。</div>
+<h1>主題抓取</h1><div class=desc>輸入主題或 domain 名（如 solar_materials／chemistry／economics_econometrics_and_finance）→ 展開 registry 域 → 觸發 harvest。中文別名（財經/化學/材料…）或英文關鍵詞（solar/perovskite）亦可。放量＝背景執行 + 即時進度頁。</div>
 <div class=card>
-<form method=post action=/api/topic><input name=topic placeholder="財經" style="padding:8px;background:#faf9f5;border:1px solid #dcd8cc;color:#1f1e1d;border-radius:6px">
+<form method=post action=/api/topic><input name=topic placeholder="solar_materials 或 太陽能 或 solar" style="padding:8px;background:#faf9f5;border:1px solid #dcd8cc;color:#1f1e1d;border-radius:6px">
 batch <input name=batch value=10 type=number min=1 max=2000 style="width:72px;padding:8px;background:#faf9f5;border:1px solid #dcd8cc;color:#1f1e1d;border-radius:6px">
 rounds <input name=rounds value=1 type=number min=1 max=20 style="width:60px;padding:8px;background:#faf9f5;border:1px solid #dcd8cc;color:#1f1e1d;border-radius:6px">
 <label style=font-size:13px><input type=checkbox name=run> 放量抓取(不勾=只看確認頁)</label>

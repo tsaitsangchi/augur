@@ -1,4 +1,4 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.18
+# CLAUDE.md — Augur AI 協作工具規則 v1.20
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.5.0.md` + `docs/原則精華_v1.7.1.md` + 憲章為準；
@@ -62,7 +62,9 @@
     - **(b) 資料驅動、來源住 DB、不 hardcode 資料（v1.15 升級,用戶 directive 2026-07-02:repo JSON 檔=另一種 hardcode）**：策展/擷取資料一律住**本地 PostgreSQL**,以**三層知識管線**運作（鏡射 raw→下游）——**來源定義表 `knowledge_source`**（adapter+查詢模板 registry）→ `acquire_knowledge.py`（通用擷取引擎,從外部真實來源抓入）→ **暫存表 `knowledge_staging`**（payload JSONB+provenance,#1 可溯源,pending 待審）→ `promote_knowledge.py`（晉升引擎,審核後冪等寫正式表）;批次驅動＝`harvest_knowledge.py` 排程矩陣（`knowledge_query`×來源、resume 帳本）。
       - **擴新領域＝ INSERT 一列 knowledge_source/query（換 domain/查詢模板）,零 code 變動**;新「來源協定」才寫新 adapter、新 entity_type 才加 mapping 函式（本質是 code,合理）。
       - JSON/CSV 僅為 manual_file adapter 之**傳輸工件**（匯入口/備份),**非來源 SSOT**;跨機遷移用 `pg_dump -t knowledge_source -t knowledge_staging`。
+      - **別名/映射/config 類「決定行為的資料」亦住 DB（v1.19,用戶 directive 2026-07-07:`TOPIC_ALIAS` 寫死違此）**:凡「策展的、會增減、非邏輯」之映射/別名/分類/來源對照（如 topic→domain 別名 `knowledge_topic_alias`）**一律住 DB 表、不得寫死 Python dict/list**;新增映射＝admin INSERT 一列、零改碼。**判準:「這是資料（策展、會增減、可外部產生）還是邏輯（演算法/型別/流程）?」——資料→住 DB;邏輯→留 code**。種子可一次性 bootstrap 遷移（等同 knowledge_source 種子）,但 SSOT 是 DB 表非 code。**豁免**:安全繫於機械閘、非資料鎖之品質工程詞表（如 guard 之 `safe_general` 白名單,憲章 v1.35.0 已裁「詞表不鎖＝執行層、安全繫於 guard 非詞表」）屬邏輯側,不在此列。
       - 內容納入範圍仍受治權判準約束（**憲章「知識層多域擴充準則」**:能抓≠該抓、新領域入庫=決策層人拍板、多域知識素養層零量化價值不進預測管線、domain 欄隔離因子鏈純度）。
+      - **抓取端到端至可檢索終態（v1.20,用戶 directive 2026-07-07:harvest 止於 metadata＝半套）**:任何知識抓取一律走完整管線至其 **license 允許的終態**——acquire→staging→promote（metadata）→ **fetch_fulltext〔受憲章「全文准入三軌」gate:公版/CC/owned_local 才抓全文〕→ build_sentences → embed** → 可被 advisor 檢索作答。**「harvest 完成」定義＝到達該內容 license 允許之最終可答狀態,非止於 item 標題**;非授權全文者止於 metadata + 誠實 `fulltext_blocked` 旗標（license 阻擋、非漏做）,**不得只抓 metadata 就宣稱完成、不得謊稱可答**。機制:harvest 觸發後自動接 fetch_fulltext→build_sentences→embed（資料驅動、license-gated、resume-safe、#25 首輪最小、本地零 usage #28）。素養層不變式不變（零量化價值、不進預測管線）。
     - **(c) 通用可重用**：同型 script 合併為單一參數化工具（如 acquire+promote 兩支引擎取代九支 hardcode/JSON seed 批次檔）,設計為未來不同情境重覆使用、擴充靠 DB 資料列與參數。
     - **(d) 指令矩陣 + 實測**：標頭 docstring 寫「**執行指令矩陣**」（各用法實例指令），且**須實測可執行**（#7；安全驗證分級：唯讀類實跑、放量類 import 級 + 最小單位 #25，不為驗證而觸 API 放量）。
     - **效益**：用戶可自行執行零 usage（#28 本地優先）、新增資料不需 AI 改碼、script 數量收斂可維護。

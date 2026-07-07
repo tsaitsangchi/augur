@@ -42,10 +42,13 @@ def _turnover(cur_ids, prev_ids):
 
 
 def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
-                 long_short=False, weight="equal", seed=42, asof=True, cost=0.0, interactions=None):
+                 long_short=False, weight="equal", seed=42, asof=True, cost=0.0, interactions=None,
+                 short_borrow=0.0):
     """模型預測 → 投組 → 經濟指標(gross/net)+ 等權基準。
 
     weight：'equal'（等權 top）或 'pred'（預測值 rank 加權，正權重）。cost：來回成本（如 0.00585）套於換手。
+    short_borrow：放空**年化**借券/融券成本（如 0.02=2%/年,long_short=True 才套）——每期按持有期 h/252 折算、
+      套於短腿名目（dollar-neutral LS 短腿≈1×多腿）；預設 0=不計短腿摩擦（=既有行為，向後相容）。
     回 {portfolio_gross, portfolio_net, benchmark_net, avg_turnover, bench_turnover, n_periods, periods_per_year, span}。
     """
     from lightgbm import LGBMRegressor
@@ -95,9 +98,10 @@ def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
         turn = _turnover(top_ids, prev_top)
         bturn = _turnover(common, prev_uni)
         prev_top, prev_uni = top_ids, common
+        sb = (short_borrow * h / 252.0) if long_short else 0.0        # 放空借券成本:年化→持有期、套短腿名目
         gross.append(g)
-        net.append(g - turn * cost)                                   # 成本套於換手比例
-        bench.append(float(simple.mean()) - bturn * cost)             # 基準亦計宇宙換手成本(公平)
+        net.append(g - turn * cost - sb)                              # 淨=毛 − 換手成本 − 放空借券成本
+        bench.append(float(simple.mean()) - bturn * cost)             # 基準亦計宇宙換手成本(公平;基準無放空)
         turns.append(turn); bturns.append(bturn); dates.append(tpd)
     if len(dates) < 3:
         return {}
