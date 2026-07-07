@@ -61,7 +61,7 @@ _EN_GENERIC = set("""
 system analysi analyz research studi method process design approach result review paper articl
 chapter section develop applic use base gener overview introduct report perform problem solut
 effect factor field level type form framework structur function theori scienc main core master
-multi whether energi effici technologi innov optim product manag manufactur qualiti industri
+multi whether energi effici technologi innov optim advantag technic benefit product manag manufactur qualiti industri
 techniqu materi properti characterist paramet condit measur estim comput simul evalu impact
 influenc relationship compar improv enhanc model data valu case work part number general
 there ani ar on of the a an in to for and or with by is at about into over under between within
@@ -116,15 +116,18 @@ def best_overlap(query, citations):
     return best
 
 
-def relevant_citations(query, citations):
-    """回 citations 之子集:只留與 query 共享 ≥1 **夠強**辨識性專詞者(泛用字/單 CJK 字不算)。保序。
+def relevant_citations(query, citations, min_terms=1):
+    """回 citations 之子集:只留與 query 共享 ≥min_terms 個**夠強**辨識性專詞者(泛用字/單 CJK 字不算)。保序。
     query 無夠強辨識詞(全泛用字如「能源效率的研究」、或全單 CJK 字)→ 回 [](無從確認 → 全剔 → decline)。
     **逐條相關度過濾**(#1 命門):雙語檢索撈回之離題引文(王陽明/黑格爾/ERP 權限檔混在 solar 正解裡、
-    或譯句泛詞巧撞)不進 LLM context——不餵 LLM 離題垃圾。呼叫端對原 query / 英文譯 query 各跑(見 advise)。"""
+    或譯句泛詞巧撞)不進 LLM context——不餵 LLM 離題垃圾。呼叫端對原 query / 英文譯 query 各跑(見 advise)。
+    **min_terms**:原文檢索用 1(既有);英文 fallback 用 2——qwen3 誤譯之 query(如 多主柵→multi-master bus)
+    常靠單一泛詞(advantage)巧撞離題引文→過閘→LLM 瞎掰;要求 ≥2 辨識詞共享,誤譯 fallback 收斂為誠實
+    decline、正確譯(perovskite/solar/cell 多詞共享)仍過(#15 餵離題不如誠實 decline)。"""
     qd = _strong_distinctive(query)
     if not qd:
         return []
-    return [c for c in citations if qd & _strong_distinctive(_cite_text(c))]
+    return [c for c in citations if len(qd & _strong_distinctive(_cite_text(c))) >= min_terms]
 
 
 def query_relevant(query, citations, floor=RELEVANCE_FLOOR):

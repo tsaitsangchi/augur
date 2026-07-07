@@ -58,7 +58,9 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
             from augur.advisor.query_translation import translate_for_retrieval
             en_query = translate_for_retrieval(query)    # 無 CJK / OOM / 逾時 → None(fail-closed,不 raise)
             if en_query:
-                citations = relevant_citations(en_query, _clean(src_fn(en_query, k=k, scope=scope)))
+                # min_terms=2:誤譯之 en_query 靠單一泛詞巧撞離題引文→過閘→LLM 瞎掰(實證 多主柵→multi-master
+                # bus 撞「advantage」一詞令 qwen3 瞎掰光通信);要求 ≥2 辨識詞共享,誤譯 fallback 收斂為誠實 decline。
+                citations = relevant_citations(en_query, _clean(src_fn(en_query, k=k, scope=scope)), min_terms=2)
     # 誠實保守白名單通識路(v1.35.0 + B-1 收尾):通識/B2 題(general_safe_answerable)即使檢索到
     # (量測證實多為不相關之非-junk)citations,亦走乾淨通識路——忽略雜訊、避免不相關 citation 令 LLM
     # 非決定性答壞(實證:「有沒有穩賺不賠的股票」撈到王充/韓非子/沉香 → 主路徑時好時壞)。
