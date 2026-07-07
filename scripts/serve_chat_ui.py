@@ -220,7 +220,7 @@ button:focus-visible,#q:focus-visible,.mode:focus-visible,.rec:focus-visible{out
 </aside>
 <main class=main>
 <button id=hamburger onclick="toggleSide()" aria-label="選單" title="選單">☰</button>
-<div id=log><div id=greet><div class=gs>✻</div><h1>今天想聊什麼?</h1><p>問我投資哲學、經典原文與價值的關係</p></div></div>
+<div id=log><div id=greet><div class=gs>✻</div><h1>今天想聊什麼?</h1><p>問我太陽能材料、能源材料、太陽能產業的 know-how</p></div></div>
 <button id=jump title="回到最新" onclick="jumpBottom()">↓</button>
 <div id=bar>
 <div id=chip onclick="clearAttach()"></div>
@@ -260,7 +260,7 @@ function jumpBottom(){log.scrollTo({top:log.scrollHeight,behavior:'smooth'});pin
 log.addEventListener('scroll',function(){pinned=atBottom();toggleJump()})
 log.addEventListener('click',function(e){if(e.target&&e.target.classList&&e.target.classList.contains('codecopy')){var w=e.target.closest('.codewrap');var code=w&&w.querySelector('pre code');if(code){navigator.clipboard.writeText(code.textContent||'');e.target.textContent='已複製 ✓';setTimeout(function(){e.target.textContent='複製'},1200)}}})
 var MODE='chat'
-var GREET={chat:['今天想聊什麼?','問我投資哲學、經典原文與價值的關係'],
+var GREET={chat:['今天想聊什麼?','問我太陽能材料、能源材料、太陽能產業的 know-how'],
  cowork:['一起完成什麼任務?','協作情境 · 目前沿用顧問後端,專屬協作 agent 建置中'],
  code:['要處理哪段程式?','程式情境 · 目前沿用顧問後端,專屬 code agent 建置中']}
 var SESSIONS=[]   // DB session 快取:{id,mode,title,starred,ts}(msgs 按需經 /api/messages 載;歷史存 PostgreSQL、owner 收窄)
@@ -272,7 +272,7 @@ async function recordMsg(role,content){var sid=await ensureSession();if(sid==nul
  var s=SESSIONS.filter(function(x){return x.id===sid})[0]
  if(s){s.ts=Date.now();if(dbrole==='user'&&(!s.title||s.title==='新對話')){s.title=content.slice(0,24);fetch('/api/session/rename',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:sid,title:s.title})}).catch(function(){})}}
  renderRecents()}
-var CHIPS={chat:['價值投資的核心是什麼?','葛拉漢的安全邊際','巴菲特的護城河'],cowork:['幫我整理這份資料的重點','列出這個任務的步驟'],code:['解釋這段程式在做什麼','幫我找出可能的 bug']}
+var CHIPS={chat:['鈣鈦礦太陽能電池的效率','TOPCon 電池的技術優勢','太陽能電池表面鈍化技術'],cowork:['幫我整理這份資料的重點','列出這個任務的步驟'],code:['解釋這段程式在做什麼','幫我找出可能的 bug']}
 function chipClick(b){q.value=b.textContent;q.style.height='auto';q.style.height=Math.min(q.scrollHeight,180)+'px';q.focus()}
 function greetHtml(){var g=GREET[MODE];var cs=(CHIPS[MODE]||[]).map(function(c){return '<button class=chip type=button onclick="chipClick(this)">'+c.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</button>'}).join('');return '<div id=greet><div class=gs>✻</div><h1>'+g[0]+'</h1><p>'+g[1]+'</p><div class=chips>'+cs+'</div></div>'}
 function newSession(){CURid=null;log.innerHTML=greetHtml();attached=null;updateChip();q.value='';q.style.height='auto';renderRecents();q.focus()}
