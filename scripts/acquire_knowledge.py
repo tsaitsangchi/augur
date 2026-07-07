@@ -150,7 +150,9 @@ def adapter_arxiv(cur, src, args, dom, et):
 
 
 def adapter_semantic_scholar(cur, src, args, dom, et):
-    d = get_json(fill(src[4], args))
+    key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY", "").strip()   # #29b:key 值住 .env、adapter 讀
+    hdrs = {**UA, "x-api-key": key} if (key and not key.startswith("你的")) else UA  # 有 key→x-api-key header(拉高額度、解 429)
+    d = get_json(fill(src[4], args), hdrs)
     n = 0
     for r in d.get("data", []):
         p = {"title": r.get("title"), "year": r.get("year"),

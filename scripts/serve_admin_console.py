@@ -132,6 +132,7 @@ def _audit(action, detail):
 
 _SESSIONS = {}   # token -> expiry
 _JOBS = {}       # harvest logname -> pid(背景抓取存活判定;admin 重啟後改以 log 尾標記判定)
+_JOBS_START = {}  # harvest logname -> 啟動 epoch 秒(進度頁即時計時;same-session 準,重啟後 None fallback)
 
 # harvest 完成標記(acquire_topic/harvest 之終行 sentinel;命中即進度頁標「完成」停輪詢)
 _DONE_MARKS = ("harvest 觸發(抓入知識層", "無對應 domain", "排程空(全部已跑")
@@ -169,8 +170,17 @@ def _read_harvest_log(name):
         except OSError:
             alive = False
     lines = data.splitlines()
+    done = bool(sentinel or (pid is not None and not alive))
+    start = _JOBS_START.get(os.path.basename((name or "").strip()))
+    elapsed = None
+    if start is not None:                       # same-session 啟動可精準計時;done 用 log 末次寫入時間凍結
+        try:
+            end = os.path.getmtime(fp) if done else time.time()
+        except OSError:
+            end = time.time()
+        elapsed = max(0.0, end - start)
     return {"ok": True, "log": "\n".join(lines[-400:]),
-            "done": bool(sentinel or (pid is not None and not alive)), "lines": len(lines)}
+            "done": done, "lines": len(lines), "elapsed": elapsed}
 
 
 def _new_session():
@@ -289,7 +299,7 @@ async function sbrowse(p){
 
 _PROGRESS_TMPL = """<!doctype html><meta charset=utf-8><title>抓取進度 · augur</title>
 <body style="font-family:ui-sans-serif,-apple-system,'Segoe UI','Noto Sans TC',sans-serif;background:#faf9f5;color:#1f1e1d;max-width:900px;margin:24px auto;padding:0 16px">
-<h3>知識抓取進度 — 主題「__TOPIC__」 <span id=stat style="color:#b5793a">● 執行中…</span></h3>
+<h3>知識抓取進度 — 主題「__TOPIC__」 <span id=stat style="color:#b5793a">● 執行中…</span> <span id=elapsed style="color:#73726c;font-family:ui-monospace,monospace;font-size:14px;font-weight:normal"></span></h3>
 <div style="color:#73726c;font-size:13px;margin-bottom:8px">batch=__BATCH__ rounds=__ROUNDS__ · 背景執行(關閉此頁不中斷、resume-safe);限速/熔斷/續跑在引擎(#17/#22)。每 2 秒更新。</div>
 <div style="margin-bottom:8px"><button id=copybtn onclick="copyLog()" style="padding:6px 12px;background:#fff;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:8px;cursor:pointer;font-size:13px">複製全部</button>
  <span style="color:#73726c;font-size:12px;margin-left:8px">log 可直接選取複製;選取期間暫停自動刷新、不打斷選取</span></div>
@@ -297,14 +307,19 @@ _PROGRESS_TMPL = """<!doctype html><meta charset=utf-8><title>抓取進度 · au
 <a href=/ style="color:#5f8a5a">← 返回控制台</a>
 <script>
 var LF="__LOG__"
+var _done=false,_base=0,_baseAt=Date.now(),_have=false
+function _fmt(s){s=Math.max(0,Math.floor(s));var m=Math.floor(s/60);return (m>0?m+'m ':'')+(s%60)+'s'}
+function _tick(){var el=document.getElementById('elapsed');if(el&&_have){var e=_done?_base:_base+(Date.now()-_baseAt)/1000;el.textContent=(_done?'⏱ 總 ':'⏱ ')+_fmt(e)}if(!_done)setTimeout(_tick,1000)}
+_tick()
 function hasSel(box){var s=window.getSelection();if(!s||s.isCollapsed||!s.rangeCount)return false;var n=s.getRangeAt(0).commonAncestorContainer;return box.contains(n.nodeType===1?n:n.parentNode)}
 function copyLog(){var t=document.getElementById('logbox').textContent;var b=document.getElementById('copybtn');navigator.clipboard.writeText(t).then(function(){var o=b.textContent;b.textContent='已複製 ✓';setTimeout(function(){b.textContent=o},1500)},function(){b.textContent='複製失敗,請手動選取';setTimeout(function(){b.textContent='複製全部'},2000)})}
 async function poll(){
  try{var r=await fetch('/api/topic/log?file='+encodeURIComponent(LF));var j=await r.json()
   if(j.ok){var box=document.getElementById('logbox')
+   if(typeof j.elapsed==='number'){_base=j.elapsed;_baseAt=Date.now();_have=true}
    var nt=j.log||'(等待引擎輸出…)'
    if(nt!==box.textContent&&!hasSel(box)){var atBottom=box.scrollTop+box.clientHeight>=box.scrollHeight-40;box.textContent=nt;if(atBottom)box.scrollTop=box.scrollHeight}
-   if(j.done){var s=document.getElementById('stat');s.textContent='✓ 完成(共 '+j.lines+' 行)';s.style.color='#5f8a5a';return}}
+   if(j.done){var s=document.getElementById('stat');s.textContent='✓ 完成(共 '+j.lines+' 行)';s.style.color='#5f8a5a';_done=true;var el=document.getElementById('elapsed');if(el&&_have)el.textContent='⏱ 總 '+_fmt(_base);return}}
  }catch(e){}
  setTimeout(poll,2000)
 }
@@ -753,6 +768,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                 proc = subprocess.Popen(cmd, cwd=ROOT, stdout=lf, stderr=subprocess.STDOUT,
                                         stdin=subprocess.DEVNULL, start_new_session=True)
                 _JOBS[logname] = proc.pid
+                _JOBS_START[logname] = time.time()
             finally:
                 lf.close()
             return self._send(200, progress_view_html(topic, logname, batch, rounds))
