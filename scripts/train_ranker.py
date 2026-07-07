@@ -30,6 +30,16 @@ from augur.models.ranker import RankGBDT, RankRidge
 FAMILIES = {"RankRidge": RankRidge, "RankGBDT": RankGBDT}
 
 
+def _train_note(horizon):
+    """model_registry.metrics.note = 誠實使用 caveat(trace 回 STAGE D SSOT、非估算數字)。"""
+    base = ("long-only 生產模型;經濟成功度量=淨 Sharpe/Calmar 非 IC(#14);"
+            "survivorship 債 b 未閉環(core_universe_asof 實為當前存活名單)→ as-of IC 帶樂觀偏誤,呈現須明標。")
+    if horizon >= 120:
+        base += (" ⚠ H120 近期(2021+)非重疊經濟回測 n≈8 小樣本(STAGE D)——"
+                 "抽樣誤差大、排名方向性非精確保證;定論待持續再驗證資料累積(#15)。")
+    return base
+
+
 def _panels_upto(conn, asof):
     """≤as_of 之所有特徵 panel_date(升序)。"""
     with db.transaction(conn) as cur:
@@ -68,7 +78,8 @@ def train(horizon, family, seed, asof, resume=False):
         est = est_cls(seed=seed) if family == "RankGBDT" else est_cls()
         est.fit(X, y)
         path, fh2 = artifact.save(est, feats, horizon, asof, family, seed)
-        metrics = {"n_train_rows": int(len(y)), "n_feats": len(feats), "n_panels": len(panels)}
+        metrics = {"n_train_rows": int(len(y)), "n_feats": len(feats), "n_panels": len(panels),
+                   "note": _train_note(horizon)}   # 誠實 caveat(#15;non-fabricated、trace 回 STAGE D SSOT)
         registry.register(model_id, family, horizon, (panels[0], asof), asof, fh2, seed, metrics, path)
     print(f"✓ 訓練完成 model_id={model_id}")
     print(f"  train_rows={len(y)} feats={len(feats)} panels={len(panels)}([{panels[0]}..{asof}])")

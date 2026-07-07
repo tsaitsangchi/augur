@@ -45,6 +45,10 @@ DDL = [
           rank       int  NOT NULL,
           PRIMARY KEY (panel_date, model_id, stock_id)
         )"""),
+    ("column prediction_values.in_portfolio", """
+        ALTER TABLE prediction_values ADD COLUMN IF NOT EXISTS in_portfolio boolean NOT NULL DEFAULT false"""),
+    ("column prediction_values.weight", """
+        ALTER TABLE prediction_values ADD COLUMN IF NOT EXISTS weight double precision NOT NULL DEFAULT 0.0"""),
     ("index ix_pred_panel_model", """
         CREATE INDEX IF NOT EXISTS ix_pred_panel_model ON prediction_values (panel_date, model_id)"""),
     ("comment prediction_values", """

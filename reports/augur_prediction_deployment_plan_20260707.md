@@ -117,7 +117,7 @@ gate **建在 feature build 時**,非 predict 時。實證:
    - top_frac(STAGE D 用 top10%,predict 現印 top-N 但不落選取旗標)
    - 權重(equal 或 pred-rank;STAGE D 用 equal LO)
    - **複用鐵律**:選取/權重邏輯**抽自 `portfolio.py` 之 `run_backtest`**(勿另寫一套,否則 live≠回測雙軌漂移 #12)。建議 refactor `portfolio.py` 出一個 pure `select_and_weight(preds, top_frac, weight)` 供 backtest 與 live 共用。
-4. **模型選擇**:STAGE D 首選 **Ridge H120 LO**(全期風險調整最佳:Calmar 2.21、MaxDD −8.7%、水下 2 期);H60 LO 為次選(Calmar 1.19、MaxDD −13.9%)。二者皆 long-only(long-short 已淘汰、放空成本坐實不採)。
+4. **模型選擇(部署決策 2026-07-07 對齊)**:**部署主模型 = Ridge H60 LO**——依 revalidation_ledger 蘋果對蘋果**超額 alpha(netSharpe−基準)**:H60 兩樣本期皆正(2014起 **+0.435**、2021近期 **+0.327**;n 25/18 大樣本、現在即可定論);H120 全期風險調整較亮(Calmar 2.21、MaxDD −8.7%)**但近期(2021起)超額 alpha 歸零、跌破基準(−0.015)、n=8 小樣本未定論**。按靈魂「**經濟價值非 IC + 誠實不誇小樣本**」,取現在即可定論之穩健者 **H60 為部署主投組**;**H120 列追蹤候選**,由 D5 harness 追近期 n≥20 再議(屆時若 H120 近期 alpha 定論轉正即重新對齊——可逆)。二者皆 long-only(long-short 已淘汰、放空成本坐實不採)。現況 prediction_values:**H60 in_portfolio=34 檔 equal-weight(部署主投組)、H120=0(追蹤候選)**。
 
 ### 4.3 資料流
 ```
