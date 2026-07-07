@@ -51,7 +51,13 @@ def _read_pdf(path):
 def _read_docx(path):
     import docx
     d = docx.Document(path)
-    txt = "\n".join(p.text for p in d.paragraphs)
+    lines = [p.text for p in d.paragraphs]
+    for tbl in d.tables:                                   # 表格逐列(docstring 承諾「段落+表格」;paragraphs 不含表格)
+        for row in tbl.rows:
+            cells = [c.text for c in row.cells if c.text]
+            if cells:
+                lines.append("\t".join(cells))
+    txt = "\n".join(lines)
     return (txt, "docx") if txt.strip() else (None, "no_text")
 
 

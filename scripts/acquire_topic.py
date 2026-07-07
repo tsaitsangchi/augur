@@ -1,17 +1,25 @@
 #!/usr/bin/env python
-"""主題自動抓取(admin 控制台 P2,計畫 §一.A)— 輸入「財經」等主題 → 展開 registry 域 → 觸發 harvest。
+"""主題自動抓取(admin 控制台 P2,計畫 §一.A)— 輸入「財經」等主題 → 展開 registry 域 → 觸發 harvest → 自動接下游至可檢索終態。
 
 🎯 這支在做什麼(白話):把 admin 輸入之主題詞(中/英)映射到知識 registry 之 domain,展開該域全部
    查詢詞,**確認頁**(印 N 域 / M query / 首輪 --batch 建議)後,以既有 harvest_knowledge 引擎背景抓取。
    **不重造抓取管線**——只做 topic→domain 薄映射 + subprocess 觸發既有引擎(限速/熔斷/resume 全在該引擎)。
+   **CLAUDE #29 v1.20 端到端**:harvest 只到 metadata=advisor 檢索不到;故 --run 後**自動接下游完成器**
+   (逐域呼叫既有 refresh_knowledge_pipeline.py --from-stage fulltext --until embed)——fulltext(license-gated
+   OA 全文)→ sentences(切句)→ concordance(逐字索引)→ embed(嵌入)→ advisor 撈得到。逐域獨立
+   (check=False:一域失敗不擋其餘,誠實續)、resume-safe(下游各段冪等 DB-driven);--no-complete 只 harvest。
+   fulltext 段 license 未過者由 fetch 落 knowledge_fulltext_status 終態帳(誠實記「阻擋非漏做」)。
    治權:抓入知識層(素養、非預測管線)、真實來源 provenance、禁 AI 生成(既有 promote 閘);#25 首輪最小驗證。
-守 #28(觸發既有本地引擎、零 Claude usage)· #17/#25(限速在 harvest 引擎、首輪最小)· #5(subprocess shell=False)· #29。
+守 #28(觸發既有本地引擎、零 Claude usage)· #17/#25(限速在 harvest 引擎、首輪最小)· #5(subprocess shell=False)·
+   #15(license 阻擋落終態帳非漏做)· #12(下游復用 refresh 驅動器,不重造)· #29。
 
 執行指令矩陣:
   python scripts/acquire_topic.py                          # 無參數:列可用主題別名 + 全 domain
   python scripts/acquire_topic.py --topic 財經             # 確認頁(映射域/query 數/建議),不抓
-  python scripts/acquire_topic.py --topic finance --run    # 觸發 harvest(首輪 --batch 10 最小驗證 #25)
-  python scripts/acquire_topic.py --topic 財經 --run --batch 300 --rounds 4   # 放量批
+  python scripts/acquire_topic.py --topic finance --run    # 觸發 harvest + 自動下游至可檢索終態(首輪 --batch 10 #25)
+  python scripts/acquire_topic.py --topic 財經 --run --batch 300 --rounds 4   # 放量批(harvest+下游)
+  python scripts/acquire_topic.py --topic solar --run --no-complete  # 只 harvest metadata、不接下游
+  # 下游 fulltext 段需環境變數 UNPAYWALL_EMAIL(缺則該段誠實失敗、不擋其餘域)
 """
 import argparse
 import subprocess
@@ -69,6 +77,8 @@ def main():
     ap.add_argument("--batch", type=int, default=10)
     ap.add_argument("--rounds", type=int, default=1)
     ap.add_argument("--max-minutes", type=int, default=120)
+    ap.add_argument("--no-complete", dest="complete", action="store_false",
+                    help="只 harvest metadata、不自動接下游至可檢索終態")
     args, _ = ap.parse_known_args()
 
     with db.connect() as conn:
@@ -104,15 +114,28 @@ def main():
         if not args.run:
             print(f"→ 確認無誤後加 --run 觸發 harvest(首輪建議 --batch 10 最小驗證 #25;放量 --batch 300 --rounds 4)")
             return
-        # 觸發既有 harvest 引擎(逐域 subprocess、shell=False 防注入;限速/熔斷/resume 全在引擎)
+        # 觸發既有 harvest 引擎(逐域 subprocess、shell=False 防注入;限速/熔斷/resume 全在引擎),
+        # 再自動接下游完成器至可檢索終態(#29 v1.20)。逐域獨立、check=False=單域失敗不中斷其餘(誠實續)。
         py = sys.executable
         for d, n in targets:
-            cmd = [py, "scripts/harvest_knowledge.py", "--domain", d,
-                   "--batch", str(args.batch), "--rounds", str(args.rounds),
-                   "--max-minutes", str(args.max_minutes)]
+            hcmd = [py, "scripts/harvest_knowledge.py", "--domain", d,
+                    "--batch", str(args.batch), "--rounds", str(args.rounds),
+                    "--max-minutes", str(args.max_minutes)]
             print(f"▶ 觸發 harvest --domain {d}(batch {args.batch}/rounds {args.rounds}) …", flush=True)
-            subprocess.run(cmd, check=False)   # shell=False;check=False=單域失敗不中斷其餘(誠實續)
-        print(f"完成:{len(targets)} 域 harvest 觸發(抓入知識層、素養非預測;provenance/禁AI生成閘在 promote)")
+            subprocess.run(hcmd, check=False)   # shell=False;check=False=單域失敗不中斷其餘(誠實續)
+            if args.complete:
+                # 復用既有端到端驅動器(#12 不重造):promote 已在 harvest 輪末完成,故自 fulltext 起;
+                # 下游各段冪等 DB-driven(NOT EXISTS/游標),殺掉重跑續;fulltext license 未過落終態帳。
+                ccmd = [py, "scripts/refresh_knowledge_pipeline.py", "--domain", d,
+                        "--from-stage", "fulltext", "--until", "embed"]
+                print(f"▶ 接下游完成器 --domain {d}(fulltext→sentences→concordance→stats→embed) …", flush=True)
+                rc = subprocess.run(ccmd, check=False).returncode   # check=False:某段/某域失敗不擋其餘域
+                if rc != 0:
+                    print(f"  ⚠ {d} 下游完成器 exit={rc}(誠實記:可能 UNPAYWALL_EMAIL 缺或該域 OA/license 阻擋;"
+                          f"resume-safe,修復後 refresh_knowledge_pipeline.py --domain {d} --from-stage fulltext 續)",
+                          flush=True)
+        tail = "harvest + 下游至可檢索終態" if args.complete else "harvest metadata(--no-complete:未接下游)"
+        print(f"完成:{len(targets)} 域 {tail}(抓入知識層、素養非預測;provenance/禁AI生成閘在 promote)")
 
 
 if __name__ == "__main__":

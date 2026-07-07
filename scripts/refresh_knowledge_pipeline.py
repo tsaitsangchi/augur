@@ -91,10 +91,19 @@ def pending_lines(cur, name, domain):
         n = _n(cur, "SELECT count(*) FROM knowledge_staging WHERE status = 'pending'" + d, p)
         return [f"staging pending {n:,}"]
     if name == "fulltext":
+        # 待抓=無全文且無 blocked 終態帳(#15:license/OA 阻擋者已落 knowledge_fulltext_status,
+        # 排除使計數收斂=真待辦、非漏抓;若帳表未建則退回原上限 count)。
+        blocked_exists = _n(cur, "SELECT count(*) FROM information_schema.tables "
+                                 "WHERE table_name='knowledge_fulltext_status'")
+        blocked_clause = ("AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status b "
+                          "WHERE b.item_id = i.item_id) " if blocked_exists else "")
         n = _n(cur, "SELECT count(*) FROM knowledge_item i WHERE NOT EXISTS "
-                    "(SELECT 1 FROM knowledge_item_text t WHERE t.item_id = i.item_id)"
-                    + (" AND i.domain = %s" if domain else ""), p)
-        return [f"item 無全文 {n:,}(上限;DOI 有無/OA 可得性另計,分子照實不虛灌)"]
+                    "(SELECT 1 FROM knowledge_item_text t WHERE t.item_id = i.item_id) "
+                    + blocked_clause
+                    + ("AND i.domain = %s" if domain else ""), p)
+        nb = _n(cur, "SELECT count(*) FROM knowledge_fulltext_status b JOIN knowledge_item i USING (item_id)"
+                     + (" WHERE i.domain = %s" if domain else ""), p) if blocked_exists else 0
+        return [f"item 待抓全文 {n:,}(已排除 blocked 終態帳 {nb:,} 筆=license/OA 阻擋非漏抓;分子照實)"]
     if name == "sentences":
         n = _n(cur, "SELECT count(*) FROM knowledge_item_text t JOIN knowledge_item i USING (item_id) "
                     "WHERE NOT EXISTS (SELECT 1 FROM knowledge_sentence s WHERE s.itext_id = t.itext_id)"

@@ -3,8 +3,10 @@
 
 🎯 這支在做什麼(白話):把某資料夾(含子夾)所有可解析檔案抽出逐字文字,存進知識層 item_text,
    接既有切句/嵌入/檢索鏈 → 供「誠實博學的我」對話引用。**治權硬牆(不可繞)**:
-   - `license` 受 DB CHECK 只准四值白名單(public_domain/cc-by/cc-by-sa/cc0)——**版權未明檔進不了全文表**;
+   - `license` 受 DB CHECK 只准白名單(public_domain/cc-by/cc-by-sa/cc0/**owned_local**)——**版權未明檔進不了全文表**;
      admin 須為**確有公開授權/自有可釋出**之檔聲明 `--license`(責任在 admin;DB 物理擋)。
+     **owned_local=自有私有軌**(憲章 v1.36.0):用戶自有專有檔(ERP 匯出/私人筆記)硬配 `access_scope='local_private'`
+     (DB CHECK chk_itext_owned_local_private 綁死、永不公開;安全繫於本機+私有+自有,**非拿來繞他人版權**)。
    - `access_scope` 預設 `local_private`(不入對外對話池,拍板P2);`source_type='local_upload'`(DB CHECK<>ai_generated)。
    - 逐字入庫、禁 AI 摘要改寫(#1);抽不出=誠實跳過分類(fileparse,#15);符號連結不跟、大小上限(#5)。
 守 #1 · #15 · #5 · #6(sha1 冪等 resume)· #29。SSOT 落地模板=fetch_oa_fulltext.py;抽取器=augur.knowledge.fileparse。
@@ -13,6 +15,7 @@
   python scripts/acquire_local_files.py                                  # 無參數:用法+已入本機檔統計(唯讀)
   python scripts/acquire_local_files.py --dir ~/docs --license public_domain --domain finance   # 遞迴入庫
   python scripts/acquire_local_files.py --dir ~/docs --license cc-by --access-scope public       # 對外可見
+  python scripts/acquire_local_files.py --dir ~/erp --license owned_local --owner-user-id 1      # 自有私有(強制 local_private)
   python scripts/acquire_local_files.py --dir ~/docs --license public_domain --dry-run           # 掃描預覽不寫
 """
 import argparse
@@ -57,6 +60,9 @@ def main():
         if not args.license:
             sys.exit("須 --license(DB 硬擋只准 %s;為確有授權/自有可釋出之檔聲明,責任在 admin)"
                      % ", ".join(corpus.LICENSE_WHITELIST))
+        if args.license == "owned_local" and args.access_scope != "local_private":
+            sys.exit("owned_local 自有私有軌硬配 --access-scope local_private"
+                     "(DB CHECK chk_itext_owned_local_private 物理擋;不繞版權)")
         root = os.path.realpath(os.path.expanduser(args.dir))
         if not os.path.isdir(root):
             sys.exit(f"非資料夾:{root}")
