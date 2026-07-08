@@ -6,7 +6,7 @@
 **守**:#8 · #14 · #15(全 config 揭露、真兆假兆判讀、n 揭露)· #11(GBDT 多 seed 中位)
 **審查**:兩鏡對抗(成本誠實鏡 PASS;cherrypick 鏡對 long-short 起爭議)→ **作者親跑 --since 2014 vs 2021 定案**(下 §三)
 
-> **⚠️ 2026-07-07 deflation 更新(#19 誠實、事後修正)**:本報告「淨 Sharpe ~1.2 = 可交易真兆」是**多重比較 deflation 之前的樂觀上界**。2026-07-07 deflation 閘(`trial_ledger` + DSR，Bailey-LdP 2014)建成實算:對 16 個真試驗 deflate 後,**有效 Sharpe ~0.34、DSR 89.6%(N=16、未過 95% 顯著門檻)**;僅較寬鬆 N=8 口徑勉強 96.9%。**「可交易真兆」宜降級為「真實但薄、borderline 顯著之 edge」**。特徵側乾淨(0-B 消融 Δ IC=0,污染係誤判)。詳見 `augur_prediction_model_improvement_plan_20260707.md` 階段 0-A/0-B。
+> **⚠️ 2026-07-08 deflation 更新(#15 誠實、units bug 已修)**:本報告「淨 Sharpe ~1.2 = 可交易真兆」是**多重比較 deflation 之前的樂觀上界**。~~初版曾記「有效 Sharpe ~0.34、DSR 89.6%(N=16)/ 96.9%(N=8)勉強過」~~——**該組值係年化 vs per-period 單位 bug、已作廢**。**正確 per-period 版(3 鏡對抗驗證 CONFIRM、workflow `wkubx47g6`):DSR = 75.6%(N=16)~ 89.5%(N=8),兩端皆 < 95%(N=8 亦 FAIL、非「勉強過」);deflated 年化有效 Sharpe ≈ 0.26~0.48**。**「可交易真兆」降級為「真實但薄、未達統計確立之 edge」**(point estimate 為正但顯著性未過;且仍為樂觀上界)。特徵側乾淨(0-B 消融 Δ IC=0,污染係誤判)。**SSOT=`reports/augur_prediction_deflation_verdict_20260708.md`**。
 
 ## 一、核心結果(Ridge,兩鏡+作者親跑三方一致)
 

@@ -14,7 +14,7 @@
 
 **核心裁決**：問題框錯了方向。「換更強／最精準模型」在 augur 已封閉的實證裡是**貢獻最小、過擬合風險最高**的一條路。真正能提升「可交易經濟價值」的槓桿依序是：**(1) 先把現有結論從「樂觀上界」釘成「deflated 真兆」**（建 deflation 閘 + 清 cycle 殘留污染 + 消 survivorship 債）→ **(2) 把已成立的 H60 long-only alpha 乾淨落地**（成本 realism + 風控層）→ 才輪到 **(3) 模型側唯一值得試的 LambdaRank 損失對齊**（留在既有 tree 家族、當挑戰者、過同一 #14 經濟終關）。
 
-> **⚠️ 對用戶最重要的一句誠實話**：現在被到處引用的「淨 Sharpe ~1.20」，按專案自己的 SOP（`sop_master` 債 d）是**「12 選 1、多重比較 deflation 之前、單 seed、僅比例成本」的樂觀上界**，而 deflation 機制（`trial_ledger` + DSR）**根本還沒建**（實查 DB 無此表）。在把地板釘實之前，任何「已驗證可交易」的宣稱都帶著這個未揭露的樂觀偏誤。
+> **⚠️ 對用戶最重要的一句誠實話**：現在被到處引用的「淨 Sharpe ~1.20」，按專案自己的 SOP（`sop_master` 債 d）是**「12 選 1、多重比較 deflation 之前、單 seed、僅比例成本」的樂觀上界**。**✅ 2026-07-08 更新:deflation 機制(`trial_ledger` + `metrics.py` DSR + `scripts/deflate_headline_verdict.py`)已建並實算、3 鏡對抗驗證 CONFIRM——headline 未過:DSR = 75.6%(N=16)~ 89.5%(N=8),兩端皆 < 95%,deflated 年化有效 Sharpe ≈ 0.26~0.48(正但未達統計確立、且仍為樂觀上界)。地板已釘實=headline 統計上未確立;SSOT `reports/augur_prediction_deflation_verdict_20260708.md`**。任何「已驗證可交易」的宣稱都帶著這個未揭露的樂觀偏誤。
 
 ---
 
