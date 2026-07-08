@@ -54,7 +54,7 @@ def guard(response, payload, citations):
 
     # ② 數字校驗:顯著小數 + IC/Sharpe/score 鄰接數字(不論位數)須 ∈ payload(防編造預測數字)
     allowed = payload.numbers()
-    suspects = set(re.findall(r"\d+\.\d{2,}", response)) | set(_METRIC_NUM.findall(response))
+    suspects = set(re.findall(r"-?\d+\.\d{2,}", response)) | set(_METRIC_NUM.findall(response))  # -? 捕負號:正確引用之負值(如 net_maxdd -0.1392)不再因掉號誤判編造
     for m in sorted(suspects):
         if round(float(m), 4) not in allowed:
             issues.append(f"數字非 payload、疑編造(#1):{m}")

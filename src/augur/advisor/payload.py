@@ -192,8 +192,8 @@ def build_prediction_payload(as_of=None, horizon=60, top_n=None):
     # 整則作廢、誠實 caveat 反而呈現不出來(#15:誠實揭露不得被自身禁詞語卡住)。
     caveats = ["alpha 僅在 long 側成立(long-short 已淘汰、放空成本坐實不採)",
                "驗證期數 n 小(H60 期數 18-25),屬相對強弱之方向性排名、非精確數值",
-               # survivorship(2026-07-08 經濟重跑閉環、取代舊「未量化」):經典下市偏誤實證≈0、incumbency 已量化
-               "survivorship:經典下市偏誤實證約 0(已閉環);全史齊部署宇宙 vs 當下可算廣宇宙有 incumbency 差約 −16%(headline 淨 Sharpe ~1.2 為穩定核心宇宙、廣宇宙 ~1.0 更誠實反映可交易)",
+               # survivorship(2026-07-08 經濟重跑閉環;caveat 文字用 qualitative、精確數值留 validation 供 guard 白名單)
+               "survivorship:經典下市偏誤實證近零(已閉環);全史齊部署宇宙與更廣之當下可算宇宙有 incumbency 差異——headline 屬穩定核心宇宙、更廣宇宙更誠實反映可交易(數值見驗證標籤)",
                "報酬為扣成本 %.3f%% 後之淨值(purged walk-forward、as-of 口徑防洩漏)" % _COST_PCT]
     validation = dict(vals)
     validation["cost_pct"] = _COST_PCT
@@ -201,13 +201,11 @@ def build_prediction_payload(as_of=None, horizon=60, top_n=None):
     if hf.get("asof_dsr") is not None and hf.get("asof_deflated") is not None:
         validation["dsr"] = round(hf["asof_dsr"], 4)
         validation["deflated_sharpe_ann"] = round(hf["asof_deflated"], 4)
-        caveats.append("headline 未過 deflation:扣多重比較選型偏誤後 DSR 約 %.0f%%(< 95%% 顯著門檻)、"
-                       "deflated 年化有效 Sharpe 約 %.2f;屬未達統計確立之薄 edge(真但薄、非崩)"
-                       % (hf["asof_dsr"] * 100, hf["asof_deflated"]))
+        caveats.append("headline 未過 deflation 之統計確立門檻——扣多重比較選型偏誤後有效強度大幅縮水、"
+                       "屬未達統計確立之薄 edge(真但薄、非崩;deflated 精確數值見驗證標籤 dsr/deflated_sharpe_ann)")
     if hf.get("broad_deflated") is not None:
         validation["deflated_sharpe_broad"] = round(hf["broad_deflated"], 4)
-        caveats.append("換更誠實之廣宇宙(incumbency 修正後),deflated 年化有效 Sharpe 更薄、約 %.2f"
-                       % hf["broad_deflated"])
+        caveats.append("換更誠實之當下可算廣宇宙(incumbency 修正後),deflated 有效強度更薄(數值見驗證標籤)")
     if hf.get("verdict_state"):
         validation["revalidation_state"] = hf["verdict_state"]
         caveats.append("持續再驗證裁決:%s(部署中、系統持續追蹤 deflated 地板是否惡化;判停為系統建議、人決策)"
