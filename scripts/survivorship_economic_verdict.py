@@ -165,7 +165,8 @@ def run_pit_economic(conn, pds, h, feats, lookup, *, top_frac=0.1):
         return None
     ppy = len(dates) / max((dates[-1] - dates[0]).days / 365.0, 1e-9)
     return {"net": portfolio._metrics(net, ppy), "bench": portfolio._metrics(bench, ppy),
-            "n": len(dates), "lstats": lstats, "span": f"{dates[0]}..{dates[-1]}"}
+            "n": len(dates), "lstats": lstats, "span": f"{dates[0]}..{dates[-1]}",
+            "net_series": net, "ppy": ppy}   # net_series 供 deflation 定錨(P0、#12 helper)
 
 
 def main(argv=None):

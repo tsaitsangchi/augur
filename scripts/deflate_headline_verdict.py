@@ -29,6 +29,7 @@ import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 import numpy as np
 
 from augur.core import db
+from augur.evaluation import deflation
 from augur.evaluation import metrics as M
 from augur.evaluation import portfolio
 
@@ -57,8 +58,6 @@ def _ppy_for(conn, since, h, model, top_frac, cost):
 
 
 def main(argv=None):
-    from scipy.stats import kurtosis as sp_kurt
-    from scipy.stats import skew as sp_skew
 
     ap = argparse.ArgumentParser(description="Deflated Sharpe 地板裁決(per-period 正確口徑)")
     ap.add_argument("--model", default="B2_ridge", help="headline 模型(portfolio.run_backtest 口徑)")
@@ -76,14 +75,9 @@ def main(argv=None):
         rh = _ppy_for(conn, since_date, args.horizon, args.model, args.top_frac, args.cost)
         if not rh:
             sys.exit(f"headline 回測回空(panel 不足?since={since_date} h={args.horizon})")
-        net = np.array([r for r in rh["net_series"] if r is not None and np.isfinite(r)], float)
-        T = len(net)
+        sr_pp, T, sk, ku = deflation.per_period_stats(rh["net_series"])   # #12 共用 per-period 口徑
         ppy_h = rh["ppy"]
-        sd = net.std(ddof=1)
-        sr_pp = float(net.mean() / sd) if sd > 0 else None
         sr_ann = rh["portfolio_net"]["sharpe"]
-        sk = float(sp_skew(net))
-        ku = float(sp_kurt(net, fisher=False))
 
         # ── 試驗集(N 機械得出)+ 逐 horizon ppy(H60/H120 各重跑一次取 ppy)──
         with db.transaction(conn) as cur:
@@ -97,9 +91,9 @@ def main(argv=None):
                 r = _ppy_for(conn, since_date, hh, args.model, args.top_frac, args.cost)
                 ppy_by_h[hh] = r["ppy"] if r else ppy_h   # 退化:借用 headline ppy(誠實印警告)
 
-    # per-period 轉換(逐 horizon 自身 ppy)
-    pp_all = [sr / np.sqrt(ppy_by_h.get(h, ppy_h)) for h, sr in trials]
-    pp_fam = [sr / np.sqrt(ppy_by_h.get(h, ppy_h)) for h, sr in trials if h == args.horizon]
+    # per-period 轉換(逐 horizon 自身 ppy,#12 共用 helper)
+    pp_all = deflation.trials_per_period(trials, ppy_by_h)
+    pp_fam = deflation.trials_per_period([(h, s) for h, s in trials if h == args.horizon], ppy_by_h)
     var_all = M.sharpe_trial_variance(pp_all)
     var_fam = M.sharpe_trial_variance(pp_fam)
     n_all = len(pp_all)
@@ -119,16 +113,16 @@ def main(argv=None):
     print()
 
     verdict_rows = []
-    for label, N, var_pp in ((f"N={n_fam} (H{args.horizon} 同頻家族=樂觀上界)", n_fam, var_fam),
-                             (f"N={n_all} (全試驗混頻=保守下界)", n_all, var_all)):
-        good = M.deflated_sharpe(sr_pp, T, n_trials=N, sr_var=var_pp, skew=sk, kurt=ku)
-        eff_ann = good["haircut"] * np.sqrt(ppy_h)   # haircut(per-period)換算年化展示值(非另一次 deflation)
+    for label, N, trials_pp in ((f"N={n_fam} (H{args.horizon} 同頻家族=樂觀上界)", n_fam, pp_fam),
+                                (f"N={n_all} (全試驗混頻=保守下界)", n_all, pp_all)):
+        good = deflation.deflated_floor(rh["net_series"], ppy_h, trials_pp, N)   # #12 共用 DSR 計算
+        eff_ann, dsr = good["deflated_ann"], good["dsr"]
         bug = M.deflated_sharpe(sr_ann, T, n_trials=N, sr_var=var_ann, skew=0.0, kurt=3.0)
-        verdict_rows.append((N, good["dsr"], eff_ann))
+        verdict_rows.append((N, dsr, eff_ann))
         print(f"── {label} ──")
         print(f"   SR_0={good['sr_0']:.4f}  haircut(pp)={good['haircut']:.4f}  "
               f"→ deflated 年化有效 Sharpe≈{eff_ann:.3f}")
-        print(f"   DSR={good['dsr']:.4f} ({good['dsr']*100:.1f}%)  {'PASS' if good['dsr']>=0.95 else 'FAIL'}≥95%"
+        print(f"   DSR={dsr:.4f} ({dsr*100:.1f}%)  {'PASS' if dsr>=0.95 else 'FAIL'}≥95%"
               f"   [buggy 年化版 DSR={bug['dsr']*100:.1f}% ← 作廢、勿引]")
         print()
 
