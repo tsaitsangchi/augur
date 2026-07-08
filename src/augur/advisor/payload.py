@@ -197,15 +197,17 @@ def build_prediction_payload(as_of=None, horizon=60, top_n=None):
                "報酬為扣成本 %.3f%% 後之淨值(purged walk-forward、as-of 口徑防洩漏)" % _COST_PCT]
     validation = dict(vals)
     validation["cost_pct"] = _COST_PCT
-    # harness deflated 地板(#15 命門:不讓 1.2 被當鐵板;deflation 未過=薄但真、非崩)
-    if hf.get("asof_dsr") is not None and hf.get("asof_deflated") is not None:
+    # harness deflated 地板(#15 命門、用戶拍板 2026-07-08:**廣宇宙為主誠實地板**〔incumbency 修正、更貼真實
+    # 可交易〕、全史齊 headline 為樂觀對照上界;不讓 1.2 被當鐵板)
+    if hf.get("broad_deflated") is not None:                       # 主地板:廣宇宙(當下可算、incumbency 修正)
+        validation["deflated_sharpe_broad"] = round(hf["broad_deflated"], 4)
+        caveats.append("誠實地板以更廣之當下可算宇宙為準(incumbency 修正、更貼真實可交易):deflated 有效強度極薄、"
+                       "且未過 deflation 之統計確立門檻——屬真但薄之 edge(非崩;數值見驗證標籤 deflated_sharpe_broad)")
+    if hf.get("asof_dsr") is not None and hf.get("asof_deflated") is not None:   # 對照上界:全史齊穩定核心(較樂觀)
         validation["dsr"] = round(hf["asof_dsr"], 4)
         validation["deflated_sharpe_ann"] = round(hf["asof_deflated"], 4)
-        caveats.append("headline 未過 deflation 之統計確立門檻——扣多重比較選型偏誤後有效強度大幅縮水、"
-                       "屬未達統計確立之薄 edge(真但薄、非崩;deflated 精確數值見驗證標籤 dsr/deflated_sharpe_ann)")
-    if hf.get("broad_deflated") is not None:
-        validation["deflated_sharpe_broad"] = round(hf["broad_deflated"], 4)
-        caveats.append("換更誠實之當下可算廣宇宙(incumbency 修正後),deflated 有效強度更薄(數值見驗證標籤)")
+        caveats.append("全史齊穩定核心宇宙之 headline 較樂觀(incumbency 上偏)、僅作對照上界、不作主地板"
+                       "(其 deflated 見驗證標籤 dsr/deflated_sharpe_ann)")
     if hf.get("verdict_state"):
         validation["revalidation_state"] = hf["verdict_state"]
         caveats.append("持續再驗證裁決:%s(部署中、系統持續追蹤 deflated 地板是否惡化;判停為系統建議、人決策)"

@@ -46,6 +46,8 @@
 
 ## 4. 兩宇宙並存標註(用戶拍板 2026-07-08:不改判準、兩者並存)
 
+> **⚠️ 2026-07-08 拍板細化:廣宇宙定為主誠實地板**——兩宇宙仍並存記錄,但**誠實 headline/主地板以廣宇宙(當下可算、incumbency 修正、deflated 有效 Sharpe ~0.07)為準**,全史齊 1.20 降為「穩定核心之樂觀對照上界」。理由:全史齊帶 incumbency 上偏、不宜當主地板誤導。已落地 advisor `build_prediction_payload` caveat(廣宇宙為主、全史齊為對照);部署 picks 仍全史齊(predict_asof 交易口徑)、harness 軌B 仍追部署全史齊 cell(追蹤實際交易之衰減),但對外誠實地板=廣宇宙。
+
 headline 依交易哪個宇宙有兩個誠實值:
 
 | headline | 宇宙 | 定位 |
