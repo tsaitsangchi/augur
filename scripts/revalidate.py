@@ -36,9 +36,10 @@ import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 import numpy as np
 
 from augur.core import db
-from augur.evaluation import baseline, metrics, portfolio
+from augur.evaluation import baseline, deflation, metrics, portfolio
 from augur.evaluation import label as label_mod
 from augur.evaluation import walkforward
+from migrate_trial_ledger_ddl import BACKFILL as _TRIAL_BACKFILL   # 執行序:refresh trial_ledger 供 N 機械
 
 # ── 口徑常數(SSOT 同 STAGE B/C/D 報告,不改判準)──────────────────────────────
 COST_TW = 0.00585        # 台股來回:手續費 2×0.1425% + 證交稅 0.3% ≈ 0.585%(STAGE C/D 同)
@@ -221,15 +222,16 @@ def _backtest_cell(conn, panels, h, *, model, long_short, short_borrow):
         return float(np.median(v)) if v else None
 
     return ({"net_sharpe": _med(sh), "net_calmar": _med(ca), "net_maxdd": _med(dd),
-             "bench_sharpe": bench_sh, "turnover": r0.get("avg_turnover")},
+             "bench_sharpe": bench_sh, "turnover": r0.get("avg_turnover"),
+             "net_series": r0.get("net_series"), "ppy": r0.get("ppy")},   # 供 P1 deflation(ridge 確定性;gbdt 為代表 seed)
             r0["portfolio_net"].get("n"))
 
 
 def stage_cd(conn, as_of, *, horizons=CD_HORIZONS):
     """STAGE C(經濟價值 long-only 淨 Sharpe/Calmar/MaxDD)+ D(H120 vs H60、兩樣本期、放空成本)。
     矩陣:since{2014,2021} × H{60,120} × {ridge LO, ridge LS, ridge LS+borrow2%, gbdt LO}。
-    回 list of ledger rows;stage 標 'C'(2014起 long-only 為 C 核心)或 'D'(其餘穩健性延伸)。"""
-    rows = []
+    回 (rows, cell_series);cell_series[(stage,horizon,model,config)]=(net_series, ppy) 供 P1 deflation 整合。"""
+    rows, cell_series = [], {}
     cells = [("ridge", "LO", False, 0.0), ("ridge", "LS", True, 0.0),
              ("ridge", "LS+borrow2%", True, 0.02), ("gbdt", "LO", False, 0.0)]
     for since in (SINCE_2014, SINCE_2021):
@@ -253,7 +255,9 @@ def stage_cd(conn, as_of, *, horizons=CD_HORIZONS):
                 rows.append({**base, "metric_name": "net_calmar", "metric_value": met["net_calmar"], "note": None})
                 rows.append({**base, "metric_name": "net_maxdd", "metric_value": met["net_maxdd"], "note": None})
                 rows.append({**base, "metric_name": "bench_sharpe", "metric_value": met["bench_sharpe"], "note": None})
-    return rows
+                if met.get("net_series"):   # 供 deflation(long-only 才是部署口徑;LS/borrow 亦記供對照)
+                    cell_series[(stage, h, model, config)] = (met["net_series"], met["ppy"])
+    return rows, cell_series
 
 
 # ── ledger 寫入 ────────────────────────────────────────────────────────────
@@ -274,6 +278,40 @@ def asof_already_run(conn, as_of):
     with db.transaction(conn) as cur:
         cur.execute("SELECT count(*) FROM revalidation_ledger WHERE as_of_date=%s", (as_of,))
         return cur.fetchone()[0] > 0
+
+
+# ── P1:deflation 整合(每 cell 走 #12 共用 helper 算 DSR)──────────────────────
+def refresh_trial_ledger(conn):
+    """執行序命門:寫 revalidation_ledger 之 net_sharpe 後 refresh trial_ledger,使 DSR 之 N 由此機械得出
+    (禁人手,SOP §6 G7)。trial_ledger UNIQUE 鍵不含 as_of + ON CONFLICT UPDATE → 同 config 重跑不增 N
+    (N 反身性已 schema 強制)、只更新最新 net_sharpe。"""
+    with db.transaction(conn) as cur:
+        cur.execute(_TRIAL_BACKFILL)
+
+
+def deflation_rows(conn, cell_series):
+    """每經濟 cell 之 deflated 地板 → dsr/deflated_sharpe_ann 之 ledger rows(#12 共用 deflation helper)。
+    **須在 refresh_trial_ledger 之後呼叫**(N 含本輪 cell)。N/trials 由 trial_ledger 機械;ppy_by_h 取本輪
+    cell 自身 ppy(逐 horizon)。DSR 屬軌A 標註(<95%=薄 edge 常態、非判停)。ridge 確定性;gbdt 為代表 seed 序列。"""
+    with db.transaction(conn) as cur:
+        cur.execute("SELECT horizon, metric_value FROM trial_ledger WHERE metric_name='net_sharpe'")
+        trials = cur.fetchall()
+    ppy_by_h = {}
+    for (_stage, h, _model, _cfg), (_series, ppy) in cell_series.items():
+        if ppy and h not in ppy_by_h:
+            ppy_by_h[h] = ppy
+    trials_pp = deflation.trials_per_period(trials, ppy_by_h)
+    n_trials = len(trials_pp)
+    rows = []
+    for (stage, h, model, cfg), (series, ppy) in cell_series.items():
+        d = deflation.deflated_floor(series, ppy, trials_pp, n_trials)
+        if d["dsr"] is None:
+            continue
+        base = dict(stage=stage, horizon=h, model=model, config=cfg, n_periods=d["T"], hac_t=None)
+        rows.append({**base, "metric_name": "dsr", "metric_value": d["dsr"],
+                     "note": f"per-period DSR N={n_trials}(軌A 標註、<95%=薄edge常態非判停);deflated_ann={d['deflated_ann']:.3f}"})
+        rows.append({**base, "metric_name": "deflated_sharpe_ann", "metric_value": d["deflated_ann"], "note": None})
+    return rows
 
 
 # ── --track:n 成長 + H120 定論追蹤(唯讀)──────────────────────────────────
@@ -372,9 +410,10 @@ def main(argv=None):
                 print(f"  H{r['horizon']:>3} {r['config']:>12} IC={mv} HAC_t={ht} n={r['n_periods']}")
             all_rows += b_rows
             print()
+        cell_series = {}
         if cd_wanted:
             print("==================== STAGE C/D (經濟價值) ====================")
-            cd_rows = stage_cd(conn, as_of)
+            cd_rows, cell_series = stage_cd(conn, as_of)
             # 印 net_sharpe 主表(每 cell 一列)
             for r in cd_rows:
                 if r["metric_name"] != "net_sharpe":
@@ -385,10 +424,26 @@ def main(argv=None):
             print()
 
         if args.dry_run:
-            print(f"[dry-run] 不寫 ledger;共 {len(all_rows)} 列驗證指標。")
+            # dry-run 也算 DSR(不 refresh、用現況 trial_ledger N)、印不寫
+            dsr_rows = deflation_rows(conn, cell_series) if cell_series else []
+            for r in dsr_rows:
+                if r["metric_name"] == "dsr":
+                    print(f"  [deflation] {r['config']:>16} H{r['horizon']:>3} DSR={r['metric_value']:.4f} "
+                          f"({'PASS' if r['metric_value']>=0.95 else 'FAIL'}≥95%、軌A 標註)")
+            print(f"[dry-run] 不寫 ledger;共 {len(all_rows)+len(dsr_rows)} 列(含 {len(dsr_rows)} deflation)。")
         else:
+            stages_written = sorted({r["stage"] for r in all_rows})
+            with db.transaction(conn) as cur:   # 冪等(#6):重跑取代同 (as_of, stage) 之舊列、非累積重複
+                cur.execute("DELETE FROM revalidation_ledger WHERE as_of_date=%s AND stage = ANY(%s)",
+                            (as_of, stages_written))
             n = write_ledger(conn, as_of, all_rows)
-            print(f"✓ 寫入 revalidation_ledger:{n} 列(as-of {as_of})。")
+            print(f"✓ 寫入 revalidation_ledger:{n} 列(as-of {as_of};冪等取代 stage {stages_written})。")
+            # 執行序命門(#12/SOP G7):寫 net_sharpe → refresh trial_ledger → 讀 N → 算 DSR → 寫 dsr 列
+            if cell_series:
+                refresh_trial_ledger(conn)
+                dsr_rows = deflation_rows(conn, cell_series)
+                nd = write_ledger(conn, as_of, dsr_rows)
+                print(f"✓ deflation 整合:refresh trial_ledger + 寫 {nd} 列 dsr/deflated(#12 helper、N 由 trial_ledger 機械)。")
         return 0
 
 
