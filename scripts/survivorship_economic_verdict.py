@@ -125,13 +125,14 @@ def _fold_xy(conn, panels, feats, h, cal, lookup):
     return np.vstack(Xs), np.concatenate(ys)
 
 
-def run_pit_economic(conn, pds, h, feats, lookup, *, top_frac=0.1):
-    """PIT 宇宙 + 清算 label 之 long-only 經濟回測(同 portfolio.run_backtest 結構、換宇宙/報酬)。"""
+def run_pit_economic(conn, pds, h, feats, lookup, *, top_frac=0.1, cost=COST):
+    """PIT 宇宙 + 清算 label 之 long-only 經濟回測(同 portfolio.run_backtest 結構、換宇宙/報酬)。
+    cost 參數化(default=COST;供成本敏感度帶掃描,#29b 不寫死);回 gross/turn 序列供 cost 解析套用。"""
     from sklearn.linear_model import Ridge
     from sklearn.preprocessing import StandardScaler
     cal = label_mod.full_calendar(conn)
     folds = walkforward.splits(pds, h, calendar=cal)
-    net, bench, dates, turns, bturns = [], [], [], [], []
+    gross, net, bench, dates, turns, bturns = [], [], [], [], [], []
     prev_top, prev_uni = None, None
     lstats = {"full": 0, "clearing": 0, "entry_only": 0}
     for fold in folds:
@@ -158,15 +159,17 @@ def run_pit_economic(conn, pds, h, feats, lookup, *, top_frac=0.1):
         turn = portfolio._turnover(top_ids, prev_top)
         bturn = portfolio._turnover(common, prev_uni)
         prev_top, prev_uni = top_ids, common
-        net.append(long_ret - turn * COST)
-        bench.append(float(np.mean(list(simple.values()))) - bturn * COST)
+        gross.append(long_ret)
+        net.append(long_ret - turn * cost)
+        bench.append(float(np.mean(list(simple.values()))) - bturn * cost)
         turns.append(turn); bturns.append(bturn); dates.append(tpd)
     if len(dates) < 3:
         return None
     ppy = len(dates) / max((dates[-1] - dates[0]).days / 365.0, 1e-9)
     return {"net": portfolio._metrics(net, ppy), "bench": portfolio._metrics(bench, ppy),
             "n": len(dates), "lstats": lstats, "span": f"{dates[0]}..{dates[-1]}",
-            "net_series": net, "ppy": ppy}   # net_series 供 deflation 定錨(P0、#12 helper)
+            "net_series": net, "gross_series": gross, "turn_series": turns,
+            "ppy": ppy}   # net/gross/turn_series 供 deflation 定錨 + cost 敏感度帶(P0、#12 helper)
 
 
 def main(argv=None):

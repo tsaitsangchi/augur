@@ -126,15 +126,20 @@ def main(argv=None):
               f"   [buggy 年化版 DSR={bug['dsr']*100:.1f}% ← 作廢、勿引]")
         print()
 
-    dsr_lo = min(r[1] for r in verdict_rows)
-    dsr_hi = max(r[1] for r in verdict_rows)
+    dsr_lo = min(r[1] for r in verdict_rows)   # 保守(較大 N=混頻;SR_0 較高→DSR 較低)
+    dsr_hi = max(r[1] for r in verdict_rows)   # 樂觀(較小 N=同頻家族)
     eff_lo = min(r[2] for r in verdict_rows)
     eff_hi = max(r[2] for r in verdict_rows)
-    passed = dsr_hi >= 0.95
+    # 方法論 SSOT:deflation 一律取較保守(較大)N 為準——禁用樂觀 N(較小)灌水過門檻(敵③)。
+    # H120 since2014 實證:N=8 樂觀 95.8% 過、N=16 保守 93.6% 未過 → 取保守判未確立。
+    passed = dsr_lo >= 0.95
+    straddle = dsr_hi >= 0.95 > dsr_lo
+    band = ("跨 95%(樂觀 N 過、保守 N 未過→取保守判未確立)" if straddle
+            else ("≥95%" if passed else "皆<95%"))
     print("=" * 76)
     print("裁決(#15 誠實):")
-    print(f"  headline 年化 Sharpe {sr_ann:.2f} 【{'過' if passed else '未過'}】deflation:"
-          f"DSR {dsr_lo*100:.1f}%~{dsr_hi*100:.1f}%,{'≥' if passed else '皆<'}95% 門檻。")
+    print(f"  headline 年化 Sharpe {sr_ann:.2f} 【{'過' if passed else '未過'}】deflation"
+          f"(取較保守 N={n_all} 混頻):DSR 保守 {dsr_lo*100:.1f}% / 樂觀 {dsr_hi*100:.1f}%,{band}。")
     print(f"  deflated 年化有效 Sharpe ≈ {eff_lo:.2f}~{eff_hi:.2f}(point estimate 為正=edge 非零,"
           f"但{'已達' if passed else '未達'}統計確立)。")
     print("  ⚠ DSR<95% ≠ edge 不存在;且此值仍是樂觀上界——survivorship 債未閉環/單 seed/成本平坦/"
