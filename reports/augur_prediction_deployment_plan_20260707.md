@@ -13,7 +13,7 @@
 > **✅ 2026-07-08 階段 2 執行落地竣工(風控 + live 投組建構)**:風控層 `execution/risk_control.py` + `risk_policy` 表(H60/H120 STAGE D 閾值)**已建已 seed**;predict_asof **已建 top-decile 投組 + 三風控 overlay 全接線**(prev_ids 換手 live、`_deployed_dd_returns` DD熔斷 live〔#8 forward-窗-關閉 filter 兩向實證、off-by-one 修 `future[h]`〕、單標的 cap)。**驗收 `scripts/verify_risk_overlay.py`**:生產 −20% 閾 in-sample dormant 無害(0 觸發、風控後==原始、淨 Sharpe 仍勝基準);−10% 壓測證機制運作(觸 4/18、MaxDD −19.4%→−16.6%、Calmar 1.00→1.03、仍 PASS)。DD/換手現況 dormant(prediction_values 僅 1 期、forward 窗未實現),隨歷史自動啟動。**下欄「風控層完全不存在」「predict_asof 只出排序」已解決**。
 
 - ✅ **已有可用**:predict_asof(as-of 排序 + **top-decile 投組 + 風控 overlay**、寫 prediction_values)、train_ranker(→ model_registry)、release_lag(#8 發布日 gate,**建於 feature build 時、架構正確**)、PredictionPayload(frozen 唯讀 + guard)、advisor 服務殼、setup_predict_role(已寫、**未 apply**)、DDL 兩表(已落地)、**風控層 risk_control.py + risk_policy(✅ 階段 2)**。
-- ⚠ **需接線**:advisor 現接 `empty_payload`(示範/空)、**未接真實預測**。
+- ✅ **advisor 已接真實預測(2026-07-08 實查更正:D4 早已 wire、本 session 增強誠實地板)**:`build_prediction_payload` 讀 prediction_values(34 檔真 picks)+ revalidation_ledger(驗證標籤);serve_advisor 已 `picking_payload_fn=build_prediction_payload`、`picking_intent` 路由選股題 → 真預測。本 session 增強 caveat 接 harness 誠實地板(未過 deflation DSR 76%、廣宇宙 deflated 0.07、裁決 deploying_unestablished)+ 修過時 survivorship(下市≈0 閉環/incumbency −16%)。**運維 #7:advisor 服務須重啟載新 payload.py 才生效**。
 - 🔴 **需補建**:STAGE D 首選模型 **H120 未訓練**(registry 僅 H60);**持續再驗證 harness 不存在**;`augur_predict` role **未建**(DB 隔離硬閘缺)。
 
 **最大命門(#8)現狀**:release-lag gate 已在 feature build 時正確落地(期間型財報/月營收經 `release_lag`,日頻籌碼/估值以 `date<=panel` 保守含同日)。predict_asof 讀 `feature_values`,**繼承 build 時的 as-of 純度**——只要 build 正確,predict 即 #8-safe。**但目前無「決策日 T 不用任何 release>T 資料」的機械測試**,需補為驗收 gate(見 §7 P1 驗收)。

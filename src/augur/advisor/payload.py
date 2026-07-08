@@ -80,6 +80,7 @@ def empty_payload():
 # H120 為追蹤候選(in_portfolio=0)不出 payload。此值為 code 之部署選擇、非資料鎖;prediction_values
 # 之 in_portfolio 旗標為 DB 側 SSOT,本函式只讀不寫(隔離不變式:advisor 對預測表唯讀)。
 _DEPLOY_FAMILY = "RankRidge"          # 部署主模型家族(H60 LO ridge)
+_DEPLOY_CELL = "ridge_H60_LO"         # harness 部署 cell(deflated 地板 + 再驗證裁決之座標)
 
 # 部署模型驗證標籤之 ledger 座標(#15 每個數字 trace 回一列 revalidation_ledger,非記憶/估算)。
 # key=payload.validation 欄名;value=(stage, model, config, metric_name, 取 metric_value 或 'hac_t'/'n_periods' 欄)。
@@ -116,6 +117,29 @@ def _read_validation(cur, horizon):
             continue
         v[name] = int(row[0]) if col == "n_periods" else float(row[0])
     return v, missing
+
+
+def _read_harness_floor(cur, cell=_DEPLOY_CELL):
+    """讀 harness 誠實地板(revalidation_baseline 兩宇宙 deflated 地板)+ 最新兩軌三態裁決狀態
+    (revalidation_verdict)。#15:讓 caveat 帶「headline 未過 deflation、廣宇宙更薄」之最誠實地板。
+    表未建(harness 未跑)→ 回空(to_regclass 檢查、不 abort 交易);advisor 對此唯讀零寫(隔離不變式)。"""
+    out = {}
+    cur.execute("SELECT to_regclass('revalidation_baseline'), to_regclass('revalidation_verdict')")
+    has_base, has_verdict = cur.fetchone()
+    if has_base:
+        cur.execute("SELECT universe, dsr, deflated_ann, net_excess FROM revalidation_baseline WHERE cell=%s", (cell,))
+        for uni, dsr, defl, ne in cur.fetchall():
+            pfx = {"asof_incumbent": "asof", "pit_broad": "broad"}.get(uni)
+            if pfx:
+                out[f"{pfx}_dsr"] = float(dsr) if dsr is not None else None
+                out[f"{pfx}_deflated"] = float(defl) if defl is not None else None
+    if has_verdict:
+        cur.execute("SELECT state FROM revalidation_verdict WHERE cell=%s AND track='B_decay' "
+                    "ORDER BY as_of_date DESC LIMIT 1", (cell,))
+        r = cur.fetchone()
+        if r:
+            out["verdict_state"] = r[0]
+    return out
 
 
 def build_prediction_payload(as_of=None, horizon=60, top_n=None):
@@ -162,17 +186,34 @@ def build_prediction_payload(as_of=None, horizon=60, top_n=None):
         pick_ref = "prediction_values:panel=%s,model=%s" % (as_of, model_id)
         picks = tuple(StockPick(str(sid), int(rk), float(sc), pick_ref) for sid, rk, sc in rows)
         vals, missing = _read_validation(cur, horizon)
+        hf = _read_harness_floor(cur)   # harness deflated 地板 + 再驗證裁決(#15 最誠實地板)
 
     # caveat 用語避開 guard _FUTURE_LEAK 禁詞(保證/必漲…)——否則 LLM 忠實轉述 caveat 反被機械閘攔、
     # 整則作廢、誠實 caveat 反而呈現不出來(#15:誠實揭露不得被自身禁詞語卡住)。
     caveats = ["alpha 僅在 long 側成立(long-short 已淘汰、放空成本坐實不採)",
                "驗證期數 n 小(H60 期數 18-25),屬相對強弱之方向性排名、非精確數值",
-               "survivorship 債 b 未完全閉環(as-of 名單實為當前存活名單、帶未量化樂觀偏誤)",
+               # survivorship(2026-07-08 經濟重跑閉環、取代舊「未量化」):經典下市偏誤實證≈0、incumbency 已量化
+               "survivorship:經典下市偏誤實證約 0(已閉環);全史齊部署宇宙 vs 當下可算廣宇宙有 incumbency 差約 −16%(headline 淨 Sharpe ~1.2 為穩定核心宇宙、廣宇宙 ~1.0 更誠實反映可交易)",
                "報酬為扣成本 %.3f%% 後之淨值(purged walk-forward、as-of 口徑防洩漏)" % _COST_PCT]
-    if missing:                        # #15 誠實:某驗證標籤在 ledger 查無 → 明說缺口、不編數字補
-        caveats.append("驗證標籤缺口(revalidation_ledger 查無):" + ", ".join(missing))
     validation = dict(vals)
     validation["cost_pct"] = _COST_PCT
+    # harness deflated 地板(#15 命門:不讓 1.2 被當鐵板;deflation 未過=薄但真、非崩)
+    if hf.get("asof_dsr") is not None and hf.get("asof_deflated") is not None:
+        validation["dsr"] = round(hf["asof_dsr"], 4)
+        validation["deflated_sharpe_ann"] = round(hf["asof_deflated"], 4)
+        caveats.append("headline 未過 deflation:扣多重比較選型偏誤後 DSR 約 %.0f%%(< 95%% 顯著門檻)、"
+                       "deflated 年化有效 Sharpe 約 %.2f;屬未達統計確立之薄 edge(真但薄、非崩)"
+                       % (hf["asof_dsr"] * 100, hf["asof_deflated"]))
+    if hf.get("broad_deflated") is not None:
+        validation["deflated_sharpe_broad"] = round(hf["broad_deflated"], 4)
+        caveats.append("換更誠實之廣宇宙(incumbency 修正後),deflated 年化有效 Sharpe 更薄、約 %.2f"
+                       % hf["broad_deflated"])
+    if hf.get("verdict_state"):
+        validation["revalidation_state"] = hf["verdict_state"]
+        caveats.append("持續再驗證裁決:%s(部署中、系統持續追蹤 deflated 地板是否惡化;判停為系統建議、人決策)"
+                       % hf["verdict_state"])
+    if missing:                        # #15 誠實:某驗證標籤在 ledger 查無 → 明說缺口、不編數字補
+        caveats.append("驗證標籤缺口(revalidation_ledger 查無):" + ", ".join(missing))
     validation["note"] = ";".join(caveats)
     validation["source_ref"] = ("revalidation_ledger:stage=B(asof_ic)/C(LO|since2014)/D(LO|since2021),"
                                 "horizon=%d,model=B2_ridge/ridge" % horizon)
