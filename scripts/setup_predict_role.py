@@ -35,9 +35,11 @@ FORBIDDEN_EXPLICIT = {
     "app_user", "app_session", "user_group", "group_domain_grant",    # RBAC 身分/授權
     "permission_group", "principle_factor_map", "stock_philosophy_tag", "school_thinker",  # 非前綴素養/映射
 }
-# 預測 role 需寫入(非只讀)之輸出表
+# 預測 role 需寫入(非只讀)之輸出表(2026-07-08 補 harness 記錄表:revalidate/deflation/判停之落地)
 WRITABLE = {"model_registry", "prediction_values", "feature_values",
-            "pipeline_execution_log", "data_audit_log"}
+            "pipeline_execution_log", "data_audit_log",
+            "revalidation_ledger", "trial_ledger", "revalidation_baseline",
+            "revalidation_verdict", "judgestop_threshold"}
 
 
 def classify(cur):
@@ -72,7 +74,7 @@ def dry_run(cur):
         for t, expect in ((ft, "拒"), (at, "准")):
             if not t:
                 continue
-            cur.execute("SELECT has_table_privilege(%s, %s, 'SELECT')", (PREDICT_ROLE, t))
+            cur.execute("SELECT has_table_privilege(%s, %s, 'SELECT')", (PREDICT_ROLE, f'"{t}"'))  # 引號保留大小寫(混大小寫表名如 CnnFearGreedIndex 否則被 lower 化查無)
             got = "准" if cur.fetchone()[0] else "拒"
             mark = "✓" if got == expect else "✗ 不符!"
             print(f"    {t}: SELECT={got}(應{expect}){mark}")
@@ -81,18 +83,16 @@ def dry_run(cur):
 
 
 def apply(cur):
-    pw = os.environ.get("DB_PREDICT_PASSWORD")
-    if not pw:
-        sys.exit("✗ 未設 DB_PREDICT_PASSWORD env(受限 role 登入密碼);設後再 --apply")
     forbidden, allowed = classify(cur)
-    # 1. 建 role(冪等)
-    cur.execute("SELECT 1 FROM pg_roles WHERE rolname=%s", (PREDICT_ROLE,))
-    if not cur.fetchone():
+    # 1. 建 role(冪等);已存在則僅 refresh grants(不改密碼——ALTER ROLE 需 superuser/owner,augur 非超級使用者)
+    if not role_exists(cur, PREDICT_ROLE):
+        pw = os.environ.get("DB_PREDICT_PASSWORD")
+        if not pw:
+            sys.exit("✗ role 尚未建且未設 DB_PREDICT_PASSWORD env;設後再 --apply(建 role 需 CREATEROLE 權)")
         cur.execute(f"CREATE ROLE {PREDICT_ROLE} LOGIN PASSWORD %s", (pw,))
         print(f"  建 role {PREDICT_ROLE}")
     else:
-        cur.execute(f"ALTER ROLE {PREDICT_ROLE} LOGIN PASSWORD %s", (pw,))
-        print(f"  role {PREDICT_ROLE} 已存在、更新密碼")
+        print(f"  role {PREDICT_ROLE} 已存在——僅 refresh grants(不改密碼;ALTER ROLE 需 superuser)")
     # 2. 基礎:USAGE on public
     cur.execute(f"GRANT USAGE ON SCHEMA public TO {PREDICT_ROLE}")
     # 3. 素養層 REVOKE ALL
