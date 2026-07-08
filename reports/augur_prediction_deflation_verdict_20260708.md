@@ -64,13 +64,14 @@ headline 真實序列(重跑):T=25 期、ppy=2.776、**per-period SR=0.7185**(×
 
 ## 4. 為何 75.6% 仍是樂觀上界(真實 DSR 只會更低)
 
-四個未計入的樂觀偏誤,全把真實 DSR 往**下**推(對抗驗證鏡 3 明列):
-1. **survivorship 債未閉環**:`core_gate` 當前 roster join 無 as-of listing 維度 → 報酬序列偏高(SOP 債 b、`as-of IC ≤ pan-hist` 為唯一驗收代理)。方案 B 已測 IC −8.5% 但經濟數字未重跑。
-2. **單 seed**:未計模型隨機性 = 少算一個搜尋維度 → N 被低估。
-3. **成本平坦 0.585%**:未計市場衝擊/滑價非線性、locate 稀缺溢價。
-4. **樣本 n=25 極小**:√(T−1)=√24 主導、檢定力天生低;skew/kurt 估計本身雜訊大。
+三個未計入的樂觀偏誤,把真實 DSR 往**下**推:
+1. **單 seed**:未計模型隨機性 = 少算一個搜尋維度 → N 被低估。
+2. **成本平坦 0.585%**:未計市場衝擊/滑價非線性、locate 稀缺溢價。
+3. **樣本 n=25 極小**:√(T−1)=√24 主導、檢定力天生低;skew/kurt 估計本身雜訊大。
 
 故本裁決之 DSR 應讀作**「已知偏誤下的上界之保守端」,非絕對地板**。
+
+> **⚠️ 2026-07-08 修正(survivorship 經濟重跑後)**:本節初版列「survivorship 債未閉環 → 報酬序列偏高 → 真實 DSR 更低」為第 1 偏誤——**就經典下市 survivorship 而言方向錯、已刪**。經濟重跑實證(`augur_prediction_survivorship_economic_verdict_20260708.md`、3 鏡 CONFIRM):**下市 survivorship 邊際 ≈0(+0.0023 Sharpe、16 clearing 事件 0 落 top-decile),不推低 DSR**。真正壓低 headline 的是**宇宙定義**(全史齊 1.20 vs 當下可算廣宇宙 1.00、−16.5%,屬 incumbency 非 look-ahead);用戶拍板兩宇宙並存。**若以更誠實的廣宇宙 1.00 為 base 複算 deflation,DSR 會再更低**(per-period SR 0.72→~0.60)——地板比 1.20 版更低,方向與本節結論一致(headline 為樂觀上界)、僅偏誤來源更正。
 
 ---
 
