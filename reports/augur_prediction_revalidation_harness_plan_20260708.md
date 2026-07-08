@@ -5,6 +5,8 @@
 
 ---
 
+> **✅ 2026-07-08 實作完成(P0–P4 全竣工、逐階段封存)**:P0 兩宇宙 deflated 地板定錨(`revalidation_baseline`:asof_incumbent net 1.197/DSR 0.756/deflated 0.265、pit_broad net 1.002/DSR 0.577/deflated 0.070)+ #12 共用 `evaluation/deflation.py`(commit 55971f7);P1 deflation 整合進 revalidate(每輪追 DSR、部署 cell 0.7556 自洽、e9497f1);P2 兩軌三態判停器(`judgestop_threshold`/`revalidation_verdict`、5 命門單元測全過含 DSR 不誤殺、b6a25b2);P4 #8 build 端 gate 實查已存在 `tests/test_release_lag_antileakage.py` 10 測 PASS(非重造);P3 cycle 編排 `run_revalidation_cycle.py`(#8 gate→revalidate→verdict→告警落地橫幅、panel-cadence #28)。現況裁決=deploying_unestablished(薄 edge 部署中、無衰減)。
+
 ## 0. 三十秒 + 目標語義(v2 最重要的更正)
 
 edge 真實但薄:headline 淨 Sharpe ~1.0–1.2、**未過 deflation**(DSR 75.6–89.5% < 95%)、經典下市 survivorship≈0、完整度閘 incumbency −16.5%(全史齊 1.20 vs 當下可算廣宇宙 1.00、兩宇宙並存)。
@@ -29,7 +31,7 @@ edge 真實但薄:headline 淨 Sharpe ~1.0–1.2、**未過 deflation**(DSR 75.6
 1. **P1 deflation 未整合**:revalidate.py 只記樂觀年化 net_sharpe、無 DSR。**校正**:DSR 需 per-period 序列(ledger 只存年化純量)→ 非「加一列」,須重跑 run_backtest 取 net_series 算 skew/kurt/per-period,且**抽 `deflate_headline_verdict` 邏輯為共用 helper**(#12,禁平行重寫)。
 2. **P2 判停評估未建**:revalidate.py 只寫 ledger、不評估。**校正**:非「加判停」而是「建**兩軌三態**評估器」(見 §0);`deflate_headline_verdict` 的 DSR 裁決屬軌A、已在,新增的是軌B decay + 三態。
 3. **P3 排程未接**:手動 `--run`。
-4. **P4 #8 release>T 特定斷言測試未建**:既有 #8 骨架不涵此命題。**校正**:是 **build 端** gate 測試(feature_values 零 provenance、predict 端無法斷言)、且**併入 `audit` 領域元件**(非孤支 `verify_release_lag.py`,#12)。
+4. ~~P4 #8 release>T 特定斷言測試未建~~ **✅ 2026-07-08 實查更正(#15):已存在且更徹底** `tests/test_release_lag_antileakage.py`——**10 測全 PASS**,涵蓋 T-1 注入型(release∈(T1,T2] 不反映 + **負向自證** leak_mode)/ T-2 邊界型(±1 日布林)/ T-3 端到端 build_panel + provenance,走 production 路徑(#12)、synthetic 隔離。**build 端已守**(panel.py:148 revenue_released、margin_cycle.py:44 financial_released)。P4 collapses:核心 #8 測試已在;殘留=(a) 日頻 date≤panel 同日邊界(低風險小補)(b) 把此測試接為 harness 每輪 #8 gate → 歸 P3。
 
 ## 3. 設計(補缺口 + 校正,不重造)
 
@@ -39,7 +41,7 @@ edge 真實但薄:headline 淨 Sharpe ~1.0–1.2、**未過 deflation**(DSR 75.6
 | **P1 deflation 整合** | 抽 `deflate_headline_verdict` per-period DSR 為共用 helper(如 `evaluation/deflation.py`);revalidate.py stage_cd 每 cell 走同 helper 算 DSR。**⚠實作前置(實查落差):`_backtest_cell` 現只回 sharpe/calmar/maxdd、丟棄 net_series → 須改為一併回傳 `net_series`+`ppy`** 供 helper 算 skew/kurt/per-period sr。**執行序釘死**:寫 revalidation_ledger → refresh trial_ledger → 讀 N(DISTINCT SOP 鍵)→ 算 DSR → 寫 dsr 列。**N 反身性(實查:已由 trial_ledger UNIQUE 鍵強制)**:同 config 重跑 ON CONFLICT UPDATE、不新增列 → N 不因重跑膨脹(非新工作、澄清即可);僅新 config 合理增 N。「DSR 隨時間變嚴」機制=**T(有效期數)增 → √(T−1) 標準誤縮 → DSR 收斂**,非 N 增 | 改 `scripts/revalidate.py`(`_backtest_cell` 回 net_series)、新 `src/augur/evaluation/deflation.py`(共用)、reuse `metrics.deflated_sharpe` | revalidate 算之 dsr == deflate_headline_verdict 同 as-of 同 cell(走同一 helper) |
 | **P2 兩軌三態判停器** | 新 `scripts/revalidate_verdict.py`:**軌A**(絕對→標註未達確立、DSR 在此、永不判停)+ **軌B**(相對凍結 baseline:部署 cell〔Ridge H60 LO、as-of 口徑〕net 顯著轉輸 bench ∨ HAC-t 從>2 掉破 ∨ deflated 地板轉負,**連續 k 輪/滾動窗**、HAC-t=None→不定論不觸發、**同宇宙口徑鎖定**)→ **三態**輸出(部署中-未確立/疑似衰減-人審/確認衰減-停)。閾值住 `judgestop_threshold` DB 表(#29b、循 knowledge_topic_alias 先例);**閾值凍結、調整須人拍板留痕**(消 #29b 可調 vs #15 不調鬆張力) | 新 `scripts/revalidate_verdict.py`、`revalidation_verdict` 表(no-AI 機械判詞+provenance+隔離斷言:禁 import 素養/advisor、禁回讀 prediction_values)、`judgestop_threshold` 表 | 對現況(1 as_of)跑出**軌A 誠實地板標註**(H60 部署中-未確立);軌B 需 ≥k 輪錨、未達前停用(誠實揭露) |
 | **P3 排程觸發** | panel-cadence(資料驅動非硬編「季」)增量 build→revalidate --run→revalidate_verdict;一次性排程/背景、**不輪詢不自掛長喚醒鏈**(#28);**判停告警落地管道**(一次性通知,非背景無人看) | 編排 + 告警管道 | 手動觸發一輪端到端(build→reval→verdict→若判停則告警)過 |
-| **P4 #8 build 端 gate 測試** | **併入 `audit` 領域**(非孤支):T-1 注入型(re-build 一 panel、斷言財報型特徵不反映 release∈(T,T+Δ])+ T-2 邊界型(直測 `release_lag.financial_released/revenue_released` ±1 日布林)+ 日頻 date≤panel 同日邊界。**先確立各源 release 時點欄可信度**(Dividend.AnnouncementDate / MonthRevenue.create_time〔memory:待實證〕/ 財報法定 lag)再建閘 | `src/augur/audit/release_lag_invariant.py` + `tests/` | 故意注入 release>T → 測試 fail(對抗反例);明說驗 build 純度、predict 端繼承 |
+| **P4 #8 build 端 gate 測試** | ✅ **已存在**`tests/test_release_lag_antileakage.py`(T-1 注入+負向自證 / T-2 邊界 / T-3 端到端 build_panel、10 測 PASS、production 路徑 #12)。**殘留小補**:日頻 date≤panel 同日邊界測試(低風險);release 時點欄用 release_lag 法定 lag 日期算術(非 create_time,`date` 語意 DB 實證 474,246/474,246) | `tests/test_release_lag_antileakage.py`(既有) | ✅ 10 測 PASS(gate 版守/leak 版 FAIL 有鑑別力);harness 每輪 #8 gate 接線→P3 |
 
 ## 3.5 新表 schema(產表附 schema,憲章計畫完整性)
 
