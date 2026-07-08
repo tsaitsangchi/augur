@@ -25,10 +25,14 @@ import datetime as _dt
 import sys
 
 import _bootstrap  # noqa: F401
+import numpy as np
+
 from augur.core import db
-from augur.evaluation import baseline, portfolio
+from augur.evaluation import baseline, label as label_mod, portfolio
 from augur.execution import risk_control
 from augur.models import artifact, registry
+
+COST_TW = 0.00585   # 台股來回成本(換手扣、同 portfolio 回測口徑 #12)
 
 
 def _as_date(v):
@@ -41,6 +45,58 @@ def _latest_asof(conn):
         cur.execute(f"SELECT max(as_of_date) FROM {baseline.ASOF_TABLE}")
         r = cur.fetchone()
         return r[0] if r else None
+
+
+def _deployed_dd_returns(conn, model_id, asof, h):
+    """已部署投組之**實現**淨報酬序列(供 DD 熔斷算當前回檔;#8 命門:只用 forward 窗已關閉、報酬全實現之過去 panel)。
+
+    對每個 < asof 之過去 prediction_values panel P:**唯 P 之後第 h 個交易日 ≤ asof(forward 窗已關閉)才納入**
+    (窗未關閉=報酬未實現=未來,一律跳過,#8 零 look-ahead);取該 panel in_portfolio 股+權重,以 label.forward_returns
+    (已實現價、#12 複用)算加權 simple 報酬 gross,扣換手成本(vs 上期成分)得淨,依 panel 升序串成序列。
+    回 [net_ret,...];不足(現況 1 期/窗未關)→ [](DD 熔斷 dormant、誠實不假裝有歷史 #15)。
+    """
+    cal = label_mod.full_calendar(conn)
+    with db.transaction(conn) as cur:
+        cur.execute("SELECT DISTINCT panel_date FROM prediction_values "
+                    "WHERE model_id=%s AND panel_date<%s ORDER BY panel_date", (model_id, asof))
+        panels = [r[0] for r in cur.fetchall()]
+    rets, prev_ids = [], None
+    for p in panels:
+        future = [d for d in cal if d > p]
+        # exit = 進場後第 h 個交易日 = future[h](_entry_exit 口徑);exit ≤ asof 才算窗已關閉、報酬全實現(#8)
+        if len(future) < h + 1 or future[h] > asof:          # forward 窗未關閉 → 報酬未實現、跳過(#8 零 look-ahead)
+            continue
+        with db.transaction(conn) as cur:
+            cur.execute("SELECT stock_id, weight FROM prediction_values "
+                        "WHERE model_id=%s AND panel_date=%s AND in_portfolio ORDER BY rank", (model_id, p))
+            port = cur.fetchall()
+        if not port:
+            continue
+        sids = [s for s, _ in port]
+        w = {s: float(wt) for s, wt in port}
+        fwd = label_mod.forward_returns(conn, p, sids, h, calendar=cal)   # 已實現 log 報酬
+        common = [s for s in sids if s in fwd]
+        if not common:
+            continue
+        gross = float(sum(w[s] * float(np.expm1(fwd[s])) for s in common))
+        turn = portfolio._turnover(sids, prev_ids)
+        rets.append(gross - turn * COST_TW)                  # 淨(扣換手、同回測口徑)
+        prev_ids = sids
+    return rets
+
+
+def _prev_portfolio(conn, model_id, asof):
+    """上一期(< asof 之最近 panel)同 model 之投組成分股(in_portfolio),供風控換手檢查。
+    無前期(初次建倉)→ None(turnover_check 視為初次、不當超預算告警,#15)。"""
+    with db.transaction(conn) as cur:
+        cur.execute("SELECT max(panel_date) FROM prediction_values WHERE model_id=%s AND panel_date<%s",
+                    (model_id, asof))
+        prev = cur.fetchone()[0]
+        if prev is None:
+            return None
+        cur.execute("SELECT stock_id FROM prediction_values "
+                    "WHERE model_id=%s AND panel_date=%s AND in_portfolio ORDER BY rank", (model_id, prev))
+        return [r[0] for r in cur.fetchall()]
 
 
 def predict(horizon, family, asof, top_n=20, top_frac=0.1, weight="equal", dry_run=False,
@@ -76,7 +132,10 @@ def predict(horizon, family, asof, top_n=20, top_frac=0.1, weight="equal", dry_r
         port = portfolio.build_long_portfolio(sids, scores, top_frac=top_frac, weight=weight)
         overlay = None
         if risk:                                                         # 收尾風控 overlay(D3):cap 生效於權重、DD/換手出旗標
-            overlay = risk_control.apply_overlay(conn, horizon, port)    # 無歷史序列/prev → DD/換手不評估、cap 仍套
+            prev_ids = _prev_portfolio(conn, reg["model_id"], asof)      # 上期投組 → 換手 live(#12,無前期=初次建倉)
+            dd_rets = _deployed_dd_returns(conn, reg["model_id"], asof, horizon)  # 已實現部署報酬序列 → DD熔斷 live(#8 只用已關閉窗)
+            overlay = risk_control.apply_overlay(conn, horizon, port,
+                                                 dd_returns=(dd_rets or None), prev_ids=prev_ids)
             port = overlay["controlled_port"]                            # 受控權重(單標的 cap)落庫
         pw = {sid: w for sid, w, _ in port}                              # {入選股: 權重}
         rows = [(i + 1, sid, sc, sid in pw, pw.get(sid, 0.0)) for i, (sid, sc) in enumerate(order)]

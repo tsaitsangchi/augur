@@ -10,9 +10,11 @@
 
 研究 A'→B→C→D 已全過:H60/H120 long-only 扣成本淨 Sharpe ~1.2 勝基準、經濟價值(#14)成立。**部署層元件多數已存在且 #8-safe**,但要真正 live + 顧問呈現真預測 + 加風控 + 持續再驗證,仍有明確 gap。**完成度估計 ~55%**:
 
-- ✅ **已有可用**:predict_asof(as-of 排序出單、寫 prediction_values)、train_ranker(→ model_registry)、release_lag(#8 發布日 gate,**建於 feature build 時、架構正確**)、PredictionPayload(frozen 唯讀 + guard)、advisor 服務殼、setup_predict_role(已寫、**未 apply**)、DDL 兩表(已落地)。
-- ⚠ **需接線**:advisor 現接 `empty_payload`(示範/空)、**未接真實預測**;predict_asof **只出排序、不建投組**(無 top_frac 選取/權重/風控)。
-- 🔴 **需補建**:STAGE D 首選模型 **H120 未訓練**(registry 僅 H60);**風控層完全不存在**(DD 熔斷/部位上限/換手預算);**持續再驗證 harness 不存在**;`augur_predict` role **未建**(DB 隔離硬閘缺)。
+> **✅ 2026-07-08 階段 2 執行落地竣工(風控 + live 投組建構)**:風控層 `execution/risk_control.py` + `risk_policy` 表(H60/H120 STAGE D 閾值)**已建已 seed**;predict_asof **已建 top-decile 投組 + 三風控 overlay 全接線**(prev_ids 換手 live、`_deployed_dd_returns` DD熔斷 live〔#8 forward-窗-關閉 filter 兩向實證、off-by-one 修 `future[h]`〕、單標的 cap)。**驗收 `scripts/verify_risk_overlay.py`**:生產 −20% 閾 in-sample dormant 無害(0 觸發、風控後==原始、淨 Sharpe 仍勝基準);−10% 壓測證機制運作(觸 4/18、MaxDD −19.4%→−16.6%、Calmar 1.00→1.03、仍 PASS)。DD/換手現況 dormant(prediction_values 僅 1 期、forward 窗未實現),隨歷史自動啟動。**下欄「風控層完全不存在」「predict_asof 只出排序」已解決**。
+
+- ✅ **已有可用**:predict_asof(as-of 排序 + **top-decile 投組 + 風控 overlay**、寫 prediction_values)、train_ranker(→ model_registry)、release_lag(#8 發布日 gate,**建於 feature build 時、架構正確**)、PredictionPayload(frozen 唯讀 + guard)、advisor 服務殼、setup_predict_role(已寫、**未 apply**)、DDL 兩表(已落地)、**風控層 risk_control.py + risk_policy(✅ 階段 2)**。
+- ⚠ **需接線**:advisor 現接 `empty_payload`(示範/空)、**未接真實預測**。
+- 🔴 **需補建**:STAGE D 首選模型 **H120 未訓練**(registry 僅 H60);**持續再驗證 harness 不存在**;`augur_predict` role **未建**(DB 隔離硬閘缺)。
 
 **最大命門(#8)現狀**:release-lag gate 已在 feature build 時正確落地(期間型財報/月營收經 `release_lag`,日頻籌碼/估值以 `date<=panel` 保守含同日)。predict_asof 讀 `feature_values`,**繼承 build 時的 as-of 純度**——只要 build 正確,predict 即 #8-safe。**但目前無「決策日 T 不用任何 release>T 資料」的機械測試**,需補為驗收 gate(見 §7 P1 驗收)。
 
