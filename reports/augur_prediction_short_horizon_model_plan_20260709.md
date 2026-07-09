@@ -85,8 +85,8 @@ train_ranker.py --horizon {20,40,60} --run       # RankRidge 確定性 + RankGBD
 |---|---|---|
 | `model_registry` | model_id;family/horizon/feats_hash/seed/metrics/train_span | 加 H20/H40 列 |
 | `prediction_values` | (panel_date,model_id,stock_id);rank/score/in_portfolio | 加 H20/H40:in_portfolio=0 候選 |
-| `revalidation_ledger` | (run_at,as_of_date,stage,horizon,model,config,metric_name);metric_value/n_periods/hac_t | 補 H20/H40 之 B/C/D 列 |
-| `trial_ledger` | (model,horizon,top_frac,weight,feats_hash,cost,sample_since);seed 揭露欄 | 加 H20/H40 試驗列(N 機械 count DISTINCT) |
+| `revalidation_ledger` | **無 PK**（append-only ledger、按 run_at 逐列;唯一約束=CHECK `stage∈{B,C,D}`;index=ix_reval_asof_stage/ix_reval_metric_time **非唯一**）;欄 as_of_date/stage/horizon/model/config/metric_name/metric_value/n_periods/hac_t。**冪等靠 per-as_of DELETE 重寫、非 ON CONFLICT** | 補 H20/H40 之 B/C/D 列 |
+| `trial_ledger` | **PK=(trial_id)** surrogate;**UNIQUE=(model,horizon,top_frac,weight,feats_hash,cost,sample_since)**（=`trial_ledger_uq`=N 機械計數鍵);seed 揭露欄 | 加 H20/H40 試驗列(N=count DISTINCT 之計數鍵) |
 | (deflation) | 讀 trial_ledger + portfolio 即時重算 | 不落新表(裁決印出) |
 
 ### 7.2 對應 python 程式規畫(全既有工具、horizon 為參數、幾乎零新 code、守 #12 複用鐵律)
