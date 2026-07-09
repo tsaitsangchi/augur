@@ -45,8 +45,8 @@ from migrate_trial_ledger_ddl import BACKFILL as _TRIAL_BACKFILL   # 執行序:r
 COST_TW = 0.00585        # 台股來回:手續費 2×0.1425% + 證交稅 0.3% ≈ 0.585%(STAGE C/D 同)
 TOP_FRAC = 0.1           # top10%(STAGE C/D 同)
 GBDT_SEEDS = (42, 43, 44)  # GBDT 多 seed 取中位(#11);Ridge 確定性單跑
-B_HORIZONS = (20, 60, 120)   # STAGE B as-of IC 之 horizon
-CD_HORIZONS = (60, 120)      # STAGE C/D 經濟價值之 horizon(H20 已判死、非追蹤重點)
+B_HORIZONS = (20, 40, 60, 120)   # STAGE B as-of IC 之 horizon(補 H40 短 horizon 計畫 W3)
+CD_HORIZONS = (20, 40, 60, 120)  # STAGE C/D 經濟價值(補 H20/H40 供誠實矩陣對比;H20 預期仍判死、以 fresh 數字誠實揭露)
 SINCE_2014 = "2014-01-01"    # 全期(對齊 core_universe_asof 覆蓋)
 SINCE_2021 = "2021-01-01"    # 近期(H120 小樣本 caveat 之樣本期)
 VERDICT_N_DEFAULT = 20       # H120 近期 n ≥ 此 → 視為足以定論(可 --verdict-n 調)
