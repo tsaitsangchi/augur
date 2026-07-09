@@ -67,18 +67,26 @@ def _payload_block(payload):
         nums = ", ".join(repr(v) for v in sorted(payload.numbers())) or "(本回合無)"
         return (f"## 真兆 SQL 結果集(KnowledgePayload、唯讀、as-of {payload.as_of}、domain={payload.domain})\n"
                 f"本回合可轉述之統計數字白名單:{nums}(此外的統計數字一律不得自行產生)")
-    ref = payload.picks[0].source_ref if payload.picks else "(無)"   # 全部選股同源(同 panel+model)→ 只寫一次、不逐檔重複(減 qwen3:8b prompt bloat 之首因)
-    shown = payload.picks[:15]                                        # 8B 模型:列前 15 檔即足;白名單 payload.numbers() 仍含全部、不影響 guard
-    picks = "\n".join(f"  #{p.rank} {p.symbol} {p.name}  score={p.score:.4f}" for p in shown)  # score 顯示 4dp=對齊白名單口徑(消「顯示 vs 白名單」不一致之困惑源)
-    if len(payload.picks) > len(shown):
-        picks += f"\n  (共 {len(payload.picks)} 檔、僅列前 {len(shown)})"
+    # LLM 端只給「選股數量+領先者」與「白話誠實限制原文(note)」——不給完整 picks 表、不給原始
+    # validation dict(英文欄位名):弱模型(qwen3:8b)會照抄→重列 picks + 吐 deflated_sharpe_broad 等
+    # 欄位碼;移除照抄誘餌是敘述品質之結構性正解。完整 picks 由 advise._render_picks_table 確定性注入予用戶;
+    # 白名單 payload.numbers() 由 payload 物件算、與此顯示無關,guard 不受影響(#12/#15)。
+    ref = payload.picks[0].source_ref if payload.picks else "(無)"
+    note = str(payload.validation.get("note", "")) if isinstance(payload.validation, dict) else str(payload.validation)
+    for _code, _plain in (("deploying_unestablished", "部署中、統計上尚未確立"),
+                          ("suspected_decay_review", "疑似衰減、待人審"),
+                          ("confirmed_decay_stop", "確認衰減、建議停")):
+        note = note.replace(_code, _plain)   # LLM 端不見狀態碼→不會照抄(敘述白話化、#15)
     nums = ", ".join(repr(v) for v in sorted(payload.numbers())) or "(本回合無)"
+    top = payload.picks[0] if payload.picks else None
+    lead = f",領先者 {top.symbol} {top.name}" if top else ""
     return (f"## 真實預測(PredictionPayload、唯讀、as-of {payload.as_of}、{payload.model} H{payload.horizon})\n"
-            f"選股(相對強弱排序,非精確報酬保證;全部同源:{ref}):\n{picks}\n驗證(誠實標籤):{payload.validation}\n"
-            f"**上方 picks 已由系統直接列給用戶,你【不要】重列股票、不要自己排名或改股名。你的任務=就這批 picks "
-            f"補一段『可信度與限制』的誠實敘述(未過 deflation、薄 edge、n 小 18-25、系統建議人決策等)。**\n"
-            f"**數字紀律**:要提數字只可逐字照抄上方 picks/驗證標籤之精確值(如 0.7573)、勿湊整、勿編造;"
-            f"不確定就不寫數字改用文字(編造會被機械閘攔、整則作廢)。可轉述精確數字白名單:{nums}")
+            f"系統已向用戶列出 {len(payload.picks)} 檔模型選股(相對強弱排序{lead};源:{ref})——**清單已呈現、你不必也不要重列或點名個股**。\n"
+            f"誠實限制原文(**據此改寫成白話、勿逐字照抄、勿抄英文欄位名或狀態碼如 deploying_unestablished**):{note}\n"
+            f"**你的任務**:就這批選股寫一段簡潔白話的『可信度與限制』(**3-5 句**),直接寫給用戶看——挑重點"
+            f"(未過 deflation 統計確立=真但薄的 edge、驗證期數少屬方向性排名非精確、系統建議人決策非命令);"
+            f"不重列股票、不點名個股、不提內部欄位名/狀態碼/機制字眼。\n"
+            f"**數字紀律**:要提數字只可逐字照抄白名單精確值(如 0.7573)、勿湊整勿編造(編造會被機械閘攔、整則作廢)。白名單:{nums}")
 
 
 def _render_cites(citations, empty_note):
