@@ -15,6 +15,7 @@
 執行指令矩陣:
   python scripts/revalidate_baseline.py            # 凍結 ridge_H60_LO 兩宇宙錨(冪等覆寫)
   python scripts/revalidate_baseline.py --dry-run  # 只算+印、不寫 revalidation_baseline
+  python scripts/revalidate_baseline.py --cell ridge_H120_LO --horizon 120 --role candidate  # 凍結 H120 追蹤候選(非部署)
 """
 import argparse
 import sys
@@ -24,7 +25,7 @@ import numpy as np
 
 from augur.core import db
 from augur.evaluation import baseline, deflation, portfolio
-from deflate_headline_verdict import _ppy_for
+from deflate_headline_verdict import _nonoverlap, _ppy_for
 from survivorship_economic_verdict import build_pit_universe, run_pit_economic
 
 COST = 0.00585
@@ -59,12 +60,13 @@ def _deploy_hac_t(conn):
     return float(r[0]) if r else None
 
 
-def freeze(dry_run=False):
+def freeze(dry_run=False, role="deploy"):
     with db.connect() as conn:
         with db.transaction(conn) as cur:
             cur.execute("SELECT DISTINCT as_of_date FROM core_universe_asof ORDER BY as_of_date")
-            pds = [r[0] for r in cur.fetchall()]
-        feats = baseline.canonical_features(conn, pds)
+            pds_all = [r[0] for r in cur.fetchall()]
+        pds = _nonoverlap(pds_all, H)   # 非重疊再平衡(同 Stage D/deflate 口徑;H60 spacing<panel gap→全保留不變、H120 隔期取→ baseline 與 ledger/eval 一致,#12/#15 命門:原僅 run_backtest splits=重疊窗、H120 灌水)
+        feats = baseline.canonical_features(conn, pds_all)
         trials_pp, n_trials = _trials_per_period(conn, pds)
         hac = _deploy_hac_t(conn)
 
@@ -80,13 +82,15 @@ def freeze(dry_run=False):
         p_defl = deflation.deflated_floor(rp["net_series"], rp["ppy"], trials_pp, n_trials)
         p_net, p_bench = rp["net"]["sharpe"], rp["bench"]["sharpe"]
 
+        cand = "【追蹤候選·非部署(in_portfolio=0)·軌B 待新資料追衰減】" if role == "candidate" else ""
+        asof_src = ("augur_prediction_h120_deployment_eval_20260709.md" if role == "candidate"
+                    else "augur_prediction_deflation_verdict_20260708.md")
         rows = [
-            ("asof_incumbent", d_net, d_bench, hac, d_defl, rd["portfolio_net"]["n"],
-             "augur_prediction_deflation_verdict_20260708.md",
-             "全史齊部署口徑(predict_asof 交易);軌B 操作 baseline"),
+            ("asof_incumbent", d_net, d_bench, hac, d_defl, rd["portfolio_net"]["n"], asof_src,
+             cand + "全史齊口徑(predict_asof 交易);軌B 操作 baseline"),
             ("pit_broad", p_net, p_bench, None, p_defl, rp["n"],
              "augur_prediction_survivorship_economic_verdict_20260708.md",
-             "廣宇宙 incumbency 修正誠實錨(−16.5%);HAC-t 另口徑不填"),
+             cand + "廣宇宙 incumbency 修正誠實錨(−16.5%);HAC-t 另口徑不填"),
         ]
         print("=" * 78)
         print(f"再驗證 baseline 定錨 — cell={CELL}  as_of={pds[-1]}  N={n_trials}(trial_ledger 機械)")
@@ -118,10 +122,16 @@ def freeze(dry_run=False):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="再驗證 baseline 定錨(P0、兩宇宙)")
+    global H, CELL           # helper 讀 module global;由 CLI override(路徑單一住所、不散參數穿多層)
+    ap = argparse.ArgumentParser(description="再驗證 baseline 定錨(P0、兩宇宙;--horizon+--cell 凍結追蹤候選)")
     ap.add_argument("--dry-run", action="store_true", help="只算+印、不寫 revalidation_baseline")
+    ap.add_argument("--cell", default=CELL, help="baseline cell(如 ridge_H120_LO 凍結 H120 追蹤候選)")
+    ap.add_argument("--horizon", type=int, default=H, help="horizon(cell 對映;預設 60=部署)")
+    ap.add_argument("--role", default="deploy", choices=["deploy", "candidate"],
+                    help="deploy=部署主投組軌B操作 baseline;candidate=追蹤候選(非部署、in_portfolio=0、軌B 待新資料追衰減)")
     args = ap.parse_args(argv)
-    return freeze(dry_run=args.dry_run)
+    H, CELL = args.horizon, args.cell
+    return freeze(dry_run=args.dry_run, role=args.role)
 
 
 if __name__ == "__main__":
