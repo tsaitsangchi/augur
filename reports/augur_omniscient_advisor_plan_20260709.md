@@ -148,3 +148,40 @@ S10 advise/retrieval/concept_graph/serve_advisor:8399/serve_chat_ui:8090 [BUILT/
 derivation_method **17**(四值 CHECK)· term_affinity **2,957,154**(0 NULL FK)· group_affinity **6,968** · lexicon **154,875** · concordance ≈**49.8M** · sentence **1,724,122** · knowledge_item **254,038** · knowledge_source **3,593** · import_isolation exit 0 + 7 passed · G3 缺口(ollama.base_url 無 host 驗證)證實。
 
 **方法論**:ultracode 10-agent workflow(ground×3〔1 schema 爆、2 成〕→design×3 視角→adversarial×3 全判 NEEDS-FIX 非 VIOLATES-SOUL→synthesis)+ 主作者親查承重聲稱。**此為 plan-first(#20),拍板後才實作與入憲。**
+
+---
+
+## 9. 對應 table schema + python 程式規畫(憲章 v1.39.0 計畫完整性)
+
+### 9.1 table schema
+
+**唯一新表**=向量後端 factory 之 config(DB 驅動接縫;DDL 住 `scripts/migrate_vectorstore_config_ddl.py`、冪等 guard 慣例):
+```sql
+CREATE TABLE IF NOT EXISTS knowledge_vectorstore_config (
+  scope        text PRIMARY KEY,                 -- 'sentence'/'lexicon'/'philosophy_chunk' 三粒度
+  backend      text NOT NULL DEFAULT 'pgvector'
+                 CHECK (backend IN ('pgvector','qdrant_embedded','qdrant_server')),
+  embed_model  text NOT NULL,                    -- embedspec MODEL_TAG(世代烘入 collection 名)
+  dims         int  NOT NULL,                    -- embedspec MODEL_DIMS
+  endpoint     text,                             -- qdrant url/path(pgvector 為 NULL)
+  updated_at   timestamptz NOT NULL DEFAULT now()
+);  -- 換後端 = UPDATE 一列(#29b 決定行為的資料住 DB)
+```
+**所讀/所觸既有表**(不改 schema、唯讀或既有寫入):knowledge_source/staging/item/item_text/sentence/concordance/lexicon(素養)· knowledge_term_affinity/group_affinity/derivation_method(★相關係數,唯讀,method_key FK)· knowledge_sentence_embedding/lexicon_embedding/philosophy_chunk_embedding(向量,唯讀檢索)· prediction_values/model_registry/revalidation_ledger/baseline/verdict(預測側,advisor 唯讀)· qdrant_sync_state/knowledge_build_meta(游標)。schema 權威=DB information_schema(#2)。
+
+### 9.2 對應 python 程式規畫
+
+| 程式 | 新/改 | 職責·關鍵函式 | 輸入表→輸出表 |
+|---|---|---|---|
+| `src/augur/knowledge/vectorstore.py` | **新** | `make_index(config)→VectorIndex`;`PgvectorIndex(VectorIndex)` pgvector 走同介面;`.search()→[(pg_pk,score)]`(紅線③不落私有向量) | knowledge_vectorstore_config →(記憶體 index handle) |
+| `scripts/migrate_vectorstore_config_ddl.py` | **新** | 建 config 表 + 種子三粒度列(冪等) | — → knowledge_vectorstore_config |
+| `src/augur/advisor/ollama.py::make_llm_fn` | **改** | G3:建構時 assert base_url host∈allowlist、非等 HTTP(v1.37.0) | env OLLAMA_BASE_URL(驗證) |
+| `src/augur/advisor/{advise,retrieval}.py` | **改** | W2:concept_graph(related_thinkers/terms/cooccurrence)進引文通道;retrieval 走 make_index() | term_affinity/group_affinity → prompt 引文段 |
+| `src/augur/audit/import_isolation.py` | **改** | G1:SCAN 納 `knowledge.vectorstore`(自動覆蓋) | — |
+| `scripts/harvest_knowledge.py` | **改** | W-fix-1:矩陣尾條件式接 fetch_oa→sentences→concordance→embed(守 items 拍板閘) | knowledge_staging →(既有鏈) |
+| `scripts/refresh_knowledge_pipeline.py` | **改** | W-fix-2:總驅動補 `--domain` 投資域參數 | (編排既有 script) |
+| `scripts/build_cross_school_stats.py` | 既有 | S7 ★相關係數引擎★(`--phase vocab --domain finance` 擴域零改碼) | sentence/concordance → term/group_affinity |
+| `scripts/embed_knowledge.py` | 既有 | S8 三粒度嵌入(`--scope works/en` 補跑) | sentence/lexicon → *_embedding |
+| `scripts/{serve_advisor_openai,serve_chat_ui}.py` | 既有(改碼後 #7 重啟) | S10 顧問殼 + web UI | — |
+
+**唯一真新 code**=vectorstore.py + migrate + G3 assert;其餘=既有程式加參數/接線(守 #12 複用鐵律)。

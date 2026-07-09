@@ -75,5 +75,34 @@ train_ranker.py --horizon {20,40,60} --run       # RankRidge 確定性 + RankGBD
 
 ---
 
+## 7. 對應 table schema + python 程式規畫(憲章 v1.39.0 計畫完整性)
+
+### 7.1 table schema:**無新表**(全用既有;schema 權威=DB information_schema #2)
+
+本計畫**不產生新表**——訓練/驗證結果落既有表:
+
+| 既有表 | PK / 關鍵欄 | 本計畫寫入 |
+|---|---|---|
+| `model_registry` | model_id;family/horizon/feats_hash/seed/metrics/train_span | 加 H20/H40 列 |
+| `prediction_values` | (panel_date,model_id,stock_id);rank/score/in_portfolio | 加 H20/H40:in_portfolio=0 候選 |
+| `revalidation_ledger` | (run_at,as_of_date,stage,horizon,model,config,metric_name);metric_value/n_periods/hac_t | 補 H20/H40 之 B/C/D 列 |
+| `trial_ledger` | (model,horizon,top_frac,weight,feats_hash,cost,sample_since);seed 揭露欄 | 加 H20/H40 試驗列(N 機械 count DISTINCT) |
+| (deflation) | 讀 trial_ledger + portfolio 即時重算 | 不落新表(裁決印出) |
+
+### 7.2 對應 python 程式規畫(全既有工具、horizon 為參數、幾乎零新 code、守 #12 複用鐵律)
+
+| 程式 | 新/改 | 職責 | 輸入表→輸出表 |
+|---|---|---|---|
+| `scripts/train_ranker.py --horizon {20,40} --run` | 既有(參數) | 訓 RankRidge 確定性 + RankGBDT 多seed | feature_values/core_universe_asof → model_registry |
+| `scripts/predict_asof.py --horizon {20,40}` | 既有(參數) | 凍結快照預測、標 in_portfolio=0 候選 | model_registry/feature_values → prediction_values |
+| `scripts/revalidate.py --run` | **改**(B_HORIZONS/CD_HORIZONS 加 20/40) | 誠實四關 Stage B(IC+HAC-t)/C/D(經濟) | feature_values → revalidation_ledger + trial_ledger |
+| `scripts/deflate_headline_verdict.py --horizon {20,40}` | 既有(參數) | per-period DSR 取保守 N | revalidation_ledger/trial_ledger →(裁決印出) |
+| `scripts/verify_candidate_promotion.py` | 既有 | 提拔關卡 HAC-t(禁裸 iid) | revalidation_ledger →(裁決) |
+| `scripts/report_short_horizon_verdict.py` | **新**(W4) | H20/H40/H60 對比 + 誠實可信度 + 日曆日對映 | revalidation_ledger/trial_ledger → reports/ |
+
+**唯一新 code**=W4 裁決報告腳本 + revalidate.py 加 horizon 常數;其餘全既有工具加 `--horizon` 參數(offline 驗證與 live 預測共用同 evaluation SSOT,零雙軌漂移 #12)。**#8 隔離**:全程零 import knowledge/philosophy(import_isolation 閘覆蓋 models/evaluation)。
+
+---
+
 ## 附:實查錨(2026-07-09、venv python、#15)
 horizon 單位=交易日(walkforward.py:17,48)· H≥252 禁入 · model_registry 訓練 {H60,H120} · H20 IC 0.113/經濟 cell **0**(判死)· H60 IC 0.152/DSR 0.756 · H120 IC 0.155/DSR 0.936 · 1 交易日≈1.45 日曆日。
