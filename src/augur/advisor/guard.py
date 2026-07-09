@@ -67,6 +67,15 @@ def guard(response, payload, citations):
     if _REVERSE.search(response):
         issues.append("逆向鏡翻轉模型結論、輸出相反行動(禁、審查 C-1)")
 
+    # ⑤ 股名校驗(#1:防幻覺股名——payload 給 symbol+name 時,輸出「股號+緊鄰 CJK 名」須與該股名相容;
+    #    子集互容如 台積/台積電;僅查 payload 內股號、非 payload 股號自然略過,無 name 之舊 payload no-op)
+    name_by_sym = {p.symbol: getattr(p, "name", "") for p in getattr(payload, "picks", ())}
+    if any(name_by_sym.values()):
+        for sym, out_name in re.findall(r"(\d{4})[ 　:：]*([一-鿿]{2,6})", response):
+            want = name_by_sym.get(sym)
+            if want and out_name != want and out_name not in want and want not in out_name:
+                issues.append(f"股名與 payload 不符、疑幻覺股名(#1):{sym}「{out_name}」應為「{want}」")
+
     return {"pass": not issues, "issues": issues}
 
 

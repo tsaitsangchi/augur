@@ -13,6 +13,7 @@ class StockPick:
     rank: int
     score: float
     source_ref: str          # trace 回真實模型輸出(如 eval/portfolio.py 之某 as-of run)
+    name: str = ""           # 公司名(TaiwanStockInfo;#1 給模型正確名、防幻覺股名——guard 查輸出股名 ∈ 此)
 
 
 @dataclass(frozen=True)
@@ -184,7 +185,15 @@ def build_prediction_payload(as_of=None, horizon=60, top_n=None):
                         (as_of, model_id))
         rows = cur.fetchall()
         pick_ref = "prediction_values:panel=%s,model=%s" % (as_of, model_id)
-        picks = tuple(StockPick(str(sid), int(rk), float(sc), pick_ref) for sid, rk, sc in rows)
+        # 股名(TaiwanStockInfo、DISTINCT 取一列;#1 給模型正確名、防幻覺股名——advisor 對此唯讀)
+        sids = [str(sid) for sid, _, _ in rows]
+        names = {}
+        if sids:
+            cur.execute('SELECT DISTINCT ON (stock_id) stock_id, stock_name FROM "TaiwanStockInfo" '
+                        'WHERE stock_id = ANY(%s)', (sids,))
+            names = {str(s): n for s, n in cur.fetchall()}
+        picks = tuple(StockPick(str(sid), int(rk), float(sc), pick_ref, names.get(str(sid), ""))
+                      for sid, rk, sc in rows)
         vals, missing = _read_validation(cur, horizon)
         hf = _read_harness_floor(cur)   # harness deflated 地板 + 再驗證裁決(#15 最誠實地板)
 

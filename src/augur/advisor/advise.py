@@ -17,6 +17,20 @@ from augur.advisor.payload import KnowledgePayload, empty_payload
 from augur.advisor.safe_general import general_safe_answerable
 
 
+def _render_picks_table(payload, top=15):
+    """確定性 picks 表(#1:picks=payload ground truth、不經弱 LLM 幻覺)。
+    弱本機模型(qwen3:8b)實證會幻覺『選哪些股』+股名+迴圈重複(4 輪 prompt 迭代皆漂移=能力天花板)
+    → picks 改由 payload 直接排版注入、LLM 僅負責它可靠的 caveat 敘述(v1.37.0 本機模型約束內、非換外部)。
+    score 4dp=對齊 guard 白名單口徑;注入表為 ground truth、免 guard(數字皆出 payload)。"""
+    picks = list(payload.picks)[:top]
+    if not picks:
+        return ""
+    lines = [f"{p.rank}. {p.symbol} {p.name}(score {p.score:.4f})" for p in picks]
+    more = f"(共 {len(payload.picks)} 檔、列前 {len(picks)})" if len(payload.picks) > len(picks) else ""
+    return (f"根據模型 as-of {payload.as_of}({payload.model} H{payload.horizon})之相對強弱排序,"
+            f"看好 top {len(picks)}{more}:\n" + "\n".join(lines))
+
+
 def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_fn=None, prompt_fn=None,
            scope=None):
     """顧問一次問答。
@@ -109,5 +123,7 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
         dv = guard_definition(response, lex_entries)
         verdict["issues"].extend(dv["issues"])
         verdict["pass"] = not verdict["issues"]
+    if has_picks:      # D4b 確定性 picks 注入:picks 由 payload ground truth 排版(不經弱 LLM 幻覺)+ LLM caveat 敘述
+        response = _render_picks_table(payload) + "\n\n---\n" + response
     return {"response": response, "guard": verdict,
             "citations": citations, "lex_entries": lex_entries, "prompt": prompt}

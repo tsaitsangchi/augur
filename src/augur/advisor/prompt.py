@@ -67,13 +67,18 @@ def _payload_block(payload):
         nums = ", ".join(repr(v) for v in sorted(payload.numbers())) or "(本回合無)"
         return (f"## 真兆 SQL 結果集(KnowledgePayload、唯讀、as-of {payload.as_of}、domain={payload.domain})\n"
                 f"本回合可轉述之統計數字白名單:{nums}(此外的統計數字一律不得自行產生)")
-    picks = "\n".join(f"  #{p.rank} {p.symbol}  score={p.score}  (源:{p.source_ref})" for p in payload.picks)
+    ref = payload.picks[0].source_ref if payload.picks else "(無)"   # 全部選股同源(同 panel+model)→ 只寫一次、不逐檔重複(減 qwen3:8b prompt bloat 之首因)
+    shown = payload.picks[:15]                                        # 8B 模型:列前 15 檔即足;白名單 payload.numbers() 仍含全部、不影響 guard
+    picks = "\n".join(f"  #{p.rank} {p.symbol} {p.name}  score={p.score:.4f}" for p in shown)  # score 顯示 4dp=對齊白名單口徑(消「顯示 vs 白名單」不一致之困惑源)
+    if len(payload.picks) > len(shown):
+        picks += f"\n  (共 {len(payload.picks)} 檔、僅列前 {len(shown)})"
     nums = ", ".join(repr(v) for v in sorted(payload.numbers())) or "(本回合無)"
     return (f"## 真實預測(PredictionPayload、唯讀、as-of {payload.as_of}、{payload.model} H{payload.horizon})\n"
-            f"選股(相對強弱排序,非精確報酬保證):\n{picks}\n驗證(誠實標籤):{payload.validation}\n"
-            f"**可轉述之精確數字白名單(唯一合法數字來源、逐字複製、勿四捨五入):{nums}**\n"
-            f"(要提數字就從白名單逐字照抄如 0.7573、絕不湊整成 0.76;不確定精確值就【不要寫數字】、改用"
-            f"排名/相對強弱/誠實 caveat 文字描述——湊整或編造數字會被機械閘攔、整則回覆作廢、選股呈現不出來)")
+            f"選股(相對強弱排序,非精確報酬保證;全部同源:{ref}):\n{picks}\n驗證(誠實標籤):{payload.validation}\n"
+            f"**上方 picks 已由系統直接列給用戶,你【不要】重列股票、不要自己排名或改股名。你的任務=就這批 picks "
+            f"補一段『可信度與限制』的誠實敘述(未過 deflation、薄 edge、n 小 18-25、系統建議人決策等)。**\n"
+            f"**數字紀律**:要提數字只可逐字照抄上方 picks/驗證標籤之精確值(如 0.7573)、勿湊整、勿編造;"
+            f"不確定就不寫數字改用文字(編造會被機械閘攔、整則作廢)。可轉述精確數字白名單:{nums}")
 
 
 def _render_cites(citations, empty_note):
