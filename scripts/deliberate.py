@@ -104,6 +104,20 @@ def _fast_anchor(claim_text, target=None):
     可機械解析的宣稱**直接產錨、零 LLM**(確定性凌駕生成;LLM 只留給快路不匹配者)。
     回 (verifier, anchor) 或 None。"""
     import re as _re
+    # L5 條件式快路(2026-07-10 集材:5/5 帶 WHERE 宣稱 escalate→LLM 錨不出;確定性產 WHERE)——
+    # 「表 T 中 欄 C 等於 V 的列數 至少/至多 N」→ SELECT count(*) FROM T WHERE C='V' => op N
+    # L5 條件式快路(2026-07-10 集材+實測:4b 改寫成「表 T 中 C 欄等於 V 的列數 ≥ N」〔含「欄」字/≥符號〕)——
+    # 寬鬆吃 T/C/V/op/N:C 欄名(可帶「欄」尾綴)、V 值、比較詞(至少/至多/≥/≤/不少於…)、N。
+    # 根因(2026-07-10 逐段除錯):中文語序「T 表中 C 欄等於 V」表名在「表」**之前**;值可含 .-(cc-by)。
+    _GE = r"(?:至少有?|不少於|>=|≥|不低於)"
+    _LE = r"(?:至多|不超過|<=|≤|不高於)"
+    for _cmp, _op in ((_GE, ">="), (_LE, "<=")):
+        m = _re.search(r"([a-z_][a-z0-9_]*)\s*表\s*(?:中|裡)?\s*(?:的)?\s*"
+                       r"([a-z_][a-z0-9_]*)\s*欄?\s*(?:等於|=|為|是)\s*([a-z0-9_.-]+)\s*"
+                       r"(?:的)?\s*列數?\s*" + _cmp + r"\s*([0-9,]+)", claim_text)
+        if m:
+            t, c, v, n = m.groups()
+            return "db_query", f"SELECT count(*) FROM {t} WHERE {c}='{v}' => {_op} {n.replace(',', '')}"
     m = _re.search(r"表\s*([a-z_][a-z0-9_]*)\s*(?:至少有?|不少於|>=?)\s*([0-9,]+)\s*列", claim_text)
     if m:
         return "db_query", f"SELECT count(*) FROM {m.group(1)} => >= {m.group(2).replace(',', '')}"

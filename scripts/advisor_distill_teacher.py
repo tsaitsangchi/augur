@@ -52,18 +52,28 @@ def build_teacher_messages(query, expected, context):
 
 
 def detect_teacher_mechanism():
-    """偵測可用 teacher 機制(誠實回報,不自行決定放量)。回 (available, note)。"""
+    """偵測可用 teacher 機制(誠實回報,不自行決定放量)。回 (available, note)。
+    (D) 本地 ollama:用戶拍板 2026-07-10「S3 teacher 檔位=本地 qwen」——DISTILL_TEACHER_MODEL
+    為本地 tag(含 ':')即走本機 make_llm_fn,零 Claude token(#28);深思檔 think=True。"""
+    model = os.environ.get("DISTILL_TEACHER_MODEL", "qwen3:8b")
+    if ":" in model and not model.startswith("claude"):
+        return True, f"(D) 本地 ollama teacher={model}(think=True 深思檔;零 Claude token)"
     if os.environ.get("ANTHROPIC_API_KEY"):
         return True, "偵測到 ANTHROPIC_API_KEY → 可接 (A) Anthropic API(須人拍板放量、#28)"
-    return False, ("未偵測到 ANTHROPIC_API_KEY(.env 現無)。teacher 機制待用戶拍板:"
-                   "(A) 設 ANTHROPIC_API_KEY 走 API / (B) workflow 內 Claude agents / (C) 手動貼 Claude UI 回填。")
+    return False, "teacher 未就緒:設 DISTILL_TEACHER_MODEL=本地 tag(D)或 ANTHROPIC_API_KEY(A)。"
 
 
 def _call_teacher(messages):
-    """實際呼叫 Claude teacher——**待用戶拍板機制後接線**(A/B/C)。骨架階段 raise。"""
-    raise NotImplementedError(
-        "teacher 呼叫機制未接線。build_teacher_messages 已備好 messages;"
-        "用戶拍板 A(API)/B(workflow)/C(手動)後於此接線,再 --run --confirm。")
+    """teacher 呼叫(機制 D=本地 ollama,用戶拍板 2026-07-10;A/B/C 未接)。
+    messages=[system,user] 合併為單 prompt;8b think=True 深思檔(~40s/題,品質優先)。"""
+    model = os.environ.get("DISTILL_TEACHER_MODEL", "qwen3:8b")
+    if ":" not in model or model.startswith("claude"):
+        raise NotImplementedError("非本地 teacher 機制未接線(A/B/C)。")
+    from augur.advisor.ollama import make_llm_fn
+    fn = make_llm_fn(model=model, think=True, timeout=600,
+                     options={"temperature": 0.2, "num_predict": 900})
+    prompt = messages[0]["content"] + "\n\n" + messages[1]["content"]
+    return fn(prompt)
 
 
 def preview(cur, n):
@@ -94,7 +104,7 @@ def run(conn, confirm):
                     "FROM advisor_distill_context c JOIN advisor_distill_question q USING(question_id) "
                     "WHERE c.target_response IS NULL ORDER BY c.context_id")
         pending = cur.fetchall()
-    model = os.environ.get("DISTILL_TEACHER_MODEL", "claude-opus-4-8")
+    model = os.environ.get("DISTILL_TEACHER_MODEL", "qwen3:8b")   # 機制 D 拍板 2026-07-10
     done = 0
     for cid, query, expected, context in pending:
         messages = build_teacher_messages(query, expected, context)

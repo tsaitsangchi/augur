@@ -37,6 +37,7 @@ DOMAIN = "smoke_test"
 # sentinel 底文=真實公版句(Adam Smith, Wealth of Nations, 1776;公版無虞、en 走 DAG en 節點)
 _PD_BASE = ("It is not from the benevolence of the butcher, the brewer, or the baker, "
             "that we expect our dinner, but from their regard to their own interest.")
+# 煙測辨識片語:nonce 造詞 + 兩實詞(benevolence/butcher)→relevance 閘 ≥2 辨識詞成立(非 bug、是正確閘)
 
 
 def _counts(cur):
@@ -77,7 +78,7 @@ def clean():
 
 
 def run(with_llm=False, keep=False, as_json=False):
-    nonce = f"smokenonce{uuid.uuid4().hex[:8]}"
+    nonce = "smokesentinel" + "".join(chr(97+int(d,16)%26) for d in uuid.uuid4().hex[:10])  # 純字母→進 exact 索引(#債1 修)
     pub_text = f"{_PD_BASE} [{nonce}]"
     priv_text = f"{_PD_BASE} [private-{nonce}]"
     results = []
@@ -137,7 +138,7 @@ def run(with_llm=False, keep=False, as_json=False):
         from augur.advisor.advise import advise
         from augur.advisor.ollama import make_llm_fn
         from augur.advisor.payload import empty_payload
-        r = advise(f"知識庫裡是否有含 {nonce} 的句子?請引用原文。", empty_payload(),
+        r = advise(f"關於 benevolence 與 butcher 的 {nonce} 句子有哪些?請引用原文。", empty_payload(),
                    make_llm_fn(model="qwen3:4b", think=False, strip_quotes=True),
                    retrieve_fn=lambda q, k=6, scope=None: retrieve_items(q, k=k, is_super=False,
                                                                           allowed_domains=[DOMAIN]),
