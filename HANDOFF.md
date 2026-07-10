@@ -42,6 +42,8 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 ```
 工作目錄隨機器變（WSL2 `/home/<user>/project/augur`；程式一律寫真實工作目錄 CLAUDE #13）。
 
+**日常同步（非新機首clone）**：跑 `bash sync_from_github.sh`——只做安全 fast-forward + 按需 `pip install -e .` + import smoke test；工作樹不乾淨或與遠端分岔一律停手印訊息、不自動 merge/reset,交人（或 Claude）判斷。全本地、零 Claude usage（CLAUDE #28 本地優先之落地工具）。
+
 ## 3. 不在 git、新機須重建（皆 gitignored）
 
 - **DB**（靠 dump 搬、#30):最新 = **`C:\AI\augur_pg17_20260709.dump`**（`-Fc` 單檔、**6.62GB 壓縮 / 46GB 庫**、`pg_restore --list` 已驗、byte-identical）。含 **public 178 表 + ttai_import 22 表**（預測層 model_registry/prediction_values/revalidation_* + 知識層 knowledge_*/philosophy_* + 向量 *_embedding ~1.7GB pgvector）。**dump 不進 git**,用外接碟/雲端搬。
