@@ -29,3 +29,4 @@ reports/*.json
 .claude/*.lock
 .db_export/
 .webui_secret_key
+.refresh_pipeline.lock
