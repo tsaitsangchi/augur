@@ -13,8 +13,8 @@ metadata:
 > **記憶隨 repo 遷移**:活記憶本不隨 git;現用 `sync_memory.py export` 快照進 repo `handoff_memory/` → 新機 `restore` 還原(見 [[local-handoff-tooling]])。三支零-usage 工具:`sync_from_github.sh`/`read_handoff.py`/`sync_memory.py`。
 
 **源碼 SSOT = GitHub** `https://github.com/tsaitsangchi/augur.git`
-- 交接點(2026-07-10):`main @ b011099`(fast-forward 同步 45 commit + 加本地工具);封存 tag `local-sync-tool-20260710`。舊(2026-07-06):`treaty-v1.36-predict-isolation` 等。
-- 日常同步用 `bash sync_from_github.sh`(只 fast-forward、分岔即停手)。
+- 交接點(2026-07-10 晚):治權升 **憲章 v1.40.0**(端到端管線暢通不變式+相對機率誠實判準入憲);**e2e 主計畫定稿** `reports/augur_omniscient_e2e_master_plan_20260710.md`(機率=橫斷面相對機率轉譯、S1-S10 一條路、四接縫、§9 硬體雙軌;**拍板題 D0-D12 未簽核、實作未動工**)。本機 DB 已從 D:\database 07-09 dump 完整還原(183+22 表,備份庫 augur_pre_import_bak_20260710 留存)。admin 後台明文帳密(.env AUGUR_ADMIN_USER/PASSWORD,serve_admin_console 支援)。
+- 日常同步用 `bash sync_from_github.sh`(只 fast-forward、分岔即停手);封存 tag 序列見 git tag。
 - 新機 `git clone` 即得全部源碼(含 `src/augur/models/` 預測層——曾因 `.gitignore` 未錨定之 `models/` 遞迴誤傷而差點漏 commit,已修為 `/models/`;勿再退回)。
 
 **DB 不在 git → 靠 dump 搬**(#30):

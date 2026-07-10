@@ -6,18 +6,20 @@
    (A)**頁內瀏覽器**——點目錄樹瀏覽家目錄與 Windows 磁碟(/mnt/c…),選定即解析(引用伺服器路徑、不複製);
    (B)**原生上傳鈕**——webkitdirectory 彈作業系統資料夾視窗,上傳夾內檔案落暫存夾再餵同一入庫引擎;
    (C)打字輸入路徑(power user)。**只觸發既有本地 script、不重造管線、不繞 guard**;綁 127.0.0.1 僅本機。
-登入(RBAC P1):**DB 群組使用者優先**(填帳號→`identity.authenticate` 查 `app_user` + pbkdf2 240k、
-   session 落 `app_session`);**帳號留空＝env 緊急後門**(相容期,`AUGUR_ADMIN_PASSWORD`,防鎖死;計畫 §3.3/§3.6)。
+登入兩路:**(1) env 帳密後門**——帳號留空、或帳號等於 `AUGUR_ADMIN_USER` → 比對 `AUGUR_ADMIN_PASSWORD`
+   (**支援 .env 明文**〔本機取捨,與 .env 其餘明文祕密一致〕**或** `pbkdf2$...` 雜湊;臨時 superuser、記憶體 session)。
+   **(2) DB 群組使用者**——填其他帳號→`identity.authenticate` 查 `app_user` + pbkdf2 240k、session 落 `app_session`;
    建帳號/群組/授權走 `scripts/manage_rbac_user.py`(DB 資料驅動、零改碼 #29)。
-安全(#5 OWASP):pbkdf2_hmac 240k 雜湊(禁明文禁進 git)、session token(secrets、HttpOnly+SameSite=Strict cookie、
+安全(#5 OWASP):env 後門明文限本機(綁 127.0.0.1、.env gitignored)、DB 使用者 pbkdf2_hmac 240k 雜湊、session token(secrets、HttpOnly+SameSite=Strict cookie、
    DB 只存 sha256、fail-closed 每請求 gate)、常數時間比對、路徑 realpath 圍欄
    (限家目錄或 /mnt 下、拒 ../ 逃逸)、上傳大小上限+檔名去逃逸(防 zip bomb/traversal)、手寫 multipart(免 cgi)、
    subprocess 參數陣列 shell=False(防注入)、審計 log(誰/何時/何動作);license 仍受 DB CHECK 白名單硬擋。
 守 #5(OWASP)· #28(觸發本地引擎零 Claude usage)· #29 · 計畫 §四(admin 操作面、既有管線之 UI)。
 
 執行指令矩陣:
-  python scripts/serve_admin_console.py --set-password        # 互動設密碼 → 印 env 該設之 AUGUR_ADMIN_PASSWORD
-  AUGUR_ADMIN_PASSWORD='pbkdf2$...' python scripts/serve_admin_console.py --serve   # 起後台(127.0.0.1:8500)
+  # .env 設明文帳密(最簡):AUGUR_ADMIN_USER=admin / AUGUR_ADMIN_PASSWORD=你的密碼(明文即可)
+  python scripts/serve_admin_console.py --set-password        # (選)互動產 pbkdf2 雜湊 → 印 env 該設之 AUGUR_ADMIN_PASSWORD
+  python scripts/serve_admin_console.py --serve               # 起後台(127.0.0.1:8500;帳密取 env)
   python scripts/serve_admin_console.py                        # 無參數:印本矩陣+操作值(不起 server)
 """
 import argparse
@@ -62,6 +64,14 @@ def verify_password(pw, stored):
         return hmac.compare_digest(calc, h)                # 常數時間比對(防 timing)
     except Exception:
         return False
+
+
+def _admin_pw_ok(pw, stored):
+    """env 後門密碼比對:`pbkdf2$` 開頭走雜湊驗證;否則當 .env 明文、常數時間比對。
+    明文為本機後台(綁 127.0.0.1、單一 superuser、.env gitignored)之刻意取捨——與 .env 其餘明文祕密一致(#5)。"""
+    if stored.startswith("pbkdf2$"):
+        return verify_password(pw, stored)
+    return hmac.compare_digest(pw, stored)
 
 
 def _browse_roots():
@@ -713,7 +723,18 @@ class AdminHandler(BaseHTTPRequestHandler):
             form = parse_qs(self.rfile.read(n).decode("utf-8", "replace")) if n else {}
             pw = form.get("pw", [""])[0]
             username = (form.get("username", [""])[0]).strip()
-            if username:                          # DB 群組使用者(app_user)優先
+            env_user = os.environ.get("AUGUR_ADMIN_USER", "").strip()
+            stored = os.environ.get("AUGUR_ADMIN_PASSWORD", "")
+            # env 帳密後門(.env 明文或 pbkdf2):帳號留空、或帳號等於 AUGUR_ADMIN_USER → 走此路(臨時 superuser、記憶體 session)
+            if stored and (not username or (env_user and username == env_user)):
+                if _admin_pw_ok(pw.strip(), stored):
+                    tok = _new_session()
+                    _audit("login", f"ok env user={username or '(blank)'}")
+                    return self._send(303, "", cookie=f"sid={tok}; HttpOnly; SameSite=Strict; Path=/",
+                                      ctype="text/plain")
+                _audit("login", f"fail env user={username or '(blank)'}")
+                return self._send(200, LOGIN_HTML.format(msg="<p style=color:#b5793a>帳號或密碼錯誤</p>"))
+            if username:                          # DB 群組使用者(app_user、pbkdf2 240k)
                 u = identity.authenticate(username, pw)
                 if u:
                     tok = identity.issue_session(u["user_id"], client_note="admin")
@@ -721,14 +742,6 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(303, "", cookie=f"sid={tok}; HttpOnly; SameSite=Strict; Path=/",
                                       ctype="text/plain")
                 _audit("login", f"fail user={username}")
-                return self._send(200, LOGIN_HTML.format(msg="<p style=color:#b5793a>帳號或密碼錯誤</p>"))
-            # 帳號留空 ＝ env 緊急後門(相容期;計畫 §3.3/§3.6)——臨時 superuser 等效、記憶體 session
-            stored = os.environ.get("AUGUR_ADMIN_PASSWORD", "")
-            if stored and verify_password(pw.strip(), stored):
-                tok = _new_session()
-                _audit("login", "ok emergency(env)")
-                return self._send(303, "", cookie=f"sid={tok}; HttpOnly; SameSite=Strict; Path=/",
-                                  ctype="text/plain")
             _audit("login", "fail")
             return self._send(200, LOGIN_HTML.format(msg="<p style=color:#b5793a>帳號或密碼錯誤</p>"))
 
