@@ -99,6 +99,30 @@ def _schema_grounding(topic):
     return ("\n[真實存在的相關資料表(逐字使用、勿臆造/縮寫表名):" + ", ".join(sorted(hits)[:20]) + "]")
 
 
+def _fast_anchor(claim_text, target=None):
+    """L4 宣稱快路(2026-07-10 基準實測:quant 類 4b 轉譯錨方向/閾值寫歪→假確認 4)——
+    可機械解析的宣稱**直接產錨、零 LLM**(確定性凌駕生成;LLM 只留給快路不匹配者)。
+    回 (verifier, anchor) 或 None。"""
+    import re as _re
+    m = _re.search(r"表\s*([a-z_][a-z0-9_]*)\s*(?:至少有?|不少於|>=?)\s*([0-9,]+)\s*列", claim_text)
+    if m:
+        return "db_query", f"SELECT count(*) FROM {m.group(1)} => >= {m.group(2).replace(',', '')}"
+    m = _re.search(r"表\s*([a-z_][a-z0-9_]*)\s*(?:至多|不超過|<=?)\s*([0-9,]+)\s*列", claim_text)
+    if m:
+        return "db_query", f"SELECT count(*) FROM {m.group(1)} => <= {m.group(2).replace(',', '')}"
+    m = _re.search(r"(?:資料)?表\s*([a-z_][a-z0-9_]*)\s*存在", claim_text)
+    if m:
+        return "information_schema", m.group(1)
+    m = _re.search(r"檔案\s*([\w./-]+\.(?:py|md|json|sh))\s*.{0,6}含.{0,4}字串?\s*[「\"']([^」\"']+)[」\"']", claim_text)
+    if m:
+        return "file_grep", f"{m.group(1)}::{_re.escape(m.group(2))}"
+    if target:
+        m = _re.search(r"含.{0,4}字串?\s*[「\"']([^」\"']+)[」\"']", claim_text)
+        if m:
+            return "file_grep", f"{target}::{_re.escape(m.group(1))}"
+    return None
+
+
 def _verifier_lint(verifier, anchor, target):
     """L2 verifier 選型 lint(8b W2 場實測:程式符號誤派 information_schema→假 refuted):
     information_schema 錨查無表/欄、但錨形如程式符號且有 target → 確定性改派 file_grep(target::錨)。
@@ -150,6 +174,10 @@ def run(topic, target, lens, model, n, timeout):
             ver, anc = c["assigned_verifier"], _normalize_anchor(c["anchor"], c["assigned_verifier"], target)
             ver, anc, lint = _verifier_lint(ver, anc, target)          # L2
             prov = {"model": model, "lens": lens}
+            fp = _fast_anchor(c["claim_text"], target)                 # L4:可機械解析→確定性錨凌駕 LLM 錨
+            if fp:
+                ver, anc = fp
+                prov["fast_path"] = True
             if lint:
                 prov["lint"] = lint
             cur.execute(

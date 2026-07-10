@@ -25,7 +25,7 @@ import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 TABLES = ("deliberation_session", "deliberation_claim", "deliberation_verdict",
-          "deliberation_escalation", "deliberation_redline_trigger")
+          "deliberation_escalation", "deliberation_redline_trigger", "deliberation_benchmark")
 
 DDL = [
     ("table deliberation_session", """
@@ -96,6 +96,20 @@ DDL = [
           note       text,
           created_at timestamptz NOT NULL DEFAULT now(),
           UNIQUE (kind, pattern)
+        )"""),
+    ("table deliberation_benchmark", """
+        CREATE TABLE IF NOT EXISTS deliberation_benchmark (
+          bench_id      bigserial PRIMARY KEY,
+          run_at        timestamptz NOT NULL DEFAULT now(),
+          arm           text NOT NULL CHECK (arm IN ('single_shot','engine')),
+          model_tag     text NOT NULL,
+          task_class    text NOT NULL CHECK (task_class IN ('schema','quant','doc')),
+          n_tasks       int  NOT NULL,
+          n_correct     int  NOT NULL,          -- 裁決且判對
+          n_false_confirm int NOT NULL,         -- 假宣稱被判真(殺手指標)
+          n_abstain     int  NOT NULL,          -- 棄權(engine=escalate/undecidable;single=無此路)
+          detail        jsonb NOT NULL,          -- 逐題(claim, truth, verdict)可重現(#10)
+          git_sha       text NOT NULL
         )"""),
     ("comment deliberation_session", """
         COMMENT ON TABLE deliberation_session IS
