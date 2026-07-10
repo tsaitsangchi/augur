@@ -25,7 +25,7 @@ import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
 TABLES = ("deliberation_session", "deliberation_claim", "deliberation_verdict",
-          "deliberation_escalation", "deliberation_redline_trigger", "deliberation_benchmark")
+          "deliberation_escalation", "deliberation_redline_trigger", "deliberation_benchmark", "deliberation_lens")
 
 DDL = [
     ("table deliberation_session", """
@@ -111,6 +111,19 @@ DDL = [
           detail        jsonb NOT NULL,          -- 逐題(claim, truth, verdict)可重現(#10)
           git_sha       text NOT NULL
         )"""),
+    ("table deliberation_lens", """
+        CREATE TABLE IF NOT EXISTS deliberation_lens (
+          lens_key    text PRIMARY KEY,
+          prompt      text NOT NULL,
+          enabled     boolean NOT NULL DEFAULT true,
+          created_at  timestamptz NOT NULL DEFAULT now()
+        )"""),
+    ("seed lens", """
+        INSERT INTO deliberation_lens (lens_key, prompt) VALUES
+          ('skeptic','你是對抗性懷疑者:假設題目中的宣稱可能是錯的,提出能「證偽」它的檢查點。'),
+          ('complete','你是完整性稽核者:找出題目範圍內「應存在而可能缺漏」的東西,逐一提出存在性檢查。'),
+          ('doctrine','你是治權稽核者:檢查是否違反 anti-leakage/隔離/誠實紀律,提出可機驗的違規探測。')
+        ON CONFLICT (lens_key) DO NOTHING"""),
     ("comment deliberation_session", """
         COMMENT ON TABLE deliberation_session IS
         '本地審議引擎工作帳(與 knowledge_* 嚴格分離;審議產物非知識、禁 AI 生成入庫不變式無涉);status=confirmed 唯確定性 verdict 可寫(機械鎖在 engine 層強制)'"""),

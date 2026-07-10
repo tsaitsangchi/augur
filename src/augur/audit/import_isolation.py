@@ -39,9 +39,13 @@ CHAT_LITERALS = ("chat_session", "chat_message", "chat_history", "append_message
 # 禁被預測管線【或 augur.core / 素養層 knowledge/philosophy writer】字面觸及——絕不成 citation、
 # 不入 knowledge_*/feature_values、不進預測 7 package(計畫 §③界線-A)。
 DISTILL_LITERALS = ("advisor_distill_question", "advisor_distill_context", "advisor_distill_")
+# 審議引擎(本地 ultracode)工作帳:qwen 提的 claim/裁決是**審議行為樣本、非真兆**(界線-A 同構);
+# 禁被預測管線/core/素養層寫入者字面觸及——絕不成 citation、不入 knowledge_*/feature_values、不進預測 7 package。
+DELIB_LITERALS = ("deliberation_session", "deliberation_claim", "deliberation_verdict",
+                  "deliberation_escalation", "deliberation_benchmark", "deliberation_lens", "deliberation_")
 # grep-lint 面:預測管線 + core 皆禁字面引用 RBAC/chat(擋不 import 但字串旁路)
 SCAN_STR = PIPELINE + ("core",)
-# 蒸餾表禁被觸及之範圍=預測管線 + core + 素養層寫入者(蒸餾產物零回流真兆庫,界線-A)
+# 蒸餾/審議表禁被觸及之範圍=預測管線 + core + 素養層寫入者(產物零回流真兆庫,界線-A)
 SCAN_DISTILL = PIPELINE + ("core", "knowledge", "philosophy")
 
 # 本檔:<root>/src/augur/audit/import_isolation.py → parents[1] = <root>/src/augur、parents[3] = <root>
@@ -164,6 +168,7 @@ def check_isolation() -> list[str]:
         + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_STR], RBAC_LITERALS, "rbac")
         + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_STR], CHAT_LITERALS, "chat")
         + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_DISTILL], DISTILL_LITERALS, "distill")
+        + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_DISTILL], DELIB_LITERALS, "deliberation")
         + _placement_violations()
         + _scripts_predict_leak_violations()
     )

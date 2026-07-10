@@ -111,7 +111,7 @@ def arm_engine(tasks, model, timeout):
     回 {idx: True/False/None(棄權)}。"""
     from augur.advisor.ollama import make_structured_llm_fn
     sys.path.insert(0, str(REPO / "scripts"))
-    from deliberate import _fast_anchor, _normalize_anchor, _schema_grounding, _verifier_lint   # #12 同一支,零複製
+    from augur.deliberation.anchors import fast_anchor as _fast_anchor, normalize_anchor as _normalize_anchor, schema_grounding as _schema_grounding, verifier_lint as _verifier_lint   # #12 單一住所
     fn = make_structured_llm_fn(_ANCHOR_SCHEMA, model=model, timeout=timeout, retries=1,
                                 options={"temperature": 0, "num_predict": 300})
     out, meta = {}, {}
