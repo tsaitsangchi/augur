@@ -305,6 +305,33 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
                         "JOIN knowledge_sentence s USING (sent_id) WHERE s.itext_id IS NOT NULL LIMIT 1")
             if cur.fetchone():   # 零向量優先:items 側無嵌入=不載模型(#28)
                 qv = _query_vec(query)
+                # P4 factory 路(v1.40.0 接縫 DB 化):config=qdrant_* 時 ANN 走外部索引(只回 id+distance),
+                # 內容/CLEAN/RBAC 一律回 PG JOIN(雙庫鐵則;外部 id 過不了 cfrag 即被丟=零洩漏面);
+                # 外部索引任何故障 → 自動降級 pgvector(D6 fallback 常備)、log 一行不 raise。
+                try:
+                    from augur.knowledge.vectorindex import make_index
+                    _idx = make_index("sentence_items")
+                except Exception as e:
+                    print(f"[vectorstore] factory 降級 pgvector:{type(e).__name__}: {str(e)[:80]}")
+                    _idx = None
+                if _idx is not None:
+                    try:
+                        from augur.knowledge.vectorindex import CollectionSpec
+                        _idx.ensure_collection(CollectionSpec(
+                            name=embedspec.collection_name("sentence", "items"), dim=embedspec.dim_for()))
+                        _vec = [float(v) for v in qv.strip("[]").split(",")]
+                        _hits = _idx.search(_vec, max(need * 3, 12))
+                        _keep = [int(h[0]) for h in _hits if int(h[0]) not in {c.sent_id for c in out}]
+                        if _keep:
+                            _rows = _item_citations(cur, f"s.sent_id = ANY(%s) AND {cfrag}{extra}",
+                                                    (_keep, *cparams, *extra_params), "s.sent_id",
+                                                    {i: 0.0 for i in _keep}, "ann")
+                            _order = {sid: n for n, sid in enumerate(_keep)}
+                            _rows.sort(key=lambda c: _order.get(c.sent_id, 9e9))
+                            out.extend(_rows[:need])
+                        return out
+                    except Exception as e:                  # server 掛 → 降級走下方 pgvector SQL
+                        print(f"[vectorstore] qdrant 故障降級 pgvector:{type(e).__name__}: {str(e)[:80]}")
                 seen = [c.sent_id for c in out]
                 dedup = " AND s.sent_id != ALL(%s)" if seen else ""
                 cur.execute(f"""SELECT {_ITEM_COLS}, 1 - (e.embedding <=> %s::vector) AS score

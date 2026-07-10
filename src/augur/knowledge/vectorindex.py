@@ -209,8 +209,12 @@ class QdrantIndex(VectorIndex):
 
     def search(self, vec, k, filters=None):
         name = self._require_spec().name
+        from qdrant_client.models import SearchParams
+        # hnsw_ef=操作值(#27;2026-07-10 影子實測:預設 ef 對 pgvector 精確參照 mean 0.858<0.90;
+        # runtime 與影子同參=量測即線上行為)
         res = self._client.query_points(name, query=list(map(float, vec)), limit=int(k),
                                         query_filter=_qdrant_filter(filters),
+                                        search_params=SearchParams(hnsw_ef=256),
                                         with_payload=False, with_vectors=False)
         return [(int(p.id), float(p.score)) for p in res.points]
 
@@ -301,3 +305,35 @@ def _filter_expr(filters):
         else:
             parts.append(f"{field} == {val}")
     return " and ".join(parts)
+
+
+# ── config-driven factory(e2e 計畫 P4;憲章 v1.40.0 接縫 DB 化)──
+
+def make_index(scope):
+    """讀 knowledge_vectorstore_config 選 serving 後端(切換/退回=UPDATE 一列,#29b):
+    backend='pgvector' → None(現行 SQL 內建 ANN 路=SSOT 直查);
+    'qdrant_server'   → QdrantIndex(url=endpoint);'qdrant_embedded' → QdrantIndex(path=endpoint)。
+    **世代機械斷言(v1.40.0)**:config.embed_model/dims 必須==embedspec 現行世代,不一致 raise
+    (fail-loud 拒服務,防混世代索引靜默污染檢索)。config 缺列→None(=pgvector,保守)。"""
+    from augur.core import db as _db
+    from augur.knowledge import embedspec as _es
+    with _db.connect() as conn, _db.transaction(conn) as cur:
+        cur.execute("SELECT to_regclass('knowledge_vectorstore_config')")
+        if not cur.fetchone()[0]:
+            return None
+        cur.execute("SELECT backend, endpoint, embed_model, dims, fallback "
+                    "FROM knowledge_vectorstore_config WHERE scope=%s", (scope,))
+        row = cur.fetchone()
+    if not row:
+        return None
+    backend, endpoint, model, dims, _fb = row
+    if backend == "pgvector":
+        return None
+    if model != _es.MODEL_TAG or int(dims) != _es.dim_for():
+        raise RuntimeError(f"vectorstore config 世代不一致(scope={scope}):config=({model},{dims}) "
+                           f"≠ embedspec=({_es.MODEL_TAG},{_es.dim_for()})——fail-loud 拒服務(v1.40.0)")
+    if backend == "qdrant_server":
+        return QdrantIndex(url=endpoint or "http://127.0.0.1:6333")
+    if backend == "qdrant_embedded":
+        return QdrantIndex(path=endpoint)
+    raise RuntimeError(f"未知 backend {backend!r}")
