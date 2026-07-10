@@ -371,6 +371,8 @@ nohup python scripts/refresh_knowledge_pipeline.py --domain finance > logs/refre
 
 ### 6.11 分階段 P1–P8(驗收+拍板點;每階段完成逐段呈用戶過目 #19)
 
+> **執行狀態(2026-07-10 晚,commit 24e87a3)**:P1 ✅(兩 migrate 綠+G3 焊+隔離綠)| P2 ✅(42,456 列 OOS+D4 重寫,verify 綠)| P3 ◕ 3/4(G6/W2/D7 done;缺 §6.6 煙測)| P5 ✅(回歸器 exit 0)| P6 ✅(4 校準器 purge_verified+1,376 機率+picks 附欄四標記硬綁)| P4/P7/P8 未動。
+
 | P | 內容 | 驗收(機械) | 依賴/拍板 |
 |---|---|---|---|
 | **P1** | DDL+閘先行:§6.1/§6.8 migrate --run;import_isolation 複驗;G3/G6 焊點複驗 | 兩 migrate `--verify` 綠;`check_isolation()==[]` | D0 簽核後動工 |

@@ -55,7 +55,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 - **向量庫**：生產 = **pgvector（在 DB dump 內、跟著 DB 走）**;`~/qdrant_local`（194MB 休眠驗證產物）= **可從 DB 用 `export_qdrant_index.py` 重建、不需跨機搬**。
 - **build 產物**（可重生勿 commit):`models_artifacts/`（.joblib、train_ranker 重生）、`data/`、`/models/`。⚠ `.gitignore` 模型輸出規則錨定 `/models/`（根限定）——**勿改回 `models/`**（會遞迴誤傷 `src/augur/models/` 源）。
 
-## 4. 進度快照（2026-07-09）
+## 4. 進度快照（2026-07-09;**2026-07-10 增補**:憲章 v1.40.0(相對機率判準+管線暢通不變式)、e2e 主計畫 D0-D12 簽核且 P1/P2/P5/P6 已執行(機率層上線:OOS 42,456→校準器 4→prediction_probability 1,376→picks 附欄 P30/P60/P120+四標記硬綁)、本地審議引擎 MVP(deliberation pkg+4 oracle+機械鎖,實戰假確認 0)、換機工具鏈+memory 隨 repo;詳 git log 與 reports/*20260710*）
 
 **架構（讀建構理解 v2 全貌）**:augur = **兩個半系統**,只被 **PostgreSQL(message bus)+ 一個唯讀 PredictionPayload** 接起來;import_isolation AST 閘 + augur_predict DB role 雙閘機械強制「素養層不進預測管線」（本輪實跑 exit 0）。
 

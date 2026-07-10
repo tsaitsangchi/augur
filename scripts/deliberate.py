@@ -73,9 +73,49 @@ def _normalize_anchor(anchor, verifier, target=None):
     prefix = verifier + ":"
     if a.lower().startswith(prefix.lower()):
         a = a[len(prefix):].strip()
-    if verifier == "file_grep" and "::" not in a and target:
+    # L3(2026-07-10 commit 終驗實測):anchor 本身像路徑(含 '/')時不補 target:: 前綴——
+    # 模型意在 grep 另一檔,誤蓋=把 path 當 regex 必 refuted;留原樣走契約(無 '::' → undecidable 誠實升級)
+    if verifier == "file_grep" and "::" not in a and target and "/" not in a:
         a = f"{target}::{a}"
     return a
+
+
+def _schema_grounding(topic):
+    """L1 schema-grounding(session delib_9dfaf4f826/自身落地場實測:錯表名=refuted 主因):
+    從題目抽 snake_case 詞 → information_schema LIKE 實查 → 注入「真實存在的表」清單(確定性、零臆造)。"""
+    import re as _re
+    from augur.core import db as _db
+    tokens = {t for t in _re.findall(r"[a-z][a-z0-9_]{3,}", topic.lower())}
+    if not tokens:
+        return ""
+    hits = set()
+    with _db.connect() as conn, _db.transaction(conn) as cur:
+        for t in list(tokens)[:12]:
+            cur.execute("SELECT table_name FROM information_schema.tables "
+                        "WHERE table_schema='public' AND table_name LIKE %s LIMIT 6", (f"%{t}%",))
+            hits.update(r[0] for r in cur.fetchall())
+    if not hits:
+        return ""
+    return ("\n[真實存在的相關資料表(逐字使用、勿臆造/縮寫表名):" + ", ".join(sorted(hits)[:20]) + "]")
+
+
+def _verifier_lint(verifier, anchor, target):
+    """L2 verifier 選型 lint(8b W2 場實測:程式符號誤派 information_schema→假 refuted):
+    information_schema 錨查無表/欄、但錨形如程式符號且有 target → 確定性改派 file_grep(target::錨)。
+    只做「查無表+有更合理去處」之改派;改派記於 provenance 由呼叫端落帳。回 (verifier, anchor, lint_note)。"""
+    import re as _re
+    from augur.core import db as _db
+    if verifier != "information_schema" or not target:
+        return verifier, anchor, None
+    parts = anchor.strip().split(".")
+    if not all(_re.fullmatch(r"[a-z_][a-z0-9_]*", p or "") for p in parts):
+        return verifier, anchor, None
+    with _db.connect() as conn, _db.transaction(conn) as cur:
+        cur.execute("SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name=%s",
+                    (parts[0],))
+        if cur.fetchone()[0]:
+            return verifier, anchor, None          # 表真存在 → 原派正確
+    return "file_grep", f"{target}::{parts[0]}", f"lint:information_schema 查無表 {parts[0]!r}→改派 file_grep"
 
 
 def _propose(topic, target, lens, model, n, timeout):
@@ -88,7 +128,7 @@ def _propose(topic, target, lens, model, n, timeout):
         text = p.read_text(encoding="utf-8", errors="replace")
         tb = f"目標檔案 {target}(前 6000 字):\n---\n{text[:6000]}\n---"
     prompt = CONTRACT.format(n=n, lens=LENS_PROMPTS.get(lens, LENS_PROMPTS["skeptic"]),
-                             topic=topic, target_block=tb)
+                             topic=topic, target_block=tb) + _schema_grounding(topic)   # L1
     fn = make_structured_llm_fn(CLAIM_SCHEMA, model=model, timeout=timeout, retries=1,
                                 options={"temperature": 0, "num_predict": 1600})
     out = fn(prompt)
@@ -107,12 +147,15 @@ def run(topic, target, lens, model, n, timeout):
                     "VALUES (%s,%s,%s,%s)", (sid, topic, target, model))
         ids = []
         for c in claims:
+            ver, anc = c["assigned_verifier"], _normalize_anchor(c["anchor"], c["assigned_verifier"], target)
+            ver, anc, lint = _verifier_lint(ver, anc, target)          # L2
+            prov = {"model": model, "lens": lens}
+            if lint:
+                prov["lint"] = lint
             cur.execute(
                 "INSERT INTO deliberation_claim (session_id,perspective,category,claim_text,anchor,"
                 "assigned_verifier,provenance) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING claim_id",
-                (sid, lens, c["category"], c["claim_text"],
-                 _normalize_anchor(c["anchor"], c["assigned_verifier"], target) or "(空)",
-                 c["assigned_verifier"], json.dumps({"model": model, "lens": lens})))
+                (sid, lens, c["category"], c["claim_text"], anc or "(空)", ver, json.dumps(prov)))
             ids.append(cur.fetchone()[0])
         conn.commit()
     print(f"session={sid} | {len(ids)} claims(model={model} lens={lens},{time.time()-t0:.0f}s)\n")
