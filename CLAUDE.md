@@ -1,12 +1,12 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.22
+# CLAUDE.md — Augur AI 協作工具規則 v1.23
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.5.0.md` + `docs/原則精華_v1.8.0.md` + 憲章為準；
 本檔只管「**如何用 AI 工具編輯本專案**」這層短半衰期協作規則。
 **語言**：與用戶**所有對話一律繁體中文**（程式碼/識別碼/英文專名可保留原文）。
-**條號導讀**：條號按**新增順序**編、按**章節分類**歸區，故非連續——一 `#1-8`｜二 `#9-12`｜三 `#13-20, 29`｜四 `#21-25, 28, 30`｜五 `#26-27`。
+**條號導讀**：條號按**新增順序**編、按**章節分類**歸區，故非連續——一 `#1-8`｜二 `#9-12`｜三 `#13-20, 29`｜四 `#21-25, 28, 30, 31`｜五 `#26-27`。
 
-> **條號導讀**：條號按「**新增順序**」編、按「**分類**」歸章，故**非連續**——一 `#1-8`（通用）· 二 `#9-12`（資料真實）· 三 `#13-20, 29`（編輯規則）· 四 `#21-25, 28, 30`（long-running）· 五 `#26-27`（協作模式）。
+> **條號導讀**：條號按「**新增順序**」編、按「**分類**」歸章，故**非連續**——一 `#1-8`（通用）· 二 `#9-12`（資料真實）· 三 `#13-20, 29`（編輯規則）· 四 `#21-25, 28, 30, 31`（long-running）· 五 `#26-27`（協作模式）。
 
 ---
 
@@ -93,6 +93,13 @@
 30. **DB 備份/遷移慣例(用戶 directive 2026-07-03 入憲;實測依據)**:
     - **平行 dump 為預設**:`pg_dump -Fd -j 4 -Z1 -d augur -f <WSL ext4 目錄>` → 再 `cp -r` 到 Windows 碟——**先寫本地 ext4、後搬 drvfs**(drvfs 寫入慢);還原端 `pg_restore -j 4` 同樣平行。實測對照:單線程 `-Fc -Z6` 44GB 庫 ≈ 1h+(瓶頸=單核壓縮 65% CPU、~140MB/分),平行 4 工人+輕壓估 **15-20 分(3-4×)**;新安全值依 #27 重覆實證後回填本條。
     - **dump 期間禁 DDL(鎖風暴教訓 2026-07-03 實證)**:pg_dump 持 ACCESS SHARE 鎖,`ALTER TABLE` 要 ACCESS EXCLUSIVE 被擋;且 **timeout 殺掉 client 後 postgres 後端仍掛鎖佇列**,其等待中的 EXCLUSIVE 請求會擋住後續一切查詢(連 UPDATE/SELECT 都排隊)→ 症狀=全庫查詢突然 hang;處置=查 `pg_stat_activity` 找 `state=active, wait_event_type=Lock` 之殘留後端、`pg_terminate_backend(pid)` 清除。DDL 一律排在 dump 完成後;UPDATE/INSERT(ROW EXCLUSIVE)與 dump 相容可照跑。
+
+31. **換機接續慣例(用戶 directive 2026-07-10 入憲;本地優先、AI 不代勞人工前置)**:當用戶指示「**由新電腦接續此專案 / 接續 augur**」時,**以 repo 內本地程式為主**執行前置,不繞道 Claude 重算可本地化之事(#28)——
+    - **一鍵**:`bash resume_project.sh`(串:檢 `.env` → `pip install -e .` → `bash sync_from_github.sh` → `python3 sync_memory.py restore`〔還原 memory〕 → DB 偵測 → import smoke;加 `--with-db` 連 DB import)。亦可分步跑各工具。
+    - **接續 SSOT = repo `HANDOFF.md`**(新機第一份讀它);建構全貌 = `reports/augur_construction_understanding_<最新日>.md`;活 memory 機器本地、空到 `sync_memory.py restore` 從 `handoff_memory/` 還原才有(故 MEMORY.md 索引在新機初始為空——**唯一自動載入之接續指引即本條**)。
+    - **DB import**:`bash import_database.sh`(自動判 dump 格式〔tar-含-Fd / -Fd 目錄 / -Fc 單檔〕→ 建庫 → 平行還原 → `setup_predict_role` → smoke;`--migrate` 補冪等 DDL;`--dry-run` 只驗不動)。**取代既有 augur 庫屬破壞性 → 須 `--force` 明示(#6)**;新機庫不存在則直接建。
+    - **兩個無法自動化之人工前置(AI 不代勞、須用戶做)**:① `.env` 重建(含密鑰、不在 git);② dump 實體搬到本機(6.6GB、不在 git、預設搜 `~/db_dumps//mnt/d/database//mnt/c/AI`);二者到位前 DB import 無法跑。
+    - **五支本地工具皆零 Claude usage**:`resume_project.sh`(一鍵編排)/`sync_from_github.sh`(源碼同步)/`sync_memory.py`(memory ⇄ repo)/`import_database.sh`(DB 匯入)/`read_handoff.py`(讀接續狀態)——#28 本地優先之落地。
 
 ## 五、協作運作模式
 
