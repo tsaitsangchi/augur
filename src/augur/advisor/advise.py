@@ -25,10 +25,56 @@ def _render_picks_table(payload, top=15):
     picks = list(payload.picks)[:top]
     if not picks:
         return ""
-    lines = [f"{p.rank}. {p.symbol} {p.name}(score {p.score:.4f})" for p in picks]
+    # P6 相對機率附欄(payload.probs 唯讀;p 2dp 渲染=4dp 白名單之顯示形;判死 horizon 帶標籤硬綁 D2)
+    pmap = {}
+    for sym, h, pv, ev, cd in getattr(payload, "probs", ()):
+        pmap.setdefault(sym, {})[h] = (pv, ev)
+    def _prow(p):
+        m = pmap.get(p.symbol, {})
+        if not m:
+            return ""
+        seg = []
+        for h, tag in ((20, "P30"), (40, "P60"), (120, "P120")):
+            if h in m:
+                pv, ev = m[h]
+                seg.append(f"{tag} {pv:.2f}" + ("(dead)" if ev == "dead" else ""))
+        return(" | " + " ".join(seg)) if seg else ""
+    lines = [f"{p.rank}. {p.symbol} {p.name}(score {p.score:.4f}){_prow(p)}" for p in picks]
     more = f"(共 {len(payload.picks)} 檔、列前 {len(picks)})" if len(payload.picks) > len(picks) else ""
-    return (f"根據模型 as-of {payload.as_of}({payload.model} H{payload.horizon})之相對強弱排序,"
-            f"看好 top {len(picks)}{more}:\n" + "\n".join(lines))
+    out = (f"根據模型 as-of {payload.as_of}({payload.model} H{payload.horizon})之相對強弱排序,"
+           f"看好 top {len(picks)}{more}:\n" + "\n".join(lines))
+    note = getattr(payload, "prob_note", "")
+    if pmap and note:      # §1.1 四誠實標記與機率同段硬綁、不可分離(v1.40.0;缺一=回歸 FAIL)
+        out += "\n── 相對機率附欄說明(與上列數字不可分離)──\n" + note
+    return out
+
+
+def _concept_links(lex_terms, language="zh", scope=None):
+    """W2 接線(e2e 計畫 P3;G6 收窄後):lex_terms 兩兩查 term_affinity 真統計 + 共現逐字證據**數**。
+    回 [{a,b,npmi,basis_n,n_evidence}](零 AI 生成:npmi/basis_n=S7 封閉式統計;證據句本身不進 prompt、
+    僅計數——逐字句呈現屬 W7 後續);scope=(is_super, allowed, user_id) 或 None(fail-closed 只計公版側)。"""
+    from augur.knowledge.concept_graph import related_terms, cooccurrence_evidence
+    is_super, allowed, uid = (scope if scope else (False, None, None))
+    out = []
+    terms = [t for t in lex_terms if t][:4]                  # 上限防組合爆炸
+    for i, a in enumerate(terms):
+        rel = {b: (v, n) for b, v, n in related_terms(a, language=language)}
+        for b in terms[i + 1:]:
+            if b in rel:
+                ev = cooccurrence_evidence(a, b, language=language, limit=3,
+                                           is_super=is_super, allowed_domains=allowed, owner_user_id=uid)
+                out.append({"a": a, "b": b, "npmi": rel[b][0], "basis_n": rel[b][1], "n_evidence": len(ev)})
+    return out
+
+
+def _concept_block(links):
+    """概念關聯之 prompt 參考塊(確定性、真統計;明示 LLM 不得複述數值→guard 數字白名單不受擾)。"""
+    if not links:
+        return ""
+    lines = [f"- 「{l['a']}」×「{l['b']}」:共現統計關聯(npmi {l['npmi']:.2f}、支持句 {l['basis_n']}、可溯源共現例 {l['n_evidence']})"
+             for l in links]
+    return ("\n\n[思想關聯參考(語料共現真統計,零 AI 生成;僅供理解脈絡——回答中不得複述本段數值)]\n"
+            + "\n".join(lines))
 
 
 def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_fn=None, prompt_fn=None,
@@ -108,6 +154,10 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
         return {"response": resp, "guard": verdict,
                 "citations": [], "lex_entries": [], "prompt": None}
     prompt = (prompt_fn or build_prompt)(query, payload, citations, lex_entries)
+    concept_links = []
+    if prompt_fn is None and lex_entries:                    # W2:主路徑+有定義詞才接(Mode B 不套,同其餘閘)
+        concept_links = _concept_links(lex_terms, scope=scope)
+        prompt += _concept_block(concept_links)
     response = llm_fn(prompt)
     if isinstance(payload, KnowledgePayload):
         # P8 域條款(已拍板 2026-07-04):雙源=payload.numbers() ∪ 本回合檢索真兆數字集
@@ -126,4 +176,5 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     if has_picks:      # D4b 確定性 picks 注入:picks 由 payload ground truth 排版(不經弱 LLM 幻覺)+ LLM caveat 敘述
         response = _render_picks_table(payload) + "\n\n---\n" + response
     return {"response": response, "guard": verdict,
-            "citations": citations, "lex_entries": lex_entries, "prompt": prompt}
+            "citations": citations, "lex_entries": lex_entries, "prompt": prompt,
+            "concept_links": concept_links}

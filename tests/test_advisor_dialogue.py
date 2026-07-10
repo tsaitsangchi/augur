@@ -158,7 +158,8 @@ def _completion(monkeypatch, llm_text, verify_result=True):
 def test_chat_completion_guard_pass_has_verdict_tail(monkeypatch):
     c = _completion(monkeypatch, "(mock)乾淨回覆,零數字零引號。")
     content = c["choices"][0]["message"]["content"]
-    assert content.startswith("(mock)乾淨回覆")
+    # D4b 確定性 picks 注入後,回覆本體前可有 ground-truth picks 段 → 斷言 mock 文在內文而非開頭
+    assert "(mock)乾淨回覆" in content
     assert "[augur-guard] pass=true" in content
     assert c["augur_guard"]["pass"] is True
 

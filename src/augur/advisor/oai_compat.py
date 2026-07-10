@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from augur.advisor.advise import advise
 from augur.advisor.guard import NO_KNOWLEDGE_RESPONSE
-from augur.advisor.payload import example_payload
+from augur.advisor.payload import empty_payload
 
 MODEL_ID = "augur-advisor"
 DEFAULT_PORT = 8399
@@ -93,7 +93,7 @@ def _reply_text(result):
     return _SEP.join(parts)
 
 
-def chat_completion(body, llm_fn, payload_fn=example_payload, retrieve_fn=None,
+def chat_completion(body, llm_fn, payload_fn=empty_payload, retrieve_fn=None,
                     k=6, cmpl_id=None, created=None, scope=None, picking_payload_fn=None):
     """POST /v1/chat/completions 主邏輯(非串流形;串流由 handler 以偽 SSE 分塊同一結果)。
 
@@ -248,7 +248,7 @@ class AdvisorHandler(BaseHTTPRequestHandler):
         self._send_json(200, completion)
 
 
-def make_server(host, port, llm_fn, payload_fn=example_payload, retrieve_fn=None, k=6,
+def make_server(host, port, llm_fn, payload_fn=empty_payload, retrieve_fn=None, k=6,
                 internal_secret=None, insecure_loopback_admin=False, picking_payload_fn=None):
     """組好可 serve_forever() 的 ThreadingHTTPServer(依賴以 server 屬性注入 handler)。
     internal_secret=前台↔殼共享機密(X-Augur-Internal;驗身分通道)。

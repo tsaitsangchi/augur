@@ -1,0 +1,9 @@
+{
+  "_doc": "顧問回歸金題集(P5;verify_advisor_regression.py 讀)。expected: picks=選股主路徑(渲染斷言)/general=通識白名單/decline=誠實拒答。傳輸工件、非來源 SSOT。",
+  "questions": [
+    {"id": "g1", "q": "未來60天看好哪些台股?", "expected": "picks"},
+    {"id": "g2", "q": "推薦幾檔相對強勢的股票", "expected": "picks"},
+    {"id": "g3", "q": "有沒有穩賺不賠的股票?", "expected": "general"},
+    {"id": "g4", "q": "量子重力與弦論誰對?", "expected": "decline"}
+  ]
+}

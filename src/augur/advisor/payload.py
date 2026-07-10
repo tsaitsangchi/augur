@@ -23,6 +23,9 @@ class PredictionPayload:
     model: str               # 產生預測的真實模型(如 "F3 as-of Ridge")
     picks: tuple             # (StockPick, ...) 橫斷面 top-N
     validation: dict         # {rank_ic, sharpe, note, ...} 誠實驗證標籤(#15)
+    probs: tuple = ()        # P6:((symbol, horizon, p_beat_median, econ_verdict, calendar_days), ...)
+                             # 相對機率附欄(prediction_probability 唯讀;口徑=P(勝過同儕中位數|as-of,H),v1.40.0)
+    prob_note: str = ""      # §1.1 四誠實標記固定用語(確定性渲染、與機率數字硬綁不可分離)
 
     def numbers(self):
         """回 payload 內所有真實數字(供 guard:顧問輸出的預測數字必須 ∈ 此集合、不得編造)。"""
@@ -30,6 +33,9 @@ class PredictionPayload:
         for p in self.picks:
             ns.add(round(p.score, 4))
             ns.add(float(p.rank))
+        for _, _, pv, _, cd in self.probs:      # A-10:機率值(4dp)與日曆日近似納 guard 白名單
+            ns.add(round(float(pv), 4))
+            ns.add(float(cd))
         for v in self.validation.values():
             if isinstance(v, (int, float)):
                 ns.add(round(float(v), 4))
@@ -99,6 +105,8 @@ _VALIDATION_LEDGER_KEYS = (
 )
 
 _COST_PCT = 0.585   # 淨值假設之單邊交易成本(方法論 SSOT,plan §5.3/line 200;net_* 已扣此成本)
+FAMILY_NOTE_A36 = ("機率為同族近似值:校準器 fit 於逐折 refit 之同族(RankRidge)模型、serve 套於全樣本 "
+                   "artifact 之分位——同 family、非同一模型")   # §1.1 標記④(與 calibrator.family_note 同錨)
 
 
 def _read_validation(cur, horizon):
@@ -196,6 +204,27 @@ def build_prediction_payload(as_of=None, horizon=60, top_n=None):
                       for sid, rk, sc in rows)
         vals, missing = _read_validation(cur, horizon)
         hf = _read_harness_floor(cur)   # harness deflated 地板 + 再驗證裁決(#15 最誠實地板)
+        # P6 相對機率附欄(prediction_probability 唯讀;僅 picks 內個股;H20/H40/H120 附欄,H60=主欄不重列)
+        probs, prob_note = (), ""
+        if sids:
+            cur.execute("SELECT to_regclass('prediction_probability')")
+            if cur.fetchone()[0]:
+                cur.execute("SELECT stock_id, horizon, p_beat_median, econ_verdict, calendar_days "
+                            "FROM prediction_probability WHERE panel_date=%s AND stock_id=ANY(%s) "
+                            "AND horizon IN (20,40,120) ORDER BY stock_id, horizon", (as_of, sids))
+                probs = tuple((str(s), int(h), float(pv), ev, int(cd)) for s, h, pv, ev, cd in cur.fetchall())
+                if probs:
+                    cur.execute("SELECT DISTINCT horizon, n_fit_folds FROM probability_calibrator "
+                                "WHERE horizon IN (20,40,120) ORDER BY horizon")
+                    folds = {h: n for h, n in cur.fetchall()}
+                    # §1.1 四誠實標記固定用語(①口徑+as-of+逐折n ②日曆偏差 ③判死 ④同族;確定性、與數字硬綁)
+                    prob_note = (
+                        "P=在同儕中勝過中位數之機率(as-of %s、橫斷面相對、非「會漲的機率」);"
+                        "逐折 n=%s,n 小屬 exploratory。"
+                        "P30←H20 ≈29 日曆日(-3%%)·經濟裁決 dead(判死,無經濟 alpha);"
+                        "P60←H40 ≈58 日曆日(-3%%)·thin_unestablished;"
+                        "P120←H120 ≈174 日曆日(+45%% 偏差,明示)·thin_unestablished。"
+                        "%s。" % (as_of, "/".join(str(folds.get(h, "?")) for h in (20, 40, 120)), FAMILY_NOTE_A36))
 
     # caveat 用語避開 guard _FUTURE_LEAK 禁詞(保證/必漲…)——否則 LLM 忠實轉述 caveat 反被機械閘攔、
     # 整則作廢、誠實 caveat 反而呈現不出來(#15:誠實揭露不得被自身禁詞語卡住)。
@@ -228,4 +257,4 @@ def build_prediction_payload(as_of=None, horizon=60, top_n=None):
                                 "horizon=%d,model=B2_ridge/ridge" % horizon)
     return PredictionPayload(
         as_of=str(as_of), horizon=horizon, model="RankRidge H%d LO(部署主投組)" % horizon,
-        picks=picks, validation=validation)
+        picks=picks, validation=validation, probs=probs, prob_note=prob_note)

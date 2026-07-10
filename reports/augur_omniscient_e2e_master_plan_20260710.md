@@ -242,7 +242,7 @@ CREATE INDEX IF NOT EXISTS ix_pred_prob_panel_h ON prediction_probability (panel
 --   PRIMARY KEY (panel_date, model_id, stock_id));  -- + ix_pred_panel_model
 ```
 
-**D4 語意修法**:現況 H60 部署列 in_portfolio=true、H20/H40/H120 全 false(「候選」不可讀,A-9)。修法=in_portfolio 語意統一為「**該 horizon top-frac 候選組合成員**」(非「已部署」;部署事實由 payload `_DEPLOY_HORIZON` 讀 registry 獨立承載)。**重寫程式規劃**:載具=`predict_asof.py --candidate --rewrite-all`(§6.4),對四 horizon 既有列 per-(panel_date,model_id) DELETE+INSERT 冪等重寫(投組建構複用 `portfolio.build_long_portfolio`,#12 零雙軌)。**驗收 SQL**:每 (panel_date,model_id) 之 in_portfolio 數=⌈top_frac×宇宙⌉、Σweight=1、rank 連續無洞。
+**D4 語意修法**:現況 H60 部署列 in_portfolio=true、H20/H40/H120 全 false(「候選」不可讀,A-9)。修法=in_portfolio 語意統一為「**該 horizon top-frac 候選組合成員**」(非「已部署」;部署事實由 payload `_DEPLOY_HORIZON` 讀 registry 獨立承載)。**重寫程式規劃**:載具=`predict_asof.py --candidate --rewrite-all`(§6.4),對四 horizon 既有列 per-(panel_date,model_id) DELETE+INSERT 冪等重寫(投組建構複用 `portfolio.build_long_portfolio`,#12 零雙軌)。**驗收 SQL**:每 (panel_date,model_id) 之 in_portfolio 數=top_frac×宇宙之 **floor**(P2 實測修正 2026-07-10:共用 fn `portfolio.build_long_portfolio` 為 int 截斷語意,344×0.1→34;#12 共用 fn 為權威,原 ⌈⌉ 式差 1)、Σweight=1、rank 連續無洞。
 
 ### 5.6 `vectorstore_shadow_eval`(新;D6 影子評測落表,住 `migrate_vectorstore_config_ddl.py`)
 
@@ -485,6 +485,8 @@ nohup python scripts/refresh_knowledge_pipeline.py --domain finance > logs/refre
 ---
 
 ## 附:拍板題總表(執行前用戶逐題簽核)
+
+> **✅ 拍板記錄:2026-07-10 用戶簽核「D0-D12 依建議簽核」**——全數依「建議」欄通過(D10 依其建議=屆時三選一列點不默認、D11 依其建議=遇異維換模時再拍板)。實作自 P1 起動工,每階段完成逐段呈過目(#19)。
 
 | # | 題 | 建議 |
 |---|---|---|

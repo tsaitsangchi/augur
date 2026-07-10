@@ -9,6 +9,7 @@
    隔離不變式（素養層、住 augur.knowledge＝import_isolation 前綴自動覆蓋、零量化價值不進預測管線）。
 """
 from augur.core import db
+from augur.knowledge.corpus import clean_item_sql, clean_work_sql
 
 
 def related_thinkers(name_or_id, language="zh", top_n=8):
@@ -49,18 +50,31 @@ def related_terms(term, language="zh", top_n=8, min_support=3):
         return [(b, float(v), int(n)) for b, v, n in cur.fetchall()]
 
 
-def cooccurrence_evidence(term_a, term_b, language="zh", limit=5):
+def cooccurrence_evidence(term_a, term_b, language="zh", limit=5, *,
+                          is_super=False, allowed_domains=None, owner_user_id=None):
     """兩詞的**逐字共現句**（concordance 交集 → knowledge_sentence 原文 + char_range）＝關聯的逐字證據。
-    回 [(sent_id, sentence, char_start, char_end)]。這是「答案 trace 逐字原文」命門的落地（#1）。"""
+    回 [(sent_id, sentence, char_start, char_end)]。這是「答案 trace 逐字原文」命門的落地（#1）。
+
+    G6 RBAC 收窄（A-11,e2e 計畫 P3 硬先決）:逐字句必過 CLEAN+授權閘——works 側（text_id）走
+    `clean_work_sql`（公版稽核過）;items 側（itext_id）走 `clean_item_sql`（license 白名單×RBAC:
+    無授權域=deny、owned_local 唯擁有者/super）。**預設 fail-closed**（未帶授權→只見 works 公版句）,
+    防 owned_local 私有句經共現證據旁路逐字外洩。"""
+    iw, ip = clean_item_sql("i", "x", access_scope=None, is_super=is_super,
+                            allowed_domains=allowed_domains, owner_user_id=owner_user_id)
+    ww = clean_work_sql("w")
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute(
-            "SELECT s.sent_id, s.sentence, s.char_start, s.char_end "
+            "SELECT DISTINCT ON (s.sent_id) s.sent_id, s.sentence, s.char_start, s.char_end "
             "FROM knowledge_concordance ca "
             "JOIN knowledge_concordance cb ON cb.sent_id=ca.sent_id AND cb.term=%s AND cb.language=%s "
             "JOIN knowledge_sentence s ON s.sent_id=ca.sent_id "
+            "LEFT JOIN knowledge_item_text x ON x.itext_id = s.itext_id "
+            "LEFT JOIN knowledge_item i ON i.item_id = x.item_id "
+            "LEFT JOIN philosophy_work w ON w.work_id = s.text_id "
             "WHERE ca.term=%s AND ca.language=%s "
-            "ORDER BY s.sent_id LIMIT %s",
-            (term_b, language, term_a, language, limit))
+            f"  AND ((s.text_id IS NOT NULL AND {ww}) OR (s.itext_id IS NOT NULL AND {iw})) "
+            "ORDER BY s.sent_id, s.char_start LIMIT %s",
+            (term_b, language, term_a, language, *ip, limit))
         return [(int(sid), sent, cs, ce) for sid, sent, cs, ce in cur.fetchall()]
 
 

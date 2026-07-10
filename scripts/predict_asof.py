@@ -19,6 +19,8 @@
   python scripts/predict_asof.py --run --top-frac 0.1 --weight equal   # long 投組分位/加權(預設 top10% 等權)
   python scripts/predict_asof.py --run --weight pred --risk-control    # pred 加權 + 收尾風控 overlay(單標的 cap/DD/換手)
   python scripts/predict_asof.py --run --dry-run                    # 只算+印、不寫 prediction_values
+  python scripts/predict_asof.py --run --horizon 40 --asof 2026-05-31 --candidate   # D4 候選語意單 horizon 重跑
+  python scripts/predict_asof.py --candidate --rewrite-all --asof 2026-05-31        # D4 四 horizon 既有列冪等重寫
 """
 import argparse
 import datetime as _dt
@@ -190,7 +192,24 @@ def main(argv=None):
     ap.add_argument("--dry-run", action="store_true", dest="dry_run", help="只算+印、不寫 prediction_values")
     ap.add_argument("--risk-control", action="store_true", dest="risk",
                     help="收尾套 execution.risk_control overlay(單標的 cap 生效於落庫權重、DD/換手出旗標;閾值讀 risk_policy #29b)")
+    ap.add_argument("--candidate", action="store_true",
+                    help="D4 候選語意明示:in_portfolio=該 horizon top-frac 候選組合成員(非「已部署」;部署事實由 payload 讀 registry 獨立承載)")
+    ap.add_argument("--rewrite-all", action="store_true", dest="rewrite_all",
+                    help="D4 全量重寫:四 horizon {20,40,60,120} 既有列 per (panel_date,model_id) DELETE+INSERT 冪等重寫(需 --candidate 與 --asof)")
     args = ap.parse_args(argv)
+    if args.rewrite_all:
+        if not (args.candidate and args.asof):
+            print("✗ --rewrite-all 需 --candidate(語意明示)與 --asof(明確時點,不默認最新)"); return 1
+        ok = True
+        for h in (20, 40, 60, 120):    # 封閉集(82=D1(a) 條件觸發後加入)
+            print(f"── D4 重寫 H{h} ──")
+            try:
+                r = predict(h, args.family, args.asof, args.top_n, args.top_frac, args.weight, False, False)
+            except Exception as e:     # 單 horizon 失敗(如 artifact 缺檔)不得炸全場;錯得大聲、續跑其餘(#15)
+                print(f"✗ H{h} 失敗:{e}")
+                r = None
+            ok = ok and (r is not None)
+        return 0 if ok else 1
     if not args.run:
         print(__doc__)
         print(f"目前操作值:horizon={args.horizon} family={args.family} asof={args.asof or '(最新)'} "

@@ -11,6 +11,7 @@ metadata:
 
 > **⚡ 現行接續 SSOT = repo 內 `HANDOFF.md`(維護中、比本記憶新)**——換機第一份讀它。建構全貌讀 `reports/augur_construction_understanding_20260710.md`(v3、code-verified 16 子系統、supersede 20260709 版)。本記憶自 2026-07-06 後多處過時(HEAD/版本/dump),僅留歷史快照;版本以 on-disk 為準(2026-07-10:憲章 v1.39.0 / 原則精華 v1.8.0 / CLAUDE v1.22)。
 > **記憶隨 repo 遷移**:活記憶本不隨 git;現用 `sync_memory.py export` 快照進 repo `handoff_memory/` → 新機 `restore` 還原(見 [[local-handoff-tooling]])。三支零-usage 工具:`sync_from_github.sh`/`read_handoff.py`/`sync_memory.py`。
+> **2026-07-10 晚二補**:e2e 計畫 D0-D12 已簽核;**P1/P2/P5/P6 已執行完畢**(機率層上線:probability_oos_sample 42,456+calibrator 4+prediction_probability 1,376;picks 附欄 P30/P60/P120+四標記硬綁;回歸器 exit 0)、P3 3/4(缺煙測)。**本地審議引擎 MVP 活了**(deliberation pkg+deliberate.py+4 oracle;十餘場實戰假確認 0;迭代槓桿×3:schema-grounding/verifier 選型 lint/file_grep 補全誤蓋)。教訓:workflow 單 agent 巨型長文生成會停滯→**分節平行生成**根治。
 
 **源碼 SSOT = GitHub** `https://github.com/tsaitsangchi/augur.git`
 - 交接點(2026-07-10 晚):治權升 **憲章 v1.40.0**(端到端管線暢通不變式+相對機率誠實判準入憲);**e2e 主計畫定稿** `reports/augur_omniscient_e2e_master_plan_20260710.md`(機率=橫斷面相對機率轉譯、S1-S10 一條路、四接縫、§9 硬體雙軌;**拍板題 D0-D12 未簽核、實作未動工**)。本機 DB 已從 D:\database 07-09 dump 完整還原(183+22 表,備份庫 augur_pre_import_bak_20260710 留存)。admin 後台明文帳密(.env AUGUR_ADMIN_USER/PASSWORD,serve_admin_console 支援)。

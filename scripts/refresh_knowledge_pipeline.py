@@ -13,13 +13,20 @@
 
 執行指令矩陣:
   python scripts/refresh_knowledge_pipeline.py                               # 無參數:各段待辦計數矩陣(唯讀純 SQL、零副作用)
+  python scripts/refresh_knowledge_pipeline.py --status                      # D7:心跳/單例鎖/上次段位/殭屍偵測/硬體 profile(唯讀)
   python scripts/refresh_knowledge_pipeline.py --domain chemistry --dry-run  # 列印各段將執行指令+待辦計數,零執行
-  python scripts/refresh_knowledge_pipeline.py --domain chemistry            # 全鏈實跑(背景建議 nohup ... > log 2>&1 &)
+  python scripts/refresh_knowledge_pipeline.py --domain chemistry            # 全鏈實跑(自動 flock 單例鎖+每段心跳;背景建議 nohup ... > log 2>&1 &)
   python scripts/refresh_knowledge_pipeline.py --stage promote --domain chemistry            # 只跑單段
   python scripts/refresh_knowledge_pipeline.py --from-stage sentences --until embed --limit 1000
-  # 段名封閉集(依序): harvest promote fulltext sentences concordance stats embed milvus_export
+  python scripts/refresh_knowledge_pipeline.py --domain finance --stage-limit embed=5000 --stage-limit stats=20000   # D7 per-stage 量
+  python scripts/refresh_knowledge_pipeline.py --reap                        # D7:殭屍收斂(心跳逾時/driver 亡→終止孤兒 process group+清 stale 鎖)
+  # 段名封閉集(依序): harvest promote fulltext sentences concordance stats embed vector_export
   # fulltext 段需環境變數 UNPAYWALL_EMAIL;--limit 映射為各 CLI 之有界旗標(promote 無界旗標=不適用)
+  # vector_export 讀 knowledge_vectorstore_config(scope=sentence_items):backend=pgvector→skip(SSOT 即 serving);qdrant_*→export_qdrant_index.py
 """
+import fcntl
+import os
+import signal
 import sys
 import time
 import argparse
@@ -33,6 +40,8 @@ from augur.knowledge import embedspec
 
 PY = sys.executable
 SCRIPTS = Path(__file__).resolve().parent
+LOCK_PATH = SCRIPTS.parent / ".refresh_pipeline.lock"   # 單例鎖(flock;DB 心跳=第二保險)
+HB_STALE_SEC = 2 * 3600                                  # 殭屍判準:心跳齡 > 此值(段預期上界之 2×)
 
 # 段序 registry=code 內常數表(§7 29b:非 DB 表;驅動器無狀態)。args=該 CLI 實查既存旗標。
 Stage = namedtuple("Stage", "name seg script args domain_ok limit_flag default_limit note")
@@ -51,11 +60,118 @@ STAGES = (
           False, "--limit", None, "放量前置=P1-P3 拍板+M4;游標可續"),
     Stage("embed", "S5", "embed_knowledge.py", ("--layer", "sentence", "--language", "en", "--scope", "items"),
           False, "--limit", None, "items 側先行(P7);P4 拍板前不放量;完後個別跑 --build-index"),
-    Stage("milvus_export", "S6", "export_milvus_index.py",
+    Stage("vector_export", "S6", "export_qdrant_index.py",
           ("--layer", "sentence", "--side", "items", "--language", "en"), False, "--limit", None,
-          "--limit=驗證模式(PG 零寫入);全量=雙向對帳+coverage 落庫"),
+          "讀 knowledge_vectorstore_config 選匯出器(A-34):backend=pgvector→skip(pgvector 即 serving SSOT、"
+          "無外部索引需匯出);qdrant_*→export_qdrant_index.py(export_milvus_index 退役列冊)"),
 )
 NAMES = tuple(s.name for s in STAGES)
+
+
+# ─── D7:心跳/單例鎖/殭屍收斂(帳住 knowledge_build_meta,scope≤32/bigint 形狀內、零新表)───
+
+def _meta_set(cur, scope, val):
+    cur.execute("INSERT INTO knowledge_build_meta (scope, cursor_sent_id) VALUES (%s,%s) "
+                "ON CONFLICT (scope) DO UPDATE SET cursor_sent_id=EXCLUDED.cursor_sent_id, updated_at=now()",
+                (scope, int(val)))
+
+
+def _meta_get(cur, scope):
+    cur.execute("SELECT cursor_sent_id, updated_at FROM knowledge_build_meta WHERE scope=%s", (scope,))
+    return cur.fetchone()
+
+
+def _pid_alive(pid):
+    try:
+        os.kill(pid, 0)
+        return True
+    except (ProcessLookupError, PermissionError, OverflowError, ValueError):
+        return False
+
+
+def heartbeat(stage_idx, child_pid=0):
+    """每段開跑前 tick(subprocess 阻塞期間不 tick=設計取捨,殭屍判準用 2× 段上界容忍)。"""
+    with db.connect() as conn, db.transaction(conn) as cur:
+        _meta_set(cur, "orch/pid", os.getpid())
+        _meta_set(cur, "orch/stage", stage_idx)
+        _meta_set(cur, "orch/child", child_pid)
+
+
+def hw_probe():
+    """§9.3 硬體 profile 落帳(GPU 有無/VRAM MB;兩路徑探測,CPU-only 誠實記 0)。"""
+    vram = 0
+    for exe in ("nvidia-smi", "/usr/lib/wsl/lib/nvidia-smi"):
+        try:
+            out = subprocess.run([exe, "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+                                 capture_output=True, text=True, timeout=10)
+            if out.returncode == 0 and out.stdout.strip():
+                vram = int(out.stdout.strip().splitlines()[0])
+                break
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            continue
+    with db.connect() as conn, db.transaction(conn) as cur:
+        _meta_set(cur, "orch/hw_vram_mb", vram)
+    return vram
+
+
+def acquire_lock():
+    """單例鎖:flock 非阻塞;第二實例即退 exit≠0(D7;DB 心跳=跨機第二保險)。回鎖 fd(須保持開啟)。"""
+    fd = os.open(str(LOCK_PATH), os.O_CREAT | os.O_RDWR)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        os.close(fd)
+        sys.exit(f"✗ 另一驅動器實例持有鎖({LOCK_PATH});--status 查現況、--reap 收斂殭屍")
+    os.ftruncate(fd, 0)
+    os.write(fd, str(os.getpid()).encode())
+    return fd
+
+
+def status():
+    """--status:心跳/鎖/段位/殭屍偵測/硬體(唯讀)。"""
+    with db.connect() as conn, db.transaction(conn) as cur:
+        pid_row = _meta_get(cur, "orch/pid")
+        st_row = _meta_get(cur, "orch/stage")
+        ch_row = _meta_get(cur, "orch/child")
+        hw_row = _meta_get(cur, "orch/hw_vram_mb")
+        cur.execute("SELECT extract(epoch FROM now()-updated_at) FROM knowledge_build_meta WHERE scope='orch/pid'")
+        age = cur.fetchone()
+    if not pid_row:
+        print("心跳:(無——驅動器未跑過)")
+    else:
+        pid, ts = int(pid_row[0]), pid_row[1]
+        alive = _pid_alive(pid)
+        age_s = int(age[0]) if age and age[0] is not None else -1
+        stg = NAMES[int(st_row[0])] if st_row and 0 <= int(st_row[0]) < len(NAMES) else "?"
+        child = int(ch_row[0]) if ch_row else 0
+        zombie = (not alive and child and _pid_alive(child)) or (alive and age_s > HB_STALE_SEC)
+        print(f"心跳:pid={pid}({'存活' if alive else '已亡'}) 段={stg} 心跳齡={age_s}s child={child or '-'}"
+              f"{'(存活)' if child and _pid_alive(child) else ''}")
+        print(f"殭屍判定:{'⚠ 是(--reap 收斂)' if zombie else '否'}(判準:driver 亡而 child 活、或心跳齡>{HB_STALE_SEC}s)")
+    print(f"單例鎖:{LOCK_PATH}({'存在' if LOCK_PATH.exists() else '無'})")
+    print(f"硬體:VRAM {int(hw_row[0]) if hw_row else '未探測'} MB(0=CPU-only)")
+
+
+def reap():
+    """--reap:殭屍收斂——driver 亡而 child(自成 process group)活→SIGTERM killpg;清 stale 心跳。冪等。"""
+    with db.connect() as conn, db.transaction(conn) as cur:
+        pid_row = _meta_get(cur, "orch/pid")
+        ch_row = _meta_get(cur, "orch/child")
+    if not pid_row:
+        print("(無心跳帳,無可收斂)"); return
+    pid, child = int(pid_row[0]), int(ch_row[0]) if ch_row else 0
+    if _pid_alive(pid):
+        print(f"driver pid={pid} 仍存活——不收斂(要停請對其 SIGTERM;本工具只收孤兒)"); return
+    if child and _pid_alive(child):
+        try:
+            os.killpg(child, signal.SIGTERM)                 # 段以 start_new_session 起=pgid=child pid
+            print(f"✓ 已 SIGTERM 孤兒段 process group {child}")
+        except (ProcessLookupError, PermissionError) as e:
+            print(f"⚠ killpg({child}) 失敗:{e}")
+    with db.connect() as conn, db.transaction(conn) as cur:
+        _meta_set(cur, "orch/pid", 0)
+        _meta_set(cur, "orch/child", 0)
+    print("✓ 心跳帳已清(stale flock 由持鎖 process 消亡自動釋放,檔案殘留無害)")
 
 
 def _n(cur, sql, params=()):
@@ -132,13 +248,13 @@ def pending_lines(cur, name, domain):
                         "WHERE e.sent_id = s.sent_id AND e.model_tag = %s)", (embedspec.MODEL_TAG,))
             lines.append(f"works 側未嵌 {w:,}(en 債=P7 另排,不入本 DAG 節點)")
         return lines
-    if name == "milvus_export":
-        cov = _rows(cur, "SELECT metric_key, numerator, denominator, metric_date "
-                         "FROM knowledge_coverage_metric WHERE metric_key LIKE %s "
-                         "ORDER BY metric_date DESC, metric_key LIMIT 6", ("mv_%",))
-        covs = " | ".join(f"{k} {n}/{dn}({dt})" for k, n, dn, dt in cov) or "coverage 無 mv 列"
-        return [f"游標 {_cursors(cur, 'mv_%')} | {covs}",
-                "實際雙向對帳=python scripts/export_milvus_index.py(無參數唯讀矩陣)"]
+    if name == "vector_export":
+        be = _rows(cur, "SELECT scope, backend FROM knowledge_vectorstore_config ORDER BY scope")
+        bes = " ".join(f"{s}={b}" for s, b in be) or "(config 空——先跑 migrate_vectorstore_config_ddl --run)"
+        qs = _n(cur, "SELECT count(*) FROM qdrant_sync_state") if _n(
+            cur, "SELECT count(*) FROM information_schema.tables WHERE table_name='qdrant_sync_state'") else 0
+        return [f"後端 config:{bes} | qdrant_sync_state {qs:,} 列",
+                "backend=pgvector→本段 skip(pgvector 即 serving SSOT);qdrant_*→export_qdrant_index.py"]
     raise ValueError(f"未知段名 {name}(封閉集:{' '.join(NAMES)})")
 
 
@@ -151,14 +267,21 @@ def print_matrix(domain):
                 print(f"  {head} {line}")
 
 
-def build_cmd(st, domain, limit):
+def build_cmd(st, domain, limit, stage_limits=None):
     cmd = [PY, str(SCRIPTS / st.script), *st.args]
     if domain and st.domain_ok:
         cmd += ["--domain", domain]
-    n = limit if (limit and st.limit_flag) else st.default_limit
+    per = (stage_limits or {}).get(st.name)                  # D7 per-stage 量優先於全域 --limit
+    n = per if (per and st.limit_flag) else (limit if (limit and st.limit_flag) else st.default_limit)
     if st.limit_flag and n:
         cmd += [st.limit_flag, str(n)]
     return cmd
+
+
+def _vector_backend(cur):
+    cur.execute("SELECT backend FROM knowledge_vectorstore_config WHERE scope='sentence_items'")
+    r = cur.fetchone()
+    return r[0] if r else None
 
 
 def select_stages(args):
@@ -181,7 +304,21 @@ def main():
     ap.add_argument("--until", choices=NAMES)
     ap.add_argument("--limit", type=int)
     ap.add_argument("--dry-run", dest="dry_run", action="store_true")
+    ap.add_argument("--status", action="store_true")
+    ap.add_argument("--reap", action="store_true")
+    ap.add_argument("--stage-limit", dest="stage_limit", action="append", default=[],
+                    metavar="STAGE=N", help="D7 per-stage 量(可多次;優先於 --limit)")
     args = ap.parse_args()
+    if args.status:
+        status(); return
+    if args.reap:
+        reap(); return
+    stage_limits = {}
+    for sl in args.stage_limit:
+        name, _, n = sl.partition("=")
+        if name not in NAMES or not n.isdigit() or int(n) <= 0:
+            sys.exit(f"--stage-limit 格式:<段名>=<正整數>(段名封閉集:{' '.join(NAMES)});收到 {sl!r}")
+        stage_limits[name] = int(n)
     if args.limit is not None and args.limit <= 0:
         sys.exit("--limit 須為正整數(0/負值不得靜默轉為全量)")
 
@@ -195,30 +332,44 @@ def main():
         print_matrix(args.domain)
         print(f"\n[dry-run] 將依序執行 {len(stages)} 段(check=True,任一段非零即停;本模式零執行):")
         for st in stages:
-            print(f"  {st.seg} {st.name:<13} $ {' '.join(build_cmd(st, args.domain, args.limit))}")
+            print(f"  {st.seg} {st.name:<13} $ {' '.join(build_cmd(st, args.domain, args.limit, stage_limits))}")
             if st.note:
                 print(f"     {'':<13} 註:{st.note}")
         return
 
+    lock_fd = acquire_lock()                                 # D7 單例鎖(第二實例即退)
+    vram = hw_probe()                                        # §9.3 硬體 profile 落帳
     t0 = time.time()
     print(f"=== 知識管線驅動開始:{len(stages)} 段 | domain={args.domain or '全部'} | "
-          f"limit={args.limit or '-'}(段序=常數表;resume 全 DB-driven,殺掉重跑冪等)===", flush=True)
+          f"limit={args.limit or '-'} | per-stage={stage_limits or '-'} | VRAM={vram}MB"
+          f"(段序=常數表;resume 全 DB-driven,殺掉重跑冪等)===", flush=True)
     for st in stages:
+        heartbeat(NAMES.index(st.name))                      # D7 每段 tick
+        if st.name == "vector_export":                       # A-34:讀 config 選匯出器
+            with db.connect() as conn, db.transaction(conn) as cur:
+                be = _vector_backend(cur)
+            if be in (None, "pgvector"):
+                print(f"\n▷ {st.seg} vector_export skip(backend={be or '(config 空)'}——pgvector 即 serving "
+                      f"SSOT、無外部索引需匯出;切 Qdrant=UPDATE config 一列)", flush=True)
+                continue
         with db.connect() as conn, db.transaction(conn) as cur:
             before = pending_lines(cur, st.name, args.domain)
-        cmd = build_cmd(st, args.domain, args.limit)
+        cmd = build_cmd(st, args.domain, args.limit, stage_limits)
         print(f"\n▶ {st.seg} {st.name} | 待辦(前):{'; '.join(before)}\n  $ {' '.join(cmd)}", flush=True)
         ts = time.time()
-        try:
-            subprocess.run(cmd, check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"✗ 段 {st.name} exit={e.returncode}(耗時 {time.time() - ts:.0f}s)——中止全鏈"
-                  f"(check=True);該段輸出見本 log 上方;修復後續跑:--from-stage {st.name}", flush=True)
-            sys.exit(e.returncode or 1)
+        proc = subprocess.Popen(cmd, start_new_session=True)  # 自成 process group=--reap 可 killpg 孤兒
+        heartbeat(NAMES.index(st.name), child_pid=proc.pid)
+        rc = proc.wait()
+        if rc != 0:
+            print(f"✗ 段 {st.name} exit={rc}(耗時 {time.time() - ts:.0f}s)——中止全鏈"
+                  f"(check=True 語意);該段輸出見本 log 上方;修復後續跑:--from-stage {st.name}", flush=True)
+            sys.exit(rc or 1)
         with db.connect() as conn, db.transaction(conn) as cur:
             after = pending_lines(cur, st.name, args.domain)
         print(f"✓ {st.seg} {st.name} 完成 {time.time() - ts:.0f}s | 驗收計數(後):{'; '.join(after)}",
               flush=True)
+    heartbeat(len(NAMES) - 1, child_pid=0)                   # 收尾 tick(child 清零)
+    os.close(lock_fd)
     print(f"\n=== 全鏈完成 {(time.time() - t0) / 60:.1f} 分(冪等驗收:連跑兩次計數不變)===", flush=True)
 
 
