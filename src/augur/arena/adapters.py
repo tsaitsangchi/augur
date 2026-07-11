@@ -256,7 +256,7 @@ class MarketChronos:
         out = {}
         for t, px in series.items():
             ctx = torch.tensor(np.asarray(px, float)[-512:], dtype=torch.float32)
-            q, _ = pipe.predict_quantiles(context=[ctx], prediction_length=horizon_td,
+            q, _ = pipe.predict_quantiles([ctx], prediction_length=horizon_td,
                                           quantile_levels=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
             # 轉換口徑(凍結):終點分位數 vs 現價 → P(終值>現價)=線性插值分位曲線過現價之位置
             last = float(px[-1])
