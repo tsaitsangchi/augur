@@ -17,11 +17,15 @@ from augur.deliberation.lens import build_prompt
 from augur.deliberation.verifiers import verify_claim
 
 
-def propose(topic, target_block, lens, model, n, timeout):
-    """葉端 LLM:回 [claim dict](≤n)。format schema 強制;失敗 raise(錯得大聲 #15)。"""
+def propose(topic, target_block, lens, model, n, timeout, seed=None):
+    """葉端 LLM:回 [claim dict](≤n)。format schema 強制;失敗 raise(錯得大聲 #15)。
+    seed(D2 誠實註記):temperature=0 貪婪解碼下解碼 seed 為 no-op——收此參數僅為未來 temp>0 模式
+    預留+帳面可溯(落 options.seed;可重現量測軸=題集 seed+殘差重放,見補完計畫 §4-D2)。"""
     prompt = build_prompt(topic, target_block, lens, n)
-    fn = make_structured_llm_fn(CLAIM_SCHEMA, model=model, timeout=timeout, retries=1,
-                                options={"temperature": 0, "num_predict": 1600})
+    opts = {"temperature": 0, "num_predict": 1600}
+    if seed is not None:
+        opts["seed"] = int(seed)
+    fn = make_structured_llm_fn(CLAIM_SCHEMA, model=model, timeout=timeout, retries=1, options=opts)
     return fn(prompt).get("claims", [])[:n]
 
 
@@ -45,9 +49,15 @@ def deliberate(topic, target_block, lens, model, n, timeout):
     for cid in ids:
         r = verify_claim(cid)
         tally[r["status"]] = tally.get(r["status"], 0) + 1
+        with db.connect() as conn:                              # D3:逐 claim 裁決後 heartbeat(長跑活性可證)
+            c2 = conn.cursor()
+            c2.execute("UPDATE deliberation_session SET heartbeat_at=now() WHERE session_id=%s", (sid,))
+            conn.commit()
     with db.connect() as conn:
         cur = conn.cursor()
         ledger.close_session(cur, sid, tally)
+        cur.execute("UPDATE deliberation_session SET finished_at=now(), duration_s=%s WHERE session_id=%s",
+                    (round(time.time() - t0, 1), sid))          # D3:收尾寫 duration
         conn.commit()
     ledger.report(sid)
     print(f"\n總計 {time.time()-t0:.0f}s | {tally}")

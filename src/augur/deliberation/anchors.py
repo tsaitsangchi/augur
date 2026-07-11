@@ -55,44 +55,87 @@ def schema_grounding(topic):
     return ("\n[真實存在的相關資料表(逐字使用、勿臆造/縮寫表名):" + ", ".join(sorted(hits)[:20]) + "]")
 
 
-def fast_anchor(claim_text, target=None):
-    """L4/L5:可機械解析之宣稱直接產錨(零 LLM;確定性凌駕生成)。回 (verifier, anchor) 或 None。
-    L5 條件式(表名在「表」前=中文語序;值可含 .-):「T 表中 C 欄等於 V 的列數 ≥/≤ N」→ WHERE 錨。"""
-    _GE = r"(?:至少有?|不少於|>=|≥|不低於)"
-    _LE = r"(?:至多|不超過|<=|≤|不高於)"
-    for _cmp, _op in ((_GE, ">="), (_LE, "<=")):
-        m = re.search(r"([a-z_][a-z0-9_]*)\s*表\s*(?:中|裡)?\s*(?:的)?\s*"
-                      r"([a-z_][a-z0-9_]*)\s*欄?\s*(?:等於|=|為|是)\s*([a-z0-9_.-]+)\s*"
-                      r"(?:的)?\s*列數?\s*" + _cmp + r"\s*([0-9,]+)", claim_text)
+# B3(補完計畫 §2.3):快路=具名規則封閉集;RULES_ALL 僅供 B1 導出比對(只比對、不執行,無注入面);
+# 生產 rules SSOT=DB deliberation_engine_config(#29b),L6_pytest 預設關(執行任意測試節點=最大攻擊面)。
+RULES_ALL = {"L4_db_query": True, "L4_information_schema": True, "L5_file_grep": True,
+             "L6_pytest": True, "L6_isolation": True}
+
+
+def fast_anchor(claim_text, target=None, rules=None):
+    """具名規則快路(B3 規則化):可機械解析之宣稱 → 樣板構錨(參數經嚴格 regex 抽取,**不接受整段
+    SQL/節點原樣入錨**)。回 (verifier, anchor, rule_id) 或 None。rules=None → RULES_ALL(導出比對用;
+    生產 caller 一律傳 DB config)。"""
+    r = RULES_ALL if rules is None else rules
+    if r.get("L4_db_query"):
+        _GE = r"(?:至少有?|不少於|>=|≥|不低於)"
+        _LE = r"(?:至多|不超過|<=|≤|不高於)"
+        # L5 條件式(表名在「表」前=中文語序;值可含 .-)
+        for _cmp, _op in ((_GE, ">="), (_LE, "<=")):
+            m = re.search(r"([a-z_][a-z0-9_]*)\s*表\s*(?:中|裡)?\s*(?:的)?\s*"
+                          r"([a-z_][a-z0-9_]*)\s*欄?\s*(?:等於|=|為|是)\s*([a-z0-9_.-]+)\s*"
+                          r"(?:的)?\s*列數?\s*" + _cmp + r"\s*([0-9,]+)", claim_text)
+            if m:
+                t, c, v, n = m.groups()
+                return ("db_query", f"SELECT count(*) FROM {t} WHERE {c}='{v}' => {_op} {n.replace(',', '')}",
+                        "L4_db_query")
+        m = re.search(r"表\s*([a-z_][a-z0-9_]*)\s*(?:至少有?|不少於|>=?)\s*([0-9,]+)\s*列", claim_text)
         if m:
-            t, c, v, n = m.groups()
-            return "db_query", f"SELECT count(*) FROM {t} WHERE {c}='{v}' => {_op} {n.replace(',', '')}"
-    # L4 無條件量:「表 T 至少/至多 N 列」
-    m = re.search(r"表\s*([a-z_][a-z0-9_]*)\s*(?:至少有?|不少於|>=?)\s*([0-9,]+)\s*列", claim_text)
-    if m:
-        return "db_query", f"SELECT count(*) FROM {m.group(1)} => >= {m.group(2).replace(',', '')}"
-    m = re.search(r"表\s*([a-z_][a-z0-9_]*)\s*(?:至多|不超過|<=?)\s*([0-9,]+)\s*列", claim_text)
-    if m:
-        return "db_query", f"SELECT count(*) FROM {m.group(1)} => <= {m.group(2).replace(',', '')}"
-    m = re.search(r"(?:資料)?表\s*([a-z_][a-z0-9_]*)\s*存在", claim_text)
-    if m:
-        return "information_schema", m.group(1)
-    # L6 pytest 快路(2026-07-10:4b 對測試題仍派 db_query、不自選 pytest → 確定性路由)——
-    # claim 含 pytest node id(tests/…[::test_…])→ 直接派 pytest oracle。
-    m = re.search(r"(tests/[\w./-]+\.py(?:::[\w\[\]-]+)?)", claim_text)
-    if m and ("pytest" in claim_text or "測試" in claim_text or "通過" in claim_text):
-        return "pytest", m.group(1)
-    m = re.search(r"check_isolation|隔離不變式(?:成立|通過|為真)", claim_text)
-    if m:
-        return "import_isolation", "check_isolation"
-    m = re.search(r"檔案\s*([\w./-]+\.(?:py|md|json|sh))\s*.{0,6}含.{0,4}字串?\s*[「\"']([^」\"']+)[」\"']", claim_text)
-    if m:
-        return "file_grep", f"{m.group(1)}::{re.escape(m.group(2))}"
-    if target:
-        m = re.search(r"含.{0,4}字串?\s*[「\"']([^」\"']+)[」\"']", claim_text)
+            return "db_query", f"SELECT count(*) FROM {m.group(1)} => >= {m.group(2).replace(',', '')}", "L4_db_query"
+        m = re.search(r"表\s*([a-z_][a-z0-9_]*)\s*(?:至多|不超過|<=?)\s*([0-9,]+)\s*列", claim_text)
         if m:
-            return "file_grep", f"{target}::{re.escape(m.group(1))}"
+            return "db_query", f"SELECT count(*) FROM {m.group(1)} => <= {m.group(2).replace(',', '')}", "L4_db_query"
+    if r.get("L4_information_schema"):
+        m = re.search(r"(?:資料)?表\s*([a-z_][a-z0-9_]*)\s*存在", claim_text)
+        if m:
+            return "information_schema", m.group(1), "L4_information_schema"
+    if r.get("L6_pytest"):
+        # pytest node 僅 tests/ 白名單樣式(嚴格 charset;4b 對測試題不自選 pytest → 確定性路由)
+        m = re.search(r"(tests/[\w./-]+\.py(?:::[\w\[\]-]+)?)", claim_text)
+        if m and ("pytest" in claim_text or "測試" in claim_text or "通過" in claim_text):
+            return "pytest", m.group(1), "L6_pytest"
+    if r.get("L6_isolation"):
+        # 固定錨 'check_isolation'(零參數=零注入面),故預設開
+        m = re.search(r"check_isolation|隔離不變式(?:成立|通過|為真)", claim_text)
+        if m:
+            return "import_isolation", "check_isolation", "L6_isolation"
+    if r.get("L5_file_grep"):
+        m = re.search(r"檔案\s*([\w./-]+\.(?:py|md|json|sh))\s*.{0,6}含.{0,4}字串?\s*[「\"']([^」\"']+)[」\"']",
+                      claim_text)
+        if m and ".." not in m.group(1):
+            return "file_grep", f"{m.group(1)}::{re.escape(m.group(2))}", "L5_file_grep"
+        if target:
+            m = re.search(r"含.{0,4}字串?\s*[「\"']([^」\"']+)[」\"']", claim_text)
+            if m:
+                return "file_grep", f"{target}::{re.escape(m.group(1))}", "L5_file_grep"
     return None
+
+
+def binding_check(claim_text, verifier, anchor, target=None):
+    """B1 語意綁定反抽取:claim_text 內的數字/引號字串/檔路徑/snake_case 識別子,須逐一出現在
+    anchor 中,缺一即 False(純文字比對、零 DB 寫)。過嚴誤判為 False=安全方向(僅降呈現級、不動裁決)。"""
+    a = anchor or ""
+    for num in re.findall(r"\d[\d,]*", claim_text):
+        if num.replace(",", "") not in a.replace(",", ""):
+            return False
+    for q in re.findall(r"[「\"']([^」\"']{2,})[」\"']", claim_text):
+        if q not in a and re.escape(q) not in a:
+            return False
+    for p in re.findall(r"[\w/]+/[\w.]+\.\w+", claim_text):
+        if p not in a:
+            return False
+    for ident in re.findall(r"\b[a-z_][a-z0-9_]{3,}\b", claim_text):
+        if ident not in a and (not target or ident not in target):
+            return False
+    return True
+
+
+def semantic_bound_of(claim_text, verifier, anchor, target=None):
+    """B1 導出欄判準:①錨可自 claim_text 以 RULES_ALL 確定性重導出(只比對、不執行)==(verifier,anchor)
+    → True;②否則 binding_check 反抽取全命中 → True;否則 False。"""
+    fp = fast_anchor(claim_text, target, RULES_ALL)
+    if fp and fp[0] == verifier and (fp[1] or "").strip().lower() == (anchor or "").strip().lower():
+        return True
+    return binding_check(claim_text, verifier, anchor, target)
 
 
 def verifier_lint(verifier, anchor, target):

@@ -145,38 +145,49 @@ def run_verifier(verifier, anchor):
     return _DISPATCH[verifier](anchor)
 
 
-def verify_claim(claim_id):
+def verify_claim(claim_id, cur=None):
     """裁決一個 claim:跑其 assigned_verifier → 落 verdict(is_deterministic=true)→ 更新 claim.status。
     **全系統唯一把 status 寫成 'confirmed' 的地方**(機械鎖);undecidable → status='escalated'+開
     escalation(reason='undecidable',人裁);verifier∈{human_claude,none} → 直接 escalate(reason=
-    'no_oracle'/'verifier_none'),LLM/本模組皆不得裁。冪等:重跑=追加新 verdict、status 收斂一致。"""
+    'no_oracle'/'verifier_none'),LLM/本模組皆不得裁。冪等:重跑=追加新 verdict、status 收斂一致。
+    cur=None → 自管連線+commit(既有行為);cur 給定 → 同交易裁決、commit 歸 caller(模式 9 迭代用;
+    機械鎖不變——寫 confirmed 的仍只有本函式)。"""
+    if cur is not None:
+        return _verify_claim_impl(cur, claim_id)
     with db.connect() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT assigned_verifier, anchor, category FROM deliberation_claim WHERE claim_id=%s",
-                    (claim_id,))
-        row = cur.fetchone()
-        if not row:
-            raise ValueError(f"claim {claim_id} 不存在")
-        verifier, anchor, category = row
-        if verifier in ("human_claude", "none"):
-            reason = "no_oracle" if verifier == "human_claude" else "verifier_none"
-            cur.execute("INSERT INTO deliberation_escalation (claim_id, reason, payload) VALUES (%s,%s,%s)",
-                        (claim_id, reason, json.dumps({"anchor": anchor, "category": category})))
-            cur.execute("UPDATE deliberation_claim SET status='escalated' WHERE claim_id=%s", (claim_id,))
-            conn.commit()
-            return {"claim_id": claim_id, "verdict": None, "status": "escalated", "reason": reason}
-        verdict, evidence = run_verifier(verifier, anchor)
-        cur.execute("INSERT INTO deliberation_verdict (claim_id, verifier, verdict, evidence, is_deterministic) "
-                    "VALUES (%s,%s,%s,%s,true) RETURNING verdict_id",
-                    (claim_id, verifier, verdict, evidence if verdict != "undecidable" else evidence))
-        vid = cur.fetchone()[0]
-        if verdict == "undecidable":
-            cur.execute("INSERT INTO deliberation_escalation (claim_id, reason, payload) VALUES (%s,%s,%s)",
-                        (claim_id, "undecidable", json.dumps({"anchor": anchor, "evidence": evidence})))
-            new_status = "escalated"
-        else:
-            new_status = verdict
-        cur.execute("UPDATE deliberation_claim SET status=%s WHERE claim_id=%s", (new_status, claim_id))
+        c = conn.cursor()
+        out = _verify_claim_impl(c, claim_id)
         conn.commit()
+    return out
+
+
+def _verify_claim_impl(cur, claim_id):
+    cur.execute("SELECT assigned_verifier, anchor, category, provenance FROM deliberation_claim WHERE claim_id=%s",
+                (claim_id,))
+    row = cur.fetchone()
+    if not row:
+        raise ValueError(f"claim {claim_id} 不存在")
+    verifier, anchor, category, prov = row
+    if verifier in ("human_claude", "none"):
+        if isinstance(prov, dict) and prov.get("redline"):        # D6:治權觸線 → red_line_category(人拍板)
+            reason = "red_line_category"
+        else:
+            reason = "no_oracle" if verifier == "human_claude" else "verifier_none"
+        cur.execute("INSERT INTO deliberation_escalation (claim_id, reason, payload) VALUES (%s,%s,%s)",
+                    (claim_id, reason, json.dumps({"anchor": anchor, "category": category})))
+        cur.execute("UPDATE deliberation_claim SET status='escalated' WHERE claim_id=%s", (claim_id,))
+        return {"claim_id": claim_id, "verdict": None, "status": "escalated", "reason": reason}
+    verdict, evidence = run_verifier(verifier, anchor)
+    cur.execute("INSERT INTO deliberation_verdict (claim_id, verifier, verdict, evidence, is_deterministic) "
+                "VALUES (%s,%s,%s,%s,true) RETURNING verdict_id",
+                (claim_id, verifier, verdict, evidence))
+    vid = cur.fetchone()[0]
+    if verdict == "undecidable":
+        cur.execute("INSERT INTO deliberation_escalation (claim_id, reason, payload) VALUES (%s,%s,%s)",
+                    (claim_id, "undecidable", json.dumps({"anchor": anchor, "evidence": evidence})))
+        new_status = "escalated"
+    else:
+        new_status = verdict
+    cur.execute("UPDATE deliberation_claim SET status=%s WHERE claim_id=%s", (new_status, claim_id))
     return {"claim_id": claim_id, "verdict": verdict, "status": new_status,
             "verdict_id": vid, "evidence": evidence}

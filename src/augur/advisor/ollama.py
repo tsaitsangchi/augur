@@ -67,6 +67,27 @@ def base_url():
     return os.environ.get("OLLAMA_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
 
 
+def chat_with_stats(prompt, model=None, base=None, timeout=None, options=None, think=False, schema=None):
+    """單次 /api/chat 並回 (content, stats)——stats=Ollama 終包實回之 eval_count/eval_duration/
+    load_duration/prompt_eval_*(奈秒;無則缺鍵)。D1 效能量測用(補完計畫 §4;過去這些統計被丟棄=零落帳)。
+    不重試、不解析 JSON(量測要原味);G3 host allowlist 同 make_llm_fn。"""
+    tag = model or os.environ.get("OLLAMA_MODEL", DEFAULT_MODEL)
+    url = (base or base_url()) + "/api/chat"
+    _assert_local_host(url)
+    limit = float(timeout if timeout is not None else os.environ.get("OLLAMA_TIMEOUT", DEFAULT_TIMEOUT))
+    body = {"model": tag, "stream": False, "think": think,
+            "messages": [{"role": "user", "content": prompt}], "options": dict(options or {})}
+    if schema is not None:
+        body["format"] = schema
+    req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"),
+                                 headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=limit) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    stats = {k: data.get(k) for k in ("load_duration", "prompt_eval_count", "prompt_eval_duration",
+                                      "eval_count", "eval_duration", "total_duration") if k in data}
+    return (data.get("message") or {}).get("content", ""), stats
+
+
 def make_structured_llm_fn(schema, model=None, base=None, timeout=None, retries=1, options=None, think=False):
     """組一個 prompt(str)->dict 的結構化 llm_fn(Ollama /api/chat + format=JSON schema;實測 2026-07-10
     qwen3:8b/4b 皆成立)。審議引擎模式 7 之落地:schema 驗證失敗→有界重試(把錯誤回饋進下一輪 prompt)。

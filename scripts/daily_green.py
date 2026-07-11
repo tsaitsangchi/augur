@@ -30,6 +30,7 @@ STEPS = [
     ("smoke", ["scripts/verify_knowledge_e2e_smoke.py", "--run"]),
     ("regression", ["scripts/verify_advisor_regression.py", "--run", "--no-llm"]),
     ("shadow", ["scripts/verify_qdrant_shadow.py", "--run"]),
+    ("delib-watch", ["scripts/resolve_escalation.py", "--watch"]),   # D3/D5:殭屍 session+人裁積壓(warn-only)
 ]
 
 
