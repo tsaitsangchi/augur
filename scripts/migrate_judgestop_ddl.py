@@ -39,8 +39,15 @@ DDL = [
           source_ref  text NOT NULL,
           note        text,
           PRIMARY KEY (policy_key, horizon),
-          CONSTRAINT chk_js_track CHECK (track IN ('A_annotate','B_decay'))
+          CONSTRAINT chk_js_track CHECK (track IN ('A_annotate','B_decay','R_robust'))
         )"""),
+    ("migrate chk_js_track +R_robust +created_at (驗證總綱 §3.2)", """
+        DO $$ BEGIN
+          ALTER TABLE judgestop_threshold DROP CONSTRAINT IF EXISTS chk_js_track;
+          ALTER TABLE judgestop_threshold ADD CONSTRAINT chk_js_track
+            CHECK (track IN ('A_annotate','B_decay','R_robust'));
+          ALTER TABLE judgestop_threshold ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+        END $$"""),
     ("table revalidation_verdict", """
         CREATE TABLE IF NOT EXISTS revalidation_verdict (
           verdict_at        timestamptz NOT NULL DEFAULT now(),

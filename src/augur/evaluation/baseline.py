@@ -27,11 +27,18 @@ ASOF_TABLE = "core_universe_asof"
 CANDIDATE_TABLE = "feature_candidate_values"   # audit 層候選 staging（憲章 audit 邊界:生產表 feature 層獨佔寫）——存在才併讀
 
 
+CANONICAL_START = "2008-12-31"   # 交集 gate 覆蓋起點(用戶 2026-07-11 拍板(a);資料事實=財報 Revenue 科目
+                                 # 2006 起、gross_margin_pctile 於 2007-12-31 結構性不可能存在(全市場 0 檔
+                                 # 有 >=8 季 GP/Rev 成對)——gate 要求該 panel=永久排除數學上不可能的特徵;
+                                 # 起點=特徵可存在之最早 panel,非任意值。早於此之 panel 不入交集、訓練腿
+                                 # 自然縮至 2008-12-31 起(缺 29 特徵全齊之股該 panel 零列)。)
+
+
 def canonical_features(conn, panel_dates):
-    """模型特徵集 = 在**每個 panel 都出現**之特徵（交集）——某特徵僅部分 panel 覆蓋（如 gov_bank 早於源表
-    2021-07、早期 panel 缺列）則排除,確保跨 panel 特徵維度一致、不因部分缺格使整 panel 落空（審查 G9 評估層對偶；
-    由資料判定、反硬編）。"""
-    pds = list(panel_dates)
+    """模型特徵集 = 在 CANONICAL_START 起**每個 panel 都出現**之特徵（交集）——某特徵僅部分 panel 覆蓋
+    （如 gov_bank 早於源表 2021-07、早期 panel 缺列）則排除,確保跨 panel 特徵維度一致、不因部分缺格使
+    整 panel 落空（審查 G9 評估層對偶；由資料判定、反硬編;起點理據見 CANONICAL_START 註）。"""
+    pds = [p for p in panel_dates if str(p) >= CANONICAL_START]
     with db.transaction(conn) as cur:
         cur.execute(f"SELECT feature FROM {FEATURE_TABLE} WHERE panel_date = ANY(%s) "
                     f"GROUP BY feature HAVING count(DISTINCT panel_date) = %s", (pds, len(pds)))

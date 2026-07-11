@@ -35,8 +35,14 @@ DDL = [
           n_periods     int,
           hac_t         double precision,
           note          text,
-          CONSTRAINT revalidation_stage_chk CHECK (stage IN ('B','C','D'))
+          CONSTRAINT revalidation_stage_chk CHECK (stage IN ('B','C','D','R'))
         )"""),
+    ("migrate revalidation_stage_chk +R (驗證總綱 §3.2)", """
+        DO $$ BEGIN
+          ALTER TABLE revalidation_ledger DROP CONSTRAINT IF EXISTS revalidation_stage_chk;
+          ALTER TABLE revalidation_ledger ADD CONSTRAINT revalidation_stage_chk
+            CHECK (stage IN ('B','C','D','R'));
+        END $$"""),
     ("index ix_reval_asof_stage", """
         CREATE INDEX IF NOT EXISTS ix_reval_asof_stage
           ON revalidation_ledger (as_of_date, stage, horizon)"""),
