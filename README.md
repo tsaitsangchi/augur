@@ -11,7 +11,7 @@ Augur 從 FinMind / FRED 抓進可溯源的日級資料，算成 source-pure 特
 
 它的每一條紀律都在防三個敵人：**① 假資料 · ② 偷看未來 · ③ 自我欺騙**。
 
-> 🚧 **狀態**：開發中。治權已立（靈魂 v1.5.0・原則精華 v1.8.0〔20 條法律〕・憲章 v1.41.0・CLAUDE v1.22——歷次入憲演進之明細見憲章「修訂歷程」，不在此複列防漂移）；`core / ingestion / audit / features / universe` 已建並實跑，特徵層三鏡頭 8 特徵＋康波毛利循環相位入生產、剪共線 volatility_20d（27→35）、經濟回測基礎(`evaluation/portfolio.py`)已建；raw 全市場全史 sync 已完成至 as-of 2026-05-31（84/84 逐表完整性定案）；**現階段全系統資料凍結於此 as-of（develop-on-frozen-snapshot、原則精華 FREEZE 子條），最新資料待整體系統完美後接入**；`models`（F3）未建（規劃中）；知識素養層三部曲（registry 窮舉 → harvest 常規批 → text 逐字理解）已上線、`knowledge / philosophy / advisor` 橫切已建（三粒度向量檢索嵌入已建；「誠實博學的我」顧問角色層續建中，詳 `reports/augur_knowledge_text_understanding_plan_20260702.md`）。
+> 🚧 **狀態**：開發中。治權已立（靈魂 v1.5.0・原則精華 v1.9.0〔20 條法律〕・憲章 v1.43.0・CLAUDE v1.25——歷次入憲演進之明細見憲章「修訂歷程」，不在此複列防漂移）；`core / ingestion / audit / features / universe` 已建並實跑，特徵層三鏡頭 8 特徵＋康波毛利循環相位入生產、剪共線 volatility_20d（27→35）、經濟回測基礎(`evaluation/portfolio.py`)已建；raw 全市場全史 sync 已完成至 as-of 2026-05-31（84/84 逐表完整性定案）；**FREEZE 已於 2026-07-12 解除、轉 live 增量維運（原則精華 v1.9.0 解凍子條；live 准入依 unfreeze gate 紀律）**；`models`（F3）未建（規劃中）；知識素養層三部曲（registry 窮舉 → harvest 常規批 → text 逐字理解）已上線、`knowledge / philosophy / advisor` 橫切已建（三粒度向量檢索嵌入已建；「誠實博學的我」顧問角色層續建中，詳 `reports/augur_knowledge_text_understanding_plan_20260702.md`）。
 
 ---
 
@@ -20,8 +20,8 @@ Augur 從 FinMind / FRED 抓進可溯源的日級資料，算成 source-pure 特
 | 文件 | 角色 |
 |---|---|
 | [`docs/系統核心思想_v1.6.0.md`](docs/系統核心思想_v1.6.0.md) | **靈魂**：系統是什麼、為什麼、什麼絕不能違反 |
-| [`docs/原則精華_v1.8.0.md`](docs/原則精華_v1.8.0.md) | **20 條不可違反原則**（三條基石：#1 / #8 / #15）＋ 資料完整性判準（as-of · FREEZE） |
-| [`docs/系統架構大憲章_v1.42.0.md`](docs/系統架構大憲章_v1.42.0.md) | **憲法**：三個敵人 × 管線 + 12-PHASE 維運 + 升版規則；歷次架構/判準演進明細＝檔內「修訂歷程」（單一權威家 #12，此處不複列） |
+| [`docs/原則精華_v1.9.0.md`](docs/原則精華_v1.9.0.md) | **20 條不可違反原則**（三條基石：#1 / #8 / #15）＋ 資料完整性判準（as-of · FREEZE） |
+| [`docs/系統架構大憲章_v1.43.0.md`](docs/系統架構大憲章_v1.43.0.md) | **憲法**：三個敵人 × 管線 + 12-PHASE 維運 + 升版規則；歷次架構/判準演進明細＝檔內「修訂歷程」（單一權威家 #12，此處不複列） |
 | [`CLAUDE.md`](CLAUDE.md) | AI 協作工具規則 |
 
 ## 管線

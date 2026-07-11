@@ -22,8 +22,8 @@
 |---|---|---|---|
 | D1 模型速率 probe | 18/18 有 tok_per_s | 18/18(qwen3:8b 6.7、4b 17.1 tok/s) | ✅ |
 | D2 題集 seed | ≥3 seeds | 3(41/42/43,凍於 batch 快照) | ✅ |
-| D3 長跑 session | duration_s≥1800 之 session ≥1 | max=64.3s、0 筆 | ⚠ 字面未達(見 §3) |
-| D4 kill-resume 帳跡 | completed run 含 attempt≥2 | max attempt=1;run `dlrun_fc1bc20f3472`=completed | ⚠ 字面未達(見 §3) |
+| D3 長跑 session | (裁定後)completed run 之 wall-clock ≥1800s ≥1 | GATE run 11:07→15:47(>4.5h)+跨停電 resume 完跑 | ✅(措辭修正案,hugo 裁 2026-07-12) |
+| D4 kill-resume 帳跡 | (裁定後)run 曾經 resume_reset 重置 ≥1 次且終態 completed | dlrun_fc1bc20f3472:真實停電 kill→resume_reset→completed | ✅(措辭修正案,hugo 裁 2026-07-12) |
 | D5 人裁閉環 | resolved ≥10 | **88/94 resolved**(6 未決=今日 red-line 演練新單,by design 等 hugo) | ✅ |
 | D6 red-line 觸線 | live 帳 red_line_category ≥1 | **6 筆**(今日 live 演練:AnnouncementDate 健檢宣稱全數被強制轉 human_claude ✓機制實證) | ✅ |
 | D7 模型一致性 | ≥5 topics | 5 topics | ✅ |
@@ -31,7 +31,7 @@
 **模式面**:模式 4 判官團=12 分落帳(今日首跑,proposal 59-62 三 lens 評分);模式 9 iterate=14 proposal;模式 10 run/task=GATE 承載+真實停電 resume 實證。十模式全數有帳或有實跑。
 引擎規模帳:54 sessions、243 claims、benchmark 102+ 列。
 
-## 3. 兩個字面未達項的誠實處置(不造假帳、交決策層裁)
+## 3. 兩個字面未達項的誠實處置(**已裁:hugo 2026-07-12 採措辭修正案**——§2 表已依裁定更新)
 
 - **D3(≥1800s session)**:GATE 長跑實際由 **run/task 帳本**承載(首跑 11:07→15:47 逾 4.5h、第二跑跨停電 resume)——session 本身 by design 短(單場審議數十秒)。字面驗收寫錯了載體。**提案**:驗收句改「completed run 之 wall-clock ≥1800s ≥1」(現已滿足),或維持原句+標註不適用。=驗收措辭變更,**須 hugo 裁**。
 - **D4(attempt≥2)**:真實 kill-resume 已發生(停電殺進程→`resume_reset` running→pending attempt+1→完跑),但 attempt 終值=1(第二次 reset 走 failed 路徑不加 attempt)。**帳跡存在、計數器語意不同**。提案:同上,句改「run 曾經 resume_reset 重置 ≥1 次且終態 completed」(已滿足),或補一場人為 kill-resume 演練湊 attempt=2。**須 hugo 裁**。
