@@ -35,8 +35,14 @@ DDL = [
           git_sha       text NOT NULL,
           created_at    timestamptz NOT NULL DEFAULT now(),
           CONSTRAINT model_family_chk CHECK (family IN ('RankRidge','RankGBDT',
-                                             'MktLogit','DirStack','DailyLogit','DailyGBDT'))  -- +方向軸族(§5.1)
+                                             'MktLogit','DirStack','DailyLogit','DailyGBDT',
+                                             'DailyGBDT_cal','MktGBDT','DirStackM'))  -- +方向軸族(§5.1)+v2 三族(revival plan §4.1)
         )"""),
+    ("model_family_chk v2 擴充(既有表冪等對齊;單一住所 #12)", """
+        ALTER TABLE model_registry DROP CONSTRAINT IF EXISTS model_family_chk;
+        ALTER TABLE model_registry ADD CONSTRAINT model_family_chk CHECK (family IN
+          ('RankRidge','RankGBDT','MktLogit','DirStack','DailyLogit','DailyGBDT',
+           'DailyGBDT_cal','MktGBDT','DirStackM'))"""),
     ("table prediction_values", """
         CREATE TABLE IF NOT EXISTS prediction_values (
           panel_date date NOT NULL,

@@ -23,7 +23,8 @@ from augur.core import db
 
 TABLES = ("market_direction_feature", "market_direction_probability", "direction_probability",
           "direction_oos_sample", "daily_direction_feature_values", "daily_direction_probability",
-          "daily_direction_oos_sample", "mc_simulation_run", "freeze_manifest")
+          "daily_direction_oos_sample", "mc_simulation_run", "freeze_manifest",
+          "direction_stack_feature_monthly", "direction_combo_oos_sample")
 
 DDL = [
     ("H① market_direction_feature", """
@@ -96,6 +97,28 @@ DDL = [
           asof_freeze date NOT NULL DEFAULT '2026-05-31',
           change_desc text NOT NULL, approved_by text NOT NULL,
           row_delta bigint, dump_ref text, created_at timestamptz NOT NULL DEFAULT now())"""),
+    ("v2① direction_stack_feature_monthly(月頻 stack 特徵;不污染 feature_values canonical 網格)", """
+        CREATE TABLE IF NOT EXISTS direction_stack_feature_monthly (
+          panel_date date NOT NULL,
+          target_id  text NOT NULL,
+          feature    text NOT NULL,
+          value      double precision,
+          git_sha    text NOT NULL,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          PRIMARY KEY (panel_date, target_id, feature))"""),
+    ("v2② direction_combo_oos_sample(top3/top5 組合層;隨個股門、不單獨解鎖)", """
+        CREATE TABLE IF NOT EXISTS direction_combo_oos_sample (
+          combo      text NOT NULL CHECK (combo IN ('TOP3','TOP5')),
+          horizon    int  NOT NULL,
+          panel_date date NOT NULL,
+          p_up       double precision NOT NULL CHECK (p_up BETWEEN 0 AND 1),
+          y_up       smallint NOT NULL CHECK (y_up IN (0,1)),
+          fwd_ret    double precision NOT NULL,
+          model_id   text NOT NULL,
+          seed       int  NOT NULL DEFAULT 0,
+          git_sha    text NOT NULL,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          PRIMARY KEY (combo, horizon, panel_date, model_id, seed))"""),
     ("comment direction_probability", """
         COMMENT ON TABLE direction_probability IS
         '預言機軸 H 軌(憲章 v1.42.0):P(絕對報酬>0|as-of,H);gate_id 硬綁=唯 direction_gate 過 GATE 者可服務(展示分級閉集);base_rate=同窗多數類基線硬綁;禁單股準確率;FREEZE 內=歷史 OOS 非 live'"""),

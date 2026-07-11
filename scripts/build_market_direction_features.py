@@ -71,6 +71,37 @@ def run(since):
         futoi = dict(cur.fetchall())
         fg = _series(cur, 'SELECT date, fear_greed::float8 FROM "CnnFearGreedIndex" WHERE date <= %s', (FREEZE,))
 
+        # ── v2 新特徵源(revival plan §3.4)────────────────────────────────────
+        # TXO put/call(volume 與 OI;同日 EOD 公布=lag0,同 IV 口徑;零定價數學——iv_skew 因 B-S ATM 近似
+        # 不適用 OTM、避免假精度而改以 P/C 兩比值落實,誠實偏離計畫已記於完工報告)
+        cur.execute("""SELECT date, call_put, sum(volume::float8), sum(open_interest::float8)
+            FROM "TaiwanOptionDaily" WHERE option_id='TXO' AND trading_session='position' AND date <= %s
+            GROUP BY date, call_put""", (FREEZE,))
+        pc = {}
+        for d_, cp_, v_, oi_ in cur.fetchall():
+            pc.setdefault(d_, {})[cp_] = (v_ or 0.0, oi_ or 0.0)
+        # TX 大額交易人 top10 淨 OI(contract_type='all' 聚合列;2007+)→ trailing 252 z;lag1
+        cur.execute("""SELECT date, buy_top10_trader_open_interest::float8 - sell_top10_trader_open_interest::float8
+            FROM "TaiwanFuturesOpenInterestLargeTraders"
+            WHERE futures_id='TX' AND contract_type='all' AND date <= %s ORDER BY date""", (FREEZE,))
+        _tx = cur.fetchall()
+        txz = {}
+        if _tx:
+            _txv = np.array([float(v) for _, v in _tx])
+            for i in range(60, len(_tx)):
+                w = _txv[max(0, i - 251):i + 1]
+                sd_ = float(np.std(w))
+                if sd_ > 0:
+                    txz[_tx[i][0]] = float((_txv[i] - float(np.mean(w))) / sd_)
+        # 景氣燈號 monitoring 分數;visible=資料月+2 個月(對齊 verify_regime_timing.py --lag 2 先例;
+        # 初稿 +27 日=偷看未來已修正,revival plan §8-F3)
+        import pandas as _pd
+        cur.execute('SELECT date, monitoring::float8 FROM "TaiwanBusinessIndicator" '
+                    'WHERE monitoring IS NOT NULL AND date <= %s ORDER BY date', (FREEZE,))
+        biz = [((_pd.Timestamp(d_) + _pd.DateOffset(months=2)).date(), float(m_)) for d_, m_ in cur.fetchall()]
+        biz_vis = [b[0] for b in biz]
+        import bisect as _bs
+
         rows = []
         for d in cal:
             if str(d) < since or str(d) < START:
@@ -104,6 +135,22 @@ def run(since):
             vix = macro_vintage.as_of(cur, "VIXCLS", d)          # PIT 直讀 realtime_start(首個真消費者)
             if vix:
                 f["vixcls"] = (vix[0], "fred_series", d)
+            # ── v2 六新特徵(revival plan §3.4)──
+            if d in pc and "call" in pc[d] and "put" in pc[d]:
+                (cv, coi), (pv, poi) = pc[d]["call"], pc[d]["put"]
+                if cv > 0:
+                    f["mkt_pc_vol_ratio"] = (pv / cv, "TaiwanOptionDaily", d)
+                if coi > 0:
+                    f["mkt_pc_oi_ratio"] = (poi / coi, "TaiwanOptionDaily", d)
+            if d in txz:
+                f["tx_large_oi_z"] = (txz[d], "TaiwanFuturesOpenInterestLargeTraders", nx)
+            for sid, fname in (("T10Y2Y", "t10y2y"), ("T10Y3M", "t10y3m")):
+                mv = macro_vintage.as_of(cur, sid, d)            # PIT vintage reader(同 vixcls 口徑)
+                if mv:
+                    f[fname] = (mv[0], "fred_series", d)
+            bi = _bs.bisect_right(biz_vis, d) - 1                # 最新 visible≤d 之燈號(+2 月保守 lag)
+            if bi >= 0:
+                f["biz_signal"] = (biz[bi][1], "TaiwanBusinessIndicator", biz[bi][0])
             for name, (val, src, vis) in f.items():
                 if val is not None and np.isfinite(val):
                     rows.append((d, name, float(val), src, vis, git7))

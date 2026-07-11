@@ -30,7 +30,7 @@ H_HORIZONS = (20, 40, 82, 120)
 COST_TW = 0.00585   # 台股來回(手續費 2×0.1425%+證交稅 0.3%),同 run_economic_eval
 
 
-def _horizon_backtest(cur, h, top_frac, cost):
+def _horizon_backtest(cur, h, top_frac, cost, model_id="DirStack", mkt_model="MktLogit"):
     """兩視角(#15 真兆假兆隔離):
     ① 相對揀選:long top p_up 分位。**警示**:panel 內 P_mkt 對所有股相同 → p_up 排序≡rank_pctile 排序,
        此軸實測=既有相對模型之已知邊際、非絕對方向技能(alive 屬假兆、不歸功方向模型)。
@@ -38,10 +38,10 @@ def _horizon_backtest(cur, h, top_frac, cost):
        對比 always-invested buy&hold。alive=擇時淨 Sharpe 真的勝 buy&hold(方向訊號加值)。"""
     cur.execute("""SELECT s.panel_date, s.target_id, s.p_up, s.fwd_abs_ret,
             (SELECT p_mkt_up FROM market_direction_probability m
-             WHERE m.horizon=s.horizon AND m.model_id='MktLogit' AND m.panel_date<=s.panel_date
+             WHERE m.horizon=s.horizon AND m.model_id=%s AND m.panel_date<=s.panel_date
              ORDER BY m.panel_date DESC LIMIT 1)
-        FROM direction_oos_sample s WHERE s.horizon=%s AND s.fwd_abs_ret IS NOT NULL
-        ORDER BY s.panel_date""", (h,))
+        FROM direction_oos_sample s WHERE s.horizon=%s AND s.model_id=%s AND s.fwd_abs_ret IS NOT NULL
+        ORDER BY s.panel_date""", (mkt_model, h, model_id))
     by_panel = {}
     for pd_, sid, p_up, fr, pmkt in cur.fetchall():
         by_panel.setdefault(pd_, []).append((sid, float(p_up), float(fr), None if pmkt is None else float(pmkt)))
@@ -78,11 +78,12 @@ def _horizon_backtest(cur, h, top_frac, cost):
             "timing_verdict": "alive" if timing_alive else "dead"}
 
 
-def run(horizons, top_frac, cost, report):
+def run(horizons, top_frac, cost, report, model_id="DirStack", mkt_model="MktLogit"):
     lines = []
+    print(f"經濟終關:stack={model_id} 市場分量={mkt_model}(--family 隔離,不混 v1/v2)")
     with db.connect() as conn, db.transaction(conn) as cur:
         for h in horizons:
-            r = _horizon_backtest(cur, h, top_frac, cost)
+            r = _horizon_backtest(cur, h, top_frac, cost, model_id, mkt_model)
             if not r:
                 print(f"  H{h:<3} 無足夠 OOS(先跑 train_direction_stack.py)—略"); continue
             rp, bh, tm = r["rel_pick"], r["buy_hold"], r["market_timing"]
@@ -122,9 +123,11 @@ def main():
     ap.add_argument("--top-frac", dest="top_frac", type=float, default=0.2)
     ap.add_argument("--cost", type=float, default=COST_TW)
     ap.add_argument("--report")
+    ap.add_argument("--model-id", dest="model_id", default="DirStack")     # v2:DirStackM
+    ap.add_argument("--mkt-model", dest="mkt_model", default="MktLogit")   # v2:MktLogit_v2
     args = ap.parse_args()
     if args.run:
-        return run(args.horizons, args.top_frac, args.cost, args.report)
+        return run(args.horizons, args.top_frac, args.cost, args.report, args.model_id, args.mkt_model)
     return status()
 
 

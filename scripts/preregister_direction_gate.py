@@ -14,6 +14,7 @@
   python scripts/preregister_direction_gate.py --preregister-all  # H{20,40,82,120}+D{1,5} 六列 draft
   python scripts/preregister_direction_gate.py --approve dgate_H_82 --approved-by hugo   # 人親核(TTY)
   python scripts/preregister_direction_gate.py --check dgate_H_82 # sha 覆算+trigger 斷言
+  python scripts/preregister_direction_gate.py --preregister-v2   # v2 四門(K=4;estimand/α/窗/fail_path 凍結)
 """
 import argparse
 import hashlib
@@ -65,6 +66,92 @@ def _criteria(track, h, ece_ceiling):
         c["k_td"] = h
         c["expected_econ"] = "dead(來回 0.585% vs 日中位振幅;k=5 損益兩平≈66.5% 命中——預期內誠實死亡)"
     return c
+
+
+V2_GATES = ("dgate_D_5_v2", "dgate_H_40_v2", "dgate_H_20_v2", "dgate_H_82_v2")
+
+
+def _criteria_v2(key, ece):
+    """v2 四門判準(revival plan §0.4/§3.7):estimand 機械欄+α 分級+家族句+fail_path(no-v3)+provenance
+    全入 criteria 隨 sha 凍結——evaluate 依此取樣與判定,零事後自由度。"""
+    c = {
+        "version": "v2",
+        "gate_rules": {
+            "i_hitrate": ("hit-rate 顯著優於同窗『全局多數類固定方向』基線 max(p_bar,1-p_bar)(同窗實算;"
+                          "禁逐 panel 實現值〔千里眼〕基線——v1 H 軌程序教訓);顯著性=逐 panel (hit−naive) "
+                          "序列 HAC Eff-t 單尾 p<alpha(禁 iid;lag 見 hac_min_lag)"),
+            "ii_brier": "OOS Brier < 基線 p_bar*(1-p_bar)(同窗實算)",
+            "iii_calibration": {"ece_ceiling": ece, "ece_source": "judgestop_threshold.calib_late_ece_ceiling(DB 讀值)",
+                                "quantile_monotone": "p_up 十分位 vs 實現上漲頻率單調(Spearman>0)"},
+        },
+        "base_rate_rule": "多數類基線與 p_bar 一律同窗實算入 result_snapshot,不預先編數",
+        "scoring": "horizon 級聚合;禁單股準確率;abstain 無(方向機率必出);FREEZE 內=歷史 walk-forward OOS 非 live",
+        "econ_axis": "經濟終關(cost 0.00585 同口徑)=獨立標示軸不在 GATE 內;展示分級閉集依憲章 v1.42.0",
+        "fail_path": ("任一關不過=evaluated_fail 判死留檔、永不出 UI;"
+                      "v2 家族全 fail=方向軸凍結至 FREEZE 解凍+新資料累積,期間不得另立同假說新 gate(不開 v3)"),
+        "family_disclosure": ("v2 家族 K=4(D_5_v2/H_40_v2/H_20_v2/H_82_v2)一次揭露、封閉(執行中不得追加);"
+                              "完整測試序列=v1 六門+v2 四門=同一凍結資料共 10 門,結案報告一律 10 門全列;"
+                              "家族 Bonferroni 參考 α=0.0125=參考非裁決、不得據以變更展示分級"),
+        "provenance": ("假說選自 v1 判死解剖(同一凍結資料、證據相依非獨立、名義 p 帶選擇偏誤);"
+                       "D5 hit p=0.038 為 v1 best-of-2 champion 選擇後之名義值未校正——"
+                       "v2 新可證偽內容=D5 Brier 翻正/H 軌新特徵與月頻增量"),
+    }
+    if key == "D5":
+        c.update({
+            "k_td": 5, "alpha": 0.05, "hac_min_lag": 6,
+            "estimand": {"table": "daily_direction_oos_sample", "hcol": "k_td", "model_id": "DailyGBDT_cal",
+                         "seed_aggregation": "mean", "panel_window": None},
+            "calibrator": "purged isotonic:fit-set/校準尾段內層 embargo k+1 td;GBDT 只 fit 於 fit-set、"
+                          "isotonic fit 於尾段 out-of-sample 預測(憲章硬綁②);isotonic 可移動 p=0.5 交叉點"
+                          "——v1 hit 過關不自動保留",
+            "expected": "全家族最高過門機率;econ 預期 dead(來回 0.585% vs k=5 損益兩平≈66.5% 命中)",
+        })
+    else:
+        h = {"H40": 40, "H20": 20, "H82": 82}[key]
+        c.update({
+            "horizon_td": h,
+            "alpha": 0.05 if key == "H40" else 0.01,
+            "hac_min_lag": {"H20": 2, "H40": 3, "H82": 5}[key],   # ≥ceil(h/21)+1(月頻重疊窗覆蓋)
+            "estimand": {"table": "direction_oos_sample", "hcol": "horizon", "model_id": "DirStackM",
+                         "seed_aggregation": "seed0",
+                         "panel_window": ["2021-04-01", "2025-12-31"]},   # 方案 A:季頻 rank 時代(親核點)
+            "market_component": "MktLogit_v2(criteria 預先鎖定;MktGBDT 僅陪跑列報、不入裁決)",
+            "combo_layer": "top3/top5 隨本門(direction_combo_oos_sample 列報、n 明標、不得單獨解鎖)",
+            "expected": {"H40": "低中(v1 修正基線 p≈0.105 起點+新特徵/月頻增量)",
+                         "H20": "低(v1 修正基線 p≈0.44 起點)",
+                         "H82": "低(v1 三關全敗;120 日曆天主錨)"}[key],
+        })
+        if key in ("H20", "H82"):
+            c["review_tier_cap"] = ("次門 provisional(α=0.01 綁定):即便三關全過,唯『觀察名單』"
+                                    "(review_observation_only)、不得完整展示;確證唯解凍後新資料 confirmatory gate")
+    return c
+
+
+def preregister_v2():
+    git7 = _git7()
+    with db.connect() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT threshold FROM judgestop_threshold WHERE policy_key='calib_late_ece_ceiling' AND frozen")
+        row = cur.fetchone()
+        if not row:
+            sys.exit("✗ judgestop calib_late_ece_ceiling frozen 列缺")
+        ece = float(row[0])
+        n = 0
+        for gid, key, track, h in (("dgate_D_5_v2", "D5", "D", 5), ("dgate_H_40_v2", "H40", "H", 40),
+                                   ("dgate_H_20_v2", "H20", "H", 20), ("dgate_H_82_v2", "H82", "H", 82)):
+            c = _criteria_v2(key, ece)
+            cur.execute("""INSERT INTO direction_gate (gate_id, track, horizon, purpose, criteria, criteria_sha, git_sha, note)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (gate_id) DO NOTHING""",
+                (gid, track, h, f"v2 復活賭注 {key}(revival plan §0.4;先凍後跑)",
+                 json.dumps(c, ensure_ascii=False), _sha(c), git7,
+                 "v2 家族 K=4;approve=hugo TTY 親核點(含方案 A 窗)"))
+            n += cur.rowcount
+        conn.commit()
+    print(f"✓ v2 預註冊 {n} 列(K=4 家族封閉;estimand/α/窗/fail_path 已凍)")
+    print("  親核指令(於你的終端逐門執行):")
+    for gid in V2_GATES:
+        print(f"    python scripts/preregister_direction_gate.py --approve {gid} --approved-by hugo")
+    return 0
 
 
 def preregister_all():
@@ -125,10 +212,13 @@ def check(gate_id):
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--preregister-all", action="store_true", dest="pre")
+    ap.add_argument("--preregister-v2", action="store_true", dest="pre_v2")
     ap.add_argument("--approve")
     ap.add_argument("--approved-by", dest="by")
     ap.add_argument("--check")
     args = ap.parse_args()
+    if args.pre_v2:
+        return preregister_v2()
     if args.pre:
         return preregister_all()
     if args.approve:

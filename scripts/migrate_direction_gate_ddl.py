@@ -53,6 +53,13 @@ BEGIN
           OR NEW.criteria::text IS DISTINCT FROM OLD.criteria::text) THEN
     RAISE EXCEPTION 'direction gate %: 已核准,criteria 不得變更(挪門柱);另立新 gate、舊列 superseded', OLD.gate_id;
   END IF;
+  IF OLD.status IN ('evaluated_pass','evaluated_fail')
+     AND (NEW.result_snapshot::text IS DISTINCT FROM OLD.result_snapshot::text
+          OR NEW.evaluated_at IS DISTINCT FROM OLD.evaluated_at
+          OR NEW.evaluation_ref IS DISTINCT FROM OLD.evaluation_ref
+          OR NEW.git_sha IS DISTINCT FROM OLD.git_sha) THEN
+    RAISE EXCEPTION 'direction gate %: 終態列判決快照凍結(result_snapshot/evaluated_at/evaluation_ref/git_sha 不可改寫;v2 revival plan §3.1)', OLD.gate_id;
+  END IF;
   IF NEW.status IS DISTINCT FROM OLD.status THEN
     legal := (OLD.status = 'preregistered' AND NEW.status IN ('approved','superseded'))
           OR (OLD.status = 'approved'      AND NEW.status IN ('evaluated_pass','evaluated_fail','superseded'));

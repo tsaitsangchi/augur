@@ -17,6 +17,7 @@
   python scripts/train_direction_stack.py                       # 無參數:現況(唯讀:可合成 horizon×覆蓋)
   python scripts/train_direction_stack.py --run                 # 全可合成 horizon → direction_oos_sample
   python scripts/train_direction_stack.py --run --horizons 20   # 指定 horizon
+  python scripts/train_direction_stack.py --run-v2              # v2:DirStackM 月頻(H20/40/82;revival §3.4)
 """
 import argparse
 import subprocess
@@ -124,6 +125,122 @@ def run(horizons, min_train):
     return 0
 
 
+def run_v2(horizons, min_train):
+    """v2(revival plan §3.4):DirStackM——月頻 panel(檢定力誠實 ×1.5~2)+豐富特徵直餵
+    [logit(P_mkt_v2), rank−0.5, 交互, vol60, mom60, beta252, inst_z];標籤=PriceAdj 月末 h td 前瞻方向
+    (自算,不再抄 probability_oos_sample.fwd_ret);市場分量=MktLogit_v2(criteria 預先鎖定、無 challenger
+    選擇)。判門窗由 gate criteria 凍結(方案 A=2021-04+),此處全窗訓練、estimand 過濾住 evaluate。"""
+    import hashlib
+    model_id, mkt_model = "DirStackM", "MktLogit_v2"
+    git7 = _git7()
+    with db.connect() as conn:
+        cur = conn.cursor()
+        cal = _label.full_calendar(conn)
+        # 月頻特徵 → wide
+        cur.execute("SELECT panel_date, target_id, feature, value FROM direction_stack_feature_monthly")
+        df_rows = cur.fetchall()
+        if not df_rows:
+            print("✗ 無 direction_stack_feature_monthly(先跑 build_direction_stack_monthly.py --run)"); return 1
+        import pandas as pd
+        df = pd.DataFrame(df_rows, columns=["panel", "stock", "feature", "value"])
+        wide = df.pivot_table(index=["panel", "stock"], columns="feature", values="value").reset_index()
+        panels = sorted(wide["panel"].unique())
+        stocks = sorted(wide["stock"].unique())
+        print(f"DirStackM:月頻 {len(panels)} panel × {len(stocks)} 檔")
+        base_feats = ["m_vol_60", "m_mom_60", "m_beta_252", "m_inst_net_z"]
+        fh_src = base_feats + ["logit_pmkt", "rank", "interaction"]
+        fh = hashlib.sha256(",".join(sorted(fh_src)).encode()).hexdigest()[:16]
+        cur.execute("INSERT INTO model_registry (model_id, family, horizon, train_span, asof_snapshot, "
+                    "feats_hash, seed, artifact_path, git_sha) VALUES (%s,'DirStackM',0,%s,%s,%s,0,%s,%s) "
+                    "ON CONFLICT (model_id) DO NOTHING",
+                    (model_id, "[2017-01-01,2026-05-31]", "2026-05-31", fh,
+                     "walk_forward_refit_per_fold(monthly stack)", git7))
+        conn.commit()
+        # 日價 → 每股 date→close 序(標籤自算)
+        cur.execute("""SELECT stock_id, date, close FROM "TaiwanStockPriceAdj"
+            WHERE stock_id = ANY(%s) AND date >= '2016-06-01' AND date <= '2026-05-31'
+            ORDER BY stock_id, date""", (stocks,))
+        px = {}
+        for sid, d_, c_ in cur.fetchall():
+            px.setdefault(sid, ([], []))
+            px[sid][0].append(d_); px[sid][1].append(float(c_))
+        pxi = {sid: ({d: i for i, d in enumerate(ds)}, cs) for sid, (ds, cs) in px.items()}
+
+        for h in horizons:
+            rank_col = f"rank_pctile_h{h}"
+            if rank_col not in wide.columns:
+                print(f"  H{h:<3} 無 {rank_col}—略"); continue
+            # P_mkt as-of per panel
+            pmk = {}
+            for p in panels:
+                cur.execute("SELECT p_mkt_up FROM market_direction_probability "
+                            "WHERE horizon=%s AND model_id=%s AND panel_date<=%s "
+                            "ORDER BY panel_date DESC LIMIT 1", (h, mkt_model, p))
+                r = cur.fetchone()
+                if r:
+                    pmk[p] = float(r[0])
+            by_panel = {}
+            for _, r in wide.iterrows():
+                p, sid = r["panel"], r["stock"]
+                if p not in pmk or not np.isfinite(r.get(rank_col, np.nan)):
+                    continue
+                idx, cs = pxi.get(sid, ({}, []))
+                i = idx.get(p)
+                if i is None or i + h >= len(cs) or cs[i] <= 0:
+                    continue
+                fr = cs[i + h] / cs[i] - 1.0
+                by_panel.setdefault(p, []).append(
+                    (sid, float(r[rank_col]), fr, pmk[p],
+                     [r.get(c, np.nan) for c in base_feats]))
+            pks = sorted(by_panel)
+            if len(pks) < min_train + 3:
+                print(f"  H{h:<3} 可用 panel 僅 {len(pks)}—略"); continue
+            folds = walkforward.splits(pks, h, calendar=cal, min_train=min_train)
+            wrote = 0
+            from sklearn.impute import SimpleImputer
+            from sklearn.linear_model import LogisticRegression
+            from sklearn.pipeline import make_pipeline
+            from sklearn.preprocessing import StandardScaler
+
+            def _X(rows_):
+                pm = np.clip(np.array([x[3] for x in rows_], float), 1e-4, 1 - 1e-4)
+                lg = np.log(pm / (1 - pm))
+                rk = np.array([x[1] for x in rows_], float) - 0.5
+                ex = np.array([x[4] for x in rows_], float)
+                return np.column_stack([lg, rk, lg * rk, ex])
+
+            for fid, fold in enumerate(folds):
+                tr_rows = [x for p in fold["train"] for x in by_panel.get(p, [])]
+                te = by_panel.get(fold["test"], [])
+                if len(tr_rows) < 200 or not te:
+                    continue
+                ytr = np.array([1 if x[2] > 0 else 0 for x in tr_rows])
+                if len(set(ytr)) < 2:
+                    pred = np.full(len(te), float(np.mean(ytr)))
+                else:
+                    pipe = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(),
+                                         LogisticRegression(penalty="l2", C=1.0, max_iter=1000))
+                    pipe.fit(_X(tr_rows), ytr)
+                    pred = pipe.predict_proba(_X(te))[:, 1]
+                for (sid, rk_, fr, pm_, _ex), pr in zip(te, pred):
+                    cur.execute(
+                        "INSERT INTO direction_oos_sample "
+                        "(model_id, target_id, panel_date, horizon, p_up, y_up, fwd_abs_ret, fold_id, seed, git_sha) "
+                        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,0,%s) "
+                        "ON CONFLICT (model_id, target_id, panel_date, horizon, seed) DO UPDATE SET "
+                        "p_up=EXCLUDED.p_up, y_up=EXCLUDED.y_up, fwd_abs_ret=EXCLUDED.fwd_abs_ret, "
+                        "fold_id=EXCLUDED.fold_id, git_sha=EXCLUDED.git_sha, created_at=now()",
+                        (model_id, sid, fold["test"], h, float(pr), 1 if fr > 0 else 0, fr, fid, git7))
+                    wrote += 1
+            conn.commit()
+            ally = [1 if x[2] > 0 else 0 for rs in by_panel.values() for x in rs]
+            base = float(np.mean(ally)) if ally else float("nan")
+            print(f"  H{h:<3} 月頻 folds={len(folds)} 寫 OOS {wrote} 列 | p̄={base:.3f} n={len(ally)} "
+                  f"panels={len(pks)}({pks[0]}~{pks[-1]})")
+    print("✓ DirStackM 完成(判門=evaluate 依 criteria estimand:model_id+窗過濾)")
+    return 0
+
+
 def status():
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT horizon, count(*) FROM probability_oos_sample GROUP BY horizon ORDER BY horizon")
@@ -143,11 +260,14 @@ def status():
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--run", action="store_true")
-    ap.add_argument("--horizons", nargs="*", type=int, default=list(H_HORIZONS))
-    ap.add_argument("--min-train", dest="min_train", type=int, default=8)   # meta 模型 3 特徵、相對 panel 本稀(季度再平衡)
+    ap.add_argument("--run-v2", action="store_true", dest="v2")   # DirStackM 月頻(revival §3.4)
+    ap.add_argument("--horizons", nargs="*", type=int)
+    ap.add_argument("--min-train", dest="min_train", type=int)
     args = ap.parse_args()
+    if args.v2:
+        return run_v2(args.horizons or [20, 40, 82], args.min_train or 24)
     if args.run:
-        return run(args.horizons, args.min_train)
+        return run(args.horizons or list(H_HORIZONS), args.min_train or 8)
     return status()
 
 
