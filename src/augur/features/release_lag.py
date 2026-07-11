@@ -12,6 +12,14 @@
 
 思想≠特定值(#9):此處之 10/45/90 非「知識字典閾值」,而是**法律事實**(公告期限)——屬 #8 anti-leakage
 之正確 as-of 口徑、非預測用硬編。日期算術、無模型。
+
+**已知潛在缺口(2026-07-10 審計;現況休眠、非急迫)**:財報 lag 一律 45/90 日、無產業別分支;金融保險/
+證券/期貨業法定 Q1/Q3 為 **60 日**(證交法 §36 但書),對其低估滯後 → 若消費該類股財報即偏早可見(#8)。
+**現況無生產消費者**:唯一消費 `financial_released` 的生產特徵 `gross_margin_pctile`(margin_cycle.py)已因
+#15 陳舊守衛排除金融股(其 IFRS 後無 GrossProfit、停於 2010)、且生產 panel 皆季末 → 此缺口目前不觸發。
+正解(未來,超出 as-of FREEZE):接真實公告日(TWSE/MOPS)精準 gate,或令 `financial_release_date` 產業感知
+(收 stock_id→industry,金融類 Q1/Q3 用 60);屆時須改簽名+穿線全消費者、逐檔驗口徑。**未實作前勿讓 panel
+改為季中/月頻消費金融股財報**(會顯現此漏)。
 """
 from __future__ import annotations
 

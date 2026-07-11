@@ -8,7 +8,8 @@
 - f2 pb_ratio：淨值比 PBR
 - f3 dividend_yield：殖利率（%）
 - f4 market_cap_log：log(市值)（size 規模因子；log 壓縮量綱）
-- f5 price_to_10yr：還原收盤 / 10 年線 − 1（超長期均值回歸位置；需 PriceAdj + 10Year，缺則略）
+- f5 price_to_10yr：原始收盤 / 10 年線 − 1（超長期均值回歸位置；需 TaiwanStockPrice + 10Year，缺則略；
+  #8：用原始收盤而非前向還原 PriceAdj，避免未來股利/分割因子回溯注入歷史價之偷看）
 
 **無 P-lag 風險**（別於財報三表 #8）：PER/PBR/殖利率/市值皆交易所**每日公布**（基於最近財報 EPS + 當日價）→
 date ≤ panel_date 即 as-of 安全。**#9**：估值 raw 值入 feature（不設「PER<15 便宜」硬閾值，相對化交給樹/橫斷面）。
@@ -31,8 +32,10 @@ _MV_SQL = (
 _TENYR_SQL = (
     'SELECT close::float8 FROM "TaiwanStock10Year" WHERE stock_id=%s AND date <= %s ORDER BY date DESC LIMIT 1'
 )
-_ADJ_CLOSE_SQL = (
-    'SELECT close::float8 FROM "TaiwanStockPriceAdj" WHERE stock_id=%s AND date <= %s ORDER BY date DESC LIMIT 1'
+_RAW_CLOSE_SQL = (   # #8 修正(2026-07-10 審計):原讀 TaiwanStockPriceAdj——前向還原把「未來」股利/分割因子
+    # 回溯注入歷史價(adj/raw 比值隨錨點日漂移)=偷看未來;改讀原始 TaiwanStockPrice,與 raw-basis 之
+    # TaiwanStock10Year 同 point-in-time 口徑(消除 restatement 洩漏並修正混口徑)。
+    'SELECT close::float8 FROM "TaiwanStockPrice" WHERE stock_id=%s AND date <= %s ORDER BY date DESC LIMIT 1'
 )
 
 
@@ -64,7 +67,7 @@ def compute_valuation_features(cur, sid, panel_date):
     cur.execute(_TENYR_SQL, (sid, panel_date))
     tr = cur.fetchone()
     if tr and tr[0] is not None and tr[0] > 0:
-        cur.execute(_ADJ_CLOSE_SQL, (sid, panel_date))
+        cur.execute(_RAW_CLOSE_SQL, (sid, panel_date))
         cr = cur.fetchone()
         if cr and cr[0] is not None and cr[0] > 0:
             v = float(cr[0] / tr[0] - 1.0)

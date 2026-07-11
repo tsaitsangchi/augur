@@ -3,7 +3,7 @@
 
 🎯 這支在做什麼(白話):前輪做的是 within-stock 單欄相關 + featurized 交互;**這支補唯一沒做過的角度**——
 直接對 raw 欄位之**橫斷面 rank IC**(靈魂正確鏡頭:預測誰相對強)+ **欄位兩兩 z-乘積非線性交互**:
-- 月頻 panel(~每 21 交易日)× core_universe,as-of panel_date 取 13 raw 訊號(估值/籌碼/流動/動能)
+- 月頻 panel(~每 21 交易日)× core_universe_asof 逐 panel PIT 成員(#8 消存活者偏誤),as-of panel_date 取 13 raw 訊號(估值/籌碼/流動/動能)
 - 單欄:cross-sectional spearman(signal, H=20 未來報酬 rank);跨 panel 取均 + t-stat
 - 交互:z_i × z_j 全 78 對 → 同樣 IC;**增量測 = |IC(交互)| vs max(|IC(成分)|)**(交互不顯著高於成分 = 線性冗餘)
 判讀:找 |IC| 高且**交互 >> 成分**者 = 真新訊號;否則證實飽和。本地零 usage(#28)、#8 t+1 還原價、#1 缺即略。
@@ -71,14 +71,25 @@ def _pull(cur, table, col, dates, stocks, agg=None):
 def main():
     with db.connect() as conn:
         with db.transaction(conn) as cur:
-            cur.execute("SELECT stock_id FROM core_universe ORDER BY stock_id")
-            stocks = [r[0] for r in cur.fetchall()]
+            # #8 消存活者偏誤:用 core_universe_asof 逐 panel PIT 成員(非最終 core_universe 固定名單回填);
+            # 資料拉取用全期成員聯集(含已下市股),cross-section 逐 panel 只取 as-of 成員。
+            cur.execute("SELECT as_of_date, stock_id FROM core_universe_asof ORDER BY as_of_date, stock_id")
+            asof_members = {}                                      # as_of_date(str) → set(stock_id)
+            for ad, sid in cur.fetchall():
+                asof_members.setdefault(str(ad), set()).add(sid)
+        asof_dates = sorted(asof_members)
+        stocks = sorted(set().union(*asof_members.values())) if asof_members else []   # 全期聯集(含下市)
+
+        def members_asof(panel):                                   # 最近 as_of_date ≤ panel 之成員(PIT)
+            applicable = [ad for ad in asof_dates if ad <= panel]
+            return asof_members[applicable[-1]] if applicable else set()
+
         cal = label.full_calendar(conn)
         cal = [d for d in cal if str(d) >= START]
         panels = cal[::STEP]
         panels = [p for p in panels if cal.index(p) + H + 2 < len(cal)]   # 留足 H+1 出場
         pdates = [str(p) for p in panels]
-        print(f"raw 交互 IC 掃描:{len(stocks)} 股 × {len(panels)} panel(月頻 {START}+)× H={H}\n")
+        print(f"raw 交互 IC 掃描:{len(stocks)} 股(全期聯集) × {len(panels)} panel(月頻 {START}+, 逐 panel PIT 成員)× H={H}\n")
 
         # adj close for momentum：取 panel 及前 20/60 交易日
         idx = {str(d): i for i, d in enumerate(cal)}
@@ -117,7 +128,8 @@ def main():
             d20 = str(cal[i - 20]) if i - 20 >= 0 else None
             d60 = str(cal[i - 60]) if i - 60 >= 0 else None
             raw = {s: {} for s in SIGNALS}
-            for sid in stocks:
+            mem = members_asof(p)                                  # #8 逐 panel PIT 成員(消存活者偏誤)
+            for sid in mem:
                 k = (p, sid)
                 if k in per: raw["per"][sid] = per[k]
                 if k in pbr: raw["pbr"][sid] = pbr[k]
@@ -136,7 +148,7 @@ def main():
                     raw["mom60"][sid] = np.log(adj[k] / adj[(d60, sid)])
                 if k in inet: raw["inst_net"][sid] = inet[k]
 
-            lab = label.labels(conn, cal[i], stocks, H, calendar=cal)
+            lab = label.labels(conn, cal[i], sorted(mem), H, calendar=cal)
             if len(lab) < 30:
                 continue
             z = {s: _zscore(raw[s]) for s in SIGNALS}

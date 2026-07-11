@@ -12,7 +12,7 @@
 基本面分散器(H120 +0.62 Calmar 經穩健測證為部分噪音、不採)。歷史曾因 5 候選綑綁＋增量測覆蓋假象被冤殺、公平重檢翻案。
 
 思想可入、數字不回流(#9):無固定循環長度、相位由自身歷史定義。anti-leakage(#8):只用已公告財報。
-source-pure(#1):算不出(已公告歷史 <8 季 / Revenue≤0)→ 缺列。型別 #5。
+source-pure(#1):算不出(已公告歷史 <8 季 / Revenue≤0 / 當季毛利陳舊 >400 日 #15)→ 缺列。型別 #5。
 
 守 #1 · #8(發布日 gate)· #9(自身相位、無硬編)· #5 · 康波 C3 存活軸 · 母原則③相對化。
 """
@@ -23,6 +23,8 @@ from datetime import date
 from augur.features import release_lag
 
 MIN_QUARTERS = 8   # 自身百分位需 ≥8 季已公告歷史(穩健測口徑)
+MAX_STALE_DAYS = 400   # #15 陳舊守衛:最新已公告毛利季須離 panel ≤400 日(≈4 季+緩衝);否則「當季」實為
+                       # 停報之陳舊值(如保險業 IFRS 後無 GrossProfit、停於 2010),不得冒充當季 → 缺列
 
 _MARGIN_SQL = (
     'SELECT date, type, value::float8 FROM "TaiwanStockFinancialStatements" '
@@ -39,6 +41,7 @@ def _gross_margin_pctile(cur, sid, panel_date):
         by_date.setdefault(d, {})[t] = v
     pdt = panel_date if isinstance(panel_date, date) else date.fromisoformat(str(panel_date)[:10])
     margins = []
+    last_q = None                                              # 最新已公告毛利季之季底日(陳舊守衛用)
     for d in sorted(by_date):                                  # 升序 → margins[-1]＝當季
         dd = d if isinstance(d, date) else date.fromisoformat(str(d)[:10])
         if not release_lag.financial_released(dd, pdt):        # 發布日 gate:只取已公告(#8)
@@ -46,7 +49,10 @@ def _gross_margin_pctile(cur, sid, panel_date):
         gp, rev = by_date[d].get("GrossProfit"), by_date[d].get("Revenue")
         if gp is not None and rev is not None and rev > 0:
             margins.append(gp / rev)                           # 單季毛利率(GrossProfit/Revenue)
+            last_q = dd
     if len(margins) < MIN_QUARTERS:
+        return None
+    if last_q is None or (pdt - last_q).days > MAX_STALE_DAYS:  # #15:當季毛利已陳舊(停報)→ 不冒充當季、缺列
         return None
     cur_m = margins[-1]
     return float(sum(1.0 for x in margins if x <= cur_m) / len(margins))
