@@ -42,7 +42,7 @@ def as_of(cur, series_id, panel_date):
     cutoff = visible_cutoff(series_id, panel_date)
     cur.execute(
         'SELECT value::float8, date, realtime_start FROM fred_series '
-        "WHERE series_id=%s AND date <= %s AND realtime_start <= %s "
+        "WHERE series_id=%s AND date <= %s AND realtime_start <= %s AND value IS NOT NULL "  # 缺值非觀測(FRED '.'→NULL)
         "ORDER BY date DESC, realtime_start DESC LIMIT 1",
         (series_id, cutoff, cutoff))
     row = cur.fetchone()

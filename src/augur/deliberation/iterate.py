@@ -55,6 +55,7 @@ def run_iteration(cur, llm_fn, topic, target=None, max_rounds=MAX_ROUNDS, model=
     seen, last_refine_id, dry_rounds = set(), pid, 0
     claims = draft.get("claims", [])
     for rnd in range(1, max_rounds + 1):
+        cur.execute("UPDATE deliberation_session SET heartbeat_at=now() WHERE session_id=%s", (sid,))  # D3 心跳
         atk = llm_fn("你是對抗性懷疑者:逐點批判以下提案(找錯誤/漏洞/無法驗證處):\n"
                      + json.dumps({"draft": draft.get("draft", ""), "claims": claims},
                                   ensure_ascii=False)[:4000], ATTACK_SCHEMA)
@@ -84,4 +85,6 @@ def run_iteration(cur, llm_fn, topic, target=None, max_rounds=MAX_ROUNDS, model=
                                 {"draft": draft.get("draft", ""), "claims": claims},
                                 parent_id=last_refine_id)
     ledger.close_session(cur, sid, {"iterate_rounds": rnd, "final_proposal": final_id})
+    cur.execute("UPDATE deliberation_session SET finished_at=now(), duration_s=EXTRACT(EPOCH FROM now()-created_at) "
+                "WHERE session_id=%s", (sid,))                      # D3:iterate 路徑補 duration(P3 實證缺口)
     return final_id

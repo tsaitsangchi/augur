@@ -86,7 +86,7 @@ DDL = [
           source_key   varchar(64) NOT NULL REFERENCES knowledge_source(source_key),
           action       varchar(16) NOT NULL
                        CHECK (action IN ('propose','probe','approve','activate','suspend','resume',
-                                         'exhaust','reject','reopen','edit')),
+                                         'exhaust','reject','reopen','edit','ratify')),
           old_status   varchar(16),
           new_status   varchar(16),
           actor        varchar(64) NOT NULL,

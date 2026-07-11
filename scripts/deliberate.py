@@ -45,13 +45,15 @@ def _target_block(target):
     return f"目標檔案 {target}(前 6000 字):\n---\n{p.read_text(encoding='utf-8', errors='replace')[:6000]}\n---"
 
 
-def _llm_fn(model, timeout):
-    """注入式 llm_fn(prompt, schema)->dict(iterate/panel_judge 用;測試可換假 LLM)。"""
+def _llm_fn(model, timeout, think=False):
+    """注入式 llm_fn(prompt, schema)->dict(iterate/panel_judge 用;測試可換假 LLM)。
+    think=True=深思檔(GATE think_spec 同參 4096/900;8b 深推理、單 call 分鐘級)。"""
     from augur.advisor.ollama import make_structured_llm_fn
+    np_, to_ = (4096, max(timeout, 900)) if think else (1600, timeout)
 
     def fn(prompt, schema):
-        return make_structured_llm_fn(schema, model=model, timeout=timeout, retries=1,
-                                      options={"temperature": 0, "num_predict": 1600})(prompt)
+        return make_structured_llm_fn(schema, model=model, timeout=to_, retries=1, think=think,
+                                      options={"temperature": 0, "num_predict": np_})(prompt)
     return fn
 
 
@@ -73,6 +75,7 @@ def main():
     ap.add_argument("--max-rounds", dest="max_rounds", type=int, default=3)
     ap.add_argument("--dry-k", dest="dry_k", type=int, default=2)
     ap.add_argument("--timeout", type=float, default=600)
+    ap.add_argument("--think", action="store_true")   # 深思檔(iterate/judge 用)
     ap.add_argument("--report")
     args = ap.parse_args()
     if args.report:
@@ -92,7 +95,7 @@ def main():
         from augur.deliberation import iterate
         with _db.connect() as conn:
             cur = conn.cursor()
-            fid = iterate.run_iteration(cur, _llm_fn(args.model, args.timeout), args.topic,
+            fid = iterate.run_iteration(cur, _llm_fn(args.model, args.timeout, args.think), args.topic,
                                         args.target, args.max_rounds, args.model)
             conn.commit()
         print(f"✓ 自我迭代完成 final proposal_id={fid}(鏈可溯:deliberation_proposal.parent_id)")

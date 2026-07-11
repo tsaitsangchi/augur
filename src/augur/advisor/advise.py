@@ -93,6 +93,13 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     """
     from augur.philosophy.retrieval import retrieve, lexicon_lookup, verify_verbatim, is_low_content
     from augur.advisor.relevance import relevant_citations
+    from augur.advisor.prompt import _asks_direction_or_path, DIRECTION_PATH_FIXED_RESPONSE
+    # lock②/閘⑥:方向/逐日價格/目標價/準確率排名題 → 短路弱 LLM,直回固定誠實句(方向六門判死、逐日價格永久
+    #   除外)。**不論 picking_intent 是否誤建 picks 皆短路**:此類問句(每日/準確率/漲跌/未來N天)本就該誠實
+    #   decline;純相對問(如「報酬最高前N」不含這些詞)不觸 _DIR_PAT、照走選股主路徑。Mode B(附檔)不套。
+    if prompt_fn is None and _asks_direction_or_path(query):
+        return {"response": DIRECTION_PATH_FIXED_RESPONSE, "guard": {"pass": True, "issues": []},
+                "citations": [], "lex_entries": [], "prompt": None}
     src_fn = retrieve if retrieve_fn is None else retrieve_fn
     lex_fn = lexicon_fn or lexicon_lookup
     lex_entries = [e for t in lex_terms for e in lex_fn(t)]

@@ -34,7 +34,8 @@ DDL = [
           artifact_path text NOT NULL,
           git_sha       text NOT NULL,
           created_at    timestamptz NOT NULL DEFAULT now(),
-          CONSTRAINT model_family_chk CHECK (family IN ('RankRidge','RankGBDT'))
+          CONSTRAINT model_family_chk CHECK (family IN ('RankRidge','RankGBDT',
+                                             'MktLogit','DirStack','DailyLogit','DailyGBDT'))  -- +方向軸族(§5.1)
         )"""),
     ("table prediction_values", """
         CREATE TABLE IF NOT EXISTS prediction_values (

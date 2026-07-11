@@ -39,7 +39,7 @@ REPO = Path(__file__).resolve().parent.parent
 _SCHEMA_TRUE = ["feature_values", "model_registry", "prediction_probability", "knowledge_item",
                 "deliberation_claim", "probability_calibrator", "core_universe_asof", "knowledge_lexicon"]
 _SCHEMA_FALSE = ["feature_valuez", "model_registry_v2", "prediction_probabilities", "knowledge_items",
-                 "deliberation_claimz", "probability_calibrators", "core_universe", "lexicon_knowledge"]
+                 "deliberation_claimz", "probability_calibrators", "core_universe_v2", "lexicon_knowledge"]   # core_universe 真存在=素材 bug(GATE 首跑 2026-07-11),換真缺名
 _QUANT_TABLES = ["feature_values", "probability_oos_sample", "knowledge_item", "prediction_values",
                  "knowledge_lexicon", "model_registry", "probability_calibrator", "prediction_probability",
                  "knowledge_source", "deliberation_verdict"]   # B2:8→10(information_schema 實查追加,§2.2 題量)
@@ -71,8 +71,12 @@ def build_tasks(n_per_class, seed=None):
     tasks = []
     with db.connect() as conn, db.transaction(conn) as cur:
         for t in pick(_SCHEMA_TRUE, k):
+            cur.execute("SELECT to_regclass('public.'||%s) IS NOT NULL", (t,))
+            assert cur.fetchone()[0], f"素材失效:{t!r} 不存在(更新 _SCHEMA_TRUE)"   # 真值機械驗證(GATE 首跑教訓)
             tasks.append(("schema", f"資料表 {t} 存在於本專案 PostgreSQL public schema", True))
         for t in pick(_SCHEMA_FALSE, k):
+            cur.execute("SELECT to_regclass('public.'||%s) IS NULL", (t,))
+            assert cur.fetchone()[0], f"素材失效:{t!r} 竟存在(更新 _SCHEMA_FALSE;core_universe 前例)"
             tasks.append(("schema", f"資料表 {t} 存在於本專案 PostgreSQL public schema", False))
         for i, t in enumerate(pick(_QUANT_TABLES, n_per_class)):
             cur.execute(f"SELECT count(*) FROM {t}")
