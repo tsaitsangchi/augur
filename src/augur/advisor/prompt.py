@@ -2,6 +2,7 @@
 
 守 #1(數字/引文不編)· #15(誠實)· 憲章 v1.17.0(哲學不凌駕數據);審查修正 C-1/C-3 已內化為硬約束。
 """
+import os
 import re
 
 from augur.advisor.guard import NO_KNOWLEDGE_RESPONSE
@@ -26,15 +27,16 @@ def _query_kind(query):
     return "general"
 
 
-# ── 方向/逐日價格誠實硬規則(閘⑥ 之 prompt 側;方向六門判死、逐日價格永久除外——lock②)──────────
+# ── 方向/逐日價格誠實硬規則(閘⑥ 之 prompt 側;方向關卡狀態 SSOT=direction_gate 表、逐日價格永久除外——lock②)──
 _DIR_PAT = re.compile(
     r"每日|逐日|未來.{0,5}(天|日|交易日)|目標價|股價.{0,4}(變化|走[勢向]|預測|多少)|"
     r"漲跌.{0,4}(方向|機率)|方向.{0,4}機率|準確率.{0,5}(最高|前)|會漲|會跌|漲多少|跌多少")
 
 DIRECTION_SIM_HONESTY = (
     "\n【本題涉及『絕對漲跌方向/逐日股價/目標價/方向準確率』——誠實硬規則(不可違)】:"
-    "本系統方向軸(絕對漲跌機率)十門(v1 六門 H20/40/82/120+D1/D5、v2 復活四門)已**全部統計判死**(evaluated_fail)、"
-    "無可信可交易之方向或準確率;逐日『價格點位/路徑』**永久不是本系統預測產物**(憲章 §1.2)。"
+    "本系統方向軸(絕對漲跌機率)之預註冊關卡經機械驗證**統計判死**、至今無一經人工核定可展示"
+    "(門數與狀態 SSOT=direction_gate 表,不寫死)、無可信可交易之方向或準確率;"
+    "逐日『價格點位/路徑』**永久不是本系統預測產物**(憲章 §1.2)。"
     "**你絕不得**輸出任何個股之預測股價/目標價/漲跌幅/逐日價格/『方向或準確率最高的前 N 名』"
     "——那些數字不存在,編造會被機械閘攔、整則作廢。正確作法:誠實說明**絕對方向不可預測(已判死)**,"
     "再指引用戶:相對強弱排名見相對機率頁;逐日價格『情境』(非預測)見蒙地卡羅模擬情境頁"
@@ -56,6 +58,61 @@ DIRECTION_PATH_FIXED_RESPONSE = (
     "(明確標示『模擬非預測』、只給不確定性扇形,不是明牌)。\n"
     "・若你要的是**相對強弱排名**(哪些股相對同儕較強),那是另一回事,系統有相對機率頁可查。\n\n"
     "系統建議、人決策——我不會編一個看起來很準的假數字給你。")
+
+# 模擬頁指引(純導引、零預測數字;host 可由 env 覆寫——advisor 不知用戶瀏覽入口,預設本機)
+DIRECTION_SIM_URL = os.environ.get("AUGUR_SIM_URL", "http://127.0.0.1:8600/simulate")
+_SIM_HINT = f"\n\n逐日情境模擬(非預測):{DIRECTION_SIM_URL}"
+
+_GATE_STATUS_SQL = ("SELECT count(*), "
+                    "count(*) FILTER (WHERE status='evaluated_fail'), "
+                    "count(*) FILTER (WHERE status='evaluated_pass') FROM direction_gate")
+
+
+def _compose_direction_refusal(total, n_fail, n_pass):
+    """據 direction_gate 即時狀態組拒答句(guard 全閘可過:無 ≥8 字引號、無小數、無禁詞、無《》)。
+    n_pass>0 → fail-closed 保守句(不自動宣稱可答);零通過 → 現行句型、門數動態。"""
+    if n_pass > 0:
+        return (
+            "關於未來逐日股價變化、絕對漲跌方向、或方向準確率排名——\n\n"
+            f"方向軸預註冊關卡共 {total} 道,偵測到 {n_pass} 道評估通過:部分關卡狀態變更,"
+            "方向輸出依展示分級閉集處理——在人工核定展示分級前,我仍**不提供**任何方向機率、"
+            "預測股價或準確率排名(關卡通過不等於自動可答;系統建議、人決策)。\n\n"
+            "・逐日**價格點位/路徑**永久不是本系統的預測產物。想看歷史波動下的可能區間,"
+            "請用**蒙地卡羅模擬情境**頁(明確標示模擬非預測、只給不確定性扇形,不是明牌)。\n"
+            "・若你要的是**相對強弱排名**(哪些股相對同儕較強),系統有相對機率頁可查。")
+    judged = (f"共 {total} 道預註冊關卡已**全部**經機械驗證**統計判死**" if n_fail == total else
+              f"共 {total} 道預註冊關卡中 {n_fail} 道經機械驗證**統計判死**、其餘無一評估通過(輸出維持不可用)")
+    return (
+        "關於未來逐日股價變化、絕對漲跌方向、或方向準確率排名——我誠實說明:\n\n"
+        f"本系統的**絕對漲跌方向**預測(H/D 兩軌){judged}"
+        "——勝率不顯著優於永遠猜多數方向、且機率品質不達標。因此**沒有可信、可交易的方向或準確率**"
+        "可以給你,也**無法**列出準確率或報酬最高的前幾名及其預測股價。這不是功能缺失,是誠實:"
+        "方向在這份資料上不可預測。\n\n"
+        "・逐日**價格點位/路徑**永久不是本系統的預測產物。想看歷史波動下的可能區間,"
+        "請用**蒙地卡羅模擬情境**頁(明確標示模擬非預測、只給不確定性扇形,不是明牌)。\n"
+        "・若你要的是**相對強弱排名**(哪些股相對同儕較強),那是另一回事,系統有相對機率頁可查。\n\n"
+        "系統建議、人決策——我不會編一個看起來很準的假數字給你。")
+
+
+def build_direction_refusal(cur=None):
+    """lock② 拒答句之 DB 驅動版(#29b:gate 門數/狀態=DB 資料,不寫死)——即時查 direction_gate。
+    全 fail → 現行句型+動態門數;任何 evaluated_pass → fail-closed 保守句(不自動宣稱可答);
+    DB 例外或空表 → 退回 hardcode 常數(fail-closed)。句尾一律附模擬頁指引(純導引、零預測數字)。
+    cur=None → 自連唯讀 SELECT(advise() 短路處無 cur;同 payload.build_prediction_payload 之唯讀模式)。"""
+    try:
+        if cur is None:
+            from augur.core import db
+            with db.connect() as conn, conn.cursor() as c:
+                c.execute(_GATE_STATUS_SQL)
+                total, n_fail, n_pass = c.fetchone()
+        else:
+            cur.execute(_GATE_STATUS_SQL)
+            total, n_fail, n_pass = cur.fetchone()
+        if not total:
+            return DIRECTION_PATH_FIXED_RESPONSE + _SIM_HINT
+        return _compose_direction_refusal(int(total), int(n_fail), int(n_pass)) + _SIM_HINT
+    except Exception:
+        return DIRECTION_PATH_FIXED_RESPONSE + _SIM_HINT
 
 SYSTEM_PROMPT = f"""你是 augur 的「博學投資大師」顧問。你的工作是把**已算好的真實預測數字**與**哲學素養庫的逐字引文**,翻成有智慧脈絡、引經據典的解讀。你不預測、不算分,只解讀已算好的。
 

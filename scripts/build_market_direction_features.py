@@ -15,6 +15,7 @@
   python scripts/build_market_direction_features.py                     # 無參數:現況(唯讀)
   python scripts/build_market_direction_features.py --run               # 全期(2008-12-31~FREEZE)
   python scripts/build_market_direction_features.py --run --since 2025-01-01   # 增量段
+  python scripts/build_market_direction_features.py --run --until 2026-05-31   # as-of 上限(預設=FREEZE)
 """
 import argparse
 import subprocess
@@ -44,46 +45,46 @@ def _series(cur, sql, args=()):
     return dict(cur.fetchall())
 
 
-def run(since):
+def run(since, until=FREEZE):
     git7 = _git7()
     with db.connect() as conn:
         cur = conn.cursor()
         # 交易日曆=TAIEX TRI 日期(≥START)
         cur.execute('SELECT date, price::float8 FROM "TaiwanStockTotalReturnIndex" '
-                    "WHERE stock_id='TAIEX' AND date <= %s ORDER BY date", (FREEZE,))
+                    "WHERE stock_id='TAIEX' AND date <= %s ORDER BY date", (until,))
         tri = cur.fetchall()
         cal = [d for d, _ in tri]
         px = {d: p for d, p in tri}
         idx = {d: i for i, d in enumerate(cal)}
-        iv = _series(cur, "SELECT panel_date, iv FROM market_iv_daily WHERE panel_date <= %s", (FREEZE,))
+        iv = _series(cur, "SELECT panel_date, iv FROM market_iv_daily WHERE panel_date <= %s", (until,))
         cur.execute('SELECT date, sum(buy::float8 - sell::float8) FROM "TaiwanStockTotalInstitutionalInvestors" '
-                    "WHERE date <= %s GROUP BY date", (FREEZE,))
+                    "WHERE date <= %s GROUP BY date", (until,))
         inst = dict(cur.fetchall())
         cur.execute('SELECT date, sum("TodayBalance"::float8) FROM "TaiwanStockTotalMarginPurchaseShortSale" '
-                    "WHERE name LIKE %s AND date <= %s GROUP BY date", ("Margin%", FREEZE))
+                    "WHERE name LIKE %s AND date <= %s GROUP BY date", ("Margin%", until))
         marg = dict(cur.fetchall())
         mm = _series(cur, 'SELECT date, "TotalExchangeMarginMaintenance"::float8 '
-                          'FROM "TaiwanTotalExchangeMarginMaintenance" WHERE date <= %s', (FREEZE,))
+                          'FROM "TaiwanTotalExchangeMarginMaintenance" WHERE date <= %s', (until,))
         cur.execute('SELECT date, sum(long_open_interest_balance_volume::float8 - 0) '
                     'FROM "TaiwanFuturesInstitutionalInvestors" '
                     "WHERE futures_id='TX' AND institutional_investors LIKE %s AND date <= %s GROUP BY date",
-                    ("%外資%", FREEZE))
+                    ("%外資%", until))
         futoi = dict(cur.fetchall())
-        fg = _series(cur, 'SELECT date, fear_greed::float8 FROM "CnnFearGreedIndex" WHERE date <= %s', (FREEZE,))
+        fg = _series(cur, 'SELECT date, fear_greed::float8 FROM "CnnFearGreedIndex" WHERE date <= %s', (until,))
 
         # ── v2 新特徵源(revival plan §3.4)────────────────────────────────────
         # TXO put/call(volume 與 OI;同日 EOD 公布=lag0,同 IV 口徑;零定價數學——iv_skew 因 B-S ATM 近似
         # 不適用 OTM、避免假精度而改以 P/C 兩比值落實,誠實偏離計畫已記於完工報告)
         cur.execute("""SELECT date, call_put, sum(volume::float8), sum(open_interest::float8)
             FROM "TaiwanOptionDaily" WHERE option_id='TXO' AND trading_session='position' AND date <= %s
-            GROUP BY date, call_put""", (FREEZE,))
+            GROUP BY date, call_put""", (until,))
         pc = {}
         for d_, cp_, v_, oi_ in cur.fetchall():
             pc.setdefault(d_, {})[cp_] = (v_ or 0.0, oi_ or 0.0)
         # TX 大額交易人 top10 淨 OI(contract_type='all' 聚合列;2007+)→ trailing 252 z;lag1
         cur.execute("""SELECT date, buy_top10_trader_open_interest::float8 - sell_top10_trader_open_interest::float8
             FROM "TaiwanFuturesOpenInterestLargeTraders"
-            WHERE futures_id='TX' AND contract_type='all' AND date <= %s ORDER BY date""", (FREEZE,))
+            WHERE futures_id='TX' AND contract_type='all' AND date <= %s ORDER BY date""", (until,))
         _tx = cur.fetchall()
         txz = {}
         if _tx:
@@ -97,7 +98,7 @@ def run(since):
         # 初稿 +27 日=偷看未來已修正,revival plan §8-F3)
         import pandas as _pd
         cur.execute('SELECT date, monitoring::float8 FROM "TaiwanBusinessIndicator" '
-                    'WHERE monitoring IS NOT NULL AND date <= %s ORDER BY date', (FREEZE,))
+                    'WHERE monitoring IS NOT NULL AND date <= %s ORDER BY date', (until,))
         biz = [((_pd.Timestamp(d_) + _pd.DateOffset(months=2)).date(), float(m_)) for d_, m_ in cur.fetchall()]
         biz_vis = [b[0] for b in biz]
         import bisect as _bs
@@ -166,9 +167,10 @@ def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--since", default=START)
+    ap.add_argument("--until", default=FREEZE)
     args = ap.parse_args()
     if args.run:
-        return run(args.since)
+        return run(args.since, args.until)
     print(__doc__.split("執行指令矩陣:")[1])
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT count(*), count(DISTINCT panel_date), count(DISTINCT feature) FROM market_direction_feature")

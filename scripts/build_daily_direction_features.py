@@ -18,6 +18,7 @@
   python scripts/build_daily_direction_features.py --run --stocks 20         # 小樣測試(前 20 檔,#25)
   python scripts/build_daily_direction_features.py --run-chips               # v2 籌碼五族(lag-1 值位移;scoped DELETE)
   python scripts/build_daily_direction_features.py --run-chips --stocks 20   # 小樣測試(#25)
+  python scripts/build_daily_direction_features.py --run --until 2026-05-31  # as-of 上限(預設=FREEZE)
 """
 import argparse
 import sys
@@ -54,7 +55,7 @@ def _market_context(cur):
     return ctx
 
 
-def run(since, n_stocks):
+def run(since, n_stocks, until=FREEZE):
     since = since or START
     with db.connect() as conn:
         cur = conn.cursor()
@@ -68,7 +69,7 @@ def run(since, n_stocks):
         # 價量:多拉 60 td 緩衝(trailing 窗)後於 since 起算特徵
         cur.execute("""SELECT stock_id, date, close, "Trading_money" FROM "TaiwanStockPriceAdj"
             WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s ORDER BY stock_id, date""",
-            (all_stocks, str(pd.Timestamp(since) - pd.Timedelta(days=120)).split()[0], FREEZE))
+            (all_stocks, str(pd.Timestamp(since) - pd.Timedelta(days=120)).split()[0], until))
         px = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "close", "money"])
         if px.empty:
             print("✗ 無價量資料"); return 1
@@ -117,31 +118,31 @@ def run(since, n_stocks):
 CHIP_FEATS = ["d_inst_net_z", "d_margin_chg_5", "d_short_bal_chg_5", "d_daytrade_ratio", "d_foreign_hold_chg_20"]
 
 
-def _chip_series(cur, stocks, since_buf):
-    """五族籌碼日序(宇宙段、≤FREEZE)。回 dict[name]→DataFrame[stock_id,date,val]。#9 全在庫。"""
+def _chip_series(cur, stocks, since_buf, until):
+    """五族籌碼日序(宇宙段、≤until,預設 FREEZE)。回 dict[name]→DataFrame[stock_id,date,val]。#9 全在庫。"""
     out = {}
     cur.execute("""SELECT stock_id, date, sum(buy::float8 - sell::float8) FROM "TaiwanStockInstitutionalInvestorsBuySell"
-        WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s GROUP BY stock_id, date""", (stocks, since_buf, FREEZE))
+        WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s GROUP BY stock_id, date""", (stocks, since_buf, until))
     out["inst_net"] = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "val"])
     cur.execute("""SELECT stock_id, date, "MarginPurchaseTodayBalance"::float8 FROM "TaiwanStockMarginPurchaseShortSale"
-        WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""", (stocks, since_buf, FREEZE))
+        WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""", (stocks, since_buf, until))
     out["margin_bal"] = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "val"])
     cur.execute("""SELECT stock_id, date, coalesce("MarginShortSalesCurrentDayBalance",0)::float8
                           + coalesce("SBLShortSalesCurrentDayBalance",0)::float8
         FROM "TaiwanDailyShortSaleBalances" WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""",
-        (stocks, since_buf, FREEZE))
+        (stocks, since_buf, until))
     out["short_bal"] = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "val"])
     cur.execute("""SELECT stock_id, date, ("BuyAmount"::float8 + "SellAmount"::float8) / 2.0
         FROM "TaiwanStockDayTrading" WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""",
-        (stocks, since_buf, FREEZE))
+        (stocks, since_buf, until))
     out["daytrade_amt"] = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "val"])
     cur.execute("""SELECT stock_id, date, "ForeignInvestmentSharesRatio"::float8 FROM "TaiwanStockShareholding"
-        WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""", (stocks, since_buf, FREEZE))
+        WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""", (stocks, since_buf, until))
     out["foreign_ratio"] = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "val"])
     return out
 
 
-def run_chips(since, n_stocks):
+def run_chips(since, n_stocks, until=FREEZE):
     """v2 籌碼五族(revival plan §3.2;builder v1 標頭明文留給 v2)。**lag-1 落表口徑**:panel_date=可見交易日
     ——特徵值一律為「前一交易日」之統計(groupby shift(1) 於各自日序),D 軌表無 visible_date 欄故以值位移
     落實 #8;驗收=抽查 feature 值=源表前一日值。NULL 政策:缺值誠實 NaN 不落列(GBDT 原生 NaN、Logit 折內
@@ -155,7 +156,7 @@ def run_chips(since, n_stocks):
         if n_stocks:
             all_stocks = all_stocks[:n_stocks]
         print(f"籌碼五族建置:宇宙 {len(all_stocks)} 檔;段 since={since}(緩衝自 {since_buf})")
-        ser = _chip_series(cur, all_stocks, since_buf)
+        ser = _chip_series(cur, all_stocks, since_buf, until)
 
         def _prep(df):
             df = df.sort_values(["stock_id", "date"])
@@ -180,7 +181,7 @@ def run_chips(since, n_stocks):
         feats_frames.append(("d_short_bal_chg_5", f))
         # d_daytrade_ratio:當沖金額/該股成交額(同日),再 lag-1
         cur.execute("""SELECT stock_id, date, "Trading_money"::float8 FROM "TaiwanStockPriceAdj"
-            WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""", (all_stocks, since_buf, FREEZE))
+            WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""", (all_stocks, since_buf, until))
         money = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "money"])
         money["money"] = money["money"].astype(float)
         f = _prep(ser["daytrade_amt"]).merge(money, on=["stock_id", "date"], how="inner")
@@ -235,11 +236,12 @@ def main():
     ap.add_argument("--run-chips", action="store_true", dest="chips")   # v2 籌碼五族(revival §3.2)
     ap.add_argument("--since")
     ap.add_argument("--stocks", type=int)
+    ap.add_argument("--until", default=FREEZE)
     args = ap.parse_args()
     if args.chips:
-        return run_chips(args.since, args.stocks)
+        return run_chips(args.since, args.stocks, args.until)
     if args.run:
-        return run(args.since, args.stocks)
+        return run(args.since, args.stocks, args.until)
     return status()
 
 

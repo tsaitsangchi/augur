@@ -13,6 +13,7 @@
   python scripts/derive_market_iv.py                    # 無參數:現況(唯讀)
   python scripts/derive_market_iv.py --run              # 全期推導(2002+,冪等)
   python scripts/derive_market_iv.py --run --since 2020-01-01   # 增量段
+  python scripts/derive_market_iv.py --run --until 2026-05-31   # as-of 上限(預設=FREEZE)
 """
 import argparse
 import math
@@ -23,6 +24,7 @@ import _bootstrap  # noqa: F401
 from augur.core import db
 
 BS_CONST = 0.398   # Brenner-Subrahmanyam:ATM 選擇權價 ≈ 0.398·S·σ·√T(近似口徑,明標)
+FREEZE = "2026-05-31"
 
 DDL = """
 CREATE TABLE IF NOT EXISTS market_iv_daily (
@@ -47,7 +49,7 @@ def _third_wednesday(yyyymm):
     return wed[2]
 
 
-def run(since):
+def run(since, until=FREEZE):
     with db.connect() as conn:
         cur = conn.cursor()
         cur.execute(DDL)
@@ -55,8 +57,8 @@ def run(since):
         cur.execute("""SELECT date, contract_date, strike_price::float8, call_put, close::float8
                        FROM "TaiwanOptionDaily"
                        WHERE option_id='TXO' AND trading_session='position' AND close > 0
-                         AND date >= %s AND date <= '2026-05-31'
-                       ORDER BY date""", (since,))
+                         AND date >= %s AND date <= %s
+                       ORDER BY date""", (since, until))
         rows = cur.fetchall()
     by_day = {}
     for d, cm, k, cp, px in rows:
@@ -92,9 +94,10 @@ def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--since", default="2002-01-01")
+    ap.add_argument("--until", default=FREEZE)
     args = ap.parse_args()
     if args.run:
-        return run(args.since)
+        return run(args.since, args.until)
     print(__doc__.split("執行指令矩陣:")[1])
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT to_regclass('public.market_iv_daily')")

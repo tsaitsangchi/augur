@@ -2,6 +2,7 @@
 
 🎯 這支在做什麼(白話):每個參賽者一個 adapter,統一簽名
    `predict(series: dict[str, list[float]], horizon_td: int) -> dict[str, float]`
+   (own_stack_rolling 另收可選 `context={'p_mkt','rank'}` 外掛分量,缺省中性、簽名相容)
    ——輸入=各標的之歷史收盤序列(由呼叫端提供:合成冒煙給隨機漫步、live 給 DB 價格),
    輸出=各標的 P(未來 horizon 交易日累積報酬>0)。**adapter 自己零 DB/零網路**(離線單測斷言;
    市場模型=本地權重推論)。轉換口徑(市場模型點/樣本預測→方向機率)寫死於此、隨 code_sha 凍結:
@@ -14,11 +15,37 @@ import numpy as np
 WINDOW_MOMENTUM = 20      # 基線參數=慣例值、隨 code_sha 凍結(非資料挑選;arena plan §2.1)
 BLOCK_BOOT_WEEKS = 52
 N_BOOT = 2000
+WINDOW_VOL = 60           # own_stack_rolling:DirStackM 口徑之 vol_60/mom_60/beta_252 視窗
+WINDOW_BETA = 252
+MKT_SERIES_KEY = "TAIEX"
+MKT_LOGIT_SCALE = 5.0     # 動量→p_mkt 代理之 sigmoid 斜率(慣例值、隨 code_sha 凍結)
 
 
 def _rets(px):
     px = np.asarray(px, float)
     return px[1:] / px[:-1] - 1.0
+
+
+def _roll_std(x, w):
+    out = np.full(len(x), np.nan)
+    if len(x) >= w:
+        from numpy.lib.stride_tricks import sliding_window_view
+        out[w - 1:] = sliding_window_view(x, w).std(axis=1)
+    return out
+
+
+def _roll_beta(rt, rm, w):
+    """滾動 beta=cov(rt,rm)/var(rm) 尾窗 w;窗含 NaN(對齊缺口/序列頭)→ NaN(下游 impute)。"""
+    out = np.full(len(rt), np.nan)
+    if len(rt) >= w:
+        from numpy.lib.stride_tricks import sliding_window_view
+        swt, swm = sliding_window_view(rt, w), sliding_window_view(rm, w)
+        mt, mm = swt.mean(axis=1), swm.mean(axis=1)
+        cov = ((swt - mt[:, None]) * (swm - mm[:, None])).mean(axis=1)
+        var = swm.var(axis=1)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            out[w - 1:] = np.where(var > 0, cov / var, np.nan)
+    return out
 
 
 class BaselineMajority:
@@ -126,6 +153,85 @@ class OwnDailyRolling:
         return dict(zip(te_keys, (preds / 3).tolist()))
 
 
+class OwnStackRolling:
+    """自家 H 軌配方(DirStackM 配方+MktLogit_v2 分量;滾動 refit):特徵=DirStackM 口徑
+    [logit(p_mkt), rank−0.5, 交互, vol_60, mom_60, beta_252(對 TAIEX 序列;無則 NaN→impute)],
+    模型=L2 logit(impute median+standardize,同 DirStackM pipeline),每次 predict 以輸入序列
+    自造訓練樣本(每點 t 之特徵 vs t+h 方向)重訓=滾動 refit(呼叫端裁切 as-of)。
+    context 可含 {'p_mkt': float, 'rank': {target: pctile}}(A2 live 由呼叫端從 DB 餵);
+    缺省=中性:p_mkt 以 series 之 TAIEX 動量 logit 代理(無 TAIEX 則 0.5)、rank 全 0.5
+    (歷史無 rank 源→訓練期 rank/交互恆中性,其權重待 live 分量到位才有效——誠實限制)。"""
+    key = "own_stack_rolling"
+
+    def predict(self, series, horizon_td, context=None):
+        from sklearn.impute import SimpleImputer
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.pipeline import make_pipeline
+        from sklearn.preprocessing import StandardScaler
+        ctx = context or {}
+        ranks = ctx.get("rank") or {}
+        lg_ctx = None
+        if ctx.get("p_mkt") is not None:
+            pm_ctx = float(np.clip(ctx["p_mkt"], 1e-4, 1 - 1e-4))
+            lg_ctx = float(np.log(pm_ctx / (1 - pm_ctx)))
+        m_r1 = m_lg = None
+        if MKT_SERIES_KEY in series:
+            mkt = np.asarray(series[MKT_SERIES_KEY], float)
+            if len(mkt) > WINDOW_VOL:
+                m_r1 = np.concatenate([[np.nan], _rets(mkt)])
+                m_mom = np.full(len(mkt), np.nan)
+                m_mom[WINDOW_VOL:] = mkt[WINDOW_VOL:] / mkt[:-WINDOW_VOL] - 1.0
+                pm = 1.0 / (1.0 + np.exp(-MKT_LOGIT_SCALE * m_mom))
+                pm = np.clip(np.where(np.isfinite(pm), pm, 0.5), 1e-4, 1 - 1e-4)
+                m_lg = np.log(pm / (1 - pm))
+        X_tr, y_tr, X_te, te_keys = [], [], [], []
+        for t, px in series.items():
+            px = np.asarray(px, float)
+            n = len(px)
+            if n < WINDOW_VOL + horizon_td + 10:
+                continue
+            r1 = np.concatenate([[np.nan], _rets(px)])
+            mom = np.full(n, np.nan)
+            mom[WINDOW_VOL:] = px[WINDOW_VOL:] / px[:-WINDOW_VOL] - 1.0
+            vol = _roll_std(r1, WINDOW_VOL)
+            lg, beta = np.zeros(n), np.full(n, np.nan)
+            if m_r1 is not None:
+                off = len(m_r1) - n            # 尾端對齊(呼叫端皆裁至同一 as-of)
+                lo, hi = max(0, -off), min(n, len(m_r1) - off)
+                if hi > lo:
+                    rm = np.full(n, np.nan)
+                    rm[lo:hi] = m_r1[lo + off:hi + off]
+                    beta = _roll_beta(r1, rm, WINDOW_BETA)
+                    lg[lo:hi] = m_lg[lo + off:hi + off]
+            rk = np.zeros(n)                    # 歷史 rank 無源→中性 0(=0.5−0.5)
+            feats = np.column_stack([lg, rk, lg * rk, vol, mom, beta])
+            fwd = np.full(n, np.nan)
+            fwd[:-horizon_td] = px[horizon_td:] / px[:-horizon_td] - 1.0
+            core_ok = np.isfinite(vol) & np.isfinite(mom)
+            tr = core_ok & np.isfinite(fwd)
+            X_tr.append(feats[tr]); y_tr.append((fwd[tr] > 0).astype(int))
+            if core_ok[-1]:
+                row = feats[-1].copy()
+                if lg_ctx is not None:
+                    row[0] = lg_ctx
+                if ranks.get(t) is not None:
+                    row[1] = float(ranks[t]) - 0.5
+                row[2] = row[0] * row[1]
+                X_te.append(row); te_keys.append(t)
+        out = {t: 0.5 for t in series}
+        if not X_tr or not te_keys:
+            return out
+        X, y = np.vstack(X_tr), np.concatenate(y_tr)
+        if len(set(y)) < 2:
+            return {t: float(np.mean(y)) for t in series}
+        pipe = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(),
+                             LogisticRegression(penalty="l2", C=1.0, max_iter=1000))
+        pipe.fit(X, y)
+        preds = pipe.predict_proba(np.vstack(X_te))[:, 1]
+        out.update({t: float(np.clip(p, 0.0, 1.0)) for t, p in zip(te_keys, preds)})
+        return out
+
+
 class MarketChronos:
     """Chronos-Bolt(本地權重、樣本路徑推論):P=樣本路徑正累積報酬比例(零調參轉換,唯一口徑)。
     lazy import;無套件/OOM → RuntimeError(operational 除名事由,誠實留痕)。"""
@@ -203,4 +309,4 @@ class MarketTimesFM:
 
 
 REGISTRY = {a.key: a for a in (BaselineMajority, BaselineMomentum, BaselineMcBootstrap,
-                               OwnDailyRolling, MarketChronos, MarketTimesFM)}
+                               OwnDailyRolling, OwnStackRolling, MarketChronos, MarketTimesFM)}
