@@ -57,7 +57,7 @@ def _recent_probe_ok(cur, source_key, days=30):
 def transition(source_key, action, actor, *, reason=None, os_user=None, probe_result=None,
                system=False):
     """執行一次狀態機轉移(寫 review_log;失敗 raise)。system=True 限降級動作(harvest 自動 suspend)。"""
-    if action not in TRANSITIONS and action not in ("probe", "propose", "edit"):
+    if action not in TRANSITIONS and action not in ("probe", "propose", "edit", "ratify"):
         raise ValueError(f"未知 action {action!r}")
     if system and action in HUMAN_ONLY:
         raise PermissionError(f"v1.41.0:{action} 唯人執行,system 禁升級")

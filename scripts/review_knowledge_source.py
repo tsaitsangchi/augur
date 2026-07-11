@@ -81,9 +81,30 @@ def main():
     ap.add_argument("--status")
     for a in ("approve", "activate", "suspend", "resume", "reject", "reopen"):
         ap.add_argument(f"--{a}", metavar="KEY")
+    ap.add_argument("--ratify-all-active", dest="ratify_all", action="store_true",
+                    help="批次追認 bulk-seed active 源(TTY+superuser;寫 ratify 留痕、不動狀態)")
     ap.add_argument("--actor")
     ap.add_argument("--reason")
     args = ap.parse_args()
+    if args.ratify_all:
+        # 追認=升級級人簽(2026-07-11 用戶問「可否自動批次到 100%」——自動 approve 違憲(v1.41.0 唯人);
+        # 合法路=人親跑本命令一次批次追認:真人現在的決定留痕,非偽造回溯 approve(#15))
+        if not sys.stdin.isatty():
+            sys.exit("✗ 身分閘①:追認須互動 TTY(AI/腳本 fail-closed 拒——治理覆蓋率不可自動化)")
+        if not args.actor or not _is_superuser(args.actor):
+            sys.exit("✗ 身分閘②:--actor 須 app_user.is_superuser=true")
+        with db.connect() as conn:
+            cur = conn.cursor()
+            cur.execute("""SELECT source_key FROM knowledge_source WHERE approval_status='active'
+                AND source_key NOT IN (SELECT source_key FROM knowledge_source_review_log
+                                       WHERE action IN ('approve','activate','ratify')) ORDER BY source_key""")
+            keys = [r[0] for r in cur.fetchall()]
+        print(f"待追認 active 源:{len(keys)}")
+        for k in keys:
+            curation.transition(k, "ratify", args.actor, reason="bulk-seed 追認(人親簽,2026-07-11)",
+                                os_user=getpass.getuser())
+        print(f"✓ 追認 {len(keys)} 源(review_log action='ratify';治理覆蓋率即刻反映)")
+        return 0
     for action in ("approve", "activate", "suspend", "resume", "reject", "reopen"):
         key = getattr(args, action)
         if key:

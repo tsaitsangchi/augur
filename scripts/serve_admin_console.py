@@ -644,7 +644,7 @@ def _gov_data():
         cur.execute("SELECT count(*) FROM knowledge_source WHERE approval_status='active'")
         d["active"] = cur.fetchone()[0]
         cur.execute("SELECT count(DISTINCT source_key) FROM knowledge_source_review_log "
-                    "WHERE action IN ('approve','activate')")
+                    "WHERE action IN ('approve','activate','ratify')")
         d["governed"] = cur.fetchone()[0]
         d["fulltext"] = []
         if cur.execute("SELECT to_regclass('public.knowledge_fulltext_status')") or cur.fetchone()[0]:

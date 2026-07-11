@@ -307,7 +307,8 @@ async function loadSession(id){var s=SESSIONS.filter(function(x){return x.id===i
  try{var j=await (await fetch('/api/messages?sid='+encodeURIComponent(id))).json();(j.messages||[]).forEach(function(m){if(m.role==='user'){add('u',m.content)}else{var d=add('a','');d._bubble.innerHTML=mdToHtml(m.content)}})}catch(e){}
  renderRecents();log.scrollTop=log.scrollHeight;toggleJump()}
 async function loadHealth(){try{var j=await (await fetch('/health')).json();var ds=document.querySelectorAll('#svc .d');if(ds.length>=3){ds[0].className='d '+(j.db?'on':'off');ds[1].className='d '+(j.advisor?'on':'off');ds[2].className='d '+(j.ollama?'on':'off')}}catch(e){}}
-loadHealth();setInterval(loadHealth,15000);fetchSessions();
+loadHealth();setInterval(loadHealth,15000);fetchSessions();initTiers();
+async function initTiers(){try{var j=await (await fetch('/api/tiers')).json();if(!j.enabled)return;var pill=document.querySelector('.modelpill');if(!pill)return;var models={},efforts={};j.tiers.forEach(function(t){models[t.model_tag]=t.tok_per_s;efforts[t.effort]=1});function opts(o,fmt){return Object.keys(o).map(function(k){return '<option value="'+k+'">'+fmt(k)+'</option>'}).join('')}pill.innerHTML='<select id=selm title=模型>'+opts(models,function(m){var s=models[m];return m.split(':')[1]+(s?'·'+s+'tok/s':'·未量測')})+'</select>'+'<select id=self_ title=推理力度>'+opts(efforts,function(e){return e==='ultra'?'ultracode(審議·分鐘級)':e})+'</select>';var dm=(j.default_tier||'').split('-');function upd(){var m=document.getElementById('selm').value.split(':')[1],e=document.getElementById('self_').value;window.TIER='augur-'+m+'-'+e}if(dm.length===3){document.getElementById('selm').value='qwen3:'+dm[1];document.getElementById('self_').value=dm[2]}document.getElementById('selm').onchange=upd;document.getElementById('self_').onchange=upd;upd()}catch(e){}}
 function toggleSide(){var sb=document.querySelector('.sidebar'),sc=document.getElementById('scrim');var open=sb.classList.toggle('open');if(sc)sc.classList.toggle('show',open)}
 function closeCmdk(){document.getElementById('cmdk').style.display='none'}
 function openCmdk(){var o=document.getElementById('cmdk');o.style.display='flex';var inp=document.getElementById('cmdkq');inp.value='';cmdkRender('');inp.focus()}
@@ -344,7 +345,7 @@ function mdToHtml(t){
  t=t.split(/\\n{2,}/).map(function(x){x=x.trim();if(!x)return '';if(/^<(h\\d|ul|ol|pre)/.test(x))return x;return '<p>'+x.replace(/\\n/g,'<br>')+'</p>'}).join('')
  return t.replace(/\\x01(\\d+)\\x01/g,function(_,i){return store[+i]})
 }
-function renderStream(wait,full){var parts=full.split('\\n---\\n').map(function(s){return s.trim()}).filter(function(s){return s&&s.indexOf('[augur-guard]')!==0});wait._bubble.innerHTML=mdToHtml(parts.join('\\n\\n'));if(pinned)log.scrollTop=log.scrollHeight}
+function renderStream(wait,full){var parts=full.split('\\n---\\n').map(function(s){return s.trim()}).filter(function(s){if(s.indexOf('[augur-progress]')===0){var pd=wait.querySelector('.prog');if(!pd){pd=document.createElement('div');pd.className='g prog';wait.appendChild(pd)}pd.textContent=s.replace('[augur-progress]','⏳');return false}return s&&s.indexOf('[augur-guard]')!==0});wait._bubble.innerHTML=mdToHtml(parts.join('\\n\\n'));if(pinned)log.scrollTop=log.scrollHeight}
 var CTRL=null
 function setGen(on){if(on){b.textContent='■';b.title='停止生成';b.classList.add('stop')}else{b.textContent='↑';b.title='送出';b.classList.remove('stop');b.disabled=false}}
 async function runGen(text,wait){
@@ -352,6 +353,7 @@ async function runGen(text,wait){
  var og=wait.querySelector('.g');if(og)og.remove()
  var controller=new AbortController();CTRL=controller;setGen(true)
  const payload=attached?{messages:[{role:'user',content:text}],augur_attach:attached}:{messages:[{role:'user',content:text}]}
+ if(window.TIER)payload.model=window.TIER
  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal})
   const reader=r.body.getReader(),dec=new TextDecoder();var buf='',full='',first=true
   while(true){const rd=await reader.read();if(rd.done)break
@@ -363,7 +365,7 @@ async function runGen(text,wait){
   }
   var allp=full.split('\\n---\\n').map(function(s){return s.trim()})
   var gl=allp.filter(function(s){return s.indexOf('[augur-guard]')===0}).join(' ')
-  var body=allp.filter(function(s){return s&&s.indexOf('[augur-guard]')!==0}).join('\\n\\n')||'(無回覆)'
+  var body=allp.filter(function(s){return s&&s.indexOf('[augur-guard]')!==0&&s.indexOf('[augur-progress]')!==0}).join('\\n\\n')||'(無回覆)'
   wait._bubble.innerHTML=mdToHtml(body)
   var pass=gl.indexOf('pass=true')>=0
   var gd=document.createElement('div');gd.className='g '+(pass?'pass':'fail');gd.textContent='[guard] '+(pass?'通過':'攔下(改誠實句)');wait.appendChild(gd)
@@ -454,6 +456,18 @@ class H(BaseHTTPRequestHandler):
             return self._html(LOGIN_PAGE.replace("__MSG__", ""))
         if path == "/health":
             return self._health()
+        if path == "/api/tiers":                                    # F1:tier 選單資料(advisor SSOT 轉發塑形)
+            try:
+                import urllib.request as _ur
+                with _ur.urlopen(_ur.Request(ADVISOR + "/v1/models"), timeout=5) as r:
+                    mj = json.loads(r.read().decode())
+                tiers = [{"id": d["id"], **(d.get("augur_tier") or {})}
+                         for d in mj.get("data", []) if d.get("augur_tier")]
+                if not tiers:
+                    return self._json({"enabled": False})
+                return self._json({"enabled": True, "default_tier": mj.get("augur_default_tier"), "tiers": tiers})
+            except Exception:
+                return self._json({"enabled": False})
         if path == "/api/sessions":                                 # 對話歷史(DB、owner 收窄):列 session
             qs = parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
             return self._json({"sessions": chat_history.list_sessions(uid, qs.get("mode", [None])[0])})
@@ -650,7 +664,7 @@ class H(BaseHTTPRequestHandler):
                 sc = f"掃描失敗:{e}"
             return self._reply(f"【+資料夾 dry-run 掃描】{safe}\n\n{sc}\n"
                                "── 此為預覽(未入庫)。實際入庫請至 admin 後台(:8500)聲明 license(DB CHECK 硬擋只准公開授權檔)。")
-        fwd = {"model": "augur-advisor", "messages": msgs, "stream": True}
+        fwd = {"model": (req.get("model") or "augur-advisor"), "messages": msgs, "stream": True}
         att = req.get("augur_attach")
         if isinstance(att, dict) and (att.get("text") or "").strip():
             fwd["augur_attach"] = {"title": att.get("title") or "附加文件", "text": att["text"]}

@@ -17,9 +17,10 @@ def config_sha(cfg):
     return hashlib.sha256(json.dumps(cfg, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:16]
 
 
-def load_rules(cur, key="fast_anchor_rules"):
-    """讀規則 dict + sha(cache)。表/列不存在 → ({}, None)=全關快路(fail-safe 保守)。"""
-    if key in _CACHE:
+def load_rules(cur, key="fast_anchor_rules", fresh=False):
+    """讀規則 dict + sha(cache)。表/列不存在 → ({}, None)=全關快路(fail-safe 保守)。
+    fresh=True 跳 _CACHE(前台 tiers 翻旗標免重啟;預設 False=現行為)。"""
+    if not fresh and key in _CACHE:
         return _CACHE[key]
     cur.execute("SELECT to_regclass('public.deliberation_engine_config')")
     if not cur.fetchone()[0]:

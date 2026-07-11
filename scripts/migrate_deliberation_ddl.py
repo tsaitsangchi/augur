@@ -28,7 +28,7 @@ TABLES = ("deliberation_session", "deliberation_claim", "deliberation_verdict",
           "deliberation_escalation", "deliberation_redline_trigger", "deliberation_benchmark", "deliberation_lens",
           "deliberation_engine_config", "deliberation_bench_batch", "deliberation_run", "deliberation_task",
           "deliberation_proposal", "deliberation_panel_score", "deliberation_model_probe",
-          "deliberation_model_agreement")
+          "deliberation_model_agreement", "deliberation_daily_topic")
 
 DDL = [
     ("table deliberation_session", """
@@ -239,6 +239,27 @@ DDL = [
           ALTER TABLE deliberation_session ADD COLUMN IF NOT EXISTS finished_at  timestamptz;
           ALTER TABLE deliberation_session ADD COLUMN IF NOT EXISTS duration_s   numeric;
         END $$"""),
+    ("migrate benchmark arm check +gate arms (B2 修:P3 首跑實證漏改)", """
+        DO $$ BEGIN
+          ALTER TABLE deliberation_benchmark DROP CONSTRAINT IF EXISTS deliberation_benchmark_arm_check;
+          ALTER TABLE deliberation_benchmark ADD CONSTRAINT deliberation_benchmark_arm_check
+            CHECK (arm IN ('single_shot','engine','single_fast','single_think'));
+        END $$"""),
+    # ── L2 自主級上線(2026-07-11 用戶核可形狀):每日自主審議之常備題庫(#29b 資料驅動,增題=INSERT) ──
+    ("table deliberation_daily_topic (L2)", """
+        CREATE TABLE IF NOT EXISTS deliberation_daily_topic (
+          topic_key  text PRIMARY KEY,
+          topic      text NOT NULL,
+          enabled    boolean NOT NULL DEFAULT true,
+          note       text,
+          created_at timestamptz NOT NULL DEFAULT now()
+        )"""),
+    ("seed daily topics", """
+        INSERT INTO deliberation_daily_topic (topic_key, topic, note) VALUES
+          ('core_invariants','隔離不變式成立;表 feature_values 至少 2000000 列;資料表 model_registry 存在','兩半隔離+特徵面板+模型註冊'),
+          ('probability_layer','資料表 prediction_probability 存在;資料表 probability_calibrator 存在;資料表 econ_verdict_rule 存在','機率層三件'),
+          ('ledgers','資料表 deliberation_claim 存在;資料表 deliberation_run 存在;資料表 validation_evidence 存在','審議+證據帳本')
+        ON CONFLICT (topic_key) DO NOTHING"""),
     ("table deliberation_model_agreement (D7)", """
         CREATE TABLE IF NOT EXISTS deliberation_model_agreement (
           agree_id    bigserial PRIMARY KEY,

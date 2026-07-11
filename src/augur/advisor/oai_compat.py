@@ -5,8 +5,11 @@
    guard fail → 回固定誠實句閉集 NO_KNOWLEDGE_RESPONSE(P9 建議值:沿用不擴;非 LLM 原輸出);
    guard verdict 以**機械模板**附於回覆尾部(分隔線區隔、零 LLM 內容);
    偽 SSE:先回 role chunk(keepalive)、全文過閘後才分塊 emit(stream:true × guard 全文後置閘之唯一合規形);
-   API key 收任意值(本地);對全部表唯讀零寫(命門 5/6);住 advisor package=自動入 AST 隔離稽核(P14)。
-   stdlib http.server 實作、零新增依賴。
+   API key 收任意值(本地);**對諮詢資料面(knowledge_*/philosophy_*/feature/prediction/chat_*)唯讀零寫
+   不變(命門 5/6);唯一例外=deliberation_* 審議帳本**(前台 ultracode 檔經 effort→engine 既有寫點落帳;
+   advisor package 自身零 SQL 寫入語句——命門修訂文 2026-07-11 拍板 P3,程式層保證+file_grep 可驗)。
+   住 advisor package=自動入 AST 隔離稽核(P14)。stdlib http.server 實作、零新增依賴。
+   前台檔位(F1):body.model 承載 tier(augur-{4b,8b}-{fast,think,ultra});config 旗標關=行為逐位元同現行。
 守 #1/#8/#15(經 advise+guard 落地)· #18(oai_compat=領域名詞)· 計畫 §3-S7 N8/§6(UI 軸:殼=穩定契約)。
 """
 import json
@@ -23,11 +26,26 @@ DEFAULT_PORT = 8399
 _SEP = "\n\n---\n"          # LLM 文本與機械尾註之分隔線(尾註零 LLM 內容)
 
 
-def models_payload():
-    """GET /v1/models 回應體:唯一 model=augur-advisor(P10 建議形制)。"""
-    return {"object": "list",
-            "data": [{"id": MODEL_ID, "object": "model",
-                      "created": int(time.time()), "owned_by": "augur"}]}
+def models_payload(cfg=None):
+    """GET /v1/models 回應體。tiers 關(預設)=唯一 model=augur-advisor(現行形制);
+    tiers 開=列全部 tier 並附 augur_tier 擴充欄(tok_per_s=DB 實測現算、非硬編;OpenAI 協定容忍額外欄)。"""
+    if not (cfg and cfg.get("enabled")):
+        return {"object": "list",
+                "data": [{"id": MODEL_ID, "object": "model",
+                          "created": int(time.time()), "owned_by": "augur"}]}
+    from augur.advisor import effort
+    data = []
+    for tid, t in sorted(cfg.get("tiers", {}).items()):
+        speed = effort.probe_speed(t["model"])
+        label = f"{t['model'].split(':')[1]}·{t['effort']}"
+        if t["effort"] == "ultra":
+            label += f"(審議引擎={cfg.get('ultra', {}).get('engine_model', 'qwen3:4b')};白話={t['model']};分鐘級)"
+        data.append({"id": tid, "object": "model", "created": int(time.time()), "owned_by": "augur",
+                     "augur_tier": {"model_tag": t["model"], "effort": t["effort"],
+                                    "tok_per_s": speed, "label": label,
+                                    "engine_model": cfg.get("ultra", {}).get("engine_model")
+                                    if t["effort"] == "ultra" else None}})
+    return {"object": "list", "data": data, "augur_default_tier": cfg.get("default_tier")}
 
 
 def _last_user_content(messages):
@@ -94,7 +112,8 @@ def _reply_text(result):
 
 
 def chat_completion(body, llm_fn, payload_fn=empty_payload, retrieve_fn=None,
-                    k=6, cmpl_id=None, created=None, scope=None, picking_payload_fn=None):
+                    k=6, cmpl_id=None, created=None, scope=None, picking_payload_fn=None,
+                    model_id=None, extra_block=None, prefix_note=None):
     """POST /v1/chat/completions 主邏輯(非串流形;串流由 handler 以偽 SSE 分塊同一結果)。
 
     唯一編排出口=advise();殼不碰檢索/prompt/guard 細節。scope=(is_super, allowed_domains) 由 handler
@@ -126,38 +145,44 @@ def chat_completion(body, llm_fn, payload_fn=empty_payload, retrieve_fn=None,
         from augur.advisor.relevance import picking_intent
         active_fn = picking_payload_fn if (picking_payload_fn is not None and picking_intent(query)) else payload_fn
         result = advise(query, active_fn(), llm_fn, k=k, retrieve_fn=retrieve_fn, scope=scope)
+    content = _reply_text(result)
+    if prefix_note:                     # ultracode 不合格題之誠實 fallback 說明(機械一行、前置)
+        content = prefix_note + _SEP + content
+    if extra_block:                     # ultracode 裁決區塊(§1.4 機械模板;guard 後硬隔線併入、不繞 guard)
+        content = content + _SEP + extra_block
     return {
         "id": cmpl_id or f"chatcmpl-augur-{uuid.uuid4().hex[:12]}",
         "object": "chat.completion",
         "created": created or int(time.time()),
-        "model": MODEL_ID,
+        "model": model_id or MODEL_ID,
         "choices": [{"index": 0, "finish_reason": "stop",
-                     "message": {"role": "assistant", "content": _reply_text(result)}}],
+                     "message": {"role": "assistant", "content": content}}],
         "augur_guard": {"pass": result["guard"]["pass"], "issues": result["guard"]["issues"],
                         "citations": len(result["citations"]), "lex_entries": len(result["lex_entries"])},
     }
 
 
 # ── 偽 SSE(先 role chunk keepalive、全文過閘後分塊 emit)──
-def _chunk(cmpl_id, created, delta, finish=None):
+def _chunk(cmpl_id, created, delta, finish=None, model_id=None):
     return ("data: " + json.dumps({
         "id": cmpl_id, "object": "chat.completion.chunk", "created": created,
-        "model": MODEL_ID,
+        "model": model_id or MODEL_ID,
         "choices": [{"index": 0, "delta": delta, "finish_reason": finish}]},
         ensure_ascii=False) + "\n\n")
 
 
-def role_event(cmpl_id, created):
+def role_event(cmpl_id, created, model_id=None):
     """SSE 首 chunk(role/keepalive):advise() 可達分鐘級,先回此 chunk 防 client 逾時斷線。"""
-    return _chunk(cmpl_id, created, {"role": "assistant"})
+    return _chunk(cmpl_id, created, {"role": "assistant"}, model_id=model_id)
 
 
 def content_events(completion, size=160):
     """全文(已過閘)分塊 emit + finish + [DONE](偽 SSE 尾段)。"""
     text = completion["choices"][0]["message"]["content"]
+    mid = completion.get("model")
     for i in range(0, len(text), size):
-        yield _chunk(completion["id"], completion["created"], {"content": text[i:i + size]})
-    yield _chunk(completion["id"], completion["created"], {}, finish="stop")
+        yield _chunk(completion["id"], completion["created"], {"content": text[i:i + size]}, model_id=mid)
+    yield _chunk(completion["id"], completion["created"], {}, finish="stop", model_id=mid)
     yield "data: [DONE]\n\n"
 
 
@@ -203,7 +228,8 @@ class AdvisorHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.rstrip("/") == "/v1/models":
-            return self._send_json(200, models_payload())
+            from augur.advisor import effort
+            return self._send_json(200, models_payload(effort.load_tiers()))
         self._send_json(404, {"error": {"message": f"unknown path {self.path}", "type": "invalid_request_error"}})
 
     def do_POST(self):
@@ -216,6 +242,42 @@ class AdvisorHandler(BaseHTTPRequestHandler):
             return self._send_json(400, {"error": {"message": "body 非合法 JSON", "type": "invalid_request_error"}})
 
         t0 = time.time()
+        # ── F1 tier 解析(旗標關={"enabled":False}=全走 legacy 現行路徑;未知 tier 在任何 200 之前 400=V7)──
+        tier, tiers_cfg = None, None
+        from augur.advisor import effort
+        tiers_cfg = effort.load_tiers()
+        if tiers_cfg.get("enabled"):
+            try:
+                tier = effort.resolve_tier(body.get("model"), tiers_cfg)
+            except effort.UnknownTierError as e:
+                return self._send_json(400, {"error": {"message": str(e), "type": "invalid_request_error"}})
+
+        def _run(cmpl_id=None, created=None, progress_cb=None):
+            """一次完整回覆(tier 感知);tier=None → legacy 逐位元同現行。"""
+            deps = self._deps()
+            if tier is None:
+                return chat_completion(body, cmpl_id=cmpl_id, created=created,
+                                       scope=self._resolve_scope(), **deps)
+            deps["llm_fn"] = effort.make_tier_llm_fn(tier, tiers_cfg)
+            extra, prefix = None, None
+            if tier.effort == "ultra":
+                res = effort.run_ultracode(_last_user_content(body.get("messages")), tiers_cfg,
+                                           progress_cb=progress_cb)
+                if res.busy:                                   # 單飛忙碌:服務狀態句、不啟 advise(§2.6)
+                    return {"id": cmpl_id or f"chatcmpl-augur-{uuid.uuid4().hex[:12]}",
+                            "object": "chat.completion", "created": created or int(time.time()),
+                            "model": tier.id,
+                            "choices": [{"index": 0, "finish_reason": "stop",
+                                         "message": {"role": "assistant", "content": effort.BUSY_NOTE}}],
+                            "augur_guard": {"pass": True, "issues": [], "citations": 0, "lex_entries": 0}}
+                if res.fallback_note:
+                    prefix = res.fallback_note                 # 誠實 fallback:一般管線+機械前置說明
+                else:
+                    extra = effort.verdict_block(res)
+                deps["llm_fn"] = effort.make_tier_llm_fn(tier._replace(effort="fast"), tiers_cfg)  # 白話走 fast 參數
+            return chat_completion(body, cmpl_id=cmpl_id, created=created, scope=self._resolve_scope(),
+                                   model_id=tier.id, extra_block=extra, prefix_note=prefix, **deps)
+
         if body.get("stream"):
             cmpl_id, created = f"chatcmpl-augur-{uuid.uuid4().hex[:12]}", int(time.time())
             self.send_response(200)
@@ -223,14 +285,46 @@ class AdvisorHandler(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "no-cache")
             self.send_header("Connection", "close")
             self.end_headers()
-            self.wfile.write(role_event(cmpl_id, created).encode("utf-8"))   # keepalive 先行,advise 可分鐘級
+            mid = tier.id if tier else None
+            self.wfile.write(role_event(cmpl_id, created, model_id=mid).encode("utf-8"))
             self.wfile.flush()
-            try:
-                completion = chat_completion(body, cmpl_id=cmpl_id, created=created,
-                                             scope=self._resolve_scope(), **self._deps())
-            except Exception as e:                                           # 串流已開 → 以內容 chunk 誠實揭露
-                completion = {"id": cmpl_id, "created": created,
-                              "choices": [{"message": {"content": f"[augur-error] {e}"}}]}
+            if tier and tier.effort == "ultra":
+                # worker thread + progress queue(§2.4):進度行=零-LLM 機械模板段;閒置發 heartbeat
+                import queue as _q
+                import threading as _t
+                q = _q.Queue()
+                out = {}
+
+                def work():
+                    try:
+                        out["c"] = _run(cmpl_id, created, progress_cb=lambda m: q.put(m))
+                    except Exception as e:
+                        out["c"] = {"id": cmpl_id, "created": created, "model": mid,
+                                    "choices": [{"message": {"content": f"[augur-error] {e}"}}]}
+                    finally:
+                        q.put(None)
+                _t.Thread(target=work, daemon=True).start()
+                idle = float(tiers_cfg.get("progress", {}).get("heartbeat_idle_s", 15))
+                while True:
+                    try:
+                        m = q.get(timeout=idle)
+                    except _q.Empty:
+                        self.wfile.write(_chunk(cmpl_id, created, {}, model_id=mid).encode("utf-8"))
+                        self.wfile.flush()
+                        continue
+                    if m is None:
+                        break
+                    self.wfile.write(_chunk(cmpl_id, created,
+                                            {"content": f"\n---\n[augur-progress] {m}"},
+                                            model_id=mid).encode("utf-8"))
+                    self.wfile.flush()
+                completion = out["c"]
+            else:
+                try:
+                    completion = _run(cmpl_id, created)
+                except Exception as e:                                       # 串流已開 → 內容 chunk 誠實揭露
+                    completion = {"id": cmpl_id, "created": created, "model": mid,
+                                  "choices": [{"message": {"content": f"[augur-error] {e}"}}]}
             for ev in content_events(completion):
                 self.wfile.write(ev.encode("utf-8"))
             self.wfile.flush()
@@ -238,7 +332,7 @@ class AdvisorHandler(BaseHTTPRequestHandler):
             self.close_connection = True
             return
         try:
-            completion = chat_completion(body, scope=self._resolve_scope(), **self._deps())
+            completion = _run()
         except ValueError as e:
             return self._send_json(400, {"error": {"message": str(e), "type": "invalid_request_error"}})
         except Exception as e:

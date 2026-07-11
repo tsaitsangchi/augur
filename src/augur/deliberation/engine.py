@@ -29,10 +29,13 @@ def propose(topic, target_block, lens, model, n, timeout, seed=None):
     return fn(prompt).get("claims", [])[:n]
 
 
-def deliberate(topic, target_block, lens, model, n, timeout):
-    """一次審議端到端:propose → 插庫(L2-L5)→ 裁決 → 收 session。回 (session_id, tally) 或 (None, None)。"""
+def deliberate(topic, target_block, lens, model, n, timeout, progress_cb=None):
+    """一次審議端到端:propose → 插庫(L2-L5)→ 裁決 → 收 session。回 (session_id, tally) 或 (None, None)。
+    progress_cb(str):前台進度回饋(F1;None=現行 print 行為不變)。"""
     t0 = time.time()
     sid = ledger.new_session_id()
+    if progress_cb:
+        progress_cb(f"qwen({model}/{lens})正在提出可驗宣稱…")
     claims = propose(topic, target_block, lens, model, n, timeout)
     if not claims:
         print("✗ qwen 未提出任何 claim(誠實記錄,非成功)")
@@ -46,9 +49,11 @@ def deliberate(topic, target_block, lens, model, n, timeout):
         conn.commit()
     print(f"session={sid} | {len(ids)} claims(model={model} lens={lens},{time.time()-t0:.0f}s)\n")
     tally = {}
-    for cid in ids:
+    for k, cid in enumerate(ids, 1):
         r = verify_claim(cid)
         tally[r["status"]] = tally.get(r["status"], 0) + 1
+        if progress_cb:
+            progress_cb(f"claim {k}/{len(ids)} 裁決:{r['status']}")
         with db.connect() as conn:                              # D3:逐 claim 裁決後 heartbeat(長跑活性可證)
             c2 = conn.cursor()
             c2.execute("UPDATE deliberation_session SET heartbeat_at=now() WHERE session_id=%s", (sid,))
