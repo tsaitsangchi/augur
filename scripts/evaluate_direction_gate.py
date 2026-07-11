@@ -93,16 +93,28 @@ def _fetch_samples(cur, gate_id, track, h, criteria):
     tbl, hcol = ("direction_oos_sample", "horizon") if track == "H" else ("daily_direction_oos_sample", "k_td")
     if est:
         tbl, hcol = est["table"], est["hcol"]
-        q = f"SELECT panel_date, target_id, p_up, y_up, seed FROM {tbl} WHERE {hcol}=%s AND model_id=%s"
+        key_col = est.get("key_col", "model_id")            # arena ledger 用 model_key(revival/arena 通用)
+        date_col = "pred_date" if est.get("settled_only") else "panel_date"
+        seed_expr = "seed" if not est.get("settled_only") else "0 AS seed"
+        q = (f"SELECT {date_col} AS panel_date, target_id, p_up, y_up, {seed_expr} FROM {tbl} "
+             f"WHERE {hcol}=%s AND {key_col}=%s")
         params = [h, est["model_id"]]
+        if est.get("settled_only"):                          # arena:唯已結算列(normal/last_trade)為判據
+            q += " AND settled_at IS NOT NULL AND settle_mode IN ('normal','last_trade') AND y_up IS NOT NULL"
         win = est.get("panel_window")
         if win:
-            q += " AND panel_date >= %s AND panel_date <= %s"
+            q += f" AND {date_col} >= %s AND {date_col} <= %s"
             params += [win[0], win[1]]
-        cur.execute(q + " ORDER BY panel_date", params)
+        cur.execute(q + f" ORDER BY {date_col}", params)
         raw = cur.fetchall()
         if not raw:
             return None
+        min_cl = criteria.get("min_clusters")
+        if min_cl:                                           # 樣本門檻自動觸發(未達=誠實拒判,零裁量)
+            n_cl = len({r[0] for r in raw})
+            if n_cl < int(min_cl):
+                print(f"  ⤳ {gate_id} 已結算 cluster {n_cl} < 門檻 {min_cl}(auto_trigger 未達)—略")
+                return "REFUSE"
         agg = est.get("seed_aggregation", "seed0")
         if agg == "seed0":
             return [(p, float(pu), int(y)) for p, t, pu, y, sd in raw if sd == 0]

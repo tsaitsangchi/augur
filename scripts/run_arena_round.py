@@ -55,13 +55,74 @@ def smoke_synthetic(only):
 
 
 def live_round():
-    with db.connect() as conn, db.transaction(conn) as cur:
+    """live 對局(A2 後):as-of=最新已落地交易日;D 軌每日、H 軌每月首個交易日出手;
+    寫 ledger(反回填/不可篡改 trigger 機械守護;ON CONFLICT DO NOTHING=同日重跑冪等)。"""
+    import datetime
+    import subprocess
+    from pathlib import Path
+    from augur.arena.adapters import REGISTRY
+    git7 = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
+                          cwd=str(Path(__file__).resolve().parent.parent)).stdout.strip() or "unknown"
+    with db.connect() as conn:
+        cur = conn.cursor()
         cur.execute("SELECT count(*) FROM direction_gate WHERE gate_id LIKE 'dgate_arena%%' AND status='approved'")
         if not cur.fetchone()[0]:
             print("✗ live 對局拒跑:arena direction_gate 未預註冊+核准(先凍後跑,arena plan §1 門二)。\n"
-                  "  前置鏈:A-2 解凍修憲 → unfreeze GATE evaluate pass → A2 預註冊 arena gate(hugo TTY)。")
+                  "  前置鏈:unfreeze GATE evaluate pass → --preregister-arena → hugo TTY approve。")
             return 1
-    print("(gate 已核——live 對局路徑於 A2 實作完成後啟用)")
+        cur.execute('SELECT max(date) FROM "TaiwanStockPriceAdj"')
+        as_of = cur.fetchone()[0]
+        if (datetime.date.today() - as_of).days > 7:
+            print(f"✗ 資料過舊(最新 {as_of});先跑每日管線 sync"); return 1
+        cur.execute("SELECT date FROM \"TaiwanStockTotalReturnIndex\" WHERE stock_id='TAIEX' "
+                    "AND date >= %s AND date <= %s ORDER BY date",
+                    (as_of.replace(day=1), as_of))
+        month_days = [r[0] for r in cur.fetchall()]
+        h_fires = month_days and month_days[0] == as_of      # H 軌=每月首個交易日出手(月頻 cadence)
+        cur.execute("SELECT as_of_date FROM core_universe_asof WHERE as_of_date <= %s "
+                    "ORDER BY as_of_date DESC LIMIT 1", (as_of,))
+        snap = cur.fetchone()[0]
+        cur.execute("SELECT stock_id FROM core_universe_asof WHERE as_of_date = %s", (snap,))
+        uni = [r[0] for r in cur.fetchall()]
+        cur.execute("""SELECT stock_id, date, close FROM "TaiwanStockPriceAdj"
+            WHERE stock_id = ANY(%s) AND date <= %s AND date >= %s ORDER BY stock_id, date""",
+            (uni, as_of, str(as_of - datetime.timedelta(days=900))))
+        series = {}
+        for sid, d_, c_ in cur.fetchall():
+            series.setdefault(sid, []).append(float(c_))
+        cur.execute("SELECT price FROM \"TaiwanStockTotalReturnIndex\" WHERE stock_id='TAIEX' "
+                    "AND date <= %s AND date >= %s ORDER BY date",
+                    (as_of, str(as_of - datetime.timedelta(days=900))))
+        series["TAIEX"] = [float(r[0]) for r in cur.fetchall()]
+        series = {k: v for k, v in series.items() if len(v) >= 120}
+        print(f"as-of={as_of} 宇宙 {len(series)-1} 檔(+TAIEX);H 軌出手={h_fires}")
+
+        cur.execute("SELECT model_key, track, spec FROM direction_arena_candidate WHERE status='active'")
+        total = 0
+        for mk, track, spec in cur.fetchall():
+            if track == "H" and not h_fires:
+                continue
+            if mk not in REGISTRY:
+                print(f"  ⤳ {mk}: 無 adapter(對照列/未接線)—誠實缺席"); continue
+            horizons = (spec or {}).get("horizons", [5])
+            try:
+                adapter = REGISTRY[mk]()
+                for h in horizons:
+                    out = adapter.predict(series, h)
+                    rows = [(mk, t, as_of, h, float(p), as_of,
+                             as_of + datetime.timedelta(days=int(h * 1.6) + 3), git7)
+                            for t, p in out.items() if t != "TAIEX" or track == "H"]
+                    from psycopg2.extras import execute_values
+                    execute_values(cur, """INSERT INTO direction_arena_prediction
+                        (model_key, target_id, pred_date, horizon_td, p_up, train_data_max_date, label_due_est, git_sha)
+                        VALUES %s ON CONFLICT (model_key, target_id, pred_date, horizon_td) DO NOTHING""", rows)
+                    conn.commit()
+                    total += len(rows)
+                    print(f"  ✓ {mk} h={h}: {len(rows)} 筆出手", flush=True)
+            except Exception as e:
+                conn.rollback()
+                print(f"  ✗ {mk}: {type(e).__name__}: {str(e)[:80]}—誠實缺席(operational 留痕)")
+        print(f"✓ 對局落 ledger {total} 列(產出僅入帳本、不進 UI;gate 前零展示)")
     return 0
 
 
