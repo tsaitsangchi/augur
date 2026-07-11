@@ -24,7 +24,7 @@ import sys
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
-TABLES = ("probability_oos_sample", "probability_calibrator", "prediction_probability")
+TABLES = ("probability_oos_sample", "probability_calibrator", "prediction_probability", "econ_verdict_rule")
 
 DDL = [
     ("table probability_oos_sample", """
@@ -88,6 +88,24 @@ DDL = [
     ("comment prediction_probability", """
         COMMENT ON TABLE prediction_probability IS
         'P(勝過同儕中位數|as-of,H)——唯一合法口徑=橫斷面相對機率、禁絕對漲跌機率(憲章 v1.40.0);econ_verdict 與機率同列硬綁不可分離(D2);calendar_days=日曆日近似呈現偏差之推導 SSOT(A-27);僅 advisor 唯讀、PIPELINE 零回讀、augur_predict 不授 SELECT(A-28)'"""),
+    # econ_verdict 規則表(2026-07-11 拍板「3遷」#29b:決定行為的資料住 DB 不 hardcode;
+    # SSOT 此後=本表,calibrate 讀表非讀碼;新增/改裁決=UPDATE 一列零改碼。種子=舊硬編 dict 一次性遷移)
+    ("table econ_verdict_rule", """
+        CREATE TABLE IF NOT EXISTS econ_verdict_rule (
+          horizon       int  PRIMARY KEY CHECK (horizon IN (20,40,60,82,120)),
+          verdict       text NOT NULL CHECK (verdict IN ('dead','thin_unestablished','established')),
+          source_report text,
+          note          text,
+          created_at    timestamptz NOT NULL DEFAULT now()
+        )"""),
+    ("seed econ_verdict_rule", """
+        INSERT INTO econ_verdict_rule (horizon, verdict, source_report) VALUES
+          (20,'dead','short_horizon 裁決報告'),
+          (40,'thin_unestablished','tier3 裁決報告'),
+          (60,'thin_unestablished','tier3 裁決報告'),
+          (82,'thin_unestablished','tier3 裁決報告'),
+          (120,'thin_unestablished','H120 裁決報告')
+        ON CONFLICT (horizon) DO NOTHING"""),
 ]
 
 

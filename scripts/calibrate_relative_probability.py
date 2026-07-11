@@ -39,9 +39,8 @@ HORIZONS = (20, 40, 60, 120)
 FREEZE = "2026-05-31"
 MODEL_FAMILY = "RankRidge"
 CAL_DAYS = {20: 29, 40: 58, 60: 87, 82: 119, 120: 174}   # 日曆日近似(§1.2;A-27 呈現偏差推導 SSOT)
-# D2/§1.2 經濟裁決標籤(來源:short_horizon/tier3/H120 裁決報告;與機率同列硬綁不可分離)
-ECON = {20: "dead", 40: "thin_unestablished", 60: "thin_unestablished",
-        82: "thin_unestablished", 120: "thin_unestablished"}
+# D2/§1.2 經濟裁決標籤:SSOT=DB 表 econ_verdict_rule(2026-07-11 拍板「3遷」,#29b 決定行為的資料住 DB;
+# 種子=migrate_probability_ddl.py 一次性遷移、改裁決=UPDATE 一列零改碼);emit_horizon 讀表、缺列 fail-loud。
 FAMILY_NOTE = ("校準器 fit 於 walk-forward 逐折 refit 之同族(RankRidge)模型,serve 套於 train_ranker "
                "全樣本 artifact 之分位——同 family、非同一模型,機率為同族近似值")  # §1.1 標記④固定用語
 MIN_FIT = 200   # 折品質評估之最小可 fit 樣本數(不足=該折跳過、誠實少一折)
@@ -145,18 +144,23 @@ def emit_horizon(cur, h, asof, git7):
     rows = cur.fetchall()
     if not rows:
         print(f"  ✗ H{h}: prediction_values 無 {asof} 列"); return 0
+    cur.execute("SELECT verdict FROM econ_verdict_rule WHERE horizon=%s", (h,))   # #29b SSOT=DB 表
+    er = cur.fetchone()
+    if not er:
+        raise RuntimeError(f"econ_verdict_rule 無 H{h} 列(fail-loud #15):先 migrate_probability_ddl.py --run 種子")
+    econ = er[0]
     n = len(rows)
     model_id = rows[0][0]
     out = []
     for _, sid, rk in rows:
         pctl = 1.0 - (rk - 1) / (n - 1) if n > 1 else 1.0     # 方向契約:rank1=最強→pctile=1
         p = min(max(_sigmoid(a, b, pctl), 1e-6), 1 - 1e-6)     # CHECK (0,1) 開區間保證
-        out.append((asof, model_id, sid, h, round(pctl, 6), round(p, 6), cid, ECON[h], CAL_DAYS[h]))
+        out.append((asof, model_id, sid, h, round(pctl, 6), round(p, 6), cid, econ, CAL_DAYS[h]))
     cur.execute("DELETE FROM prediction_probability WHERE panel_date=%s AND model_id=%s", (asof, model_id))
     cur.executemany("INSERT INTO prediction_probability (panel_date,model_id,stock_id,horizon,rank_pctile,"
                     "p_beat_median,calibrator_id,econ_verdict,calendar_days) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)", out)
     ps = [o[5] for o in out]
-    print(f"  ✓ H{h}: emit {n} 檔 | p∈[{min(ps):.3f},{max(ps):.3f}] | econ={ECON[h]} | ≈{CAL_DAYS[h]} 日曆日 | {cid}")
+    print(f"  ✓ H{h}: emit {n} 檔 | p∈[{min(ps):.3f},{max(ps):.3f}] | econ={econ} | ≈{CAL_DAYS[h]} 日曆日 | {cid}")
     return n
 
 

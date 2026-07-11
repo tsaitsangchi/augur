@@ -2,8 +2,11 @@
 """審議→蒸餾橋接 — (發現,裁決,證據)三元組映射為 advisor_distill QA 題(引擎計畫 §8.5/需求(e))。
 
 🎯 這支在做什麼(白話):把審議引擎「oracle 裁決過」的宣稱轉成蒸餾題庫——每條 confirmed/refuted
-   claim(必有 is_deterministic verdict)→ 一題「此宣稱是否成立?」QA(expected=ANSWER、
-   situation_label=1〔可答:有機械證據〕、topic_source='deliberation'、topic_ref=claim_id 溯源)。
+   claim(必有 is_deterministic verdict)→ 一題「此宣稱是否成立?」QA(**expected=DECLINE**、
+   situation_label=1、topic_source='deliberation'、topic_ref=claim_id 溯源)。
+   **判準修正(2026-07-11 拍板「2改」;A2 對抗審查實證)**:這些是 augur 內部工程宣稱(表/欄/隔離),
+   advisor 知識語料(philosophy_*/knowledge_*)對 augur schema 零內容——誠實答法=DECLINE(知識庫無據、
+   轉查 DB/oracle),非 ANSWER(原標 ANSWER 使 S5 該批 100% drop=類別錯誤,非 gold 品質)。
    下游走既有蒸餾管線(S2 build_context→S3 teacher→S4 validate),本橋零重造。
    **界線(引擎計畫界線-A)**:蒸餾產物零回流預測管線(distill 表已自 augur_predict REVOKE,既有閘);
    escalated/undecidable/pending 不入題(無機械真值=不可教)。
@@ -57,7 +60,7 @@ def main():
             cur.execute("""
                 INSERT INTO advisor_distill_question
                   (question, situation_label, expected, domain, topic_source, topic_ref, batch_tag)
-                VALUES (%s, 1, 'ANSWER', %s, 'deliberation', %s, %s)
+                VALUES (%s, 1, 'DECLINE', %s, 'deliberation', %s, %s)
                 ON CONFLICT (question) DO NOTHING""",
                 (Q_TMPL.format(claim=claim[:400]), category, f"claim_id={cid};oracle={status}", args.tag))
             n_new += cur.rowcount

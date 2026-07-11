@@ -13,8 +13,10 @@
 - f6 lending_fee_rate_mean_30d:借券費率均(⚠️ 名「30d」實=最近 100 筆、見 _LEND_SQL 註,決8)
 - f7 gov_bank_net_buy_60d:官股淨買(sign×log1p;⚠️ 名「60d」實=60 事件日、見 _GOVBANK_SQL 註,決7)
 
-邊界:不抓 API、不選股;只算特徵(#3)。所有特徵以「panel_date 當下已知」之 raw 計算(P/E 類、anti-leakage #8;
-但籌碼盤後公布之 T+1 規則此版採保守 date<=panel_date 同日含、上線後待 probe 公布時刻);算不出即缺列(#1)。
+邊界:不抓 API、不選股;只算特徵(#3)。所有特徵以「panel_date 當下已知」之 raw 計算(P/E 類、anti-leakage #8):
+- **集保大戶比(f4)已套發布日 gate(2026-07-11 審計 1A)**:週五快照延後公布,取 release_lag.holdings_visible_cutoff
+  (=panel−7、保守寧晚勿早);待 probe TDCC 真實公布時刻可精修。
+- 其餘日頻籌碼(法人/融資券/借券)盤後當晚公布,date<=panel_date 同日含=as-of 安全。算不出即缺列(#1)。
 
 **E/P 類設計(2026-06-25 E 類已改真零)**:本 7 features 分兩類——
 - **連續 P 類**(4):`institutional_net_buy_ratio_20d`/`margin_usage_ratio`/`foreign_holding_pct`/`top_holders_pct`
@@ -33,6 +35,8 @@ from __future__ import annotations
 from datetime import date
 
 import numpy as np
+
+from augur.features import release_lag
 
 # 源表覆蓋範圍快取(E 類真零前提、審查 G2/G3 + 稽核 E11):(min,max);panel 不在覆蓋內時「無列」＝未 sync、非真無事件 → 該 E 特徵缺列、不填 0(防捏造零、守 #1)。
 _TABLE_DATE_RANGE = {}
@@ -73,7 +77,9 @@ _SHARE_SQL = (
     'FROM "TaiwanStockShareholding" WHERE stock_id=%s AND date <= %s '
     'ORDER BY date DESC LIMIT 1'
 )
-# 4) 大戶比(最近一筆,「more than 1,000,001」為最高級距 % = 持股 ≥100 萬股以上之股本佔比)
+# 4) 大戶比(最近「已公開」快照,「more than 1,000,001」為最高級距 % = 持股 ≥100 萬股以上之股本佔比)
+#    #8 gate(2026-07-11 審計 1A):集保為週五快照且延後公布、date<=panel 會選到未公開當週快照=偷看;
+#    參數改傳 release_lag.holdings_visible_cutoff(panel)(=panel−7,等價 release=快照+7≤panel、保守)。
 _HOLD_SQL = (
     'SELECT percent::float8 FROM "TaiwanStockHoldingSharesPer" '
     "WHERE stock_id=%s AND date <= %s AND \"HoldingSharesLevel\"='more than 1,000,001' "
@@ -135,8 +141,8 @@ def compute_chip_features(cur, sid, panel_date):
         if np.isfinite(v) and 0.0 <= v <= 100.0:
             out["foreign_holding_pct"] = float(v)
 
-    # f4 大戶比 %(0~100);無 → 缺
-    cur.execute(_HOLD_SQL, (sid, panel_date))
+    # f4 大戶比 %(0~100);無 → 缺。#8:傳「可見快照上界」(panel−7)非 panel 本身(集保發布日 gate)
+    cur.execute(_HOLD_SQL, (sid, release_lag.holdings_visible_cutoff(panel_date)))
     row = cur.fetchone()
     if row and row[0] is not None:
         v = row[0]

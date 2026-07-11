@@ -27,6 +27,7 @@ from augur.core import db
 _REBUILDERS = {
     "price_to_10yr": ("augur.features.valuation", "compute_valuation_features"),
     "gross_margin_pctile": ("augur.features.margin_cycle", "compute_margin_cycle_features"),
+    "top_holders_pct": ("augur.features.chip", "compute_chip_features"),
 }
 
 

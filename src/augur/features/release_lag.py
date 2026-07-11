@@ -28,6 +28,8 @@ from datetime import date, timedelta
 REVENUE_DAY = 15          # 月營收次月公告日(法定 10 日 + buffer、保守)
 FIN_LAG_QUARTER = 45      # Q1/Q2/Q3 財報:季底後法定天數
 FIN_LAG_ANNUAL = 90       # 年報(Q4):季底後法定天數(次年 3/31)
+HOLDINGS_LAG_DAYS = 7     # 集保股權分散表(週五快照、TDCC 延後公布):保守 +7 日=次週五必已公開
+                          # (2026-07-11 審計 1A 拍板;無發布日欄可查,寧晚勿早 #8;待 probe 公布時刻可精修)
 
 
 def revenue_release_date(d: date) -> date:
@@ -50,3 +52,15 @@ def revenue_released(d: date, panel_date: date) -> bool:
 def financial_released(d: date, panel_date: date) -> bool:
     """財報 d 於 panel_date 是否已公告(可 as-of 使用)。"""
     return financial_release_date(d) <= panel_date
+
+
+def holdings_release_date(d: date) -> date:
+    """集保股權分散快照 date(週五)→ 公開可得日(快照 + 7 日、保守)。"""
+    return d + timedelta(days=HOLDINGS_LAG_DAYS)
+
+
+def holdings_visible_cutoff(panel_date: date) -> date:
+    """panel_date 當下「可見」之集保快照上界:snapshot ≤ panel − 7(等價 holdings_release_date ≤ panel;
+    供 SQL date <= cutoff 直用)。"""
+    p = panel_date if isinstance(panel_date, date) else date.fromisoformat(str(panel_date)[:10])
+    return p - timedelta(days=HOLDINGS_LAG_DAYS)

@@ -119,9 +119,12 @@ def _sft_record(query, target, context):
 
 
 def run(cur, out_path):
-    """驗所有已生 gold、寫通過者為 SFT jsonl;回 (n_gold, n_pass, drop_rate)。"""
+    """驗所有已生 gold、寫通過者為 SFT jsonl;回 (n_gold, n_pass, drop_rate〔pooled 參考值〕)。
+    **GATE=per-batch(2026-07-11 拍板「2改」)**:異質批(不同 teacher/題型)不混池——各 batch_tag 獨立
+    過 40% GATE;pooled drop 僅供參考、不作裁決(A2 實證:pilot2 37.6% 過關被 delib 批 100% 拖成
+    44.7% 假象=量測污染)。"""
     cur.execute(
-        "SELECT c.context_id, q.question, c.target_response, c.context, q.expected "
+        "SELECT c.context_id, q.question, c.target_response, c.context, q.expected, q.batch_tag "
         "FROM advisor_distill_context c JOIN advisor_distill_question q USING(question_id) "
         "WHERE c.target_response IS NOT NULL ORDER BY c.context_id")
     rows = cur.fetchall()
@@ -130,19 +133,25 @@ def run(cur, out_path):
         return 0, 0, 0.0
     out_path.parent.mkdir(parents=True, exist_ok=True)
     n_pass = 0
+    batch = {}                                        # batch_tag → [n, n_pass](per-batch GATE)
     with out_path.open("w", encoding="utf-8") as f:
-        for cid, query, target, context, expected in rows:
+        for cid, query, target, context, expected, tag in rows:
             passed, verdict = validate_one(query, target, context, expected)
             cur.execute("UPDATE advisor_distill_context SET validated=%s, validate_verdict=%s "
                         "WHERE context_id=%s", (passed, json.dumps(verdict, ensure_ascii=False), cid))
+            b = batch.setdefault(tag or "(無tag)", [0, 0])
+            b[0] += 1
             if passed:
                 f.write(json.dumps(_sft_record(query, target, context), ensure_ascii=False) + "\n")
                 n_pass += 1
+                b[1] += 1
     drop = 1 - n_pass / len(rows)
-    print(f"── S5 校驗:{len(rows)} gold → 通過 {n_pass}、丟棄 {len(rows)-n_pass}(drop rate {drop*100:.1f}%)")
+    print(f"── S5 校驗:{len(rows)} gold → 通過 {n_pass}(pooled drop {drop*100:.1f}%——僅參考、GATE=per-batch)")
     print(f"  SFT jsonl 寫入 {out_path}")
-    if drop > 0.40:
-        print(f"  ⚠ drop rate {drop*100:.1f}% > 40%(GATE):S4 teacher prompt 需收緊或情境設計有誤 → 回 S4")
+    for tag, (n, p) in sorted(batch.items()):
+        bd = 1 - p / n if n else 0.0
+        flag = " ⚠ >40% GATE:此批回 S4 調 teacher/情境" if bd > 0.40 else " ✓"
+        print(f"  [batch {tag}] {n} gold → 通過 {p}(drop {bd*100:.1f}%){flag}")
     return len(rows), n_pass, drop
 
 
