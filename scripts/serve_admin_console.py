@@ -444,6 +444,8 @@ def dashboard_html(status, uname="admin", role=""):
 <button onclick="nav(this,'local')">本機匯入</button>
 <button onclick="nav(this,'remote')">遠端 SFTP</button>
 <div class=sep></div>
+<a href="/gov" style="display:block;padding:8px 12px;color:#8bf;text-decoration:none;font-size:14px">🔐 來源治權 · 覆蓋率</a>
+<div class=sep></div>
 <a href="http://localhost:8090" target=_blank>誠實博學的我 ↗</a>
 <a href=/logout>登出</a>
 </nav>
@@ -632,6 +634,72 @@ def _health():
     return h
 
 
+def _gov_data():
+    """唯讀:來源治權 + 覆蓋率面板資料(審批分佈/治理覆蓋率/fulltext 終態/domain 覆蓋/近期 review_log)。
+    零寫路徑:純 SELECT;升級動作(approve 唯人)不經 web,只印 copy-ready CLI(#14)。"""
+    d = {}
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SELECT approval_status, count(*) FROM knowledge_source GROUP BY 1 ORDER BY 2 DESC")
+        d["approval"] = cur.fetchall()
+        cur.execute("SELECT count(*) FROM knowledge_source WHERE approval_status='active'")
+        d["active"] = cur.fetchone()[0]
+        cur.execute("SELECT count(DISTINCT source_key) FROM knowledge_source_review_log "
+                    "WHERE action IN ('approve','activate')")
+        d["governed"] = cur.fetchone()[0]
+        d["fulltext"] = []
+        if cur.execute("SELECT to_regclass('public.knowledge_fulltext_status')") or cur.fetchone()[0]:
+            cur.execute("SELECT status, count(*) FROM knowledge_fulltext_status GROUP BY 1 ORDER BY 2 DESC LIMIT 10")
+            d["fulltext"] = cur.fetchall()
+        cur.execute("SELECT i.domain, count(DISTINCT i.item_id), "
+                    "count(DISTINCT t.item_id) FILTER (WHERE length(t.content)>200) "
+                    "FROM knowledge_item i LEFT JOIN knowledge_item_text t ON i.item_id=t.item_id "
+                    "GROUP BY 1 ORDER BY 2 DESC LIMIT 12")
+        d["coverage"] = cur.fetchall()
+        cur.execute("SELECT source_key, action, old_status, new_status, actor, os_user, "
+                    "to_char(created_at,'MM-DD HH24:MI') FROM knowledge_source_review_log "
+                    "ORDER BY review_id DESC LIMIT 15")
+        d["reviewlog"] = cur.fetchall()
+    return d
+
+
+def gov_dashboard_html(d):
+    """server-render 治權頁(比照 progress 樣式,獨立頁、唯讀)。治理缺口誠實當 headline、不謊稱留痕。"""
+    from html import escape as e
+    active, governed = d["active"], d["governed"]
+    cov = f"{governed}/{active}" + (f"（{100*governed//active}%）" if active else "")
+    gap_warn = ("<b style='color:#c33'>⚠ 治理缺口</b>：這些 active 源多為 bulk-seed、"
+                "<b>無真人 approve/activate 升級留痕</b>；治權狀態機之升級動作 <b>approve 唯人</b>"
+                "（須 TTY+superuser、走 CLI，web/AI 結構上不能觸發）。") if governed < active else "健康"
+    ap = " · ".join(f"{e(s)}={n}" for s, n in d["approval"])
+    ft = "".join(f"<tr><td>{e(s)}</td><td style=text-align:right>{n}</td></tr>" for s, n in d["fulltext"])
+    covr = "".join(f"<tr><td>{e(dm or '')}</td><td style=text-align:right>{it}</td>"
+                   f"<td style=text-align:right>{fx}</td>"
+                   f"<td style=text-align:right>{(100*fx//it) if it else 0}%</td></tr>"
+                   for dm, it, fx in d["coverage"])
+    rl = "".join(f"<tr><td>{e(k)}</td><td>{e(a)}</td><td>{e(o or '')}→{e(nw or '')}</td>"
+                 f"<td>{e(ac or '')}</td><td>{e(ou or '')}</td><td>{e(ts or '')}</td></tr>"
+                 for k, a, o, nw, ac, ou, ts in d["reviewlog"])
+    return f"""<!doctype html><html><head><meta charset=utf-8><title>來源治權 · augur admin</title>
+<style>body{{font-family:system-ui,sans-serif;background:#14140f;color:#e8e6df;margin:0}}
+.w{{max-width:960px;margin:0 auto;padding:16px}}h2{{border-bottom:1px solid #444;padding-bottom:4px}}
+table{{border-collapse:collapse;width:100%;font-size:.9em}}td,th{{border-bottom:1px solid #333;padding:4px 8px;text-align:left}}
+.hl{{background:#2a1d1d;border:1px solid #a33;border-radius:8px;padding:12px;margin:10px 0}}
+code{{background:#222;padding:2px 5px;border-radius:4px}}a{{color:#8bf}}</style></head><body><div class=w>
+<p><a href="/">← 後台首頁</a></p><h1>來源治權 + 覆蓋率（唯讀）</h1>
+<div class=hl><b>治理覆蓋率（governed_active/active）＝ {cov}</b><br>{gap_warn}</div>
+<h2>審批狀態機分佈</h2><p>{ap}</p>
+<p style=color:#999>升級動作一律走 CLI（web 零寫路徑）：<br>
+<code>python scripts/review_knowledge_source.py --approve KEY --actor NAME</code>（須互動 TTY + app_user.is_superuser）<br>
+<code>python scripts/probe_knowledge_source.py --source KEY</code>（前置最小探測、唯一 web 外之寫 review_log）</p>
+<h2>內容抓取覆蓋率至可檢索終態（per domain）</h2>
+<table><tr><th>domain</th><th>items</th><th>fulltext</th><th>覆蓋</th></tr>{covr}</table>
+<h2>Fulltext 終態分佈</h2><table><tr><th>status</th><th>數</th></tr>{ft}</table>
+<p style=color:#999>skip_license/skip_no_oa = license 阻擋之 metadata-only（終態、非漏做）；skip_fetch_error = 可重試。</p>
+<h2>審批稽核軌跡（近 15）</h2>
+<table><tr><th>source</th><th>action</th><th>轉移</th><th>actor</th><th>os_user</th><th>時間</th></tr>{rl or '<tr><td colspan=6>（無留痕）</td></tr>'}</table>
+</div></body></html>"""
+
+
 class AdminHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -697,6 +765,10 @@ class AdminHandler(BaseHTTPRequestHandler):
             if txt is None:
                 return self._send(404, json.dumps({"ok": False, "error": "檔案不存在或非法路徑"}), "application/json")
             return self._send(200, json.dumps({"ok": True, "path": rel, "html": _md_to_html(txt)}), "application/json")
+        if path == "/api/gov":
+            return self._send(200, json.dumps(_gov_data(), default=str), "application/json")
+        if path == "/gov":                          # 來源治權唯讀頁(零寫路徑;升級走 CLI #14)
+            return self._send(200, gov_dashboard_html(_gov_data()))
         uname, role = self._acct()
         return self._send(200, dashboard_html(_status_text(), uname, role))
 
