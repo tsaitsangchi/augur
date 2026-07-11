@@ -35,7 +35,7 @@ import numpy as np
 
 from augur.core import db
 
-HORIZONS = (20, 40, 60, 120)
+HORIZONS = (20, 40, 60, 82, 120)   # 82 啟用=P2-1 A 案(120 天誠實錨=H82,119 日曆日)
 FREEZE = "2026-05-31"
 MODEL_FAMILY = "RankRidge"
 CAL_DAYS = {20: 29, 40: 58, 60: 87, 82: 119, 120: 174}   # 日曆日近似(§1.2;A-27 呈現偏差推導 SSOT)

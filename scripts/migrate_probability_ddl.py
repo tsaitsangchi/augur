@@ -87,7 +87,7 @@ DDL = [
         CREATE INDEX IF NOT EXISTS ix_pred_prob_panel_h ON prediction_probability (panel_date, horizon)"""),
     ("comment prediction_probability", """
         COMMENT ON TABLE prediction_probability IS
-        'P(勝過同儕中位數|as-of,H)——唯一合法口徑=橫斷面相對機率、禁絕對漲跌機率(憲章 v1.40.0);econ_verdict 與機率同列硬綁不可分離(D2);calendar_days=日曆日近似呈現偏差之推導 SSOT(A-27);僅 advisor 唯讀、PIPELINE 零回讀、augur_predict 不授 SELECT(A-28)'"""),
+        'P(勝過同儕中位數|as-of,H)——唯一合法口徑=橫斷面相對機率;絕對漲跌機率唯經預言機軸 GATE(憲章 v1.42.0,GATE 前禁);econ_verdict 與機率同列硬綁不可分離(D2);calendar_days=日曆日近似呈現偏差之推導 SSOT(A-27);僅 advisor 唯讀、PIPELINE 零回讀、augur_predict 不授 SELECT(A-28)'"""),
     # econ_verdict 規則表(2026-07-11 拍板「3遷」#29b:決定行為的資料住 DB 不 hardcode;
     # SSOT 此後=本表,calibrate 讀表非讀碼;新增/改裁決=UPDATE 一列零改碼。種子=舊硬編 dict 一次性遷移)
     ("table econ_verdict_rule", """

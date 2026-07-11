@@ -31,7 +31,7 @@ from augur.core import db
 from augur.evaluation import baseline, walkforward
 from augur.evaluation import label as label_mod
 
-HORIZONS = (20, 40, 60, 120)          # 封閉集(82=D1(a) 條件觸發,P8 才啟用)
+HORIZONS = (20, 40, 60, 82, 120)      # 封閉集(82 啟用=預言機主計畫 P2-1 A 案拍板 2026-07-11:120 天誠實錨)
 AS_OF = "2026-05-31"                  # FREEZE(原則精華 v1.8.0);對樣本全在此凍結快照內
 MODEL_FAMILY = "RankRidge"            # 逐折 refit 同族(A-36 同族近似聲明之 family 錨)
 

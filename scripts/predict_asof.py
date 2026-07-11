@@ -20,7 +20,7 @@
   python scripts/predict_asof.py --run --weight pred --risk-control    # pred 加權 + 收尾風控 overlay(單標的 cap/DD/換手)
   python scripts/predict_asof.py --run --dry-run                    # 只算+印、不寫 prediction_values
   python scripts/predict_asof.py --run --horizon 40 --asof 2026-05-31 --candidate   # D4 候選語意單 horizon 重跑
-  python scripts/predict_asof.py --candidate --rewrite-all --asof 2026-05-31        # D4 四 horizon 既有列冪等重寫
+  python scripts/predict_asof.py --candidate --rewrite-all --asof 2026-05-31        # D4 五 horizon 既有列冪等重寫(82 啟用後)
 """
 import argparse
 import datetime as _dt
@@ -201,7 +201,7 @@ def main(argv=None):
         if not (args.candidate and args.asof):
             print("✗ --rewrite-all 需 --candidate(語意明示)與 --asof(明確時點,不默認最新)"); return 1
         ok = True
-        for h in (20, 40, 60, 120):    # 封閉集(82=D1(a) 條件觸發後加入)
+        for h in (20, 40, 60, 82, 120):    # 封閉集(82 啟用=預言機主計畫 P2-1 A 案 2026-07-11)
             print(f"── D4 重寫 H{h} ──")
             try:
                 r = predict(h, args.family, args.asof, args.top_n, args.top_frac, args.weight, False, False)
