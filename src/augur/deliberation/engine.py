@@ -59,3 +59,41 @@ def _target_from_block(target_block):
     if target_block and target_block.startswith("目標檔案 "):
         return target_block[len("目標檔案 "):].split("(", 1)[0].strip()
     return None
+
+
+def _session_claim_rows(cur, sid, lens):
+    cur.execute("SELECT claim_text, assigned_verifier, anchor, status FROM deliberation_claim "
+                "WHERE session_id=%s", (sid,))
+    return [{"claim_text": t, "assigned_verifier": v, "anchor": a, "status": s, "lens": lens}
+            for t, v, a, s in cur.fetchall()]
+
+
+def deliberate_panel(topic, target_block, lenses, model, n, timeout, *, max_rounds=3, dry_k=2):
+    """多視角 panel + loop-until-dry(模式 2/4/5/6 完整版):每輪跑全部 lens 各成 session、
+    consensus 聚合(三級殺權)、critic 判 dry;連續 dry_k 輪無新確定性發現才停。
+    後續輪把「未覆蓋表」注入題目提示(完整性 critic 回饋)。回 {rounds, aggregate, dry}。"""
+    from augur.deliberation import consensus, critic
+    all_rows, seen, rounds_without_new, round_no = [], set(), 0, 0
+    hint = ""
+    while round_no < max_rounds and not critic.is_dry(rounds_without_new, dry_k):
+        round_no += 1
+        print(f"\n━━ 第 {round_no} 輪(lens={lenses}){hint and ' | 完整性提示:'+hint}━━")
+        for lens in lenses:
+            sid, _ = deliberate(topic + hint, target_block, lens, model, n, timeout)
+            if sid:
+                with db.connect() as conn, db.transaction(conn) as cur:
+                    all_rows.extend(_session_claim_rows(cur, sid, lens))
+        agg = consensus.aggregate(all_rows)
+        fresh = critic.new_deterministic_keys(agg, seen)
+        seen |= {a["key"] for a in agg if a["verdict"] in ("confirmed", "refuted")}
+        rounds_without_new = 0 if fresh else rounds_without_new + 1
+        uncov = critic.uncovered_tables(topic, agg)
+        hint = ("(尚未驗證之相關表:" + ", ".join(uncov[:8]) + ")") if uncov else ""
+        print(f"  本輪新增確定性發現 {len(fresh)};未覆蓋表 {len(uncov)};乾涸計數 {rounds_without_new}/{dry_k}")
+    agg = consensus.aggregate(all_rows)
+    print("\n═══ Panel 共識 ═══")
+    for a in agg:
+        icon = {"confirmed": "✓", "refuted": "✗", "contested": "⚡", "escalated": "⚠"}.get(a["verdict"], "?")
+        print(f"  {icon} [{a['verdict']}] {a['claim_text'][:60]}(lens={','.join(a['lenses'])} 支持{a['support']}/{a['n_lens']})")
+    print("  " + consensus.summarize(agg))
+    return {"rounds": round_no, "aggregate": agg, "dry": critic.is_dry(rounds_without_new, dry_k)}

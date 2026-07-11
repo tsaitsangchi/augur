@@ -15,6 +15,8 @@
   python scripts/deliberate.py --run --topic "驗證機率層三表就位"        # 題目式(qwen 自析可驗宣稱)
   python scripts/deliberate.py --run --topic "..." --target reports/x.md --lens skeptic   # 附目標檔+視角
   python scripts/deliberate.py --run --topic "..." --model qwen3:8b --max-claims 8        # 換模/量
+  python scripts/deliberate.py --panel --topic "..."                  # 多視角 panel+loop-until-dry(全 lens×多輪、三級殺權聚合)
+  python scripts/deliberate.py --panel --topic "..." --lenses skeptic complete --max-rounds 3 --dry-k 2
   python scripts/deliberate.py --report <session_id>                  # 重印某 session 裁決報告(唯讀)
 """
 import argparse
@@ -40,20 +42,34 @@ def _target_block(target):
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--run", action="store_true")
+    ap.add_argument("--panel", action="store_true")
     ap.add_argument("--topic")
     ap.add_argument("--target")
     ap.add_argument("--lens", default="skeptic")
+    ap.add_argument("--lenses", nargs="*")             # panel:多視角(預設全部 enabled)
     ap.add_argument("--model", default="qwen3:4b")     # 結構化步預設 4b(快檔;format 約束壓思考洩漏)
     ap.add_argument("--max-claims", dest="n", type=int, default=6)
+    ap.add_argument("--max-rounds", dest="max_rounds", type=int, default=3)
+    ap.add_argument("--dry-k", dest="dry_k", type=int, default=2)
     ap.add_argument("--timeout", type=float, default=600)
     ap.add_argument("--report")
     args = ap.parse_args()
     if args.report:
         ledger.report(args.report); return 0
+    keys = lens_keys()
+    if args.panel:
+        if not args.topic:
+            sys.exit("--panel 需 --topic")
+        lenses = args.lenses or keys
+        bad = [l for l in lenses if l not in keys]
+        if bad:
+            sys.exit(f"✗ --lenses 含未知視角 {bad}(deliberation_lens 表;∈ {keys})")
+        r = engine.deliberate_panel(args.topic, _target_block(args.target), lenses, args.model,
+                                    args.n, args.timeout, max_rounds=args.max_rounds, dry_k=args.dry_k)
+        return 0
     if args.run:
         if not args.topic:
             sys.exit("--run 需 --topic")
-        keys = lens_keys()
         if args.lens not in keys:
             sys.exit(f"✗ --lens 須 ∈ {keys}(deliberation_lens 表;新增=INSERT 一列 #29b)")
         sid, _ = engine.deliberate(args.topic, _target_block(args.target), args.lens,

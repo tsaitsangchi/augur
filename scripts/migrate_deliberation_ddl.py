@@ -124,6 +124,13 @@ DDL = [
           ('complete','你是完整性稽核者:找出題目範圍內「應存在而可能缺漏」的東西,逐一提出存在性檢查。'),
           ('doctrine','你是治權稽核者:檢查是否違反 anti-leakage/隔離/誠實紀律,提出可機驗的違規探測。')
         ON CONFLICT (lens_key) DO NOTHING"""),
+    ("migrate verifier check +pytest", """
+        DO $$ BEGIN
+          ALTER TABLE deliberation_claim DROP CONSTRAINT IF EXISTS deliberation_claim_assigned_verifier_check;
+          ALTER TABLE deliberation_claim ADD CONSTRAINT deliberation_claim_assigned_verifier_check
+            CHECK (assigned_verifier IN ('information_schema','import_isolation','file_grep',
+                                         'db_query','pytest','human_claude','none'));
+        END $$"""),
     ("comment deliberation_session", """
         COMMENT ON TABLE deliberation_session IS
         '本地審議引擎工作帳(與 knowledge_* 嚴格分離;審議產物非知識、禁 AI 生成入庫不變式無涉);status=confirmed 唯確定性 verdict 可寫(機械鎖在 engine 層強制)'"""),

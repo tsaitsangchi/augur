@@ -20,14 +20,18 @@
 """
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 from augur.core import db
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-ORACLES = ("information_schema", "import_isolation", "file_grep", "db_query")
+ORACLES = ("information_schema", "import_isolation", "file_grep", "db_query", "pytest")
 _DB_FORBIDDEN = re.compile(
     r"\b(insert|update|delete|drop|alter|create|grant|revoke|truncate|copy|call|do|vacuum|set)\b", re.I)
+_SECRET_DENY = re.compile(   # #5:file_grep 不得經 oracle 讀機密檔外洩(路徑圍欄內仍擋 .env/金鑰/憑證)
+    r"(^|/)(\.env(\.|$)|\.git/|.*\.(key|pem|p12|pfx|crt|keystore)$|.*(credential|secret|password)|id_[rd]sa)", re.I)
 _CMP = {"==": lambda a, b: a == b, "!=": lambda a, b: a != b, ">": lambda a, b: a > b,
         ">=": lambda a, b: a >= b, "<": lambda a, b: a < b, "<=": lambda a, b: a <= b}
 
@@ -65,6 +69,8 @@ def _v_file_grep(anchor):
     p = (REPO_ROOT / path_s.strip()).resolve()
     if not str(p).startswith(str(REPO_ROOT)) or not p.is_file():
         return "undecidable", f"路徑不在 repo 內或非檔案:{path_s!r}"
+    if _SECRET_DENY.search(str(p.relative_to(REPO_ROOT))):        # #5 秘密檔 denylist:圍欄內仍拒讀機密
+        return "undecidable", f"秘密檔 denylist:拒讀 {path_s!r}(不經 oracle 外洩機密)"
     try:
         rx = re.compile(pat)
     except re.error as e:
@@ -103,8 +109,33 @@ def _v_db_query(anchor):
     return ("confirmed" if ok else "refuted"), f"實際值 {actual} {op} {val} → {ok}(sql={sql[:100]})"
 
 
+def _v_pytest(anchor):
+    """anchor=pytest node id(限 tests/ 下,如 'tests/test_foo.py::test_bar' 或 'tests/test_foo.py')→ 跑該測試。
+    沙箱:node 須以 'tests/' 開頭且 realpath 在 repo 內;-x 首錯即停、--no-header、禁 cache;120s timeout。
+    exit 0=confirmed(測試通過)、exit 1=refuted(測試失敗)、其餘(collect error/timeout)=undecidable。"""
+    node = anchor.strip()
+    fpart = node.split("::", 1)[0]
+    if not fpart.startswith("tests/"):
+        return "undecidable", f"anchor 須為 tests/ 下之 pytest node id:{anchor!r}"
+    p = (REPO_ROOT / fpart).resolve()
+    if not str(p).startswith(str(REPO_ROOT / "tests")) or not p.is_file():
+        return "undecidable", f"測試檔不在 repo tests/ 內或不存在:{fpart!r}"
+    try:
+        r = subprocess.run([sys.executable, "-m", "pytest", node, "-x", "-q", "--no-header",
+                            "-p", "no:cacheprovider"], cwd=str(REPO_ROOT), capture_output=True,
+                           text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        return "undecidable", f"pytest 逾時(>120s):{node}"
+    tail = (r.stdout + r.stderr).strip().splitlines()[-1][:120] if (r.stdout or r.stderr) else ""
+    if r.returncode == 0:
+        return "confirmed", f"pytest {node} 通過 → {tail}"
+    if r.returncode == 1:
+        return "refuted", f"pytest {node} 失敗 → {tail}"
+    return "undecidable", f"pytest {node} exit={r.returncode}(collect error?)→ {tail}"
+
+
 _DISPATCH = {"information_schema": _v_information_schema, "import_isolation": _v_import_isolation,
-             "file_grep": _v_file_grep, "db_query": _v_db_query}
+             "file_grep": _v_file_grep, "db_query": _v_db_query, "pytest": _v_pytest}
 
 
 def run_verifier(verifier, anchor):

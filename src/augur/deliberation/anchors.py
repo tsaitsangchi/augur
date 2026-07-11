@@ -13,8 +13,7 @@
 import re
 
 from augur.core import db
-
-ORACLES = ("information_schema", "import_isolation", "file_grep", "db_query")
+from augur.deliberation.verifiers import ORACLES   # #12:oracle 封閉集單一住所=verifiers(含 pytest)
 
 CLAIM_SCHEMA = {
     "type": "object",
@@ -78,6 +77,14 @@ def fast_anchor(claim_text, target=None):
     m = re.search(r"(?:資料)?表\s*([a-z_][a-z0-9_]*)\s*存在", claim_text)
     if m:
         return "information_schema", m.group(1)
+    # L6 pytest 快路(2026-07-10:4b 對測試題仍派 db_query、不自選 pytest → 確定性路由)——
+    # claim 含 pytest node id(tests/…[::test_…])→ 直接派 pytest oracle。
+    m = re.search(r"(tests/[\w./-]+\.py(?:::[\w\[\]-]+)?)", claim_text)
+    if m and ("pytest" in claim_text or "測試" in claim_text or "通過" in claim_text):
+        return "pytest", m.group(1)
+    m = re.search(r"check_isolation|隔離不變式(?:成立|通過|為真)", claim_text)
+    if m:
+        return "import_isolation", "check_isolation"
     m = re.search(r"檔案\s*([\w./-]+\.(?:py|md|json|sh))\s*.{0,6}含.{0,4}字串?\s*[「\"']([^」\"']+)[」\"']", claim_text)
     if m:
         return "file_grep", f"{m.group(1)}::{re.escape(m.group(2))}"
