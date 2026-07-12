@@ -127,6 +127,17 @@ def run(with_llm=False, keep=False, as_json=False):
     hits0 = retrieve_items(nonce, k=4, is_super=False, allowed_domains=None)
     check("反向:無授權=deny(0 hits)", len(hits0) == 0, f"hits={len(hits0)}")
 
+    # (4b) K1 橋斷言:欄位問句→橋命中(含免責);低支持 pair 零出現(CHECK≥30 反斷言)
+    from augur.advisor.advise import _bridge_links, _bridge_block
+    blinks = _bridge_links("Trading_Volume 這個欄位與哪些投資概念相關?", None)
+    bblk = _bridge_block(blinks)
+    check("K1 橋:欄位問句命中", bool(blinks), f"fields={len(blinks)}")
+    check("K1 橋:免責硬綁於塊首", (not bblk) or ("非該欄位資料數值與報酬之相關" in bblk))
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SELECT count(*) FROM field_knowhow_lexical_affinity WHERE cooc_sents < 30")
+        low = cur.fetchone()[0]
+    check("K1 橋:低支持 pair 零物化(CHECK≥30)", low == 0, f"low={low}")
+
     # (5) 語料隔離:正式統計零增列
     with db.connect() as conn, db.transaction(conn) as cur:
         after = _counts(cur)
