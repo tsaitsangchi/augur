@@ -81,7 +81,10 @@ html,body{height:100%}
 body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
  background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
 .app{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:260px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:12px}
+.sidebar{width:260px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:12px;transition:margin-left .2s ease}
+body.side-collapsed .sidebar{margin-left:-261px}
+.collapsebtn{margin-left:auto;width:28px;height:28px;border:0;border-radius:7px;background:transparent;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
+.collapsebtn:hover{background:var(--hover);color:var(--text)}
 .brand{display:flex;align-items:center;gap:9px;padding:8px 8px 14px;font-weight:600;font-size:15px}
 .brand .s{color:var(--accent);font-size:19px}
 .newchat{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border:0;border-radius:10px;background:transparent;color:var(--text);font-size:14px;cursor:pointer;font-family:inherit;text-align:left}
@@ -146,6 +149,8 @@ body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe 
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:15}
 .scrim.show{display:block}
 #hamburger{display:none;position:absolute;left:12px;top:12px;z-index:10;width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;align-items:center;justify-content:center}
+body.side-collapsed #hamburger{display:flex}
+body.side-collapsed #log{padding-left:58px}
 .cmdk-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60;align-items:flex-start;justify-content:center}
 .cmdk-box{margin-top:12vh;width:min(560px,92vw);background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.2);overflow:hidden}
 #cmdkq{width:100%;padding:16px 18px;border:0;border-bottom:1px solid var(--border);background:transparent;color:var(--text);font-size:15px;font-family:inherit;outline:0}
@@ -257,7 +262,7 @@ body[data-theme=dark] #tierhint{color:#e0a284}
 </style></head><body>
 <div class=app>
 <aside class=sidebar>
- <div class=brand><span class=s>✻</span>augur</div>
+ <div class=brand><span class=s>✻</span>augur<button class=collapsebtn onclick="toggleSide()" title="收合側欄">«</button></div>
  <button class=newchat onclick="newSession()"><span class=p>＋</span>新對話</button>
  <input id=search class=search placeholder="搜尋對話…" oninput="SEARCHQ=this.value;renderRecents()" autocomplete=off>
  <div class=modes>
@@ -432,7 +437,10 @@ async function initTiers(){try{var j=await (await fetch('/api/tiers')).json();if
  var want=SETTINGS.default_tier||j.default_tier||TIERS[0].id
  if(!(TIERS.some(function(t){return t.id===want})))want=TIERS[0].id
  selectTier(want)}catch(e){}}
-function toggleSide(){var sb=document.querySelector('.sidebar'),sc=document.getElementById('scrim');var open=sb.classList.toggle('open');if(sc)sc.classList.toggle('show',open)}
+function toggleSide(){var sb=document.querySelector('.sidebar'),sc=document.getElementById('scrim')
+ if(window.innerWidth<=768){var open=sb.classList.toggle('open');if(sc)sc.classList.toggle('show',open);return}
+ var col=document.body.classList.toggle('side-collapsed');try{col?localStorage.setItem('side','1'):localStorage.removeItem('side')}catch(e){}}
+try{if(localStorage.getItem('side')==='1')document.body.classList.add('side-collapsed')}catch(e){}
 function closeCmdk(){document.getElementById('cmdk').style.display='none'}
 function openCmdk(){var o=document.getElementById('cmdk');o.style.display='flex';var inp=document.getElementById('cmdkq');inp.value='';cmdkRender('');inp.focus()}
 function cmdkRender(qv){var list=document.getElementById('cmdklist');list.innerHTML='';var lq=(qv||'').toLowerCase()
@@ -455,6 +463,9 @@ function add(cls,txt){var d=document.createElement('div');d.className='msg '+cls
  var acts=document.createElement('div');acts.className='actions'
  var cp=document.createElement('button');cp.className='act';cp.textContent='複製';cp.setAttribute('aria-label','複製訊息');cp.onclick=function(){navigator.clipboard.writeText(bub.textContent||'').then(function(){cp.textContent='已複製';setTimeout(function(){cp.textContent='複製'},1200)})}
  acts.appendChild(cp)
+ if(cls=='u'){var ed=document.createElement('button');ed.className='act';ed.textContent='編輯';ed.setAttribute('aria-label','編輯訊息')
+  ed.onclick=function(){if(CTRL)return;q.value=bub.textContent||'';q.style.height='auto';q.style.height=Math.min(q.scrollHeight,180)+'px';q.focus();q.scrollIntoView({block:'center'})}
+  acts.appendChild(ed)}
  d.appendChild(role);d.appendChild(bub);d.appendChild(acts);log.appendChild(d);if(pinned)log.scrollTop=log.scrollHeight;d._bubble=bub;return d}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function mdToHtml(t){
