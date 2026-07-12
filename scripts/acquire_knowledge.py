@@ -50,7 +50,8 @@ def fill(tpl, args):
                .replace("{query_raw}", str(args.query or ""))
                .replace("{limit}", str(args.limit or 20))
                .replace("{email}", os.environ.get("UNPAYWALL_EMAIL", ""))
-               .replace("{extra_filter}", args.extra_filter or ""))
+               .replace("{extra_filter}", args.extra_filter or "")
+               .replace("{fraser_api_key}", os.environ.get("FRASER_API_KEY", "")))
 
 
 _PACE = [1.0]   # 每源步調(秒);main 依 knowledge_source.pace_seconds 設定(#24 對偶:限速住 DB)
