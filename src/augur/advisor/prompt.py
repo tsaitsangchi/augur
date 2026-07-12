@@ -29,8 +29,11 @@ def _query_kind(query):
 
 # ── 方向/逐日價格誠實硬規則(閘⑥ 之 prompt 側;方向關卡狀態 SSOT=direction_gate 表、逐日價格永久除外——lock②)──
 _DIR_PAT = re.compile(
-    r"每日|逐日|未來.{0,5}(天|日|交易日)|目標價|股價.{0,4}(變化|走[勢向]|預測|多少)|"
+    r"每日|逐日|目標價|股價.{0,4}(變化|走[勢向]|預測|多少)|"
     r"漲跌.{0,4}(方向|機率)|方向.{0,4}機率|準確率.{0,5}(最高|前)|會漲|會跌|漲多少|跌多少")
+# 「未來N天」單獨=合法相對選股 horizon(H60 主產品),須與方向詞共現才屬方向題(2026-07-12 修 g1 誤傷)
+_HORIZON_PAT = re.compile(r"未來.{0,5}(天|日|交易日)|\d{1,3}\s*個?(天|日|交易日)[後内內]")
+_DIR_WORD_PAT = re.compile(r"股價|價格|點位|路徑|[漲跌]|方向|準確率")
 
 DIRECTION_SIM_HONESTY = (
     "\n【本題涉及『絕對漲跌方向/逐日股價/目標價/方向準確率』——誠實硬規則(不可違)】:"
@@ -45,7 +48,10 @@ DIRECTION_SIM_HONESTY = (
 
 def _asks_direction_or_path(query):
     """問句是否涉及絕對方向/逐日股價/目標價/準確率排名(→注入誠實硬規則)。"""
-    return bool(_DIR_PAT.search(query or ""))
+    q = query or ""
+    if _DIR_PAT.search(q):
+        return True
+    return bool(_HORIZON_PAT.search(q) and _DIR_WORD_PAT.search(q))
 
 
 # lock②:方向/逐日價格題之固定誠實句(短路弱 LLM、直回)。**僅 DB 例外時之 fallback**(常態=DB 驅動
