@@ -233,6 +233,15 @@ body[data-fs=sm]{font-size:13.5px}body[data-fs=lg]{font-size:16.5px}
 .tieri.sel .ck{visibility:visible}
 .tier-h{font-size:11px;color:var(--muted);padding:7px 12px 3px;text-transform:uppercase;letter-spacing:.03em}
 .composer{position:relative}
+/* ── ultracode 審議裁決卡(誠實紅線:永遠展開、不得摺疊)── */
+.delib-card{margin-top:14px;border:1px solid var(--border-strong);border-radius:12px;overflow:hidden;background:var(--code)}
+.delib-head{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:12px;color:var(--muted);background:var(--bubble);border-bottom:1px solid var(--border)}
+.delib-head .ic{color:var(--accent)}
+.delib-body{padding:10px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.2px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+.delib-body .vk{color:#5f8a5a}.delib-body .va{color:#b5793a}.delib-body .vx{color:#c15f3f}.delib-body .vw{color:#b5793a}
+.g.prog{animation:dpulse 1.4s infinite ease-in-out}
+#tierhint{max-width:740px;margin:6px auto 0;font-size:11px;color:#8a4a30;display:none;text-align:center}
+body[data-theme=dark] #tierhint{color:#e0a284}
 </style></head><body>
 <div class=app>
 <aside class=sidebar>
@@ -281,6 +290,7 @@ body[data-fs=sm]{font-size:13.5px}body[data-fs=lg]{font-size:16.5px}
 <textarea id=q rows=1 placeholder="輸入訊息…" autocomplete=off></textarea>
 <span class=modelpill title="目前本地模型">__MODEL__</span>
 <button id=b type=submit title="送出">↑</button></form>
+<div id=tierhint>⚙ ultracode 檔:機械可驗題(表/欄位/schema/檔案/隔離)將進本地審議引擎(分鐘級);其他題自動誠實回退一般管線。</div>
 <div class=foot-note>誠實博學的我可能會出錯，請查證重要資訊。</div>
 </div>
 </main>
@@ -369,7 +379,7 @@ function renderRecents(){var el=document.getElementById('recents');if(!el)return
  var buckets={},order=[];all.filter(function(s){return !s.starred}).forEach(function(s){var b=bucketOf(s.ts);if(!buckets[b]){buckets[b]=[];order.push(b)}buckets[b].push(s)})
  order.forEach(function(b){section(b,buckets[b])})}
 async function loadSession(id){var s=SESSIONS.filter(function(x){return x.id===id})[0];if(!s)return;CURid=id;pinned=true;log.innerHTML=''
- try{var j=await (await fetch('/api/messages?sid='+encodeURIComponent(id))).json();(j.messages||[]).forEach(function(m){if(m.role==='user'){add('u',m.content)}else{var d=add('a','');d._bubble.innerHTML=mdToHtml(m.content)}})}catch(e){}
+ try{var j=await (await fetch('/api/messages?sid='+encodeURIComponent(id))).json();(j.messages||[]).forEach(function(m){if(m.role==='user'){add('u',m.content)}else{var d=add('a','');d._bubble.innerHTML=renderBody(m.content)}})}catch(e){}
  renderRecents();log.scrollTop=log.scrollHeight;toggleJump()}
 async function loadHealth(){try{var j=await (await fetch('/health')).json();var ds=document.querySelectorAll('#svc .d');if(ds.length>=3){ds[0].className='d '+(j.db?'on':'off');ds[1].className='d '+(j.advisor?'on':'off');ds[2].className='d '+(j.ollama?'on':'off')}}catch(e){}}
 loadHealth();setInterval(loadHealth,15000);fetchSessions();loadSettings().then(initTiers);
@@ -393,7 +403,8 @@ var EFFD={fast:'快答・秒級',think:'深思・較慢更縝密',ultra:'ultraco
 function tierName(t){return 'qwen3-'+String(t.model_tag||'').split(':')[1]+' · '+(t.effort==='ultra'?'ultracode':t.effort)}
 function selectTier(id){var t=(TIERS||[]).filter(function(x){return x.id===id})[0];if(!t)return
  CURTIER=id;window.TIER=id
- var b=document.getElementById('tierbtn');if(b)b.innerHTML=tierName(t)+' <span style="font-size:10px">▾</span>'}
+ var b=document.getElementById('tierbtn');if(b)b.innerHTML=tierName(t)+' <span style="font-size:10px">▾</span>'
+ var th=document.getElementById('tierhint');if(th)th.style.display=(t.effort==='ultra')?'block':'none'}
 function toggleTierMenu(ev){ev.stopPropagation();var old=document.getElementById('tiermenu');if(old){old.remove();return}
  var m=document.createElement('div');m.id='tiermenu';m.className='tiermenu'
  var h=document.createElement('div');h.className='tier-h';h.textContent='本地模型 × 推理檔位';m.appendChild(h)
@@ -448,7 +459,12 @@ function mdToHtml(t){
  t=t.split(/\\n{2,}/).map(function(x){x=x.trim();if(!x)return '';if(/^<(h\\d|ul|ol|pre)/.test(x))return x;return '<p>'+x.replace(/\\n/g,'<br>')+'</p>'}).join('')
  return t.replace(/\\x01(\\d+)\\x01/g,function(_,i){return store[+i]})
 }
-function renderStream(wait,full){var parts=full.split('\\n---\\n').map(function(s){return s.trim()}).filter(function(s){if(s.indexOf('[augur-progress]')===0){var pd=wait.querySelector('.prog');if(!pd){pd=document.createElement('div');pd.className='g prog';wait.appendChild(pd)}pd.textContent=s.replace('[augur-progress]','⏳');return false}return s&&s.indexOf('[augur-guard]')!==0});wait._bubble.innerHTML=mdToHtml(parts.join('\\n\\n'));if(pinned)log.scrollTop=log.scrollHeight}
+function colorDelib(t){return esc(t).replace(/^✓/gm,'<span class=vk>✓</span>').replace(/^◐/gm,'<span class=va>◐</span>').replace(/^✗/gm,'<span class=vx>✗</span>').replace(/^⚠/gm,'<span class=vw>⚠</span>')}
+function renderBody(t){t=String(t||'');var i=t.indexOf('── 本地審議裁決');if(i<0)i=t.indexOf('──本地審議裁決')
+ if(i<0)return mdToHtml(t)
+ var head=t.slice(0,i),blk=t.slice(i)
+ return mdToHtml(head)+'<div class=delib-card><div class=delib-head><span class=ic>✻</span>本地審議裁決 · oracle 機械證據(非 LLM 意見)</div><div class=delib-body>'+colorDelib(blk)+'</div></div>'}
+function renderStream(wait,full){var parts=full.split('\\n---\\n').map(function(s){return s.trim()}).filter(function(s){if(s.indexOf('[augur-progress]')===0){var pd=wait.querySelector('.prog');if(!pd){pd=document.createElement('div');pd.className='g prog';wait.appendChild(pd)}pd.textContent=s.replace('[augur-progress]','⏳');return false}return s&&s.indexOf('[augur-guard]')!==0});wait._bubble.innerHTML=renderBody(parts.join('\\n\\n'));if(pinned)log.scrollTop=log.scrollHeight}
 var CTRL=null
 function setGen(on){if(on){b.textContent='■';b.title='停止生成';b.classList.add('stop')}else{b.textContent='↑';b.title='送出';b.classList.remove('stop');b.disabled=false}}
 async function runGen(text,wait){
@@ -469,7 +485,7 @@ async function runGen(text,wait){
   var allp=full.split('\\n---\\n').map(function(s){return s.trim()})
   var gl=allp.filter(function(s){return s.indexOf('[augur-guard]')===0}).join(' ')
   var body=allp.filter(function(s){return s&&s.indexOf('[augur-guard]')!==0&&s.indexOf('[augur-progress]')!==0}).join('\\n\\n')||'(無回覆)'
-  wait._bubble.innerHTML=mdToHtml(body)
+  wait._bubble.innerHTML=renderBody(body)
   var pass=gl.indexOf('pass=true')>=0
   var gd=document.createElement('div');gd.className='g '+(pass?'pass':'fail');gd.textContent='[guard] '+(pass?'通過':'攔下(改誠實句)');wait.appendChild(gd)
   return body
