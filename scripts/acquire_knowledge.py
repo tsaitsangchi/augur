@@ -261,7 +261,32 @@ def adapter_generic_json(cur, src, args, dom, et):
     return n
 
 
+def adapter_oai_pmh(cur, src, args, dom, et):
+    """OAI-PMH ListRecords(oai_dc)→ staging(深抓計畫 §1 OAPEN/機構庫協定;K3 S3 新協定=新 adapter 合理)。"""
+    xml = urllib.request.urlopen(urllib.request.Request(fill(src[4], args), headers=UA), timeout=90).read().decode()
+    ns = {"o": "http://www.openarchives.org/OAI/2.0/", "dc": "http://purl.org/dc/elements/1.1/",
+          "oai_dc": "http://www.openarchives.org/OAI/2.0/oai_dc/"}
+    n = 0
+    for rec in ET.fromstring(xml).iter("{http://www.openarchives.org/OAI/2.0/}record"):
+        md = rec.find(".//oai_dc:dc", ns)
+        if md is None:
+            continue
+        title = md.findtext("dc:title", "", ns).strip()
+        if not title:
+            continue
+        ident = [x.text for x in md.findall("dc:identifier", ns) if x.text] or [""]
+        year = next((int(d.text[:4]) for d in md.findall("dc:date", ns)
+                     if d.text and d.text[:4].isdigit()), None)
+        p = {"title": title, "year": year,
+             "authors": [c.text for c in md.findall("dc:creator", ns) if c.text][:8],
+             "openalex_id": None, "work_type": "book",
+             "license_hint": ";".join(x.text for x in md.findall("dc:rights", ns) if x.text)[:200] or None}
+        n += stage(cur, src[0], dom, et, p, ident[0])
+    return n
+
+
 ADAPTERS = {"manual_file": adapter_manual_file, "dbpedia_sparql": adapter_dbpedia_sparql,
+            "oai_pmh": adapter_oai_pmh,
             "generic_json": adapter_generic_json,
             "wikidata_sparql": adapter_wikidata_sparql, "gutendex": adapter_gutendex,
             "openalex": adapter_openalex, "crossref": adapter_crossref, "arxiv": adapter_arxiv,
