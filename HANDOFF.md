@@ -55,11 +55,11 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 
 ## 4. 現況 STATE（取代式：每次封存點整段重寫；歷史＝`git log -p HANDOFF.md`）
 
-> 更新於 **2026-07-12 21:05**、git `5a93cdc`、tag `archive-20260712-pregame-allsigned`。
+> 更新於 **2026-07-13 00:4x**、git 前一 commit `ddd4821`、最新 tag 見 `git tag -l 'archive-*'`。
 > **紀律：本區每個宣稱都可能過期——待辦一律先跑附帶的驗證指令實查（#15），勿直接信。**
 
 ### 4.1 一句話現況
-開賽前置**人工關卡全清**（A2 六門＋A3 `_r2` 三門皆 hugo 已簽、futility 凍結、九候選凍結），唯等 **audit 對帳跑綠**（21:03 時 39/88，大表段慢、可能至深夜）→ AI 自動接 E1→strict→unfreeze evaluate→開賽，全程零人工。
+開賽前置**人工關卡全清**（A2 六門＋A3 `_r2` 三門皆簽、futility＋九候選凍結），audit 對帳已達 **[88/88] 進入尾段彙整**→ 哨兵句一出 AI 自動接 E1→strict→unfreeze evaluate→開賽。**知識層同日大豐收**：全文源專屬解析器 T1-T3 當日完成（IA/EDGAR/FRASER 三策略住 `adapter_config.fulltext`），公版全文落地 **491 件/66MB→已切 469,551 句**（嵌入由 03:30 timer 自動接）；PDF 抽取計畫書待 P0。
 
 ### 4.2 下一步（可直接執行，含前置條件）
 ```bash
@@ -84,14 +84,15 @@ python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §
 ### 4.4 紅線（絕不能做）
 - ⚠ **evaluate 嚴禁在 audit/strict 綠前跑**——gate 判準 g5：任一 fail＝`evaluated_fail` 終態、hugo 親簽的 gate 直接燒掉、須重預註冊重簽。
 - ⚠ **FinMind 類作業（市場補同步／PriceAdj 修復）與 audit 互斥**——同一 IP，audit 跑完才輪它們（#24 IP sustained ban 07-12 實錘）。
-- ⚠ **IA 2,616 件全文批次別在「源專屬解析器」上線前跑**——只會蓋 `skip_ctype` 終態章、反而擋住未來重試（計畫見 4.5）。
+- ⚠ **PDF 抽取未經 P0 拍板前不啟動**（含 OAPEN 61/skip_pdf 976）——OCR 維持不啟動（P8 原裁定）;IA 掃蕩已完成(491 抓/其餘誠實終態)、勿重複放量。
 
 ### 4.5 待人類 vs 待 AI
 **待 hugo 拍板**（全部非阻塞開賽）：
-1. 全文源專屬解析器計畫 T0（D1 計畫本身／D2 OAPEN-PDF 路線／D3 IA 放量節奏）＝`reports/knowledge_fulltext_source_resolvers_plan_20260712.md`
-2. 短 horizon 模型計畫②（H20/H40；30/60＝日曆日或交易日待釐清）＝`reports/augur_prediction_short_horizon_model_plan_20260709.md`
-3. 全能全知顧問計畫①（W1..W8）＝`reports/augur_omniscient_advisor_plan_20260709.md`
-4. 舊專案 stock_backend 的平日 16:00 FinMind cron 去留（與 augur 同 IP 疊加負載）
+1. **PDF 抽取計畫 P0**＝`reports/knowledge_pdf_extraction_plan_20260712.md`（D2 後續;pypdf+五道機械品質閘 fail-closed;OAPEN 61+skip_pdf 976）
+2. 短 horizon 模型計畫②＋全能顧問計畫①：**hugo 已裁「開賽後 AI 先做時效性複核再拍」**（2026-07-12;兩案早於解凍/擂台設計,恐部分被超越）
+3. 舊專案 stock_backend 的平日 16:00 FinMind cron 去留（與 augur 同 IP 疊加負載）
+
+> 解析器計畫 T0 已拍(2026-07-12):D1 核准全計畫、D2 另立 PDF 計畫、D3 IA 200/批——**T1-T3 當日執行完畢**(FRASER textUrl 實證/三策略落 DB/IA 13 批掃蕩 491 抓、熔斷零觸發)。
 
 **待 AI（條件觸發、零人工）**：audit 綠→4.2 全鏈；拍板後→解析器 T1-T3（全本地零 token）。
 

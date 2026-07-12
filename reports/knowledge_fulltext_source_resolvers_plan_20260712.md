@@ -56,3 +56,10 @@
 **紅線**:全文准入三軌 gate 原樣(public_domain/cc_whitelist 才抓);逐字零 AI(#1);skip=誠實終態非漏做;素養層零量化價值不進預測管線(隔離不變式不動)。
 **token 經濟**:T1-T3 執行全本地零 Claude token;Claude 只出現在本計畫書(已花)。
 **與開賽鏈零衝突**:不碰預測資料層、不碰 FinMind。
+
+---
+## §4 拍板與執行紀錄(2026-07-12/13)
+- **T0 拍板(hugo,2026-07-12 晚)**:D1=核准全計畫執行|D2=另立 PDF 抽取計畫(→`knowledge_pdf_extraction_plan_20260712.md` 待 P0)|D3=IA 200/批、批間看帳。
+- **T1**:FRASER title API `location.textUrl` 直供純文字(S3、text/plain,3 探測 ≤5 ✓);items 子端點免用。
+- **T2**:dispatcher 落地(`fetch_pd_fulltext.py`:url_template/edgar_archive/fraser_api 三策略+--source 篩選);每源最小實測=FRASER 2/2、SEC 1+1 誠實skip(XML)、IA 1+2 誠實error(401 借閱/404 無衍生檔);修二 bug=urllib 缺 Accept header 遭 FRASER WAF 靜默掛死、skip_ctype 重試豁免之無限重試隱患(改刪舊章)。
+- **T3**:IA 全積壓 13 批掃蕩完畢(200/批+403/429>30 熔斷器,零觸發)——**全文落地 491 件/66MB(IA 488+FRASER 2+SEC 1)、切句 469,551 句**;其餘 ~2,130 件誠實終態(404 無文字衍生檔/401 借閱限制為主)。嵌入=03:30 timer 自動。
