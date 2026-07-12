@@ -48,7 +48,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 
 ## 3. 不在 git、新機須重建（皆 gitignored）
 
-- **DB**（靠 dump 搬、#30):最新 = **`augur_pgdump_20260712_Fd`**（本地 ext4 `~/db_dumps/` 目錄版 + `D:\database\augur_pgdump_20260712_Fd.tar` 單檔版、9.9GB;**247 表完整**含擂台 4 表/三鏡頭月頻/K 計畫橋表;56GB 庫=35GB 資料+21GB 索引故 9.9GB 屬正常;逐表 TOC 已驗、分區父表 knowledge_concordance 無 TABLE DATA 屬正常）。還原一律用 `bash import_database.sh`（自動判 tar/-Fd/-Fc、平行還原;新機庫不存在直接建、取代既有須 `--force`）。舊 dump（20260711_Fd 7.0GB 等）可備援。**dump 不進 git**,用外接碟/雲端搬。
+- **DB**（靠 dump 搬、#30):最新 = **`augur_pgdump_20260713_Fd`**（換機用;本地 ext4 `~/db_dumps/` 目錄版 + `D:\database\augur_pgdump_20260713_Fd.tar` 單檔版;含 07-12 全日成果=擂台九門簽核/三鏡頭月頻/491 件公版全文+469,551 句/K 計畫橋表/**audit 增量 658,911 列**;⚠ dump 取於 audit 尾段對帳中——新機還原後 audit 須續跑至綠,見 §4）。還原一律用 `bash import_database.sh`（自動判 tar/-Fd/-Fc、平行還原;新機庫不存在直接建、取代既有須 `--force`）。舊 dump（20260712_Fd 9.9GB/20260711_Fd 7.0GB）可備援。56GB 庫=35GB 資料+21GB 索引,dump ~10GB 屬正常。**dump 不進 git**,用外接碟/雲端搬。
 - **`.env`**（手動重建、值不入 git):`DB_HOST/PORT/NAME/USER/PASSWORD`、`DB_SUPERUSER_*`、`DB_PREDICT_PASSWORD`、`FINMIND_TOKEN`（Sponsor 已續訂 2026-07-12;過期會降 free tier,錶=`/user_info`）、`FRED_API_KEY`、`AUGUR_ADMIN_PASSWORD`、`AUGUR_INTERNAL_SECRET`、`UNPAYWALL_EMAIL`;+ `git config user.name/email`。（⚠ **advisor LLM 本機限定 v1.37.0**——不接任何外部 LLM,GEMINI 等 key 即使存在亦不用於 advisor。）
 - **向量庫**：生產 = **pgvector（在 DB dump 內、跟著 DB 走）**;`~/qdrant_local`（194MB 休眠驗證產物）= **可從 DB 用 `export_qdrant_index.py` 重建、不需跨機搬**。
 - **build 產物**（可重生勿 commit):`models_artifacts/`（.joblib、train_ranker 重生）、`data/`、`/models/`。⚠ `.gitignore` 模型輸出規則錨定 `/models/`（根限定）——**勿改回 `models/`**（會遞迴誤傷 `src/augur/models/` 源）。
@@ -79,7 +79,9 @@ python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §
 |---|---|---|
 | audit 自癒跑者（nohup 脫離、撐過 session） | `tail -f ~/audit_retry.log` | `pgrep -f daily_maintenance` |
 | systemd 六服務＋3 timers（開機自起） | `systemctl --user list-units 'augur-*'` | 端口 curl 序見 memory `restart-systemd-after-edit` |
-| 重開機後重啟 audit | `nohup flock -n /tmp/augur_audit.lock bash ~/augur_audit_selfheal.sh &` | 探測先行＋PYTHONUNBUFFERED |
+| audit 續跑/重啟（**腳本已入 repo=`audit_selfheal.sh`**） | `nohup flock -n /tmp/augur_audit.lock bash audit_selfheal.sh >/dev/null 2>&1 &` | 探測先行＋PYTHONUNBUFFERED;log=~/audit_retry.log |
+
+**⚠ 換機注意（2026-07-13）**：舊機的 audit 跑者/watcher **不隨機器遷移**——新機還原 DB 後，audit 對帳狀態已在 DB（dump 含 658,911 列增量、取於尾段對帳中），**新機第一件事＝`bash audit_selfheal.sh` 續跑至綠**（DB-driven resume、冪等快轉已對帳段;新 IP 對 FinMind 反而有利），綠後接 4.2 鏈。嵌入積壓（469,551 句）由新機 03:30 timer 或手動 `systemctl --user start augur-embed-catchup` 補。
 
 ### 4.4 紅線（絕不能做）
 - ⚠ **evaluate 嚴禁在 audit/strict 綠前跑**——gate 判準 g5：任一 fail＝`evaluated_fail` 終態、hugo 親簽的 gate 直接燒掉、須重預註冊重簽。
@@ -110,6 +112,7 @@ python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §
 - **dump「太小」疑慮**：56GB 庫＝35GB 資料＋21GB 索引（dump 不存索引）＋壓縮 → 9.9GB 正確；逐表驗證法見 git log `5a93cdc` 前後對話／`pg_restore -l` 比對活庫表數（分區父表無 TABLE DATA 屬正常）。
 - **FRASER API 只收 `X-API-Key` header**（query param 必 401）；key 認證機制＝`knowledge_source.adapter_config.auth_header`。
 - **額度錶低 ≠ IP 安全**：FinMind 403 有額度型與 IP sustained 型兩種，判斷一律問錶（`/user_info`）＋見訊號即停（#24）。
+- **audit 對帳段會無聲卡死**（2026-07-13 實證:API 讀無效 timeout 掛 9h,`poll_schedule_timeout`+rchar 0）——「進程活著+log 靜默」≠ 在跑;診斷=`/proc/<pid>/wchan`+10s rchar 差;`audit_selfheal.sh` v2 已內建 45 分靜默看門狗自動殺掉續跑。
 
 ### 4.7 路由表（去哪讀什麼；本檔不複述）
 | 要什麼 | 去哪 |
