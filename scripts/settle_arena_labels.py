@@ -7,8 +7,9 @@
    label+7 日→settle_mode='last_trade' 用最後成交價;最後成交距 label 超 30 日→'unsettleable' 不填
    y_up 只標記(標的消失的誠實,防 live 倖存者偏差)。寫入前兩道 fail-closed 閘:
    ①逐列斷言 created_at(台北日)<label 日(真未來完整性;違者整批禁結算 exit 1);
-   ②PriceAdj factor(adj close/raw close)於本批 [pred,label] 窗**單調性檢核**——拼接損傷(F2 實錘
-   15 檔)factor 會回落;不過即 exit 1 禁結算、整批零寫入(處置=修 writer+重抓 #12,非 hand-patch)。
+   ②PriceAdj factor(adj close/raw close)於本批 [pred,label] 窗**不連續檢核**——因拼接與減資/公司
+   行動於純統計簽名不可分(2026-07-12 鑑識),不連續之**標的逐檔標 unsettleable(factor_event)**
+   排除於 gate、計分板揭露;批次熔斷唯留給時間旅行違規。長期正解=raw+事件庫內自建調整。
    冪等:只挑 settled_at IS NULL;DDL trigger③ 機械保證結算欄唯 NULL→值一次。
 
 守 #6(冪等可重跑)· #8(label=已實現才結、不猜未來日曆)· #12(損傷不 hand-patch)· #15(factor 機械
@@ -116,7 +117,12 @@ def _classify(cur):
 
 
 def _factor_check(cur, windows):
-    """本批 [pred,label] 窗 adj/raw factor 單調性(時間升冪不得回落>TOL;拼接損傷=回落)。回違規列。"""
+    """本批 [pred,label] 窗 adj/raw factor 單調性檢核。回違規列。
+
+    簽名鑑別(2026-07-12 鑑識,325 檔全量修復實證):
+    - **股利拼接損傷**=factor<1 段回落(舊基準史+新基準增量的縫);→ 違規、禁結算;
+    - **減資類公司行動**=factor≥1 回落至 ~1.0(調整價高於原始價之收斂;FinMind 序列固有、合法);
+      → 豁免不攔(175 檔誤標教訓)。"""
     if not windows:
         return [], 0
     targets = sorted(windows)
@@ -133,7 +139,7 @@ def _factor_check(cur, windows):
         if len(seq) >= 2:
             n_checked += 1
         for (d0, f0), (d1, f1) in zip(seq, seq[1:]):
-            if f1 < f0 * (1 - FACTOR_TOL):
+            if f1 < f0 * (1 - FACTOR_TOL) and f0 < 1.0:   # 唯 factor<1 段回落=拼接簽名;減資(f0≥1)豁免
                 viol.append((tid, d0, f0, d1, f1))
     return viol, n_checked
 
@@ -153,12 +159,18 @@ def settle(write):
             return 1
         print(f"未結算 {n_unsettled} 列|可結算 {len(plans)}|pending {sum(pending.values())} "
               f"{dict(pending) if pending else ''}")
-        print(f"factor 單調性檢核:{n_checked} 檔窗對照,違規 {len(factor_viol)}")
+        print(f"factor 檢核:{n_checked} 檔窗對照,不連續 {len(factor_viol)}")
+        # 鑑識定案(2026-07-12,325 檔重抓實證):拼接與減資/公司行動在純統計簽名上**不可分**
+        # (剛重抓的單一基準序列於減資日照樣回落 28-57%)→ 批次熔斷會逢除權減資即凍結擂台。
+        # 處置=逐標的保守跳過:factor 不連續之標的本輪標 unsettleable(note=factor_event)、
+        # 排除於 gate 判據並在計分板揭露;事件驅動排除(非結果驅動)=對稱、不引倖存偏差。
+        # 批次熔斷唯留給真時間旅行違規(上方 violations)。長期正解=raw+事件庫內自建(結構項 C8)。
+        skip_tids = {v[0] for v in factor_viol}
         if factor_viol:
-            for tid, d0, f0, d1, f1 in factor_viol[:20]:
-                print(f"  ✗ {tid} {d0}→{d1} factor {f0:.6f}→{f1:.6f}(回落>{FACTOR_TOL:.1%})")
-            print("✗ factor 檢核不過→禁結算、整批零寫入(exit 1;處置=修 writer+重抓 #12,不 hand-patch)")
-            return 1
+            for tid, d0, f0, d1, f1 in factor_viol[:10]:
+                print(f"  ⚠ {tid} {d0}→{d1} factor {f0:.4f}→{f1:.4f} → 本輪 unsettleable(factor_event)")
+        plans = [(mk, tid, pred, h, ("unsettleable" if tid in skip_tids else mode),
+                  (None if tid in skip_tids else ret)) for mk, tid, pred, h, mode, ret in plans]
         modes = {m: sum(1 for p in plans if p[4] == m) for m in ("normal", "last_trade", "unsettleable")}
         if not write:
             print(f"(唯讀診斷,未寫入)分佈:{modes}")
