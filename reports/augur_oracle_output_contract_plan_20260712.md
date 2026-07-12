@@ -1,0 +1,116 @@
+# 預言機軸「輸出契約」入憲 + 可實現計畫(草案・對抗審查前)
+
+> **性質**:治權入憲(用戶 2026-07-12 明示「以上入憲」)+ 計畫先行(憲章第六部 v1.39.0)。
+> 用戶提供英文規格(機率型方向預測三產物),固化為預言機軸之**輸出契約(output contract)**,
+> 並給出實現它的完整計畫。**觸高風險門檻(治權變更)→ 多視角對抗審查(§9)。**
+
+## §0 誠實邊界(先於一切:「可實現」與「完美」的兩層意義)
+
+用戶要的三產物(方向機率、方向準確率、預期報酬)——**「可實現」分兩層,計畫必須誠實區分**:
+
+| 層 | 能不能保證 | 現況 |
+|---|---|---|
+| **A. 產出管線**(算得出這三個數字) | ✅ **100% 可實現**(已建約八成) | 缺 as-of 前瞻生產腳本+呈現層 |
+| **B. 數字可信度**(這些數字通過 gate、可用來下注) | ❌ **不能保證**(實證問題) | 凍結資料上十門判死;真未來擂台裁決中 |
+
+**「完美計畫」的誠實定義**=完美實現「規格化產出 → gate 誠實驗證 → 合格者展示/不合格判死 → 真未來復活路徑」這條**閉環**;**不是**保證方向可預測(那是假兆,任何承諾它的計畫都是騙局)。**本計畫的完美,正在於它連自己不能承諾什麼都寫死。**
+
+## §1 入憲文本(憲章 v1.43.0→v1.44.0;靈魂同步;明確化不鬆動→符合 guard 棘輪)
+
+**位置**:憲章第三部 validate「預言機誠實判準〔v1.42.0〕」之「合法輸出形」子條後,新增子條:
+
+> - **輸出契約(output contract)〔v1.44.0;用戶 2026-07-12 規格入憲〕**:預言機軸之產品輸出恆為**機率型方向預測**,三產物並列、缺一不呈現:
+>   1. **方向機率**:`P(個股 i 於未來 H 交易日報酬 > 0 | as-of)`,以 % 表;**是機率、非價格點位或路徑**;
+>   2. **方向準確率**:該方向預測之 out-of-sample **命中率(directional hit-rate)**,以 % 表;**horizon 級聚合、非單股保證**;
+>   3. **預期報酬率**:由準確率與已實現波幅導出之期望報酬 `E[r] ≈ (2·準確率 − 1) × 典型波幅 − 交易成本`;
+>
+>   **契約約束(硬綁,違一即不呈現)**:①唯漲/跌方向機率——**無逐日價格點位/路徑**(呼應永久除外);②機率型帶誤差——**不要求、不宣稱 100% 正確**;③準確率須**顯著優於多數類基線**(gate 關 i)且**校準**(gate 關 iii);④三產物與 gate 狀態、FREEZE/live 口徑、經濟裁決標籤**硬綁呈現**。此契約不改判準(gate 三關已涵蓋 ③),係「輸出定義」之無歧義固化。
+
+**靈魂 v1.6.0** 預言機軸行末補一句:「輸出契約=方向機率+OOS 命中率+期望報酬三產物並列(SSOT=憲章 v1.44.0)」。
+
+**升版理由**:明確化既有「合法輸出形」、判準零變動、不新增可違反原則 → minor;#19 跨檔對齊(憲章/靈魂/README/CLAUDE 引用/HANDOFF)。
+
+## §2 三產物 × 現有資產對照(=缺口清單)
+
+| 產物 | 現有資產 | 缺口 |
+|---|---|---|
+| ① 方向機率 P(up) | `direction_probability`/`daily_direction_probability` 表(gate_id/base_rate/econ_verdict 硬綁欄已建;現 0 列 fail-closed)、訓練器已能出 OOS p_up | **as-of 前瞻生產腳本**(OOS=歷史;生產需對 as-of 出前瞻 p_up) |
+| ② 方向準確率 | `direction_gate.result_snapshot.i_hitrate.overall_hit`(已算);gate 關 i=顯著優於多數類 | 唯 pass 門才呈現(十門判死→無合格數字) |
+| ③ 預期報酬率 | `run_direction_econ_eval.py`(擇時 overlay+成本);E[r] 公式已隱含 | **E[r] 顯式化+與準確率硬綁的呈現欄** |
+
+**結論**:管線八成已建;真缺口=生產腳本(A 層,可做)+ 合格數字(B 層,等真未來)。
+
+## §3 Table Schema(v1.39.0 (a))
+
+無新表——三產物落既有表(擂台 DDL 已含),唯補欄:
+```sql
+-- direction_probability / daily_direction_probability(已存在):補期望報酬顯式欄
+ALTER TABLE direction_probability ADD COLUMN IF NOT EXISTS expected_ret double precision;
+ALTER TABLE direction_probability ADD COLUMN IF NOT EXISTS hit_rate double precision;  -- 對映 gate 準確率
+ALTER TABLE daily_direction_probability ADD COLUMN IF NOT EXISTS expected_ret double precision;
+ALTER TABLE daily_direction_probability ADD COLUMN IF NOT EXISTS hit_rate double precision;
+```
+所讀既有表:`direction_gate`(準確率源+gate 狀態閘)、`direction_arena_prediction`(真未來 live p_up)、`TaiwanStockPriceAdj`(波幅)、`judgestop_threshold`(成本口徑)。
+
+## §4 Python 程式規畫(v1.39.0 (b))
+
+| 檔 | 職責 |
+|---|---|
+| `migrate_direction_ddl.py`(改) | §3 補欄冪等 |
+| `produce_direction_probability.py`(新;唯 evaluated_pass 之門觸發) | 以 pass 門 criteria 同配方全資料重訓→對 as-of 出前瞻 p_up→查 gate hit_rate→算 E[r]=(2·hit−1)·波幅−成本→寫三產物欄(gate_id/econ_verdict 硬綁);**無 pass 門=不產列(fail-closed)** |
+| `serve_probability_ui.py`(改;唯 pass 後) | 三產物並列卡片(方向機率 %+命中率 %+期望報酬 %),硬綁 gate 狀態/FREEZE-live 標/「非交易訊號」若 econ dead;無合格門=顯示誠實判死聲明(現況) |
+| `advisor` 拒答句(已 DB 驅動) | 任何門 pass→已 fail-closed 保守句(不動;pass 後由呈現層接管) |
+
+## §5 gate 驗證(判準已對齊規格,零改動)
+
+用戶契約約束 ③(顯著優於多數類+校準)**恰是** direction_gate 三關:(i) hit vs 多數類 HAC Eff-t p<α、(ii) Brier<基線、(iii) ECE≤0.05+單調。**規格入憲不需新判準**——既有 gate 就是規格的機械裁判。這是入憲乾淨的證明:契約要的驗證,系統早已寫死。
+
+## §6 真未來擂台=B 層(可信度)的唯一實現路
+
+三產物「變成可信」的唯一合法路=真未來擂台(六門已 approved、armed):live 出 p_up→結算→累積達門檻→confirmatory gate 三關→**pass 者的方向機率+命中率+E[r] 即成合格產品**,由 §4 呈現層展示。擂台的 MDE 已誠實揭露(可交易級邊際 ≥5-10pp;微小邊際檢定力≈0)。**這是計畫把 B 層做到「可實現」的方式:不保證通過,但保證誠實裁決+合格即呈現。**
+
+## §7 分階段・驗收
+
+| 階段 | 內容 | 前置 | 驗收 |
+|---|---|---|---|
+| **O0** | 入憲(§1)+ 對抗審查(§9)修訂 | 用戶授權(已) | 跨檔一致 grep 乾淨;審查發現全裁處 |
+| **O1** | §3 補欄 + `produce_direction_probability.py`(fail-closed:無 pass 門=0 列) | O0 | 無 pass 門時產 0 列斷言;E[r] 公式單測 |
+| **O2** | 呈現層三產物卡片(唯 pass 後活;現況=判死聲明) | O1 | 誠實層紅隊:無合格門時顯示判死、不空編數字 |
+| **O3** | 擂台開賽→累積→confirmatory→pass 者接 O1 生產 | 解凍+擂台(進行中) | gate pass→三產物落表→呈現;fail→判死留檔 |
+
+## §8 誠實邊界(重申,計畫的紅線)
+
+- **不承諾方向可預測**——凍結資料十門判死是實證事實;
+- **不承諾擂台會過**——MDE 揭露微小邊際檢定力≈0;
+- **不產未過 gate 之數字**——fail-closed;呈現層無合格門即顯示判死;
+- **E[r] 是條件期望**——「若準確率為真」下的期望,gate 未過時準確率不可信,E[r] 不呈現;
+- 逐日價格/路徑/百分百=永久除外,契約明文排除。
+
+## §9 對抗審查發現表(Opus 4.8 三視角;4 blocker + 多 major)
+
+| # | 視角 | 發現(摘) | 裁處 |
+|---|---|---|---|
+| B1(blocker) | 治權 | **E[r]≠明確化,是實質擴張輸出形**:憲章 L128 合法輸出形只有 P(方向)+日粒度方向機率兩個,無「期望報酬率」;靈魂 L28 明文「**不是預測絕對漲跌幅**」,而 E[r](%)本質即報酬幅度估計。把它當「minor 判準零變動」是自我豁免 | **停下問用戶**(§10)——超出「明確化」授權、觸靈魂不可違反句 |
+| B2/F1(blocker) | 可行 | **produce 路徑矛盾**:§6 說擂台是唯一 pass 路(驗凍結候選 live ledger),§4 卻「全資料重訓」貼 gate hit_rate=不同模型貼別人的準確率;市場模型(timesfm/chronos)無訓練,「重訓」對它無定義 | 產物設計改「呈現 gate 所驗證的那個 artifact 本身」,不重訓 |
+| F2(blocker) | 可行 | **market model 寫不進表**:direction_probability.model_id FK→model_registry,而市場候選刻意不在 registry(0 列)——timesfm/chronos 若 pass,產物表機械上無法容納 | 需獨立 model-identity 路徑或從 arena ledger 直接呈現 |
+| H1(major) | 誠實 | **fail-closed 只靠腳本 if,非 DB 機械閘**:兩表零 trigger、FK 只查 gate_id 存在(允許引 evaluated_fail)——違「安全繫於機械閘非自律」核心 doctrine | 加 BEFORE INSERT trigger 強制 status='evaluated_pass' |
+| H2/多 | 統計 | **E[r] 公式系統性高估**:(2·hit−1)·波幅假設「幅度與正確性獨立」,實務常「小波動猜對、大波動猜錯」→真 E[r]<公式;且「波幅」估計量未釘死;台股放空受限,long-only 下公式不適用 | E[r] 導自既有 econ helper(回測淨值),不用玩具閉式 |
+| H3/F4 | 可行 | **econ_verdict 無來源**:兩表欄 NOT NULL,但無任何表持久化經濟裁決(run_direction_econ_eval 只印 markdown、不寫 DB) | 補 econ verdict 持久化,列入缺口 |
+| D3(major) | 治權 | 契約約束④只列 3 項硬綁,但憲章 L130 既有 5 項——插同段易被讀成放鬆既有閘=違棘輪;逐股 E[r]+命中率並列易踩 L130⑤禁單股宣稱 | 明文「④增列不取代 L130 五項」;命中率 horizon 級免責必硬綁 |
+| 多 major | 可行 | **「八成已建/只差一支腳本」低估**:trainer 只出 OOS 歷史、無 as-of 前瞻推論;真缺口≥4 支介面(前瞻推論/as-of 特徵/E[r] 源/econ_verdict 源/market 身分路由) | §2 缺口清單重寫,刪「只差一支腳本」 |
+| 多 minor | 全 | ECE 寫死(應 DB 讀值)、top3/top5 組合層契約未規格化、跨波次多重性未揭露、§6「可實現」措辭滑動 | 逐項修（待 B1 定案後一併） |
+
+## §10 審查後裁決:停下問(#19/#26 碰治權護欄)
+
+**產物①方向機率 + 產物②方向準確率**:審查未反對——它們**本就是**憲章 L128/靈魂 L28 既有的預言機軸定義,你的規格是把它講到無歧義。這兩個入憲=純明確化,乾淨,可執行。
+
+**產物③預期報酬率(E[r])**:審查揭示它與**靈魂不可違反句「不是預測絕對漲跌幅」直接張力**——E[r](%)本質是報酬幅度。這超出「明確化」授權、進入「變更治權判準」= **決策層,AI 停下問**。三個選項待你裁:
+- **(a) 降格**:E[r] 不當獨立預測產物,而是「方向機率通過 gate 後、附帶的經濟翻譯**示意**」(horizon/組合級、非逐股,硬綁「非交易訊號」+「對稱假設示意上界」+導自既有 econ 回測)——這樣**不撞紅線、可 minor 入憲**;
+- **(b) 修靈魂**:明白地把「不是預測絕對漲跌幅」改掉以容納 E[r]——**AI 勸阻**(這是靈魂級不可違反句、動它茲事體大),要雙留痕;
+- **(c) 撤產物③**:只入憲產物①②(方向機率+準確率),E[r] 你自己心算(公式在 §0,你有準確率和波幅就能推)。
+
+**入憲暫停於此**,待你裁 ③。技術缺口(B2/F1/F2/H1/H3…)在 ③ 定案後一併修正才落地。
+
+---
+
+**結語**:用戶的規格是**合法、精確、系統核心**的需求——入憲讓它成為不可被誤讀的產品定義(消除「逐日股價/百分百」的歷史歧義)。計畫完美地實現「規格→產出→驗證→展示→真未來復活」閉環;它唯一不做的承諾,是「保證方向可測」——因為那是假兆,而拒絕假兆正是這份計畫可信的原因。
