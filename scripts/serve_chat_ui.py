@@ -44,7 +44,13 @@ h2{margin:10px 0 3px;font-size:20px;text-align:center;font-weight:600}
 input{width:100%;padding:12px 14px;margin:6px 0;background:#faf9f5;border:1px solid #dcd8cc;color:#1f1e1d;border-radius:10px;font-size:15px}
 input:focus{outline:0;border-color:#d97757}
 button{width:100%;padding:12px;margin-top:12px;background:#d97757;color:#fff;border:0;border-radius:10px;font-size:15px;cursor:pointer;font-weight:500}
-button:hover{background:#c15f3f}</style></head>
+button:hover{background:#c15f3f}
+@media(prefers-color-scheme:dark){
+ body{background:#262624;color:#f0eee6}
+ .card{background:#30302e;border-color:#3a3a37;box-shadow:0 6px 28px rgba(0,0,0,.3)}
+ .sub{color:#a09d93}
+ input{background:#262624;border-color:#4a4a46;color:#f0eee6}}
+</style></head>
 <body><div class=card>
 <div class=star>✻</div><h2>誠實博學的我</h2>
 <p class=sub>登入以依你的權限檢索知識</p>__MSG__
@@ -66,6 +72,12 @@ PAGE = """<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
  --border:#e9e6dc;--border-strong:#dcd8cc;--accent:#d97757;--accent-hover:#c15f3f;--accent-soft:#f5e5dd;--hover:#e7e4d8;--code:#f0eee6}
 *{box-sizing:border-box}
 html,body{height:100%}
+::selection{background:var(--accent-soft);color:var(--text)}
+*{scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:6px;border:2px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:var(--muted);background-clip:content-box}
+*::-webkit-scrollbar-track{background:transparent}
 body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
  background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
 .app{display:flex;height:100vh;overflow:hidden}
