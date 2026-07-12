@@ -308,5 +308,77 @@ class MarketTimesFM:
         return out
 
 
+class OwnThreelensInteract:
+    """own_threelens_interact(三鏡頭候選 T3):44 特徵(35 直餵+9 交互)月頻,HistGBM 3-seed+isotonic,
+    rolling refit(train=標籤結算<as-of 之全歷史 panel;as-of=特徵表最新 panel);特徵源=
+    direction_threelens_feature_monthly(builder 同 feature_values generator,零口徑漂移);
+    市場 context 不用——與 own_stack 之 delta=特徵寬度(候選假說隔離);SYNTH_* 冒煙=中性 0.5(零 DB)。
+    標籤配方與 scripts/train_direction_threelens.py 同(spec 凍結;改版=新候選新家族)。"""
+    key = "own_threelens_interact"
+    SEEDS = (7, 42, 2026)
+
+    def predict(self, series, horizon_td, context=None):
+        out = {t: 0.5 for t in series}
+        if not series or all(str(t).startswith("SYNTH_") for t in series):
+            return out
+        try:
+            import pandas as pd
+            from sklearn.ensemble import HistGradientBoostingClassifier
+            from sklearn.isotonic import IsotonicRegression
+            from augur.core import db
+            with db.connect() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT panel_date, stock_id, feature, value FROM direction_threelens_feature_monthly")
+                rows = cur.fetchall()
+                if not rows:
+                    return out
+                X = (pd.DataFrame(rows, columns=["panel_date", "stock_id", "feature", "value"])
+                       .pivot_table(index=["panel_date", "stock_id"], columns="feature", values="value")
+                       .reset_index())
+                asof = X.panel_date.max()
+                sids = sorted(X.stock_id.unique())
+                cur.execute('SELECT stock_id, date, close FROM "TaiwanStockPriceAdj" '
+                            "WHERE stock_id = ANY(%s) AND date >= '2016-06-01' ORDER BY stock_id, date", (sids,))
+                px = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "close"])
+            lab = []
+            for sid, g in px.groupby("stock_id", sort=False):
+                dates = g["date"].to_numpy(); close = g["close"].to_numpy(dtype=float)
+                for pd_ in X.loc[X.stock_id == sid, "panel_date"]:
+                    i = int(np.searchsorted(dates, pd_, side="right")) - 1
+                    if i < 0:
+                        continue
+                    if i + horizon_td < len(dates) and close[i] > 0:
+                        lab.append((pd_, sid, float(close[i + horizon_td] / close[i] - 1) > 0, dates[i + horizon_td]))
+            lab = pd.DataFrame(lab, columns=["panel_date", "stock_id", "y", "settle_date"])
+            d = X.merge(lab, on=["panel_date", "stock_id"], how="left")
+            feats = [c for c in d.columns if c not in ("panel_date", "stock_id", "y", "settle_date")]
+            train = d[(d.settle_date.notna()) & (d.settle_date < asof) & d.y.notna()]
+            test = d[d.panel_date == asof]
+            if len(train) < 2000 or test.empty or train.y.nunique() < 2:
+                return out
+            tr_p = sorted(train.panel_date.unique())
+            fit_p = set(tr_p[: int(len(tr_p) * 0.8)]); cal_p = set(tr_p[int(len(tr_p) * 0.8):])
+            fit, cal = train[train.panel_date.isin(fit_p)], train[train.panel_date.isin(cal_p)]
+            if len(fit) < 500 or len(cal) < 100 or fit.y.nunique() < 2:
+                return out
+            feats_f = [c for c in feats if fit[c].notna().any()]
+            p_cal = np.zeros(len(cal)); p_test = np.zeros(len(test))
+            for s in self.SEEDS:
+                clf = HistGradientBoostingClassifier(max_iter=200, max_depth=3, learning_rate=0.05, random_state=s)
+                clf.fit(fit[feats_f], fit.y.astype(int))
+                p_cal += clf.predict_proba(cal[feats_f])[:, 1] / len(self.SEEDS)
+                p_test += clf.predict_proba(test[feats_f])[:, 1] / len(self.SEEDS)
+            iso = IsotonicRegression(out_of_bounds="clip", y_min=0.01, y_max=0.99)
+            iso.fit(p_cal, cal.y.astype(int))
+            p = iso.predict(p_test)
+            for sid, pi in zip(test.stock_id, p):
+                if sid in out:
+                    out[sid] = float(np.clip(pi, 0.0, 1.0))
+        except Exception:
+            return {t: 0.5 for t in series}      # fail-neutral:任何缺料=不出手(0.5),不編造
+        return out
+
+
 REGISTRY = {a.key: a for a in (BaselineMajority, BaselineMomentum, BaselineMcBootstrap,
-                               OwnDailyRolling, OwnStackRolling, MarketChronos, MarketTimesFM)}
+                               OwnDailyRolling, OwnStackRolling, MarketChronos, MarketTimesFM,
+                               OwnThreelensInteract)}

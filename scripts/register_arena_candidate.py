@@ -60,6 +60,15 @@ DEFAULTS = [
         "recipe": "DirStackM 配方(月頻 stack)+MktLogit_v2 分量;滾動 refit",
         "refit_policy": "per-month;train_data_max_date 留痕",
         "conversion": "logit 直出機率", "horizons": [20, 40, 82]}),
+    ("own_threelens_interact", "own", "H", True, {
+        "recipe": "44 特徵(35 三鏡頭直餵+9 先驗交互對)月頻;HistGBM(max_iter=200,depth=3,lr=0.05)"
+                  "×3-seed(7/42/2026)平均+isotonic(訓練尾 20% 面板);市場 context 不用(delta=特徵寬度)",
+        "interact_pairs_ssot": "scripts/build_threelens_monthly.py INTERACT_PAIRS(T0 拍板凍結 2026-07-12;9 對)",
+        "feature_source": "direction_threelens_feature_monthly(builder=feature_values 同 generator 零口徑漂移)",
+        "refit_policy": "per-month rolling;train=標籤結算<as-of 全歷史",
+        "conversion": "isotonic 校準機率直出",
+        "engineering_smoke": "2026-07-12 一次跑零迭代(非 gate 宣稱);A3 家族先凍後跑",
+        "horizons": [20, 40, 82]}),
 ]
 
 

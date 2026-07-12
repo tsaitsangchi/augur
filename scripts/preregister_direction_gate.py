@@ -163,6 +163,11 @@ ARENA_GATES = [   # (gate_id, model_key, track, horizon_td);K=6 家族封閉(are
     ("dgate_arena_own_stack_82", "own_stack_rolling", "H", 82),
 ]
 ARENA_MIN_CLUSTERS = {"D": 250, "H": 36}
+A3_GATES = [  # A3 獨立新家族(三鏡頭候選計畫 T4;K=3 封閉;跨家族多重性依憲章 v1.45.0 全序列揭露)
+    ("dgate_a3_threelens_20", "own_threelens_interact", "H", 20),
+    ("dgate_a3_threelens_40", "own_threelens_interact", "H", 40),
+    ("dgate_a3_threelens_82", "own_threelens_interact", "H", 82),
+]
 
 
 def _power_ref(cur, track, h):
@@ -223,6 +228,41 @@ def _criteria_arena(model_key, track, h, ece, power):
         "scoring": "horizon 級聚合;禁單股準確率;live 結算列(normal/last_trade)為判據、unsettleable 除外且揭露",
         "econ_axis": "經濟終關=獨立標示軸不在 GATE 內;過門後另判",
     }
+
+
+def preregister_a3():
+    """A3 家族預註冊(先凍後跑;α=0.05/3;跨家族全序列揭露=v1 六門+v2 四門+A2 六門+A3 三門=19 門)。"""
+    git7 = _git7()
+    with db.connect() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT threshold FROM judgestop_threshold WHERE policy_key='calib_late_ece_ceiling' AND frozen")
+        row = cur.fetchone()
+        if not row:
+            sys.exit("✗ judgestop ECE 門檻缺")
+        ece = float(row[0])
+        cur.execute("SELECT 1 FROM direction_arena_candidate WHERE model_key='own_threelens_interact'")
+        if not cur.fetchone():
+            sys.exit("✗ 候選未凍結註冊(先 register_arena_candidate.py --register-defaults)")
+        n = 0
+        for gid, mk, track, h in A3_GATES:
+            c = _criteria_arena(mk, track, h, ece, _power_ref(cur, track, h))
+            c["version"] = "arena_a3"
+            c["alpha"] = 0.05 / len(A3_GATES)
+            c["family_disclosure"] = (f"A3 家族 K={len(A3_GATES)}(獨立於 A2 六門家族;Bonferroni 僅控本家族內);"
+                                      "完整測試序列=v1 六門+v2 四門+A2 六門+A3 三門=19 門一律全列(憲章 v1.45.0 跨家族揭露)")
+            c["power_disclosure"]["alpha_bonferroni"] = round(0.05 / len(A3_GATES), 5)
+            import json as _j, hashlib as _h
+            sha = _h.sha256(_j.dumps(c, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
+            cur.execute("""INSERT INTO direction_gate (gate_id, track, horizon, purpose, criteria, criteria_sha, git_sha, note)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (gate_id) DO NOTHING""",
+                (gid, track, h, f"A3 真未來賭注 {mk} {track}×{h}(三鏡頭候選計畫;prereg-now-evaluate-later)",
+                 _j.dumps(c, ensure_ascii=False), sha, git7,
+                 "approve 併簽:係真未來新實驗、不構成對凍結資料重試、不違 no-v3 本旨"))
+            n += cur.rowcount
+        conn.commit()
+        print(f"✓ A3 家族預註冊 {n} 門(K={len(A3_GATES)}, α={0.05/len(A3_GATES):.4f};TTY approve 三行見下)")
+        for gid, *_ in A3_GATES:
+            print(f"  python scripts/preregister_direction_gate.py --approve {gid} --approved-by hugo")
 
 
 def preregister_arena():
@@ -313,12 +353,15 @@ def main():
     ap.add_argument("--preregister-all", action="store_true", dest="pre")
     ap.add_argument("--preregister-v2", action="store_true", dest="pre_v2")
     ap.add_argument("--preregister-arena", action="store_true", dest="pre_arena")
+    ap.add_argument("--preregister-a3", action="store_true", dest="pre_a3")
     ap.add_argument("--approve")
     ap.add_argument("--approved-by", dest="by")
     ap.add_argument("--check")
     args = ap.parse_args()
     if args.pre_arena:
         return preregister_arena()
+    if args.pre_a3:
+        return preregister_a3()
     if args.pre_v2:
         return preregister_v2()
     if args.pre:
