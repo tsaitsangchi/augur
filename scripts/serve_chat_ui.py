@@ -196,6 +196,43 @@ body{margin:0;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe 
 .foot-note{max-width:740px;margin:9px auto 0;text-align:center;font-size:11px;color:var(--muted)}
 .newchat,.mode,.rec,#plusbtn,#b,.foot a,#plusmenu button{transition:background .12s,color .12s,border-color .12s}
 button:focus-visible,#q:focus-visible,.mode:focus-visible,.rec:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* ── 暗色主題(Claude Desktop 調)+ 字級(user_settings)── */
+body[data-theme=dark]{color-scheme:dark;--bg:#262624;--sidebar:#1f1e1d;--surface:#30302e;--bubble:#3a3a37;
+ --text:#f0eee6;--muted:#a09d93;--border:#3a3a37;--border-strong:#4a4a46;--accent:#d97757;--accent-hover:#e08b6d;
+ --accent-soft:#453630;--hover:#3a3a37;--code:#1f1e1d}
+body[data-theme=dark] #bar{background:linear-gradient(180deg,rgba(38,38,36,0),var(--bg) 32%)}
+body[data-theme=dark] .modenote{color:#e0a284;border-color:#5a4438}
+body[data-theme=dark] .errcard{background:#452f2b;border-color:#6a453d;color:#e8a294}
+body[data-fs=sm]{font-size:13.5px}body[data-fs=lg]{font-size:16.5px}
+/* ── 設定 modal ── */
+.gear{color:var(--muted);text-decoration:none;font-size:15px;padding:4px;flex-shrink:0;cursor:pointer;background:none;border:0}
+.gear:hover{color:var(--text)}
+.set-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:70;align-items:center;justify-content:center}
+.set-box{width:min(520px,94vw);max-height:82vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:22px 26px}
+.set-box h3{margin:0 0 4px;font-size:17px}
+.set-sub{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+.set-sec{border-top:1px solid var(--border);padding:13px 0}
+.set-sec .t{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:9px}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:5px 0;font-size:14px}
+.set-row select{padding:6px 10px;background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;font-family:inherit}
+.seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--muted);padding:6px 13px;font-size:13px;cursor:pointer;font-family:inherit}
+.seg button.on{background:var(--accent);color:#fff}
+.about{font-size:13px;line-height:1.7;color:var(--text)}
+.about .hl{color:var(--muted);font-size:12px}
+.set-close{float:right;background:none;border:0;color:var(--muted);font-size:18px;cursor:pointer}
+/* ── Claude 式模型下拉 ── */
+.tierbtn{display:flex;align-items:center;gap:5px;border:0;background:transparent;color:var(--muted);font-size:12.5px;cursor:pointer;padding:6px 8px;border-radius:8px;font-family:inherit;white-space:nowrap}
+.tierbtn:hover{background:var(--hover);color:var(--text)}
+.tiermenu{position:absolute;bottom:54px;right:6px;background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:6px;z-index:30;min-width:270px}
+.tieri{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer}
+.tieri:hover{background:var(--hover)}
+.tieri .n{font-size:13.5px;font-weight:600;color:var(--text)}
+.tieri .d{font-size:11.5px;color:var(--muted)}
+.tieri .ck{color:var(--accent);font-size:14px;visibility:hidden}
+.tieri.sel .ck{visibility:visible}
+.tier-h{font-size:11px;color:var(--muted);padding:7px 12px 3px;text-transform:uppercase;letter-spacing:.03em}
+.composer{position:relative}
 </style></head><body>
 <div class=app>
 <aside class=sidebar>
@@ -214,6 +251,7 @@ button:focus-visible,#q:focus-visible,.mode:focus-visible,.rec:focus-visible{out
   <div class=account>
    <div class=avatar>__INITIAL__</div>
    <div class=acct><div class=acct-name>__USER__</div><div class=acct-sub>__MODEL__ · __ROLE__</div></div>
+   <button class=gear onclick="openSettings()" title="設定">⚙</button>
    <a href="/logout" class=logout title="登出">⏻</a>
   </div>
  </div>
@@ -248,6 +286,33 @@ button:focus-visible,#q:focus-visible,.mode:focus-visible,.rec:focus-visible{out
 </main>
 </div>
 <div id=scrim class=scrim onclick="toggleSide()"></div>
+<div id=setov class=set-overlay onclick="if(event.target===this)closeSettings()"><div class=set-box>
+ <button class=set-close onclick="closeSettings()">✕</button>
+ <h3>設定</h3><p class=set-sub>偏好即時生效並儲存於你的帳號(本地 DB)</p>
+ <div class=set-sec><div class=t>外觀</div>
+  <div class=set-row><span>主題</span><span class=seg id=segtheme>
+   <button data-v=light onclick="setPref('theme','light',this)">亮</button>
+   <button data-v=dark onclick="setPref('theme','dark',this)">暗</button>
+   <button data-v=system onclick="setPref('theme','system',this)">系統</button></span></div>
+  <div class=set-row><span>字級</span><span class=seg id=segfs>
+   <button data-v=sm onclick="setPref('font_size','sm',this)">小</button>
+   <button data-v=md onclick="setPref('font_size','md',this)">中</button>
+   <button data-v=lg onclick="setPref('font_size','lg',this)">大</button></span></div>
+ </div>
+ <div class=set-sec><div class=t>行為</div>
+  <div class=set-row><span>預設模型檔位</span><select id=setdt onchange="setPref('default_tier',this.value)"><option value="">(伺服器預設)</option></select></div>
+  <div class=set-row><span>Enter 直接送出(關=Ctrl+Enter 送出)</span><span class=seg id=segenter>
+   <button data-v=on onclick="setPref('enter_to_send','on',this)">開</button>
+   <button data-v=off onclick="setPref('enter_to_send','off',this)">關</button></span></div>
+ </div>
+ <div class=set-sec><div class=t>關於(誠實陳列)</div><div class=about id=aboutbox>
+  本地推理:qwen3 家族(8b 深度/4b 快速)× fast/think/ultracode 檔位——外部 LLM 永不接入(憲章 v1.37.0)。<br>
+  ultracode 檔=本地審議引擎(效力經預註冊 GATE 實證成立;機械可驗題適用)。<br>
+  <span class=hl>方向軸:絕對漲跌預測十道預註冊關卡已全部統計判死——本系統誠實拒答方向機率/目標價/逐日股價;
+  逐日情境見<a href="http://localhost:8600/simulate" target=_blank>蒙地卡羅模擬頁 ↗</a>(模擬非預測)。
+  相對強弱排名見<a href="http://localhost:8600" target=_blank>相對機率頁 ↗</a>。</span>
+ </div></div>
+</div></div>
 <div id=cmdk class=cmdk-overlay onclick="if(event.target===this)closeCmdk()"><div class=cmdk-box><input id=cmdkq placeholder="搜尋對話…" autocomplete=off oninput="cmdkRender(this.value)" onkeydown="if(event.key==='Enter'){var f=document.querySelector('#cmdklist .cmdk-item');if(f)f.click()}"><div id=cmdklist></div></div></div>
 <input type=file id=fpick style="display:none">
 <input type=file id=dpick webkitdirectory directory multiple style="display:none">
@@ -307,8 +372,43 @@ async function loadSession(id){var s=SESSIONS.filter(function(x){return x.id===i
  try{var j=await (await fetch('/api/messages?sid='+encodeURIComponent(id))).json();(j.messages||[]).forEach(function(m){if(m.role==='user'){add('u',m.content)}else{var d=add('a','');d._bubble.innerHTML=mdToHtml(m.content)}})}catch(e){}
  renderRecents();log.scrollTop=log.scrollHeight;toggleJump()}
 async function loadHealth(){try{var j=await (await fetch('/health')).json();var ds=document.querySelectorAll('#svc .d');if(ds.length>=3){ds[0].className='d '+(j.db?'on':'off');ds[1].className='d '+(j.advisor?'on':'off');ds[2].className='d '+(j.ollama?'on':'off')}}catch(e){}}
-loadHealth();setInterval(loadHealth,15000);fetchSessions();initTiers();
-async function initTiers(){try{var j=await (await fetch('/api/tiers')).json();if(!j.enabled)return;var pill=document.querySelector('.modelpill');if(!pill)return;var models={},efforts={};j.tiers.forEach(function(t){models[t.model_tag]=t.tok_per_s;efforts[t.effort]=1});function opts(o,fmt){return Object.keys(o).map(function(k){return '<option value="'+k+'">'+fmt(k)+'</option>'}).join('')}pill.innerHTML='<select id=selm title=模型>'+opts(models,function(m){var s=models[m];return m.split(':')[1]+(s?'·'+s+'tok/s':'·未量測')})+'</select>'+'<select id=self_ title=推理力度>'+opts(efforts,function(e){return e==='ultra'?'ultracode(審議·分鐘級)':e})+'</select>';var dm=(j.default_tier||'').split('-');function upd(){var m=document.getElementById('selm').value.split(':')[1],e=document.getElementById('self_').value;window.TIER='augur-'+m+'-'+e}if(dm.length===3){document.getElementById('selm').value='qwen3:'+dm[1];document.getElementById('self_').value=dm[2]}document.getElementById('selm').onchange=upd;document.getElementById('self_').onchange=upd;upd()}catch(e){}}
+loadHealth();setInterval(loadHealth,15000);fetchSessions();loadSettings().then(initTiers);
+/* ── user_settings:載入/套用/儲存(theme/font_size/default_tier/enter_to_send)── */
+var SETTINGS={}
+function markSeg(id,v){var el=document.getElementById(id);if(!el)return;el.querySelectorAll('button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-v')===v)})}
+function applySettings(){var th=SETTINGS.theme||'light';var eff=(th==='system')?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):th
+ document.body.setAttribute('data-theme',eff);document.body.setAttribute('data-fs',SETTINGS.font_size||'md')
+ markSeg('segtheme',th);markSeg('segfs',SETTINGS.font_size||'md');markSeg('segenter',SETTINGS.enter_to_send==='off'?'off':'on')
+ var dt=document.getElementById('setdt');if(dt)dt.value=SETTINGS.default_tier||''}
+async function loadSettings(){try{var j=await (await fetch('/api/settings')).json();SETTINGS=j.settings||{}}catch(e){SETTINGS={}}applySettings()}
+function setPref(k,v,btn){SETTINGS[k]=v;applySettings()
+ fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({settings:SETTINGS})}).catch(function(){})
+ if(k==='default_tier'&&v&&window.selectTier)selectTier(v)}
+function openSettings(){document.getElementById('setov').style.display='flex'}
+function closeSettings(){document.getElementById('setov').style.display='none'}
+try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if((SETTINGS.theme||'light')==='system')applySettings()})}catch(e){}
+/* ── Claude 式模型檔位下拉(F1 tiers;SSOT=/api/tiers)── */
+var TIERS=null,CURTIER=null
+var EFFD={fast:'快答・秒級',think:'深思・較慢更縝密',ultra:'ultracode・本地審議(分鐘級,機械可驗題)'}
+function tierName(t){return 'qwen3-'+String(t.model_tag||'').split(':')[1]+' · '+(t.effort==='ultra'?'ultracode':t.effort)}
+function selectTier(id){var t=(TIERS||[]).filter(function(x){return x.id===id})[0];if(!t)return
+ CURTIER=id;window.TIER=id
+ var b=document.getElementById('tierbtn');if(b)b.innerHTML=tierName(t)+' <span style="font-size:10px">▾</span>'}
+function toggleTierMenu(ev){ev.stopPropagation();var old=document.getElementById('tiermenu');if(old){old.remove();return}
+ var m=document.createElement('div');m.id='tiermenu';m.className='tiermenu'
+ var h=document.createElement('div');h.className='tier-h';h.textContent='本地模型 × 推理檔位';m.appendChild(h)
+ ;(TIERS||[]).forEach(function(t){var it=document.createElement('div');it.className='tieri'+(t.id===CURTIER?' sel':'')
+  it.innerHTML='<span><div class=n>'+tierName(t)+'</div><div class=d>'+(EFFD[t.effort]||t.effort)+(t.tok_per_s?' · '+t.tok_per_s+' tok/s':'')+'</div></span><span class=ck>✓</span>'
+  it.onclick=function(){selectTier(t.id);m.remove()};m.appendChild(it)})
+ document.querySelector('.composer').appendChild(m)
+ setTimeout(function(){document.addEventListener('click',function(){var mm=document.getElementById('tiermenu');if(mm)mm.remove()},{once:true})},0)}
+async function initTiers(){try{var j=await (await fetch('/api/tiers')).json();if(!j.enabled)return;TIERS=j.tiers||[];if(!TIERS.length)return
+ var pill=document.querySelector('.modelpill');if(!pill)return
+ var dt=document.getElementById('setdt');if(dt&&dt.options.length<=1){TIERS.forEach(function(t){var o=document.createElement('option');o.value=t.id;o.textContent=tierName(t);dt.appendChild(o)});dt.value=SETTINGS.default_tier||''}
+ pill.innerHTML='<button type=button class=tierbtn id=tierbtn onclick="toggleTierMenu(event)"></button>'
+ var want=SETTINGS.default_tier||j.default_tier||TIERS[0].id
+ if(!(TIERS.some(function(t){return t.id===want})))want=TIERS[0].id
+ selectTier(want)}catch(e){}}
 function toggleSide(){var sb=document.querySelector('.sidebar'),sc=document.getElementById('scrim');var open=sb.classList.toggle('open');if(sc)sc.classList.toggle('show',open)}
 function closeCmdk(){document.getElementById('cmdk').style.display='none'}
 function openCmdk(){var o=document.getElementById('cmdk');o.style.display='flex';var inp=document.getElementById('cmdkq');inp.value='';cmdkRender('');inp.focus()}
@@ -322,7 +422,10 @@ document.addEventListener('keydown',function(e){
  if(e.key==='Escape'){var o=document.getElementById('cmdk');if(o&&o.style.display==='flex'){closeCmdk();return}closeMenu();var pm=document.getElementById('plusmenu');if(pm)pm.style.display='none';var sm=document.getElementById('slashmenu');if(sm)sm.style.display='none';var sb=document.querySelector('.sidebar');if(sb&&sb.classList.contains('open'))toggleSide()}
 })
 q.addEventListener('input',function(){q.style.height='auto';q.style.height=Math.min(q.scrollHeight,180)+'px';slashMenu()})
-q.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(e)}})
+q.addEventListener('keydown',function(e){if(e.key!=='Enter')return
+ var ets=(SETTINGS.enter_to_send!=='off')
+ if(ets){if(!e.shiftKey){e.preventDefault();send(e)}}
+ else{if(e.metaKey||e.ctrlKey){e.preventDefault();send(e)}}})
 function add(cls,txt){var d=document.createElement('div');d.className='msg '+cls
  var role=document.createElement('div');role.className='role';role.textContent=(cls=='u'?'你':'誠實博學的我')
  var bub=document.createElement('div');bub.className='bubble';bub.textContent=txt
@@ -468,6 +571,14 @@ class H(BaseHTTPRequestHandler):
                 return self._json({"enabled": True, "default_tier": mj.get("augur_default_tier"), "tiers": tiers})
             except Exception:
                 return self._json({"enabled": False})
+        if path == "/api/settings":                                 # 每用戶介面偏好(user_settings;owner=uid)
+            try:
+                with db.connect() as conn, db.transaction(conn) as cur:
+                    cur.execute("SELECT settings FROM user_settings WHERE user_id=%s", (uid,))
+                    r = cur.fetchone()
+                return self._json({"settings": (r[0] if r else {})})
+            except Exception:
+                return self._json({"settings": {}})
         if path == "/api/sessions":                                 # 對話歷史(DB、owner 收窄):列 session
             qs = parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
             return self._json({"sessions": chat_history.list_sessions(uid, qs.get("mode", [None])[0])})
@@ -642,6 +753,20 @@ class H(BaseHTTPRequestHandler):
             if act == "del":
                 return self._json({"ok": chat_history.delete_session(sid, uid)})
             return self._json({"ok": False})
+        if path == "/api/settings":                             # 偏好寫入(白名單鍵、owner=uid)
+            bd = self._readjson()
+            allow = {"theme", "font_size", "default_tier", "enter_to_send"}
+            st = {k: v for k, v in (bd.get("settings") or {}).items() if k in allow}
+            try:
+                with db.connect() as conn:
+                    cur = conn.cursor()
+                    cur.execute("""INSERT INTO user_settings (user_id, settings) VALUES (%s, %s)
+                        ON CONFLICT (user_id) DO UPDATE SET settings=EXCLUDED.settings, updated_at=now()""",
+                        (uid, json.dumps(st)))
+                    conn.commit()
+                return self._json({"ok": True})
+            except Exception as e:
+                return self._json({"ok": False, "error": str(e)[:80]})
         if path == "/ingest":
             return self._ingest()
         if path == "/attach":
