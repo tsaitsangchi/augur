@@ -77,6 +77,51 @@ def _concept_block(links):
             + "\n".join(lines))
 
 
+def _bridge_links(query, cur, limit=5):
+    """K 計畫 K1 接線:問句命中 raw 欄位/特徵名 → 查 field_knowhow_lexical_affinity 之 know-how 詞面關聯。
+    唯讀素養層;**lexical=欄位名稱詞×know-how 詞之語料句共現,非該欄資料值與報酬之相關**(免責硬綁於塊首)。"""
+    q = (query or "").lower()
+    if not q:
+        return []
+    try:
+        if cur is None:
+            from augur.core import db as _db
+            with _db.connect() as _conn:
+                return _bridge_links(query, _conn.cursor(), limit=limit)
+        cur.execute(
+            "SELECT DISTINCT dataset, column_name FROM field_term_map "
+            "WHERE length(column_name) >= 4 AND position(lower(column_name) IN %s) > 0 LIMIT 3", (q,))
+        hits = cur.fetchall()
+        if not hits:
+            return []
+        out = []
+        for ds, col in hits:
+            cur.execute(
+                "SELECT knowhow_term, stat_value, cooc_sents, corpus FROM field_knowhow_lexical_affinity "
+                "WHERE dataset=%s AND column_name=%s AND stat_key='npmi' "
+                "ORDER BY (corpus='items') DESC, stat_value DESC LIMIT %s", (ds, col, limit))
+            rows = cur.fetchall()
+            if rows:
+                out.append({"field": f"{ds}.{col}",
+                            "terms": [{"t": r[0], "npmi": float(r[1]), "n": int(r[2]), "corpus": r[3]} for r in rows]})
+        return out
+    except Exception:
+        return []          # fail-closed:橋不可用=沉默略過,不擾主路徑
+
+
+def _bridge_block(links):
+    """橋參考塊(確定性;免責與數值同塊硬綁;LLM 不得複述數值)。"""
+    if not links:
+        return ""
+    lines = []
+    for l in links:
+        ts = "、".join(f"「{t['t']}」(npmi {t['npmi']:.2f}/共現 {t['n']} 句/{t['corpus']})" for t in l["terms"])
+        lines.append(f"- 欄位 {l['field']} ↔ know-how 詞:{ts}")
+    return ("\n\n[欄位↔know-how 詞面關聯(lexical:欄位名稱詞與 know-how 詞之語料句共現統計——"
+            "**非該欄位資料數值與報酬之相關**;僅供解讀脈絡,回答中不得複述本段數值、不得當交易依據)]\n"
+            + "\n".join(lines))
+
+
 def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_fn=None, prompt_fn=None,
            scope=None):
     """顧問一次問答。
@@ -168,6 +213,8 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     if prompt_fn is None and lex_entries:                    # W2:主路徑+有定義詞才接(Mode B 不套,同其餘閘)
         concept_links = _concept_links(lex_terms, scope=scope)
         prompt += _concept_block(concept_links)
+    if prompt_fn is None:                                    # K1 橋:欄位/特徵問句之 know-how 詞面關聯(免責硬綁)
+        prompt += _bridge_block(_bridge_links(query, None))
     response = llm_fn(prompt)
     if isinstance(payload, KnowledgePayload):
         # P8 域條款(已拍板 2026-07-04):雙源=payload.numbers() ∪ 本回合檢索真兆數字集

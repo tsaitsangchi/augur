@@ -140,6 +140,9 @@ def promote_item(cur, p, source_key=None, ctx=None):
     etype = ctx.get("entity_type")
     if etype not in ITEM_TYPES and etype != "document":  # work 後援路:以 payload work_type 定條目類(paper/report/book…)
         etype = p.get("work_type") or "paper"
+    if p.get("doi"):                            # DOI 正規化 SSOT=curation.norm_doi(入庫前過,防跨形態重複)
+        from augur.knowledge.curation import norm_doi
+        p["doi"] = norm_doi(str(p["doi"]))
     ext = next((str(p[k]) for k in EXTID_PRIORITY if p.get(k)), None)
     year = _year(p.get("year"))
     if ext:
@@ -193,7 +196,10 @@ def main():
                     "WHERE table_name='knowledge_staging' AND column_name='query_id'")
         qid_col = "query_id" if cur.fetchone() else "NULL::int"   # 欄未建(未跑 harvest migrate)→ 容 NULL
         q = (f"SELECT staging_id, payload, source_key, entity_type, domain, source_url, {qid_col} "
-             "FROM knowledge_staging WHERE status='pending' AND entity_type=%s")
+             "FROM knowledge_staging WHERE status='pending' AND entity_type=%s "
+             "AND NOT EXISTS (SELECT 1 FROM knowledge_source ks "                # 閘二入庫面(fail-closed):
+             "  WHERE ks.source_key = knowledge_staging.source_key "             # 來源在 registry 且非 active
+             "  AND ks.approval_status <> 'active')")                            # → 不晉升(憲章 v1.41.0)
         params = [args.etype]
         if args.domain:
             q += " AND domain=%s"; params.append(args.domain)

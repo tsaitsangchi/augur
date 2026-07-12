@@ -99,6 +99,7 @@ _Q_CORE = (
     " FROM knowledge_query q"
     " JOIN knowledge_domain_map m ON m.openalex_field = q.domain"          # 手動域=恆等列;未拍板 field 天然排除(治理閘)
     " JOIN knowledge_source s ON s.enabled"
+    "  AND s.approval_status = 'active'"
     "  AND s.adapter <> 'manual_file'"
     "  AND s.query_template LIKE '%%{query}%%'"                            # 查詢型=含 {query};僅含 {query_raw}=ID 驅動型不入(§三1c)
     "  AND s.entity_type IN ('work','compound','material','protein','species')"
@@ -109,7 +110,7 @@ _Q_CORE = (
 _S_CORE = (
     " FROM knowledge_source s"
     " LEFT JOIN knowledge_harvest_log l ON l.query_id = 0 AND l.source_key = s.source_key"  # 0=單跑型 sentinel
-    " WHERE s.enabled AND s.adapter <> 'manual_file'"
+    " WHERE s.enabled AND s.approval_status = 'active' AND s.adapter <> 'manual_file'"
     "  AND COALESCE(s.query_template,'') <> ''"
     "  AND s.query_template NOT LIKE '%%{query}%%'"
     "  AND s.query_template NOT LIKE '%%{query_raw}%%'"

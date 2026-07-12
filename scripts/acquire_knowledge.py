@@ -53,7 +53,16 @@ def fill(tpl, args):
                .replace("{extra_filter}", args.extra_filter or ""))
 
 
+_PACE = [1.0]   # 每源步調(秒);main 依 knowledge_source.pace_seconds 設定(#24 對偶:限速住 DB)
+_LAST = [0.0]
+
+
 def get_json(url, headers=UA):
+    import time as _t
+    wait = _PACE[0] - (_t.monotonic() - _LAST[0])
+    if wait > 0:
+        _t.sleep(wait)
+    _LAST[0] = _t.monotonic()
     return json.loads(urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=90).read().decode())
 
 
@@ -283,11 +292,15 @@ def main():
         _HAS_QUERY_ID = cur.fetchone() is not None
         if args.query_id is not None and not _HAS_QUERY_ID:
             print("⚠ staging 無 query_id 欄(先跑 harvest_knowledge.py --migrate-only);本次不寫 query_id")
-        cur.execute("SELECT source_key, adapter, domain, entity_type, query_template, adapter_config FROM knowledge_source "
+        cur.execute("SELECT source_key, adapter, domain, entity_type, query_template, adapter_config, "
+                    "approval_status, COALESCE(pace_seconds, 1.0) FROM knowledge_source "
                     "WHERE source_key=%s AND enabled", (args.source,))
         src = cur.fetchone()
         if not src:
             sys.exit(f"registry 無此來源(或 disabled): {args.source}")
+        if src[6] != 'active':                      # 閘二(fail-closed):非 active 源引擎拒抓(憲章 v1.41.0)
+            sys.exit(f"來源 {args.source} approval_status={src[6]}≠active——approve 唯決策層人執行(review_knowledge_source.py)")
+        _PACE[0] = float(src[7])                    # 每源步調住 DB(#24 對偶)
         if src[1] not in ADAPTERS:
             sys.exit(f"未知 adapter: {src[1]}(現有:{list(ADAPTERS)})")
         dom, et = args.domain or src[2], args.entity_type or src[3]
