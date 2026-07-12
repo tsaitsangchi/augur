@@ -17,4 +17,4 @@ metadata:
 
 **How to apply**:O1 實作殘餘缺口(非憲法層)——produce 呈現「gate 所驗證 artifact 本身」非全資料重訓、market model 身分路由(FK 卡死)、econ_verdict 持久化(現無表)、as-of 前瞻推論路徑(trainer 只出 OOS 歷史)、成本 COST_TW 落 DB(#29b)。
 
-**三鏡頭候選(同日,待 T0 拍板)**:`own_threelens_interact`——35 特徵直餵+9 交互對先驗凍結(計畫 `reports/augur_arena_threelens_candidate_plan_20260712.md`);關鍵事實=feature_values 是**季頻**(36 panels),需新建月頻特徵鏈(1 表+3 script);A3 家族(K=3,α/3)先凍後跑;歷史唯工程冒煙**不以 hit-rate 調參**(防偷跑 v3)。關聯 [[augur-oracle-direction-verdict]] [[augur-three-lens-research]]。
+**三鏡頭候選(T0-T4 全完成 2026-07-12)**:`own_threelens_interact`——T1 月頻鏈 113 panels/222.9 萬值/44 特徵(builder=`build_threelens_monthly.py` **換 FEATURE_TABLE 零複製 generator**);T2 冒煙一次跑(hit .517/.521/.534 工程數字非宣稱);T3 adapter(REGISTRY 第 8)+凍結註冊;T4 **A3 獨立家族 3 門預註冊**(`dgate_a3_threelens_{20,40,82}`,K=3 α=.0167,19 門全序列揭露入 criteria)——**待 hugo TTY approve 三行**。K 計畫同日六件全執行(橋 59,706 係數/items 軌 119,764/三閘負向測試過/週更 timer/R6 合格 0.87/O1 fail-closed 生產器);Wave 1 待 R4(EDGAR/OAPEN probe 綠、FRASER 缺 key);audit 2.0s 退級步調 16:42 癒合續跑。關聯 [[augur-oracle-direction-verdict]] [[augur-three-lens-research]]。
