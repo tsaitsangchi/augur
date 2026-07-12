@@ -364,7 +364,7 @@ def phase_stats(conn, smoke=False, limit=None):
             cur.execute("""
                 INSERT INTO knowledge_term_corpus_stats (term, language, tf_total, df_works, df_sents, method_key)
                 SELECT term, language, sum(tf), count(*), sum(sent_df), 'cnt_term_corpus' FROM _g GROUP BY 1,2
-                ON CONFLICT (term, language) DO UPDATE SET
+                ON CONFLICT (term, language, corpus) DO UPDATE SET
                   tf_total=EXCLUDED.tf_total, df_works=EXCLUDED.df_works, df_sents=EXCLUDED.df_sents""")
             n_corpus = cur.rowcount
             cur.execute("""
@@ -400,8 +400,8 @@ def phase_vocab(conn, args):
             cur.execute(META_UPSERT, ("xs_sterms", 0))
             cur.execute(META_UPSERT, (f"xs_cooc_{lang}", 0))
             cur.execute("TRUNCATE knowledge_sent_terms_stage")
-            cur.execute("DELETE FROM knowledge_term_cooccurrence WHERE language=%s", (lang,))
-            cur.execute("DELETE FROM knowledge_term_affinity WHERE language=%s", (lang,))
+            cur.execute("DELETE FROM knowledge_term_cooccurrence WHERE language=%s AND corpus='philosophy'", (lang,))
+            cur.execute("DELETE FROM knowledge_term_affinity WHERE language=%s AND corpus='philosophy'", (lang,))
         print(f"[vocab] {lang}:入閘 {n} 列(排除頻帶 rank<={r}、df_works>={f}、cap={k}=操作值)"
               f"、{time.time() - t0:.1f}s;⚠ 已重置下游 staging/cooc/affinity({lang})")
 
@@ -635,16 +635,16 @@ def phase_affinity(conn, args):
                 INSERT INTO knowledge_term_affinity
                       (term_a, term_b, language, stat_key, stat_value, basis_n, rank_in_a, method_key)
                 WITH d AS (
-                  SELECT term_a AS a, term_b AS b, cooc_sents FROM knowledge_term_cooccurrence WHERE language=%s
+                  SELECT term_a AS a, term_b AS b, cooc_sents FROM knowledge_term_cooccurrence WHERE language=%s AND corpus='philosophy'
                   UNION ALL
-                  SELECT term_b, term_a, cooc_sents FROM knowledge_term_cooccurrence WHERE language=%s
+                  SELECT term_b, term_a, cooc_sents FROM knowledge_term_cooccurrence WHERE language=%s AND corpus='philosophy'
                 ), j AS (
                   SELECT d.a, d.b, d.cooc_sents::double precision AS cab,
                          ca.df_sents::double precision AS ca, cb.df_sents::double precision AS cb,
                          %s::double precision AS nn
                   FROM d
-                  JOIN knowledge_term_corpus_stats ca ON ca.term = d.a AND ca.language = %s
-                  JOIN knowledge_term_corpus_stats cb ON cb.term = d.b AND cb.language = %s
+                  JOIN knowledge_term_corpus_stats ca ON ca.term = d.a AND ca.language = %s AND ca.corpus='philosophy'
+                  JOIN knowledge_term_corpus_stats cb ON cb.term = d.b AND cb.language = %s AND cb.corpus='philosophy'
                 ), s AS (
                   SELECT a, b, v.stat_key, v.stat_value FROM j CROSS JOIN LATERAL (VALUES
                     ('npmi', CASE WHEN cab < nn THEN ln(cab*nn/(ca*cb)) / (-ln(cab/nn)) END),

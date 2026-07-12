@@ -43,6 +43,9 @@ DISTILL_LITERALS = ("advisor_distill_question", "advisor_distill_context", "advi
 # 禁被預測管線/core/素養層寫入者字面觸及——絕不成 citation、不入 knowledge_*/feature_values、不進預測 7 package。
 DELIB_LITERALS = ("deliberation_session", "deliberation_claim", "deliberation_verdict",
                   "deliberation_escalation", "deliberation_benchmark", "deliberation_lens", "deliberation_")
+# know-how 語意橋表(K 計畫 R5):「每欄一係數」形狀=最貼近特徵表的旁路面——lexical 詞面共現非資料值相關,
+# 禁被預測管線/core 以 raw SQL 字面觸及(SELECT stat_value 當特徵=違共同不變式②;素養層唯讀解讀素材)。
+BRIDGE_LITERALS = ("field_term_map", "field_knowhow_lexical_affinity", "knowledge_item_term_stats")
 # grep-lint 面:預測管線 + core 皆禁字面引用 RBAC/chat(擋不 import 但字串旁路)
 SCAN_STR = PIPELINE + ("core",)
 # 蒸餾/審議表禁被觸及之範圍=預測管線 + core + 素養層寫入者(產物零回流真兆庫,界線-A)
@@ -169,6 +172,7 @@ def check_isolation() -> list[str]:
         + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_STR], CHAT_LITERALS, "chat")
         + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_DISTILL], DISTILL_LITERALS, "distill")
         + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_DISTILL], DELIB_LITERALS, "deliberation")
+        + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_STR], BRIDGE_LITERALS, "bridge")
         + _placement_violations()
         + _scripts_predict_leak_violations()
     )

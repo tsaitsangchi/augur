@@ -35,7 +35,7 @@ _DATASET_RE = re.compile(r"'([A-Za-z0-9]+)'")
 # ── 主動限速（#17;§一.9 經驗:2026-06-09 全史 burst 觸發 403 ip banned）──
 # 每請求最小間隔 → 平滑 burst、整體壓在 FinMind ~6000/hr IP 線下;全部 fetch（驗證與全史）同走此門,
 # 一律被限速 → 無論怎麼啟動都 burst 不起來（把「驗證時手動 sleep 間隔」內建進程式）。
-MIN_INTERVAL = 0.9      # 2026-06-20 0.7→0.9 降 start rate(~1.4→1.1/s):per-stock 32 並發被動 rolling 平衡點 0.7s 衝 ~5850-5998 險逼 6000,用戶要 <5500 → 調大 MIN_INTERVAL 降 start rate(**降並發無效**:start rate 受 _pace 約束、非並發數);實驗值、重啟後讀錶驗證 #27。operational(#17/#19):2026-06-12 實證 FinMind 對「sustained 負載」throttle —— burst/短測快(~1.39/s)、但 sustained 跑(數分鐘)降到 ~0.2/s(bimodal latency)。
+MIN_INTERVAL = float(os.environ.get("FINMIND_MIN_INTERVAL", "0.9"))  # env 退級開關(實驗中 #27;預設=已驗證操作值)。 2026-06-20 0.7→0.9 降 start rate(~1.4→1.1/s):per-stock 32 並發被動 rolling 平衡點 0.7s 衝 ~5850-5998 險逼 6000,用戶要 <5500 → 調大 MIN_INTERVAL 降 start rate(**降並發無效**:start rate 受 _pace 約束、非並發數);實驗值、重啟後讀錶驗證 #27。operational(#17/#19):2026-06-12 實證 FinMind 對「sustained 負載」throttle —— burst/短測快(~1.39/s)、但 sustained 跑(數分鐘)降到 ~0.2/s(bimodal latency)。
                         # 試過 0.6s(soft-throttle 5-18s)、0.75s(sustained 仍 ~0.2/s);結論:binding 是 sustained-throttle 非 pace,過度試探會深化 throttle → 前操作值 0.7、現值以上行 code 為準（#27 試錯逼近最佳奇異點、見訊號即停、勿過度試探深化）。
 MAX_COOLDOWN = 1800     # honor retry_after 之上限(秒)
 QUOTA_COOLDOWN = 1800   # 403 額度耗盡/IP 限流之固定冷卻(秒;用戶決策 2026-06-12 #24):撞 403 直接等額度 hourly 重置,不短退避反覆撞(防惡化成 sustained ban,handoff §4.B 教訓)

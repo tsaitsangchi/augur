@@ -103,3 +103,18 @@ def test_chat_history_lives_in_advisor_not_core():
 if __name__ == "__main__":
     # SSOT:直接跑 audit 模組總入口(涵蓋 import/字面/對位/scripts 全稽核)。
     raise SystemExit(iso.main())
+
+
+def test_pipeline_and_core_have_no_bridge_table_reference():
+    """預測管線 + core 禁字面觸及 know-how 語意橋表(K 計畫 R5:「每欄一係數」形狀=特徵旁路面,
+    lexical 詞面共現非資料值相關;SELECT stat_value 當特徵=違共同不變式②)。含紅測:掃描器須真抓得到。"""
+    from augur.audit.import_isolation import _string_ref_violations, BRIDGE_LITERALS, SCAN_STR, _AUGUR_ROOT
+    v = _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_STR], BRIDGE_LITERALS, "bridge")
+    assert not v, "預測管線/core 字面引用橋表(素養量化→特徵旁路):\n" + "\n".join(v)
+    # 紅測(fail-closed 反斷言):對含違規字面的暫存檔,掃描器必須回報
+    import tempfile, pathlib
+    with tempfile.TemporaryDirectory() as d:
+        bad = pathlib.Path(d) / "sneaky.py"
+        bad.write_text("q = 'SELECT stat_value FROM field_knowhow_lexical_affinity'\n", encoding="utf-8")
+        caught = _string_ref_violations([pathlib.Path(d)], BRIDGE_LITERALS, "bridge")
+        assert caught, "掃描器未抓到植入的橋表字面引用=紅測失敗(閘是假的)"
