@@ -45,12 +45,12 @@ def _fill(tpl, query):
 
 
 def _probe_one(cur, key, query, actor):
-    cur.execute("SELECT adapter, query_template, pace_seconds, approval_status "
+    cur.execute("SELECT adapter, query_template, pace_seconds, approval_status, adapter_config "
                 "FROM knowledge_source WHERE source_key=%s", (key,))
     r = cur.fetchone()
     if not r:
         print(f"✗ 來源不存在:{key}"); return None
-    adapter, url_tpl, pace, status = r
+    adapter, url_tpl, pace, status, acfg = r
     if adapter in _NO_HTTP:
         pr = {"http_status": None, "adapter": adapter, "note": "manual_file 無 HTTP 端點、跳過探測"}
         curation.transition(key, "probe", actor, probe_result=pr, reason="no-http-endpoint")
@@ -60,12 +60,19 @@ def _probe_one(cur, key, query, actor):
         curation.transition(key, "probe", actor, probe_result=pr, reason="no-url")
         print(f"⚠ {key}: 無可探測 URL"); return pr
     url = _fill(str(url_tpl), query)
+    hdrs = dict(UA)               # adapter_config.auth_header:key 走 header 不進 URL(不落 review log)
+    ah = (acfg or {}).get("auth_header")
+    if ah:
+        import os
+        v = os.environ.get(ah.get("env", ""), "")
+        if v:
+            hdrs[ah["name"]] = v
     if pace:                      # #24 honor pace:探測前先 sleep 該來源步調(不狂打)
         time.sleep(min(float(pace), 5.0))
     t0 = time.time()
     http_status, note = None, ""
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as resp:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=hdrs), timeout=30) as resp:
             http_status = resp.status
             resp.read(2048)       # 只讀前 2KB 確認可讀,不 bulk 落地(#25)
     except urllib.error.HTTPError as e:

@@ -9,7 +9,7 @@
 - [Raw Data 定義字典](augur-raw-data-defs.md) — 全84表據實 profile + 跨表髒值/語意陷阱(財報單季/累計YTD/snapshot、停牌哨兵、PER=-1、發布日 gate 15日、月營收=元、Dividend 塌列)
 - [改常駐服務後須重啟](restart-systemd-after-edit.md) — 改 serve_*.py/src 後須 systemctl restart 對應服務再實測(http.server 不熱更新;CLAUDE #7);附停電/重開機災後檢查序+ollama unit 排序循環已修(2026-07-11)
 - [限額錯誤處置紀律](quota-error-discipline.md) — API 限額錯誤≠定論,先請用戶看儀表再下判斷;失誤成本實例 2026-07-04
-- [跨機接續交接](cross-machine-handoff.md) — 現行 SSOT=repo HANDOFF.md;源碼 GitHub(main@b011099)、DB 靠 D碟 dump、記憶隨 repo 遷移(sync_memory)、v3 建構理解 20260710
+- [跨機接續交接](cross-machine-handoff.md) — 現行 SSOT=repo HANDOFF.md;源碼 GitHub(tag archive-20260712-pregame-allsigned)、DB=augur_pgdump_20260712_Fd(本地目錄+D碟tar)、記憶隨 repo 遷移(sync_memory)、v3 建構理解 20260710
 - [本地接續工具](local-handoff-tooling.md) — 三支零-usage 工具(sync_from_github/read_handoff/sync_memory)+ 記憶隨 repo 遷移機制(export→commit→新機 restore),供跨機接續
 - [預言機方向拍板(史料)](augur-oracle-pivot.md) — 轉向當日紀錄;現況見 verdict/v2-plan/unfreeze 三檔
 - [驗證總綱 V0-V2](augur-validation-master-plan.md) — 證據帳本/R軌/解凍GATE hugo 親簽;#8 修 4 洩漏;canonical 29 特徵
@@ -17,4 +17,4 @@
 - [預言機方向軸判決](augur-oracle-direction-verdict.md) — 六門(H20/40/82/120+D1/D5)全判死/never_shown;建置鏈+踩雷+MC模擬情境(逐日股價唯一合法答法、四鎖硬綁模擬非預測)
 - [方向軸 v2 復活計畫+終局](augur-oracle-v2-plan.md) — **v2 全家族判死(二次證偽)**:D5 hit p=.072(灌水懷疑實證)、Brier 四門全敗;方向軸凍結至解凍+新資料、不開 v3;結案報告待親簽
 - [FREEZE 解凍+四項親核](augur-unfreeze-20260712.md) — 2026-07-12 解凍入憲(v1.9.0/v1.43.0);no-v3 入憲;殘餘=FinMind 續訂+E 債裁定→unfreeze evaluate→arena 開賽
-- [輸出契約入憲+三鏡頭候選](augur-output-contract.md) — 三度堅持刪句(靈魂v1.8.0/憲章v1.45.0):「不是預測絕對漲跌幅」已刪、E[r]升格幅度級得逐股(勸阻雙留痕、誤鬆審查全鎖原封);own_threelens_interact 候選計畫待 T0 拍板
+- [輸出契約入憲+三鏡頭候選](augur-output-contract.md) — 三度堅持刪句(靈魂v1.8.0/憲章v1.45.0):E[r]升格幅度級得逐股;A3 `_r2` 三門已簽(sha配方bug已修)、Wave1 R4+activate 完、開賽前置人工關卡全清(07-12 晚)

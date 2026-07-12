@@ -9,7 +9,7 @@ metadata:
 
 **2026-07-06 用戶 directive:此 augur 專案進度會換另一台電腦接續。** 交接源與續建須知(承 [[augur-project-map]] 兩機約束):
 
-> **⚡ 現行接續 SSOT = repo 內 `HANDOFF.md`(維護中、比本記憶新)**——換機第一份讀它。建構全貌讀 `reports/augur_construction_understanding_20260710.md`(v3、code-verified 16 子系統、supersede 20260709 版)。本記憶自 2026-07-06 後多處過時(HEAD/版本/dump),僅留歷史快照;版本以 on-disk 為準(2026-07-10:憲章 v1.39.0 / 原則精華 v1.8.0 / CLAUDE v1.22)。
+> **⚡ 現行接續 SSOT = repo 內 `HANDOFF.md`(維護中、比本記憶新)**——換機第一份讀它。建構全貌讀 `reports/augur_construction_understanding_20260710.md`(v3、code-verified 16 子系統、supersede 20260709 版)。本記憶自 2026-07-06 後多處過時(HEAD/版本/dump),僅留歷史快照;版本以 on-disk 為準(2026-07-12:憲章 v1.45.0 / 原則精華 v1.9.0 解凍 / CLAUDE v1.25;最新封存 tag=`archive-20260712-pregame-allsigned`;最新 dump=`augur_pgdump_20260712_Fd` 本地目錄+D 碟 tar)。
 > **記憶隨 repo 遷移**:活記憶本不隨 git;現用 `sync_memory.py export` 快照進 repo `handoff_memory/` → 新機 `restore` 還原(見 [[local-handoff-tooling]])。三支零-usage 工具:`sync_from_github.sh`/`read_handoff.py`/`sync_memory.py`。
 > **2026-07-10 晚二補**:e2e 計畫 D0-D12 已簽核;**P1/P2/P5/P6 已執行完畢**(機率層上線:probability_oos_sample 42,456+calibrator 4+prediction_probability 1,376;picks 附欄 P30/P60/P120+四標記硬綁;回歸器 exit 0)、P3 3/4(缺煙測)。**本地審議引擎 MVP 活了**(deliberation pkg+deliberate.py+4 oracle;十餘場實戰假確認 0;迭代槓桿×3:schema-grounding/verifier 選型 lint/file_grep 補全誤蓋)。教訓:workflow 單 agent 巨型長文生成會停滯→**分節平行生成**根治。
 

@@ -49,13 +49,13 @@ done
 if [ -z "$DUMP" ]; then
   for d in "$HOME/db_dumps" /mnt/d/database /mnt/c/AI; do
     [ -d "$d" ] || continue
-    cand=$(ls -t "$d"/augur_pg17_*.tar "$d"/augur_*.dump 2>/dev/null | head -1)
+    cand=$(ls -td "$d"/augur_pg17_*.tar "$d"/augur_pgdump_*.tar "$d"/augur_pgdump_*_Fd "$d"/augur_*.dump 2>/dev/null | head -1)
     [ -n "$cand" ] && { DUMP="$cand"; break; }
   done
 fi
 if [ -z "$DUMP" ] || [ ! -e "$DUMP" ]; then
   echo "✗ 找不到 dump。dump 不在 git、須先實體搬到本機(6.6GB)。"
-  echo "  預設搜尋:~/db_dumps/  /mnt/d/database/  /mnt/c/AI/(檔名 augur_pg17_*.tar / augur_*.dump)"
+  echo "  預設搜尋:~/db_dumps/  /mnt/d/database/  /mnt/c/AI/(檔名 augur_pg17_*.tar / augur_pgdump_*.tar / augur_pgdump_*_Fd 目錄 / augur_*.dump)"
   echo "  或直接指定:bash import_database.sh /path/to/dump"
   exit 1
 fi

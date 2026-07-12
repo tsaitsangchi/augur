@@ -164,9 +164,11 @@ ARENA_GATES = [   # (gate_id, model_key, track, horizon_td);K=6 家族封閉(are
 ]
 ARENA_MIN_CLUSTERS = {"D": 250, "H": 36}
 A3_GATES = [  # A3 獨立新家族(三鏡頭候選計畫 T4;K=3 封閉;跨家族多重性依憲章 v1.45.0 全序列揭露)
-    ("dgate_a3_threelens_20", "own_threelens_interact", "H", 20),
-    ("dgate_a3_threelens_40", "own_threelens_interact", "H", 40),
-    ("dgate_a3_threelens_82", "own_threelens_interact", "H", 82),
+    # _r2:原三列 criteria_sha 為手刻配方 bug(12碼/無 separators),舊配方重算證明內容未變;
+    # 原列 approved→superseded 留檔(trigger 白名單),同判準以 _r2 重註冊(2026-07-12)
+    ("dgate_a3_threelens_20_r2", "own_threelens_interact", "H", 20),
+    ("dgate_a3_threelens_40_r2", "own_threelens_interact", "H", 40),
+    ("dgate_a3_threelens_82_r2", "own_threelens_interact", "H", 82),
 ]
 
 
@@ -251,12 +253,10 @@ def preregister_a3():
             c["family_disclosure"] = (f"A3 家族 K={len(A3_GATES)}(獨立於 A2 六門家族;Bonferroni 僅控本家族內);"
                                       "完整測試序列=v1 六門+v2 四門+A2 六門+A3 三門=19 門一律全列(憲章 v1.45.0 跨家族揭露)")
             c["power_disclosure"]["alpha_bonferroni"] = round(0.05 / len(A3_GATES), 5)
-            import json as _j, hashlib as _h
-            sha = _h.sha256(_j.dumps(c, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
             cur.execute("""INSERT INTO direction_gate (gate_id, track, horizon, purpose, criteria, criteria_sha, git_sha, note)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (gate_id) DO NOTHING""",
                 (gid, track, h, f"A3 真未來賭注 {mk} {track}×{h}(三鏡頭候選計畫;prereg-now-evaluate-later)",
-                 _j.dumps(c, ensure_ascii=False), sha, git7,
+                 json.dumps(c, ensure_ascii=False), _sha(c), git7,
                  "approve 併簽:係真未來新實驗、不構成對凍結資料重試、不違 no-v3 本旨"))
             n += cur.rowcount
         conn.commit()
