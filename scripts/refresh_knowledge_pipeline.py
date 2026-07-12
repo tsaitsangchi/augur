@@ -61,7 +61,7 @@ STAGES = (
     Stage("embed", "S5", "embed_knowledge.py", ("--layer", "sentence", "--language", "en", "--scope", "items"),
           False, "--limit", None, "items 側先行(P7);P4 拍板前不放量;完後個別跑 --build-index"),
     Stage("vector_export", "S6", "export_qdrant_index.py",
-          ("--layer", "sentence", "--side", "items", "--language", "en"), False, "--limit", None,
+          ("--side", "items", "--language", "en"), False, "--limit", None,
           "讀 knowledge_vectorstore_config 選匯出器(A-34):backend=pgvector→skip(pgvector 即 serving SSOT、"
           "無外部索引需匯出);qdrant_*→export_qdrant_index.py(export_milvus_index 退役列冊)"),
 )

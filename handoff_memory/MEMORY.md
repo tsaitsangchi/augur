@@ -11,8 +11,10 @@
 - [限額錯誤處置紀律](quota-error-discipline.md) — API 限額錯誤≠定論,先請用戶看儀表再下判斷;失誤成本實例 2026-07-04
 - [跨機接續交接](cross-machine-handoff.md) — 現行 SSOT=repo HANDOFF.md;源碼 GitHub(main@b011099)、DB 靠 D碟 dump、記憶隨 repo 遷移(sync_memory)、v3 建構理解 20260710
 - [本地接續工具](local-handoff-tooling.md) — 三支零-usage 工具(sync_from_github/read_handoff/sync_memory)+ 記憶隨 repo 遷移機制(export→commit→新機 restore),供跨機接續
-- [預言機方向拍板](augur-oracle-pivot.md) — 2026-07-11 靈魂轉向 H+D 軌(勸阻後堅持;GATE 前置;v1.42 草案待親核)
+- [預言機方向拍板(史料)](augur-oracle-pivot.md) — 轉向當日紀錄;現況見 verdict/v2-plan/unfreeze 三檔
 - [驗證總綱 V0-V2](augur-validation-master-plan.md) — 證據帳本/R軌/解凍GATE hugo 親簽;#8 修 4 洩漏;canonical 29 特徵
-- [審議引擎+前台檔位](augur-deliberation-engine.md) — GATE PASS(gate_4304)效力成立;A5 複量報告已交;F1 旗標關待 hugo 翻;L2 cron 待掛
+- [審議引擎+前台檔位](augur-deliberation-engine.md) — GATE PASS 效力成立;**F1 已開閘、L2 已掛且首個全自動日完成(07-12)**;A5 七片全 ✅
 - [預言機方向軸判決](augur-oracle-direction-verdict.md) — 六門(H20/40/82/120+D1/D5)全判死/never_shown;建置鏈+踩雷+MC模擬情境(逐日股價唯一合法答法、四鎖硬綁模擬非預測)
 - [方向軸 v2 復活計畫+終局](augur-oracle-v2-plan.md) — **v2 全家族判死(二次證偽)**:D5 hit p=.072(灌水懷疑實證)、Brier 四門全敗;方向軸凍結至解凍+新資料、不開 v3;結案報告待親簽
+- [FREEZE 解凍+四項親核](augur-unfreeze-20260712.md) — 2026-07-12 解凍入憲(v1.9.0/v1.43.0);no-v3 入憲;殘餘=FinMind 續訂+E 債裁定→unfreeze evaluate→arena 開賽
+- [輸出契約入憲+三鏡頭候選](augur-output-contract.md) — 三度堅持刪句(靈魂v1.8.0/憲章v1.45.0):「不是預測絕對漲跌幅」已刪、E[r]升格幅度級得逐股(勸阻雙留痕、誤鬆審查全鎖原封);own_threelens_interact 候選計畫待 T0 拍板
