@@ -1,4 +1,4 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.25
+# CLAUDE.md — Augur AI 協作工具規則 v1.27
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.8.0.md` + `docs/原則精華_v1.9.0.md` + 憲章為準；
@@ -73,7 +73,7 @@
 
 ## 四、Long-Running 工作流程
 
-21. **≥5 分鐘任務每 5 分鐘回報**：已完成階段 + elapsed + 剩餘估計 + 已知 metrics + warning；不靜默。
+21. **≥5 分鐘任務每 5 分鐘回報 × 背景作業可見登記（v1.26,用戶 directive 2026-07-13）**：已完成階段 + elapsed + 剩餘估計 + 已知 metrics + warning；不靜默。**凡背景啟動之作業（背景 shell / subagent / workflow / 長跑 sync）一律於啟動同時登記進用戶可見任務清單**（Claude Code＝`TaskCreate`＋設 in_progress；description 含背景 ID＋log 路徑），一作業一任務不合併；有進展即更新、完成/失敗即時改狀態（失敗保持 in_progress 並開新任務描述阻塞）——背景 shell 對用戶介面不可見，只靠完成通知＝過程黑箱，違「不靜默」。
 22. **≥30 分鐘 / 過夜任務防睡眠**：背景啟動 + 進程存活 watchdog + sentinel；WSL2/雲機**確認主機不會睡眠**（本機 Linux 端用 `systemd-inhibit`，但擋不住 Windows/雲主機睡眠——須用戶確認電源設定）；長跑須有 resume 後路。
 23. **環境前置**：首次 setup 跑 import smoke test 才進後續；OS 層依賴（OpenMP for xgboost/lightgbm、PostgreSQL headers）先補。
 24. **API 限速（機制 SSOT＝原則精華 #17「三層防護」，此處僅列工具對映）**：對 FinMind / FRED 抓取一律經 `ingestion/finmind.py` 內建——工具對映：`_pace()`（步調）/ `_quota_gate()`（額度閘，現況見該函式 docstring）/ `QUOTA_COOLDOWN`（403 長冷卻）；honor `retry_after`；**不得高併發 / 無間隔狂打服務端**；驗證與全史走同一 `fetch`、同一防護。
@@ -86,6 +86,15 @@
       - **判據＝交付物本質**：交付「理解了什麼意思／定義」（語意正確、一次定錨、錯則沉默污染下游 code／資料）→ 理解層 ultracode；交付「跑出結果／落地資料」（機械、冪等可續、可本地腳本化零 usage）→ 執行層省 usage。**混合任務切兩段不整段歸一邊**；**裁決句：「搞錯會不會沉默污染下游？會→歸理解軸窮盡；僅慢→歸執行軸省」，仍有疑則偏當理解層**（成本不對稱：誤解 doctrine／誤定 field 之下游污染 ≫ 少省的 usage）。
       - **邊界不可逾**：理解再深仍只到執行層「改正確／補完整」，不因 ultracode 鬆動三敵人零容忍（#1／#8／#15）與治權判準變更須停下問（#19／#26）。**反例（禁）**：為省 token 不讀清 doctrine、靠「我以為」解釋 `FULL_START` 越描越錯＝在理解層誤用省 usage。
       - **本地審議引擎為主、Claude 為輔（用戶 directive 2026-07-11 入憲；執行軸之升級）**：凡屬**機械可驗宣稱之驗證／審查／裁決**（schema 存在／量比較／檔內容／隔離不變式——即本地審議引擎 5 oracle 可裁域）**一律優先用本地審議引擎**（`scripts/deliberate.py` 十模式＋oracle 機械鎖＋人裁佇列，全零 Claude token；效力域＝GATE 預註冊實證所及、undecidable 誠實 escalate），Claude 只當後備；**純機械執行（sync／build／embed／guard 確定性工具）不包 LLM**（確定性工具本身即引擎殺手鐧、包之＝降級）。理解層保留區不變＝仍 Claude ultracode；引擎裁決效力邊界（confirmed＝錨成立、LLM 意見零證據力、治權觸線強制人裁）不因「為主」鬆動。**地基＝scripts/ 全量守 #29(a)(d)**（2026-07-11 稽核 137/137：個別可執行＋執行指令矩陣＋graceful 無參數）。
+      - **模型檔位分派（v1.27,用戶 directive 2026-07-13；二分之模型對映）**：Claude Code 模型選擇沿用同一裁決句——「**搞錯會沉默污染下游 → 高檔位；僅僅是慢 → 低檔位**」。分派表：
+
+        | 檔位 | 定位 | 本專案作業 |
+        |---|---|---|
+        | **Fable 5**（最高階） | 理解層／裁決層（what/why） | 治權檔增修＋跨檔一致性審、計畫書最終合成與拍板前把關、真兆/假兆判讀、anti-leakage 時點欄語意定錨、資料層 field/raw 定義理解、高風險裁決（git 分叉處置/洩漏鑑識） |
+        | **Opus 4.8**（高階） | 重執行／複雜實作（hard how） | 依已拍板計畫實作模組、複雜重構與演算法層除錯、深度 code review、多視角對抗審查 agent（已實證）、計畫書初稿；可 `/fast` 加速輸出（同 Opus 不降智） |
+        | **Sonnet 5**（中階） | 輕執行／看顧（routine how） | 長跑監看與進度回報、機械修正（錯字/補欄/跑既定 script）、讀 log/DB 查數/對帳確認、批量落地 babysitting、報告排版 |
+
+        **切換紀律**：`/model` 切換後新模型須全量重讀 context（prompt cache 不跨模型）——**同檔位作業湊一批做完再切、不逐訊息 ping-pong**；fan-out 時 subagent 個別指定低檔模型即可、主 session 不必降檔。**優先序不變**：模型檔位居 #28 手段之末——(a) 本地零 usage ＞ (b) 背景不輪詢 ＞ (c) 不 fan-out ＞ 模型檔位；本地審議引擎可裁域仍先於任何 Claude 檔位。
     - **判據與限制（誠實）**：AI **讀不到即時 usage % 儀表**（無查詢工具）；唯一可程式感知的信號＝API 回的**限額錯誤**（429 / weekly / session limit）→ 撞到即**停、不 retry 硬衝**（承 #24「見訊號即停、不重試風暴」，擴及 Claude 配額）。**用戶可設暫停閾值 / 續跑時點**（如「95% 暫停、10:10 後續」），由**用戶監看儀表發信號**或以限額錯誤近似——AI 不謊稱能自動偵測 %。
     - **resume-safe 前提**：暫停前作業須冪等可續（#6 / #22）、暫停不得損資料、不得留半完成之不可逆狀態；workflow 用 `resumeFromRunId`（同 session 快取）或 scoped 重跑續；批量 build/sync 用 DB-driven resume。
     - **不自掛長喚醒鏈（省配額）**：不為等待一個遠時點而連掛多次自我喚醒（喚醒本身重讀 context、耗配額）；改由用戶於續跑時點 ping、或排一次性續跑。

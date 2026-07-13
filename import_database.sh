@@ -14,6 +14,7 @@
 #   bash import_database.sh --dry-run        # 只偵測格式 + 輕量驗證 + 印計畫,不解 tar、不動 DB
 #   bash import_database.sh --force          # 取代既有 augur 庫(破壞性:終止連線→dropdb→重建還原)
 #   bash import_database.sh --migrate        # 還原後補跑 13 支 migrate_*_ddl.py(dump 較舊時對齊 git,冪等)
+#   IDX_MEM=3GB bash import_database.sh …     # 覆蓋索引段 maintenance_work_mem(預設 2GB;大表 HNSW 可調高,須 IDX_MEM×2 < RAM−shared_buffers 避免 OOM)
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT" || exit 1
@@ -123,12 +124,25 @@ for pair in "$DB_USER:${DB_PASSWORD:-}" "augur_predict:${DB_PREDICT_PASSWORD:-}"
   fi
 done
 
-# ---- 建庫 + 還原 ----
+# ---- 建庫 + 分階段還原(大檔 + HNSW 向量索引最佳化;#7 完整 log 不吞)----
 echo "建立資料庫 $DB_NAME(owner=$DB_USER)…"
 psu -d postgres -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" || { echo "✗ createdb 失敗"; exit 1; }
-echo "pg_restore 還原中(-Fd 平行約 15-20 分)…"
-pg_restore $JOBS -h "$DB_HOST" -p "$DB_PORT" -U "$SU" -d "$DB_NAME" "$RESTORE_SRC" 2>&1 | tail -5
-echo "  pg_restore 結束(GRANT 到尚未建角色之非致命錯誤可忽略)"
+RLOG="${AUGUR_IMPORT_LOG:-/tmp/augur_pg_restore_$$.log}"; : > "$RLOG"
+# 分三段還原:資料段 -j4 並行快載;索引/約束段降並發 + 提高 maintenance_work_mem。
+# why:augur dump 含 3 個 pgvector HNSW 向量索引,「同時建置」各吃一份 maintenance_work_mem——
+# 全域預設(64MB)會龜速 spill 磁碟(實證卡 70 分),盲目全域調高又讓並發建索引 OOM;
+# 故索引段獨立設 IDX_MEM(預設 2GB)× 低並發(-j2),兼顧速度與 RAM(IDX_MEM×2 須 < RAM−shared_buffers)。
+if [ -n "$JOBS" ]; then POSTJOBS="-j 2"; else POSTJOBS=""; fi
+IDX_MEM="${IDX_MEM:-2GB}"
+rcommon=(-h "$DB_HOST" -p "$DB_PORT" -U "$SU" -d "$DB_NAME" "$RESTORE_SRC")
+echo "還原 pre-data(schema)…"
+pg_restore --section=pre-data $JOBS "${rcommon[@]}" >>"$RLOG" 2>&1
+echo "還原 data(資料 COPY,${JOBS:-sequential})…"
+pg_restore --section=data $JOBS "${rcommon[@]}" >>"$RLOG" 2>&1
+echo "還原 post-data(索引/約束,maintenance_work_mem=$IDX_MEM ${POSTJOBS:-sequential};HNSW 最佳化)…"
+PGOPTIONS="-c maintenance_work_mem=$IDX_MEM" pg_restore --section=post-data $POSTJOBS "${rcommon[@]}" >>"$RLOG" 2>&1
+errs=$(grep -c '^pg_restore: error' "$RLOG" 2>/dev/null || echo 0)
+echo "  三段還原完成(完整 log=$RLOG;pg_restore error 行=$errs——GRANT 到未建角色屬非致命)"
 
 # ---- 預測隔離角色(#8 動態 GRANT 閘)----
 echo "setup_predict_role(#8 隔離角色)…"
@@ -146,12 +160,18 @@ if [ "$MIGRATE" = 1 ] && [ -x "$VENV_PY" ]; then
   done
 fi
 
-# ---- smoke test(#7 實測)----
+# ---- smoke test(#7 實測;含完整性驗證——防靜默缺失,2026-07-13 教訓)----
 echo "── smoke test ──"
 pub=$(psu -d "$DB_NAME" -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null)
 tt=$(psu -d "$DB_NAME" -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='ttai_import';" 2>/dev/null)
+idx=$(psu -d "$DB_NAME" -tAc "SELECT count(*) FROM pg_indexes WHERE schemaname NOT IN ('pg_catalog','information_schema');" 2>/dev/null)
+hnsw=$(psu -d "$DB_NAME" -tAc "SELECT count(*) FROM pg_indexes WHERE indexdef ILIKE '%USING hnsw%';" 2>/dev/null)
 sz=$(psu -d postgres -tAc "SELECT pg_size_pretty(pg_database_size('$DB_NAME'));" 2>/dev/null)
-echo "  public $pub 表 · ttai_import $tt 表 · 庫大小 $sz"
+echo "  public $pub 表 · ttai_import $tt 表 · 索引 $idx · HNSW 向量索引 $hnsw · 庫大小 $sz"
+# HNSW 完整性斷言:augur 標準含 3 個(sent/lex/chunk),缺則索引段未跑完——勿只信 exit 0/表數(2026-07-13 踩坑)
+if [ "${hnsw:-0}" -lt 3 ]; then
+  echo "  ⚠ HNSW 向量索引僅 ${hnsw:-0} 個(標準應 ≥3)——索引段可能未完成,查 $RLOG;可重跑 --force 或手動補 post-data 段。"
+fi
 echo "════════════════════════════════════════════"
 echo "  ✓ DB import 完成:$DB_NAME($sz)"
 echo "════════════════════════════════════════════"
