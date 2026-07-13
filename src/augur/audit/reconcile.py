@@ -1,6 +1,6 @@
 """augur 對帳稽核 — DB↔API byte-level attestation（#7：證明 DB 無幻像）。
 
-這支在做什麼（白話）：
+🎯 這支在做什麼（白話）：
 把 DB 既有資料逐列拉出、重抓 API 真值、逐欄 byte 比對，分四類——
 - **matched**：DB 與 API 同鍵、值逐欄相等。
 - **value_mismatch**：同鍵但值不同（DB≠API）。
@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from augur.core import db, generic_schema, schema
 from augur.ingestion import finmind, fred, sync
-from augur.ingestion.ingest import FRED_TABLE, _AGGREGATE_DAILY, _aggregate_daily
+from augur.ingestion.ingest import FRED_TABLE, _aggregate_daily, aggregate_method
 
 _NULL = {"", "none", "null", "nan", "nat"}
 _EXAMPLES_CAP = 10
@@ -131,6 +131,7 @@ def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
     dataset = dataset or table
     agg = _blank(table)
     agg["per_date"] = {}
+    agg_m = aggregate_method(dataset, conn)   # DB-first(#29b);迴圈外查一次
     with db.transaction(conn) as cur:
         cols, pk, val = _meta(cur, table)
         if since is None:
@@ -152,8 +153,8 @@ def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
         except finmind.FinMindError as e:
             agg["errors"].append({"date": d, "error": str(e)})   # 該日抓取失敗 → 記錄跳過,不中斷已對帳的日(#7 韌性)
             continue
-        if dataset in _AGGREGATE_DAILY:   # intraday-source（GoldPrice 5分鐘）→ 套 ingest 同聚合對齊 DB 日級落地（#4）;否則 raw intraday vs 日級聚合 → 假 MIS
-            api = _aggregate_daily(api, _AGGREGATE_DAILY[dataset])
+        if agg_m:   # intraday-source（GoldPrice 5分鐘）→ 套 ingest 同聚合對齊 DB 日級落地（#4）;否則 raw intraday vs 日級聚合 → 假 MIS
+            api = _aggregate_daily(api, agg_m)
         if per_stock:
             api = [row for row in api if str(row.get("stock_id")) in roster_ids]   # 只留真名冊∪表內既有股(排除名冊外雜項;roster 股整股缺漏入 MIS)
         r = compare(dbr, api, pk, val)

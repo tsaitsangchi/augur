@@ -11,6 +11,7 @@ walkforward 層負責（本層只造 label、不切分）。
 
 #8 anti-leakage：t+1 進場 + 還原價；#1 source-pure：PriceAdj 真值、算不出（資料不足/停牌 close≤0）→ 缺列。
 #12 SSOT：label 構造唯一住此、所有 validator import（跨模型/週期可比）。
+守 #8（anti-leakage：t+1 進場 + 還原價）· #1（source-pure：算不出即缺列）· #12（SSOT：label 構造唯一住此）。
 """
 from __future__ import annotations
 

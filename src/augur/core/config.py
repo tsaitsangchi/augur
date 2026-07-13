@@ -1,6 +1,6 @@
 """augur 設定中樞 — 路徑、DB 連線參數、API 密鑰的單一來源。
 
-這支在做什麼（白話）：
+🎯 這支在做什麼（白話）：
 - 從專案根目錄的 `.env` 讀進所有設定（DB 連線、FinMind/FRED 密鑰、運維選項）。
 - `.env` 是 machine-local、被 gitignore、**永不進 git**；密鑰只活在這裡，其他模組一律
   `from augur.core import config` 取用，不各自去讀 `.env`。

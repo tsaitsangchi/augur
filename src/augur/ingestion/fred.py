@@ -1,6 +1,6 @@
 """augur FRED API client — 從 FRED 抓總體經濟 series 觀測值（含節流 / 退避 / 重試）。
 
-這支在做什麼（白話）：
+🎯 這支在做什麼（白話）：
 - 對 FRED `series/observations` API 的薄 client：給一個 `series_id`（如 `T10Y2Y` 殖利率曲線、
   `UNRATE` 失業率），回傳該 series 的觀測列 `list[dict]`。
 - **每列補上 `series_id`**：FRED 回應本身不含 series_id；補上後 generic_schema 才推得出

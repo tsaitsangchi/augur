@@ -18,6 +18,7 @@ Claude memory 住 ~/.claude/projects/<mangled>/memory/,機器本地、不隨 git
     python sync_memory.py restore --force  # 略過「已存在且相同」檢查,強制覆蓋(仍先備份)
 """
 import argparse
+import re
 import shutil
 import sys
 from datetime import datetime
@@ -29,7 +30,8 @@ SNAPSHOT_DIR = REPO_ROOT / "handoff_memory"
 
 def live_memory_dir() -> Path:
     """由當前 repo 位置推導 Claude Code 的 per-project memory 目錄。"""
-    mangled = str(REPO_ROOT).replace("/", "-")
+    # Claude Code 把路徑中所有非字母數字字元換 '-'(實證:.claude-worktrees→--claude-worktrees、stock_backend→stock-backend);只換 '/' 會在含 . _ 路徑分岔指錯目錄
+    mangled = re.sub(r"[^A-Za-z0-9]", "-", str(REPO_ROOT))
     return Path.home() / ".claude" / "projects" / mangled / "memory"
 
 

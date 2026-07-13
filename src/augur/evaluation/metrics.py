@@ -10,6 +10,7 @@
 #15 誠實：raw + purged 雙口徑由呼叫端傳「哪些 panel 的 IC」決定（raw=全 test 折、purged=walkforward
 embargo 後折）；本層只算指標、不選樣本（樣本選擇＝walkforward 層職責）。stochastic ≥3 seed 統計由呼叫端跑。
 #14 經濟價值（top-N 報酬/MaxDD/Calmar）非本層——本層只到「排序預測力」；經濟價值需 portfolio 構造另計。
+守 #12（SSOT：rank IC/彙總公式唯一住此）· #15（誠實：raw/purged 雙口徑）· #11（IC 顯著性走 Eff-t、禁裸用 iid effective_t）。
 """
 from __future__ import annotations
 

@@ -17,7 +17,7 @@
 | `docs/系統核心思想_v1.8.0.md` | **靈魂**：預測**相對強弱**＋預言機軸(絕對方向機率,唯過 direction_gate;v1.6.0;v1.8.0 三度堅持刪「不是預測絕對漲跌幅」句,E[r] 升格幅度級得逐股(GATE/econ 同源/揭露硬綁不動))（非絕對漲跌機率）、成功=經濟價值非 IC、系統建議人決策、禁 AI 占卜大師 |
 | `docs/原則精華_v1.9.0.md` | **20 條不可違反法律** + 資料完整性判準（**FREEZE 已解凍→live 增量維運** v1.9.0/2026-07-12） |
 | `docs/系統架構大憲章_v1.45.0.md` | **憲法**：三敵×管線、12-PHASE、升版規則、**第六部計畫先行/計畫完整性 v1.39.0**、修訂歷程 |
-| `CLAUDE.md`（v1.25） | AI 協作工具規則（Read-before-Edit、clean-room #16、plan-first #20、一支一支檢視 #19、常駐服務改碼須重啟實測 #7、最小 usage #28、DB 備份慣例 #30） |
+| `CLAUDE.md`（版本見檔頭） | AI 協作工具規則（Read-before-Edit、clean-room #16、plan-first #20、一支一支檢視 #19、常駐服務改碼須重啟實測 #7、最小 usage #28、DB 備份慣例 #30） |
 | `reports/augur_construction_understanding_20260710.md` | **⭐建構作法完整理解 v3（code-verified 16 子系統、supersede 20260709 版）**：兩半系統框架、逐層 how-built、跨系統 meta-pattern、治權→code 接線——**接手必讀「這專案怎麼建的」** |
 | `reports/augur_omniscient_advisor_plan_20260709.md` | **活躍計畫①**：全能全知顧問端到端（know-how→DB→逐字理解→Qdrant→qwen→web UI）——**未執行、待拍板** |
 | `reports/augur_prediction_short_horizon_model_plan_20260709.md` | **活躍計畫②**：H20/H40/H60「30/60 天」誠實 horizon 模型——**未執行、待拍板+釐清日曆日/交易日** |
@@ -117,7 +117,7 @@ python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §
 ### 4.7 路由表（去哪讀什麼；本檔不複述）
 | 要什麼 | 去哪 |
 |---|---|
-| 規則/工具紀律 | `CLAUDE.md`（v1.25；#31＝接續慣例） |
+| 規則/工具紀律 | `CLAUDE.md`（版本見檔頭；#31＝接續慣例） |
 | 判準/憲法 | `docs/系統架構大憲章_v1.45.0.md`＋`docs/原則精華_v1.9.0.md`＋`docs/系統核心思想_v1.8.0.md` |
 | 這專案怎麼建的 | `reports/augur_construction_understanding_20260710.md`（v3 code-verified） |
 | 擂台規格 | `reports/augur_direction_live_arena_plan_20260711.md` |

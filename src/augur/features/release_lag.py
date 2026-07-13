@@ -20,6 +20,7 @@
 正解(未來,超出 as-of FREEZE):接真實公告日(TWSE/MOPS)精準 gate,或令 `financial_release_date` 產業感知
 (收 stock_id→industry,金融類 Q1/Q3 用 60);屆時須改簽名+穿線全消費者、逐檔驗口徑。**未實作前勿讓 panel
 改為季中/月頻消費金融股財報**(會顯現此漏)。
+守 #8(anti-leakage:公開可得日 PIT gate、取代錯誤 date≤panel)· #9(10/45/90 為法律事實、非知識字典閾值)。
 """
 from __future__ import annotations
 

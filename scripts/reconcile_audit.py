@@ -24,7 +24,7 @@ import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import reconcile
 from augur.core import db
 from augur.features import macro
-from augur.ingestion.ingest import FRED_TABLE, _AGGREGATE_DAILY
+from augur.ingestion.ingest import FRED_TABLE, aggregate_method
 
 SKIP = {"data_audit_log", "pipeline_execution_log"}   # infra log,非 API 資料 → 不對帳
 RECENT_DAYS = 30
@@ -116,7 +116,7 @@ def _audit(conn, dataset, scope, recent_days):
         agg = reconcile.reconcile_per_stock(conn, dataset, since=since, until=until,
                                             sample_n=ROSTER_SAMPLE, progress=_p)
         return _summary(dataset, "roster-scoped", agg, unsettled=unsettled)
-    if scope == "coverage" or _AGGREGATE_DAILY.get(dataset) == "all":   # 事件流 → coverage(依 catalog scope 路由;_AGGREGATE_DAILY 為備援)
+    if scope == "coverage" or aggregate_method(dataset, conn) == "all":   # 事件流 → coverage(依 catalog scope 路由;aggregate_method DB-first、seed dict 為備援 #29b)
         _p(f"[{dataset}] coverage:事件流列數量級對帳")
         return _summary(dataset, "coverage", reconcile.reconcile_coverage(conn, dataset, progress=_p))
     # by-date(含 GoldPrice 聚合,reconcile_by_date 內已對齊日級):排除未定案日 from verdict

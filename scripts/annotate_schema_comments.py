@@ -17,7 +17,9 @@ from psycopg2 import sql
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
-# catalog 未收錄之 augur infra 表(augur 釋義;catalog 已收錄之表一律取 DB catalog,不在此維護)
+# infra 表中文 seed(#29b 整改 2026-07-13):本 dict 僅為 bootstrap 種子——每次執行先冪等 upsert 進
+# dataset_catalog/column_catalog(excluded=true,source='infra' 防誤入 sync 選表路徑;build 實證不清手植列),
+# 之後統一從 catalog 讀(單一 DB 路徑);新增 infra 表中文=直接 INSERT catalog、零改碼。
 OWN_TABLE_ZH = {
     "data_audit_log": "資料稽核留痕(DB↔API 對帳 #7)",
     "pipeline_execution_log": "管線執行日誌",
@@ -46,20 +48,32 @@ def load_catalog(cur):
     return tables, cols
 
 
+def seed_infra_catalog(cur):
+    """infra 表中文 seed → catalog 冪等 upsert(#29b:SSOT=DB、dict=種子)。excluded=true 防入 sync 選表。"""
+    for t, zh in OWN_TABLE_ZH.items():
+        cur.execute(
+            "INSERT INTO dataset_catalog (dataset, table_name_zh, source, category, excluded, excluded_reason) "
+            "VALUES (%s,%s,'infra','infra',true,'augur infra 表(非 API dataset;僅中文註記 seed,#29b)') "
+            "ON CONFLICT (dataset) DO UPDATE SET table_name_zh=EXCLUDED.table_name_zh", (t, zh))
+        cur.execute("DELETE FROM column_catalog WHERE dataset=%s", (t,))   # column_catalog 無唯一鍵→依 build 同慣例 DELETE+INSERT(#6 冪等)
+        for i, (c, czh) in enumerate(OWN_COL_ZH.get(t, {}).items(), 1):
+            cur.execute(
+                "INSERT INTO column_catalog (dataset, column_name, ordinal, column_name_zh, zh_source) "
+                "VALUES (%s,%s,%s,%s,'augur釋義')", (t, c, i, czh))
+
+
 def main():
     done_t = done_c = 0
     warn, skipped = [], []
     with db.connect() as conn, db.transaction(conn) as cur:
+        seed_infra_catalog(cur)                     # dict=seed → catalog;之後統一讀 catalog(單一 DB 路徑)
         cat_tables, cat_cols = load_catalog(cur)
-        print(f"catalog:DB dataset_catalog/column_catalog({len(cat_tables)} datasets)")
+        print(f"catalog:DB dataset_catalog/column_catalog({len(cat_tables)} datasets;infra seed 已 upsert)")
         cur.execute("SELECT table_name FROM information_schema.tables "
                     "WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY 1")
         tables = [r[0] for r in cur.fetchall()]
         for t in tables:
-            if t in OWN_TABLE_ZH:
-                zh_map = OWN_COL_ZH[t]
-                tcomment = f"{OWN_TABLE_ZH[t]}(表名中文:augur 釋義)|欄中文來源:augur 釋義"
-            elif t in cat_tables:
+            if t in cat_tables:
                 tzh, tcat = cat_tables[t]
                 zh_map = {c: z for c, (z, _) in cat_cols.get(t, {}).items()}
                 srcs = "/".join(sorted({s for _, s in cat_cols.get(t, {}).values() if s}))

@@ -79,7 +79,7 @@ def guard(response, payload, citations):
     return {"pass": not issues, "issues": issues}
 
 
-_NUM_TOKEN = re.compile(r"\d+(?:\.\d+)?")
+_NUM_TOKEN = re.compile(r"-?\d+(?:\.\d+)?")  # -? 成對:白名單保留負值,誠實引用之負數(如 -0.1392)不因掉號被誤攔
 
 
 def citation_numbers(citations):
@@ -118,7 +118,7 @@ def guard_knowledge(response, payload, citations, sql_numbers=()):
 
     # ② 數字 ∈ 雙源白名單(payload.numbers() ∪ 本回合真兆 SQL 結果集);已驗引文段內數字已豁免
     allowed = set(payload.numbers()) | {round(float(n), 4) for n in sql_numbers}
-    suspects = set(re.findall(r"\d+\.\d{2,}", claims)) | set(_METRIC_NUM.findall(claims))
+    suspects = set(re.findall(r"-?\d+\.\d{2,}", claims)) | set(_METRIC_NUM.findall(claims))  # -? 與 guard() :57 對齊:防符號翻轉編造(citation 0.9987→輸出 -0.9987 曾可放行)
     for m in sorted(suspects):
         if round(float(m), 4) not in allowed:
             issues.append(f"數字非雙源白名單、疑編造(#1):{m}")

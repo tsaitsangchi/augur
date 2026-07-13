@@ -1,6 +1,6 @@
 """augur 全市場 sync engine — 名冊 + 動態列舉 + 全史 sync + 斷點續傳（憲章 PHASE 2-4）。
 
-這支在做什麼（白話）：
+🎯 這支在做什麼（白話）：
 - **PHASE 2 名冊**（`seed_roster`）：落地 `TaiwanStockInfo`（全市場名冊）→ 回全部 stock_id。
 - **PHASE 4 動態列舉**（`daily_datasets`）：`finmind.list_datasets()` 拿 FinMind 全 dataset，**去掉
   intraday**（#4）→ 日頻清單；**無 hardcoded 表清單**（#3）。
@@ -49,9 +49,26 @@ def seed_roster(conn):
         return [r[0] for r in cur.fetchall()]
 
 
-def daily_datasets():
-    """PHASE 4 列舉：FinMind 全 dataset 去掉 intraday（#4）+ OUT_OF_UNIT（分點/權證 資料量物理排除 #3/#4）+ BACKFILL_DEFERRED（鉅額可抓但 scope 待決）→ 日頻清單（#3 動態、無 hardcoded）。"""
-    return [d for d in finmind.list_datasets()
+def daily_datasets(conn=None):
+    """PHASE 4 列舉：FinMind 全 dataset（動態問 API、#3 無白名單）去掉排除集 → 日頻清單。
+    排除集 DB-first（#29b 整改 2026-07-13）：dataset_catalog.excluded 為 runtime 單一權威路徑
+    （涵蓋 intraday #4 / OUT_OF_UNIT 物理排除；未來新增策展排除＝UPDATE 一列零改碼）；
+    catalog 缺/空/連不上（bootstrap PHASE<2）→ 退 ingest code seed 集合（行為＝整改前、fail-safe）。"""
+    all_ds = finmind.list_datasets()
+    excl = None
+    try:
+        if conn is not None:
+            with db.transaction(conn) as cur:
+                excl = ingest.catalog_exclusions(cur)
+        else:
+            with db.connect() as c:
+                with db.transaction(c) as cur:
+                    excl = ingest.catalog_exclusions(cur)
+    except Exception:
+        excl = None
+    if excl is not None:
+        return [d for d in all_ds if d not in excl]
+    return [d for d in all_ds
             if not ingest.is_intraday(d) and d not in ingest.BACKFILL_DEFERRED and d not in ingest.OUT_OF_UNIT]
 
 

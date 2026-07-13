@@ -11,7 +11,7 @@ Augur 從 FinMind / FRED 抓進可溯源的日級資料，算成 source-pure 特
 
 它的每一條紀律都在防三個敵人：**① 假資料 · ② 偷看未來 · ③ 自我欺騙**。
 
-> 🚧 **狀態**：開發中。治權已立（靈魂 v1.5.0・原則精華 v1.9.0〔20 條法律〕・憲章 v1.43.0・CLAUDE v1.25——歷次入憲演進之明細見憲章「修訂歷程」，不在此複列防漂移）；`core / ingestion / audit / features / universe` 已建並實跑，特徵層三鏡頭 8 特徵＋康波毛利循環相位入生產、剪共線 volatility_20d（27→35）、經濟回測基礎(`evaluation/portfolio.py`)已建；raw 全市場全史 sync 已完成至 as-of 2026-05-31（84/84 逐表完整性定案）；**FREEZE 已於 2026-07-12 解除、轉 live 增量維運（原則精華 v1.9.0 解凍子條；live 准入依 unfreeze gate 紀律）**；`models`（F3）未建（規劃中）；知識素養層三部曲（registry 窮舉 → harvest 常規批 → text 逐字理解）已上線、`knowledge / philosophy / advisor` 橫切已建（三粒度向量檢索嵌入已建；「誠實博學的我」顧問角色層續建中，詳 `reports/augur_knowledge_text_understanding_plan_20260702.md`）。
+> 🚧 **狀態**：開發中。治權已立（靈魂 v1.8.0・原則精華 v1.9.0〔20 條法律〕・憲章 v1.45.0・CLAUDE v1.27——歷次入憲演進之明細見憲章「修訂歷程」，不在此複列防漂移）；`core / ingestion / audit / features / universe` 已建並實跑，特徵層三鏡頭 8 特徵＋康波毛利循環相位入生產、剪共線 volatility_20d（27→35）、經濟回測基礎(`evaluation/portfolio.py`)已建；raw 全市場全史 sync 已完成至 as-of 2026-05-31（84/84 逐表完整性定案）；**FREEZE 已於 2026-07-12 解除、轉 live 增量維運（原則精華 v1.9.0 解凍子條；live 准入依 unfreeze gate 紀律）**；`models`（F3）未建（規劃中）；知識素養層三部曲（registry 窮舉 → harvest 常規批 → text 逐字理解）已上線、`knowledge / philosophy / advisor` 橫切已建（三粒度向量檢索嵌入已建；「誠實博學的我」顧問角色層續建中，詳 `reports/augur_knowledge_text_understanding_plan_20260702.md`）。
 
 ---
 

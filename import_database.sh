@@ -13,7 +13,7 @@
 #   bash import_database.sh <dump 路徑>      # 指定 dump(.tar / -Fd 目錄 / -Fc .dump)
 #   bash import_database.sh --dry-run        # 只偵測格式 + 輕量驗證 + 印計畫,不解 tar、不動 DB
 #   bash import_database.sh --force          # 取代既有 augur 庫(破壞性:終止連線→dropdb→重建還原)
-#   bash import_database.sh --migrate        # 還原後補跑 13 支 migrate_*_ddl.py(dump 較舊時對齊 git,冪等)
+#   bash import_database.sh --migrate        # 還原後補跑全部 migrate_*_ddl.py+source_governance(glob 全量、不寫死支數;dump 較舊時對齊 git,冪等)
 #   IDX_MEM=3GB bash import_database.sh …     # 覆蓋索引段 maintenance_work_mem(預設 2GB;大表 HNSW 可調高,須 IDX_MEM×2 < RAM−shared_buffers 避免 OOM)
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -154,9 +154,16 @@ fi
 
 # ---- 選配:補 migrations(冪等)----
 if [ "$MIGRATE" = 1 ] && [ -x "$VENV_PY" ]; then
-  echo "補跑 migrate_*_ddl.py(對齊 git DDL,冪等)…"
-  for m in "$ROOT"/scripts/migrate_*_ddl.py; do
-    "$VENV_PY" "$m" >/dev/null 2>&1 && echo "  ✓ $(basename "$m")" || echo "  ⚠ $(basename "$m") 未完成(查 dump 是否已含)"
+  echo "補跑 migrate_*_ddl.py(對齊 git DDL,冪等;glob 全量+source_governance)…"
+  # why 三段嘗試:26 支存在兩種旗標慣例——gated 批(須 --migrate/--run 才建)無參數會「靜默 no-op 卻 exit 0」
+  # 假 ✓(2026-07-13 v4 稽核);先試 --migrate 再 --run 再無參數,不吃旗標者 argparse exit 2 自然落到下一段。
+  for m in "$ROOT"/scripts/migrate_*_ddl.py "$ROOT"/scripts/migrate_source_governance.py; do
+    [ -f "$m" ] || continue
+    if "$VENV_PY" "$m" --migrate >/dev/null 2>&1 || "$VENV_PY" "$m" --run >/dev/null 2>&1 || "$VENV_PY" "$m" >/dev/null 2>&1; then
+      echo "  ✓ $(basename "$m")"
+    else
+      echo "  ⚠ $(basename "$m") 未完成(查 dump 是否已含)"
+    fi
   done
 fi
 

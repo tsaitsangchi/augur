@@ -1,6 +1,6 @@
 """augur 特徵面板 — 從 source-pure raw 算每股每面板之特徵（嚴格 source-pure）。
 
-這支在做什麼（白話）：給一個 as-of 面板日期 + 一批股，對每股拉它 ≤ 該日的價量序列
+🎯 這支在做什麼（白話）：給一個 as-of 面板日期 + 一批股，對每股拉它 ≤ 該日的價量序列
 （**`TaiwanStockPriceAdj` 還原價**），算成一組數值特徵（報酬 / 動能 / 波動 / 流動性 / 位置）存進 `feature_values`。
 
 價格基準（2026-06-27 修，審查 R1/R5/CG1-4）：價量特徵一律用**還原價** `TaiwanStockPriceAdj`（與 `label.py` 同源、

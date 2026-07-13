@@ -1,6 +1,6 @@
 """augur 通用 auto-schema 引擎 — 看 API 資料長相，自動推導型別、建表、冪等寫入。
 
-這支在做什麼（白話）：
+🎯 這支在做什麼（白話）：
 餵一批 API 回來的 dict 列（rows）+ 一個 DB cursor，它就：
 1. **看值推型別**（`infer_schema`，#5）：`YYYY-MM-DD` → `DATE`；純數字 → `NUMERIC`（最小 (20,6)，
    超出自動加大）；`stock_id`/券商碼/`year`/`cb_id` 等識別碼 → 強制字串（免被當數字掉前導零）；

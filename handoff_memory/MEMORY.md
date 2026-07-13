@@ -1,6 +1,8 @@
 # Memory Index
 
 - [背景作業須可見](background-tasks-visible.md) — 每個背景 shell 都要 TaskCreate 登記+更新狀態，用戶介面才看得到；不得靜默跑（2026-07-13 directive）
+- [建構理解 v4](augur-construction-v4.md) — 20260713 報告指針(58-agent深讀+12 REFUTED+終審16修);三塊架構;斷線清單(redline失聯/predict role未接線/A3=preregistered/本機無491全文/macro埋雷)
+- [記憶 export 密碼掃描](memory-export-secret-scan.md) — sync_memory export 全量推 public repo；記憶不存明碼憑證、commit/push 前必掃密碼（2026-07-13 差點洩漏 ttai admin 密碼）
 - [DB 匯入調優+HNSW OOM 陷阱](db-import-tuning-hnsw-oom.md) — 3個HNSW索引×pg_restore -j4=maintenance_work_mem並發乘數OOM；information_schema漏報IDENTITY序列須用pg_class；本機WSL2 10GB+PG17調優值；大檔匯入SOP（2026-07-13）
 - [Git 身分在 .env](git_identity_in_env.md) — commit 遇身分未設時查 .env 的 `git config --global` 指令,不問用戶、不自設
 - [augur 專案地圖](augur-project-map.md) — 治權 SSOT(憲章v1.20/CLAUDE v1.16)+ 程式地圖(含知識/哲學/顧問層)+ 市場層飽和里程碑 + 知識層 W5 前沿 + 兩機/dump/token 約束

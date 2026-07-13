@@ -1,6 +1,6 @@
 """augur DB 存取層 — PostgreSQL 連線與交易邊界的單一入口。
 
-這支在做什麼（白話）：
+🎯 這支在做什麼（白話）：
 - 用 `config.DB_PARAMS` 連上 augur 的 PostgreSQL。
 - 提供乾淨的 context manager，讓其他模組不必各自管 commit/rollback/關連線：
   - `connect()`：拿一個連線，離開區塊自動關。

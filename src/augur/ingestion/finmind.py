@@ -1,6 +1,6 @@
 """augur FinMind API client — 從 FinMind 抓任一 dataset，含節流 / 退避 / 重試。
 
-這支在做什麼（白話）：
+🎯 這支在做什麼（白話）：
 - 對 FinMind v4 `data` API 的薄 client：給 dataset 名 + 參數（data_id/start_date/end_date…），
   回傳 `list[dict]`（API 原樣列，欄名/大小寫逐字照 API，#2；不改值、不補值，#1）。
 - token 從 `config.FINMIND_TOKEN` 取（不寫死，§一.5）。

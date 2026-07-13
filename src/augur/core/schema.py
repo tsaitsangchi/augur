@@ -1,6 +1,6 @@
 """augur 系統內部表 schema — infra log 表 DDL + 從 DB 推導任一表 schema 的 helper。
 
-這支在做什麼（白話）：管兩件「系統內部表 / schema 查詢」的事（不碰 API 原始表）：
+🎯 這支在做什麼（白話）：管兩件「系統內部表 / schema 查詢」的事（不碰 API 原始表）：
 1. **infra log 表 DDL**（憲章第五部 PHASE 1「Infra bootstrap」）：
    - `pipeline_execution_log`：每次任務跑了什麼、成敗、幾列、起訖時間。
    - `data_audit_log`：哪個 dataset / 哪支股、做了什麼寫入或對帳、幾列。

@@ -1,6 +1,6 @@
 """augur 單來源落地 orchestrator — 把 FinMind / FRED 抓回的列，落地成 DB 表。
 
-這支在做什麼（白話）：
+🎯 這支在做什麼（白話）：
 - 統籌「抓 → 守門 → 寫」一條龍：呼叫 finmind/fred client 取列，過 #4 intraday 守門，
   再用 generic_schema 自動建表 + 冪等寫入（包在一段交易裡），回報 (列數 / schema / 主鍵)。
 - **#4 intraday 守門**：`INTRADAY` 列出 8 個 sub-daily dataset（5秒/tick/分K/分鐘）；本系統以日為
@@ -59,6 +59,38 @@ def is_intraday(dataset) -> bool:
 # TaiwanStockNews（秒級時間戳新聞流、漏網 intraday）→ method='all'：date 去時間、保留同日多則（同日同 PK 交 upsert 去重）。
 # 別於 INTRADAY（純 sub-day、有日級替代如 TaiwanStockPrice → 完全不收）。
 _AGGREGATE_DAILY = {"GoldPrice": "close", "TaiwanStockNews": "all"}
+# ↑ 2026-07-13 #29b 整改:三個 frozenset/dict 降級為「catalog-build seed + DB 不可用時 fail-safe 後備」
+#   (sanctioned seed 模式);runtime 選表/聚合一律 DB-first(catalog_exclusions/aggregate_method),
+#   catalog build 仍讀本檔集合寫 DB(code→DB 種子方向,不循環)。
+
+
+def catalog_exclusions(cur):
+    """dataset_catalog 排除集(excluded=true)——runtime 選表之單一 DB 路徑(#29b)。
+    catalog 缺表/空/查詢失敗 → None(呼叫端退 code-set 後備;bootstrap PHASE<2 亦安全)。"""
+    try:
+        cur.execute("SELECT dataset FROM dataset_catalog WHERE excluded")
+        rows = {r[0] for r in cur.fetchall()}
+        return rows or None
+    except Exception:
+        return None
+
+
+def aggregate_method(dataset, conn=None):
+    """該 dataset 之日級聚合法('close'/'all')或 None。DB-first(#29b):
+    dataset_catalog.aggregate_daily_method 欄存在 → DB 為 SSOT(欄有值用之、無值=非聚合表);
+    欄未建(migrate_catalog_aggregate_ddl 未跑)或無 conn/查詢失敗 → 退 code seed dict(過渡零風險)。"""
+    if conn is not None:
+        try:
+            with db.transaction(conn) as cur:
+                cur.execute("SELECT 1 FROM information_schema.columns "
+                            "WHERE table_name='dataset_catalog' AND column_name='aggregate_daily_method'")
+                if cur.fetchone():
+                    cur.execute("SELECT aggregate_daily_method FROM dataset_catalog WHERE dataset=%s", (dataset,))
+                    row = cur.fetchone()
+                    return row[0] if row and row[0] else None
+        except Exception:
+            pass
+    return _AGGREGATE_DAILY.get(dataset)
 
 
 def _aggregate_daily(rows, method="close"):
@@ -137,8 +169,9 @@ def store(conn, table, rows, *, data_id=None, audit=True, require_keys=()):
     一段交易內 provision_and_upsert（+ 可選稽核），原子提交（#6）。"""
     if not rows:
         return {"table": table, "rows": 0, "schema": {}, "keys": []}
-    if table in _AGGREGATE_DAILY:   # intraday-source（如 GoldPrice 5-min）→ 聚合日級衍生（#4）、不存 intraday 原始
-        rows = _aggregate_daily(rows, _AGGREGATE_DAILY[table])
+    agg = aggregate_method(table, conn)   # DB-first(#29b);intraday-source（如 GoldPrice 5-min）→ 聚合日級衍生（#4）、不存 intraday 原始
+    if agg:
+        rows = _aggregate_daily(rows, agg)
     rk = require_keys
     if data_id is not None:   # by data_id 落地:該 data_id 對應之維度欄(值=data_id 者,如 GovBonds 之 name/匯率之 currency)強制入 PK,防不同 id 同 date 互相覆蓋塌列
         rk = tuple(set(require_keys) | {k for k in rows[0] if str(rows[0].get(k)) == str(data_id)})

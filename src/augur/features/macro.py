@@ -1,6 +1,6 @@
 """augur 總體經濟因子清單 — 宣告要從 FRED 抓哪些 macro series + 其 point-in-time 抓法。
 
-這支在做什麼（白話）：
+🎯 這支在做什麼（白話）：
 augur 用哪些 FRED 總經數列當情境輸入，是 **feature 設計的決策**（fred.py client 不持清單、由呼叫端決定）。
 本檔即那份決策：列出每檔 `series_id` + 它屬哪一層 + 該怎麼抓才不洩漏，當「抓哪些 series」的單一真源。
 
