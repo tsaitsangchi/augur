@@ -7,6 +7,10 @@
    (domain/entity_type/taxonomy_id/language),partition key=language;缺值哨兵=''/0(誠實標注非猜值)。
 守 #12(單一抽象住所)· #15(pk 枚舉自驗 len==row_count,Lite query_iterator 重複回列實證棄用
    2026-07-04)· #18(領域名詞)· 紅線③ · e2e 計畫 §3-S6/§6(SOP-B 可拋棄性)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.knowledge.vectorindex              # 印用途+公開入口（唯讀）
+  python -m augur.knowledge.vectorindex --selftest   # 純紅綠自測（零 IO）
 """
 from dataclasses import dataclass
 
@@ -337,3 +341,53 @@ def make_index(scope):
     if backend == "qdrant_embedded":
         return QdrantIndex(path=endpoint)
     raise RuntimeError(f"未知 backend {backend!r}")
+
+
+def _selftest():
+    """純紅綠自測(零 IO):純 helper 字串建構/切片 + 封閉集不變式 + 介面結構斷言;
+    不觸 adapter client 建構(那才會連 Milvus/Qdrant),故無 network/DB。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    def raises(fn):
+        try:
+            fn(); return False
+        except Exception:                                   # 純呼叫、任何拒絕即預期(零 IO)
+            return True
+    # _filter_expr 純字串建構(無 import、無 IO)——注入防護是最該守的性質
+    chk("空 filter→空串", _filter_expr(None) == "" and _filter_expr({}) == "")
+    chk("str 值加引號", _filter_expr({"language": "en"}) == 'language == "en"')
+    chk("int 值不加引號", _filter_expr({"taxonomy_id": 5}) == "taxonomy_id == 5")
+    chk("多欄 sorted+and",
+        _filter_expr({"language": "en", "domain": "phil"}) == 'domain == "phil" and language == "en"')
+    chk("欄不在封閉集→raise", raises(lambda: _filter_expr({"evil": "x"})))
+    chk("bool 值→raise", raises(lambda: _filter_expr({"taxonomy_id": True})))
+    chk("引號注入→raise", raises(lambda: _filter_expr({"language": 'a"b'})))
+    chk("反斜線注入→raise", raises(lambda: _filter_expr({"language": "a\\b"})))
+    # _qdrant_filter None→None(不觸 qdrant_client import)
+    chk("_qdrant_filter None→None", _qdrant_filter(None) is None and _qdrant_filter({}) is None)
+    # _chunks 純切片
+    chk("_chunks 均分+尾批", list(_chunks([1, 2, 3, 4, 5], 2)) == [[1, 2], [3, 4], [5]])
+    chk("_chunks 空→無批", list(_chunks([], 3)) == [])
+    # 封閉集不變式(payload/row 契約)
+    chk("ROW=pk+vec+payload", ROW_FIELDS == ("pg_pk", "vector") + PAYLOAD_FIELDS)
+    chk("_ENUM_FILTER 全枚舉述詞", _ENUM_FILTER == "pg_pk >= 0")
+    # CollectionSpec 預設 metric + frozen
+    chk("CollectionSpec 預設 COSINE", CollectionSpec("c", 384).metric == "COSINE")
+    chk("CollectionSpec frozen", raises(lambda: setattr(CollectionSpec("c", 384), "dim", 1)))
+    # 介面五方法齊備 + adapter 繼承(結構斷言、零 IO)
+    for m in ("ensure_collection", "upsert", "delete", "search", "stats"):
+        chk(f"VectorIndex.{m} 存在", hasattr(VectorIndex, m))
+    chk("adapter 皆繼承介面",
+        issubclass(MilvusLiteIndex, VectorIndex) and issubclass(QdrantIndex, VectorIndex))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.knowledge.vectorindex --selftest;免 DB 免 API)")

@@ -8,6 +8,10 @@
 
 執行指令矩陣(本檔=library;CLI 見 scripts/manage_rbac_user.py):
   python -c "from augur.knowledge.identity import hash_password; print(hash_password('x'))"
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.knowledge.identity              # 印用途+公開入口（唯讀）
+  python -m augur.knowledge.identity --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -100,3 +104,34 @@ def revoke_user_sessions(user_id):
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("UPDATE app_session SET revoked_at = now() "
                     "WHERE user_id = %s AND revoked_at IS NULL", (user_id,))
+
+
+def _selftest():
+    """純紅綠自測(零 IO):固化密碼雜湊/驗證之核心不變式(fail-closed、常數時間比對)。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    salt = "ab" * 16
+    stored = hash_password("secret", salt)
+    scheme, it, s, h = stored.split("$")
+    chk("hash 格式=pbkdf2$iter$salt$hash 四段", scheme == "pbkdf2" and int(it) == _ITER and s == salt)
+    chk("salt 固定→hash 決定性可複現", hash_password("secret", salt) == stored)
+    chk("verify 正確密碼 round-trip=True", verify_password("secret", stored) is True)
+    chk("verify 錯密碼=False", verify_password("wrong", stored) is False)
+    chk("verify 壞格式 fail-closed=False", verify_password("x", "not-a-hash") is False)
+    chk("verify None/空 fail-closed=False", verify_password("x", None) is False and verify_password("x", "") is False)
+    chk("verify 未知前綴 fail-closed=False", verify_password("x", f"bcrypt${_ITER}${salt}${h}") is False)
+    chk("_DUMMY_HASH 永不 match 真密碼", verify_password("secret", _DUMMY_HASH) is False)
+    chk("_sha256 決定性+64 hex", _sha256("tok") == _sha256("tok") and len(_sha256("tok")) == 64)
+    chk("_sha256 None/空不 raise", isinstance(_sha256(None), str) and len(_sha256("")) == 64)
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.knowledge.identity --selftest;免 DB 免 API)")

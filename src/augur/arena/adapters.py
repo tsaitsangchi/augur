@@ -9,6 +9,10 @@
    `conversion=樣本路徑正報酬比例(零調參、唯一嘗試之口徑)`——選擇紀錄入候選 spec。
 
 守 #8(輸入序列由呼叫端裁切至 as-of,adapter 不碰時間軸)· #28(本地)· 憲章(輸出僅供 ledger,不進 UI)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.arena.adapters              # 印用途+公開入口（唯讀）
+  python -m augur.arena.adapters --selftest   # 純紅綠自測（零 IO）
 """
 import numpy as np
 
@@ -382,3 +386,36 @@ class OwnThreelensInteract:
 REGISTRY = {a.key: a for a in (BaselineMajority, BaselineMomentum, BaselineMcBootstrap,
                                OwnDailyRolling, OwnStackRolling, MarketChronos, MarketTimesFM,
                                OwnThreelensInteract)}
+
+
+def _selftest():
+    """自測（零 DB/零 API #29a）:合成序列紅綠測純數學核（_rets/_roll_std/_roll_beta）+ 離線
+    baseline adapter(BaselineMajority——純 numpy、零 IO)+ REGISTRY 結構鎖(統一介面不變式)。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("_rets 逐期報酬([100,110,99]→[.1,-.1])",
+        np.allclose(_rets([100.0, 110.0, 99.0]), [0.1, 99 / 110 - 1]))
+    rs = _roll_std(np.arange(5.0), 3)                      # 窗前 NaN、窗內有限(不變式:len 對齊+暖機 NaN)
+    chk("_roll_std 對齊+暖機 NaN", len(rs) == 5 and np.isnan(rs[:2]).all() and np.isfinite(rs[2:]).all())
+    r = np.array([0.01, -0.02, 0.03, -0.01, 0.02])
+    beta = _roll_beta(r, r.copy(), 3)                      # rt≡rm → cov≡var → beta≡1(自對齊恆等式)
+    chk("_roll_beta 自身 beta≡1", np.allclose(beta[2:], 1.0))
+    p = BaselineMajority().predict({"A": [1.0, 2.0, 3.0, 4.0, 5.0]}, 1)   # 全升 → 全正 fwd → P=1
+    chk("BaselineMajority 單調升→P=1", p == {"A": 1.0})
+    chk("REGISTRY 八參賽者+key 一致",
+        len(REGISTRY) == 8 and all(k == a.key and hasattr(a, "predict") for k, a in REGISTRY.items()))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.arena.adapters --selftest;免 DB 免 API)")

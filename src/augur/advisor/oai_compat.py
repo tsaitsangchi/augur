@@ -11,6 +11,10 @@
    住 advisor package=自動入 AST 隔離稽核(P14)。stdlib http.server 實作、零新增依賴。
    前台檔位(F1):body.model 承載 tier(augur-{4b,8b}-{fast,think,ultra});config 旗標關=行為逐位元同現行。
 守 #1/#8/#15(經 advise+guard 落地)· #18(oai_compat=領域名詞)· 計畫 §3-S7 N8/§6(UI 軸:殼=穩定契約)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.advisor.oai_compat              # 印用途+公開入口（唯讀）
+  python -m augur.advisor.oai_compat --selftest   # 純紅綠自測（零 IO）
 """
 import json
 import time
@@ -355,3 +359,59 @@ def make_server(host, port, llm_fn, payload_fn=empty_payload, retrieve_fn=None, 
     srv.insecure_loopback_admin = insecure_loopback_admin
     srv.picking_payload_fn = picking_payload_fn
     return srv
+
+
+def _selftest():
+    """純紅綠自測(零 IO;僅驗協定翻譯純函式之不變式,不觸 advise/DB/API/socket)。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # _last_user_content:取最後 user、str 與 parts list 兩形、無 user → ""
+    chk("last_user:取最後 user", _last_user_content(
+        [{"role": "user", "content": "甲"}, {"role": "assistant", "content": "x"},
+         {"role": "user", "content": "  乙  "}]) == "乙")
+    chk("last_user:parts list 併文字", _last_user_content(
+        [{"role": "user", "content": [{"type": "text", "text": "A"},
+                                      {"type": "image", "text": "略"},
+                                      {"type": "text", "text": "B"}]}]) == "A\nB")
+    chk("last_user:無 user → ''", _last_user_content([{"role": "assistant", "content": "x"}]) == "")
+
+    # models_payload:tiers 關(None/無 enabled)→ 唯一 model=MODEL_ID(不觸 effort.probe_speed=零 IO)
+    mp = models_payload(None)
+    chk("models:tiers 關唯一 model", [d["id"] for d in mp["data"]] == [MODEL_ID])
+    chk("models:{} 亦視為關", models_payload({})["data"][0]["id"] == MODEL_ID)
+
+    # _citations_block:空 → ""
+    chk("citations:空 → ''", _citations_block([]) == "")
+
+    # 合成 advise 回傳結構(純 dict,不經 advise)
+    fake_pass = {"response": "白話解讀", "guard": {"pass": True, "issues": []},
+                 "citations": [], "lex_entries": []}
+    fake_fail = {"response": "原文不倒", "guard": {"pass": False, "issues": ["逐字不符"]},
+                 "citations": [], "lex_entries": []}
+    # _verdict_note:機械尾註含 pass 布林小寫 + issue 行
+    chk("verdict:pass=true 尾註", "pass=true" in _verdict_note(fake_pass))
+    chk("verdict:fail 列 issue", "issue: 逐字不符" in _verdict_note(fake_fail))
+    # _reply_text:pass → 顯 response;fail(公版非附檔)→ 回固定誠實句閉集(不倒原文)
+    rp = _reply_text(fake_pass)
+    chk("reply:pass 顯 response", "白話解讀" in rp and _SEP in rp)
+    rf = _reply_text(fake_fail)
+    chk("reply:fail 回誠實閉集", NO_KNOWLEDGE_RESPONSE in rf and "原文不倒" not in rf)
+
+    # _chunk:偽 SSE 一塊=「data: 」前綴 + 合法 JSON + 雙換行結尾
+    ck = _chunk("cid", 1, {"content": "x"}, model_id="m")
+    chk("chunk:data 前綴", ck.startswith("data: ") and ck.endswith("\n\n"))
+    chk("chunk:JSON 合法", json.loads(ck[len("data: "):].strip())["model"] == "m")
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.advisor.oai_compat --selftest;免 DB 免 API)")

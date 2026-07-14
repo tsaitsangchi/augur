@@ -15,6 +15,10 @@ momentum_accel/momentum_resonance/vol_term_structure(單因子 Eff-t<2 或多因
 source-pure(#1):算不出(窗不足/零區間)→ 缺列。型別 #5。
 
 守 #1 · #8 · #9(data-driven 相位、無固定週期) · #5 · 康波設計六軸之 C2/C4(存活軸)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.features.phase              # 印用途+公開入口（唯讀）
+  python -m augur.features.phase --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -74,3 +78,28 @@ def compute_phase_features(cur, sid, panel_date, price_df=None):
         out.update(_price_phase(price_df))                        # C2
     out.update(_inst_flow_cycle(cur, sid, panel_date))            # C4
     return {k: float(v) for k, v in out.items() if v is not None and np.isfinite(v)}
+
+
+def _selftest():
+    """純紅綠(零 IO):相位不變式——0=谷 1=峰、窗不足/零區間 → None。"""
+    import numpy as np
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    chk("升序末=峰 → 相位 1.0", _range_position(np.array([1., 2, 3, 4, 5]), 5) == 1.0)
+    chk("降序末=谷 → 相位 0.0", _range_position(np.array([5., 4, 3, 2, 1]), 5) == 0.0)
+    chk("中位 → 相位 0.5", _range_position(np.array([0., 10, 5]), 3) == 0.5)
+    chk("窗不足 → None", _range_position(np.array([1., 2, 3]), 5) is None)
+    chk("零區間(全等) → None", _range_position(np.array([3., 3, 3]), 3) is None)
+    chk("公開入口 compute_phase_features 存在", callable(compute_phase_features))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.features.phase --selftest;免 DB 免 API)")

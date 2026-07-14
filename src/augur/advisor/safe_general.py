@@ -13,6 +13,10 @@
 執行指令矩陣(library;對話經 advise() 呼叫):
   python -c "from augur.advisor.safe_general import general_safe_answerable as f; print(f('有沒有穩賺不賠的股票'))"
   python -c "from augur.advisor.safe_general import general_safe_answerable as f; print(f('台積電2330的EPS是多少'))"
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.advisor.safe_general              # 印用途+公開入口（唯讀）
+  python -m augur.advisor.safe_general --selftest   # 純紅綠自測（零 IO）
 """
 import re
 
@@ -113,3 +117,42 @@ def general_safe_answerable(query):
     if _B_DEFINE_CUE.search(q) and _has_b_concept(q):  # B1 定義題 + 封閉概念
         return True
     return False                                     # 未正面命中 B → fail-safe 保守
+
+
+def _selftest():
+    """純紅綠自測（零 IO）:合成 query→斷言三閘不變式與 fail-safe 偏 False。"""
+    f = general_safe_answerable
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # B1 定義題+封閉概念放行
+    chk("B1 定義題放行", f("什麼是複利") is True)
+    # B2 風險原則放行(否定式常識)
+    chk("B2 穩賺不賠放行", f("有沒有穩賺不賠的股票") is True)
+    # A 閘:股號+財務數值不放行(三敵①)
+    chk("A 股號+財務不放行", f("台積電2330的EPS是多少") is False)
+    # A 閘:出處歸屬不放行(紅隊 R2)
+    chk("A 出處歸屬不放行", f("民無信不立是孔子講的嗎") is False)
+    # A 閘:as-of 時效不放行
+    chk("A as-of 時效不放行", f("現在利率是多少") is False)
+    # 結構閘:書名號不放行
+    chk("書名號不放行", f("論語《學而》怎麼解釋") is False)
+    # fail-safe:空字串/超長/未命中 B 一律 False
+    chk("空字串 False", f("") is False)
+    chk("超長 False", f("複利" * 40) is False)
+    chk("未命中 B fail-safe False", f("今天天氣如何") is False)
+    # helper 不變式:年份非股號、四位數黏合為股號
+    chk("_ticker_hit 排除年份", _ticker_hit("2020年") is False)
+    chk("_ticker_hit 命中股號", _ticker_hit("台積電2330") is True)
+    chk("_has_b_concept 命中封閉概念", _has_b_concept("解釋複利效應") is True)
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.advisor.safe_general --selftest;免 DB 免 API)")

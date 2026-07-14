@@ -12,6 +12,10 @@
 守 #8(vintage 濾版/T−1 保守)· #15(fail-loud、防衛斷言)· #12(fred_series 消費謂詞單一住所=本檔)。
    現況誠實:尚無任何生產特徵消費總經(feature_values 零 macro 特徵)——本模組是「接線前先建好門」,
    非既有洩漏之修補;未來 macro 特徵一律經此門、不得對 fred_series 寫 raw SQL。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.features.macro_vintage              # 印用途+公開入口（唯讀）
+  python -m augur.features.macro_vintage --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -67,3 +71,36 @@ def value_asof(cur, series_id, obs_date, panel_date):
         return None
     assert row[1] <= cutoff
     return float(row[0])
+
+
+def _selftest():
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    p = date(2026, 7, 14)
+    # _coerce:date 直通、字串取前 10 碼
+    chk("_coerce date 直通", _coerce(p) == p)
+    chk("_coerce ISO 字串截前10碼", _coerce("2026-07-14T09:30:00") == p)
+    # visible_cutoff:Tier B(vintage)=panel 本身;Tier A(每日)=panel−1(保守 T−1)
+    chk("Tier B 上界=panel", visible_cutoff("UNRATE", p) == p)
+    chk("Tier A 上界=panel−1", visible_cutoff("DGS10", p) == p - timedelta(days=1))
+    # 未知 series → fail-loud(#15)
+    try:
+        visible_cutoff("NOPE_XYZ", p); raised = False
+    except ValueError:
+        raised = True
+    chk("未知 series fail-loud", raised)
+    # 常數與 IO-bound 公開入口存在(結構斷言)
+    chk("TIER_A_LAG_DAYS==1", TIER_A_LAG_DAYS == 1)
+    chk("as_of/value_asof 可呼叫", callable(as_of) and callable(value_asof))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.features.macro_vintage --selftest;免 DB 免 API)")

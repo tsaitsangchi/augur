@@ -7,6 +7,10 @@
    契約極薄:fit(X, y_rank) → self;predict(X) → ndarray(n,)(float、任意尺度,只看序位)。
    SHAP/可解釋明訂不在此層(留 audit,防膨脹侵入預測 SSOT)。
 守 #12(與 baseline 同組態、複用鐵律)· 隔離不變式(零 import 知識/哲學/顧問)· #15(random_state 固定可重現)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.models.ranker              # 印用途+公開入口（唯讀）
+  python -m augur.models.ranker --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -59,3 +63,41 @@ class RankGBDT:
         if self._model is None:
             raise RuntimeError("RankGBDT 未 fit")
         return self._model.predict(np.asarray(X, dtype=float))
+
+
+def _selftest():
+    # 零 IO:不觸 sklearn/lightgbm(imports 皆 lazy 在 fit/predict 內);僅結構+未 fit 守衛
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("RankRidge.family 標識", RankRidge.family == "RankRidge")
+    chk("RankGBDT.family 標識", RankGBDT.family == "RankGBDT")
+    chk("RankRidge 默認 alpha=1.0(與 baseline B2_ridge 同組態)", RankRidge().alpha == 1.0)
+    chk("RankGBDT 默認 seed=42(#15 可重現)", RankGBDT().seed == 42)
+    chk("RankRidge 未 fit → 無 model/scaler", RankRidge()._model is None and RankRidge()._scaler is None)
+    chk("RankGBDT 未 fit → 無 model", RankGBDT()._model is None)
+
+    def raises_runtime(fn):
+        try:
+            fn(); return False
+        except RuntimeError:
+            return True
+        except Exception:
+            return False
+    chk("RankRidge 未 fit predict 拋 RuntimeError", raises_runtime(lambda: RankRidge().predict([[1.0]])))
+    chk("RankGBDT 未 fit predict 拋 RuntimeError", raises_runtime(lambda: RankGBDT().predict([[1.0]])))
+    chk("公開契約:兩族皆有 fit/predict", all(
+        hasattr(c, "fit") and hasattr(c, "predict") for c in (RankRidge, RankGBDT)))
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.models.ranker --selftest;免 DB 免 API)")

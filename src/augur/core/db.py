@@ -13,6 +13,10 @@
 **不抓 API、不算特徵、不選股**。
 
 守 #6（冪等+斷點：交易 commit-or-rollback，重跑安全）· 核心橫切基礎（DB 連線/交易單一入口）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.core.db              # 印用途+公開入口（唯讀）
+  python -m augur.core.db --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -55,3 +59,30 @@ def ping() -> bool:
             return cur.fetchone() == (1,)
     except Exception:
         return False
+
+
+def _selftest():
+    # 本檔全 IO-bound（connect/transaction/ping 皆需 DB 連線）→ 只做 import-smoke + 結構斷言，零 IO。
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    import inspect
+    chk("connect 可呼叫", callable(connect))
+    chk("transaction 可呼叫", callable(transaction))
+    chk("ping 可呼叫", callable(ping))
+    # connect/transaction 皆 @contextmanager → wrap 後仍是 function、原函式為 generator
+    chk("connect 是 contextmanager 工廠", inspect.isgeneratorfunction(connect.__wrapped__))
+    chk("transaction 是 contextmanager 工廠", inspect.isgeneratorfunction(transaction.__wrapped__))
+    chk("transaction 收 conn 參數", list(inspect.signature(transaction.__wrapped__).parameters) == ["conn"])
+    chk("ping 標註回傳 bool", inspect.signature(ping).return_annotation in (bool, "bool"))  # future annotations→str
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.core.db --selftest;免 DB 免 API)")

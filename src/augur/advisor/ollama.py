@@ -8,6 +8,10 @@
    (qwen3:8b 於 4GB GPU 必部分 CPU offload、單回合可達分鐘級,計畫定錨 #16)→ 錯得大聲不硬衝。
 守 #1(只轉發 LLM 原輸出、零改寫——剝 <think> 為機械規則非潤飾)· #15(失敗明說不佯稱)·
    #18(ollama=領域名詞)· 計畫 §6 SOP-C(換 LLM=改設定一行,本檔可整支替換)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.advisor.ollama              # 印用途+公開入口（唯讀）
+  python -m augur.advisor.ollama --selftest   # 純紅綠自測（零 IO）
 """
 import json
 import os
@@ -186,3 +190,50 @@ def make_llm_fn(model=None, base=None, timeout=None, retries=1, options=None, th
         raise RuntimeError(f"Ollama 連線失敗 @ {url} model={tag}: {last_err}") from last_err
 
     return llm_fn
+
+
+def _selftest():
+    """自測（零 IO、可個別驗證 #29a）：合成字串紅綠測 strip_think/strip_quote_marks/_assert_local_host——
+    把 P8 閘鏈機械規則（思考段剝除 fail-closed、引號框剝除、G3 host allowlist）固化成回歸鎖。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # strip_think:閉合段全刪、留框外文字
+    chk("strip_think 閉合段全刪", strip_think("前<think>推理</think>後") == "前後")
+    # 未閉合(輸出截斷)→ 自 <think> 起全刪(fail-closed,寧空勿漏)
+    chk("strip_think 未閉合 fail-closed", strip_think("答案<think>截斷了") == "答案")
+    # strip_quote_marks:六式引號框全剝、內容保留
+    chk("strip_quote_marks 剝六式框", strip_quote_marks("「甲」『乙』“丙”") == "甲乙丙")
+    chk("strip_quote_marks None→空", strip_quote_marks(None) == "")
+    # _assert_local_host:本機端點放行(不 raise)
+    _local_ok = True
+    try:
+        _assert_local_host("http://localhost:11434/api/generate")
+        _assert_local_host("http://127.0.0.1:11434/api/chat")
+    except RuntimeError:
+        _local_ok = False
+    chk("_assert_local_host 放行本機", _local_ok)
+    # _assert_local_host:公網端點 fail-loud(owned_local 永不離本機,v1.37.0)
+    _rejected = False
+    try:
+        _assert_local_host("http://evil.example.com:11434/api/generate")
+    except RuntimeError:
+        _rejected = True
+    chk("_assert_local_host 拒公網 fail-loud", _rejected)
+    # 結構斷言:公開入口具在(換模不失界面,#18)
+    chk("公開入口具在", all(callable(globals().get(n)) for n in
+                            ("make_llm_fn", "make_structured_llm_fn", "chat_with_stats")))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.advisor.ollama --selftest;免 DB 免 API)")

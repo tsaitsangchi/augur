@@ -9,6 +9,10 @@
 
 守 #12(advise 仍唯一諮詢編排出口;config 讀取走 engine_config)· #15(LLM 意見零證據力;誠實 fallback)·
    #26(escalated=進人裁佇列)· #29b(檔位參數/詞表住 DB)。SSOT=augur_frontend_tiers_ultracode_backbone_plan_20260711.md §2/§3。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.advisor.effort              # 印用途+公開入口（唯讀）
+  python -m augur.advisor.effort --selftest   # 純紅綠自測（零 IO）
 """
 import sys
 import threading
@@ -173,3 +177,40 @@ def verdict_block(result):
     lines.append("(本檔位僅對機械可驗宣稱給 oracle 裁決;其餘為 LLM 白話+誠實 guard 鏈;LLM 意見零證據力)")
     lines.append("(白話解讀與審議裁決各自獨立產生;兩者不一致時,以上方 oracle 裁決為準)")
     return "\n".join(lines)
+
+
+def _selftest():
+    """純紅綠自測(零 IO):resolve_tier 路由+UnknownTierError、verdict_block 分級模板不變式。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    cfg = {"default_tier": "fast",
+           "tiers": {"fast": {"model": "m1", "effort": "fast"},
+                     "think": {"model": "m2", "effort": "think"}}}
+    chk("resolve_tier default(augur-advisor→fast)", resolve_tier("augur-advisor", cfg) == Tier("fast", "m1", "fast"))
+    chk("resolve_tier 顯式 think", resolve_tier("think", cfg) == Tier("think", "m2", "think"))
+    chk("resolve_tier 空/None→default", resolve_tier("", cfg).id == "fast" and resolve_tier(None, cfg).id == "fast")
+    raised = False
+    try:
+        resolve_tier("zzz", cfg)
+    except UnknownTierError:
+        raised = True
+    chk("resolve_tier 未知→UnknownTierError", raised)
+    chk("verdict_block busy→BUSY_NOTE", verdict_block(UltraResult(None, [], True, None)) == BUSY_NOTE)
+    chk("verdict_block fallback→原句", verdict_block(UltraResult(None, [], False, "自訂 fallback")) == "自訂 fallback")
+    row_cb = (1, "某宣稱", "file_grep", "錨點", "confirmed", True, "證據", None)
+    out_cb = verdict_block(UltraResult("s1", [row_cb], False, None))
+    chk("verdict_block confirmed·bound 標示+LLM 提出", "confirmed·bound" in out_cb and "LLM 提出" in out_cb)
+    row_ref = (2, "壞宣稱", "db_query", "錨", "refuted", False, "反證", None)
+    chk("verdict_block refuted 標示", "已被 oracle 反證" in verdict_block(UltraResult("s2", [row_ref], False, None)))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.advisor.effort --selftest;免 DB 免 API)")

@@ -14,6 +14,10 @@
 已知侷限(v1 誠實記,對齊計畫 T3「不追完美句界」精神):
   - commentary 注文以「行」為界(跨行長注只取注記行本身);同行多對經注僅首段經文可靠。
   - Webster 詞頭=行首全大寫行,Gutenberg 前言若殘留大寫行會成假詞條(定義空者入 failed)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.knowledge.lexicon_parsers              # 印用途+公開入口（唯讀）
+  python -m augur.knowledge.lexicon_parsers --selftest   # 純紅綠自測（零 IO）
 """
 import re
 from typing import NamedTuple
@@ -274,3 +278,52 @@ def parse_wangbi(full_text):
 def parse_shisanjing(full_text):
     """十三經注疏:經文句→注/疏/箋文對(注與疏各自成條、配同一經文句)。"""
     return _parse_commentary(full_text)
+
+
+def _selftest():
+    """純紅綠(合成輸入→斷言;零 IO):六 parser 核心不變式+誠實計失敗+四元組契約固化。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # 說文:【字】括號條目 → dictionary 四元組
+    e, f = parse_shuowen("【元】始也。")
+    chk("shuowen 【元】→1 條", len(e) == 1 and e[0].term_display == "元"
+        and e[0].definition == "始也。" and e[0].lex_type == "dictionary")
+    # 說文:有詞頭無定義=誠實計失敗、寧缺(#15)
+    e, f = parse_shuowen("【天】\n【地】坤也。")
+    chk("shuowen 空定義入 failed", len(e) == 1 and f == 1)
+    # 說文:卷·部首標題 → locator 前綴
+    e, f = parse_shuowen("卷一\n一部\n【元】始也。")
+    chk("shuowen locator=卷·部首", len(e) == 1 and e[0].locator == "卷一·一部")
+    # 康熙:「字：定義」colon 式(單 CJK 字頭)
+    e, f = parse_kangxi("元：《唐韻》始也。")
+    chk("kangxi colon 式", len(e) == 1 and e[0].term_display == "元"
+        and e[0].lex_type == "dictionary" and e[0].locator == "1")
+    # Webster:行首全大寫=headword、至下一 headword=定義塊
+    e, f = parse_webster1913("ABACUS\nA counting frame.\nABANDON\nTo give up.")
+    chk("webster 2 headword", len(e) == 2 and e[0].term_display == "ABACUS"
+        and e[0].locator == "A·1" and e[1].term_display == "ABANDON")
+    # Roget:#編號段 → thesaurus、locator=#編號
+    e, f = parse_roget1911("#1. Existence.\nBeing, existence.")
+    chk("roget 編號段", len(e) == 1 and e[0].term_display == "Existence"
+        and e[0].lex_type == "thesaurus" and e[0].locator == "#1")
+    # 註疏:經文→注文對、term=經文句首 CJK、lex_type=commentary
+    e, f = parse_wangbi("道可道〔注〕常道也。")
+    chk("commentary 經注配對", len(e) == 1 and e[0].term_display == "道"
+        and e[0].lex_type == "commentary" and "〔注〕" in e[0].definition)
+    # 註疏:注文無經文可配=誠實計失敗(#15)
+    e, f = parse_wangbi("〔注〕孤注也。")
+    chk("commentary 無經文入 failed", len(e) == 0 and f == 1)
+    # LexEntry 四元組契約(寫入端依賴此欄序)
+    chk("LexEntry 欄位", LexEntry._fields == ("term_display", "definition", "locator", "lex_type"))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.knowledge.lexicon_parsers --selftest;免 DB 免 API)")

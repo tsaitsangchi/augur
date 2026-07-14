@@ -15,6 +15,10 @@
 source-pure(#1):算不出(已公告歷史 <8 季 / Revenue≤0 / 當季毛利陳舊 >400 日 #15)→ 缺列。型別 #5。
 
 守 #1 · #8(發布日 gate)· #9(自身相位、無硬編)· #5 · 康波 C3 存活軸 · 母原則③相對化。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.features.margin_cycle              # 印用途+公開入口（唯讀）
+  python -m augur.features.margin_cycle --selftest   # 純紅綠自測（零 IO：假 cursor 驅動 pctile 邏輯）
 """
 from __future__ import annotations
 
@@ -62,3 +66,70 @@ def compute_margin_cycle_features(cur, sid, panel_date):
     """康波 C3 毛利循環相位 → {feature: value};算不出缺列(#1)。"""
     v = _gross_margin_pctile(cur, sid, panel_date)
     return {"gross_margin_pctile": float(v)} if v is not None else {}
+
+
+def _selftest():
+    """自測（零 DB/零 API #29a）：以假 cursor 驅動真 pctile 邏輯 + 純日期 gate，紅綠鎖核心不變式——
+    自身百分位、發布日 gate 排未公告(#8)、<8 季/當季陳舊>400 日缺列(#1/#15)。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    class _Cur:                                   # 假 cursor:純記憶體、零 IO(不觸 DB)
+        def __init__(self, rows): self._rows = rows
+        def execute(self, *a): pass
+        def fetchall(self): return self._rows
+
+    def _rows(pairs):                             # (季底日, 毛利率)→ (date,type,value) 列;Revenue 固定 100
+        out = []
+        for d, m in pairs:
+            out.append((d, "GrossProfit", m * 100.0))
+            out.append((d, "Revenue", 100.0))
+        return out
+
+    def eq(a, b):
+        return a is not None and abs(a - b) < 1e-9
+
+    q8 = [date(2023, 12, 31), date(2024, 3, 31), date(2024, 6, 30), date(2024, 9, 30),
+          date(2024, 12, 31), date(2025, 3, 31), date(2025, 6, 30), date(2025, 9, 30)]
+    panel = date(2025, 12, 31)                    # Q3/2025 已公告(+45<panel)、離 panel 92 日(未陳舊)
+    asc = list(zip(q8, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]))   # 當季(末季)=史高
+
+    chk("當季=史高→pctile 1.0", eq(_gross_margin_pctile(_Cur(_rows(asc)), "1234", panel), 1.0))
+
+    cmin = list(zip(q8, [0.5, 0.6, 0.7, 0.8, 0.9, 0.4, 0.3, 0.2]))  # 當季(末季)=0.2=史低
+    chk("當季=史低→pctile 0.125", eq(_gross_margin_pctile(_Cur(_rows(cmin)), "1234", panel), 0.125))
+
+    chk("已公告 <8 季→缺列 None", _gross_margin_pctile(_Cur(_rows(asc[:7])), "1234", panel) is None)
+
+    chk("當季陳舊 >400 日→缺列 None(#15)",
+        _gross_margin_pctile(_Cur(_rows(asc)), "1234", date(2027, 6, 30)) is None)
+
+    leak = asc + [(date(2025, 12, 31), 0.05)]     # 未公告 Q4/2025(release 2026-03-31>panel)+極端值
+    chk("未公告財報被 gate 排除(#8;混入不改結果)",
+        eq(_gross_margin_pctile(_Cur(_rows(leak)), "1234", panel), 1.0))
+
+    chk("compute 可算→{'gross_margin_pctile': v}",
+        compute_margin_cycle_features(_Cur(_rows(asc)), "1234", panel) == {"gross_margin_pctile": 1.0})
+    chk("compute 算不出→{}(缺列)",
+        compute_margin_cycle_features(_Cur(_rows(asc[:7])), "1234", panel) == {})
+
+    chk("常數 MIN_QUARTERS=8 / MAX_STALE_DAYS=400", MIN_QUARTERS == 8 and MAX_STALE_DAYS == 400)
+    chk("SQL 讀財報表 + GrossProfit/Revenue",
+        "TaiwanStockFinancialStatements" in _MARGIN_SQL
+        and "GrossProfit" in _MARGIN_SQL and "Revenue" in _MARGIN_SQL)
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("入口:compute_margin_cycle_features(cur, sid, panel_date)")
+    print("(自測:python -m augur.features.margin_cycle --selftest;免 DB 免 API)")

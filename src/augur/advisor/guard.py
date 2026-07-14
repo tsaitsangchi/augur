@@ -9,6 +9,10 @@
    接線=advise() 依 payload 型別分派(oai_compat 唯一出口=advise(),同路生效);誠實句閉集不變。
 守 #1(數字/引文不編、定義出處可溯)· #8(anti-leakage)· #15(誠實)·
    憲章 v1.17.0(哲學不凌駕數據、審查 C-1)。
+
+自測(本檔=library #18;免 DB 免 API 可個別驗證):
+  python -m augur.advisor.guard              # 印用途+公開入口(唯讀)
+  python -m augur.advisor.guard --selftest   # 純紅綠自測(零 IO)
 """
 import re
 
@@ -182,3 +186,64 @@ def guard_definition(response, lex_entries):
         elif loc not in response:
             issues.append(f"定義引用未附 source_locator(#1):{e.term} 應附「{loc}」")
     return {"pass": not issues, "issues": issues}
+
+
+def _selftest():
+    """自測(零 IO:純 regex 閘紅綠+誠實句閉集結構鎖;免 DB 免 API #29a)——
+    把五閘最該守的性質(編造擋、逐字/白名單放行、幻覺股名擋、空檢索必誠實句)固化成回歸鎖。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    class _C:                                    # 合成 citation(僅需 .text)
+        def __init__(self, text):
+            self.text = text
+
+    class _P:                                    # 合成 payload(numbers()+picks)
+        def __init__(self, nums=(), picks=()):
+            self._n = {round(float(x), 4) for x in nums}
+            self.picks = picks
+
+        def numbers(self):
+            return self._n
+
+    class _Pick:
+        def __init__(self, symbol, name):
+            self.symbol = symbol
+            self.name = name
+
+    cites = [_C("蘋果每股盈餘為 12.3456 元,毛利率穩定。")]
+    # ① 引文逐字:非庫內引號段擋、庫內逐字放行
+    chk("guard 編造引文擋", guard("他說「這是一段不存在的捏造引文」", _P(), cites)["pass"] is False)
+    chk("guard 逐字引文放行", guard("原文「蘋果每股盈餘為 12.3456 元」", _P([12.3456]), cites)["pass"] is True)
+    # ② 數字:非 payload 之顯著小數/指標鄰接數字擋、∈payload(含負值不掉號)放行
+    chk("guard 編造 IC 數字擋", guard("預估 IC 0.87 很高", _P(), [])["pass"] is False)
+    chk("guard payload 負值放行", guard("net_maxdd -0.1392 撐住", _P([-0.1392]), [])["pass"] is True)
+    # ③④ 未來/保證語、逆向翻轉
+    chk("guard 未來保證語擋(#8)", guard("此股下週會漲", _P(), [])["pass"] is False)
+    chk("guard 逆向翻轉擋(C-1)", guard("所以建議賣出", _P(), [])["pass"] is False)
+    # ⑤ 幻覺股名(payload 有 name 時)
+    chk("guard 幻覺股名擋", guard("推薦 2330 鴻海", _P(picks=[_Pick("2330", "台積電")]), [])["pass"] is False)
+    # 誠實句閉集(結構鎖:憲章分級,閉集僅二句)
+    chk("誠實句閉集二句", len(HONESTY_CLOSED_SET) == 2 and NO_KNOWLEDGE_RESPONSE in HONESTY_CLOSED_SET)
+    chk("空檢索非誠實句擋(#15)", guard_empty_retrieval("我覺得這檔不錯", [])["pass"] is False)
+    chk("空檢索誠實句放行", guard_empty_retrieval(NO_KNOWLEDGE_RESPONSE, [])["pass"] is True)
+    # 出處斷言閘(裸古典出處無 citation 擋、無斷言 no-op)
+    chk("裸古典出處無 citation 擋", guard_attribution("如《論語》所言", [])["pass"] is False)
+    chk("無出處斷言 no-op 放行", guard_attribution("這檔股票不錯", [])["pass"] is True)
+    # citation_numbers 抽數字集(round 口徑同閘②)
+    chk("citation_numbers 抽數字集", citation_numbers([_C("值為 3.14 與 2")]) == {3.14, 2.0})
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.advisor.guard --selftest;免 DB 免 API)")

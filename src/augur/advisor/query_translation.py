@@ -20,6 +20,10 @@
     print(t('鈣鈦礦太陽能電池的效率'))"          # → 'Efficiency of perovskite solar cells'(或近義)
   python -c "from augur.advisor.query_translation import translate_for_retrieval as t; \
     print(t('what is margin of safety'))"        # → None(無 CJK,不譯)
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.advisor.query_translation              # 印用途+公開入口（唯讀）
+  python -m augur.advisor.query_translation --selftest   # 純紅綠自測（零 IO;無 CJK 早退不觸 qwen3）
 """
 import os
 from functools import lru_cache
@@ -75,3 +79,32 @@ def translate_for_retrieval(query, model=None, timeout=None):
     except Exception:
         return None                                  # OOM(HTTP500/killed)/逾時/連線 → fail-closed(#15)
     return _clean(out)
+
+
+def _selftest():
+    """自測（零 IO：純測 _has_cjk/_clean 與「無 CJK 早退回 None」不呼叫 qwen3 之不變式）。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("_has_cjk 認 CJK / 拒英文", _has_cjk("鈣鈦礦") and not _has_cjk("perovskite"))
+    chk("_has_cjk 空/None→False", not _has_cjk("") and not _has_cjk(None))
+    chk("_clean 取首行剝引號", _clean('"Efficiency of perovskite"\n\n') == "Efficiency of perovskite")
+    chk("_clean 空/含CJK/過長→None(fail-closed)",
+        _clean("") is None and _clean("still 中文") is None and _clean("x" * (_MAX_LEN + 1)) is None)
+    chk("translate 無 CJK→None(不觸 qwen3、零 IO 不變式)",
+        translate_for_retrieval("what is margin of safety") is None)
+    chk("translate 空字串→None", translate_for_retrieval("") is None)
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.advisor.query_translation --selftest;免 DB 免 API)")

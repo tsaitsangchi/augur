@@ -8,6 +8,10 @@
    URL 形 vs 裸形跨形態重複 152 對)。
 
 守 憲章 v1.41.0(審批唯人/三層閘)· #12(norm_doi/狀態機單一住所)· #15(前置=近 30 日 probe 200 證據)。
+
+自測(本檔=library #18；免 DB 免 API 可個別驗證):
+  python -m augur.knowledge.curation              # 印用途+公開入口(唯讀)
+  python -m augur.knowledge.curation --selftest   # 純紅綠自測(零 IO)
 """
 import getpass
 import json
@@ -99,3 +103,37 @@ def transition(source_key, action, actor, *, reason=None, os_user=None, probe_re
                      json.dumps(probe_result) if probe_result else None))
         conn.commit()
     return {"source_key": source_key, "action": action, "old": old, "new": new}
+
+
+def _selftest():
+    """純紅綠自測(零 IO):norm_doi 正規化不變式 + 狀態機常數結構斷言。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # norm_doi:URL/doi: 前綴剝除 + lowercase(DOI 形)
+    chk("URL 形剝前綴+小寫", norm_doi("https://doi.org/10.1234/ABC") == "10.1234/abc")
+    chk("doi: 前綴+dx 子網", norm_doi("doi:10.1000/XyZ") == "10.1000/xyz"
+        and norm_doi("https://dx.doi.org/10.5/A") == "10.5/a")
+    # M4 病灶:URL 形 vs 裸形須正規化為同鍵(跨形態去重)
+    chk("跨形態去重(M4)", norm_doi("https://doi.org/10.1234/ABC") == norm_doi("10.1234/abc"))
+    # 非 DOI 形不 lowercase、僅 strip;None→""
+    chk("非 DOI 保原不小寫", norm_doi("  Some Title  ") == "Some Title" and norm_doi(None) == "")
+    # 狀態機:升級動作全在 TRANSITIONS 且 reopen 為雙態特例(target=None)
+    chk("HUMAN_ONLY ⊆ TRANSITIONS", HUMAN_ONLY <= set(TRANSITIONS))
+    chk("reopen 雙態特例", TRANSITIONS["reopen"][1] is None and TRANSITIONS["reopen"][0] == {"exhausted", "rejected"})
+    # 降級動作(suspend)非唯人;升級動作(approve/activate)須唯人
+    chk("降級非唯人/升級唯人", "suspend" not in HUMAN_ONLY and {"approve", "activate"} <= HUMAN_ONLY)
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.knowledge.curation --selftest;免 DB 免 API)")

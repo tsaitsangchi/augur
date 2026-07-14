@@ -23,6 +23,10 @@
   之「算不出即缺列、不補 fake/zero」是 **feature 層** 規則（#1 ENFORCE），raw 層忠實反映 API。
 
 守 #5（型別紀律）· #3（純通用 auto-schema）· #2（schema 照 API / 查 DB）· #6（冪等 + 主鍵穩定）· #1（不捏造）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.core.generic_schema              # 印用途+公開入口（唯讀）
+  python -m augur.core.generic_schema --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -276,3 +280,42 @@ def provision_and_upsert(cur, table, rows, require_keys=()):
     keys = detect_keys(rows, schema, require=require_keys)
     eff = ensure_table(cur, table, schema, keys)
     return upsert(cur, table, rows, schema, eff), schema, eff
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）：合成資料紅綠測型別推導 + 主鍵偵測之核心不變式。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # 值分類（#5 型別紀律地基）
+    chk("_is_num/_is_null/_is_date 基本", _is_num("1.5") and _is_null("") and _is_date("2026-06-30"))
+    chk("_is_date 拒非法日('2026-13-01')", not _is_date("2026-13-01"))
+    chk("_is_num 排除 bool", _is_num(True) is False)
+    # FORCE_STR 識別碼不被當數字（防前導零/大整數塌）：'0050' → 字串非 NUMERIC
+    s = infer_schema([{"stock_id": "0050", "date": "2026-06-30", "close": "12.5"}])
+    chk("FORCE_STR stock_id→字串(非 NUMERIC)", s["stock_id"].startswith("VARCHAR") or s["stock_id"] == "TEXT")
+    chk("乾淨日期→DATE", s["date"] == "DATE")
+    chk("純數字→NUMERIC 且守下限(20,6)", s["close"] == f"NUMERIC({NUMERIC_PRECISION},{NUMERIC_SCALE})")
+    # 混入非數字值 → 降級為字串容納全值域（#1 不丟列、#2 API 權威）
+    s2 = infer_schema([{"m": "200710"}, {"m": "200710/200711"}])
+    chk("數字欄混字串→退字串", s2["m"].startswith("VARCHAR") or s2["m"] == "TEXT")
+    # detect_keys 貪婪最小鍵 + require 強制補欄
+    rows = [{"stock_id": "1101", "date": "2026-06-30", "close": "1"},
+            {"stock_id": "1102", "date": "2026-06-30", "close": "2"}]
+    sch = infer_schema(rows)
+    chk("detect_keys 單日 sample stock_id 即唯一", detect_keys(rows, sch) == ["stock_id"])
+    chk("detect_keys require 補回 date", detect_keys(rows, sch, require=("date",)) == ["stock_id", "date"])
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.core.generic_schema --selftest;免 DB 免 API)")

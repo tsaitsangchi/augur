@@ -6,6 +6,10 @@
    model-batched:同 run 同模全跑完再換模(載入 ≤2 次)。llm_fn 注入式(測試可假 LLM 零 GPU)。
 
 守 #15(零 confirmed 權)· #10(rubric 快照入列、rationale 留痕)· #12(lens 住 DB 重用)。
+
+自測(本檔=library #18；免 DB 免 API 可個別驗證)：
+  python -m augur.deliberation.panel_judge              # 印用途+公開入口(唯讀)
+  python -m augur.deliberation.panel_judge --selftest   # 純紅綠自測(零 IO)
 """
 import json
 
@@ -52,3 +56,34 @@ def ranking(cur, proposal_ids):
     cur.execute("SELECT proposal_id, avg(score)::float8, count(*) FROM deliberation_panel_score "
                 "WHERE proposal_id = ANY(%s) GROUP BY 1 ORDER BY 2 DESC", (list(proposal_ids),))
     return cur.fetchall()
+
+
+def _selftest():
+    """自測(零 DB/零 API,可個別驗證 #29a):panel 全函式 IO-bound(需 cursor/llm_fn)→
+    import-smoke + 公開入口存在 + rubric/schema 結構斷言(把預註冊規準固化成回歸鎖)。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("公開入口存在(synthesize_panel/ranking 可呼)",
+        callable(synthesize_panel) and callable(ranking))
+    chk("RUBRIC 三軸齊(verifiability/soundness/completeness)",
+        set(RUBRIC["axes"]) == {"verifiability", "soundness", "completeness"})
+    chk("RUBRIC 有版本+尺規(快照可稽 #10)",
+        RUBRIC.get("version") == "rubric_v1" and "scale" in RUBRIC)
+    chk("SCORE_SCHEMA required=[score,rationale]",
+        SCORE_SCHEMA["required"] == ["score", "rationale"]
+        and SCORE_SCHEMA["type"] == "object")
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.deliberation.panel_judge --selftest;免 DB 免 API)")

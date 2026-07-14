@@ -10,6 +10,10 @@
    L2/L3 表未建或庫無此詞 → 誠實回空 [](誠實率 100% 機制,配 advisor.guard 固定誠實句)。
 守 #1(只回逐字原文、不生成不改寫)· #28(本地嵌入、零 LLM API)·
    憲章 v1.17.0(檢索層對預測表零寫入、與預測管線物理隔離)· #18。
+
+自測(本檔=library #18;免 DB 免 API 可個別驗證):
+  python -m augur.philosophy.retrieval              # 印用途+公開入口(唯讀)
+  python -m augur.philosophy.retrieval --selftest   # 純紅綠自測(零 IO)
 """
 import unicodedata
 from dataclasses import dataclass
@@ -426,3 +430,45 @@ def retrieve_attached(query, doc_text, doc_title, k=6):
                                         char_start=start, char_end=start + len(seg),
                                         source_url=f"附加文件:{doc_title}", score=float(s)))
     return out
+
+
+def _selftest():
+    """自測(零 DB/零 API,可個別驗證 #29a):合成輸入紅綠測純函式核心不變式——
+    is_low_content junk 判定邊界 · _guess_language CJK 分流 · _passages 逐字重組 ·
+    retrieve_attached 逐字子字串鐵則(#1:回原文子字串故 verify_verbatim 恆真)。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("is_low_content junk('--')擋", is_low_content("--") is True)
+    chk("is_low_content 純標點擋", is_low_content("’”’”’”’”’”’”") is True)
+    chk("is_low_content 實質引文放行", is_low_content("這是一段有實質內容的哲學引文段落") is False)
+    chk("_guess_language CJK→zh", _guess_language("道德經") == "zh")
+    chk("_guess_language 拉丁→en", _guess_language("virtue") == "en")
+    txt = "line1\nline2\nline3\n"
+    segs = _passages(txt, size=8)
+    chk("_passages 段逐字對位(seg==text[start:start+len])",
+        all(s == txt[st:st + len(s)] for st, s in segs))
+    chk("_passages 全覆蓋不漏字", "".join(s for _, s in segs) == txt)
+    doc = "蘇格拉底論德性\n未經檢視的人生不值得過\n哲學是練習死亡\n"
+    cites = retrieve_attached("德性", doc, "測試檔", k=3)
+    chk("retrieve_attached 回逐字子字串(text ⊂ doc)", bool(cites) and all(c.text in doc for c in cites))
+    chk("retrieve_attached 產出 verify_verbatim 恆真", all(verify_verbatim(c) for c in cites))
+    chk("retrieve_attached 空檔回 []", retrieve_attached("x", "", "空", k=3) == [])
+    chk("verify_verbatim(AttachedCitation)子字串他證真",
+        verify_verbatim(AttachedCitation(text="abc", source_text="xxabcyy", work_title="t")) is True)
+    chk("verify_verbatim(AttachedCitation)非子字串為假",
+        verify_verbatim(AttachedCitation(text="zzz", source_text="xxabcyy", work_title="t")) is False)
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.philosophy.retrieval --selftest;免 DB 免 API)")

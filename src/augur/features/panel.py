@@ -17,6 +17,10 @@ anti-leakage（#8）：面板日 t 之特徵只用價量 ≤ t（純後向 rolli
 邊界：只算特徵（不抓 API、不選股）；自建 `feature_values` 表（自建 DDL，CREATE IF NOT EXISTS）。
 
 守 #1（算不出即缺列、不存無源值）· #9（無 hardcoded 特定值）· #8（as-of ≤t 後向）· #5（NUMERIC 型別）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.features.panel              # 印用途+公開入口（唯讀）
+  python -m augur.features.panel --selftest   # 純紅綠自測（零 IO；紅綠鎖 source-pure 缺列/as-of 末列/YoY）
 """
 from __future__ import annotations
 
@@ -169,3 +173,43 @@ def build_panel(conn, panel_date, stock_ids, *, progress=None):
         if progress and i % 200 == 0:
             progress(f"  feature panel {panel_date}: {i}/{len(stock_ids)} 股、{written} 值")
     return {"panel_date": str(panel_date), "stocks": stocks, "values": written}
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）：合成 df/rev_rows 紅綠測純函式——
+    鎖 source-pure（只回 finite）、缺列（史不足即不出）、as-of 末列、月營收 YoY log 口徑。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    def _mkdf(n):
+        return pd.DataFrame({"close": [100.0 + i for i in range(n)], "volume": [1000.0] * n,
+                             "money": [1e5] * n, "turnover": [0.5] * n,
+                             "high": [101.0 + i for i in range(n)], "low": [99.0 + i for i in range(n)]})
+    f = compute_features(_mkdf(3))                      # 短史（n=3）
+    chk("features 短史含 return_1d", "return_1d" in f)
+    chk("features 短史無 252 窗特徵（缺列 #1）",
+        "momentum_252d" not in f and "cycle_position_252d" not in f)
+    chk("features 全 finite（source-pure #1）", all(np.isfinite(v) for v in f.values()))
+    chk("return_1d = as-of 末列 log 報酬（#8 後向）",
+        abs(f["return_1d"] - float(np.log(102 / 101))) < 1e-9)
+    # 月營收 YoY：DESC 排、rows[0]=最近月；查 (年-1,同月) 之 revenue
+    rev = [(date(2026, 1, 1), 110.0)] + [(date(2025, m, 1), 100.0) for m in range(12, 0, -1)]
+    chk("revenue_yoy log 口徑正確", abs(_compute_revenue_yoy(rev) - float(np.log(110 / 100))) < 1e-9)
+    chk("revenue_yoy <13 筆→None（缺列 #1）",
+        _compute_revenue_yoy([(date(2026, 1, 1), 100.0)]) is None)
+    chk("revenue_yoy 最新 revenue<=0→None（缺列 #1）",
+        _compute_revenue_yoy([(date(2026, 1, 1), 0.0)] + rev[1:]) is None)
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.features.panel --selftest;免 DB 免 API)")

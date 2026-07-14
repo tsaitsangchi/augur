@@ -14,6 +14,10 @@
 **不決定抓不抓 intraday**（日為最小單位 #4 之守門在 ingest.py，不在這層）。
 
 守 #17（節流/退避/重試韌性：主動限速三層防護）· #3（dataset 動態列舉、無 hardcoded 清單）· #2（欄名/大小寫照 API）· #1（回 API 原值，不捏造）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.ingestion.finmind              # 印用途+公開入口（唯讀）
+  python -m augur.ingestion.finmind --selftest   # 純紅綠自測（零 IO：dataset enum 解析 / retry 狀態集 / 常數）
 """
 from __future__ import annotations
 
@@ -234,3 +238,41 @@ def datalist(dataset, *, timeout=60):
     body = _protected_get(DATALIST_URL, query, f"datalist:{dataset}", timeout=timeout, max_retries=4, base_backoff=2.0)
     data = body.get("data")
     return data if isinstance(data, list) else []
+
+
+def _selftest():
+    """自測（零 IO：不觸 network/DB/API）：紅綠測純邏輯——422 enum 解析（#3 dataset 動態列舉）、
+    retry 狀態集（403/429/402/5xx 韌性 #17）、限速常數健全、公開入口存在。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # _DATASET_RE:422 detail enum 逐字解析出合法 dataset 名（list_datasets/translation_datasets 命脈 #3）
+    got = _DATASET_RE.findall("expected 'TaiwanStockPrice', 'FinancialStatements' or 'GoldPrice'")
+    chk("_DATASET_RE 解析 enum→dataset 名", got == ["TaiwanStockPrice", "FinancialStatements", "GoldPrice"])
+    chk("_DATASET_RE 空/無引號→[]", _DATASET_RE.findall("no quotes here") == [])
+    # retry 狀態集:額度/限流/IP封鎖 + gateway 暫時故障皆須可重試（撞 403 走固定冷卻、非立即拋）
+    chk("_RETRY_STATUS 含 403/429/402（限流/封鎖）", {402, 429, 403} <= set(_RETRY_STATUS))
+    chk("_RETRY_STATUS 含 5xx（gateway 暫時故障）", {500, 502, 503, 504} <= set(_RETRY_STATUS))
+    chk("_RETRY_STATUS 不含 200/422（成功/enum 探測不重試）", 200 not in _RETRY_STATUS and 422 not in _RETRY_STATUS)
+    # 限速/額度常數健全（#17/#24 主動防護的數值前提）
+    chk("MIN_INTERVAL 正（每請求最小間隔）", MIN_INTERVAL > 0)
+    chk("quota 常數正 + HEADROOM 為緩衝", QUOTA_HEADROOM > 0 and QUOTA_METER_EVERY > 0 and QUOTA_POLL > 0)
+    chk("FinMindError 為 RuntimeError 子類（呼叫端可 catch）", issubclass(FinMindError, RuntimeError))
+    # 公開入口存在（import-smoke 結構鎖：消費端簽名不被誤刪）
+    chk("公開入口齊備", all(callable(globals().get(n)) for n in
+        ("fetch", "fetch_dedicated", "list_datasets", "translation",
+         "translation_datasets", "datalist")))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.ingestion.finmind --selftest;免 DB 免 API)")

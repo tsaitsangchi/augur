@@ -7,6 +7,10 @@
    換嵌入模型=改這裡(SOP-A),collection 名自動換世代、舊世代不覆蓋。
 守 #12(單一住所)· #15(slug 確定性:同輸入必同輸出、無隨機)· #18(領域名詞)·
    e2e 計畫 §3-S6/§6(model_tag 含 '/' 為 Milvus 非法字元→縮寫映射函數單一住所=本檔)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.knowledge.embedspec              # 印用途+公開入口（唯讀）
+  python -m augur.knowledge.embedspec --selftest   # 純紅綠自測（零 IO）
 """
 import hashlib
 import re
@@ -62,3 +66,47 @@ def sync_scope(collection, language):
     if len(key) > 32:
         raise ValueError(f"同步鍵超過 32 字元(DB 欄寬): {key!r}")
     return key
+
+
+def _selftest():
+    """純紅綠自測(零 IO):固化 slug 確定性(#15)、維度登記、命名/長度預算不變式。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    def raises(fn, exc):                                        # 純:確認呼叫拋預期例外
+        try:
+            fn(); return False
+        except exc:
+            return True
+        except Exception:
+            return False
+
+    # slug 確定性(#15:同輸入必同輸出、無隨機;鎖 docstring 記載值)
+    chk("model_slug 確定性(冪等)", model_slug(MODEL_TAG) == model_slug(MODEL_TAG))
+    chk("model_slug 鎖值 ime5s30b1cd", model_slug(MODEL_TAG) == "ime5s30b1cd")
+    chk("model_slug 空 tag→ValueError", raises(lambda: model_slug("!!!"), ValueError))
+    # 維度登記(fail-closed:未登記=KeyError、不猜維)
+    chk("dim_for 現行=384", dim_for(MODEL_TAG) == 384)
+    chk("dim_for 未登記→KeyError", raises(lambda: dim_for("no/such-model"), KeyError))
+    # collection 命名:合法集內、長度/正則預算、封閉集外 fail loud
+    cn = collection_name("sentence", "works")
+    chk("collection_name 格式", cn == "kn_sent_wk_ime5s30b1cd_tn1")
+    chk("collection_name ≤26 且合法字元", len(cn) <= _NAME_MAX and bool(_NAME_RE.match(cn)))
+    chk("collection_name 壞 layer→ValueError", raises(lambda: collection_name("bad", "works"), ValueError))
+    chk("collection_name 壞 side→ValueError", raises(lambda: collection_name("sentence", "bad"), ValueError))
+    # 同步鍵:格式與 32 字元 DB 欄寬(不截斷、超長 fail loud)
+    chk("sync_scope 格式", sync_scope(cn, "en") == f"mv_{cn}_en")
+    chk("sync_scope 超長→ValueError", raises(lambda: sync_scope(cn, "toolonglang"), ValueError))
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.knowledge.embedspec --selftest;免 DB 免 API)")

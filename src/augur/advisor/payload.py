@@ -3,6 +3,10 @@
 🎯 as-of 快照凍結的真實預測(選股 + score + 驗證標籤)。frozen dataclass = 顧問**不可改一個數字**;
    所有數字帶 source_ref、trace 回真實模型輸出(#1);validation 帶誠實標籤(#15)。
 守 #1(數字 trace 真實模型)· #15(validation 誠實標籤)· 憲章 v1.17.0(顧問對此唯讀、零寫回)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.advisor.payload              # 印用途+公開入口（唯讀）
+  python -m augur.advisor.payload --selftest   # 純紅綠自測（零 IO）
 """
 from dataclasses import dataclass
 
@@ -258,3 +262,54 @@ def build_prediction_payload(as_of=None, horizon=60, top_n=None):
     return PredictionPayload(
         as_of=str(as_of), horizon=horizon, model="RankRidge H%d LO(部署主投組)" % horizon,
         picks=picks, validation=validation, probs=probs, prob_note=prob_note)
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）：合成 payload 紅綠測 frozen 不變式 + numbers() 白名單口徑——
+    guard 之數字白名單正確與否直繫 #1(輸出數字必 ∈ 此集合),故固化為回歸鎖。"""
+    from dataclasses import FrozenInstanceError
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    sp = StockPick("2330", 1, 0.87, "ref")
+    try:                                                   # frozen=顧問不可改一個數字(憲章 v1.17.0)
+        sp.score = 0.9
+        chk("StockPick frozen(顧問不可改)", False)
+    except FrozenInstanceError:
+        chk("StockPick frozen(顧問不可改)", True)
+    pp = PredictionPayload(
+        as_of="2026-05-31", horizon=60, model="M",
+        picks=(StockPick("2330", 1, 0.8765, "ref"),),
+        validation={"rank_ic": 0.14185, "note": "文字非數字"},
+        probs=(("2330", 20, 0.6789, "dead", 29),))
+    ns = pp.numbers()
+    chk("numbers 含 score(4dp)", round(0.8765, 4) in ns)
+    chk("numbers 含 rank(float)", 1.0 in ns)
+    chk("numbers 含 prob 值(4dp,A-10)", round(0.6789, 4) in ns)
+    chk("numbers 含 calendar_days(A-10)", 29.0 in ns)
+    chk("numbers 含 validation 數值(4dp)", round(0.14185, 4) in ns)
+    chk("numbers 排除 note 字串(僅收數字)", "文字非數字" not in ns)
+    kp = KnowledgePayload(as_of="2026-05-31", domain="chem", sql_numbers=frozenset({1.23456, 2.0}))
+    chk("Knowledge numbers(SQL 集合 4dp)", round(1.23456, 4) in kp.numbers())
+    ep = empty_payload()                                   # 非選股題:白名單空→模型自造數字全攔(更嚴不更鬆)
+    chk("empty_payload numbers=∅(guard 白名單空)", ep.numbers() == set())
+    chk("empty_payload picks 恆空(逆向閘 no-op)", ep.picks == ())
+    ex = example_payload()
+    chk("example_payload 3 picks", len(ex.picks) == 3)
+    chk("example score(0.87)∈ numbers", round(0.87, 4) in ex.numbers())
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("入口:StockPick / PredictionPayload / KnowledgePayload / example_payload / empty_payload /"
+          " build_prediction_payload")
+    print("(自測:python -m augur.advisor.payload --selftest;免 DB 免 API)")

@@ -11,6 +11,10 @@
 embargo 後折）；本層只算指標、不選樣本（樣本選擇＝walkforward 層職責）。stochastic ≥3 seed 統計由呼叫端跑。
 #14 經濟價值（top-N 報酬/MaxDD/Calmar）非本層——本層只到「排序預測力」；經濟價值需 portfolio 構造另計。
 守 #12（SSOT：rank IC/彙總公式唯一住此）· #15（誠實：raw/purged 雙口徑）· #11（IC 顯著性走 Eff-t、禁裸用 iid effective_t）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.evaluation.metrics              # 印用途+公開入口（唯讀）
+  python -m augur.evaluation.metrics --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -178,3 +182,59 @@ def sharpe_trial_variance(sharpes):
     if len(xs) < 2:
         return None
     return float(np.var(np.array(xs, dtype=float), ddof=1))
+
+
+def _selftest():
+    """自測（零 DB/零 API、純函式紅綠 #29a）：合成序列固化核心不變式——
+    rank IC ±1 邊界/共同股<2→None、summarize 彙總、HAC/SR_0 退化與樣本量守門。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # rank_ic：完全同序=+1、完全反序=−1（Spearman 邊界不變式）
+    perfect = rank_ic({"a": 1, "b": 2, "c": 3}, {"a": 10, "b": 20, "c": 30})
+    inverse = rank_ic({"a": 1, "b": 2, "c": 3}, {"a": 30, "b": 20, "c": 10})
+    chk("rank_ic 完全同序=+1", perfect is not None and abs(perfect - 1.0) < 1e-9)
+    chk("rank_ic 完全反序=−1", inverse is not None and abs(inverse + 1.0) < 1e-9)
+    chk("rank_ic 共同股<2→None", rank_ic({"a": 1}, {"a": 1, "b": 2}) is None)
+    chk("_ranks tie 取平均序位", _ranks([5, 5, 9]) == [0.5, 0.5, 2.0])
+
+    # summarize：正 IC 序列 → mean>0、hit_rate=1、effective_t>0；全 None → n_panels=0
+    s = summarize([0.1, 0.2, 0.3])
+    chk("summarize mean/hit/eff-t 一致", s["n_panels"] == 3 and s["mean_ic"] > 0
+        and s["hit_rate"] == 1.0 and s["effective_t"] > 0)
+    chk("summarize 全 None→n_panels=0", summarize([None, None])["n_panels"] == 0)
+
+    # effective_t_hac：n<3→None（樣本量守門）
+    chk("effective_t_hac n<3→None", effective_t_hac([0.1, 0.2]) is None)
+
+    # expected_max_sharpe：N≤1 或 Var=0 → 0.0（無選型偏誤）；N/Var↑→SR_0>0
+    chk("expected_max_sharpe N≤1→0", expected_max_sharpe(1, 0.5) == 0.0)
+    chk("expected_max_sharpe Var=0→0", expected_max_sharpe(50, 0.0) == 0.0)
+    chk("expected_max_sharpe 多試驗→>0", expected_max_sharpe(100, 0.5) > 0)
+
+    # sharpe_trial_variance：<2 有限值→None
+    chk("sharpe_trial_variance <2→None", sharpe_trial_variance([1.0]) is None)
+
+    # deflated_sharpe：T<2→dsr=None（無從算標準誤）；正常輸入→dsr∈[0,1]、haircut=SR_obs−SR_0
+    chk("deflated_sharpe T<2→dsr None", deflated_sharpe(1.0, 1, n_trials=10, sr_var=0.5)["dsr"] is None)
+    d = deflated_sharpe(2.0, 250, n_trials=100, sr_var=0.5)
+    chk("deflated_sharpe dsr∈[0,1] 且 haircut 一致",
+        d["dsr"] is not None and 0.0 <= d["dsr"] <= 1.0
+        and abs(d["haircut"] - (d["sr_obs"] - d["sr_0"])) < 1e-9)
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("入口:rank_ic / summarize / effective_t_hac / expected_max_sharpe /"
+          " deflated_sharpe / sharpe_trial_variance")
+    print("(自測:python -m augur.evaluation.metrics --selftest;免 DB 免 API)")

@@ -11,6 +11,10 @@
 
 執行指令矩陣(本檔=library;對話經 serve_advisor_openai 殼):
   python -c "from augur.advisor.answer import honesty_level; print(honesty_level('談談司馬法', []))"
+
+自測(本檔=library #18;免 DB 免 API 可個別驗證):
+  python -m augur.advisor.answer              # 印用途+公開入口(唯讀)
+  python -m augur.advisor.answer --selftest   # 純紅綠自測(零 IO)
 """
 from augur.advisor.guard import NO_KNOWLEDGE_RESPONSE, UNVERIFIED_ATTRIBUTION_RESPONSE
 from augur.core import db
@@ -48,3 +52,33 @@ def honesty_level(query, citations, sidecar_fn=unverified_attribution_lookup):
     if hits:
         return 2, UNVERIFIED_ATTRIBUTION_RESPONSE
     return 1, NO_KNOWLEDGE_RESPONSE
+
+
+def _selftest():
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # 分級器純函式紅綠(注入 stub sidecar_fn=零 IO,不觸 db)
+    lv3 = honesty_level("談談司馬法", ["真兆citation"], sidecar_fn=lambda q: ["不該被叫到"])
+    chk("有真兆→level 3+None(不介入)", lv3 == (3, None))
+    lv2 = honesty_level("談談司馬法", [], sidecar_fn=lambda q: ["司馬法"])
+    chk("空檢索+隔離命中→level 2+未驗句", lv2 == (2, UNVERIFIED_ATTRIBUTION_RESPONSE))
+    lv1 = honesty_level("不存在的東西", [], sidecar_fn=lambda q: [])
+    chk("空檢索+隔離無→level 1+庫中無句", lv1 == (1, NO_KNOWLEDGE_RESPONSE))
+    # 閉集不變式:兩固定句非空且相異(憲章 v1.25.0 閉集僅此二句)
+    chk("閉集二句非空且相異",
+        bool(NO_KNOWLEDGE_RESPONSE) and bool(UNVERIFIED_ATTRIBUTION_RESPONSE)
+        and NO_KNOWLEDGE_RESPONSE != UNVERIFIED_ATTRIBUTION_RESPONSE)
+    # IO-bound 入口結構斷言(不呼叫,僅確認公開名存在)
+    chk("旁查入口存在", callable(unverified_attribution_lookup))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.advisor.answer --selftest;免 DB 免 API)")

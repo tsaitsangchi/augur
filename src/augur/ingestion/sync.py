@@ -21,6 +21,10 @@
 授權下執行；本模組提供引擎與小範圍可測性。
 
 守 #3（動態列舉、無 hardcoded 清單）· #4（intraday 不收）· #6（冪等 + DB-driven 斷點續傳）· #1/#2（忠實落地）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.ingestion.sync              # 印用途+公開入口（唯讀）
+  python -m augur.ingestion.sync --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -576,3 +580,46 @@ def sync_all_by_date(conn, *, datasets=None, end=None, progress=print):
             progress(f"[{i}/{len(datasets)}] {ds}: {r['mode']} {r.get('rows', 0)} 列 / {r.get('requests', '-')} 筆"
                      + (f" / ⚠ 失敗 {len(fd)} 日: {fd[:5]}" if fd else ""))
     return results
+
+
+def _selftest():
+    """純紅綠自測（零 IO：不觸 DB/API/network）——鎖常數 + adaptive→catalog mode 對映 + 維度種子 +
+    公開入口存在（本檔多為 IO-bound 引擎，故以結構/對映不變式 + import-smoke 為回歸鎖）。"""
+    import sys
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("ROSTER_TABLE=TaiwanStockInfo", ROSTER_TABLE == "TaiwanStockInfo")
+    chk("FULL_START=1990-01-01（探測下界、非全史保險）", FULL_START == "1990-01-01")
+    chk("PER_STOCK_WORKERS 為正 int", isinstance(PER_STOCK_WORKERS, int) and PER_STOCK_WORKERS >= 1)
+    # adaptive mode → catalog mode 對映不變式（per-stock 兩路〔正常+fallback〕皆歸 per-stock、勿漏映）
+    chk("adaptive→catalog: per-stock/fallback 皆 per-stock",
+        _ADAPTIVE_TO_CATALOG_MODE["per-stock"] == "per-stock"
+        and _ADAPTIVE_TO_CATALOG_MODE["per-stock-fallback"] == "per-stock")
+    chk("adaptive→catalog: by-dimension-id→by-dim-id、market/by-date 恆等",
+        _ADAPTIVE_TO_CATALOG_MODE["by-dimension-id"] == "by-dim-id"
+        and _ADAPTIVE_TO_CATALOG_MODE["market"] == "market"
+        and _ADAPTIVE_TO_CATALOG_MODE["by-date"] == "by-date")
+    # 文檔種子:報酬指數僅 TAIEX/TPEx 兩維度 id（live-probe 證實全集、非臆測白名單）
+    chk("_DOC_SEED_IDS[TotalReturnIndex]=[TAIEX,TPEx]",
+        _DOC_SEED_IDS["TaiwanStockTotalReturnIndex"] == ["TAIEX", "TPEx"])
+    # import-smoke:公開入口皆載入可呼叫（誤刪/誤改簽名之回歸鎖）
+    m = sys.modules[__name__]
+    chk("公開入口齊備", all(callable(getattr(m, n, None)) for n in
+        ("seed_roster", "daily_datasets", "sync_finmind_dataset", "sync_by_date",
+         "sync_fred", "sync_all", "sync_all_by_date")))
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.ingestion.sync --selftest;免 DB 免 API)")

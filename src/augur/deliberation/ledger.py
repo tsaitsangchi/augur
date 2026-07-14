@@ -5,6 +5,10 @@
    verifiers.verify_claim)、**不含 LLM**(在 lens/engine)——純帳本(#12 職責單一)。
 
 守 #10(逐 claim 落庫可追溯)· #12(帳本 CRUD 單一住所)· #15(claim_text 為真實 LLM 輸出、anchor 為確定性正規化後)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.deliberation.ledger              # 印用途+公開入口（唯讀）
+  python -m augur.deliberation.ledger --selftest   # 純紅綠自測（零 IO）
 """
 import json
 import uuid
@@ -163,3 +167,33 @@ def finish_run(cur, run_id):
     st = "completed" if n_bad == 0 and n_all > 0 else "failed"
     cur.execute("UPDATE deliberation_run SET status=%s, finished_at=now() WHERE run_id=%s", (st, run_id))
     return st
+
+
+def _selftest():
+    """自測(零 DB/零 API、可個別驗證 #29a):純函式 new_session_id 紅綠 + _ICON 五態結構 + 公開入口存在。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    sid = new_session_id()
+    chk("new_session_id 前綴+長度(delib_+10hex=16)", sid.startswith("delib_") and len(sid) == 16)
+    chk("new_session_id 後綴為 hex", all(c in "0123456789abcdef" for c in sid[6:]))
+    chk("new_session_id 唯一(uuid、不撞號)", new_session_id() != new_session_id())
+    chk("_ICON 五態齊備", set(_ICON) == {"confirmed", "refuted", "escalated", "pending", "undecidable"})
+    chk("公開 CRUD 入口存在", all(callable(globals().get(n))
+        for n in ("open_session", "insert_claim", "close_session", "report", "recent")))
+    chk("模式10 run/task 入口存在", all(callable(globals().get(n))
+        for n in ("create_run", "resume_reset", "next_task", "mark_task", "finish_run")))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.deliberation.ledger --selftest;免 DB 免 API)")

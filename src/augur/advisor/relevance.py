@@ -31,6 +31,10 @@
 執行指令矩陣(本檔=library;主路徑經 advise() 呼叫):
   python -c "from augur.advisor.relevance import query_relevant; from types import SimpleNamespace as S; \
     print(query_relevant('多主柵MBB核心技術', [S(text='王陽明全集…', work_title='王陽明全集', thinker='王陽明')]))"
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.advisor.relevance              # 印用途+公開入口（唯讀）
+  python -m augur.advisor.relevance --selftest   # 純紅綠自測（零 IO）
 """
 import re
 
@@ -163,3 +167,43 @@ def picking_intent(query):
     """回 bool:query 是否為「要 augur 給選股結果/排序/推薦持股」之意圖(→ 注入真實預測 payload)。
     非選股(一般/知識/定義/單股財務數值查詢)→ False(走 empty_payload)。純機械、零 usage、可離線稽核。"""
     return bool(_PICK_INTENT.search(query or ""))
+
+
+def _selftest():
+    """自測(零 DB/零 API、純函式紅綠 #29a):固化本閘核心不變式——單 CJK 字不算辨識詞(Tier-2
+    死因回歸鎖)、專詞共現才判相關、空檢索必 decline、選股意圖判定;僅用本地 textnorm、零 IO。"""
+    from types import SimpleNamespace as S
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("RELEVANCE_FLOOR 常數=0.30", RELEVANCE_FLOOR == 0.30)
+    # _is_strong:單 CJK 字不強(能/太巧撞哲學原文之死因)、多字詞強;單 ascii 母不強、多字 ascii 強
+    chk("_is_strong 單 CJK 字不算(能/太)", not _is_strong("能") and not _is_strong("太"))
+    chk("_is_strong 多字詞算(知行合一/perovskite)", _is_strong("知行合一") and _is_strong("perovskite"))
+    chk("_is_strong 單 ascii 母不算、雙字算", not _is_strong("a") and _is_strong("mbb"))
+    # 空檢索 → 必 decline(#15;短路、零 textnorm)
+    chk("query_relevant 空 citations→False", query_relevant("多主柵MBB", []) is False)
+    # 專詞共現 → 相關放行(perovskite 非泛用字、雙側共享)
+    cite_on = [S(text="perovskite photovoltaic material 鈣鈦礦光伏")]
+    chk("query_relevant 專詞共現→True", query_relevant("perovskite solar cell", cite_on) is True)
+    # 離題引文(哲學原文)無專詞共現 → decline(擋 LLM 幻覺 #1)
+    cite_off = [S(text="論衡 王充 疾虛妄", work_title="論衡", thinker="王充")]
+    chk("query_relevant 離題哲學引文→False", query_relevant("perovskite solar cell", cite_off) is False)
+    chk("relevant_citations 只留相關子集", relevant_citations("perovskite solar", cite_on + cite_off) == cite_on)
+    # picking_intent:選股意圖 True、知識/定義題 False(純正則)
+    chk("picking_intent 選股題→True", picking_intent("該買什麼股票") and picking_intent("which stocks to buy"))
+    chk("picking_intent 知識題→False", not picking_intent("什麼是知行合一"))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.advisor.relevance --selftest;免 DB 免 API)")

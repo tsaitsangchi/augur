@@ -9,6 +9,10 @@ purged walk-forward 預測,每 panel 依預測排序組投組(long top 分位、
 
 口徑 reuse baseline 之 walk-forward / as-of(#12);log→simple 報酬正確複利;holding=h 須與 panel 間距對齊(季度⇄h≈60)。
 守 #8 · #12 · #14 · #15(gross/net 雙報、換手揭露、對比基準)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.evaluation.portfolio              # 印用途+公開入口（唯讀）
+  python -m augur.evaluation.portfolio --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -151,3 +155,51 @@ def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
             "bench_turnover": float(np.mean(bturns)), "n_periods": len(dates),
             "periods_per_year": round(ppy, 2), "span": f"{dates[0]}..{dates[-1]}",
             "dates": dates, "net_series": net, "gross_series": gross, "bench_series": bench, "ppy": ppy}
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）：合成資料紅綠測純函式——
+    drawdown_series/_metrics/_turnover/build_long_portfolio 核心不變式回歸鎖。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # drawdown_series:eq=cumprod(1+r)、dd=eq/peak−1≤0;+0.5 後 −0.5 → 最深回檔 −0.5
+    eq, dd = drawdown_series([0.5, -0.5])
+    chk("drawdown_series eq 複利([1.5,0.75])", abs(eq[0] - 1.5) < 1e-9 and abs(eq[1] - 0.75) < 1e-9)
+    chk("drawdown_series 最深回檔=−0.5", abs(dd.min() - (-0.5)) < 1e-9 and dd.max() <= 1e-12)
+    e0, d0 = drawdown_series([])
+    chk("drawdown_series 空序列→空", len(e0) == 0 and len(d0) == 0)
+
+    # _turnover:0=不變、1=全換、None=初次建倉、半換=0.5
+    chk("_turnover 完全不變=0", _turnover(["a", "b"], ["a", "b"]) == 0.0)
+    chk("_turnover 半換=0.5", _turnover(["a", "b"], ["a", "c"]) == 0.5)
+    chk("_turnover prev=None→1(初次)", _turnover(["a", "b"], None) == 1.0)
+
+    # _metrics:全正報酬 hit_rate=1、len<2→{}
+    m = _metrics([0.1, 0.1, 0.1], 1.0)
+    chk("_metrics 全正 hit_rate=1 · n=3", m.get("n") == 3 and m.get("hit_rate") == 1.0)
+    chk("_metrics len<2→{}", _metrics([0.1], 1.0) == {})
+
+    # build_long_portfolio:降序選 top、權重和=1、pred 加權第一名最大、空→[]
+    port = build_long_portfolio(["a", "b", "c", "d", "e"], [1, 2, 3, 4, 5], top_frac=0.4, weight="equal")
+    chk("build_long_portfolio nt=2 · 最強在前(e)", len(port) == 2 and port[0][0] == "e" and port[0][2] == 1)
+    chk("build_long_portfolio 等權和=1", abs(sum(w for _, w, _ in port) - 1.0) < 1e-9)
+    pw = build_long_portfolio(["a", "b", "c", "d", "e"], [1, 2, 3, 4, 5], top_frac=0.6, weight="pred")
+    chk("build_long_portfolio pred 加權第一名最大·和=1",
+        pw[0][1] > pw[-1][1] and abs(sum(w for _, w, _ in pw) - 1.0) < 1e-9)
+    chk("build_long_portfolio 空輸入→[]", build_long_portfolio([], []) == [])
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.evaluation.portfolio --selftest;免 DB 免 API)")

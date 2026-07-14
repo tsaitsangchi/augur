@@ -19,6 +19,10 @@ canonical 特徵集**由資料判定**（取面板內最大特徵集，反硬編
 （source-pure）+ 結構候選空間（真台股個股）。自建 core_universe 表（自建 DDL，CREATE IF NOT EXISTS）。
 
 守 #1（只收 source-pure 完整股）· #10（質>量，可少、不評分不排名）· #5（型別）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.universe.core_gate              # 印用途+公開入口（唯讀）
+  python -m augur.universe.core_gate --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -227,3 +231,37 @@ def build_universe_asof(conn, panel_dates, *, features=None, liquidity_pct=None,
             _write_build_meta(cur, "asof", pds, feats, liquidity_pct,
                               last_extra.get("liquidity_threshold"), conditional, summary[pds[-1]])
     return summary
+
+
+def _selftest():
+    import re
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # _conditional_str：純序列化（None/空→None、單鍵、多鍵;可考字串固化為回歸鎖）
+    chk("cond_str None→None", _conditional_str(None) is None)
+    chk("cond_str 空 dict→None", _conditional_str({}) is None)
+    chk("cond_str 單鍵", _conditional_str({"monthly_revenue_yoy": ("金融保險業", "金控業")})
+        == "monthly_revenue_yoy=金融保險業|金控業")
+    chk("cond_str 多鍵以 ; 分隔",
+        _conditional_str({"a": ("x",), "b": ("y", "z")}) == "a=x;b=y|z")
+    # _REAL_STOCK_PREDICATE 意圖：^[0-9] 收真股票代碼、排 roster 污染（產業名/指數名）
+    pat = re.compile(r"^[0-9]")
+    chk("真股票代碼過關(1101/00631L)", bool(pat.match("1101")) and bool(pat.match("00631L")))
+    chk("污染項被排(Automobile/TAIEX)", not pat.match("Automobile") and not pat.match("TAIEX"))
+    # 結構斷言：候選空間常數 + DDL（零 IO）
+    chk("ETF_INDUSTRY 3 項含 'ETF'", len(ETF_INDUSTRY) == 3 and "ETF" in ETF_INDUSTRY)
+    chk("CORE_TABLE 名", CORE_TABLE == "core_universe")
+    chk("三張 DDL 皆 CREATE IF NOT EXISTS",
+        all("CREATE TABLE IF NOT EXISTS" in d for d in (DDL, DDL_ASOF, DDL_META)))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.universe.core_gate --selftest;免 DB 免 API)")

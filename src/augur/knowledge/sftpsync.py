@@ -8,6 +8,10 @@
 
 守 #6(增量冪等、未變不重抓)· #5(不碰憑證;path 圍欄防惡意 server tar-slip)· #18(領域名詞)· #28(本地零 usage)·
    #24(不高併發;單連線循序)。
+
+自測(本檔=library #18;免 DB 免 API 可個別驗證):
+  python -m augur.knowledge.sftpsync              # 印用途+公開入口(唯讀)
+  python -m augur.knowledge.sftpsync --selftest   # 純紅綠自測(零 IO)
 """
 from __future__ import annotations
 
@@ -83,3 +87,36 @@ def iter_changed_files(client, remote_host, base_path, glob_pat, dest_dir, prior
 
 
 _safe_local = sftpbrowse._safe_local   # 圍欄復用單一住所(#12)
+
+
+def _selftest():
+    """純紅綠自測(零 IO):固化 path-traversal 圍欄不變式 + SyncedFile 結構 + 公開入口存在。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    base = "/tmp/augur_sftpsync_selftest"                    # 純字串:abspath/commonpath 皆不觸檔案系統
+    # 圍欄核心不變式(#5 防惡意 server tar-slip):合法 basename 過、越界一律 None
+    chk("正常 basename 過圍欄", _safe_local(base, "doc.pdf") == os.path.join(base, "doc.pdf"))
+    chk("含 / 分隔被擋", _safe_local(base, "sub/doc.pdf") is None)
+    chk("含 \\ 分隔被擋", _safe_local(base, "sub\\doc.pdf") is None)
+    chk("`..` 被擋", _safe_local(base, "..") is None)
+    chk("`.` 被擋", _safe_local(base, ".") is None)
+    chk("絕對路徑被擋", _safe_local(base, "/etc/passwd") is None)
+    chk("空名被擋", _safe_local(base, "") is None)
+    # SyncedFile 結構(CLI 記帳契約):七欄齊、change 語意保留
+    sf = SyncedFile("h", "/r/f", 1, 2, None, None, "skip")
+    chk("SyncedFile 七欄", (sf.remote_host, sf.remote_path, sf.remote_mtime, sf.size_bytes,
+                            sf.content_sha1, sf.local_path, sf.change) == ("h", "/r/f", 1, 2, None, None, "skip"))
+    # 公開入口存在(import-smoke)
+    chk("iter_changed_files 可呼叫", callable(iter_changed_files))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.knowledge.sftpsync --selftest;免 DB 免 API)")

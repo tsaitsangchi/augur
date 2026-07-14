@@ -21,6 +21,10 @@
 (收 stock_id→industry,金融類 Q1/Q3 用 60);屆時須改簽名+穿線全消費者、逐檔驗口徑。**未實作前勿讓 panel
 改為季中/月頻消費金融股財報**(會顯現此漏)。
 守 #8(anti-leakage:公開可得日 PIT gate、取代錯誤 date≤panel)· #9(10/45/90 為法律事實、非知識字典閾值)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.features.release_lag              # 印用途+公開入口（唯讀）
+  python -m augur.features.release_lag --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -65,3 +69,37 @@ def holdings_visible_cutoff(panel_date: date) -> date:
     供 SQL date <= cutoff 直用)。"""
     p = panel_date if isinstance(panel_date, date) else date.fromisoformat(str(panel_date)[:10])
     return p - timedelta(days=HOLDINGS_LAG_DAYS)
+
+
+def _selftest():
+    """純紅綠自測(零 IO):合成日期→斷言 as-of 口徑不變式(法定期限算術)。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # 月營收:date=公告月(資料月+1)→ 該公告月 15 日(5 月營收 date=6/1 → 6/15)
+    chk("revenue_release 6/1→6/15", revenue_release_date(date(2026, 6, 1)) == date(2026, 6, 15))
+    chk("revenue_released 邊界(6/15 已公告、6/14 未)",
+        revenue_released(date(2026, 6, 1), date(2026, 6, 15))
+        and not revenue_released(date(2026, 6, 1), date(2026, 6, 14)))
+    # 財報:Q1/Q2/Q3 季底 +45、年報(Q4)季底 +90(次年 3/31)
+    chk("financial_release Q1 3/31→+45=5/15", financial_release_date(date(2026, 3, 31)) == date(2026, 5, 15))
+    chk("financial_release 年報 12/31→+90=次年3/31", financial_release_date(date(2026, 12, 31)) == date(2027, 3, 31))
+    chk("financial_released 邊界(5/15 已、5/14 未)",
+        financial_released(date(2026, 3, 31), date(2026, 5, 15))
+        and not financial_released(date(2026, 3, 31), date(2026, 5, 14)))
+    # 集保:snapshot +7=公開日;cutoff 為其反函式(接受 date 與字串)
+    chk("holdings_release +7", holdings_release_date(date(2026, 7, 10)) == date(2026, 7, 17))
+    chk("holdings_cutoff date/str 皆 -7",
+        holdings_visible_cutoff(date(2026, 7, 17)) == date(2026, 7, 10)
+        and holdings_visible_cutoff("2026-07-17") == date(2026, 7, 10))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.features.release_lag --selftest;免 DB 免 API)")

@@ -12,6 +12,10 @@ augur 自身過四道漏斗 + 經濟價值 #14 實證回填（「驗證活下來
 守 #1（真實文獻禁 AI 生成）· #14/#15（假說須實證）· #16（clean-room）· #18（命名/標頭）。
 
 用法：PYTHONPATH=src python scripts/build_philosophy_framework.py   （建表 + 落地首批策展）
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.philosophy.framework              # 印用途+公開入口（唯讀）
+  python -m augur.philosophy.framework --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -398,3 +402,45 @@ def build_people(conn):
                     cur.execute("INSERT INTO school_thinker (school_id, thinker_id) VALUES (%s,%s) ON CONFLICT DO NOTHING",
                                 (sch_id[sn], tid)); n_link += 1
     return {"thinkers": n_th, "works": n_wk, "links": n_link}
+
+
+def _selftest():
+    """自測（零 DB/零 API，可個別驗證 #29a）：build/build_people 皆需 cursor（IO-bound）→
+    改測純策展常數 SEED/THINKERS/DDL 之結構不變式（把 #1/#15 該守的性質固化成回歸鎖）。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("公開入口齊(bootstrap/build/build_people)",
+        all(callable(globals().get(n)) for n in ("bootstrap", "build", "build_people")))
+    chk("DDL 九表且皆 CREATE TABLE",
+        len(DDL) == 9 and all("CREATE TABLE" in d for d in DDL))
+    chk("SEED 各學派齊備鍵(name/principles/sources)",
+        all({"name", "name_zh", "thesis", "principles", "sources"} <= set(s) for s in SEED))
+    chk("SEED name 唯一(對映 school.name UNIQUE)",
+        len({s["name"] for s in SEED}) == len(SEED))
+    dirs = [d for s in SEED for p in s["principles"] for _, d in p["factors"]]
+    chk("direction 恆 ±1(文獻預期 IC 方向假說)",
+        len(dirs) > 0 and all(d in (1, -1) for d in dirs))
+    src_types = [t for s in SEED for _, t in s["sources"]]
+    chk("source_type 禁 ai_generated(#1 呼應 DB CHECK)",
+        len(src_types) > 0 and all(t != "ai_generated" for t in src_types))
+    work_types = [w[3] for t in THINKERS for w in t.get("works", [])]
+    chk("work_type 禁 ai_generated(#1 呼應 DB CHECK)",
+        all(wt != "ai_generated" for wt in work_types))
+    names = {s["name"] for s in SEED}
+    chk("THINKERS schools 皆存在於 SEED(關聯不懸空)",
+        all(sn in names for t in THINKERS for sn in t.get("schools", [])))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.philosophy.framework --selftest;免 DB 免 API)")

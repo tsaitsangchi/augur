@@ -5,6 +5,10 @@
    契約=固定「anchor 只放參數本身、四 oracle 錨式範例」——與 anchors.py 之解析規則同錨。
 
 守 #29b(lens 住 DB)· #12(CONTRACT 單一住所)。前置=migrate_deliberation_ddl.py --run(deliberation_lens seed)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.deliberation.lens              # 印用途+公開入口（唯讀）
+  python -m augur.deliberation.lens --selftest   # 純紅綠自測（零 IO）
 """
 from augur.core import db
 from augur.deliberation.anchors import schema_grounding
@@ -45,3 +49,34 @@ def build_prompt(topic, target_block, lens, n):
     lenses = load_lenses()
     lp = lenses.get(lens) or lenses.get("skeptic") or _FALLBACK["skeptic"]
     return CONTRACT.format(n=n, lens=lp, topic=topic, target_block=target_block) + schema_grounding(topic)
+
+
+def _selftest():
+    """自測（零 DB/零 API）：CONTRACT 契約錨/佔位 + _FALLBACK 退路 純紅綠;公開入口皆需 DB(load_lenses),
+    故只鎖不需 IO 之契約不變式與入口存在性（import-smoke）。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    filled = CONTRACT.format(n=3, lens="<L>", topic="<T>", target_block="<B>")   # build_prompt 用 .format 填此四鍵→缺一即 KeyError
+    chk("CONTRACT 四佔位可填(n/lens/topic/target_block)",
+        "<L>" in filled and "<T>" in filled and "<B>" in filled and "3" in filled)
+    for v in ("information_schema", "db_query", "file_grep", "import_isolation"):   # 四 oracle 錨式契約(與 anchors.py 解析同錨)
+        chk(f"CONTRACT 列 verifier '{v}'", v in CONTRACT)
+    chk("CONTRACT import_isolation anchor 恆為 check_isolation", "check_isolation" in CONTRACT)
+    chk("_FALLBACK 含 skeptic 退路(DB 未建/空不炸)", "skeptic" in _FALLBACK and bool(_FALLBACK["skeptic"]))
+    chk("公開入口存在 load_lenses/lens_keys/build_prompt",
+        callable(load_lenses) and callable(lens_keys) and callable(build_prompt))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.deliberation.lens --selftest;免 DB 免 API)")

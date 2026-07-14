@@ -11,6 +11,10 @@
 特徵須另過 #8 anti-leakage / #11 五鏡漏斗（本表非生產特徵）。
 
 守 #1（真值、缺即 NaN 不補）· #5（NUMERIC）· #6（upsert 冪等）· #15（n_obs 揭露、相關無定義即不寫、不靜默）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.audit.field_correlation              # 印用途+公開入口（唯讀）
+  python -m augur.audit.field_correlation --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -250,3 +254,57 @@ def cross_stock_summary(conn, *, method="spearman", basis="change", min_stocks=3
             (method, basis, min_stocks))
         cols = [d[0] for d in cur.description]
         return pd.DataFrame(cur.fetchall(), columns=cols)
+
+
+def _selftest():
+    """純函式紅綠 + 結構斷言（合成面板→算相關；零 IO、不碰 DB/API）。"""
+    import numpy as np
+    import pandas as pd
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # 合成面板:a↑、b=2a+1(完全正相關)、c=-a(完全負相關)
+    idx = pd.date_range("2020-01-01", periods=80)
+    base = pd.Series(np.arange(80, dtype=float), index=idx)
+    df = pd.DataFrame({"a": base, "b": 2 * base + 1.0, "c": -base}, index=idx)
+
+    res = compute_correlations(df, min_obs=10)
+    d = {(a, b, m, ba): (n, c) for (a, b, m, ba, n, c) in res}
+    # 完全正/負相關固化為回歸鎖(level basis)
+    chk("perfect +corr = 1.0", d.get(("a", "b", "pearson", "level"), (0, None))[1] == 1.0)
+    chk("perfect -corr = -1.0", d.get(("a", "c", "pearson", "level"), (0, None))[1] == -1.0)
+    chk("spearman +corr = 1.0", d.get(("a", "b", "spearman", "level"), (0, None))[1] == 1.0)
+    # 上三角(field_a<field_b)、tuple arity=6、corr∈[-1,1]
+    chk("tuple arity=6", all(len(r) == 6 for r in res))
+    chk("upper-triangle field_a<field_b", all(a < b for (a, b, *_ ) in res))
+    chk("corr in [-1,1]", all(-1.0 <= c <= 1.0 for (*_, c) in res))
+    # level n_obs = 全 80 列共同非空
+    chk("level n_obs=80", d.get(("a", "b", "pearson", "level"), (0, None))[0] == 80)
+    # min_obs 閘:門檻高於樣本數 → 不寫(空、不靜默補值)
+    chk("min_obs gate → empty", compute_correlations(df, min_obs=1000) == [])
+
+    # lead-lag(#8 anti-leakage:predictor≤t、報酬 t+1 起):合成含 close 面板可算、回 list、arity=6
+    df2 = df.copy(); df2["close"] = base + 100.0
+    ll = compute_leadlag(df2, horizons=(1,), min_obs=5)
+    chk("leadlag returns list", isinstance(ll, list))
+    chk("leadlag arity=6", all(len(r) == 6 for r in ll))
+
+    # 結構斷言:關鍵常數/公開入口存在
+    chk("consts present", TABLE == "field_correlation" and LEADLAG_TABLE == "field_return_leadlag"
+        and LEADLAG_HORIZONS == (1, 5, 20) and isinstance(MIN_OBS, int))
+    chk("public entries present", all(callable(g) for g in (
+        build_stock_panel, compute_correlations, analyze_stock, compute_leadlag,
+        analyze_stock_leadlag, cross_stock_leadlag_summary, cross_stock_summary, bootstrap)))
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.audit.field_correlation --selftest;免 DB 免 API)")

@@ -12,6 +12,10 @@ walkforward 層負責（本層只造 label、不切分）。
 #8 anti-leakage：t+1 進場 + 還原價；#1 source-pure：PriceAdj 真值、算不出（資料不足/停牌 close≤0）→ 缺列。
 #12 SSOT：label 構造唯一住此、所有 validator import（跨模型/週期可比）。
 守 #8（anti-leakage：t+1 進場 + 還原價）· #1（source-pure：算不出即缺列）· #12（SSOT：label 構造唯一住此）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.evaluation.label              # 印用途+公開入口（唯讀）
+  python -m augur.evaluation.label --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -116,3 +120,36 @@ def labels(conn, panel_date, stock_ids, h, *, calendar=None):
     回 {stock_id: 0-1 rank}；算不出之股不含（#1）。raw return 需要時呼叫 forward_returns 取。
     `calendar`：批次評估時傳 full_calendar 結果，免重複全表掃描（向後相容、預設 None=自行 query）。"""
     return cross_sectional_rank(forward_returns(conn, panel_date, stock_ids, h, calendar=calendar))
+
+
+def _selftest():
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # _entry_exit：t+1 進場口徑（純函式、零 IO）
+    e, x = _entry_exit([10, 11, 12, 13], 2)                   # 湊得到 1+h 個交易日
+    chk("_entry_exit t+1 進場=cal[0]、exit=cal[h]", e == 10 and x == 12)
+    chk("_entry_exit 日曆不足→(None,None) 不外推(#8)", _entry_exit([10], 2) == (None, None))
+    # cross_sectional_rank：橫斷面百分位（弱 0、強 1）
+    chk("rank 空→空", cross_sectional_rank({}) == {})
+    chk("rank 單股→0.5", cross_sectional_rank({"A": 1.3}) == {"A": 0.5})
+    r = cross_sectional_rank({"A": 1.0, "B": 2.0, "C": 3.0})  # 弱→強 = 0/0.5/1
+    chk("rank 三股 0/0.5/1(弱0強1)", r == {"A": 0.0, "B": 0.5, "C": 1.0})
+    t = cross_sectional_rank({"A": 1.0, "B": 1.0})            # tie 取平均序位
+    chk("rank tie 取平均序位→均 0.5", t == {"A": 0.5, "B": 0.5})
+    chk("rank 略 None/非有限值", cross_sectional_rank({"A": None}) == {})
+    # 結構斷言：IO-bound 公開入口存在（不呼叫、零 IO）
+    chk("公開入口齊備", all(callable(g) for g in (full_calendar, forward_returns, labels)))
+    chk("ADJ_TABLE=PriceAdj、HORIZONS 含 5/20/60/252",
+        ADJ_TABLE == "TaiwanStockPriceAdj" and set(HORIZONS) == {5, 20, 60, 252})
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.evaluation.label --selftest;免 DB 免 API)")

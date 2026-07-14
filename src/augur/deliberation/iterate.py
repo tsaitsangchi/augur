@@ -8,6 +8,10 @@
    llm_fn 注入式(llm_fn(prompt, schema)->dict):生產傳 qwen 包裝、測試傳假 LLM(零 GPU 可測)。
 
 守 #15(裁決全出 oracle、panel/迭代零 confirmed 權)· #10(逐轉移落帳可溯)· #12(裁決管線全複用)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.deliberation.iterate              # 印用途+公開入口（唯讀）
+  python -m augur.deliberation.iterate --selftest   # 純紅綠自測（零 IO）
 """
 import json
 
@@ -88,3 +92,37 @@ def run_iteration(cur, llm_fn, topic, target=None, max_rounds=MAX_ROUNDS, model=
     cur.execute("UPDATE deliberation_session SET finished_at=now(), duration_s=EXTRACT(EPOCH FROM now()-created_at) "
                 "WHERE session_id=%s", (sid,))                      # D3:iterate 路徑補 duration(P3 實證缺口)
     return final_id
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）:本檔全 IO-bound(每個入口需 cur/llm_fn)→
+    import-smoke + 凍結常數/schema 結構斷言(把不變式固化成回歸鎖)。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    import augur.deliberation.iterate as m
+    chk("import-smoke:模組已載入", m is not None)
+    chk("公開入口 run_iteration 存在且可呼叫", hasattr(m, "run_iteration") and callable(m.run_iteration))
+    chk("MAX_ROUNDS 凍結=3(§3.2)", MAX_ROUNDS == 3)
+    chk("DRAFT_SCHEMA required=[draft,claims]", DRAFT_SCHEMA.get("required") == ["draft", "claims"])
+    chk("DRAFT_SCHEMA claims 複用 CLAIM_SCHEMA(#12)",
+        DRAFT_SCHEMA["properties"]["claims"] is CLAIM_SCHEMA["properties"]["claims"])
+    chk("ATTACK_SCHEMA severity enum=fatal/major/minor",
+        ATTACK_SCHEMA["properties"]["critiques"]["items"]["properties"]["severity"]["enum"]
+        == ["fatal", "major", "minor"])
+    chk("verify_claim 為唯一 confirmed 寫點(裁決管線複用 #15)", callable(verify_claim))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("入口:run_iteration(cur, llm_fn, topic, ...)  # DRAFT→ATTACK→REFINE→VERIFY 自我迭代")
+    print("(自測:python -m augur.deliberation.iterate --selftest;免 DB 免 API)")

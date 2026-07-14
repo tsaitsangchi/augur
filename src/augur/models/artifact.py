@@ -4,6 +4,10 @@
    存成單一 .joblib;predict 時載回 = 離線訓練與上線預測用同一個 artifact(不重算、冪等 resume #6)。
    feats_hash = 特徵集口徑鎖:predict 若當下 canonical 特徵集與 artifact 凍結時不符即拒載(防漂移)。
 守 #6(冪等 resume)· #15(feats/as_of 凍結入 artifact、可重現)· 隔離不變式。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.models.artifact              # 印用途+公開入口（唯讀）
+  python -m augur.models.artifact --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -37,3 +41,29 @@ def load(path):
     """載 artifact dict(estimator/feats/horizon/asof_snapshot/family/seed/feats_hash)。"""
     import joblib
     return joblib.load(path)
+
+
+def _selftest():
+    """自測（零 IO）：純測 feats_hash 之口徑鎖不變式——順序無關、feats 變則變、格式穩定。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    h = feats_hash(["b", "a", "c"])
+    chk("feats_hash 順序無關(sorted)", h == feats_hash(["c", "b", "a"]))
+    chk("feats_hash 集合變則 hash 變(防漂移)", feats_hash(["a", "b"]) != feats_hash(["a", "b", "c"]))
+    chk("feats_hash 格式=16 位 hex", len(h) == 16 and all(c in "0123456789abcdef" for c in h))
+    chk("feats_hash 確定性(同輸入同值)", feats_hash(["x", "y"]) == feats_hash(["x", "y"]))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.models.artifact --selftest;免 DB 免 API)")

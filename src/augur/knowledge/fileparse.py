@@ -8,6 +8,10 @@
 
 執行指令矩陣(本檔=library;CLI 見 scripts/acquire_local_files.py):
   python -c "from augur.knowledge.fileparse import extract_text; print(extract_text('X.pdf'))"
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.knowledge.fileparse              # 印用途+公開入口（唯讀）
+  python -m augur.knowledge.fileparse --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -139,3 +143,29 @@ def extract_text(path):
         return None, "unknown_ext"                 # 二進位/未支援 → 誠實跳過(不杜撰)
     except Exception:
         return None, "parse_error"                 # 損壞/權限/解析崩 → skip(不崩整批)
+
+
+def _selftest():
+    """純紅綠自測(零 IO):固化 skip 分類/文字副檔集/大小上限/抽取器入口等結構不變式。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    chk("MAX_BYTES=50MB", MAX_BYTES == 50 * 1024 * 1024)
+    chk("SKIP 全八類齊備", set(SKIP) == {"oversize", "symlink", "empty", "decode_error",
+                                        "parse_error", "encrypted", "unknown_ext", "no_text"})
+    chk(".pdf 不在 _TEXT_EXT(走專屬抽取器)", ".pdf" not in _TEXT_EXT)
+    chk(".txt/.md/.csv/.json 屬純文字集", {".txt", ".md", ".csv", ".json"} <= _TEXT_EXT)
+    chk("公開入口 extract_text 存在", callable(extract_text))
+    chk("各格式抽取器齊備", all(callable(f) for f in
+                              (_read_text, _read_pdf, _read_docx, _read_pptx, _read_xlsx, _read_epub)))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.knowledge.fileparse --selftest;免 DB 免 API)")

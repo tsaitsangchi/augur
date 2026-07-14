@@ -5,6 +5,10 @@
    GATE 快照對齊 §2.2 判準6);表缺列 → fail-safe 回「全關快路」(寧保守不擅開;#15)。
 
 守 #29b(config 住 DB)· #12(config 讀取單一住所)· #15(缺列 fail-safe 全關)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.deliberation.engine_config              # 印用途+公開入口（唯讀）
+  python -m augur.deliberation.engine_config --selftest   # 純紅綠自測（零 IO）
 """
 import hashlib
 import json
@@ -30,3 +34,32 @@ def load_rules(cur, key="fast_anchor_rules", fresh=False):
     out = (row[0], row[1]) if row else ({}, None)
     _CACHE[key] = out
     return out
+
+
+def _selftest():
+    """自測（零 DB/零 API）：合成 config 紅綠測 config_sha(純正規化 sha)+ load_rules 結構斷言。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("config_sha 決定性(同輸入同 sha)", config_sha({"a": 1}) == config_sha({"a": 1}))
+    chk("config_sha 鍵序不變(排序鍵正規化)", config_sha({"a": 1, "b": 2}) == config_sha({"b": 2, "a": 1}))
+    chk("config_sha 不同輸入不同 sha", config_sha({"a": 1}) != config_sha({"a": 2}))
+    s = config_sha({"L6_pytest": False})
+    chk("config_sha 回 16 位 hex", isinstance(s, str) and len(s) == 16 and all(c in "0123456789abcdef" for c in s))
+    chk("load_rules 公開入口存在", callable(load_rules))
+    chk("_CACHE 為 process cache dict", isinstance(_CACHE, dict))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("入口:load_rules / config_sha")
+    print("(自測:python -m augur.deliberation.engine_config --selftest;免 DB 免 API)")

@@ -8,6 +8,10 @@
 
 守 #8（橫斷面 z 只用該 panel 當下宇宙、不跨日、不洩漏未來）· #11/#14（過四道漏斗+提拔關卡+經濟價值）·
    #12（口徑與 verify 同源）· #18（領域名詞、eval 層派生變換）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.evaluation.cross_section              # 印用途+公開入口（唯讀）
+  python -m augur.evaluation.cross_section --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -49,3 +53,43 @@ def augment(X, feats, want):
     if not add_cols:
         return X, list(feats)
     return np.column_stack([X, *add_cols]), list(feats) + add_names
+
+
+def _selftest():
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # 註冊表結構：交互＝兩成分 tuple
+    chk("INTERACTIONS 含 inter_fh_x_p10yr", "inter_fh_x_p10yr" in INTERACTIONS)
+    chk("成分為 (foreign_holding_pct, price_to_10yr)",
+        INTERACTIONS["inter_fh_x_p10yr"] == ("foreign_holding_pct", "price_to_10yr"))
+    # _z：橫斷面 z 均值≈0（#8 口徑）
+    z = _z(np.array([1., 2., 3.]))
+    chk("_z 均值≈0", abs(z.mean()) < 1e-6)
+    # _z：常數輸入不炸（除零護欄 +1e-9）→ 全 0
+    chk("_z 常數輸入→全0", np.allclose(_z(np.array([5., 5., 5.])), 0.0))
+    # augment：尾端 append 交互欄、股(列)不變、既有欄序不動
+    X = np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]])
+    feats = ["foreign_holding_pct", "price_to_10yr", "other"]
+    X2, f2 = augment(X, feats, ["inter_fh_x_p10yr"])
+    chk("augment 列數不變、加一欄", X2.shape == (3, 4))
+    chk("augment 欄名尾端加交互", f2 == feats + ["inter_fh_x_p10yr"])
+    chk("augment 既有欄序不動", np.array_equal(X2[:, :3], X))
+    chk("augment 交互值=z(a)×z(b)",
+        np.allclose(X2[:, 3], _z(X[:, 0]) * _z(X[:, 1])))
+    # augment：空 want / 空 X → 原樣回、feats 為 list 副本
+    chk("augment 空 want 原樣回", augment(X, feats, [])[1] == feats)
+    # augment：成分不在 feats 之交互略過
+    X3, f3 = augment(X[:, :1], ["foreign_holding_pct"], ["inter_fh_x_p10yr"])
+    chk("augment 缺成分則略過", f3 == ["foreign_holding_pct"] and X3.shape == (3, 1))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.evaluation.cross_section --selftest;免 DB 免 API)")

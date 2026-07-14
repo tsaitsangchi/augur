@@ -17,6 +17,10 @@
 
 守 #15(工具實證、LLM 意見零證據力)· #5(唯讀白名單沙箱)· #6(裁決冪等可重跑)· #12(封閉集
    單一住所=本檔+DDL CHECK 同錨)。SSOT=本地審議引擎計畫 v1 + 前身 augur_deliberation_orchestrator_plan_20260709.md。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.deliberation.verifiers              # 印用途+公開入口（唯讀）
+  python -m augur.deliberation.verifiers --selftest   # 純紅綠自測（零 IO）
 """
 import json
 import re
@@ -191,3 +195,45 @@ def _verify_claim_impl(cur, claim_id):
     cur.execute("UPDATE deliberation_claim SET status=%s WHERE claim_id=%s", (new_status, claim_id))
     return {"claim_id": claim_id, "verdict": verdict, "status": new_status,
             "verdict_id": vid, "evidence": evidence}
+
+
+def _selftest():
+    """純紅綠自測（零 IO）：固化 anchor 契約 fail-closed 與唯讀白名單守則——所有 case 皆在觸 DB/檔/子程序
+    前即回 undecidable，故不觸網路/DB/檔案讀取。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # 封閉集結構:5 真 oracle,dispatch 表與 ORACLES 同錨(#12)
+    chk("ORACLES=5 且 dispatch 同錨", len(ORACLES) == 5 and set(_DISPATCH) == set(ORACLES))
+    # run_verifier:非封閉集 oracle → undecidable(fail-closed)
+    chk("未知 verifier→undecidable", run_verifier("bogus", "x")[0] == "undecidable")
+    # information_schema:壞 anchor(大寫/三段)在觸 DB 前即 undecidable
+    chk("info_schema 大寫 anchor→undecidable", _v_information_schema("BAD")[0] == "undecidable")
+    chk("info_schema 三段 anchor→undecidable", _v_information_schema("a.b.c")[0] == "undecidable")
+    # import_isolation:非正典式 anchor→undecidable(在 import check_isolation 前)
+    chk("import_isolation 錯 anchor→undecidable", _v_import_isolation("wrong")[0] == "undecidable")
+    # file_grep:無分隔/路徑逃逸/秘密檔 denylist——皆在讀檔前 undecidable
+    chk("file_grep 無::→undecidable", _v_file_grep("no_sep")[0] == "undecidable")
+    chk("file_grep 逃逸 repo→undecidable", _v_file_grep("../../etc/passwd::x")[0] == "undecidable")
+    chk("SECRET_DENY 擋 .env/金鑰", bool(_SECRET_DENY.search(".env")) and bool(_SECRET_DENY.search("k.key")))
+    # db_query:缺比較式/非 SELECT/含分號/寫入詞——皆在觸 DB 前 undecidable(唯讀白名單)
+    chk("db_query 缺 =>op→undecidable", _v_db_query("SELECT 1")[0] == "undecidable")
+    chk("db_query 非 SELECT→undecidable", _v_db_query("DELETE FROM t => == 1")[0] == "undecidable")
+    chk("db_query 含分號→undecidable", _v_db_query("SELECT 1; DROP => == 1")[0] == "undecidable")
+    chk("DB_FORBIDDEN 擋寫入詞、放行純讀",
+        bool(_DB_FORBIDDEN.search("select insert")) and not _DB_FORBIDDEN.search("select 1"))
+    # pytest:node 須 tests/ 下,否則在觸 subprocess 前 undecidable
+    chk("pytest 非 tests/→undecidable", _v_pytest("src/foo.py::test")[0] == "undecidable")
+    # 比較運算子純函式
+    chk("_CMP 比較正確", _CMP["=="](1, 1) and _CMP[">"](2, 1) and _CMP["<="](1, 1) and not _CMP["!="](1, 1))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.deliberation.verifiers --selftest;免 DB 免 API)")

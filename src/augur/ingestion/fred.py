@@ -19,6 +19,10 @@
 具體要抓哪些 series（及各檔走不走 vintage）由呼叫端（features/macro.py）決定，本 client 不持清單。
 
 守 #8（vintage＝anti-leakage PIT）· #17（節流/退避/重試）· #2（欄名照 API + series_id 主鍵）· #1（"." → NULL）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.ingestion.fred              # 印用途+公開入口（唯讀）
+  python -m augur.ingestion.fred --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -110,3 +114,37 @@ def fetch(series_id, *, start_date=None, end_date=None, vintage=False,
         ]
 
     raise FredError(f"{series_id}: 重試耗盡")   # 理論上到不了
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）：本檔全 IO-bound（fetch 需連線）→ import-smoke
+    + 公開入口/例外結構斷言 + fetch 簽名預設值（vintage 預設 False＝Tier A、退避參數）之回歸鎖。"""
+    import inspect
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("公開入口 fetch 可呼叫", callable(fetch))
+    chk("FredError 為 RuntimeError 子類", issubclass(FredError, RuntimeError))
+    chk("API_URL 指向 FRED observations 端點",
+        isinstance(API_URL, str) and API_URL.startswith("https://") and "observations" in API_URL)
+    sig = inspect.signature(fetch)
+    p = sig.parameters
+    chk("fetch 有 series_id 位置參數", "series_id" in p)
+    chk("fetch vintage 預設 False（Tier A、非 PIT 全 vintage）", p["vintage"].default is False)
+    chk("fetch 退避參數存在（節流/重試 #17）",
+        p["max_retries"].default == 4 and p["base_backoff"].default == 2.0)
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("入口:fetch / FredError")
+    print("(自測:python -m augur.ingestion.fred --selftest;免 DB 免 API)")

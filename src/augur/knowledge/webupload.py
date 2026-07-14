@@ -5,6 +5,10 @@
    純 stdlib、binary-safe、免 cgi(Python 3.13 已移除);單檔大小/符號連結防護在 fileparse。
    一處實作、admin 與 chat 共用——安全敏感的 multipart 解析不重複兩份(改一漏一之維護坑)。
 守 #1(逐字、不改寫)· #5(path traversal/大小防護)· #18(webupload=領域名詞,免 admin/chat 各寫一份)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.knowledge.webupload              # 印用途+公開入口（唯讀）
+  python -m augur.knowledge.webupload --selftest   # 純紅綠自測（零 IO）
 """
 import os
 import secrets
@@ -113,3 +117,47 @@ def extract_texts(files):
         else:
             skipped += 1
     return "\n\n".join(parts), {"parsed": parsed, "skipped": skipped, "titles": titles}
+
+
+def _selftest():
+    """純紅綠自測(零 IO):鎖 path-traversal 去逃逸、Content-Disposition 取值、multipart 解析不變式。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # sanitize_relpath:剝 ../、絕對、空段(#5 命門——traversal 逃逸須全清)
+    chk("relpath 剝 ..", sanitize_relpath("../../etc/passwd") == os.path.join("etc", "passwd"))
+    chk("relpath 剝絕對", sanitize_relpath("/abs/x.txt") == os.path.join("abs", "x.txt"))
+    chk("relpath 剝 . 空段", sanitize_relpath("a/./b//c") == os.path.join("a", "b", "c"))
+    chk("relpath 純 .. → None", sanitize_relpath("../..") is None)
+    chk("relpath 空 → None", sanitize_relpath("") is None)
+    # _cd_param:取 key="value"、無則 None(免 re)
+    disp = 'form-data; name="file"; filename="a.txt"'
+    chk("cd_param name", _cd_param(disp, "name") == "file")
+    chk("cd_param filename", _cd_param(disp, "filename") == "a.txt")
+    chk("cd_param 缺鍵 → None", _cd_param('form-data; name="x"', "filename") is None)
+    # parse_multipart:欄位/檔案分流、binary-safe、末尾 -- 不誤收
+    raw = (b'--BOUND\r\nContent-Disposition: form-data; name="scope"\r\n\r\npublic\r\n'
+           b'--BOUND\r\nContent-Disposition: form-data; name="f"; filename="a.txt"\r\n\r\nhello\r\n'
+           b'--BOUND--\r\n')
+    fields, files = parse_multipart(raw, "BOUND")
+    chk("multipart 欄位", fields == {"scope": "public"})
+    chk("multipart 檔案", files == [("a.txt", b"hello")])
+    # 空 filename(未選檔)略過、只留真檔
+    raw2 = (b'--B\r\nContent-Disposition: form-data; name="f"; filename=""\r\n\r\n\r\n'
+            b'--B--\r\n')
+    _f2, files2 = parse_multipart(raw2, "B")
+    chk("空 filename 略過", files2 == [])
+    # 常數結構斷言(SCOPES 對映 access_scope、LICENSES 承 corpus SSOT)
+    chk("SCOPES 含 public/local_private", set(SCOPES) == {"public", "local_private"})
+    chk("LICENSES 非空", isinstance(LICENSES, (tuple, list)) and len(LICENSES) > 0)
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.knowledge.webupload --selftest;免 DB 免 API)")

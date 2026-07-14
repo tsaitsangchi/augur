@@ -7,6 +7,10 @@
 安全（#5）：SSH 金鑰認證（key_filename/ssh-agent）、config 0600、每檔大小上限、遞迴檔數上限（防超大樹）、
    host key 首次以 AutoAdd 信任（連自有主機之務實取捨，MITM 風險見 docstring）。入庫仍過 license DB CHECK。
 守 #1（逐字入庫、可溯源）· #5（金鑰不外洩/大小上限）· #18（sftpbrowse=領域名詞）· #28（本地觸發零 Claude usage）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.knowledge.sftpbrowse              # 印用途+公開入口（唯讀）
+  python -m augur.knowledge.sftpbrowse --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -177,3 +181,39 @@ def fetch_to_upload(conn_name, path):
     updir = os.path.join(webupload.UPLOAD_ROOT, "sftp_" + secrets.token_hex(6))
     stats = download_tree(conn_name, path, updir)
     return updir, stats
+
+
+def _selftest():
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # _safe_local path-traversal 圍欄（純字串/路徑運算、零 IO；固化對抗審查 blocker 不變式）
+    base = "/tmp/aug_selftest_base"
+    chk("正常檔名回 base 內路徑", _safe_local(base, "a.txt") == os.path.join(base, "a.txt"))
+    chk("`..` 拒（回 None）", _safe_local(base, "..") is None)
+    chk("`.` 拒", _safe_local(base, ".") is None)
+    chk("含 / 拒", _safe_local(base, "a/b") is None)
+    chk("含反斜線拒", _safe_local(base, "a\\b") is None)
+    chk("絕對路徑拒", _safe_local(base, "/etc/passwd") is None)
+    chk("空名拒", _safe_local(base, "") is None)
+    # 常數合理性
+    chk("MAX_TREE_FILES>0", MAX_TREE_FILES > 0)
+    chk("MAX_TREE_DEPTH>0", MAX_TREE_DEPTH > 0)
+    chk("CONNECT_TIMEOUT>0", CONNECT_TIMEOUT > 0)
+    # import-smoke：公開入口皆在（IO-bound 部分不觸網/DB，僅結構斷言）
+    import sys
+    mod = sys.modules[__name__]
+    for n in ("load_config", "connection_names", "save_connection", "open_client",
+              "list_dir", "download_tree", "fetch_to_upload"):
+        chk(f"公開入口 {n} 存在", hasattr(mod, n) and callable(getattr(mod, n)))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.knowledge.sftpbrowse --selftest;免 DB 免 API)")

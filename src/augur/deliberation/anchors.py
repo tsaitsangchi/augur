@@ -9,6 +9,10 @@
    契約本體(verifiers.py)維持嚴格;本層只做零資訊損失之正規化/補全。
 
 守 #12(L1-L5 單一住所=本檔;deliberate/benchmark 皆 import 此)· #15(確定性、不臆造)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.deliberation.anchors              # 印用途+公開入口（唯讀）
+  python -m augur.deliberation.anchors --selftest   # 純紅綠自測（零 IO）
 """
 import re
 
@@ -151,3 +155,43 @@ def verifier_lint(verifier, anchor, target):
         if cur.fetchone()[0]:
             return verifier, anchor, None
     return "file_grep", f"{target}::{parts[0]}", f"lint:information_schema 查無表 {parts[0]!r}→改派 file_grep"
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）:合成 claim 紅綠測純函式——
+    normalize_anchor/fast_anchor/binding_check/semantic_bound_of（確定性構錨/反抽取不變式回歸鎖）。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # L2 前綴剝除（大小寫不敏感）+ L3 file_grep 補 target::（錨不含 '/')
+    chk("normalize_anchor 剝 verifier 前綴", normalize_anchor("file_grep:foo", "file_grep") == "foo")
+    chk("normalize_anchor file_grep 補 target::", normalize_anchor("bar", "file_grep", "p.py") == "p.py::bar")
+    chk("normalize_anchor 含 '/' 不補前綴", normalize_anchor("dir/x", "file_grep", "p.py") == "dir/x")
+    # L4 快路:確定性構錨（information_schema 存在 / db_query 列數）
+    chk("fast_anchor 表存在→information_schema",
+        fast_anchor("表 foo 存在") == ("information_schema", "foo", "L4_information_schema"))
+    chk("fast_anchor 列數→db_query",
+        fast_anchor("表 bar 至少 100 列") == ("db_query", "SELECT count(*) FROM bar => >= 100", "L4_db_query"))
+    chk("fast_anchor 不可解析→None", fast_anchor("這句無法機械解析") is None)
+    # B1 反抽取:claim 數字/識別子須現於 anchor,缺一即 False（過嚴=安全方向）
+    chk("binding_check 全命中→True",
+        binding_check("表 bar 至少 100 列", "db_query", "SELECT count(*) FROM bar => >= 100") is True)
+    chk("binding_check 數字缺失→False",
+        binding_check("表 bar 至少 999 列", "db_query", "SELECT count(*) FROM bar => >= 100") is False)
+    # B1 導出欄:錨可自 claim 確定性重導出==(verifier,anchor)→True
+    chk("semantic_bound_of 可重導出→True",
+        semantic_bound_of("表 foo 存在", "information_schema", "foo") is True)
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.deliberation.anchors --selftest;免 DB 免 API)")

@@ -12,6 +12,10 @@
 守 #8(不觸 as-of/未來)· #9/#15(閾值 trace 回 risk_policy.source_ref=STAGE D 修正值、誠實近期深)·
    #12(DD 算法複用 drawdown_series、選股複用 build_long_portfolio、不另造)· #27(閾值操作值住 DB 可調)·
    #29(閾值資料驅動住 DB)· 隔離不變式(唯讀 risk_policy、不進預測管線)· 靈魂(建議非自動駕駛)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.execution.risk_control              # 印用途+公開入口（唯讀）
+  python -m augur.execution.risk_control --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -144,3 +148,60 @@ def apply_overlay(conn, horizon, port, *, dd_returns=None, prev_ids=None):
     return {"horizon": horizon, "policies_loaded": sorted(pol.keys()),
             "dd_circuit": dd, "position_cap": {"new_port": new_port, "capped": capped},
             "turnover": turn, "controlled_port": new_port}
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）：合成投組紅綠測三項純風控——
+    apply_position_cap 削頂+和守恆、dd_circuit 熔斷觸發判準、turnover_check 換手預算。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # apply_position_cap:純 dict 數學(#12 削頂+溢出重分配)
+    port = [("A", 0.7, 1), ("B", 0.1, 2), ("C", 0.1, 3), ("D", 0.1, 4)]
+    cp = {"threshold": 0.4, "action": "cap", "source_ref": "t", "note": ""}
+    nport, capped = apply_position_cap(port, cp)
+    wmap = {s: w for s, w, _ in nport}
+    chk("cap 削頂 A→0.4 且入 capped", abs(wmap["A"] - 0.4) < 1e-9 and capped == ["A"])
+    chk("cap 後權重和守恆=1", abs(sum(w for _, w, _ in nport) - 1.0) < 1e-9)
+    eqp = [("A", 0.25, 1), ("B", 0.25, 2), ("C", 0.25, 3), ("D", 0.25, 4)]
+    n2, c2 = apply_position_cap(eqp, cp)
+    chk("等權未觸 cap→原樣、capped 空", n2 == eqp and c2 == [])
+    chk("policy=None→原樣不套 cap", apply_position_cap(port, None) == (port, []))
+
+    # dd_circuit:當前回檔 ≤ 閾值→觸發(drawdown_series #12 複用)
+    dp = {"threshold": -0.20, "action": "reduce_half", "source_ref": "t", "note": ""}
+    trig = dd_circuit([0.1, 0.1, -0.3], dp)      # 末期權益 −30% 回檔 ≤ −20%
+    chk("dd 當前回檔 ≤ 閾值→觸發+建議降倉", trig["triggered"] and trig["action"] == "reduce_half")
+    calm = dd_circuit([0.1, 0.1, 0.1], dp)       # 單調上升、無回檔
+    chk("dd 無回檔→不觸發、action=hold", (not calm["triggered"]) and calm["action"] == "hold")
+    chk("dd policy=None→不觸發(誠實無政策)", dd_circuit([0.1], None)["triggered"] is False)
+
+    # turnover_check:換手率 vs 預算(_turnover #12 複用)
+    tp = {"threshold": 0.75, "action": "limit", "source_ref": "t", "note": ""}
+    chk("換手初次建倉→不計超預算",
+        turnover_check(["A", "B"], None, tp)["over_budget"] is False)
+    chk("換手 100% > 預算 75%→超",
+        turnover_check(["A", "B", "C", "D"], ["E", "F", "G", "H"], tp)["over_budget"] is True)
+    chk("換手 25% ≤ 預算→不超",
+        turnover_check(["A", "B", "C", "D"], ["A", "B", "C", "X"], tp)["over_budget"] is False)
+    chk("換手 policy=None→不超(誠實無政策)",
+        turnover_check(["A"], ["B"], None)["over_budget"] is False)
+
+    # 結構斷言:IO-bound 入口存在(load_policies/apply_overlay 需 conn,此處僅驗可呼叫名)
+    chk("IO 入口 load_policies/apply_overlay 具在",
+        callable(load_policies) and callable(apply_overlay))
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.execution.risk_control --selftest;免 DB 免 API)")

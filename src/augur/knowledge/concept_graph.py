@@ -7,6 +7,10 @@
    關係的「意義/詮釋」由 advisor **即時**對著這些數字+逐字原文說,不由本層產生、不入庫。
 守 #1（關聯＝既有 computed stat、非 AI 生成）· #15（coverage 誠實、junk/缺口不掩蓋）·
    隔離不變式（素養層、住 augur.knowledge＝import_isolation 前綴自動覆蓋、零量化價值不進預測管線）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.knowledge.concept_graph              # 印用途+公開入口（唯讀）
+  python -m augur.knowledge.concept_graph --selftest   # 純紅綠自測（零 IO）
 """
 from augur.core import db
 from augur.knowledge.corpus import clean_item_sql, clean_work_sql
@@ -87,3 +91,41 @@ def term_coverage(term, language="zh"):
         cur.execute("SELECT count(*) FROM knowledge_term_corpus_stats WHERE term=%s AND language=%s", (term, language))
         in_corpus = cur.fetchone()[0] > 0
         return {"term": term, "in_vocab": n_edges > 0, "n_edges": n_edges, "in_corpus_stats": in_corpus}
+
+
+def _selftest():
+    """自測（零 DB/零 API #29a）：本檔公開入口全 IO-bound（每支開 db.connect）→ 做 import-smoke +
+    公開名稱存在 + RBAC fail-closed 結構斷言（cooccurrence_evidence 授權參數為 keyword-only 之回歸鎖）。"""
+    import sys
+    import inspect
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("import-smoke（模組已載入）", __name__ in sys.modules)
+    pub = ("related_thinkers", "related_terms", "cooccurrence_evidence", "term_coverage")
+    chk("公開入口皆存在且 callable", all(callable(globals().get(n)) for n in pub))
+    chk("CLEAN 授權 helper 已接線（clean_item_sql/clean_work_sql）",
+        callable(clean_item_sql) and callable(clean_work_sql))
+    # RBAC fail-closed 命門:逐字共現證據之授權參數須為 keyword-only（防位置誤傳繞過授權閘、預設私有句不外洩）
+    sig = inspect.signature(cooccurrence_evidence)
+    kwonly = {n for n, p in sig.parameters.items() if p.kind is inspect.Parameter.KEYWORD_ONLY}
+    chk("cooccurrence_evidence 授權參數 keyword-only（is_super/allowed_domains/owner_user_id）",
+        {"is_super", "allowed_domains", "owner_user_id"} <= kwonly)
+    chk("授權參數預設 fail-closed（is_super=False、allowed_domains/owner_user_id=None）",
+        sig.parameters["is_super"].default is False
+        and sig.parameters["allowed_domains"].default is None
+        and sig.parameters["owner_user_id"].default is None)
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.knowledge.concept_graph --selftest;免 DB 免 API)")

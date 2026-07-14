@@ -29,6 +29,10 @@
 (全 roster 有值、不誤殺)。詳見 reports/augur_phase78_core_universe_pilot_v3_20260625.md。
 
 守 #1(算不出即缺列、不存無源值)· #8(籌碼 as-of ≤t)· #5(numeric)· F2 roadmap F2b。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.features.chip              # 印用途+公開入口（唯讀）
+  python -m augur.features.chip --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -179,3 +183,48 @@ def compute_chip_features(cur, sid, panel_date):
         out["gov_bank_net_buy_60d"] = float(np.sign(total) * np.log1p(abs(total)))
 
     return out
+
+
+def _selftest():
+    """純紅綠自測(零 IO):以假 cursor 驅 _table_covers 雙側 gate(E 類真零命門)+ 結構斷言。"""
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # 假 cursor(零 IO):execute 空操作、fetchone 回預設 (min,max);唯測純日期覆蓋邏輯
+    class _FakeCur:
+        def __init__(self, rng): self._rng = rng
+        def execute(self, *a, **k): pass
+        def fetchone(self): return self._rng
+
+    P = date(2026, 5, 31)
+    # E 類真零命門:雙側 gate = min ≤ panel(起始已覆蓋) 且 max ≥ panel − 容忍(近端已 sync)
+    chk("覆蓋:min≤panel 且 max 在容忍內 → True",
+        _table_covers(_FakeCur((date(2021, 1, 1), date(2026, 5, 31))), "_t_ok", P) is True)
+    chk("起始側未覆蓋:min>panel → False(防早期 panel 捏零)",
+        _table_covers(_FakeCur((date(2026, 6, 1), date(2026, 7, 1))), "_t_latemin", P) is False)
+    chk("近端 staleness=14 邊界 → True",
+        _table_covers(_FakeCur((date(2021, 1, 1), date(2026, 5, 17))), "_t_edge", P) is True)
+    chk("近端 staleness>14(未 sync 至 as-of) → False",
+        _table_covers(_FakeCur((date(2021, 1, 1), date(2026, 5, 10))), "_t_stale", P) is False)
+    chk("空範圍(None,None) → False", _table_covers(_FakeCur((None, None)), "_t_none", P) is False)
+    chk("字串日期亦解析", _table_covers(_FakeCur(("2021-01-01", "2026-05-31")), "_t_str", "2026-05-31") is True)
+
+    # 結構斷言:容忍常數回歸鎖 + 7 條 SQL 常數皆備 + 公開入口存在
+    chk("_MAX_STALENESS_DAYS=14(容忍回歸鎖)", _MAX_STALENESS_DAYS == 14)
+    chk("compute_chip_features 可呼叫", callable(compute_chip_features))
+    chk("7 條 SQL 常數皆為非空字串", all(isinstance(s, str) and s for s in
+        (_INST_SQL, _MARGIN_SQL, _SHARE_SQL, _HOLD_SQL, _SBL_SQL, _LEND_SQL, _GOVBANK_SQL)))
+    chk("SBL SQL 綁正確源表", "TaiwanDailyShortSaleBalances" in _SBL_SQL)
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.features.chip --selftest;免 DB 免 API)")

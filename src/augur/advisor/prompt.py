@@ -1,6 +1,10 @@
 """🎯 P5 顧問 system prompt + 組裝 — 人格三姿態 + 三條硬約束(含治權審查修正)。
 
 守 #1(數字/引文不編)· #15(誠實)· 憲章 v1.17.0(哲學不凌駕數據);審查修正 C-1/C-3 已內化為硬約束。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.advisor.prompt              # 印用途+公開入口（唯讀）
+  python -m augur.advisor.prompt --selftest   # 純紅綠自測（零 IO）
 """
 import os
 import re
@@ -264,3 +268,34 @@ def build_attached_prompt(query, payload, citations, lex_entries=()):
 {query}
 
 請只依上方段落用白話回答,提到某段標 [編號]。找不到就說「{ATTACHED_NOTFOUND}」。**不打任何引號、不編數字。**"""
+
+
+def _selftest():
+    # 純紅綠:零 IO——只驗確定性題型偵測與拒答句組裝(不觸 DB 版 build_direction_refusal)
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # _query_kind:投資意圖/代號→analysis;純定義→definition;其餘→general
+    chk("投資意圖→analysis", _query_kind("台積電該不該買") == "analysis")
+    chk("四位代號→analysis", _query_kind("1234 如何") == "analysis")
+    chk("定義訊號→definition", _query_kind("本益比是什麼") == "definition")
+    chk("無訊號→general", _query_kind("你好") == "general")
+    # _asks_direction_or_path:方向詞命中;horizon 單獨不算、須與方向詞共現
+    chk("方向詞→True", _asks_direction_or_path("明天會漲嗎") is True)
+    chk("horizon 單獨→False", _asks_direction_or_path("未來5天") is False)
+    chk("horizon+方向詞→True", _asks_direction_or_path("未來5天股價") is True)
+    chk("純定義→False", _asks_direction_or_path("安全邊際是什麼") is False)
+    # _compose_direction_refusal:全 fail 與 有 pass 之句型分支
+    chk("全 fail 句含『全部』", "全部" in _compose_direction_refusal(6, 6, 0))
+    chk("有 pass→保守句", "關卡通過不等於自動可答" in _compose_direction_refusal(6, 0, 1))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.advisor.prompt --selftest;免 DB 免 API)")

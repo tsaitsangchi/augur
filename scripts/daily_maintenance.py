@@ -113,16 +113,21 @@ def main():
                     recs.append(rr)
             v = reconcile.verdict(*recs)
             asym = sum(r.get("endpoint_asym_ex", 0) for r in recs)   # A 案:by-date 證實之端點不對稱假 EX 扣抵(#15 誠實)
+            gaps = v.get("coverage_gap") or []   # 空視窗表=從未對帳(死 feed 跌破窗/低頻窗內無料)→ 不得計綠(#15 假綠 blocker 修)
             tag = "✅ PASS（DB byte-equal API，無幻像）" if v["passed"] else "❌ FAIL（須查根因）"
             print(f"attestation：{tag} | matched={v['matched']:,} "
                   f"value_mismatch={v['value_mismatch']} extra_in_db={v['extra_in_db']} "
                   f"missing_in_db={v['missing_in_db']:,}"
                   + (f" | 豁免 {len(exempt)} 表({'、'.join(d for d, _ in exempt)})" if exempt else "")
-                  + (f" | 端點不對稱假 EX 扣抵 {asym}(by-date 證實存在、非幻像)" if asym else ""))
+                  + (f" | 端點不對稱假 EX 扣抵 {asym}(by-date 證實存在、非幻像)" if asym else "")
+                  + (f" | ⚠ 未對帳 {len(gaps)} 表(空視窗/死 feed,須 re-sync 或 catalog 豁免:{'、'.join(gaps)})" if gaps else ""))
             if not v["passed"]:
                 # 三態分離(rc=0≠PASS 曾致 selfheal/watchdog/Monitor 三層假綠,2026-07-14 實證):
-                # rc=3=僅未完整(抓取錯、VM/EX=0)→可重試;rc=2=對帳紅(VM/EX>0)→終態,重試不會變綠。
-                sys.exit(3 if (v["value_mismatch"] == 0 and v["extra_in_db"] == 0 and v["incomplete"]) else 2)
+                # rc=3=可重試(僅 fetch 錯未完整、VM/EX=0、無空視窗);
+                # rc=2=終態(重試不會變綠)= 對帳紅(VM/EX>0) 或 coverage_gap(空視窗死 feed,須人 re-sync/exempt)。
+                retryable = (v["value_mismatch"] == 0 and v["extra_in_db"] == 0
+                             and v["incomplete"] and not gaps)
+                sys.exit(3 if retryable else 2)
 
 
 if __name__ == "__main__":

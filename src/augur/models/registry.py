@@ -4,6 +4,10 @@
    seed/metrics/artifact_path/git_sha)寫進 model_registry;predict 時查「≤as-of 之最新同 family/
    horizon artifact」載回。resume:已訓折/模型可查、重跑冪等 upsert(#6)。
 守 #15(git_sha/feats_hash 凍結可重現)· #6(resume 冪等)· 隔離不變式(非預測輸入表)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.models.registry              # 印用途+公開入口（唯讀）
+  python -m augur.models.registry --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -57,3 +61,37 @@ def exists(model_id):
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT 1 FROM model_registry WHERE model_id=%s", (model_id,))
         return cur.fetchone() is not None
+
+
+def _selftest():
+    """自測（零 DB/零 API：全公開函式皆 DB/subprocess，僅 import-smoke + 結構斷言，不呼任何函式 #3）。"""
+    import inspect                              # 延遲 import（純標準庫、零 IO #3）
+    import augur.models.registry as m          # import-smoke:模組可載入
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("公開入口皆存在(register/latest/exists/git_sha)",
+        all(hasattr(m, n) for n in ("register", "latest", "exists", "git_sha")))
+    chk("公開入口皆 callable",
+        all(callable(getattr(m, n)) for n in ("register", "latest", "exists", "git_sha")))
+    # register 簽名鎖:身分證欄位齊全(#15 可重現鍵不得漏)
+    rp = list(inspect.signature(m.register).parameters)
+    chk("register 簽名含 feats_hash/seed/asof_snapshot/git-sha 鍵",
+        all(p in rp for p in ("family", "horizon", "train_span", "asof_snapshot",
+                              "feats_hash", "seed", "metrics", "artifact_path")))
+    chk("latest 簽名=(family,horizon,asof_snapshot)",
+        list(inspect.signature(m.latest).parameters) == ["family", "horizon", "asof_snapshot"])
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.models.registry --selftest;免 DB 免 API)")

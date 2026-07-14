@@ -8,6 +8,10 @@
    (數字雙源=payload.numbers() ∪ citation_numbers 檢索真兆數字集),其餘 → guard()。
    llm_fn 為抽象界面(可接 Claude API 或本地 LLM 或 mock),advisor 本身不綁特定 LLM。
 守 憲章 v1.17.0(顧問對預測/哲學表皆唯讀、零寫回)· #1/#8/#15(經 guard 落地)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.advisor.advise              # 印用途+公開入口（唯讀）
+  python -m augur.advisor.advise --selftest   # 純紅綠自測（零 IO）
 """
 from augur.advisor.prompt import build_prompt
 from augur.advisor.guard import (NO_KNOWLEDGE_RESPONSE, citation_numbers, guard,
@@ -235,3 +239,42 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     return {"response": response, "guard": verdict,
             "citations": citations, "lex_entries": lex_entries, "prompt": prompt,
             "concept_links": concept_links}
+
+
+def _selftest():
+    """自測（零 DB/零 API #29a）：合成資料紅綠測確定性排版函式——picks 表 ground-truth 渲染
+    (score 4dp/空 picks 回空)、概念/橋參考塊之免責硬綁與「不得複述數值」註記（回歸鎖:命門免責不可漏）。"""
+    from types import SimpleNamespace as NS
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # _render_picks_table：picks=payload ground truth、score 4dp 對齊 guard 白名單口徑
+    chk("空 picks→空字串(不落誠實-decline外之雜訊)", _render_picks_table(NS(picks=[])) == "")
+    p = NS(rank=1, symbol="2330", name="台積電", score=0.1234)
+    tbl = _render_picks_table(NS(picks=[p], probs=(), as_of="2026-05-31", model="F3",
+                                 horizon=20, prob_note=""))
+    chk("picks 表含 symbol/4dp score/top N", "2330" in tbl and "0.1234" in tbl and "top 1" in tbl)
+
+    # _concept_block / _bridge_block：空→空;非空→免責與「不得複述數值」硬綁(命門)
+    chk("_concept_block 空→空", _concept_block([]) == "")
+    cb = _concept_block([{"a": "知行合一", "b": "格物", "npmi": 0.42, "basis_n": 7, "n_evidence": 3}])
+    chk("概念塊含 npmi 2dp+不得複述數值", "0.42" in cb and "不得複述本段數值" in cb)
+    chk("_bridge_block 空→空", _bridge_block([]) == "")
+    bb = _bridge_block([{"field": "d.c", "terms": [{"t": "護城河", "npmi": 0.55, "n": 9, "corpus": "items"}]}])
+    chk("橋塊含 npmi+非資料值相關免責+不得複述", "0.55" in bb
+        and "非該欄位資料數值與報酬之相關" in bb and "不得複述本段數值" in bb)
+
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.advisor.advise --selftest;免 DB 免 API)")

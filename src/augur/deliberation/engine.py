@@ -6,6 +6,10 @@
    多 lens 版=同題跑 N 個 lens 各成 session(consensus 聚合見 consensus.py,MVP 後續)。
 
 守 #15(裁決全出 oracle)· #28(唯本機 qwen、零 Claude)· #12(propose/verify 編排單一住所)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.deliberation.engine              # 印用途+公開入口（唯讀）
+  python -m augur.deliberation.engine --selftest   # 純紅綠自測（零 IO）
 """
 import time
 
@@ -112,3 +116,33 @@ def deliberate_panel(topic, target_block, lenses, model, n, timeout, *, max_roun
         print(f"  {icon} [{a['verdict']}] {a['claim_text'][:60]}(lens={','.join(a['lenses'])} 支持{a['support']}/{a['n_lens']})")
     print("  " + consensus.summarize(agg))
     return {"rounds": round_no, "aggregate": agg, "dry": critic.is_dry(rounds_without_new, dry_k)}
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）：純函式紅綠測 _target_from_block（target_block→檔名解析
+    之不變式/邊界）+ 編排入口結構斷言（propose/deliberate/panel 存在;LLM/DB 全在葉端不在此觸發）。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("_target_from_block 剝前綴+截括號取檔名",
+        _target_from_block("目標檔案 foo.py(前 100 行)") == "foo.py")
+    chk("_target_from_block 純檔名(無括號)", _target_from_block("目標檔案 bar.py") == "bar.py")
+    chk("_target_from_block 非目標行→None", _target_from_block("其他文字") is None)
+    chk("_target_from_block None/空→None(邊界)",
+        _target_from_block(None) is None and _target_from_block("") is None)
+    chk("編排入口皆可呼叫(propose/deliberate/panel)",
+        callable(propose) and callable(deliberate) and callable(deliberate_panel))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.deliberation.engine --selftest;免 DB 免 API)")

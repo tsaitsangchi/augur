@@ -11,6 +11,10 @@
 唯讀稽核（憲章 audit 層）：不改資料、不選股、不產 model artifacts。reuse evaluation helper（#12 口徑一致、可比）。
 
 守 #11（五鏡合判）· #12（label/metric/walkforward/baseline 單一 helper）· #8（purged/as-of）· #15（誠實揭露、不單指標）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.audit.feature_diagnostics              # 印用途+公開入口（唯讀）
+  python -m augur.audit.feature_diagnostics --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -132,3 +136,31 @@ def five_mirror(conn, panels, h, stocks, feats, *, asof=False, loo=False,
                   "ic_eff_t_iid": sf[f].get("effective_t"), "shap": shv,
                   "in_collinear_group": f in collinear_feats, "loo_delta": loo_d, "verdict": verdict}
     return {"per_feature": out, "high_pairs": col["high_pairs"]}
+
+
+def _selftest():
+    """自測（零 DB/零 API #29a）：五鏡入口全 IO-bound（每支需 conn）→ import-smoke + 結構斷言
+    （公開入口存在且 callable、裁定模型常數、evaluation helper 已接線 #12）。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("五鏡入口皆 callable", all(callable(f) for f in (
+        single_factor_ic, collinearity, leave_one_out, shap_importance, five_mirror)))
+    chk("裁定模型常數 MODEL='M1_gbdt'", MODEL == "M1_gbdt")
+    chk("evaluation helper 已接線(#12 單一 helper)",
+        baseline is not None and label_mod is not None and metrics is not None)
+    chk("numpy import-smoke", hasattr(np, "corrcoef"))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.audit.feature_diagnostics --selftest;免 DB 免 API)")

@@ -1,5 +1,6 @@
 # Memory Index
 
+- [audit 假綠+v1.28 自測入憲](audit-attestation-falsegreen.md) — audit「PASS」曾假綠(死表空視窗靜默PASS,blocker已修coverage_gap/rc=2);#29 audit-of-audit;v1.28 library 須自測CLI(74/74);死表=本機漏sync可補
 - [件A admission 硬化+健檢](jian-a-admission-hardening.md) — 對抗審查 R1-R6 硬化+verify_knowledge_admission_health.py 日常哨兵;**live-vs-repo drift 教訓**:驗 DB 層宣稱查 live DB 非只 grep repo(chk 存 live 但曾無 migration)
 - [Qdrant serving+HNSW over-filter 陷阱](qdrant-serving-hnsw-overfilter.md) — augur-qdrant.service 上線(07-14 拍板);pgvector HNSW+CLEAN WHERE over-filter 假空/假FAIL 鑑識法=exact baseline;Qdrant 只服務 public、private 走 pgvector
 - [背景作業須可見](background-tasks-visible.md) — 每個背景 shell 都要 TaskCreate 登記+更新狀態，用戶介面才看得到；不得靜默跑（2026-07-13 directive）

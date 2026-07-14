@@ -8,6 +8,10 @@
    三端(S3 builder / S5 embed_knowledge / S7 retrieval)一律 import 本檔產出之 SQL 片段,
    禁 inline 複本(#12)。
 守 #1(license 硬擋、零 AI 入庫鏈)· #12(單一住所)· 計畫 §3-S3/S5 N1・§8 P4。
+
+自測(本檔=library #18;免 DB 免 API 可個別驗證):
+  python -m augur.knowledge.corpus              # 印用途+公開入口(唯讀)
+  python -m augur.knowledge.corpus --selftest   # 純紅綠自測(零 IO)
 """
 
 # 與 knowledge_item_text.license DB CHECK 同一封閉集(migrate_text_understanding_ddl.py);
@@ -68,3 +72,46 @@ def clean_item_sql(item_alias="i", itext_alias="x", access_scope=None,
             p += f" AND {item_alias}.domain = ANY(%s::text[])"
             params.append(list(allowed_domains))
     return f"({p})", params
+
+
+def _selftest():
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # 白名單/准入集封閉性(#19 跨檔同步鎖:內容變更即本測失敗、逼同步審視)
+    chk("LICENSE_WHITELIST 含 owned_local 私有軌", "owned_local" in LICENSE_WHITELIST)
+    chk("SEMANTIC 准入集=paper/report/document", SEMANTIC_ENTITY_TYPES == ("paper", "report", "document"))
+    # _quoted:SQL 字面內插格式
+    chk("_quoted 逗號分隔加單引號", _quoted(("a", "b")) == "'a', 'b'")
+    # works 側:review_flag 與 literary 雙鎖、fail-closed 語意
+    ws = clean_work_sql("w")
+    chk("clean_work_sql 含 review_flag=false", "w.review_flag = false" in ws)
+    chk("clean_work_sql 含 corpus_class='literary'", "w.corpus_class = 'literary'" in ws)
+    # items 側:回 (str, list) 契約
+    frag, fp = clean_item_sql()
+    chk("clean_item_sql 回 (str,list)", isinstance(frag, str) and isinstance(fp, list))
+    chk("license/entity 白名單內插", "license IN (" in frag and "entity_type IN (" in frag)
+    # 命門:public/None 非 super 且無授權域 → fail-closed AND false、零參數
+    chk("無授權域 fail-closed(AND false)", frag.endswith("false)") and fp == [])
+    # 授權域給 → domain 收窄、參數化帶 list
+    frag2, fp2 = clean_item_sql(allowed_domains=["philosophy"])
+    chk("授權域→domain=ANY 參數化", "domain = ANY(%s::text[])" in frag2 and fp2 == [["philosophy"]])
+    # super 一律不濾(embed/builder 路徑)
+    frag3, fp3 = clean_item_sql(is_super=True)
+    chk("is_super 不加 AND false", "false" not in frag3 and fp3 == [])
+    # local_private 非 super 且無 owner → deny;有 owner → 擁有者收窄參數化
+    fd, pd_ = clean_item_sql(access_scope="local_private", owner_user_id=None)
+    chk("private 無 owner fail-closed", fd.endswith("false)") and pd_ == [])
+    fo, po = clean_item_sql(access_scope="local_private", owner_user_id=7)
+    chk("private 有 owner→擁有者收窄", "owner_user_id = %s" in fo and po == [7])
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.knowledge.corpus --selftest;免 DB 免 API)")

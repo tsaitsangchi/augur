@@ -16,6 +16,10 @@ infra log 表用**運維型別**（BIGSERIAL / TIMESTAMP / TEXT）——#5 的 V
 **API 資料表**的規則，系統內部運維表自訂明確型別。
 
 守 #2（schema 以 DB 為準 / 不另立白名單）· 核心橫切基礎（infra 表 DDL + DB-derived schema 單一引用源，#12）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.core.schema              # 印用途+公開入口（唯讀）
+  python -m augur.core.schema --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -79,3 +83,42 @@ def get_dataset_columns(cur, table):
 def get_dataset_keys(cur, table):
     """表之 PRIMARY KEY 欄（依序）；無表/無 PK → []。委派 generic_schema（#12 不重複實作）。"""
     return generic_schema.db_primary_key(cur, table)
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）：純函式紅綠測 _pg_type（型別還原不變式）+
+    INFRA_DDL 結構斷言 + DB-derived helper 公開名存在（IO-bound、僅 hasattr smoke）。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # _pg_type：information_schema 欄資訊 → PG 型別字串（核心不變式，零 IO）
+    chk("_pg_type VARCHAR 帶長度", _pg_type("character varying", 255, None, None) == "VARCHAR(255)")
+    chk("_pg_type VARCHAR 無長度→裸 VARCHAR", _pg_type("character varying", None, None, None) == "VARCHAR")
+    chk("_pg_type NUMERIC 帶精度", _pg_type("numeric", None, 20, 6) == "NUMERIC(20,6)")
+    chk("_pg_type NUMERIC 無精度→裸 NUMERIC", _pg_type("numeric", None, None, None) == "NUMERIC")
+    chk("_pg_type TIMESTAMP 去時區", _pg_type("timestamp without time zone", None, None, None) == "TIMESTAMP")
+    chk("_pg_type 其餘型別大寫直通", _pg_type("date", None, None, None) == "DATE"
+        and _pg_type("bigint", None, None, None) == "BIGINT")
+    # INFRA_DDL：兩張運維表、皆冪等 CREATE、皆帶 PK（explicit DDL 結構鎖）
+    chk("INFRA_DDL 含 pipeline_execution_log + data_audit_log",
+        set(INFRA_DDL) == {"pipeline_execution_log", "data_audit_log"})
+    chk("INFRA_DDL 皆 CREATE IF NOT EXISTS（冪等）",
+        all("CREATE TABLE IF NOT EXISTS" in ddl for ddl in INFRA_DDL.values()))
+    chk("INFRA_DDL 皆含 PRIMARY KEY", all("PRIMARY KEY" in ddl for ddl in INFRA_DDL.values()))
+    # DB-derived helper（IO-bound）：公開入口存在（import-smoke，不觸 DB）
+    chk("公開入口皆存在", all(callable(g) for g in
+        (bootstrap_infra, get_dataset_columns, get_dataset_keys)))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.core.schema --selftest;免 DB 免 API)")

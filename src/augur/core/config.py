@@ -8,6 +8,10 @@
 - 用 python-dotenv 載入，能正確忽略行尾 `# 註解`。
 
 守 #12（單一引用源/SSOT：設定·密鑰集中於此，他模組不各自讀 .env）；密鑰只從 `.env`、不入 git（§一.5）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.core.config              # 印用途+公開入口（唯讀）
+  python -m augur.core.config --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -50,3 +54,37 @@ FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 ENV = os.getenv("ENV", "dev")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 TZ = os.getenv("TZ", "Asia/Taipei")
+
+
+def _selftest():
+    """自測（零 IO：只驗路徑派生不變式 + DB_PARAMS 結構 + 型別；不觸 fs/DB/API #29a）。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("PROJECT_ROOT 為 Path", isinstance(PROJECT_ROOT, Path))
+    # 路徑派生不變式：data/models/reports 皆掛 root、logs 掛 data（screaming 巢狀，純 Path 運算零 fs）
+    chk("DATA/MODELS/REPORTS 皆 PROJECT_ROOT 直屬",
+        DATA_DIR.parent == PROJECT_ROOT and MODELS_DIR.parent == PROJECT_ROOT
+        and REPORTS_DIR.parent == PROJECT_ROOT)
+    chk("LOG_DIR = DATA_DIR/logs", LOG_DIR == DATA_DIR / "logs" and LOG_DIR.parent == DATA_DIR)
+    # DB_PARAMS：psycopg2.connect(**DB_PARAMS) 之必備鍵齊全、port 解析為 int
+    chk("DB_PARAMS 五鍵齊全",
+        set(DB_PARAMS) == {"host", "port", "dbname", "user", "password"})
+    chk("DB_PARAMS.port 為 int", isinstance(DB_PARAMS["port"], int))
+    chk("密鑰/運維選項為 str", all(isinstance(x, str)
+        for x in (FINMIND_TOKEN, FRED_API_KEY, ENV, LOG_LEVEL, TZ)))
+    chk("ensure_dirs 為可呼叫", callable(ensure_dirs))   # 結構斷言：不實呼叫（會 mkdir=IO）
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.core.config --selftest;免 DB 免 API)")

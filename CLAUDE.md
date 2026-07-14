@@ -1,4 +1,4 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.27
+# CLAUDE.md — Augur AI 協作工具規則 v1.28
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.8.0.md` + `docs/原則精華_v1.9.0.md` + 憲章為準；
@@ -48,7 +48,7 @@
 18. **程式標頭與命名慣例（精簡——不重蹈 stock_backend 50-230 行標頭）**：
     - **每支**：🎯 白話 docstring（這支在做什麼，給人看的）+ 一行「守原則 #X #Y」。
     - **CLI 入口程式**（sync / builder / trainer / validator）：再加**執行指令矩陣**（各用法實例，見 #29）。
-    - **library 模組**：白話 docstring 即可，不需指令矩陣。
+    - **library 模組**（`src/augur/`）：白話 docstring **＋執行指令矩陣（自測 CLI 形式）**——每支具 `if __name__=="__main__"`：`python -m augur.<pkg>.<mod>` 印用途＋公開入口（唯讀）、`--selftest` 跑純紅綠自測（**免 DB 免 API、零 usage**；把模組核心不變式固化成回歸鎖 #15，IO-bound 模組退為 import-smoke＋結構斷言）。**（v1.28 入憲 2026-07-14 hugo 拍板：原「library 不需指令矩陣」廢止——每支程式一律可個別驗證、矩陣＝自測 CLI；先例＝`audit/reconcile.py`、`knowledge/admission.py`。）**
     - **不** per-file 複述憲章 § / 治權宣言（憲章 + 原則精華為 SSOT #12；標頭只引原則 #，不改寫）。
     - **不**寫 in-file 全修訂歷程 → 交給 git（演變史進 git，不入檔；對齊「憲法只記現行法律」）。
     - 標頭目標：讓人/AI 30 秒看懂這支做什麼、守哪些原則。

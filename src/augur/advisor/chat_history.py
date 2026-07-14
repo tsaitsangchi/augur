@@ -8,6 +8,10 @@
 守 #1(存真實往來、非 AI 生成入知識庫)· #5(owner 授權 fail-closed、參數化)·
    隔離不變式(住 augur.advisor＝FORBIDDEN 前綴、預測 7 package 零 import;test_philosophy_isolation 正向釘死)·
    憲章 v1.29 RBAC owner 收窄 · 計畫 §7.1(三鏡對抗審查定稿)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.advisor.chat_history              # 印用途+公開入口（唯讀）
+  python -m augur.advisor.chat_history --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -116,3 +120,38 @@ def load_messages(session_id, user_id):
             return [{"role": r[0], "content": r[1]} for r in cur.fetchall()]
     except Exception:
         return []
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）：釘死 fail-closed 護欄——user_id 缺 / role 非法之
+    guard 皆在觸 db.connect 前 short-circuit（IDOR/OWASP A01），故可零 IO 驗；+ _MODES 結構 + import-smoke。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    # _MODES 結構鎖（策展模式集,增減須有意識改）
+    chk("_MODES=(chat,cowork,code)", _MODES == ("chat", "cowork", "code"))
+    # fail-closed:user_id None → 各入口回安全空值,且在任何 db.connect 前 return(零 IO)
+    chk("create_session(None)→None", create_session(None) is None)
+    chk("rename/star/delete(user_id None)→False",
+        rename_session("s", None, "t") is False
+        and set_starred("s", None, True) is False
+        and delete_session("s", None) is False)
+    chk("list_sessions(None)→[]", list_sessions(None) == [])
+    chk("load_messages(None)→[]", load_messages("s", None) == [])
+    # append_message:user_id None 或 role 非法皆 return None(短路於 DB 前;IDOR/輸入驗證)
+    chk("append_message user_id None→None", append_message("s", None, "user", "x") is None)
+    chk("append_message 非法 role→None", append_message("s", "u", "bogus", "x") is None)
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.advisor.chat_history --selftest;免 DB 免 API)")

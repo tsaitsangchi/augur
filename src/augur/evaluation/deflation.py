@@ -9,6 +9,10 @@
    試驗 SR 逐 horizon 各自 ppy 轉 per-period 才並池算 Var(SR);N 由 trial_ledger 機械(禁人手,SOP §6 G7)。
 
 守 #8(per-period 正確口徑) · #12(DSR 計算單一住所、reuse metrics.deflated_sharpe) · #15(誠實、非年化)。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.evaluation.deflation              # 印用途+公開入口（唯讀）
+  python -m augur.evaluation.deflation --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -61,3 +65,34 @@ def deflated_floor(net_series, ppy, trials_pp, n_trials):
             "dsr": (r.get("dsr") if r else None),
             "deflated_ann": (float(haircut * np.sqrt(ppy)) if haircut is not None else None),
             "n_trials": n_trials, "sr_var": var}
+
+
+def _selftest():
+    ok = True
+    def chk(name, cond):
+        nonlocal ok; ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+    # per_period_stats:已知 mean=0.2/sd=0.1(ddof=1) → sr_pp=2.0、T=3
+    sr, T, _sk, _ku = per_period_stats([0.1, 0.2, 0.3])
+    chk("per_period_stats 基本 sr_pp≈2.0/T=3", sr is not None and abs(sr - 2.0) < 1e-9 and T == 3)
+    # None/NaN 一律濾除,不影響結果
+    sr2, T2, _, _ = per_period_stats([0.1, None, 0.2, float("nan"), 0.3])
+    chk("per_period_stats 濾 None/NaN 後同基本", sr2 is not None and abs(sr2 - 2.0) < 1e-9 and T2 == 3)
+    # <2 有限值 → (None, n, 0.0, 3.0)(無從算)
+    chk("per_period_stats <2 值 → None/0.0/3.0", per_period_stats([1.0]) == (None, 1, 0.0, 3.0))
+    # sd=0(常數序列)→ sr_pp None、T 仍計
+    sr3, T3, _, _ = per_period_stats([5.0, 5.0, 5.0])
+    chk("per_period_stats 常數(sd=0) → sr_pp None", sr3 is None and T3 == 3)
+    # trials_per_period:逐 horizon 各自 ppy 轉 per-period;缺 ppy/None 之試驗略過(#15)
+    tp = trials_per_period([(1, 10.0), (2, None), (3, 5.0), (4, 8.0)], {1: 100, 3: 25})
+    chk("trials_per_period 轉換+略過缺 ppy/None", tp == [1.0, 1.0])
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.evaluation.deflation --selftest;免 DB 免 API)")

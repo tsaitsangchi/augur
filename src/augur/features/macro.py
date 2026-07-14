@@ -15,6 +15,10 @@ augur 用哪些 FRED 總經數列當情境輸入，是 **feature 設計的決策
 策展決策；清單每檔均經 live FRED API 證實存在（#15），非為省探測硬編。
 
 守 #8（anti-leakage：Tier B vintage 取當下可見版）· #4（總經日級真兆值得抓）· #15（每檔 live 證實）· #1/#2（忠實落地 FRED）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.features.macro              # 印用途+公開入口（唯讀）
+  python -m augur.features.macro --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -78,3 +82,32 @@ def series_ids():
 def vintage_map():
     """{series_id: 是否走 ALFRED vintage}（sync 依此套 Tier A/B 抓法）。"""
     return {s.series_id: s.vintage for s in SERIES}
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）：合成/實 SERIES 紅綠測 tier↔vintage 不變式與清單一致性。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("_a→Tier A/不 vintage", _a("X", "x").tier == "A" and _a("X", "x").vintage is False)
+    chk("_b→Tier B/vintage", _b("Y", "y").tier == "B" and _b("Y", "y").vintage is True)
+    chk("tier↔vintage 不變式(vintage⇔B、tier∈{A,B})",
+        all(s.tier in ("A", "B") and s.vintage == (s.tier == "B") for s in SERIES))
+    ids = series_ids()
+    chk("series_id 無重複(vintage_map 不覆蓋)", len(ids) == len(set(ids)))
+    chk("vintage_map 鍵集=series_ids", set(vintage_map()) == set(ids))
+    chk("A/B 兩層皆非空", any(s.tier == "A" for s in SERIES) and any(s.tier == "B" for s in SERIES))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.features.macro --selftest;免 DB 免 API)")

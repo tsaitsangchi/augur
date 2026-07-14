@@ -12,6 +12,10 @@
 連線/交易在 db（不在這）；本檔只「串起來 + 守 intraday 門 + 留稽核」。
 
 守 #4（intraday 守門拒絕入庫）· #3/#1（忠實落地任意**日頻** API 表，不挑不補）· #6（交易冪等，逐 dataset 各自 commit/rollback）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.ingestion.ingest              # 印用途+公開入口（唯讀）
+  python -m augur.ingestion.ingest --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -182,3 +186,42 @@ def store(conn, table, rows, *, data_id=None, audit=True, require_keys=()):
                 "INSERT INTO data_audit_log (dataset, data_id, action, rows) VALUES (%s, %s, %s, %s)",
                 (table, data_id, "upsert", n))
     return {"table": table, "rows": n, "schema": schema, "keys": keys}
+
+
+def _selftest():
+    """自測（零 DB/零 API、可個別驗證 #29a）：合成資料紅綠測 is_intraday/_aggregate_daily 之
+    #4 核心不變式（intraday 守門、close 取每日末筆、all 保留同日多列、date 規約純日級）。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("is_intraday intraday→True", is_intraday("TaiwanStockPriceTick") is True)
+    chk("is_intraday 日級→False", is_intraday("TaiwanStockPrice") is False)
+    rows = [{"date": "2020-01-01 09:00", "close": 1}, {"date": "2020-01-01 13:00", "close": 2},
+            {"date": "2020-01-02 10:00", "close": 3}]
+    c = _aggregate_daily(rows, "close")
+    chk("close 每日 1 列（3 列→2 日）", len(c) == 2)
+    chk("close 取每日末筆（01-01→close=2）",
+        next(r for r in c if r["date"] == "2020-01-01")["close"] == 2)
+    chk("close date 規約純日級（去時間）", all(len(str(r["date"])) == 10 for r in c))
+    a = _aggregate_daily(rows, "all")
+    chk("all 保留同日多列（3 列→3 列）", len(a) == 3)
+    chk("all date 規約純日級（去時間）", all(len(str(r["date"])) == 10 for r in a))
+    chk("無 date 之列丟棄", _aggregate_daily([{"close": 9}], "all") == [])
+    chk("FRED_TABLE 常數", FRED_TABLE == "fred_series")
+    chk("IntradayRejected 為 RuntimeError 子類", issubclass(IntradayRejected, RuntimeError))
+    for nm in ("ingest_finmind", "ingest_fred", "store", "catalog_exclusions", "aggregate_method"):
+        chk(f"公開入口 {nm} 存在", callable(globals().get(nm)))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.ingestion.ingest --selftest;免 DB 免 API)")

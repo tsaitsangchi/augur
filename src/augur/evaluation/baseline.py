@@ -12,6 +12,10 @@ label/walkforward/metrics 全 import SSOT helper（跨模型可比）。stochast
 MVP 先單 seed、M-2 再 ≥3 seed（本檔 `seeds` 參數預留）。
 
 守 #8（label 層 t+1 + walkforward purge）· #12（SSOT helper）· #14（排序 IC、非 AUC）· #15（基準階梯逐階誠實、raw IC 雙口徑待 M-2）。
+
+自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+  python -m augur.evaluation.baseline              # 印用途+公開入口（唯讀）
+  python -m augur.evaluation.baseline --selftest   # 純紅綠自測（零 IO）
 """
 from __future__ import annotations
 
@@ -157,3 +161,41 @@ def run_ladder(conn, panel_dates, h, stocks, *, feats=None, seed=42, mom_feature
     # 顯著性顯示以 HAC t 為準（重疊窗自相關致 iid effective_t 高估、#11 禁裸用）
     return {m: {**metrics.summarize(d), "effective_t_hac": metrics.effective_t_hac(d)}
             for m, d in ic.items()}
+
+
+def _selftest():
+    """自測（零 DB/零 API，本檔全 IO-bound=結構斷言 #29a）：import-smoke + 公開契約/常數回歸鎖。
+    無純可算函式（每支公開入口皆需 conn），故鎖：關鍵入口存在、CANONICAL_START 起點值與 ISO 口徑
+    （canonical_features 以 str(p) >= CANONICAL_START 過濾、須字典序=日期序）、run_ladder 公開簽名（asof/
+    robust/interactions #8 口徑旗標不被誤刪）、表名常數。"""
+    import inspect
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    chk("公開入口存在(canonical_features/run_ladder)",
+        callable(canonical_features) and callable(run_ladder))
+    chk("CANONICAL_START 起點值=2008-12-31(#8 gate 覆蓋起點回歸鎖)",
+        CANONICAL_START == "2008-12-31")
+    chk("CANONICAL_START ISO 口徑(YYYY-MM-DD、字典序=日期序、過濾正確)",
+        len(CANONICAL_START) == 10 and CANONICAL_START[4] == "-" and CANONICAL_START[7] == "-"
+        and CANONICAL_START.replace("-", "").isdigit())
+    chk("表名常數(feature_values/core_universe_asof/feature_candidate_values)",
+        FEATURE_TABLE == "feature_values" and ASOF_TABLE == "core_universe_asof"
+        and CANDIDATE_TABLE == "feature_candidate_values")
+    params = inspect.signature(run_ladder).parameters
+    chk("run_ladder 公開簽名含 asof/robust/interactions/seed(#8 口徑旗標鎖)",
+        all(p in params for p in ("asof", "robust", "interactions", "seed")))
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print((__doc__ or __name__).split("🎯")[0].strip())
+    print("(自測:python -m augur.evaluation.baseline --selftest;免 DB 免 API)")
