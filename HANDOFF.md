@@ -49,8 +49,20 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 ## 3. 不在 git、新機須重建（皆 gitignored）
 
 - **DB**（靠 dump 搬、#30):最新 = **`augur_pgdump_20260713_Fd`**（換機用;本地 ext4 `~/db_dumps/` 目錄版 + `D:\database\augur_pgdump_20260713_Fd.tar` 單檔版;含 07-12 全日成果=擂台九門簽核/三鏡頭月頻/491 件公版全文+469,551 句/K 計畫橋表/**audit 增量 658,911 列**;⚠ dump 取於 audit 尾段對帳中——新機還原後 audit 須續跑至綠,見 §4）。還原一律用 `bash import_database.sh`（自動判 tar/-Fd/-Fc、平行還原;新機庫不存在直接建、取代既有須 `--force`）。舊 dump（20260712_Fd 9.9GB/20260711_Fd 7.0GB）可備援。56GB 庫=35GB 資料+21GB 索引,dump ~10GB 屬正常。**dump 不進 git**,用外接碟/雲端搬。
-- **`.env`**（手動重建、值不入 git):`DB_HOST/PORT/NAME/USER/PASSWORD`、`DB_SUPERUSER_*`、`DB_PREDICT_PASSWORD`、`FINMIND_TOKEN`（Sponsor 已續訂 2026-07-12;過期會降 free tier,錶=`/user_info`）、`FRED_API_KEY`、`AUGUR_ADMIN_PASSWORD`、`AUGUR_INTERNAL_SECRET`、`UNPAYWALL_EMAIL`;+ `git config user.name/email`。（⚠ **advisor LLM 本機限定 v1.37.0**——不接任何外部 LLM,GEMINI 等 key 即使存在亦不用於 advisor。）
-- **向量庫**：生產 = **pgvector（在 DB dump 內、跟著 DB 走）**;`~/qdrant_local`（194MB 休眠驗證產物）= **可從 DB 用 `export_qdrant_index.py` 重建、不需跨機搬**。
+- **`.env`**（手動重建、值不入 git;**按通道分組——漏鍵=對應通道靜默失效**):
+  | 通道/層 | 鍵 | 漏了會怎樣 |
+  |---|---|---|
+  | DB(一切之本) | `DB_HOST/PORT/NAME/USER/PASSWORD`、`DB_SUPERUSER_*`、`DB_PREDICT_PASSWORD` | 全系統不動 |
+  | 市場資料(預測管線) | `FINMIND_TOKEN`（Sponsor 已續訂 2026-07-12;過期降 free tier,錶=`/user_info`）、`FRED_API_KEY` | sync/audit 死 |
+  | 知識抓取①(主題/全文/abstract) | `UNPAYWALL_EMAIL`、`FRASER_API_KEY`、`SEMANTIC_SCHOLAR_API_KEY`（有則提速,無則匿名慢速）、`GITHUB_TOKEN`(如用) | OA 全文/abstract 缺源 |
+  | 本機匯入②之 ERP 重抓 | `ORACLE_HOST/PORT/SERVICE_NAME/USER/PASSWORD/DSN` | ERP 語料**無法重抓**(見下 dump-only 警語) |
+  | 服務層 | `AUGUR_ADMIN_PASSWORD`、`AUGUR_INTERNAL_SECRET` | admin/advisor RBAC 死 |
+  | git | `git config user.name/email`(檔內註記) | commit 身分缺 |
+
+  （⚠ **advisor LLM 本機限定 v1.37.0**——不接任何外部 LLM,GEMINI 等 key 即使存在亦不用於 advisor。）
+- **SFTP 通道③ 前置（與 .env 同級人工重建;通道選配、缺=僅 SFTP 啞火）**：`~/.config/augur-sftp.json`（host/port/user/**key_path**,chmod 600、絕不存密碼）+ 其引用之 **SSH 私鑰檔**（須搬入本機且遠端重新授權）。二者不在 git/dump/sync_memory——新機不重建則 admin SFTP 面板不可用。
+- **⚠ owned_local ERP 語料＝dump-only**：erp_tiptop 150,685 段 item_text（最大語料、佔 99%）**唯一換機載具＝DB dump**——augur repo 內無 Oracle 連接器（抽取屬外部 TTAI 工具）,dump 遺失＋原機不在＝**此語料不可復原**。dump 備份＝此語料唯一保命符。
+- **向量庫**：生產 SSOT = **pgvector（在 DB dump 內、跟著 DB 走）**;Qdrant serving（`~/qdrant_augur`,augur-qdrant.service,2026-07-14 上線）= **可拋棄、`export_qdrant_index.py` 從 PG 全量重建、不需跨機搬**;舊 `~/qdrant_local`（194MB 休眠驗證產物）同可重建。
 - **build 產物**（可重生勿 commit):`models_artifacts/`（.joblib、train_ranker 重生）、`data/`、`/models/`。⚠ `.gitignore` 模型輸出規則錨定 `/models/`（根限定）——**勿改回 `models/`**（會遞迴誤傷 `src/augur/models/` 源）。
 
 ## 4. 現況 STATE（取代式：每次封存點整段重寫；歷史＝`git log -p HANDOFF.md`）
@@ -63,9 +75,12 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 
 > **⚠ #7 attestation 對帳範圍變更（hugo 拍板 2026-07-14，決策層）**：對帳窗由 `since=2026-06-01` **縮至 `2026-07-01`（近 ~14 日）**。理由：6/1 起全量對帳（75 dataset×數十交易日=數千 fetch）之 **sustained API 負載 throttle FinMind IP（sustained 403、額度不滿仍拒）**，反覆循環無法綠；歷史凍結期（至 2026-05-31）已對帳定案、近 14 日足以 attestation 最近 live 增量。同步修：daily_maintenance 對帳加 per-dataset log＋reconcile per-3-date progress（解 audit_selfheal v2 看門狗誤殺無-log 長對帳之死循環）；audit interval 實驗值 0.7（#27，撞 403 退回 0.9）。落地＝`audit_selfheal.sh`。
 
+> **⚠ #7 attestation 判準二次變更（hugo 拍板 2026-07-14 (a)+(b)，決策層）**：07-14 首輪 FAIL（VM 3,760/EX 84,996/MIS 9,759）鑑識＝三家族且全數入帳——①**端點錯配**（EX 之 94%：roster-scoped 名錄被 by-date 端點對帳→假 EX；catalog `reconcile_scope` 早已標對、daily_maintenance 未路由）②**移動邊緣**（外盤時差 UK VM 3,451/期貨夜盤/T+1 發布——把未定稿日納入比對必紅）③**合法重述**（PriceAdj 除權息季全序列重算）。裁決：**(a) 滾動安全邊緣**＝各表對帳窗上限 today−`finalize_lag_days`（外盤/夜盤/T+1 類=2，餘=1；**不是**固定封 6/30——固定封頂使 live 增量永不被 attest 且治不了①③）；**(b) 分類感知**＝catalog 加 `attestation_mode`（byte/snapshot/restating/coverage；snapshot 名錄=API 僅現況宇宙、DB as-of 保存反倖存偏差→豁免誠實列印；restating 豁免註記；coverage=News 量級對帳）＋ 對帳依 `reconcile_scope` 路由端點。落地＝`migrate_attestation_catalog_ddl.py`（seed snapshot 7/restating 1/coverage 1/lag2 6）＋ `reconcile_by_date/heal_by_date` 加 `until` ＋ `daily_maintenance` 路由+`--audit-all --heal`+exit 三態（0 綠/2 對帳紅終態不重試/3 未完整可重試——**rc=0≠PASS 假綠鏈已修**：selfheal rc=2 終態、watchdog 以最後 attestation 行判態）。**綠哨兵句改為「attestation：✅ PASS」**（舊「✓ audit 完成(rc=0)」廢止——rc=0 曾致三層假綠）。債：snapshot 表專屬「現況快照比對」未建（現=豁免+可 `reconcile_market` 手動抽驗）；roster-scoped 日常 attest=40 股抽樣（部分覆蓋、誠實列印）。
+> **⚠ 同日三次微調（hugo 拍板 2026-07-14）**：①外盤 `finalize_lag_days` 2→**3**（UK/EU/JP/US Price；全球化+天災延遲發布餘裕；期貨夜盤/T+1 維持 2）——hugo 原提滯後 10 天，裁後採 3：偵測延遲代價（10 天未 attest 資料入管線）> 收益，且晚修正由滾動再驗視窗（每夜重驗 14 天）+heal 承接、非 lag 職責。②對帳窗改**滾動 `--audit-days 14`**（since=today−14；取代寫死 2026-07-01——寫死窗隨時間膨脹重演 IP throttle；**滾出窗之日以最後一次 attest 定案**，同 05-31 凍結先例）。③selfheal 改用 `--audit-days 14 --audit-all --heal`。
+
 ### 4.2 下一步（可直接執行，含前置條件）
 ```bash
-# ① 等 audit 綠(哨兵句「✓ audit 完成(rc=0)」出現在 ~/audit_retry.log;對帳窗現=近14日)
+# ① 等 audit 綠(哨兵句「attestation：✅ PASS」出現在 ~/audit_retry.log;舊 rc=0 句已廢=假綠;窗=近14日+滾動邊緣)
 # ② E1 重驗:
 python scripts/verify_validation_evidence.py --run --with-scripts
 # ③ strict 全綠(exit 0 才准下一步):

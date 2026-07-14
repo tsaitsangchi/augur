@@ -77,8 +77,11 @@ svc augur-ollama "augur Ollama 模型後端 (:11434)" \
 svc augur-advisor "augur 顧問殼 advise+guard (:8399)" \
   "After=augur-ollama.service
 Wants=augur-ollama.service" \
-  "Environment=OLLAMA_BASE_URL=http://127.0.0.1:11434" \
+  "Environment=OLLAMA_BASE_URL=http://127.0.0.1:11434
+EnvironmentFile=$ROOT/.env" \
   "$VENV" "$ROOT/scripts/serve_advisor_openai.py" --serve --model qwen3:8b --timeout 400 --port 8399
+# ↑ EnvironmentFile:RBAC secret(AUGUR_INTERNAL_SECRET)顯式注入——先前只靠 import philosophy.retrieval
+#   副作用觸發 load_dotenv 才有 secret,import 順序一動即靜默轉 fail-closed deny-all(答段脆弱點,07-14 硬化)
 # 3) chat UI(依 advisor;瀏覽器前端)
 svc augur-chat "augur 對話 UI 誠實博學的我 (:8090)" \
   "After=augur-advisor.service

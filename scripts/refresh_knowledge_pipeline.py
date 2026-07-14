@@ -20,7 +20,8 @@
   python scripts/refresh_knowledge_pipeline.py --from-stage sentences --until embed --limit 1000
   python scripts/refresh_knowledge_pipeline.py --domain finance --stage-limit embed=5000 --stage-limit stats=20000   # D7 per-stage 量
   python scripts/refresh_knowledge_pipeline.py --reap                        # D7:殭屍收斂(心跳逾時/driver 亡→終止孤兒 process group+清 stale 鎖)
-  # 段名封閉集(依序): harvest promote fulltext sentences concordance stats embed vector_export
+  # 段名封閉集(依序): harvest promote fulltext sentences concordance stats stats_items bridge embed vector_export
+  #   (stats_items/bridge=K 計畫 §4 2026-07-14 加段:新語料落地後 items 統計軌+語意橋自動重建)
   # fulltext 段需環境變數 UNPAYWALL_EMAIL;--limit 映射為各 CLI 之有界旗標(promote 無界旗標=不適用)
   # vector_export 讀 knowledge_vectorstore_config(scope=sentence_items):backend=pgvector→skip(SSOT 即 serving);qdrant_*→export_qdrant_index.py
 """
@@ -58,6 +59,10 @@ STAGES = (
           False, "--limit", None, "items 側 en;zh 側個別跑 build_concordance.py"),
     Stage("stats", "S4", "build_cross_school_stats.py", ("--phase", "groupstats", "--run"),
           False, "--limit", None, "放量前置=P1-P3 拍板+M4;游標可續"),
+    Stage("stats_items", "S4", "build_items_knowhow_stats.py", ("--run",), False, None, None,
+          "items 語料統計軌(npmi/jaccard;llr 待放量 W3)——K 計畫 §4:新語料落地即重建,防橋層靜默陳舊"),
+    Stage("bridge", "S4", "build_field_knowledge_bridge.py", ("--run",), False, None, None,
+          "欄位↔know-how 語意橋(排 stats_items 後、embed 前;K 計畫 §4;derivation_method 四值閘不變)"),
     Stage("embed", "S5", "embed_knowledge.py", ("--layer", "sentence", "--language", "en", "--scope", "items"),
           False, "--limit", None, "items 側先行(P7);P4 拍板前不放量;完後個別跑 --build-index"),
     Stage("vector_export", "S6", "export_qdrant_index.py",
@@ -233,6 +238,14 @@ def pending_lines(cur, name, domain):
         return [f"items 側句 {seg} | 游標 {_cursors(cur, 'concordance%')}"]
     if name == "stats":
         return [f"游標 {_cursors(cur, 'xs_%')}(groupstats 待辦由 builder 無參數自報)"]
+    if name == "stats_items":
+        n = _n(cur, "SELECT count(*) FROM knowledge_item_term_stats")
+        c = _n(cur, "SELECT count(*) FROM knowledge_term_corpus_stats WHERE corpus='items'")
+        return [f"item_term_stats {n:,} | corpus_stats(items) {c:,}(--run 全量重建,語料小分鐘級)"]
+    if name == "bridge":
+        m = _n(cur, "SELECT count(*) FROM field_term_map")
+        a = _n(cur, "SELECT count(*) FROM field_knowhow_lexical_affinity")
+        return [f"field_term_map {m:,} | lexical_affinity {a:,}(--run 全量重建;cooc_sents≥30 閘在 builder)"]
     if name == "embed":
         rows = _rows(cur, f"SELECT s.language, count(*) FROM knowledge_sentence s {item_join}"
                           "WHERE s.itext_id IS NOT NULL AND NOT EXISTS "

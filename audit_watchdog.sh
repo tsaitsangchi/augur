@@ -12,11 +12,17 @@ LOG="$HOME/audit_retry.log"
 WLOG="$HOME/audit_watchdog.log"
 ts=$(date '+%m-%d %H:%M')
 
-# ① 已綠 → 無需動作(selfheal 綠後自 exit 0;watchdog 只確認)
-if grep -q '✓ audit 完成(rc=0)' "$LOG" 2>/dev/null; then
-  echo "$ts watchdog: audit 已綠 ✓、無需動作" >> "$WLOG"
-  exit 0
-fi
+# ① 以「最後一條 attestation」判態(rc=0≠PASS 假綠教訓 2026-07-14;log 累積故取最後一條為現況)
+last_att=$(grep -E 'attestation：' "$LOG" 2>/dev/null | tail -1)
+case "$last_att" in
+  *"✅ PASS"*)
+    echo "$ts watchdog: audit 已綠 ✓(attestation PASS)、無需動作" >> "$WLOG"
+    exit 0 ;;
+  *"❌ FAIL"*)
+    # 對帳紅=終態:relaunch 重跑不會變綠、只重打一輪 API(#24/#28)→ 只記錄、待根因/判準拍板(#26)
+    echo "$ts watchdog: ✗ attestation FAIL 終態——不 relaunch,待根因" >> "$WLOG"
+    exit 0 ;;
+esac
 
 # ② 未綠 → 檢查 selfheal 存活 + log 進展
 alive=$(pgrep -f 'audit_selfheal\.sh' | head -1)

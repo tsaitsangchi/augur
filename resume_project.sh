@@ -24,6 +24,12 @@ if [ ! -f "$ROOT/.env" ]; then
   exit 1
 fi
 echo "  ✓ .env 存在"
+# SFTP 通道③ 前置檢查(選配、只 warn 不擋:缺=僅 admin SFTP 面板啞火;見 HANDOFF §3)
+if [ ! -f "$HOME/.config/augur-sftp.json" ]; then
+  echo "  ⚠ SFTP 通道未配置(~/.config/augur-sftp.json 不存在)——若需遠端拉取,重建 config+SSH 私鑰(HANDOFF §3)"
+else
+  echo "  ✓ SFTP config 存在(私鑰有效性由首次連線驗)"
+fi
 
 # ---- 1) 套件(venv 缺則自建)----
 step "1/5 venv + pip install -e .(scripts 個別可執行)"

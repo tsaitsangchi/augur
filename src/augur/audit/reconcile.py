@@ -122,8 +122,12 @@ def _roster_union(cur, table):
     return ids | {str(r[0]) for r in cur.fetchall()}
 
 
-def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
+def reconcile_by_date(conn, table, dataset=None, *, since=None, until=None, progress=None):
     """逐交易日對帳：DB 各日 vs API by-date 重抓（不帶 data_id）。since 限近期日加速。
+
+    `until`：對帳窗上限（**滾動安全邊緣**,#7 (a) hugo 2026-07-14 拍板——未定稿邊緣日排除:盤中/外盤時差/
+    夜盤跨日/T+1 發布之日其 API 值仍在變動,納入比對=必然假 VM/MIS;呼叫端以 today−finalize_lag_days
+    計算傳入,與 `reconcile_per_stock` 之 until 同語意）;None=DB 全部日期（行為不變）。
 
     回傳除彙總計數外，含 `per_date`：{日期: {value_mismatch, missing_in_db, extra_in_db}}（**只列有差異
     的日子**）→ 供 `fixable_dates`（VM/MIS，可重跑 sync 補）/ `flagged_dates`（EX 紅旗，不自動碰）取用。
@@ -134,10 +138,13 @@ def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
     agg_m = aggregate_method(dataset, conn)   # DB-first(#29b);迴圈外查一次
     with db.transaction(conn) as cur:
         cols, pk, val = _meta(cur, table)
-        if since is None:
-            cur.execute(f'SELECT DISTINCT date FROM "{table}" ORDER BY date')
-        else:
-            cur.execute(f'SELECT DISTINCT date FROM "{table}" WHERE date >= %s ORDER BY date', (since,))
+        where, params = [], []
+        if since is not None:
+            where.append("date >= %s"); params.append(since)
+        if until is not None:
+            where.append("date <= %s"); params.append(until)
+        w = (" WHERE " + " AND ".join(where)) if where else ""
+        cur.execute(f'SELECT DISTINCT date FROM "{table}"{w} ORDER BY date', tuple(params))
         dates = [r[0] for r in cur.fetchall()]
     per_stock = _is_per_stock(cols)   # per-stock 表比對真名冊∪表內既有股,排除名冊外雜項(_roster_union)
     roster_ids = None
@@ -184,18 +191,19 @@ def flagged_dates(result):
     return sorted(d for d, c in result.get("per_date", {}).items() if c["extra_in_db"])
 
 
-def heal_by_date(conn, table, dataset=None, *, since=None, progress=None):
+def heal_by_date(conn, table, dataset=None, *, since=None, until=None, progress=None):
     """偵測→重跑 sync 補齊（一鍵）：reconcile_by_date 找差異日 → 對 fixable 日期跑 sync_by_date
     （強制重抓、冪等覆蓋；correction＝重跑正常 sync，非 hand-patch，守 #7/#1/#6）→ 再 reconcile 驗證。
 
+    `until` 同 reconcile_by_date（滾動安全邊緣;未定稿日不 heal——盤中重抓仍是半成品、白耗 API）。
     `flagged`（extra_in_db）日期只回報、**不自動碰**（可能合法已下市歷史）。回 {table, fixed, flagged,
     before, after, passed}。
     """
-    before = reconcile_by_date(conn, table, dataset, since=since, progress=progress)
+    before = reconcile_by_date(conn, table, dataset, since=since, until=until, progress=progress)
     fixable, flagged = fixable_dates(before), flagged_dates(before)
     for d in fixable:
         sync.sync_by_date(conn, dataset or table, start=d, end=d, progress=progress)
-    after = reconcile_by_date(conn, table, dataset, since=since, progress=progress) if fixable else before
+    after = reconcile_by_date(conn, table, dataset, since=since, until=until, progress=progress) if fixable else before
     keys = ("value_mismatch", "missing_in_db", "extra_in_db")
     return {"table": table, "fixed": fixable, "flagged": flagged,
             "before": {k: before[k] for k in keys}, "after": {k: after[k] for k in keys},
