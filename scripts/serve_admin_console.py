@@ -710,6 +710,28 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return kv.strip()[4:]
         return None
 
+    def _owner_uid(self):
+        """受驗 DB session → app_user.user_id;env 後門(記憶體 session)/未登入 → None(件 A 增補#6:
+        絕不信任 client 傳入 uid,防越權標他人為 owner #5)。owner=None 時 acquire 端不寫 owner(僅 super 可見私有)。"""
+        return identity.verify_session(self._token())
+
+    def _local_source_key(self, domain):
+        """本機通道 source_key(件 A1:白名單校驗、防任意 FK)。預設 local_files_<domain 或 local>;
+        須為已 active 之本機源(否則 acquire admission 閘拒、回明確訊息)。不信任 client 值。"""
+        sk = "local_files_" + (domain or "local")
+        try:
+            with db.connect() as conn, db.transaction(conn) as cur:
+                cur.execute("SELECT 1 FROM knowledge_source WHERE source_key=%s AND adapter IN "
+                            "('local_files','manual_file')", (sk,))
+                if cur.fetchone():
+                    return sk
+                cur.execute("SELECT source_key FROM knowledge_source WHERE adapter='local_files' "
+                            "AND approval_status='active' ORDER BY source_key LIMIT 1")
+                r = cur.fetchone()
+                return r[0] if r else sk       # 無 active 本機源→回預設,由 acquire admission 閘擋+明確訊息
+        except Exception:
+            return sk
+
     def _send(self, code, body, ctype="text/html; charset=utf-8", cookie=None):
         raw = body.encode() if isinstance(body, str) else body
         self.send_response(code)
@@ -869,10 +891,14 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return self._send(400, "license 非白名單", ctype="text/plain")
             if scope not in _SCOPES:
                 scope = "local_private"
-            _audit("folder", f"{safe} license={lic} scope={scope}")
+            sk, uid = self._local_source_key("local"), self._owner_uid()   # 件 A1:source_key 回填+RBAC owner
+            _audit("folder", f"{safe} license={lic} scope={scope} src={sk} owner={uid}")
             cmd = [py, os.path.join(ROOT, "scripts", "acquire_local_files.py"),
-                   "--dir", safe, "--license", lic, "--access-scope", scope, "--domain", "local"]
-            out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=300).stdout
+                   "--dir", safe, "--source-key", sk, "--license", lic, "--access-scope", scope, "--domain", "local"]
+            if uid is not None:
+                cmd += ["--owner-user-id", str(uid)]
+            r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=300)
+            out = r.stdout + (("\n[admission/錯誤]\n" + r.stderr) if r.returncode != 0 else "")   # 顯拒因(不靜默)
             return self._send(200, f"<pre style='font-family:system-ui;background:#faf9f5;color:#1f1e1d;padding:20px'>"
                               f"{html.escape(out)}</pre><a href=/>← 返回</a>")
 
@@ -897,12 +923,16 @@ class AdminHandler(BaseHTTPRequestHandler):
                 updir, st = sftpbrowse.fetch_to_upload(conn, rpath)
             except Exception as e:
                 return self._send(200, f"{pre}SFTP 下載失敗:{html.escape(str(e))}</pre><a href=/>← 返回</a>")
-            _audit("sftp_ingest", f"{conn}:{rpath} saved={st['saved']} license={lic} scope={scope}")
+            sk, uid = self._local_source_key("local"), self._owner_uid()
+            _audit("sftp_ingest", f"{conn}:{rpath} saved={st['saved']} license={lic} scope={scope} src={sk} owner={uid}")
             if not st["saved"]:
                 return self._send(200, f"{pre}遠端無可下載檔(過大跳 {st['skipped_big']})</pre><a href=/>← 返回</a>")
             cmd = [py, os.path.join(ROOT, "scripts", "acquire_local_files.py"),
-                   "--dir", updir, "--license", lic, "--access-scope", scope, "--domain", "local"]
-            out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=600).stdout
+                   "--dir", updir, "--source-key", sk, "--license", lic, "--access-scope", scope, "--domain", "local"]
+            if uid is not None:
+                cmd += ["--owner-user-id", str(uid)]
+            rr = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=600)
+            out = rr.stdout + (("\n[admission/錯誤]\n" + rr.stderr) if rr.returncode != 0 else "")
             head = (f"【SFTP 下載+解析】{conn}:{rpath}\n下載 {st['saved']} 檔"
                     f"(過大跳 {st['skipped_big']}{'、截斷' if st['truncated'] else ''})、license={lic} scope={scope}\n\n")
             return self._send(200, f"{pre}{html.escape(head + out)}</pre><a href=/>← 返回</a>")
@@ -928,12 +958,16 @@ class AdminHandler(BaseHTTPRequestHandler):
         if not files:
             return self._send(400, "無檔案(請選含檔案的資料夾)", ctype="text/plain")
         r = webupload.save_upload(files)
-        _audit("upload", f"{r['updir']} saved={r['saved']} big={r['big']} bad={r['bad']} license={lic} scope={scope}")
+        sk, uid = self._local_source_key("local"), self._owner_uid()
+        _audit("upload", f"{r['updir']} saved={r['saved']} big={r['big']} bad={r['bad']} license={lic} scope={scope} src={sk} owner={uid}")
         if not r["saved"]:
             return self._send(400, f"無有效檔案(過大跳 {r['big']}、非法名跳 {r['bad']})", ctype="text/plain")
         cmd = [py, os.path.join(ROOT, "scripts", "acquire_local_files.py"),
-               "--dir", r["updir"], "--license", lic, "--access-scope", scope, "--domain", "local"]
-        out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=600).stdout
+               "--dir", r["updir"], "--source-key", sk, "--license", lic, "--access-scope", scope, "--domain", "local"]
+        if uid is not None:
+            cmd += ["--owner-user-id", str(uid)]
+        ru = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=600)
+        out = ru.stdout + (("\n[admission/錯誤]\n" + ru.stderr) if ru.returncode != 0 else "")
         head = (f"【原生上傳解析】暫存 {r['updir']}\n"
                 f"存檔 {r['saved']}(過大跳 {r['big']}、非法名跳 {r['bad']})、license={lic} scope={scope}\n\n")
         return self._send(200, head + out, ctype="text/plain; charset=utf-8")

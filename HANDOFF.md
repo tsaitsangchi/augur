@@ -60,18 +60,23 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
   | git | `git config user.name/email`(檔內註記) | commit 身分缺 |
 
   （⚠ **advisor LLM 本機限定 v1.37.0**——不接任何外部 LLM,GEMINI 等 key 即使存在亦不用於 advisor。）
-- **SFTP 通道③ 前置（與 .env 同級人工重建;通道選配、缺=僅 SFTP 啞火）**：`~/.config/augur-sftp.json`（host/port/user/**key_path**,chmod 600、絕不存密碼）+ 其引用之 **SSH 私鑰檔**（須搬入本機且遠端重新授權）。二者不在 git/dump/sync_memory——新機不重建則 admin SFTP 面板不可用。
+- **SFTP 通道③ 前置（與 .env 同級人工重建;通道選配、缺=僅 SFTP 啞火）**：`~/.config/augur-sftp.json`（host/port/user/**key_path**,chmod 600、絕不存密碼）+ 其引用之 **SSH 私鑰檔**（須搬入本機且遠端重新授權）+ **.env 憑證** `SFTP_<NAME>_USER`/`SFTP_<NAME>_KEYPATH`（件 A2 `acquire_remote_files.py` 讀）。三者不在 git/dump/sync_memory——新機不重建則 SFTP 通道不可用。
+- **apk 反組譯前置（#23 OS 層、非 pip、選配）**：`jadx`（skylot/jadx GitHub release 解壓、bin/jadx 入 PATH）+ JRE（如 default-jre）——`scripts/decompile_apk_to_owned.py` 依賴;未裝則該工具 graceful 報錯、不影響其餘。paramiko 已入 pyproject admin extra（`pip install -e '.[admin]'` 自帶）。
 - **⚠ owned_local ERP 語料＝dump-only**：erp_tiptop 150,685 段 item_text（最大語料、佔 99%）**唯一換機載具＝DB dump**——augur repo 內無 Oracle 連接器（抽取屬外部 TTAI 工具）,dump 遺失＋原機不在＝**此語料不可復原**。dump 備份＝此語料唯一保命符。
 - **向量庫**：生產 SSOT = **pgvector（在 DB dump 內、跟著 DB 走）**;Qdrant serving（`~/qdrant_augur`,augur-qdrant.service,2026-07-14 上線）= **可拋棄、`export_qdrant_index.py` 從 PG 全量重建、不需跨機搬**;舊 `~/qdrant_local`（194MB 休眠驗證產物）同可重建。
 - **build 產物**（可重生勿 commit):`models_artifacts/`（.joblib、train_ranker 重生）、`data/`、`/models/`。⚠ `.gitignore` 模型輸出規則錨定 `/models/`（根限定）——**勿改回 `models/`**（會遞迴誤傷 `src/augur/models/` 源）。
 
 ## 4. 現況 STATE（取代式：每次封存點整段重寫；歷史＝`git log -p HANDOFF.md`）
 
-> 更新於 **2026-07-13 00:4x**、git 前一 commit `ddd4821`、最新 tag 見 `git tag -l 'archive-*'`。
+> 更新於 **2026-07-14**（三通道公民化+Qdrant+audit 近綠大進度日）、git 前一 commit `c7656ac`（本輪件 A P-apk/P-web/P-drv+smoke 修+HANDOFF 尚未 commit）、最新 tag 見 `git tag -l 'archive-*'`。
 > **紀律：本區每個宣稱都可能過期——待辦一律先跑附帶的驗證指令實查（#15），勿直接信。**
 
-### 4.1 一句話現況
-開賽前置**人工關卡全清**（A2 六門＋A3 `_r2` 三門皆簽、futility＋九候選凍結），audit 對帳已達 **[88/88] 進入尾段彙整**→ 哨兵句一出 AI 自動接 E1→strict→unfreeze evaluate→開賽。**知識層同日大豐收**：全文源專屬解析器 T1-T3 當日完成（IA/EDGAR/FRASER 三策略住 `adapter_config.fulltext`），公版全文落地 **491 件/66MB→已切 469,551 句**（嵌入由 03:30 timer 自動接）；PDF 抽取計畫書待 P0。
+### 4.1 一句話現況（2026-07-14 大進度日；取代前版）
+**開賽鏈**：人工關卡全清；audit 機制經 (a)+(b) 分類感知重構後**近綠**（88,756 差異→逐筆根因清零：Dividend restating 豁免、Shareholding 端點不對稱假 EX 由 by-date 交叉驗證扣抵）——驗綠 attestation 出「✅ PASS」哨兵句即 AI 自動接 E1→strict→unfreeze evaluate→開賽。
+**Qdrant serving 上線**（hugo 拍板「一定要上」）：`augur-qdrant.service`（~/qdrant_augur、6 服務）、sentence_items public en 55,861 已 export、shadow eval 0.972 PASS、retrieval.py 私有讀路修（Qdrant 只服務 public、private 走 pgvector）。發現＝pgvector HNSW+CLEAN over-filter 假 FAIL，Qdrant 反優（見記憶 qdrant-serving-hnsw-overfilter）。
+**件 A 三通道公民化**：code **全完成**（P-A1 本機+admission_gate / P-A2 SFTP 全套 / P-apk / P-web admin 三入口 / P-drv 驅動器通道迭代+timer；對抗審查 6 blocker 折入）；⚠ **DDL 待 apply**（`migrate_local_admission_ddl.py`+`migrate_sftp_sync_ddl.py` `--apply`，#30 dump 後+audit 綠+harvest 靜止）、源活化待 TTY、SFTP/apk 待人工前置。實作級計畫＝`reports/augur_jian_a_channel_citizenship_impl_plan_20260714.md`。
+**知識層 harvest（過夜）**：件 B resolver（`acquire_abstract.py` 多源+`fetch_entity_fulltext.py` 8 源）放量中——paper abstract ~3,000+、公版 book ia_fulltext 160+、entity（chembl/cod/uniprot）585；投資借閱書（在版權）導核心精神軌工具＝`report_principle_candidates.py`。
+**DB dump**：`augur_pgdump_20260714_Fd`（9.9G/247 分片、~/db_dumps）已備。
 
 > **⚠ #7 attestation 對帳範圍變更（hugo 拍板 2026-07-14，決策層）**：對帳窗由 `since=2026-06-01` **縮至 `2026-07-01`（近 ~14 日）**。理由：6/1 起全量對帳（75 dataset×數十交易日=數千 fetch）之 **sustained API 負載 throttle FinMind IP（sustained 403、額度不滿仍拒）**，反覆循環無法綠；歷史凍結期（至 2026-05-31）已對帳定案、近 14 日足以 attestation 最近 live 增量。同步修：daily_maintenance 對帳加 per-dataset log＋reconcile per-3-date progress（解 audit_selfheal v2 看門狗誤殺無-log 長對帳之死循環）；audit interval 實驗值 0.7（#27，撞 403 退回 0.9）。落地＝`audit_selfheal.sh`。
 
@@ -110,6 +115,8 @@ python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §
 1. **PDF 抽取計畫 P0**＝`reports/knowledge_pdf_extraction_plan_20260712.md`（D2 後續;pypdf+五道機械品質閘 fail-closed;OAPEN 61+skip_pdf 976）
 2. 短 horizon 模型計畫②＋全能顧問計畫①：**hugo 已裁「開賽後 AI 先做時效性複核再拍」**（2026-07-12;兩案早於解凍/擂台設計,恐部分被超越）
 3. ~~舊專案 stock_backend 的平日 16:00 FinMind cron 去留~~ **已裁定（2026-07-13 hugo）：4 條 cron 全部取消**（同 IP 疊加解除；備份=`~/crontab_stock_backend_backup_20260713.txt` 可復原）
+4. **件 A 三通道公民化 DDL apply + 源活化**（code 已完成、非阻塞開賽）：`python scripts/migrate_local_admission_ddl.py --apply` ＋ `python scripts/migrate_sftp_sync_ddl.py --apply`（**須 audit 綠 + harvest 靜止後**，#30 dump 期禁 DDL）→ 再由 hugo **TTY 逐源 approve/activate**（AI 不自活化源、憲章 v1.41.0）→ `systemctl --user restart augur-admin`（載入 P-web 新碼）→ `bash install_services.sh --with-refresh`（開 know-how 週更 timer，R-A-R3）。SFTP/apk 另需 §3 人工前置（`augur-sftp.json`+私鑰 / jadx+JRE）。
+5. **R-H 修憲（OCR/ASR 轉錄≠AI + 本機/SFTP 明文豁免）**：v3 提案＝`reports/augur_rh_amendment_transcription_exemption_v3_20260714.md`；T2 CLAUDE #29b 條文（Fable 5 檔位、治權檔）待 hugo 確認後才動筆改治權檔。
 
 > 解析器計畫 T0 已拍(2026-07-12):D1 核准全計畫、D2 另立 PDF 計畫、D3 IA 200/批——**T1-T3 當日執行完畢**(FRASER textUrl 實證/三策略落 DB/IA 13 批掃蕩 491 抓、熔斷零觸發)。
 
@@ -130,6 +137,9 @@ python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §
 - **FRASER API 只收 `X-API-Key` header**（query param 必 401）；key 認證機制＝`knowledge_source.adapter_config.auth_header`。
 - **額度錶低 ≠ IP 安全**：FinMind 403 有額度型與 IP sustained 型兩種，判斷一律問錶（`/user_info`）＋見訊號即停（#24）。
 - **audit 對帳段會無聲卡死**（2026-07-13 實證:API 讀無效 timeout 掛 9h,`poll_schedule_timeout`+rchar 0）——「進程活著+log 靜默」≠ 在跑;診斷=`/proc/<pid>/wchan`+10s rchar 差;`audit_selfheal.sh` v2 已內建 45 分靜默看門狗自動殺掉續跑。
+- **pgvector HNSW + CLEAN WHERE 過濾＝假空/假 FAIL**（2026-07-14 實證,記憶 `qdrant-serving-hnsw-overfilter`）：最近向量多為 local_private,HNSW 先取 top-ef 再 WHERE 濾 public→濾空→retrieval 假空、shadow eval 假 FAIL(0.302)。**鑑識法＝exact baseline**(`SET LOCAL enable_indexscan=off` 強制精確)比對；Qdrant 對 exact=0.988(非 Qdrant 之過)。shadow eval baseline 已改強制 exact→0.972 PASS。
+- **FinMind per-stock vs by-date 端點不對稱＝假 EX**（2026-07-14 實證）：同 dataset,名錄(roster-scoped)以 by-date 端點對帳、生產以 per-stock 抓,某日 per-stock 缺該 date 但 by-date 有→假 extra_in_db(非幻像)。**A 案交叉驗證**（by-date confirms→扣抵 EX）已入 `reconcile.py`;catalog `reconcile_scope` 標端點、`daily_maintenance` 依此路由。
+- **scripts/ 改動不入 pytest 回歸＝靜默 regression**（2026-07-14 實證）：P-A1 令 `acquire_local_files.py` --source-key 必填,弄壞 `verify_knowledge_e2e_smoke.py`(scripts/ 非 pytest,200 passed 全套沒抓到)。教訓＝改共用 acquire 函式後須手跑 `verify_knowledge_e2e_smoke.py`(暢通不變式機械判定,憲章 v1.40.0);已修(fixture 帶 --source-key + active 源需 approved_by 過 `chk_ks_active_needs_approval`)。
 
 ### 4.7 路由表（去哪讀什麼；本檔不複述）
 | 要什麼 | 去哪 |

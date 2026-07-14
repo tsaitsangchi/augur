@@ -34,6 +34,21 @@ from augur.core import db
 REPO = Path(__file__).resolve().parent.parent
 PY = sys.executable
 DOMAIN = "smoke_test"
+SMOKE_SOURCE = "local_files_smoke_test"   # 件 A1 後 acquire_local_files 須 --source-key+admission 源-active;煙測自管此源(fixture,clean 拆)
+
+
+def _ensure_smoke_source():
+    """煙測 fixture:seed smoke_test domain + 註冊並活化 SMOKE_SOURCE(件 A1:acquire 須 active 源過 admission)。
+    直接置 active(受控測試 fixture、非生產源、run 尾 clean 拆;生產源活化仍唯人 TTY #26)。"""
+    from augur.knowledge import admission
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("INSERT INTO knowledge_domain (domain,label_zh,is_authz_boundary,is_investment,enabled) "
+                    "VALUES (%s,'煙測',false,false,true) ON CONFLICT (domain) DO NOTHING", (DOMAIN,))
+        admission.register_local_source(cur, SMOKE_SOURCE, domain=DOMAIN, default_license="public_domain",
+                                        access_scope="public")
+        # active 須 approved_by(chk_ks_active_needs_approval);fixture 標 smoke_fixture(受控測試源、非生產、clean 拆)
+        cur.execute("UPDATE knowledge_source SET approval_status='active', approved_by='smoke_fixture', "
+                    "approved_at=now() WHERE source_key=%s", (SMOKE_SOURCE,))
 # sentinel 底文=真實公版句(Adam Smith, Wealth of Nations, 1776;公版無虞、en 走 DAG en 節點)
 _PD_BASE = ("It is not from the benevolence of the butcher, the brewer, or the baker, "
             "that we expect our dinner, but from their regard to their own interest.")
@@ -73,8 +88,14 @@ def clean():
             cur.execute("DELETE FROM knowledge_item WHERE item_id = ANY(%s)", (ids,))
         cur.execute("DELETE FROM knowledge_staging WHERE source_key IN "
                     "(SELECT source_key FROM knowledge_source WHERE domain=%s)", (DOMAIN,))
+        # 件 A1 fixture 拆:sftp_sync_state(若表存在)→ SMOKE_SOURCE 源列 → smoke_test domain(順序守 FK)
+        cur.execute("SELECT to_regclass('sftp_sync_state')")
+        if cur.fetchone()[0]:
+            cur.execute("DELETE FROM sftp_sync_state WHERE source_key=%s", (SMOKE_SOURCE,))
+        cur.execute("DELETE FROM knowledge_source WHERE source_key=%s OR domain=%s", (SMOKE_SOURCE, DOMAIN))
+        cur.execute("DELETE FROM knowledge_domain WHERE domain=%s", (DOMAIN,))
         conn.commit()
-    print(f"✓ clean:smoke_test 域 {len(ids)} item 及全下游已拆(冪等)")
+    print(f"✓ clean:smoke_test 域 {len(ids)} item + SMOKE_SOURCE 源 + domain 及全下游已拆(冪等)")
 
 
 def run(with_llm=False, keep=False, as_json=False):
@@ -90,16 +111,19 @@ def run(with_llm=False, keep=False, as_json=False):
     with db.connect() as conn, db.transaction(conn) as cur:
         before = _counts(cur)
 
-    # (1) sentinel 入庫:既有 manual 導管(#12)——public 正向列 + local_private 反向列
+    # (1) sentinel 入庫:本機通道(件 A1:--source-key SMOKE_SOURCE 過 admission 源-active)——public 正向 + local_private 反向
+    _ensure_smoke_source()
     with tempfile.TemporaryDirectory() as td:
         (Path(td) / "sentinel_pub.txt").write_text(pub_text, encoding="utf-8")
         rc1, o1 = _sh([PY, str(REPO / "scripts/acquire_local_files.py"), "--dir", td,
-                       "--license", "public_domain", "--domain", DOMAIN, "--access-scope", "public"])
+                       "--source-key", SMOKE_SOURCE, "--license", "public_domain",
+                       "--domain", DOMAIN, "--access-scope", "public"])
     with tempfile.TemporaryDirectory() as td:
         (Path(td) / "sentinel_priv.txt").write_text(priv_text, encoding="utf-8")
         rc2, o2 = _sh([PY, str(REPO / "scripts/acquire_local_files.py"), "--dir", td,
-                       "--license", "public_domain", "--domain", DOMAIN])   # 預設 access_scope=local_private、無 owner
-    check("S1 sentinel 入庫(manual 導管×2)", rc1 == 0 and rc2 == 0, o1 + o2)
+                       "--source-key", SMOKE_SOURCE, "--license", "public_domain",
+                       "--domain", DOMAIN])   # 預設 access_scope=local_private、無 owner
+    check("S1 sentinel 入庫(本機通道×2;件 A1 source_key+admission)", rc1 == 0 and rc2 == 0, o1 + o2)
 
     # (2) 鏈:sentences → concordance(en)→ embed(既有 builder 逐支;#12)
     rc, out = _sh([PY, str(REPO / "scripts/build_sentences.py"), "--scope", "items"])
@@ -137,6 +161,17 @@ def run(with_llm=False, keep=False, as_json=False):
         cur.execute("SELECT count(*) FROM field_knowhow_lexical_affinity WHERE cooc_sents < 30")
         low = cur.fetchone()[0]
     check("K1 橋:低支持 pair 零物化(CHECK≥30)", low == 0, f"low={low}")
+
+    # (4c) 三通道公民性:本機 sentinel 之 item 帶 source_key=SMOKE_SOURCE(非 NULL)=走通道公民路(件 A1 核心)
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SELECT count(*), count(source_key) FROM knowledge_item WHERE domain=%s", (DOMAIN,))
+        n_item, n_sk = cur.fetchone()
+        # SFTP 通道:有 active sftp 源才可端到端(需實遠端);無則誠實跳過(通道公民性由 acquire_remote_files graceful 另驗)
+        cur.execute("SELECT count(*) FROM knowledge_source WHERE adapter='sftp' AND approval_status='active'")
+        n_sftp = cur.fetchone()[0]
+    check("通道公民:本機 item source_key 全回填(非 NULL)", n_item > 0 and n_sk == n_item, f"item={n_item} source_key={n_sk}")
+    print(f"  ⓘ 三通道覆蓋:本機✓(source_key 路);SFTP={'可端到端(active 源'+str(n_sftp)+')' if n_sftp else '跳過(無 active sftp 源+需實遠端;#31 人工前置後可測)'};"
+          "API=harvest 常態覆蓋(knowledge_source topic 源)")
 
     # (5) 語料隔離:正式統計零增列
     with db.connect() as conn, db.transaction(conn) as cur:

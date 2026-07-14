@@ -96,7 +96,11 @@ PENDING_WHERE = """
    OR i.external_id ILIKE 'http://dx.doi.org/10.%%' OR i.external_id ILIKE 'doi:10.%%')
   AND NOT EXISTS (SELECT 1 FROM knowledge_item_text t WHERE t.item_id = i.item_id)
   AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status b WHERE b.item_id = i.item_id)
+  AND NOT EXISTS (SELECT 1 FROM knowledge_source ks WHERE ks.source_key = i.source_key
+                  AND ks.protocol IN ('local_file','sftp'))
 """
+# ↑ 件 A/G 顯式排除本機/SFTP 通道(protocol):防 owned_local 私有件被送外部 OA resolver(citations 可能含私有)。
+#   注:首要天然障壁實為 external_id 非 DOI 形(localfile:sha1 天然不 match 上方 DOI 閘);此為額外防線(三者並存)。
 
 # blocked 終態原因(status → 人可讀說明,誠實記 #15;'ok' 不入帳=全文已在 item_text)
 BLOCKED_REASON = {

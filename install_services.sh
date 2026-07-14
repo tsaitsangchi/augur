@@ -3,7 +3,7 @@
 # 全本地、免 sudo（user 級 systemd）、零 Claude usage。啟動規格與 start_chat.sh 對齊（單一 SSOT）。
 #
 # 服務(6 常駐):qdrant:6333 · ollama:11434 ← advisor:8399 ← chat:8090 · admin:8500 · probability:8600
-# timers(2):embed-catchup(03:30 補嵌入積壓,冪等) · l2-deliberation(每日自審,預設 disabled 待 hugo 開閘)
+# timers(3):embed-catchup(03:30 補嵌入積壓,冪等) · l2-deliberation(每日自審,預設 disabled) · knowhow-refresh(週日 02:00,件 A/G,預設 disabled 待 R-A-R3)
 # 註:qdrant:6333=sentence_items serving 索引(hugo 2026-07-14 拍板上線;pgvector 仍 SSOT、Qdrant 可拋棄從 PG 重建)。
 #
 # ⚠ ollama 排序循環陷阱(2026-07-11 實證):user unit **不得**寫 After=default.target(與 WantedBy 成環→開機被丟棄)。
@@ -12,6 +12,7 @@
 # 執行指令矩陣:
 #   bash install_services.sh              # 生成 unit + enable-linger + enable/start 5 服務 + embed timer;實測端口
 #   bash install_services.sh --with-l2    # 另 enable l2-deliberation timer(僅 hugo 開閘後)
+#   bash install_services.sh --with-refresh  # 另 enable know-how 週更 timer(件 A/G;R-A-R3 開閘後;保守純下游)
 #   bash install_services.sh --status     # 只印現況,不動
 #   bash install_services.sh --uninstall  # 停用+移除所有 augur-* unit(保留 .env/資料)
 set -u
@@ -29,7 +30,7 @@ if [ "${1:-}" = "--status" ]; then
 fi
 
 if [ "${1:-}" = "--uninstall" ]; then
-  for u in augur-chat augur-advisor augur-admin augur-probability augur-ollama augur-qdrant augur-embed-catchup.timer augur-l2-deliberation.timer augur-audit-watchdog.timer; do
+  for u in augur-chat augur-advisor augur-admin augur-probability augur-ollama augur-qdrant augur-embed-catchup.timer augur-l2-deliberation.timer augur-knowhow-refresh.timer augur-audit-watchdog.timer; do
     UC disable --now "$u" 2>/dev/null; UC stop "$u" 2>/dev/null
   done
   rm -f "$UD"/augur-*.service "$UD"/augur-*.timer
@@ -116,6 +117,30 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+# --- timer: knowhow-refresh(件 A/G;每週日 02:00;預設 disabled,待 R-A-R3 hugo 開閘;保守 --from-stage promote 純下游不觸外部 API) ---
+KNOWHOW_REFRESH_ARGS="${KNOWHOW_REFRESH_ARGS:---from-stage promote --domain finance}"
+cat > "$UD/augur-knowhow-refresh.service" <<EOF
+[Unit]
+Description=augur know-how 管線週更(件 A/G;#26 護欄:預設保守 --from-stage promote 純下游、不觸外部 API 放量)
+
+[Service]
+Type=oneshot
+WorkingDirectory=$ROOT
+EnvironmentFile=$ROOT/.env
+ExecStart=$VENV $ROOT/scripts/refresh_knowledge_pipeline.py $KNOWHOW_REFRESH_ARGS
+EOF
+cat > "$UD/augur-knowhow-refresh.timer" <<EOF
+[Unit]
+Description=augur know-how 管線週更 週日 02:00
+
+[Timer]
+OnCalendar=Sun *-*-* 02:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
 # --- timer: l2-deliberation(每日自審;預設 disabled,待 hugo 開閘) ---
 cat > "$UD/augur-l2-deliberation.service" <<EOF
 [Unit]
@@ -172,7 +197,9 @@ done
 UC enable augur-embed-catchup.timer 2>/dev/null; UC restart augur-embed-catchup.timer 2>/dev/null
 UC enable augur-audit-watchdog.timer 2>/dev/null; UC restart augur-audit-watchdog.timer 2>/dev/null   # audit 未綠期間監看;綠後 no-op
 UC enable augur-l2-deliberation.timer 2>/dev/null   # timer 檔就緒但不啟(--now),待開閘
+UC enable augur-knowhow-refresh.timer 2>/dev/null   # 件 A/G:timer 檔就緒不啟,待 R-A-R3 hugo 開閘(--with-refresh)
 [ "${1:-}" = "--with-l2" ] && { UC start augur-l2-deliberation.timer; echo "✓ L2 timer 已啟(--with-l2)"; }
+[ "${1:-}" = "--with-refresh" ] && { UC start augur-knowhow-refresh.timer; echo "✓ know-how refresh timer 已啟(--with-refresh;保守 --from-stage promote)"; }
 
 echo "── 端口實測(各服務啟動需數秒;advisor 待 ollama+模型) ──"
 sleep 6

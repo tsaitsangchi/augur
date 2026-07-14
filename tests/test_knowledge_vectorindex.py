@@ -9,7 +9,11 @@ import random
 
 import pytest
 
-from augur.knowledge.vectorindex import CollectionSpec, MilvusLiteIndex
+# Milvus 為退役後端(2026-07-14 Qdrant serving 已上為生產 serving 索引);pymilvus 為 optional dep,
+# 未裝時整檔 skip 非 fail(測試衛生#15;Qdrant 介面由 verify_qdrant_shadow 0.972+向量等值直測驗證)。
+pytest.importorskip("pymilvus", reason="Milvus 退役後端;pymilvus 未裝→跳過其嵌入式介面煙測(Qdrant 另驗)")
+
+from augur.knowledge.vectorindex import CollectionSpec, MilvusLiteIndex  # noqa: E402
 
 DIM = 8
 

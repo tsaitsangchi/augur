@@ -207,7 +207,18 @@ def pending_lines(cur, name, domain):
                         "JOIN knowledge_query q USING (query_id)"
                         + (" WHERE q.domain = %s" if domain else "") + " GROUP BY 1 ORDER BY 1", p)
         log = " / ".join(f"{k} {v:,}" for k, v in st) or "log 空"
-        return [f"enabled query {nq:,} | harvest_log {log}"]
+        # 第 2 行:檔案通道(件 A/G;query_id=0 sentinel 帳,原第 1 行 INNER JOIN knowledge_query 丟棄之)使三通道可見
+        fc = _rows(cur, "SELECT ks.adapter, count(*) FROM knowledge_source ks WHERE ks.approval_status='active' "
+                        "AND ks.adapter IN ('local_files','sftp')"
+                        + (" AND ks.domain=%s" if domain else "") + " GROUP BY 1 ORDER BY 1", p)
+        # query_id=0 為 harvest singles 與檔案通道共用之 sentinel(對抗審查)——JOIN adapter 過濾只顯真檔案通道
+        fcs = _rows(cur, "SELECT l.status, count(*) FROM knowledge_harvest_log l "
+                         "JOIN knowledge_source ks ON ks.source_key=l.source_key "
+                         "WHERE l.query_id=0 AND ks.adapter IN ('local_files','sftp') GROUP BY 1 ORDER BY 1")
+        chan = " ".join(f"{a}:{n}" for a, n in fc) or "無 active 源"
+        clog = " / ".join(f"{s} {n}" for s, n in fcs) or "(未跑)"
+        return [f"enabled query {nq:,} | harvest_log {log}",
+                f"檔案通道 active 源 {chan} | 通道 log(query_id=0) {clog}"]
     if name == "promote":
         n = _n(cur, "SELECT count(*) FROM knowledge_staging WHERE status = 'pending'" + d, p)
         return [f"staging pending {n:,}"]
@@ -309,6 +320,59 @@ def select_stages(args):
     return list(STAGES[lo:hi + 1])
 
 
+# 件 A/G 通道統一:harvest 段除 API topic(harvest_knowledge.py)外,迭代 active 本機/SFTP 檔案通道源。
+# adapter→acquirer 映射屬邏輯(協定,非策展資料)故 code 常數(#29b 明文豁免);下游 promote..vector_export 共用(channel-agnostic)。
+CHANNEL_ACQUIRERS = {"local_files": "acquire_local_files.py", "sftp": "acquire_remote_files.py"}
+
+
+def _file_channel_sources(cur, domain):
+    sql = ("SELECT source_key, adapter FROM knowledge_source WHERE approval_status='active' "
+           "AND adapter = ANY(%s)")
+    params = [list(CHANNEL_ACQUIRERS)]
+    if domain:
+        sql += " AND domain = %s"; params.append(domain)
+    cur.execute(sql + " ORDER BY source_key", params)
+    return cur.fetchall()
+
+
+def _upsert_channel_log(cur, source_key, status, rows):    # query_id=0 sentinel(與 harvest singles 同慣例;PK 靠 source_key 分)
+    cur.execute("INSERT INTO knowledge_harvest_log (query_id, source_key, last_run, rows_staged, attempts, status) "
+                "VALUES (0,%s,now(),%s,1,%s) ON CONFLICT (query_id, source_key) DO UPDATE SET "
+                "last_run=now(), rows_staged=EXCLUDED.rows_staged, "
+                "attempts=knowledge_harvest_log.attempts+1, status=EXCLUDED.status",
+                (source_key, rows, status))
+
+
+def harvest_file_channels(domain, limit):
+    """驅動器 harvest 段之檔案通道迭代(件 A/G):每 active local_files/sftp 源 → 對應 acquirer subprocess
+    (--acquire-only,下游交 DAG C3;acquire_local_files 無 --dir 時由 adapter_config.root_dir 取根 #29b)。
+    前後 knowledge_item 計數差=rows,記 harvest_log(query_id=0);per-source try/except 續跑不中斷全鏈。零 token。"""
+    with db.connect() as conn:
+        with db.transaction(conn) as cur:
+            srcs = _file_channel_sources(cur, domain)
+        if not srcs:
+            print("  檔案通道:無 active 本機/SFTP 源(件 A 未註冊/未活化=空跑安全)", flush=True)
+            return
+        for sk, adapter in srcs:
+            with db.transaction(conn) as cur:
+                cur.execute("SELECT count(*) FROM knowledge_item WHERE source_key=%s", (sk,))
+                before = cur.fetchone()[0]
+            flag = "--source" if adapter == "sftp" else "--source-key"
+            cmd = [PY, str(SCRIPTS / CHANNEL_ACQUIRERS[adapter]), flag, sk, "--acquire-only"]
+            if limit:
+                cmd += ["--limit", str(limit)]
+            try:
+                rc = subprocess.run(cmd, timeout=3600).returncode
+            except Exception as e:
+                rc = -1
+                print(f"  ✗ 通道 {sk}({adapter}):{type(e).__name__}: {e}", flush=True)
+            with db.transaction(conn) as cur:
+                cur.execute("SELECT count(*) FROM knowledge_item WHERE source_key=%s", (sk,))
+                rows = cur.fetchone()[0] - before
+                _upsert_channel_log(cur, sk, "ok" if rows > 0 else ("empty" if rc == 0 else "error"), rows)
+            print(f"  通道 {sk}({adapter}):+{rows} item rc={rc}", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--domain")
@@ -377,6 +441,8 @@ def main():
             print(f"✗ 段 {st.name} exit={rc}(耗時 {time.time() - ts:.0f}s)——中止全鏈"
                   f"(check=True 語意);該段輸出見本 log 上方;修復後續跑:--from-stage {st.name}", flush=True)
             sys.exit(rc or 1)
+        if st.name == "harvest":                             # 件 A/G:API topic 抓完 → 迭代本機/SFTP 檔案通道(下游共用)
+            harvest_file_channels(args.domain, args.limit)
         with db.connect() as conn, db.transaction(conn) as cur:
             after = pending_lines(cur, st.name, args.domain)
         print(f"✓ {st.seg} {st.name} 完成 {time.time() - ts:.0f}s | 驗收計數(後):{'; '.join(after)}",
