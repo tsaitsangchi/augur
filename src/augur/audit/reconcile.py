@@ -241,6 +241,8 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sa
     if agg["sampled"]:
         step = len(stocks) / sample_n          # 等距抽樣（deterministic、可重現，不用 random）
         stocks = [stocks[int(i * step)] for i in range(sample_n)]
+    agg["endpoint_asym_ex"] = 0                # A 案:by-date 證實存在之假 EX 扣抵數(誠實留帳 #15)
+    _bd_cache = {}                             # {date: by-date keys}(同 run 同日只抓一次 #24/#28)
     for i, sid in enumerate(stocks, 1):
         where, params = "stock_id = %s", [sid]
         if since:
@@ -265,6 +267,11 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sa
                if (not since or str(row.get("date")) >= str(since))
                and (not dbmax or str(row.get("date")) <= str(dbmax))]
         r = compare(dbr, api, pk, val)
+        if r["extra_in_db"]:                    # A 案:per-stock 端點無之列 → by-date 交叉驗證扣抵端點不對稱假 EX
+            conf = _bydate_confirms(dataset, _extra_keys(dbr, api, pk), pk, _bd_cache, progress)
+            if conf:
+                r["extra_in_db"] -= conf
+                agg["endpoint_asym_ex"] += conf
         _merge(agg, r)
         if r["value_mismatch"] or r["missing_in_db"] or r["extra_in_db"]:
             agg["per_stock"][sid] = {k: r[k] for k in ("value_mismatch", "missing_in_db", "extra_in_db")}
@@ -274,6 +281,36 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sa
     agg["stocks"] = len(stocks)
     agg["incomplete"] = bool(agg["errors"])    # 有股抓取失敗 = 未完整對帳 → verdict 不給 pass
     return agg
+
+
+def _extra_keys(dbr, api, pk):
+    """回 DB 有、API(per-stock 端點)無之列(extra 候選)。"""
+    apk = {_key(r, pk) for r in api}
+    return [r for r in dbr if _key(r, pk) not in apk]
+
+
+def _bydate_confirms(dataset, extra_rows, pk, cache, progress=None):
+    """交叉驗證(A 案,2026-07-14):per-stock 端點無之 extra 候選,是否存在於 **by-date 端點**。
+    FinMind per-stock 與 by-date 端點對特定日/股覆蓋可不對稱(實證 Shareholding 07-06:by-date 有、
+    per-stock 缺)→ by-date 證實存在者=**非幻像**(DB 由 by-date 落地正確、僅 per-stock 再抓不回),
+    自 extra 扣抵;**兩端點皆無=真 EX 紅旗、留計**(寧紅勿假綠、三敵零容忍)。
+    cache:{date: set(by-date keys)|None}(同 run 同日只抓一次,#24/#28;抓失敗記 None=保守留 EX)。"""
+    confirmed = 0
+    for row in extra_rows:
+        d = row.get("date")
+        ds = d if isinstance(d, str) else (d.isoformat() if d is not None else None)
+        if ds is None:
+            continue
+        if ds not in cache:
+            try:
+                bd = finmind.fetch(dataset, start_date=ds, end_date=ds)
+                cache[ds] = {_key(r, pk) for r in bd}
+            except finmind.FinMindError:
+                cache[ds] = None                   # 抓失敗→無法確認→保守留為 EX(不假綠)
+        keys = cache[ds]
+        if keys is not None and _key(row, pk) in keys:
+            confirmed += 1                          # by-date 證實存在=端點不對稱假 EX
+    return confirmed
 
 
 def reconcile_by_dim_id(conn, table, dataset=None, *, since=None, progress=None):

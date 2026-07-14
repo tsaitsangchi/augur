@@ -112,11 +112,13 @@ def main():
                         rr = reconcile.reconcile_by_date(conn, ds, since=args.audit_since, until=until, progress=_plog)
                     recs.append(rr)
             v = reconcile.verdict(*recs)
+            asym = sum(r.get("endpoint_asym_ex", 0) for r in recs)   # A 案:by-date 證實之端點不對稱假 EX 扣抵(#15 誠實)
             tag = "✅ PASS（DB byte-equal API，無幻像）" if v["passed"] else "❌ FAIL（須查根因）"
             print(f"attestation：{tag} | matched={v['matched']:,} "
                   f"value_mismatch={v['value_mismatch']} extra_in_db={v['extra_in_db']} "
                   f"missing_in_db={v['missing_in_db']:,}"
-                  + (f" | 豁免 {len(exempt)} 表({'、'.join(d for d, _ in exempt)})" if exempt else ""))
+                  + (f" | 豁免 {len(exempt)} 表({'、'.join(d for d, _ in exempt)})" if exempt else "")
+                  + (f" | 端點不對稱假 EX 扣抵 {asym}(by-date 證實存在、非幻像)" if asym else ""))
             if not v["passed"]:
                 # 三態分離(rc=0≠PASS 曾致 selfheal/watchdog/Monitor 三層假綠,2026-07-14 實證):
                 # rc=3=僅未完整(抓取錯、VM/EX=0)→可重試;rc=2=對帳紅(VM/EX>0)→終態,重試不會變綠。

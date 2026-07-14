@@ -25,7 +25,7 @@ import sys
 
 import _bootstrap  # noqa: F401
 from augur.core import db
-from augur.knowledge import corpus, fileparse
+from augur.knowledge import admission, corpus, fileparse
 
 SEG_CHARS = 8000
 MIN_CHARS = 50            # 抽出總長 < 此=殘片,不入庫(仿 fetch_oa_fulltext)
@@ -36,34 +36,96 @@ def _detect_lang(text):
     return "zh" if cjk > len([c for c in text[:2000] if not c.isspace()]) * 0.30 else "en"
 
 
+def ingest_file(cur, path, *, license, access_scope, domain, source_key, source_type,
+                owner_user_id=None, source_url=None):
+    """單檔逐字入庫(可重用;acquire_remote_files SFTP 通道復用之,#12 不複製 INSERT)。
+    抽 fileparse → sha1 冪等去重 → INSERT knowledge_item(source_key 回填)+ knowledge_item_text(分段)。
+    回 (item_id|None, n_rows, status);status∈{'ok','dup','short','skip:<reason>'};dup 回既有 item_id。
+    source_url 預設 file://realpath;SFTP 傳 'sftp://host/remotepath'(暫存檔會刪、file:// 不穩)。
+    ⚠ 呼叫端須在同一 transaction(cur)內用,並先過 admission_gate(本函式不重複判閘、專責入庫)。"""
+    text, reason = fileparse.extract_text(path)
+    if text is None:
+        return None, 0, "skip:" + reason
+    text = text.strip()
+    if len(text) < MIN_CHARS:
+        return None, 0, "short"
+    sha1 = hashlib.sha1(text.encode("utf-8", "replace")).hexdigest()
+    ext_id = "localfile:" + sha1
+    url = source_url or ("file://" + os.path.realpath(path))
+    cur.execute("SELECT item_id FROM knowledge_item WHERE entity_type='document' AND external_id=%s", (ext_id,))
+    row = cur.fetchone()
+    if row:
+        return row[0], 0, "dup"                    # 內容 sha1 已在(跨本機/SFTP 通道去重於 item 層)
+    cur.execute("INSERT INTO knowledge_item (domain, entity_type, title, external_id, url, source_key) "
+                "VALUES (%s,'document',%s,%s,%s,%s) RETURNING item_id",
+                (domain, os.path.basename(path)[:250], ext_id, url, source_key))
+    item_id = cur.fetchone()[0]
+    lang = _detect_lang(text)
+    n = 0
+    for i in range(0, len(text), SEG_CHARS):
+        cur.execute("INSERT INTO knowledge_item_text "
+                    "(item_id, seq, content, language, source_url, license, source_type, access_scope, owner_user_id) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (item_id, i // SEG_CHARS + 1, text[i:i + SEG_CHARS], lang, url,
+                     license, source_type, access_scope,
+                     owner_user_id if access_scope == "local_private" else None))
+        n += 1
+    return item_id, n, "ok"
+
+
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--dir")
+    ap.add_argument("--source-key", help="knowledge_source PK(件 A1:寫入必填、admission 源-active 閘;"
+                    "無 --dir 時由該源 adapter_config.root_dir 取根目錄=驅動情境 #29b)")
+    ap.add_argument("--source-type", choices=list(admission.SOURCE_TYPE_WHITELIST), default="local_upload",
+                    help="item_text.source_type(白名單 SSOT=admission.SOURCE_TYPE_WHITELIST;預設 local_upload)")
     ap.add_argument("--license", choices=list(corpus.LICENSE_WHITELIST))
     ap.add_argument("--access-scope", choices=["public", "local_private"], default="local_private")
     ap.add_argument("--domain", default="local")
     ap.add_argument("--owner-user-id", type=int, default=None,
                     help="local_private 擁有者 app_user.user_id(RBAC 擁有者收窄;僅本人+super 可檢索)")
+    ap.add_argument("--acquire-only", action="store_true",
+                    help="僅入庫、不自鏈下游(C3;本 script 本即 acquire-only,此為 no-op-safe 之契約旗標)")
     ap.add_argument("--dry-run", action="store_true")
     args, _ = ap.parse_known_args()
 
     with db.connect() as conn:
-        if not args.dir:
+        if not args.dir and not args.source_key:          # graceful:無寫入標的 → 印用法+統計(#29a)
             print(__doc__.split("執行指令矩陣:")[1])
             with db.transaction(conn) as cur:
-                cur.execute("SELECT count(*) FROM knowledge_item_text WHERE source_type='local_upload'")
                 cur.execute("SELECT count(DISTINCT it.item_id), coalesce(sum(length(it.content)),0) "
-                            "FROM knowledge_item_text it WHERE it.source_type='local_upload'")
+                            "FROM knowledge_item_text it WHERE it.source_type = ANY(%s)",
+                            (list(admission.SOURCE_TYPE_WHITELIST),))
                 n_item, n_char = cur.fetchone()
-            print(f"  已入本機檔:{n_item} item / {n_char:,} 字元")
+            print(f"  已入本機/檔案通道:{n_item} item / {n_char:,} 字元")
             return
-        if not args.license:
-            sys.exit("須 --license(DB 硬擋只准 %s;為確有授權/自有可釋出之檔聲明,責任在 admin)"
+        # #29b 驅動情境:給 --source-key 未給 --dir/--license 時,由該源 adapter_config 取 root_dir/預設值
+        cfg = {}
+        if args.source_key:
+            with db.transaction(conn) as cur:
+                cur.execute("SELECT adapter_config FROM knowledge_source WHERE source_key=%s", (args.source_key,))
+                r = cur.fetchone()
+                cfg = (r[0] or {}) if r else {}
+        the_dir = args.dir or cfg.get("root_dir")
+        license = args.license or cfg.get("default_license")
+        access_scope = args.access_scope if args.access_scope != "local_private" else cfg.get("access_scope", "local_private")
+        domain = args.domain if args.domain != "local" else cfg.get("domain", "local")
+        if not args.source_key:                            # 寫入必填(#29b provenance;缺→本機通道非治理公民)
+            sys.exit("須 --source-key(件 A1:本機通道須註冊 knowledge_source 列並經 admission 源-active 閘;"
+                     "無源列時先跑 migrate_local_admission_ddl.py --apply 註冊 proposed、再 TTY activate)")
+        if not the_dir:
+            sys.exit(f"須 --dir 或 source '{args.source_key}' 之 adapter_config.root_dir(#29b 驅動情境)")
+        if not license:
+            sys.exit("須 --license 或 adapter_config.default_license(DB 硬擋只准 %s)"
                      % ", ".join(corpus.LICENSE_WHITELIST))
-        if args.license == "owned_local" and args.access_scope != "local_private":
-            sys.exit("owned_local 自有私有軌硬配 --access-scope local_private"
-                     "(DB CHECK chk_itext_owned_local_private 物理擋;不繞版權)")
-        root = os.path.realpath(os.path.expanduser(args.dir))
+        if license == "owned_local" and access_scope != "local_private":
+            sys.exit("owned_local 自有私有軌硬配 access_scope=local_private(DB chk_itext_owned_local_private 物理擋)")
+        with db.transaction(conn) as cur:                  # admission 統一界閘 fail-fast(C2,四件)
+            ok, reason = admission.admission_gate(cur, args.source_key, license, access_scope, args.source_type)
+        if not ok:
+            sys.exit(reason)
+        root = os.path.realpath(os.path.expanduser(the_dir))
         if not os.path.isdir(root):
             sys.exit(f"非資料夾:{root}")
 
@@ -73,53 +135,39 @@ def main():
             for fn in filenames:
                 path = os.path.join(dirpath, fn)
                 stats["scanned"] += 1
-                text, reason = fileparse.extract_text(path)
-                if text is None:
-                    skips[reason] = skips.get(reason, 0) + 1
+                if args.dry_run:                       # 掃描預覽:試抽取判可入否、不寫
+                    text, reason = fileparse.extract_text(path)
+                    if text is None:
+                        skips[reason] = skips.get(reason, 0) + 1
+                    elif len(text.strip()) < MIN_CHARS:
+                        stats["short"] += 1
+                    else:
+                        stats["ok"] += 1
                     continue
-                text = text.strip()
-                if len(text) < MIN_CHARS:
+                with db.transaction(conn) as cur:      # 逐檔 commit(#6 resume);ingest_file 內 sha1 冪等(#12 單一入庫)
+                    item_id, n, status = ingest_file(
+                        cur, path, license=license, access_scope=access_scope, domain=domain,
+                        source_key=args.source_key, source_type=args.source_type,
+                        owner_user_id=args.owner_user_id)
+                if status == "ok":
+                    stats["ok"] += 1; stats["rows"] += n
+                elif status == "dup":
+                    stats["dup"] += 1
+                elif status == "short":
                     stats["short"] += 1
-                    continue
-                sha1 = hashlib.sha1(text.encode("utf-8", "replace")).hexdigest()
-                ext_id = "localfile:" + sha1
-                url = "file://" + os.path.realpath(path)
-                if args.dry_run:
-                    stats["ok"] += 1
-                    continue
-                with db.transaction(conn) as cur:      # 逐檔 commit(#6 resume);sha1 冪等
-                    cur.execute("SELECT item_id FROM knowledge_item WHERE entity_type='document' AND external_id=%s",
-                                (ext_id,))
-                    row = cur.fetchone()
-                    if row:
-                        stats["dup"] += 1
-                        continue
-                    # source_key=NULL(FK→knowledge_source;local_upload 來源列尚未註冊=後續精修);
-                    # provenance 由 url=file://realpath + external_id=localfile:sha1 承載(#1 可溯源)
-                    cur.execute(
-                        "INSERT INTO knowledge_item (domain, entity_type, title, external_id, url) "
-                        "VALUES (%s,'document',%s,%s,%s) RETURNING item_id",
-                        (args.domain, fn[:250], ext_id, url))
-                    item_id = cur.fetchone()[0]
-                    lang = _detect_lang(text)
-                    for i in range(0, len(text), SEG_CHARS):
-                        cur.execute(
-                            "INSERT INTO knowledge_item_text "
-                            "(item_id, seq, content, language, source_url, license, source_type, access_scope, owner_user_id) "
-                            "VALUES (%s,%s,%s,%s,%s,%s,'local_upload',%s,%s)",
-                            (item_id, i // SEG_CHARS + 1, text[i:i + SEG_CHARS], lang, url,
-                             args.license, args.access_scope,
-                             args.owner_user_id if args.access_scope == "local_private" else None))
-                        stats["rows"] += 1
-                    stats["ok"] += 1
+                else:                                   # skip:<reason>
+                    r = status.split(":", 1)[1]
+                    skips[r] = skips.get(r, 0) + 1
 
         tag = "[dry-run] " if args.dry_run else ""
         print(f"{tag}掃描 {stats['scanned']} 檔 → 入庫 {stats['ok']}(seg {stats['rows']})、"
               f"重複跳 {stats['dup']}、殘片跳 {stats['short']}")
         if skips:
             print("  誠實跳過分類:" + "、".join(f"{r}={n}" for r, n in sorted(skips.items())))
-        print(f"  license={args.license} access_scope={args.access_scope} domain={args.domain}"
-              + ("" if args.dry_run else "  → 接 build_sentences --scope items / embed_knowledge / retrieve_all(private 需 admin 私模)"))
+        print(f"  source_key={args.source_key} source_type={args.source_type} license={license} "
+              f"access_scope={access_scope} domain={domain}"
+              + ("" if (args.dry_run or args.acquire_only) else
+                 "  → 接 build_sentences --scope items / embed_knowledge / retrieve_all(private 需 admin 私模)"))
 
 
 if __name__ == "__main__":

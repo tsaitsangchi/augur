@@ -26,7 +26,8 @@ from augur.core import db
 SNAPSHOT = ("TaiwanStockInfoWithWarrant", "TaiwanStockInfoWithWarrantSummary",
             "TaiwanStockIndustryChain", "USStockInfo", "UKStockInfo", "JapanStockInfo",
             "EuropeStockInfo", "IndiaStockInfo")          # 名錄快照型(API 現況宇宙)
-RESTATING = ("TaiwanStockPriceAdj",)                       # 除權息季全序列重算(機制確定)
+RESTATING = ("TaiwanStockPriceAdj",                        # 除權息季全序列重算(機制確定)
+             "TaiwanStockDividend")                        # 股利公告會被 TWSE 修訂(金額/除息日;date=未來除息日)——2026-07-14 attest VM=1 實證,hugo 拍板 restating
 COVERAGE = ("TaiwanStockNews",)                            # 新聞流(增刪/去重,逐條 byte 不適用)
 LAG2 = ("TaiwanFuturesSpreadTick",                         # 期貨夜盤跨日
         "TaiwanFuturesDealerTradingVolumeDaily")           # T+1 發布

@@ -60,15 +60,34 @@ def save_connection(name, host, port, user, key_path):
     return [c["name"] for c in conns]
 
 
-def _client(conn):
+def open_client(conn, *, strict=False):
+    """開 paramiko SSH 連線。strict=True(headless/timer;件 A2):**RejectPolicy + known_hosts pinning + 關
+    agent/look_for_keys**(只用顯式 key_path)——防 MITM 靜默信任與金鑰枚舉(對抗審查 #5;無人看顧通道尤須);
+    strict=False(admin 互動、人看顧):沿用 AutoAdd 務實取捨(既有行為不變)。"""
     import paramiko
     c = paramiko.SSHClient()
     c.load_system_host_keys()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())   # 首次信任（連自有主機務實取捨；正式環境宜預置 known_hosts）
     kf = os.path.expanduser(conn["key_path"]) if conn.get("key_path") else None
-    c.connect(conn["host"], port=int(conn.get("port", 22)), username=conn["user"],
-              key_filename=kf, timeout=CONNECT_TIMEOUT, allow_agent=True, look_for_keys=True)
+    c.set_missing_host_key_policy(paramiko.RejectPolicy() if strict else paramiko.AutoAddPolicy())
+    c.connect(conn["host"], port=int(conn.get("port", 22)), username=conn["user"], key_filename=kf,
+              timeout=CONNECT_TIMEOUT,
+              allow_agent=(not strict), look_for_keys=(not strict))
     return c
+
+
+_client = open_client   # 別名:既有 list_dir/download_tree 呼叫不破(#12;預設 strict=False=原行為)
+
+
+def _safe_local(base, name):
+    """防 tar-slip path traversal(對抗審查 blocker):遠端回傳之 filename 不得含分隔/`..`/絕對路徑,
+    且組出之 local path 須在 base 內。回安全 local path;越界回 None(呼叫端 skip 計數)。"""
+    if not name or name in (".", "..") or "/" in name or "\\" in name or os.path.isabs(name):
+        return None
+    lp = os.path.join(base, name)
+    base_r = os.path.abspath(base)
+    if os.path.commonpath([base_r, os.path.abspath(lp)]) != base_r:
+        return None
+    return lp
 
 
 def list_dir(conn_name, path="."):
@@ -117,7 +136,12 @@ def download_tree(conn_name, path, dest_dir):
                 return
             os.makedirs(local, exist_ok=True)
             for e in sftp.listdir_attr(remote):
-                rp, lp = posixpath.join(remote, e.filename), os.path.join(local, e.filename)
+                lp = _safe_local(local, e.filename)       # 對抗審查:遠端 filename path-traversal 圍欄(惡意 server)
+                if lp is None:
+                    stats["skipped_big"] = stats.get("skipped_big", 0)   # 保欄位
+                    stats["skipped_unsafe"] = stats.get("skipped_unsafe", 0) + 1
+                    continue
+                rp = posixpath.join(remote, e.filename)
                 if stat.S_ISDIR(e.st_mode):
                     _walk(rp, lp)
                 elif stat.S_ISREG(e.st_mode):

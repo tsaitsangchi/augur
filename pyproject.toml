@@ -22,7 +22,8 @@ dependencies = [
 # 重型 transformer 模型隔離安裝（CPU-only 用 torch +cpu 版，避免降級主環境）
 deep = ["torch>=2.2", "sentence-transformers>=5.6"]
 # admin 控制台本機檔多格式解析（scripts/acquire_local_files.py + knowledge/fileparse.py）
-admin = ["pypdf>=4.0", "python-docx>=1.1", "chardet>=5.0", "python-pptx>=1.0", "openpyxl>=3.1", "EbookLib>=0.18"]
+#   + SFTP 通道③傳輸（sftpbrowse/sftpsync/acquire_remote_files；件 A2，#23 依賴宣告）
+admin = ["pypdf>=4.0", "python-docx>=1.1", "chardet>=5.0", "python-pptx>=1.0", "openpyxl>=3.1", "EbookLib>=0.18", "paramiko>=3.0"]
 dev = ["pytest>=8.0"]
 
 [build-system]

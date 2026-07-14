@@ -78,8 +78,13 @@ def transition(source_key, action, actor, *, reason=None, os_user=None, probe_re
                 if not reason:
                     raise ValueError("reopen 需 reason")
                 target = "active" if old == "exhausted" else "proposed"
-            if action in ("approve", "activate") and not _recent_probe_ok(cur, source_key):
-                raise ValueError(f"{action} 前置未滿足:近 30 日無 http_status=200 之 probe 記錄(§3.2)")
+            if action in ("approve", "activate"):
+                # 本機/SFTP 通道(件 A1)無 http probe 概念→豁免 http-200 前置(#18:curation 保純 DB 模組、
+                # 不在此建檔案/ssh probe);可用性由 acquirer --dry-run/活化前人工核。API 源前置不變。
+                cur.execute("SELECT protocol FROM knowledge_source WHERE source_key=%s", (source_key,))
+                proto = (cur.fetchone() or [None])[0]
+                if proto not in ("local_file", "sftp") and not _recent_probe_ok(cur, source_key):
+                    raise ValueError(f"{action} 前置未滿足:近 30 日無 http_status=200 之 probe 記錄(§3.2)")
             new = target
             if action in ("approve", "activate"):
                 cur.execute("UPDATE knowledge_source SET approval_status=%s, approved_by=%s, "
