@@ -33,7 +33,7 @@ class SyncedFile:
 
 
 def iter_changed_files(client, remote_host, base_path, glob_pat, dest_dir, prior_state, *,
-                       download=True, max_files=5000, max_bytes=None):
+                       download=True, max_files=5000, max_bytes=None, max_depth=40):
     """遞迴遠端樹 → yield 新增/變更/skip 之 SyncedFile(未變者不 yield=收斂)。
     prior_state:{remote_path:(mtime,size)}(CLI 由 sftp_sync_state 預載);glob_pat:fnmatch basename(None=全收)。
     max_files:單輪檢視上限(#25/防超大樹);已在 prior_state 且未變者**不計入額度**(對抗審查:否則不可抓檔佔滿額度→死循環)。"""
@@ -42,13 +42,14 @@ def iter_changed_files(client, remote_host, base_path, glob_pat, dest_dir, prior
     root = sftp.normalize(base_path or ".")
     budget = {"n": 0}
 
-    def walk(remote):
-        if budget["n"] >= max_files:
+    def walk(remote, depth=0):
+        # R6:目錄下降計入 max_depth 上限——防惡意 server 純目錄無限遞迴撞 RecursionError(檔額度不涵蓋純目錄樹)
+        if budget["n"] >= max_files or depth > max_depth:
             return
         for e in sftp.listdir_attr(remote):
             rp = posixpath.join(remote, e.filename)
             if stat.S_ISDIR(e.st_mode):
-                yield from walk(rp)
+                yield from walk(rp, depth + 1)
                 continue
             if not stat.S_ISREG(e.st_mode):
                 continue
@@ -78,7 +79,7 @@ def iter_changed_files(client, remote_host, base_path, glob_pat, dest_dir, prior
                 sha1 = hashlib.sha1(fh.read()).hexdigest()
             yield SyncedFile(remote_host, rp, mtime, size, sha1, lp, change)
 
-    yield from walk(root)
+    yield from walk(root, 0)
 
 
 _safe_local = sftpbrowse._safe_local   # 圍欄復用單一住所(#12)

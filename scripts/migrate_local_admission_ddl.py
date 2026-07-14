@@ -5,8 +5,8 @@
 source_type 白名單由 admission_gate Python belt 對新通道強制,零斷通道風險):
   (1) seed knowledge_domain 'local'(本機匯入 domain;加 FK 前必先在)。
   (2) knowledge_item.domain FK → knowledge_domain(收斂 Task#16 增補;實證零 orphan、NOT VALID→VALIDATE 降鎖)。
-  (3) **item_source_gate trigger(R-A-T1 必要、掛 knowledge_item_text BEFORE INSERT)**——B案≈A案物理牆:
-      父 item 之源 protocol∈(local_file,sftp) 且 approval_status≠active → RAISE(能抓≠該抓 DB 強制);
+  (3) **item_source_gate trigger(R-A-T1 必要、掛 knowledge_item_text BEFORE INSERT OR UPDATE)**——B案≈A案物理牆:
+      父 item 之源 protocol∈(local_file,sftp) 或 adapter∈(local_files,sftp) 且 approval_status≠active → RAISE(能抓≠該抓 DB 強制);
       owned_local∧local_private∧父 item source_key IS NULL → RAISE(堵 NULL 逃生口,對抗審查 blocker 修正)。
   (4) register 本機源列 local_files_<域>(admission.register_local_source,approval_status='proposed';活化唯人 TTY)。
 
@@ -29,7 +29,7 @@ from augur.knowledge import admission
 
 TRIGGER_FN = """
 CREATE OR REPLACE FUNCTION trg_item_source_gate() RETURNS trigger AS $$
-DECLARE sk varchar; proto varchar; st varchar;
+DECLARE sk varchar; proto varchar; adpt varchar; st varchar;
 BEGIN
   SELECT ki.source_key INTO sk FROM knowledge_item ki WHERE ki.item_id = NEW.item_id;
   -- 堵 NULL 逃生口(對抗審查 blocker):owned_local 私有內容 source_key IS NULL = 未經來源治理直插
@@ -37,9 +37,12 @@ BEGIN
     RAISE EXCEPTION 'item_source_gate: owned_local/local_private 內容須有 source_key(件 A1 治理公民;禁 NULL 逃生口)';
   END IF;
   IF sk IS NOT NULL THEN
-    SELECT ks.protocol, ks.approval_status INTO proto, st FROM knowledge_source ks WHERE ks.source_key = sk;
-    IF proto IN ('local_file','sftp') AND st IS DISTINCT FROM 'active' THEN
-      RAISE EXCEPTION 'item_source_gate: source % (protocol=%%) approval_status=%% <> active(能抓≠該抓;活化唯人 TTY)', sk, proto, st;
+    SELECT ks.protocol, ks.adapter, ks.approval_status INTO proto, adpt, st FROM knowledge_source ks WHERE ks.source_key = sk;
+    -- R3(對抗審查):active 判準同時鍵 protocol 與 adapter——SFTP 源 protocol 常 NULL(手動 INSERT 漏欄)、
+    -- 但 adapter='sftp' 恆為 acquire_remote_files 辨識鍵;二者任一命中檔案通道即強制父源 active。
+    IF (proto IN ('local_file','sftp') OR adpt IN ('local_files','sftp')) AND st IS DISTINCT FROM 'active' THEN
+      -- RAISE 每 arg 一個單 % 佔位(psycopg2 vars=None 時 % 原樣傳 postgres;原檔 %% 致佔位/arg 數不符=既存 bug、修正)
+      RAISE EXCEPTION 'item_source_gate: source % protocol=% adapter=% approval_status=% <> active(能抓≠該抓;活化唯人 TTY)', sk, proto, adpt, st;
     END IF;
   END IF;
   RETURN NEW;
@@ -100,7 +103,9 @@ def main():
             with db.transaction(conn) as cur:
                 cur.execute(TRIGGER_FN)
                 cur.execute("DROP TRIGGER IF EXISTS item_source_gate ON knowledge_item_text")
-                cur.execute("CREATE TRIGGER item_source_gate BEFORE INSERT ON knowledge_item_text "
+                # R2(對抗審查):INSERT OR UPDATE——BEFORE INSERT-only 漏 UPDATE 路徑(如事後 UPDATE source_key/
+                # license 翻軌);owned_local⇒private 有 CHECK 於 UPDATE 亦擋,但源-active/NULL 逃生口守衛須自涵蓋 UPDATE。
+                cur.execute("CREATE TRIGGER item_source_gate BEFORE INSERT OR UPDATE ON knowledge_item_text "
                             "FOR EACH ROW EXECUTE FUNCTION trg_item_source_gate()")
             print("  ✓ (3) item_source_gate trigger 建(掛 item_text)")
         with db.transaction(conn) as cur:                  # (4) 冪等 register(ON CONFLICT DO NOTHING)

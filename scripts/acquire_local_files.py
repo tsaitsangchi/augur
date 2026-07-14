@@ -90,16 +90,20 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     args, _ = ap.parse_known_args()
 
-    with db.connect() as conn:
-        if not args.dir and not args.source_key:          # graceful:無寫入標的 → 印用法+統計(#29a)
-            print(__doc__.split("執行指令矩陣:")[1])
-            with db.transaction(conn) as cur:
+    if not args.dir and not args.source_key:              # graceful:無寫入標的 → 先印用法(免 DB)、再試統計(#29a)
+        print(__doc__.split("執行指令矩陣:")[1])
+        try:                                              # R5:統計移出 with,DB 不可用時仍印矩陣、不裸 traceback
+            with db.connect() as conn, db.transaction(conn) as cur:
                 cur.execute("SELECT count(DISTINCT it.item_id), coalesce(sum(length(it.content)),0) "
                             "FROM knowledge_item_text it WHERE it.source_type = ANY(%s)",
                             (list(admission.SOURCE_TYPE_WHITELIST),))
                 n_item, n_char = cur.fetchone()
             print(f"  已入本機/檔案通道:{n_item} item / {n_char:,} 字元")
-            return
+        except Exception as e:                            # noqa: BLE001
+            print(f"  (DB 未連線,略過統計:{e})")
+        return
+
+    with db.connect() as conn:
         # #29b 驅動情境:給 --source-key 未給 --dir/--license 時,由該源 adapter_config 取 root_dir/預設值
         cfg = {}
         if args.source_key:

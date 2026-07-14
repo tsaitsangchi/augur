@@ -19,6 +19,7 @@ from augur.knowledge import fileparse, webupload
 
 CONFIG = os.path.join(os.path.expanduser("~"), ".config", "augur-sftp.json")
 MAX_TREE_FILES = 5000          # 單次下載遞迴檔數上限（防超大樹）
+MAX_TREE_DEPTH = 40            # 目錄下降深度上限（R6:防惡意 server 純目錄無限遞迴撞 RecursionError）
 CONNECT_TIMEOUT = 15
 
 
@@ -130,8 +131,9 @@ def download_tree(conn_name, path, dest_dir):
         p = sftp.normalize(path or ".")
         st = sftp.stat(p)
 
-        def _walk(remote, local):
-            if stats["saved"] >= MAX_TREE_FILES:
+        def _walk(remote, local, depth=0):
+            # R6:深度上限——防惡意 server 純目錄無限遞迴(檔額度不涵蓋純目錄樹)撞 RecursionError
+            if stats["saved"] >= MAX_TREE_FILES or depth > MAX_TREE_DEPTH:
                 stats["truncated"] = True
                 return
             os.makedirs(local, exist_ok=True)
@@ -143,7 +145,7 @@ def download_tree(conn_name, path, dest_dir):
                     continue
                 rp = posixpath.join(remote, e.filename)
                 if stat.S_ISDIR(e.st_mode):
-                    _walk(rp, lp)
+                    _walk(rp, lp, depth + 1)
                 elif stat.S_ISREG(e.st_mode):
                     if stats["saved"] >= MAX_TREE_FILES:
                         stats["truncated"] = True

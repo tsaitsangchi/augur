@@ -60,19 +60,24 @@ def main():
     ap.add_argument("--acquire-only", action="store_true", help="只入庫、不自鏈下游(C3;驅動 DAG 模式)")
     args, _ = ap.parse_known_args()
 
-    with db.connect() as conn:
-        if not args.source:                                # graceful:列 sftp 源 + sync_state(#29a)
-            print(__doc__.split("執行指令矩陣:")[1])
-            with db.transaction(conn) as cur:
+    if not args.source:                                    # graceful:先印用法(免 DB)、再試列 sftp 源(#29a)
+        print(__doc__.split("執行指令矩陣:")[1])
+        try:                                               # R5:列源移出 with,DB 不可用時仍印矩陣、不裸 traceback
+            with db.connect() as conn, db.transaction(conn) as cur:
                 cur.execute("SELECT source_key, approval_status FROM knowledge_source WHERE adapter='sftp' ORDER BY 1")
                 srcs = cur.fetchall()
-                has_tbl = cur.execute("SELECT to_regclass('sftp_sync_state')") or cur.fetchone()[0]
+                cur.execute("SELECT to_regclass('sftp_sync_state')")
+                has_tbl = cur.fetchone()[0]
             print("  已註冊 SFTP 源:" + ("(無;先 INSERT knowledge_source adapter='sftp')" if not srcs else ""))
             for sk, st in srcs:
                 print(f"    · {sk} [{st}]")
             if not has_tbl:
                 print("  ⚠ sftp_sync_state 未建——先跑 migrate_sftp_sync_ddl.py --apply")
-            return 0
+        except Exception as e:                             # noqa: BLE001
+            print(f"  (DB 未連線,略過源清單:{e})")
+        return 0
+
+    with db.connect() as conn:
         with db.transaction(conn) as cur:
             client_cfg, cfg, status = _conn_and_cfg(cur, args.source)
             # admission 源閘(C2 統一界閘;非 active 直接擋——能抓≠該抓、活化唯人 TTY)

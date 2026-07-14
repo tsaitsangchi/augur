@@ -54,8 +54,9 @@ def admission_gate(cur, source_key, license, access_scope, source_type):
     # (iii) owned_local ⇒ local_private（隔離命門，DB chk_itext_owned_local_private 亦硬擋、此為前置 belt）
     if license == "owned_local" and access_scope != "local_private":
         return False, f"admission 拒:owned_local 必配 access_scope='local_private'（得 '{access_scope}'）"
-    # (iv) source_type 白名單 + 禁 AI 生成（#1）
-    if source_type is not None and source_type not in SOURCE_TYPE_WHITELIST:
+    # (iv) source_type 白名單 + 禁 AI 生成（#1）——None 亦拒（R4 對抗審查:通用界閘須 fail-closed、
+    #      不得因 source_type 未帶而略過白名單；新通道一律須明示策展值）
+    if source_type not in SOURCE_TYPE_WHITELIST:
         return False, (f"admission 拒:source_type='{source_type}' 不在白名單 "
                        "（新通道須用策展值；擴充改 admission.SOURCE_TYPE_WHITELIST #19）")
     if source_type == "ai_generated":                      # 冗餘明擋（#1 命門，白名單本不含之）
@@ -105,6 +106,7 @@ def _selftest(check_db):
                  ("owned_local+public(拒 iii)", (active, "owned_local", "public", "local_upload"), False),
                  ("壞 license(拒 ii)", (active, "nc-nd", "local_private", "local_upload"), False),
                  ("壞 source_type(拒 iv)", (active, "owned_local", "local_private", "weird"), False),
+                 ("None source_type(拒 iv,R4 fail-closed)", (active, "owned_local", "local_private", None), False),
                  ("ai_generated(拒 iv)", (active, "cc-by", "public", "ai_generated"), False)]
         if pr:
             cases.insert(1, ("proposed源(拒 i)", (pr[0], "owned_local", "local_private", "local_upload"), False))

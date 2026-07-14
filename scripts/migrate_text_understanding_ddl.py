@@ -150,6 +150,10 @@ CONSTRAINTS = [
      "CHECK (source_type IS NULL OR source_type <> 'ai_generated')"),   # #1 禁 AI 生成入庫(admin P0)
     ("chk_itext_access_scope", "knowledge_item_text",
      "CHECK (access_scope IN ('public','local_private'))"),             # 對外/本機私有隔離(拍板P2)
+    ("chk_itext_owned_local_private", "knowledge_item_text",
+     "CHECK (license <> 'owned_local' OR access_scope = 'local_private')"),  # owned_local⇒local_private 隔離命門 v1.36.0
+    # ↑ R1(2026-07-14 對抗審查):此 CHECK 存 live DB 但曾無 repo migration 重建→換機/重建 schema 漏命門牆;
+    #   codify 於此(與其餘 chk_itext_* 同住#12);ensure_constraint 冪等,現機已在=no-op、新機才建。
     ("chk_chunk_src", "philosophy_chunk", "CHECK (num_nonnulls(text_id, itext_id) = 1)"),
     ("chk_chunk_work", "philosophy_chunk", "CHECK ((text_id IS NULL) = (work_id IS NULL))"),
 ]
