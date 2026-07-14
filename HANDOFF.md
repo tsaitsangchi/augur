@@ -61,9 +61,11 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 ### 4.1 一句話現況
 開賽前置**人工關卡全清**（A2 六門＋A3 `_r2` 三門皆簽、futility＋九候選凍結），audit 對帳已達 **[88/88] 進入尾段彙整**→ 哨兵句一出 AI 自動接 E1→strict→unfreeze evaluate→開賽。**知識層同日大豐收**：全文源專屬解析器 T1-T3 當日完成（IA/EDGAR/FRASER 三策略住 `adapter_config.fulltext`），公版全文落地 **491 件/66MB→已切 469,551 句**（嵌入由 03:30 timer 自動接）；PDF 抽取計畫書待 P0。
 
+> **⚠ #7 attestation 對帳範圍變更（hugo 拍板 2026-07-14，決策層）**：對帳窗由 `since=2026-06-01` **縮至 `2026-07-01`（近 ~14 日）**。理由：6/1 起全量對帳（75 dataset×數十交易日=數千 fetch）之 **sustained API 負載 throttle FinMind IP（sustained 403、額度不滿仍拒）**，反覆循環無法綠；歷史凍結期（至 2026-05-31）已對帳定案、近 14 日足以 attestation 最近 live 增量。同步修：daily_maintenance 對帳加 per-dataset log＋reconcile per-3-date progress（解 audit_selfheal v2 看門狗誤殺無-log 長對帳之死循環）；audit interval 實驗值 0.7（#27，撞 403 退回 0.9）。落地＝`audit_selfheal.sh`。
+
 ### 4.2 下一步（可直接執行，含前置條件）
 ```bash
-# ① 等 audit 綠(哨兵句「✓ audit 完成(rc=0)」出現在 ~/audit_retry.log)
+# ① 等 audit 綠(哨兵句「✓ audit 完成(rc=0)」出現在 ~/audit_retry.log;對帳窗現=近14日)
 # ② E1 重驗:
 python scripts/verify_validation_evidence.py --run --with-scripts
 # ③ strict 全綠(exit 0 才准下一步):
@@ -92,7 +94,7 @@ python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §
 **待 hugo 拍板**（全部非阻塞開賽）：
 1. **PDF 抽取計畫 P0**＝`reports/knowledge_pdf_extraction_plan_20260712.md`（D2 後續;pypdf+五道機械品質閘 fail-closed;OAPEN 61+skip_pdf 976）
 2. 短 horizon 模型計畫②＋全能顧問計畫①：**hugo 已裁「開賽後 AI 先做時效性複核再拍」**（2026-07-12;兩案早於解凍/擂台設計,恐部分被超越）
-3. 舊專案 stock_backend 的平日 16:00 FinMind cron 去留（與 augur 同 IP 疊加負載）
+3. ~~舊專案 stock_backend 的平日 16:00 FinMind cron 去留~~ **已裁定（2026-07-13 hugo）：4 條 cron 全部取消**（同 IP 疊加解除；備份=`~/crontab_stock_backend_backup_20260713.txt` 可復原）
 
 > 解析器計畫 T0 已拍(2026-07-12):D1 核准全計畫、D2 另立 PDF 計畫、D3 IA 200/批——**T1-T3 當日執行完畢**(FRASER textUrl 實證/三策略落 DB/IA 13 批掃蕩 491 抓、熔斷零觸發)。
 

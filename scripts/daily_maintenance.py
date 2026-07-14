@@ -44,8 +44,14 @@ def main():
                 print(f"  {ds}: {len(days)} 日 {days[:10]}{'…' if len(days) > 10 else ''}")
 
         if args.audit_since and synced:
-            print(f"\n對帳（#7，since={args.audit_since}）…")
-            recs = [reconcile.reconcile_by_date(conn, r["dataset"], since=args.audit_since) for r in synced]
+            print(f"\n對帳（#7，since={args.audit_since}）… 共 {len(synced)} dataset", flush=True)
+            # per-dataset+per-date progress:對帳為 75 dataset×數十交易日之長作業(30分-數時),
+            # 舊 list-comprehension 中間零 log→必觸 45 分靜默看門狗誤殺→重試死循環(2026-07-14 實證修)。
+            _plog = lambda m: print(m, flush=True)   # reconcile_by_date 每 15 日 call 一次
+            recs = []
+            for i, r in enumerate(synced, 1):
+                print(f"  對帳 [{i}/{len(synced)}] {r['dataset']}…", flush=True)
+                recs.append(reconcile.reconcile_by_date(conn, r["dataset"], since=args.audit_since, progress=_plog))
             v = reconcile.verdict(*recs)
             tag = "✅ PASS（DB byte-equal API，無幻像）" if v["passed"] else "❌ FAIL（須查根因）"
             print(f"attestation：{tag} | matched={v['matched']:,} "

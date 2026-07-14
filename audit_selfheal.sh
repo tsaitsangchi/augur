@@ -19,10 +19,12 @@ except Exception as e:
     sys.exit(1)
 EOF
   then
-    echo "$(date '+%m-%d %H:%M') 探測 $i/48:IP 健康 → 放量跑 audit" >> "$LOG"
-    # throttle:用 finmind.py 已驗證安全預設 MIN_INTERVAL=0.9(SSOT、2026-06-20 驗證 <5500/hr,不覆寫寫死);
-    # 2026-07-13 換機後實證額度充裕(204/6000)+quota_gate 第二層保護,移除原換機保守起手 2.0 覆蓋(≈2.2x 加速,#27)。
-    PYTHONUNBUFFERED=1 venv/bin/python scripts/daily_maintenance.py --audit-since 2026-06-01 >> "$LOG" 2>&1 &
+    echo "$(date '+%m-%d %H:%M') 探測 $i/48:IP 健康 → 放量跑 audit(interval=0.7 實驗、對帳窗近14日)" >> "$LOG"
+    # throttle:FINMIND_MIN_INTERVAL=0.7(hugo 2026-07-14 拍板實驗值 #27;>0.9 已驗證值、IP 剛 sustained ban 後屬激進——
+    #   放量後緊盯,撞 403 即退回 0.9;縮窗後總量小、sustained 短,風險由範圍縮緩解)。
+    # 對帳窗:--audit-since 2026-07-01(近~14 日;hugo 拍板 A 縮 #7 attestation 範圍——6/1 起全量 sustained throttle IP、
+    #   歷史凍結期已對帳定案、近 14 日足以 attestation 最近增量;完整性判準變更留痕見 HANDOFF §4)。
+    FINMIND_MIN_INTERVAL=0.7 PYTHONUNBUFFERED=1 venv/bin/python scripts/daily_maintenance.py --audit-since 2026-07-01 >> "$LOG" 2>&1 &
     py=$!
     while kill -0 "$py" 2>/dev/null; do
       sleep 300

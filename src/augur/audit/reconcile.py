@@ -161,7 +161,7 @@ def reconcile_by_date(conn, table, dataset=None, *, since=None, progress=None):
         _merge(agg, r)
         if r["value_mismatch"] or r["missing_in_db"] or r["extra_in_db"]:
             agg["per_date"][d] = {k: r[k] for k in ("value_mismatch", "missing_in_db", "extra_in_db")}
-        if progress and i % 15 == 0:
+        if progress and (i % 3 == 0 or i == len(dates)):   # 每 3 日印(舊 15 日對 sustained 慢 API 之單 dataset 仍靜默>45min 觸看門狗誤殺,2026-07-14 修)
             progress(f"  {table} {i}/{len(dates)} 日 | M{agg['matched']:,} "
                      f"VM{agg['value_mismatch']} MIS{agg['missing_in_db']:,} EX{agg['extra_in_db']}")
     agg["days"] = len(dates)
