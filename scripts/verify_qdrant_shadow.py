@@ -29,21 +29,34 @@ SCOPE = "sentence_items"
 
 
 def _queries(cur, n, seed=42):
-    """確定性題集:自 items 側真實句子取樣(seed 固定→同題可重現;句長 40-160 過濾雜訊)。"""
-    cur.execute("""SELECT s.sentence FROM knowledge_sentence s
+    """確定性題集:自 **CLEAN public** items 句子取樣(seed 固定→可重現;句長 40-160 過濾雜訊)。
+    ⚠ 必須套 CLEAN public 過濾(#12 鏡射 export/baseline 口徑):否則查詢池被 local_private ERP 內容
+    主宰(items 15 萬多為 ERP),對這類查詢 pgvector baseline 因 **HNSW over-filter**(最近向量皆私有→
+    CLEAN WHERE 事後濾空)回 [],Qdrant(僅 public)回 10 → overlap 假 0、假 FAIL(2026-07-14 實證)。
+    Qdrant 服務者=public,題集亦須 public 方為蘋果對蘋果。"""
+    from augur.knowledge import corpus
+    cfrag, cparams = corpus.clean_item_sql("i", "x", access_scope="public", is_super=True)
+    cur.execute(f"""SELECT s.sentence FROM knowledge_sentence s
+                   JOIN knowledge_item_text x ON x.itext_id = s.itext_id
+                   JOIN knowledge_item i ON i.item_id = x.item_id
                    WHERE s.itext_id IS NOT NULL AND s.language='en'
-                     AND length(s.sentence) BETWEEN 40 AND 160
-                   ORDER BY s.sent_id LIMIT 5000""")
+                     AND length(s.sentence) BETWEEN 40 AND 160 AND {cfrag}
+                   ORDER BY s.sent_id LIMIT 5000""", cparams)
     pool = [r[0] for r in cur.fetchall()]
     rng = random.Random(seed)
     return rng.sample(pool, min(n, len(pool))), seed
 
 
 def _pg_topk(cur, qv, k):
-    """pgvector 參照端 top-k——謂詞**完全鏡射 export**(#12 同一 CLEAN 口徑,否則假對帳):
-    en + itext 鏈 + clean_item_sql(license 白名單∧entity_type∧access_scope='public')。"""
+    """pgvector 參照端 top-k = **exact 真最近鄰(ground truth)**——謂詞完全鏡射 export(#12 同一 CLEAN
+    口徑):en + itext 鏈 + clean_item_sql(license 白名單∧entity_type∧access_scope='public')。
+    ⚠ 強制 exact(繞 HNSW):pgvector HNSW 帶 CLEAN-public WHERE 會 **over-filter**(最近向量多為 private
+    ERP→HNSW 取 top-ef 後 CLEAN 濾空→baseline 假空/退化,2026-07-14 實證 Qdrant-vs-HNSW 0.61 vs
+    Qdrant-vs-EXACT 0.99)。shadow gate 量的是「Qdrant HNSW recall vs 真最近鄰」,故 baseline 須 exact。"""
     from augur.knowledge import corpus
     cfrag, cparams = corpus.clean_item_sql("i", "x", access_scope="public", is_super=True)
+    cur.execute("SET LOCAL enable_indexscan = off")      # 繞 HNSW → seq scan exact cosine = 真 ground truth
+    cur.execute("SET LOCAL enable_bitmapscan = off")
     cur.execute(f"""SELECT e.sent_id FROM knowledge_sentence_embedding e
                    JOIN knowledge_sentence s USING (sent_id)
                    JOIN knowledge_item_text x ON x.itext_id = s.itext_id
@@ -51,7 +64,10 @@ def _pg_topk(cur, qv, k):
                    WHERE s.itext_id IS NOT NULL AND s.language='en' AND e.model_tag=%s AND {cfrag}
                    ORDER BY e.embedding <=> %s::vector LIMIT %s""",
                 (embedspec.MODEL_TAG, *cparams, qv, k))
-    return [r[0] for r in cur.fetchall()]
+    rows = [r[0] for r in cur.fetchall()]
+    cur.execute("SET LOCAL enable_indexscan = on")
+    cur.execute("SET LOCAL enable_bitmapscan = on")
+    return rows
 
 
 def run(n, k, threshold, url):

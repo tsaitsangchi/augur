@@ -1,5 +1,6 @@
 # Memory Index
 
+- [Qdrant serving+HNSW over-filter 陷阱](qdrant-serving-hnsw-overfilter.md) — augur-qdrant.service 上線(07-14 拍板);pgvector HNSW+CLEAN WHERE over-filter 假空/假FAIL 鑑識法=exact baseline;Qdrant 只服務 public、private 走 pgvector
 - [背景作業須可見](background-tasks-visible.md) — 每個背景 shell 都要 TaskCreate 登記+更新狀態，用戶介面才看得到；不得靜默跑（2026-07-13 directive）
 - [建構理解 v4](augur-construction-v4.md) — 20260713 報告指針(58-agent深讀+12 REFUTED+終審16修);三塊架構;斷線清單(redline失聯/predict role未接線/A3=preregistered/本機無491全文/macro埋雷)
 - [記憶 export 密碼掃描](memory-export-secret-scan.md) — sync_memory export 全量推 public repo；記憶不存明碼憑證、commit/push 前必掃密碼（2026-07-13 差點洩漏 ttai admin 密碼）

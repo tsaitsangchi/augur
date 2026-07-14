@@ -2,9 +2,9 @@
 # 🎯 一鍵重建 augur systemd user 服務棧 + timers（換機/重開機後恢復開機自起;根治「unit 檔不隨 git 遷移」缺口)。
 # 全本地、免 sudo（user 級 systemd）、零 Claude usage。啟動規格與 start_chat.sh 對齊（單一 SSOT）。
 #
-# 服務(5 常駐 http):ollama:11434 ← advisor:8399 ← chat:8090 · admin:8500 · probability:8600
+# 服務(6 常駐):qdrant:6333 · ollama:11434 ← advisor:8399 ← chat:8090 · admin:8500 · probability:8600
 # timers(2):embed-catchup(03:30 補嵌入積壓,冪等) · l2-deliberation(每日自審,預設 disabled 待 hugo 開閘)
-# 註:qdrant:6333 為休眠驗證產物、生產用 pgvector(在 DB dump 內)——不設常駐 unit(HANDOFF §3)。
+# 註:qdrant:6333=sentence_items serving 索引(hugo 2026-07-14 拍板上線;pgvector 仍 SSOT、Qdrant 可拋棄從 PG 重建)。
 #
 # ⚠ ollama 排序循環陷阱(2026-07-11 實證):user unit **不得**寫 After=default.target(與 WantedBy 成環→開機被丟棄)。
 #    本腳本一律只用 WantedBy=default.target + 服務間 After=<具體服務>,不觸 default.target 依賴。
@@ -29,7 +29,7 @@ if [ "${1:-}" = "--status" ]; then
 fi
 
 if [ "${1:-}" = "--uninstall" ]; then
-  for u in augur-chat augur-advisor augur-admin augur-probability augur-ollama augur-embed-catchup.timer augur-l2-deliberation.timer; do
+  for u in augur-chat augur-advisor augur-admin augur-probability augur-ollama augur-qdrant augur-embed-catchup.timer augur-l2-deliberation.timer augur-audit-watchdog.timer; do
     UC disable --now "$u" 2>/dev/null; UC stop "$u" 2>/dev/null
   done
   rm -f "$UD"/augur-*.service "$UD"/augur-*.timer
@@ -61,6 +61,14 @@ WantedBy=default.target
 EOF
 }
 
+# 0) qdrant serving 索引(sentence_items;hugo 2026-07-14 拍板上線;pgvector 仍 SSOT、此可拋棄從 PG 重建)
+#    storage=augur 專屬 ~/qdrant_augur(不共用 ttai);二進位暫用 ttai native 檔;retrieval.py 對故障自動降級 pgvector
+svc augur-qdrant "augur Qdrant serving 索引 (:6333)" \
+  "" "Environment=QDRANT__STORAGE__STORAGE_PATH=%h/qdrant_augur
+Environment=QDRANT__SERVICE__HTTP_PORT=6333
+Environment=QDRANT__SERVICE__GRPC_PORT=6334
+Environment=QDRANT__TELEMETRY_DISABLED=true" \
+  "$HOME/project/ttai/.qdrant_server/qdrant"
 # 1) ollama(最底層,無服務依賴;OLLAMA_MODELS 與 start_chat.sh 一致=~/ollama/models,非預設 ~/.ollama)
 svc augur-ollama "augur Ollama 模型後端 (:11434)" \
   "" "Environment=OLLAMA_MODELS=%h/ollama/models" \
@@ -153,9 +161,9 @@ EOF
 UC daemon-reload
 loginctl enable-linger "$USER" 2>/dev/null && echo "✓ enable-linger(無登入也自起)" || echo "⚠ enable-linger 失敗(需 root 或已設)"
 
-echo "啟用 5 常駐服務 + embed timer…"
+echo "啟用 6 常駐服務 + embed timer…"
 # enable(開機自起 link)+restart(套用新 unit;inactive→start、active→restart,故重跑冪等且更新 unit 會生效)
-for u in augur-ollama augur-advisor augur-chat augur-admin augur-probability; do
+for u in augur-qdrant augur-ollama augur-advisor augur-chat augur-admin augur-probability; do
   UC enable "$u.service" 2>/dev/null; UC restart "$u.service"
 done
 UC enable augur-embed-catchup.timer 2>/dev/null; UC restart augur-embed-catchup.timer 2>/dev/null

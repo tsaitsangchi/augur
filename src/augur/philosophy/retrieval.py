@@ -314,7 +314,7 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
                 except Exception as e:
                     print(f"[vectorstore] factory 降級 pgvector:{type(e).__name__}: {str(e)[:80]}")
                     _idx = None
-                if _idx is not None:
+                if _idx is not None and access_scope == "public":  # Qdrant 只含 public;local_private 走下方 pgvector(缺口④修:不餓死私有/中文 items)
                     try:
                         from augur.knowledge.vectorindex import CollectionSpec
                         _idx.ensure_collection(CollectionSpec(
@@ -329,9 +329,13 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
                             _order = {sid: n for n, sid in enumerate(_keep)}
                             _rows.sort(key=lambda c: _order.get(c.sent_id, 9e9))
                             out.extend(_rows[:need])
-                        return out
+                        if len(out) >= k:                   # 填滿→回;未滿(public 域收窄後不足)→落 pgvector 補
+                            return out
                     except Exception as e:                  # server 掛 → 降級走下方 pgvector SQL
                         print(f"[vectorstore] qdrant 故障降級 pgvector:{type(e).__name__}: {str(e)[:80]}")
+                need = k - len(out)                          # Qdrant 已補部分→重算,pgvector 只補剩餘(缺口④)
+                if need <= 0:
+                    return out
                 seen = [c.sent_id for c in out]
                 dedup = " AND s.sent_id != ALL(%s)" if seen else ""
                 cur.execute(f"""SELECT {_ITEM_COLS}, 1 - (e.embedding <=> %s::vector) AS score

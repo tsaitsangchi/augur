@@ -21,8 +21,13 @@ import argparse
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
 
-# status 封閉集=fetch_oa_fulltext.py 之非 'ok' skip 原因(跨檔一致 #19;新增 skip 型別須同步 CHECK)。
-STATUS_VALUES = ("skip_no_oa", "skip_license", "skip_pdf", "skip_ctype", "skip_short", "skip_fetch_error")
+# status 封閉集=三支 resolver 之非 'ok' 終態(跨檔一致 #19;新增型別須同步此 CHECK):
+#   fetch_oa_fulltext.py:      skip_no_oa/skip_license/skip_pdf/skip_ctype/skip_short/skip_fetch_error
+#   fetch_entity_fulltext.py:  + skip_no_fulltext/skip_no_resolver/skip_no_license(件 B-1~B-4)
+#   acquire_abstract.py:       + abstract_none/abstract_no_license/abstract_short/abstract_fetch_error(件 B-0)
+STATUS_VALUES = ("skip_no_oa", "skip_license", "skip_pdf", "skip_ctype", "skip_short", "skip_fetch_error",
+                 "skip_no_fulltext", "skip_no_resolver", "skip_no_license",
+                 "abstract_none", "abstract_no_license", "abstract_short", "abstract_fetch_error")
 
 DDL = f"""
 CREATE TABLE IF NOT EXISTS knowledge_fulltext_status (
@@ -35,6 +40,26 @@ CREATE TABLE IF NOT EXISTS knowledge_fulltext_status (
 );
 COMMENT ON TABLE knowledge_fulltext_status IS
   '全文擷取終態帳本(#15):已嘗試但 license/OA 阻擋之 item 終態;status=ok 不入(全文在 item_text)';
+"""
+
+# 既有表(舊 6 值 CHECK)升級為 superset:CREATE IF NOT EXISTS 不改既有 CHECK,須顯式 DROP+ADD
+# (#30:小表 16k 列、superset 驗證即時、audit 非 dump/不碰本表 → ACCESS EXCLUSIVE 安全)。
+MIGRATE = f"""
+DO $$
+DECLARE cname text;
+BEGIN
+  IF to_regclass('knowledge_fulltext_status') IS NULL THEN RETURN; END IF;
+  FOR cname IN
+    SELECT conname FROM pg_constraint
+    WHERE conrelid='knowledge_fulltext_status'::regclass AND contype='c'
+      AND pg_get_constraintdef(oid) LIKE '%status%'
+  LOOP
+    EXECUTE 'ALTER TABLE knowledge_fulltext_status DROP CONSTRAINT ' || quote_ident(cname);
+  END LOOP;
+  ALTER TABLE knowledge_fulltext_status
+    ADD CONSTRAINT chk_fulltext_status
+    CHECK (status IN ({", ".join(f"'{s}'" for s in STATUS_VALUES)}));
+END $$;
 """
 
 
@@ -61,7 +86,9 @@ def main():
         if not args.check:
             with db.transaction(conn) as cur:
                 cur.execute(DDL)
-            print("DDL 冪等完成:knowledge_fulltext_status")
+            with db.transaction(conn) as cur:            # 既有表 CHECK 升級為 superset(冪等)
+                cur.execute(MIGRATE)
+            print("DDL 冪等完成:knowledge_fulltext_status(CHECK 已含 13 狀態值)")
         with db.transaction(conn) as cur:
             ok = verify(cur)
     sys.exit(0 if ok else 1)
