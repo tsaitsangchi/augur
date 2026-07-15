@@ -32,3 +32,5 @@ metadata:
 
 
 **fred_series 收尾→綠(2026-07-14 hugo (a) 拍板)**:catch-up(sync_fred 補 MIS 66→0)+ reconcile_fred Tier A restatement 容忍**擴 (a)**:DB 有、API 現無、且 date ≤ API max 之列=FRED 修訂/aged(把觀測 NaN 化,BAMLH0A0HYM2 2023-07-04~14 落 API min 2023-07-17 前 實證;FRED sync 決定性→DB 只有 FRED 曾回列→必合法 restatement)→ 不計 EX。守衛:僅 ≤API max(晚於=未來可疑仍留 EX 紅旗 #15)。fred_series EX3→0 PASS。**至此全資料(FinMind+FRED)VM0/EX0=誠實真綠達成**。
+
+**(B) attestation 政策單一住所(2026-07-14 hugo 拍板;E1 前置)**:E1 gate 之 check_cmd=reconcile_audit.py(非 daily_maintenance!),原只認 reconcile_scope 不認 attestation_mode→對 tick 表撞 EX4999 FAIL、與 daily_maintenance 綠**分歧**。修=`reconcile.attest_route`(SSOT 路由:豁免 EXEMPT_MODES+端點路由)+`EXEMPT_MODES`/`EXEMPT_REASON`(SSOT 常數)。daily_maintenance 全用 attest_route;reconcile_audit 用 SSOT 豁免常數+保留自身 unsettled 窗策略(recent 窗+未定案緩衝、無 heal;皆呼叫同一 reconcile.* 函式)。**政策一致=兩驅動器(日常維運/E1 gate)不再各說各話**。實證:reconcile_audit tick→EXEMPT PASS。

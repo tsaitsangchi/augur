@@ -33,6 +33,17 @@ from augur.core import db, generic_schema, schema
 from augur.ingestion import finmind, fred, sync
 from augur.ingestion.ingest import FRED_TABLE, _aggregate_daily, aggregate_method
 
+# attestation 政策單一住所(#12,2026-07-14 (B) 共用路由):attestation_mode 豁免集 + 誠實理由。
+# daily_maintenance(日常維運)與 reconcile_audit(E1 gate 驗證)兩驅動器共用 attest_route→ 政策一致、不分歧。
+EXEMPT_MODES = ("snapshot", "restating", "cadence", "dim_only", "intraday")
+EXEMPT_REASON = {
+    "snapshot": "名錄快照型:API 僅現況宇宙、DB=as-of 保存",
+    "restating": "重述型:除權息季全序列合法重算",
+    "cadence": "低頻/事件表:滾動窗常空非死、以自身 cadence 定案",
+    "dim_only": "維度端點專屬:by-date 回 PK-null 髒列不可 sync、零預測用途→誠實豁免 byte attest",
+    "intraday": "tick 串流:全欄 PK+API 回不同 tick 子集→byte 逐日假 EX、非定案 as-of、零預測用途→豁免",
+}
+
 _NULL = {"", "none", "null", "nan", "nat"}
 _EXAMPLES_CAP = 10
 COVERAGE_SAMPLE = 5            # coverage 對帳抽樣日曆日數(新聞流逐日)
@@ -511,6 +522,32 @@ def reconcile_fred(conn, series_ids, *, vintage_map=None, progress=None):
         if progress:
             progress(f"  FRED {sid}: M{agg['matched']:,} VM{agg['value_mismatch']} EX{agg['extra_in_db']}")
     return agg
+
+
+def attest_route(conn, dataset, *, scope, mode, since=None, until=None, sample_n=None, progress=None):
+    """catalog 驅動之單表 attestation 路由——**attestation 政策單一住所**(#12,(B) 2026-07-14 hugo 拍板)。
+    daily_maintenance(日常維運,rolling 窗+heal)與 reconcile_audit(E1 gate,recent 窗+未定案緩衝)共用此→
+    豁免與端點路由**兩驅動器一致、不分歧**(先前 reconcile_audit 不認 attestation_mode→tick 假 EX 分歧之根治)。
+    回 (kind, result):kind∈{exempt,fred,coverage,market,roster,dim,byte};
+    exempt→result={table,mode,reason}(呼叫端誠實列印、不計 verdict);餘→result=標準 reconcile agg。
+    **窗參數(since/until)+ heal 由呼叫端驅動**(兩驅動器窗策略不同,故不入本函式)。"""
+    if mode in EXEMPT_MODES:                    # attestation_mode 豁免(SSOT)——政策一致之關鍵
+        return "exempt", {"table": dataset, "mode": mode, "reason": EXEMPT_REASON[mode]}
+    if dataset == FRED_TABLE:                   # FRED 資料走 FRED API(reconcile_fred;不佔 FinMind、非 FinMind by-dim-id)
+        from augur.features import macro       # 延遲 import:audit→features(皆預測側、隔離內);vintage_map 政策
+        with db.transaction(conn) as cur:
+            cur.execute(f'SELECT DISTINCT series_id FROM "{FRED_TABLE}" ORDER BY series_id')
+            sids = [r[0] for r in cur.fetchall()]
+        return "fred", reconcile_fred(conn, sids, vintage_map=macro.vintage_map(), progress=progress)
+    if mode == "coverage" or aggregate_method(dataset, conn) == "all":   # 事件流(News)→量級對帳
+        return "coverage", reconcile_coverage(conn, dataset, progress=progress)
+    if scope == "market":                       # snapshot/單一序列 date-insensitive → 單批寬查(逐日對帳=假 EX/MIS)
+        return "market", reconcile_market(conn, dataset, progress=progress)
+    if scope == "roster-scoped":                # per-stock 端點(抽樣=部分覆蓋)
+        return "roster", reconcile_per_stock(conn, dataset, since=since, until=until, sample_n=sample_n, progress=progress)
+    if scope == "by-dim-id":                    # 逐維度 id 端點
+        return "dim", reconcile_by_dim_id(conn, dataset, since=since, progress=progress)
+    return "byte", reconcile_by_date(conn, dataset, since=since, until=until, progress=progress)   # by-date byte-equal(預設)
 
 
 def verdict(*results):

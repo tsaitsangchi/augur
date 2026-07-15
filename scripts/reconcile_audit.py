@@ -41,15 +41,15 @@ def _iso(d):
 
 
 def _catalog_tables(conn):
-    """從 catalog 讀全 excluded=f 表 + reconcile_scope(動態、非硬編 #18)。回 [(dataset, scope)];
+    """從 catalog 讀全 excluded=f 表 + reconcile_scope + attestation_mode(動態、非硬編 #18)。回 [(dataset, scope, mode)];
     無 reconcile_scope → 預設 by-date;infra log 表略過。catalog 未建 → 空(呼叫端報錯)。"""
     with db.transaction(conn) as cur:
         cur.execute("SELECT to_regclass('dataset_catalog')")
         if cur.fetchone()[0] is None:
             return []
-        cur.execute("SELECT dataset, COALESCE(reconcile_scope,'by-date') "
+        cur.execute("SELECT dataset, COALESCE(reconcile_scope,'by-date'), COALESCE(attestation_mode,'byte') "
                     "FROM dataset_catalog WHERE NOT excluded ORDER BY dataset")
-        return [(ds, scope) for ds, scope in cur.fetchall() if ds not in SKIP]
+        return [(ds, scope, mode) for ds, scope, mode in cur.fetchall() if ds not in SKIP]
 
 
 def _recent_since(conn, table, recent_days):
@@ -85,8 +85,15 @@ def _settled_max(conn, table, skip):
         return None
 
 
-def _audit(conn, dataset, scope, recent_days):
-    """依 catalog reconcile_scope 路由到正解對帳函數 → 統一 summary。"""
+def _audit(conn, dataset, scope, mode, recent_days):
+    """依 catalog attestation_mode 豁免(SSOT reconcile.EXEMPT_*)+ reconcile_scope 路由 → 統一 summary。
+    attestation_mode 豁免與 daily_maintenance 共用同一政策(#12,(B) 2026-07-14)——根治「reconcile_audit 不認
+    attestation_mode → tick/dim_only 假 EX 分歧」;窗策略(unsettled 緩衝)為本 driver 特有、保留。"""
+    if mode in reconcile.EXEMPT_MODES:                        # 豁免非靜默(誠實 #15;與 daily_maintenance 同 SSOT)
+        _p(f"[{dataset}] 豁免({mode}——{reconcile.EXEMPT_REASON[mode]};catalog #7(b))")
+        return _summary(dataset, "exempt",
+                        {"table": dataset, "matched": 0, "value_mismatch": 0, "missing_in_db": 0,
+                         "extra_in_db": 0, "errors": []})
     if dataset == FRED_TABLE:                                  # fred_series:走 FRED API、全 series 全史
         with db.transaction(conn) as cur:
             cur.execute("SELECT DISTINCT series_id FROM fred_series ORDER BY series_id")
@@ -195,12 +202,12 @@ def main(argv):
         if not plan:
             _p("⚠️ catalog 無 excluded=f 表(catalog 未建?)→ 無表可對帳")
             return 1
-        for dataset, scope in plan:
+        for dataset, scope, mode in plan:
             if tables and dataset not in tables:
                 continue
             if only and scope != only and not (only == "fred" and dataset == FRED_TABLE):
                 continue
-            r = _audit(conn, dataset, scope, recent)
+            r = _audit(conn, dataset, scope, mode, recent)
             results.append(r)
             _print_row(r)
     if not results:

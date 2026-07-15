@@ -95,55 +95,28 @@ def main():
                 cat = {d: (sc, m, lg) for d, sc, m, lg in cur.fetchall()}
             today = date.today()
             recs, exempt = [], []
+            def _route(ds, scope, mode, until):     # 共用政策路由(#12,(B)):豁免+端點皆走 reconcile.attest_route
+                return reconcile.attest_route(conn, ds, scope=scope, mode=mode, since=args.audit_since,
+                                              until=until, sample_n=AUDIT_SAMPLE_STOCKS, progress=_plog)
             for i, r in enumerate(audit_set, 1):
                 ds = r["dataset"]
                 scope, mode, lag = cat.get(ds, ("by-date", "byte", 1))
-                if mode in ("snapshot", "restating", "cadence", "dim_only", "intraday"):   # 豁免非靜默:逐支列印+彙總(誠實 #15)
-                    why = {"snapshot": "名錄快照型:API 僅現況宇宙、DB=as-of 保存",
-                           "restating": "重述型:除權息季全序列合法重算",
-                           "cadence": "低頻/事件表:滾動窗常空非死、以自身 cadence 定案(#7(b) 2026-07-14)",
-                           "dim_only": "維度端點專屬:by-date 回 PK-null 髒列不可 sync、零預測用途→誠實豁免 byte attest(#31 2026-07-14)",
-                           "intraday": "tick 串流:全欄 PK+API 回不同 tick 子集→byte 逐日假 EX、非定案 as-of、零預測用途→豁免(③ 2026-07-14)"}[mode]
-                    print(f"  對帳 [{i}/{n}] {ds}: 豁免({mode}——{why};catalog #7(b))", flush=True)
-                    exempt.append((ds, mode))
-                    continue
                 until = args.audit_until or (today - timedelta(days=lag)).isoformat()   # (a) 滾動安全邊緣
-                print(f"  對帳 [{i}/{n}] {ds}（scope={scope}、窗至 {until}）…", flush=True)
-                try:                                    # #7 韌性:一表對帳錯(catalog scope 錯配/schema/DB 錯)→記 incomplete、續跑不崩全部(--audit-only 暴露之教訓 2026-07-14)
-                    if ds == "fred_series":             # FRED 資料走 FRED API(reconcile_fred);非 FinMind by-dim-id(datalist 空→incomplete)——2026-07-14 診斷暴露之路由修
-                        from augur.features import macro
-                        with db.transaction(conn) as cur:
-                            cur.execute("SELECT DISTINCT series_id FROM fred_series ORDER BY series_id")
-                            sids = [r[0] for r in cur.fetchall()]
-                        print(f"    (fred:{len(sids)} series 走 FRED API、不佔 FinMind 額度)", flush=True)
-                        recs.append(reconcile.reconcile_fred(conn, sids, vintage_map=macro.vintage_map(), progress=_plog))
-                    elif mode == "coverage":            # 新聞流:量級對帳(逐條 byte 不適用)
-                        recs.append(reconcile.reconcile_coverage(conn, ds, progress=_plog))
-                    elif scope == "roster-scoped":      # per-stock 端點(by-date 對會假 VM/EX);抽樣=部分覆蓋
-                        print(f"    (roster-scoped 抽樣 {AUDIT_SAMPLE_STOCKS} 股=部分覆蓋,#7 誠實知會)", flush=True)
-                        rr = reconcile.reconcile_per_stock(
-                            conn, ds, since=args.audit_since, until=until,
-                            sample_n=AUDIT_SAMPLE_STOCKS, progress=_plog)
-                        fixd = sorted(rr.get("fix_dates") or [])
-                        if args.heal and fixd:          # #31 ③ roster-heal:VM/MIS 日 by-date 重抓(補邊緣過早 sync 舊值)再驗,與 by-date heal 對稱
-                            print(f"    roster-heal:重抓 {len(fixd)} 日 {fixd[:5]}{'…' if len(fixd) > 5 else ''}", flush=True)
+                print(f"  對帳 [{i}/{n}] {ds}（{scope}/{mode}、窗至 {until}）…", flush=True)
+                try:                                    # #7 韌性:一表對帳錯(schema/DB 錯)→記 incomplete、續跑不崩全部
+                    kind, res = _route(ds, scope, mode, until)
+                    if kind == "exempt":                # attestation_mode 豁免(SSOT reconcile.EXEMPT_*)——與 reconcile_audit 同政策
+                        print(f"    豁免({res['mode']}——{res['reason']};catalog #7(b))", flush=True)
+                        exempt.append((ds, res["mode"]))
+                        continue
+                    if args.heal and kind in ("byte", "roster"):   # daily 特有 heal(#31 ③ roster+by-date 對稱):diff 日 by-date 重抓補邊緣舊值再驗
+                        fixd = sorted(res.get("fix_dates") or reconcile.fixable_dates(res))
+                        if fixd:
+                            print(f"    heal:重抓 {len(fixd)} 日 {fixd[:5]}{'…' if len(fixd) > 5 else ''}", flush=True)
                             for d in fixd:
                                 sync.sync_by_date(conn, ds, start=d, end=d)
-                            rr = reconcile.reconcile_per_stock(
-                                conn, ds, since=args.audit_since, until=until,
-                                sample_n=AUDIT_SAMPLE_STOCKS, progress=_plog)
-                        recs.append(rr)
-                    elif scope == "by-dim-id":          # 逐維度 id 端點
-                        recs.append(reconcile.reconcile_by_dim_id(conn, ds, since=args.audit_since, progress=_plog))
-                    else:                               # by-date byte-equal(預設)
-                        rr = reconcile.reconcile_by_date(conn, ds, since=args.audit_since, until=until, progress=_plog)
-                        fix = reconcile.fixable_dates(rr)
-                        if args.heal and fix:           # 差異日自動 heal:sync 重抓(冪等覆蓋、非 hand-patch)再驗
-                            print(f"    heal:重抓 {len(fix)} 日 {fix[:5]}{'…' if len(fix) > 5 else ''}", flush=True)
-                            for d in fix:
-                                sync.sync_by_date(conn, ds, start=d, end=d)
-                            rr = reconcile.reconcile_by_date(conn, ds, since=args.audit_since, until=until, progress=_plog)
-                        recs.append(rr)
+                            _, res = _route(ds, scope, mode, until)     # 補後再驗
+                    recs.append(res)
                 except Exception as e:                  # noqa: BLE001  對帳需韌性:單表失敗記帳續跑,不讓一表崩掉全量 attest
                     conn.rollback()                     # 清該表殘留錯誤交易態,免污染後續表
                     print(f"    ⚠ {ds} 對帳失敗,記 incomplete、跳過:{type(e).__name__}: {str(e)[:80]}", flush=True)
