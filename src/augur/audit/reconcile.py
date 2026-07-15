@@ -296,10 +296,13 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sa
                and (not dbmax or str(row.get("date")) <= str(dbmax))]
         r = compare(dbr, api, pk, val)
         if r["extra_in_db"]:                    # A 案:per-stock 端點無之列 → by-date 交叉驗證扣抵端點不對稱假 EX
-            conf = _bydate_confirms(dataset, _extra_keys(dbr, api, pk), pk, _bd_cache, progress)
+            conf, xvm = _bydate_confirms(dataset, _extra_keys(dbr, api, pk), pk, val, _bd_cache, progress)
             if conf:
                 r["extra_in_db"] -= conf
                 agg["endpoint_asym_ex"] += conf
+            if xvm:                             # #29-1:by-date 有但值不符→自 EX 移出、改計真 VM(擋綠、須查)
+                r["extra_in_db"] -= xvm
+                r["value_mismatch"] += xvm
         _merge(agg, r)
         if r["value_mismatch"] or r["missing_in_db"] or r["extra_in_db"]:
             agg["per_stock"][sid] = {k: r[k] for k in ("value_mismatch", "missing_in_db", "extra_in_db")}
@@ -317,13 +320,14 @@ def _extra_keys(dbr, api, pk):
     return [r for r in dbr if _key(r, pk) not in apk]
 
 
-def _bydate_confirms(dataset, extra_rows, pk, cache, progress=None):
-    """交叉驗證(A 案,2026-07-14):per-stock 端點無之 extra 候選,是否存在於 **by-date 端點**。
-    FinMind per-stock 與 by-date 端點對特定日/股覆蓋可不對稱(實證 Shareholding 07-06:by-date 有、
-    per-stock 缺)→ by-date 證實存在者=**非幻像**(DB 由 by-date 落地正確、僅 per-stock 再抓不回),
-    自 extra 扣抵;**兩端點皆無=真 EX 紅旗、留計**(寧紅勿假綠、三敵零容忍)。
-    cache:{date: set(by-date keys)|None}(同 run 同日只抓一次,#24/#28;抓失敗記 None=保守留 EX)。"""
-    confirmed = 0
+def _bydate_confirms(dataset, extra_rows, pk, val, cache, progress=None):
+    """交叉驗證(A 案,2026-07-14;#29-1 加值比對 2026-07-14):per-stock 端點無之 extra 候選,是否存在於
+    **by-date 端點且值逐欄相等**。FinMind per-stock 與 by-date 端點對特定日/股覆蓋可不對稱(實證 Shareholding
+    07-06:by-date 有、per-stock 缺)→ by-date 證實存在**且值相等**者=**非幻像**(DB 由 by-date 落地正確、
+    僅 per-stock 再抓不回),自 extra 扣抵;**by-date 有但值不符=真 value_mismatch**(#29-1:僅比 PK 會讓值損壞列
+    逃 EX+VM,故必比值)→ 改計 VM、不當乾淨扣抵;**兩端點皆無=真 EX 紅旗、留計**(寧紅勿假綠、三敵零容忍)。
+    回 (confirmed, vm_crossverify)。cache:{date: {key:row}|None}(同 run 同日只抓一次,#24/#28;抓失敗 None=保守留 EX)。"""
+    confirmed = vm = 0
     for row in extra_rows:
         d = row.get("date")
         ds = d if isinstance(d, str) else (d.isoformat() if d is not None else None)
@@ -332,13 +336,20 @@ def _bydate_confirms(dataset, extra_rows, pk, cache, progress=None):
         if ds not in cache:
             try:
                 bd = finmind.fetch(dataset, start_date=ds, end_date=ds)
-                cache[ds] = {_key(r, pk) for r in bd}
+                cache[ds] = {_key(r, pk): r for r in bd}     # 存全列(供值比對 #29-1),非只 key set
             except finmind.FinMindError:
                 cache[ds] = None                   # 抓失敗→無法確認→保守留為 EX(不假綠)
-        keys = cache[ds]
-        if keys is not None and _key(row, pk) in keys:
-            confirmed += 1                          # by-date 證實存在=端點不對稱假 EX
-    return confirmed
+        m = cache[ds]
+        if m is None:
+            continue
+        bd_row = m.get(_key(row, pk))
+        if bd_row is None:
+            continue                                # by-date 也無=真 EX 紅旗、留計
+        if all(_norm(row.get(c)) == _norm(bd_row.get(c)) for c in val):
+            confirmed += 1                          # by-date 有且值逐欄相等=端點不對稱假 EX、扣抵
+        else:
+            vm += 1                                 # by-date 有但值不符=真 VM(#29-1:不得當乾淨扣抵)
+    return confirmed, vm
 
 
 def reconcile_by_dim_id(conn, table, dataset=None, *, since=None, progress=None):
@@ -481,11 +492,13 @@ def verdict(*results):
     tex = sum(r["extra_in_db"] for r in results)
     incomplete = any(r.get("incomplete") or r.get("errors") for r in results)   # 有抓取失敗未比對 → 無法 attest（#15:沒比到 ≠ 比過且乾淨）
     coverage_gap = [r.get("table") for r in results if r.get("coverage_gap")]    # 空視窗表=從未比對 → 不得當乾淨 PASS（#15 假綠 blocker）
+    sampled = [r.get("table") for r in results if r.get("sampled")]              # #29-2:roster 抽樣表=部分覆蓋(非全宇宙 byte-equal)→ 傳出供 headline 誠實揭露,不當無條件「無幻像」
     return {"matched": sum(r["matched"] for r in results),
             "value_mismatch": tvm, "extra_in_db": tex,
             "missing_in_db": sum(r["missing_in_db"] for r in results),
             "incomplete": incomplete,
             "coverage_gap": coverage_gap,
+            "sampled": sampled,
             "passed": tvm == 0 and tex == 0 and not incomplete and not coverage_gap}
 
 
@@ -516,11 +529,24 @@ def _selftest():
         verdict({**H, "coverage_gap": True})["passed"] is False)
     chk("verdict 混合(健康+死表)擋綠且列名",
         verdict(H, {**H, "table": "DEAD", "coverage_gap": True})["coverage_gap"] == ["DEAD"])
+    chk("verdict 傳 sampled 表名(#29-2 部分覆蓋揭露、不擋綠)",
+        verdict(H, {**H, "table": "ROSTER", "sampled": True})["sampled"] == ["ROSTER"]
+        and verdict({**H, "sampled": True})["passed"] is True)
     try:
         reconcile_by_date(None, "t", since="2026-07-11", until="2026-06-30")   # 檢查先於任何 conn 使用→零 DB
         chk("since>until fail-loud", False)
     except ValueError:
         chk("since>until fail-loud", True)
+    # #29-1 交叉驗證值比對回歸鎖(預填 cache→零 IO、不觸 finmind):by-date 有且值等→credit;值不符→VM;兩端無→留 EX
+    pk2, val2 = ["sid", "date"], ["v"]
+    extra = [{"sid": "A", "date": "2026-07-06", "v": "10"},   # by-date 有、值相等 → credit
+             {"sid": "B", "date": "2026-07-06", "v": "99"},   # by-date 有、值不符 → 真 VM
+             {"sid": "C", "date": "2026-07-06", "v": "5"}]    # by-date 無 → 留 EX
+    cache = {"2026-07-06": {_key({"sid": "A", "date": "2026-07-06"}, pk2): {"sid": "A", "date": "2026-07-06", "v": 10.0},
+                            _key({"sid": "B", "date": "2026-07-06"}, pk2): {"sid": "B", "date": "2026-07-06", "v": 11}}}
+    conf, xvm = _bydate_confirms("T", extra, pk2, val2, cache)
+    chk("交叉驗證:值相等→credit=1", conf == 1)
+    chk("交叉驗證:值不符→VM=1(不當乾淨扣抵 #29-1)", xvm == 1)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

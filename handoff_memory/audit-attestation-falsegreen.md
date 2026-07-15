@@ -13,7 +13,9 @@ metadata:
 - **修**:reconcile_by_date 空視窗標 `coverage_gap`+assert since≤until;verdict passed 納入 not coverage_gap;daily_maintenance headline 列「未對帳 N 表」+ exit **rc=2 終態**(重試不會綠、須人 re-sync/exempt)。回歸鎖入 `python -m augur.audit.reconcile --selftest`。
 - **死表定性(#25 探測)**:上游 FinMind 仍有料(AAPL 07-10 有)→**本機漏 sync、非死 feed**→ sync_by_date 可補([[cross-machine-handoff]] 未涵蓋)。補救待額度恢復+處置拍板(Task 追蹤)。
 
-**#29 其餘 findings(待判準,未修)**:①roster-scoped 抽樣 40/3114=1.3% 覆蓋卻過綠(verdict 不讀 sampled)——HANDOFF 記為 FinMind throttle 揭露債;②by-date 交叉驗證(A案)只比 PK 不比值→值損壞列可逃 EX+VM。已修者=旗艦抽樣框 warrant 污染((b):抽樣框改真名冊∩表,旗艦 2→32 真股/40)。
+**#29 全 6 findings 已處置(2026-07-14 hugo 逐項拍板)**:(b)旗艦抽樣框 warrant 污染→改真名冊∩表(2→32 真股/40);#29-1 by-date 交叉驗證加值比對(PK 存在但值不符=真 VM、不當乾淨扣抵,回歸鎖入 reconcile --selftest);#29-2 roster 部分覆蓋傳 verdict.sampled+headline「⚠部分覆蓋 N 表」誠實揭露(不擋綠、FinMind throttle 揭露債);死/空表全分類:**USStockPrice→dim_only 豁免**(by-date 回 PK-null 髒列不可 sync〔sync.py:501 pk-null-needs-dim〕+零預測用途、per-ticker 放量不划算)、**BusinessIndicator/ParValueChange/SecuritiesTraderInfo/StockDelisting→cadence 豁免**(低頻/事件表,滾動窗常空非死)。catalog attestation_mode 值域擴 cadence+dim_only(migrate codified)。
+
+**⚠ --audit-all sync 浪費(2026-07-14 發現,未修)**:daily_maintenance --audit-all 先 sync_all_by_date 全 88 表,會**回填停更多年之 snapshot 表**(JapanStockInfo 自 2019 逐月)——而 audit 階段又豁免它們=sync 了會豁免的表、燒光額度(3→3940/6000)audit 前就耗盡。被審表(TW 價量/UK/JP/EU Price)其實都當前。修法待拍:(b)sync 前跳過 audit-豁免表 / (c)audit 只跑當前 DB。生產 audit 尚未取得真綠、待此優化後另跑。
 
 **v1.28 入憲(2026-07-14 hugo 拍板)**:CLAUDE #18 原「library 不需指令矩陣」**廢止**→ library 模組須執行指令矩陣=自測 CLI(`python -m augur.<pkg>.<mod> --selftest`,零 DB/API 純紅綠)。**全 74 支已補齊+實跑 71/71 全綠**(把不變式固化成回歸鎖)。先例=reconcile/admission。
 

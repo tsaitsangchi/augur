@@ -85,9 +85,11 @@ def main():
             for i, r in enumerate(audit_set, 1):
                 ds = r["dataset"]
                 scope, mode, lag = cat.get(ds, ("by-date", "byte", 1))
-                if mode in ("snapshot", "restating"):   # 豁免非靜默:逐支列印+彙總(誠實 #15)
-                    why = "名錄快照型:API 僅現況宇宙、DB=as-of 保存" if mode == "snapshot" \
-                        else "重述型:除權息季全序列合法重算"
+                if mode in ("snapshot", "restating", "cadence", "dim_only"):   # 豁免非靜默:逐支列印+彙總(誠實 #15)
+                    why = {"snapshot": "名錄快照型:API 僅現況宇宙、DB=as-of 保存",
+                           "restating": "重述型:除權息季全序列合法重算",
+                           "cadence": "低頻/事件表:滾動窗常空非死、以自身 cadence 定案(#7(b) 2026-07-14)",
+                           "dim_only": "維度端點專屬:by-date 回 PK-null 髒列不可 sync、零預測用途→誠實豁免 byte attest(#31 2026-07-14)"}[mode]
                     print(f"  對帳 [{i}/{n}] {ds}: 豁免({mode}——{why};catalog #7(b))", flush=True)
                     exempt.append((ds, mode))
                     continue
@@ -114,10 +116,12 @@ def main():
             v = reconcile.verdict(*recs)
             asym = sum(r.get("endpoint_asym_ex", 0) for r in recs)   # A 案:by-date 證實之端點不對稱假 EX 扣抵(#15 誠實)
             gaps = v.get("coverage_gap") or []   # 空視窗表=從未對帳(死 feed 跌破窗/低頻窗內無料)→ 不得計綠(#15 假綠 blocker 修)
+            samp = v.get("sampled") or []        # #29-2:roster 抽樣表=部分覆蓋(非全宇宙 byte-equal)→ headline 誠實揭露、不當無條件「無幻像」
             tag = "✅ PASS（DB byte-equal API，無幻像）" if v["passed"] else "❌ FAIL（須查根因）"
             print(f"attestation：{tag} | matched={v['matched']:,} "
                   f"value_mismatch={v['value_mismatch']} extra_in_db={v['extra_in_db']} "
                   f"missing_in_db={v['missing_in_db']:,}"
+                  + (f" | ⚠部分覆蓋 {len(samp)} 表(roster 抽樣 {AUDIT_SAMPLE_STOCKS} 股、非全宇宙)" if samp else "")
                   + (f" | 豁免 {len(exempt)} 表({'、'.join(d for d, _ in exempt)})" if exempt else "")
                   + (f" | 端點不對稱假 EX 扣抵 {asym}(by-date 證實存在、非幻像)" if asym else "")
                   + (f" | ⚠ 未對帳 {len(gaps)} 表(空視窗/死 feed,須 re-sync 或 catalog 豁免:{'、'.join(gaps)})" if gaps else ""))
