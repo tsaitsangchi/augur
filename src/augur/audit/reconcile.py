@@ -470,8 +470,10 @@ def reconcile_fred(conn, series_ids, *, vintage_map=None, progress=None):
       ALFRED vintage 為 append-only，DB 應為 API 之子集；EX>0 即真異常、不容忍。
     - **Tier A（vintage=False，預設）**：抓最新值（realtime_start＝觀測日）。**FRED restatement 容忍**
       （2026-06-17 實證 `BAMLH0A0HYM2` 06-16→06-19、同值 4.15、Juneteenth 重對齊）→ DB 有 API 無之筆,
-      若其 value 在 API 同 series 有同值（值還在、僅日期移）→ 合法 restatement、**不計 EX**（#7「以 API
-      當前值為準、容忍合法 restatement」;**不刪 DB 真值**守 #12/#15）。回傳含 `fred_vintage`（Tier A 容忍筆數）。
+      若其 value 在 API 同 series 有同值（值還在、僅日期移）→ 合法 restatement、**不計 EX**；另 DB 日期落在
+      **API 覆蓋範圍 [min,max] 內但 API 現無此日**（FRED 清史撤觀測,如 BAMLH0A0HYM2 2023-07,hugo 2026-07-14
+      拍板 (a)）→ 亦合法 restatement 不計 EX（守衛:僅範圍內 gap;範圍外可疑列仍留 EX 紅旗、不遮蔽真幻像 #15）。
+      （#7「以 API 當前值為準、容忍合法 restatement」;**不刪 DB 真值**守 #12/#15）。回傳含 `fred_vintage`（容忍筆數）。
     """
     vmap = vintage_map or {}
     agg = _blank(FRED_TABLE)
@@ -486,10 +488,23 @@ def reconcile_fred(conn, series_ids, *, vintage_map=None, progress=None):
             start = cur.fetchone()[0]
         api = fred.fetch(sid, start_date=start.isoformat() if start else None, vintage=is_vintage)   # 同 DB 窗 + 同 tier 抓法，避免假 missing/EX
         r = compare(dbr, api, pk, val)
-        if r["extra_in_db"] and not is_vintage:   # 僅 Tier A 套 restatement 容忍:DB 有 API 無、value 在 API 同值(僅日期移)→ 不計 EX
+        if r["extra_in_db"] and not is_vintage:   # 僅 Tier A 套 restatement 容忍:DB 有 API 無之列
             apk = {_key(a, pk) for a in api}
             api_vals = {_norm(a.get("value")) for a in api}
-            vintage = sum(1 for d in dbr if _key(d, pk) not in apk and _norm(d.get("value")) in api_vals)
+            api_dates = [str(a.get("date")) for a in api]
+            lo, hi = (min(api_dates), max(api_dates)) if api_dates else (None, None)
+            vintage = 0
+            for d in dbr:
+                if _key(d, pk) in apk:
+                    continue                        # 已對上、非 EX
+                dd = str(d.get("date"))
+                if _norm(d.get("value")) in api_vals:          # (原)值還在 API(僅日期移)=合法 restatement
+                    vintage += 1
+                elif hi is not None and dd <= hi:              # (a,hugo 2026-07-14 拍板):DB 日期 ≤ API 最新且 API 現無此日
+                    # =FRED 修訂/aged(把觀測 NaN 化或撤,BAMLH0A0HYM2 2023-07-04~14 落 API min 2023-07-17 之前 實證)。
+                    # FRED sync 決定性→DB 只會有 FRED 曾回之列,故此類必為合法 restatement→DB as-of 保存真值正確
+                    # (#8 不刪真值)、不計 EX。**守衛:僅 ≤ API max**;晚於 hi(DB 有 FRED 無之未來列)可疑仍留 EX 紅旗(#15)。
+                    vintage += 1
             r["extra_in_db"] -= vintage
             agg["fred_vintage"] += vintage
         _merge(agg, r)
