@@ -15,7 +15,9 @@ metadata:
 
 **#29 全 6 findings 已處置(2026-07-14 hugo 逐項拍板)**:(b)旗艦抽樣框 warrant 污染→改真名冊∩表(2→32 真股/40);#29-1 by-date 交叉驗證加值比對(PK 存在但值不符=真 VM、不當乾淨扣抵,回歸鎖入 reconcile --selftest);#29-2 roster 部分覆蓋傳 verdict.sampled+headline「⚠部分覆蓋 N 表」誠實揭露(不擋綠、FinMind throttle 揭露債);死/空表全分類:**USStockPrice→dim_only 豁免**(by-date 回 PK-null 髒列不可 sync〔sync.py:501 pk-null-needs-dim〕+零預測用途、per-ticker 放量不划算)、**BusinessIndicator/ParValueChange/SecuritiesTraderInfo/StockDelisting→cadence 豁免**(低頻/事件表,滾動窗常空非死)。catalog attestation_mode 值域擴 cadence+dim_only(migrate codified)。
 
-**⚠ --audit-all sync 浪費(2026-07-14 發現,未修)**:daily_maintenance --audit-all 先 sync_all_by_date 全 88 表,會**回填停更多年之 snapshot 表**(JapanStockInfo 自 2019 逐月)——而 audit 階段又豁免它們=sync 了會豁免的表、燒光額度(3→3940/6000)audit 前就耗盡。被審表(TW 價量/UK/JP/EU Price)其實都當前。修法待拍:(b)sync 前跳過 audit-豁免表 / (c)audit 只跑當前 DB。生產 audit 尚未取得真綠、待此優化後另跑。
+**--audit-all sync 浪費 → (c) --audit-only 修(2026-07-14)**:--audit-all 先 sync_all_by_date 全 88 表會回填停更多年之 snapshot 表(JapanStockInfo 自 2019 逐月)——sync 了會豁免的表、燒光額度。修=`daily_maintenance --audit-only`(跳 pre-sync、audit_set 由 catalog reconcile_scope IS NOT NULL **且 to_regclass 表實存** 取、直接對帳現況)。另加 audit 迴圈 **per-dataset try/except 韌性**(一表 schema/DB 錯記 incomplete 續跑不崩全部+conn.rollback 清錯態)——--audit-only 暴露 --audit-all 一直用 sync 預篩掩蓋的 catalog 錯配。
+
+**⚠ 誠實生產判決(2026-07-14 --audit-only 首跑=修正碼端到端實證):❌ FAIL**(matched 784,127/VM 33/EX 4999/MIS 5,127/部分覆蓋 27 表/豁免 16 表)——**不再假綠、audit 說真話了**(寧誠實紅、三敵零容忍)。揭露三類待辦:①11 張 catalog 有 DB 無之 tick/intraday 表(augur 不儲存;table-exists 過濾已排除、catalog 條目待清)②2 空視窗表(TaiwanFutOptTickInfo/CapitalReductionReferencePrice 待分類)③9 真差異表(**EX 4999 由 TaiwanFuturesSpreadTick 主導**〔spread tick 高頻、byte 逐日恐端點不對稱〕+VM33/MIS5127 散 8 表)。**到真綠須查 ③、逐表判端點不對稱假 EX vs 真問題**(進行中)。catalog 錯配 2 表(TaiwanFutOptDailyInfo/StockConvertibleBondInfo 無 date 卻標 by-date)已歸 snapshot。
 
 **v1.28 入憲(2026-07-14 hugo 拍板)**:CLAUDE #18 原「library 不需指令矩陣」**廢止**→ library 模組須執行指令矩陣=自測 CLI(`python -m augur.<pkg>.<mod> --selftest`,零 DB/API 純紅綠)。**全 74 支已補齊+實跑 71/71 全綠**(把不變式固化成回歸鎖)。先例=reconcile/admission。
 

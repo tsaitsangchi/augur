@@ -25,7 +25,9 @@ from augur.core import db
 # seed=證據+性質為據(2026-07-14 對帳 FAIL 鑑識;未列者維持預設 byte/lag=1、觀察續跑再定):
 SNAPSHOT = ("TaiwanStockInfoWithWarrant", "TaiwanStockInfoWithWarrantSummary",
             "TaiwanStockIndustryChain", "USStockInfo", "UKStockInfo", "JapanStockInfo",
-            "EuropeStockInfo", "IndiaStockInfo")          # 名錄快照型(API 現況宇宙)
+            "EuropeStockInfo", "IndiaStockInfo",
+            "TaiwanFutOptDailyInfo",                      # 期權合約規格維度表(code/name/type、無 date)——catalog by-date 錯配修正(2026-07-14 --audit-only 暴露)
+            "TaiwanStockConvertibleBondInfo")             # 可轉債資訊維度表(cb_id/cb_name、無 date)——同上 snapshot 快照型
 RESTATING = ("TaiwanStockPriceAdj",                        # 除權息季全序列重算(機制確定)
              "TaiwanStockDividend")                        # 股利公告會被 TWSE 修訂(金額/除息日;date=未來除息日)——2026-07-14 attest VM=1 實證,hugo 拍板 restating
 COVERAGE = ("TaiwanStockNews",)                            # 新聞流(增刪/去重,逐條 byte 不適用)

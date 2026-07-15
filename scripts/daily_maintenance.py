@@ -48,6 +48,9 @@ def main():
     ap.add_argument("--audit-until", help="對帳窗上限覆寫 YYYY-MM-DD(預設=各表 today−finalize_lag_days)")
     ap.add_argument("--heal", action="store_true",
                     help="對帳後對差異日(VM/MIS)自動 sync 重抓再驗(by-date 表;EX 紅旗仍不自動碰)")
+    ap.add_argument("--audit-only", action="store_true",
+                    help="跳過 by-date 全量 pre-sync,直接對現況 DB 對帳(#31:避 --audit-all 回填 audit-豁免之 stalled "
+                         "snapshot 表〔JapanStockInfo 自2019〕白燒額度;被審 byte 表由日常 sync 維持當前、--heal 仍 targeted 補差異日)")
     args = ap.parse_args()
     if args.audit_days and not args.audit_since:   # 滾動窗:啟動時計算、整輪固定(不隨跨日午夜漂移)
         args.audit_since = (date.today() - timedelta(days=args.audit_days)).isoformat()
@@ -56,18 +59,28 @@ def main():
         with db.transaction(conn) as cur:           # PHASE 1：確保 infra log 表存在（冪等）
             schema.bootstrap_infra(cur)
 
-        results = sync.sync_all_by_date(conn, datasets=args.datasets, end=args.end)
-        synced = [r for r in results if r["mode"] == "by-date" and r["rows"]]
-        skipped = [r for r in results if r["mode"] != "by-date"]
-        print(f"\n增量完成：{len(synced)} dataset 有更新、共 {sum(r['rows'] for r in synced):,} 列；"
-              f"{len(skipped)} dataset 略過（no-baseline / not-by-date-capable / intraday）")
-        failed = [(r["dataset"], r["failed_days"]) for r in results if r.get("failed_days")]
-        if failed:   # 漏抓日（單日錯被跳過;resume 只看 max(date) 不會自補）→ 印出供 scoped 重跑（#6 不掉資料）
-            print(f"⚠ {len(failed)} dataset 有失敗日（漏抓;resume 不自補,須 sync_by_date 明確 start=該日重跑補洞）：")
-            for ds, days in failed:
-                print(f"  {ds}: {len(days)} 日 {days[:10]}{'…' if len(days) > 10 else ''}")
-
-        audit_set = ([r for r in results if r["mode"] == "by-date"] if args.audit_all else synced)
+        if args.audit_only:                          # #31:跳過全量 pre-sync,直接對帳現況 DB(避回填豁免表白燒額度)
+            with db.transaction(conn) as cur:
+                # #31:只審 catalog 有 reconcile_scope 且**表實存**者——tick/intraday 等 catalog 有條目但 augur 不儲存(表不存在)
+                # 之污染排除(2026-07-14 --audit-only 暴露 11 張 UndefinedTable);表存在性 to_regclass 判(免逐表 information_schema)
+                cur.execute("SELECT dataset FROM dataset_catalog "
+                            "WHERE reconcile_scope IS NOT NULL AND to_regclass('\"'||dataset||'\"') IS NOT NULL"
+                            + (" AND dataset = ANY(%s)" if args.datasets else "")
+                            + " ORDER BY dataset", (args.datasets,) if args.datasets else ())
+                audit_set = [{"dataset": r[0]} for r in cur.fetchall()]
+            print(f"\n(--audit-only:跳過 by-date 全量 sync,直接對帳現況 DB {len(audit_set)} 表;--heal 仍 targeted 補差異日)")
+        else:
+            results = sync.sync_all_by_date(conn, datasets=args.datasets, end=args.end)
+            synced = [r for r in results if r["mode"] == "by-date" and r["rows"]]
+            skipped = [r for r in results if r["mode"] != "by-date"]
+            print(f"\n增量完成：{len(synced)} dataset 有更新、共 {sum(r['rows'] for r in synced):,} 列；"
+                  f"{len(skipped)} dataset 略過（no-baseline / not-by-date-capable / intraday）")
+            failed = [(r["dataset"], r["failed_days"]) for r in results if r.get("failed_days")]
+            if failed:   # 漏抓日（單日錯被跳過;resume 只看 max(date) 不會自補）→ 印出供 scoped 重跑（#6 不掉資料）
+                print(f"⚠ {len(failed)} dataset 有失敗日（漏抓;resume 不自補,須 sync_by_date 明確 start=該日重跑補洞）：")
+                for ds, days in failed:
+                    print(f"  {ds}: {len(days)} 日 {days[:10]}{'…' if len(days) > 10 else ''}")
+            audit_set = ([r for r in results if r["mode"] == "by-date"] if args.audit_all else synced)
         if args.audit_since and audit_set:
             n = len(audit_set)
             print(f"\n對帳（#7，since={args.audit_since}{'、全量' if args.audit_all else ''}"
@@ -95,24 +108,30 @@ def main():
                     continue
                 until = args.audit_until or (today - timedelta(days=lag)).isoformat()   # (a) 滾動安全邊緣
                 print(f"  對帳 [{i}/{n}] {ds}（scope={scope}、窗至 {until}）…", flush=True)
-                if mode == "coverage":                  # 新聞流:量級對帳(逐條 byte 不適用)
-                    recs.append(reconcile.reconcile_coverage(conn, ds, progress=_plog))
-                elif scope == "roster-scoped":          # per-stock 端點(by-date 對會假 VM/EX);抽樣=部分覆蓋
-                    print(f"    (roster-scoped 抽樣 {AUDIT_SAMPLE_STOCKS} 股=部分覆蓋,#7 誠實知會)", flush=True)
-                    recs.append(reconcile.reconcile_per_stock(
-                        conn, ds, since=args.audit_since, until=until,
-                        sample_n=AUDIT_SAMPLE_STOCKS, progress=_plog))
-                elif scope == "by-dim-id":              # 逐維度 id 端點
-                    recs.append(reconcile.reconcile_by_dim_id(conn, ds, since=args.audit_since, progress=_plog))
-                else:                                   # by-date byte-equal(預設)
-                    rr = reconcile.reconcile_by_date(conn, ds, since=args.audit_since, until=until, progress=_plog)
-                    fix = reconcile.fixable_dates(rr)
-                    if args.heal and fix:               # 差異日自動 heal:sync 重抓(冪等覆蓋、非 hand-patch)再驗
-                        print(f"    heal:重抓 {len(fix)} 日 {fix[:5]}{'…' if len(fix) > 5 else ''}", flush=True)
-                        for d in fix:
-                            sync.sync_by_date(conn, ds, start=d, end=d)
+                try:                                    # #7 韌性:一表對帳錯(catalog scope 錯配/schema/DB 錯)→記 incomplete、續跑不崩全部(--audit-only 暴露之教訓 2026-07-14)
+                    if mode == "coverage":              # 新聞流:量級對帳(逐條 byte 不適用)
+                        recs.append(reconcile.reconcile_coverage(conn, ds, progress=_plog))
+                    elif scope == "roster-scoped":      # per-stock 端點(by-date 對會假 VM/EX);抽樣=部分覆蓋
+                        print(f"    (roster-scoped 抽樣 {AUDIT_SAMPLE_STOCKS} 股=部分覆蓋,#7 誠實知會)", flush=True)
+                        recs.append(reconcile.reconcile_per_stock(
+                            conn, ds, since=args.audit_since, until=until,
+                            sample_n=AUDIT_SAMPLE_STOCKS, progress=_plog))
+                    elif scope == "by-dim-id":          # 逐維度 id 端點
+                        recs.append(reconcile.reconcile_by_dim_id(conn, ds, since=args.audit_since, progress=_plog))
+                    else:                               # by-date byte-equal(預設)
                         rr = reconcile.reconcile_by_date(conn, ds, since=args.audit_since, until=until, progress=_plog)
-                    recs.append(rr)
+                        fix = reconcile.fixable_dates(rr)
+                        if args.heal and fix:           # 差異日自動 heal:sync 重抓(冪等覆蓋、非 hand-patch)再驗
+                            print(f"    heal:重抓 {len(fix)} 日 {fix[:5]}{'…' if len(fix) > 5 else ''}", flush=True)
+                            for d in fix:
+                                sync.sync_by_date(conn, ds, start=d, end=d)
+                            rr = reconcile.reconcile_by_date(conn, ds, since=args.audit_since, until=until, progress=_plog)
+                        recs.append(rr)
+                except Exception as e:                  # noqa: BLE001  對帳需韌性:單表失敗記帳續跑,不讓一表崩掉全量 attest
+                    conn.rollback()                     # 清該表殘留錯誤交易態,免污染後續表
+                    print(f"    ⚠ {ds} 對帳失敗,記 incomplete、跳過:{type(e).__name__}: {str(e)[:80]}", flush=True)
+                    recs.append({"table": ds, "matched": 0, "value_mismatch": 0, "missing_in_db": 0,
+                                 "extra_in_db": 0, "errors": [{"dataset": ds, "error": str(e)}], "incomplete": True})
             v = reconcile.verdict(*recs)
             asym = sum(r.get("endpoint_asym_ex", 0) for r in recs)   # A 案:by-date 證實之端點不對稱假 EX 扣抵(#15 誠實)
             gaps = v.get("coverage_gap") or []   # 空視窗表=從未對帳(死 feed 跌破窗/低頻窗內無料)→ 不得計綠(#15 假綠 blocker 修)
