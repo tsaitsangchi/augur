@@ -48,6 +48,25 @@ INFRA_DDL = {
             logged_at   TIMESTAMP NOT NULL DEFAULT now(),
             detail      TEXT
         )""",
+    # #7 attestation verdict 留檔(2026-07-14 (a) hugo 拍板):正典驅動(daily_maintenance --audit-only --heal)
+    # 對帳跑完寫一列;E1 gate 之 sql check 讀「最近 PASS 且夠新」——run(慢、async)與 gate 檢查(快、讀表)解耦。
+    "attestation_result": """
+        CREATE TABLE IF NOT EXISTS attestation_result (
+            id             BIGSERIAL PRIMARY KEY,
+            run_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+            driver         VARCHAR(64) NOT NULL,
+            passed         BOOLEAN NOT NULL,
+            matched        BIGINT,
+            value_mismatch INT,
+            extra_in_db    INT,
+            missing_in_db  BIGINT,
+            exempt_n       INT,
+            sampled_n      INT,
+            coverage_gap_n INT,
+            incomplete_n   INT,
+            audit_since    VARCHAR(16),
+            note           TEXT
+        )""",
 }
 
 
@@ -103,9 +122,9 @@ def _selftest():
     chk("_pg_type TIMESTAMP 去時區", _pg_type("timestamp without time zone", None, None, None) == "TIMESTAMP")
     chk("_pg_type 其餘型別大寫直通", _pg_type("date", None, None, None) == "DATE"
         and _pg_type("bigint", None, None, None) == "BIGINT")
-    # INFRA_DDL：兩張運維表、皆冪等 CREATE、皆帶 PK（explicit DDL 結構鎖）
-    chk("INFRA_DDL 含 pipeline_execution_log + data_audit_log",
-        set(INFRA_DDL) == {"pipeline_execution_log", "data_audit_log"})
+    # INFRA_DDL：三張運維表、皆冪等 CREATE、皆帶 PK（explicit DDL 結構鎖）
+    chk("INFRA_DDL 含 pipeline_execution_log + data_audit_log + attestation_result",
+        set(INFRA_DDL) == {"pipeline_execution_log", "data_audit_log", "attestation_result"})
     chk("INFRA_DDL 皆 CREATE IF NOT EXISTS（冪等）",
         all("CREATE TABLE IF NOT EXISTS" in ddl for ddl in INFRA_DDL.values()))
     chk("INFRA_DDL 皆含 PRIMARY KEY", all("PRIMARY KEY" in ddl for ddl in INFRA_DDL.values()))

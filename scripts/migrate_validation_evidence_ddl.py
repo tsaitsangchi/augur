@@ -47,10 +47,13 @@ COMMENT ON TABLE validation_evidence IS
 
 # (evidence_id, chain_link, claim, check_type, check_sql, check_cmd, source_ref, status, status_note)
 SEEDS = [
-    ("E1_raw_reconcile_exit", "raw", "raw 對帳工具(byte 對帳+敵①attestation)exit 0", "script_exit", None,
-     "venv/bin/python scripts/reconcile_audit.py",
+    ("E1_raw_reconcile_exit", "raw", "正典 attestation(daily_maintenance --audit-only --heal)最近一次 PASS 且 ≤2 日", "sql",
+     "SELECT COALESCE((SELECT passed AND run_at > now() - interval '2 days' FROM attestation_result "
+     "WHERE driver LIKE 'daily_maintenance%' ORDER BY run_at DESC LIMIT 1), false)",
+     None,
      "augur_prediction_sop_master_20260706.md §PHASE5", "unverified",
-     "stdout+exit-code 工具、無落帳表(誠實標示);--with-scripts 才執行"),
+     "(a) 2026-07-14 hugo 拍板:改讀正典驅動持久化 verdict(attestation_result)——run(慢 async)與 gate 檢查(快讀表)解耦;"
+     "解 reconcile_audit 39分逾時+窗/heal 分歧。attestation 由 daily_maintenance --audit-only --heal 跑、留檔"),
     ("E2_feature_frozen_panel", "feature", "feature_values FREEZE 面板=2,418,655 列/35 特徵/35 panel(兩輪 #8 審計修復後)", "sql",
      "SELECT count(*)=2418655 AND count(DISTINCT feature)=35 AND count(DISTINCT panel_date)=35 FROM feature_values",
      None, "augur_antileakage_audit_20260711.md;commit cd8b35e/abf5da8", "unverified", None),
@@ -120,6 +123,15 @@ def run():
                 "check_cmd, source_ref, status, status_note) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                 "ON CONFLICT (evidence_id) DO NOTHING", row)
             n += cur.rowcount
+        # E1 check 機制變更((a) 2026-07-14):既有列 ON CONFLICT DO NOTHING 不更新→明確冪等 UPDATE 對齊 seed
+        # (script_exit reconcile_audit 39分逾時+窗/heal 分歧 → sql 讀 attestation_result 正典 verdict)。改機制須重驗→status 退 unverified。
+        e1 = next(r for r in SEEDS if r[0] == "E1_raw_reconcile_exit")
+        cur.execute("UPDATE validation_evidence SET check_type=%s, check_sql=%s, check_cmd=%s, claim=%s, "
+                    "status_note=%s, status='unverified' WHERE evidence_id='E1_raw_reconcile_exit' "
+                    "AND (check_type<>%s OR check_sql IS DISTINCT FROM %s)",
+                    (e1[3], e1[4], e1[5], e1[2], e1[8], e1[3], e1[4]))
+        if cur.rowcount:
+            print("  ✓ E1_raw_reconcile_exit check 機制對齊 → sql(讀 attestation_result)、status 退 unverified 待重驗")
         conn.commit()
     print(f"✓ --run 完成(冪等):表就位、種子新增 {n}/{len(SEEDS)}")
     return 0

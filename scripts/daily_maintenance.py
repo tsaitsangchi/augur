@@ -136,6 +136,18 @@ def main():
                   + (f" | 端點不對稱假 EX 扣抵 {asym}(by-date 證實存在、非幻像)" if asym else "")
                   + (f" | ⚠ 未對帳 {len(gaps)} 表(空視窗/死 feed,須 re-sync 或 catalog 豁免:{'、'.join(gaps)})" if gaps else "")
                   + (f" | ⚠ 未完整 {len(inc)} 表(抓取失敗、擋綠:{'、'.join(inc)})" if inc else ""))
+            if not args.datasets:            # (a) 正典全量 attest 才留檔:寫 attestation_result(E1 gate 讀「最近 PASS 且夠新」;run 與 gate 檢查解耦)
+                drv = "daily_maintenance" + (" --audit-only" if args.audit_only else "") + (" --heal" if args.heal else "")
+                with db.transaction(conn) as cur:
+                    cur.execute(
+                        "INSERT INTO attestation_result (driver,passed,matched,value_mismatch,extra_in_db,"
+                        "missing_in_db,exempt_n,sampled_n,coverage_gap_n,incomplete_n,audit_since,note) "
+                        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (drv, v["passed"], v["matched"], v["value_mismatch"], v["extra_in_db"], v["missing_in_db"],
+                         len(exempt), len(samp), len(gaps), len(inc), args.audit_since,
+                         (f"豁免 {len(exempt)}、部分覆蓋 {len(samp)}、端點扣抵 {asym}"
+                          + (f"、未對帳 {gaps}" if gaps else "") + (f"、未完整 {inc}" if inc else ""))))
+                print(f"  → attestation_result 留檔(driver={drv}, passed={v['passed']})", flush=True)
             if not v["passed"]:
                 # 三態分離(rc=0≠PASS 曾致 selfheal/watchdog/Monitor 三層假綠,2026-07-14 實證):
                 # rc=3=可重試(僅 fetch 錯未完整、VM/EX=0、無空視窗);
