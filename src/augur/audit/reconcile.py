@@ -68,23 +68,25 @@ def compare(db_rows, api_rows, pk, valcols):
     dbk = {_key(r, pk): r for r in db_rows}
     apk = {_key(r, pk): r for r in api_rows}
     matched = mismatch = missing = 0
-    examples = []
+    examples, fix_keys = [], []                       # fix_keys:VM/MIS 之鍵(可重跑 sync 補;EX 不入=紅旗不自動碰)——供 roster-heal 取 diff 日(#31 ③)
     for k, a in apk.items():
         d = dbk.get(k)
         if d is None:
             missing += 1
+            fix_keys.append(k)                        # MIS:API 有 DB 無 → 重抓補
             continue
         diff = [c for c in valcols if _norm(d.get(c)) != _norm(a.get(c))]
         if diff:
             mismatch += 1
+            fix_keys.append(k)                        # VM:值不符 → 重抓覆蓋
             if len(examples) < _EXAMPLES_CAP:
                 c = diff[0]
                 examples.append({"key": k, "col": c, "db": str(d.get(c)), "api": str(a.get(c))})
         else:
             matched += 1
     extra = sum(1 for k in dbk if k not in apk)
-    return {"matched": matched, "value_mismatch": mismatch,
-            "missing_in_db": missing, "extra_in_db": extra, "examples": examples}
+    return {"matched": matched, "value_mismatch": mismatch, "missing_in_db": missing,
+            "extra_in_db": extra, "examples": examples, "fix_keys": fix_keys}
 
 
 def _meta(cur, table):
@@ -248,6 +250,7 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sa
     dataset = dataset or table
     agg = _blank(table)
     agg["per_stock"] = {}
+    agg["fix_dates"] = set()                          # #31 ③:VM/MIS 之 date 集(供 roster-heal 重抓那些日補邊緣舊值)
     with db.transaction(conn) as cur:
         cols, pk, val = _meta(cur, table)
         cur.execute(f'SELECT DISTINCT stock_id FROM "{table}"')
@@ -255,6 +258,7 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sa
         roster_ids = _roster_ids(cur)
         cur.execute(f'SELECT max(date) FROM "{table}"')   # 窗上限=DB 最新日：避免同日 API 較新→假 MIS（對齊 by_date DB-date 驅動 / fred 同窗）
         _mx = cur.fetchone()[0]
+    _date_i = pk.index("date") if "date" in pk else None   # fix_keys(_norm 鍵)中 date 的位置(roster-heal 取 diff 日)
     stocks = sorted(table_ids | roster_ids)   # 全量迭代範圍=真名冊∪表內既有股(含下市、不產假 EX;=_roster_union)
     dbmax = _mx.isoformat() if _mx is not None and not isinstance(_mx, str) else _mx
     if until is not None:                     # 呼叫端未定案排除:窗上限再收至 until(str 字典序=ISO 日期序)
@@ -295,6 +299,8 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sa
                if (not since or str(row.get("date")) >= str(since))
                and (not dbmax or str(row.get("date")) <= str(dbmax))]
         r = compare(dbr, api, pk, val)
+        if _date_i is not None:                 # #31 ③:收集 VM/MIS 之 date(供 roster-heal 重抓那些日)
+            agg["fix_dates"].update(k[_date_i] for k in r["fix_keys"])
         if r["extra_in_db"]:                    # A 案:per-stock 端點無之列 → by-date 交叉驗證扣抵端點不對稱假 EX
             conf, xvm = _bydate_confirms(dataset, _extra_keys(dbr, api, pk), pk, val, _bd_cache, progress)
             if conf:
@@ -520,6 +526,8 @@ def _selftest():
     r = compare(dbr, api, pk, val)
     chk("compare 四分類 M1/VM1/EX1/MIS1", r["matched"] == 1 and r["value_mismatch"] == 1
         and r["extra_in_db"] == 1 and r["missing_in_db"] == 1)
+    chk("compare fix_keys=VM+MIS 之鍵、不含 EX(#31 ③ roster-heal 用)",
+        len(r["fix_keys"]) == 2 and _key({"id": 2}, pk) in r["fix_keys"] and _key({"id": 4}, pk) in r["fix_keys"])
     H = {"table": "H", "matched": 9, "value_mismatch": 0, "missing_in_db": 0,
          "extra_in_db": 0, "errors": [], "incomplete": False, "coverage_gap": False}
     chk("verdict 全健康=passed", verdict(H)["passed"] is True)

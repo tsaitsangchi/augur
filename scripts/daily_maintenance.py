@@ -98,11 +98,12 @@ def main():
             for i, r in enumerate(audit_set, 1):
                 ds = r["dataset"]
                 scope, mode, lag = cat.get(ds, ("by-date", "byte", 1))
-                if mode in ("snapshot", "restating", "cadence", "dim_only"):   # 豁免非靜默:逐支列印+彙總(誠實 #15)
+                if mode in ("snapshot", "restating", "cadence", "dim_only", "intraday"):   # 豁免非靜默:逐支列印+彙總(誠實 #15)
                     why = {"snapshot": "名錄快照型:API 僅現況宇宙、DB=as-of 保存",
                            "restating": "重述型:除權息季全序列合法重算",
                            "cadence": "低頻/事件表:滾動窗常空非死、以自身 cadence 定案(#7(b) 2026-07-14)",
-                           "dim_only": "維度端點專屬:by-date 回 PK-null 髒列不可 sync、零預測用途→誠實豁免 byte attest(#31 2026-07-14)"}[mode]
+                           "dim_only": "維度端點專屬:by-date 回 PK-null 髒列不可 sync、零預測用途→誠實豁免 byte attest(#31 2026-07-14)",
+                           "intraday": "tick 串流:全欄 PK+API 回不同 tick 子集→byte 逐日假 EX、非定案 as-of、零預測用途→豁免(③ 2026-07-14)"}[mode]
                     print(f"  對帳 [{i}/{n}] {ds}: 豁免({mode}——{why};catalog #7(b))", flush=True)
                     exempt.append((ds, mode))
                     continue
@@ -113,9 +114,18 @@ def main():
                         recs.append(reconcile.reconcile_coverage(conn, ds, progress=_plog))
                     elif scope == "roster-scoped":      # per-stock 端點(by-date 對會假 VM/EX);抽樣=部分覆蓋
                         print(f"    (roster-scoped 抽樣 {AUDIT_SAMPLE_STOCKS} 股=部分覆蓋,#7 誠實知會)", flush=True)
-                        recs.append(reconcile.reconcile_per_stock(
+                        rr = reconcile.reconcile_per_stock(
                             conn, ds, since=args.audit_since, until=until,
-                            sample_n=AUDIT_SAMPLE_STOCKS, progress=_plog))
+                            sample_n=AUDIT_SAMPLE_STOCKS, progress=_plog)
+                        fixd = sorted(rr.get("fix_dates") or [])
+                        if args.heal and fixd:          # #31 ③ roster-heal:VM/MIS 日 by-date 重抓(補邊緣過早 sync 舊值)再驗,與 by-date heal 對稱
+                            print(f"    roster-heal:重抓 {len(fixd)} 日 {fixd[:5]}{'…' if len(fixd) > 5 else ''}", flush=True)
+                            for d in fixd:
+                                sync.sync_by_date(conn, ds, start=d, end=d)
+                            rr = reconcile.reconcile_per_stock(
+                                conn, ds, since=args.audit_since, until=until,
+                                sample_n=AUDIT_SAMPLE_STOCKS, progress=_plog)
+                        recs.append(rr)
                     elif scope == "by-dim-id":          # 逐維度 id 端點
                         recs.append(reconcile.reconcile_by_dim_id(conn, ds, since=args.audit_since, progress=_plog))
                     else:                               # by-date byte-equal(預設)

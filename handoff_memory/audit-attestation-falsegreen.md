@@ -17,7 +17,10 @@ metadata:
 
 **--audit-all sync 浪費 → (c) --audit-only 修(2026-07-14)**:--audit-all 先 sync_all_by_date 全 88 表會回填停更多年之 snapshot 表(JapanStockInfo 自 2019 逐月)——sync 了會豁免的表、燒光額度。修=`daily_maintenance --audit-only`(跳 pre-sync、audit_set 由 catalog reconcile_scope IS NOT NULL **且 to_regclass 表實存** 取、直接對帳現況)。另加 audit 迴圈 **per-dataset try/except 韌性**(一表 schema/DB 錯記 incomplete 續跑不崩全部+conn.rollback 清錯態)——--audit-only 暴露 --audit-all 一直用 sync 預篩掩蓋的 catalog 錯配。
 
-**⚠ 誠實生產判決(2026-07-14 --audit-only 首跑=修正碼端到端實證):❌ FAIL**(matched 784,127/VM 33/EX 4999/MIS 5,127/部分覆蓋 27 表/豁免 16 表)——**不再假綠、audit 說真話了**(寧誠實紅、三敵零容忍)。揭露三類待辦:①11 張 catalog 有 DB 無之 tick/intraday 表(augur 不儲存;table-exists 過濾已排除、catalog 條目待清)②2 空視窗表(TaiwanFutOptTickInfo/CapitalReductionReferencePrice 待分類)③9 真差異表(**EX 4999 由 TaiwanFuturesSpreadTick 主導**〔spread tick 高頻、byte 逐日恐端點不對稱〕+VM33/MIS5127 散 8 表)。**到真綠須查 ③、逐表判端點不對稱假 EX vs 真問題**(進行中)。catalog 錯配 2 表(TaiwanFutOptDailyInfo/StockConvertibleBondInfo 無 date 卻標 by-date)已歸 snapshot。
+**誠實生產判決(2026-07-14 --audit-only 首跑):❌ FAIL**(VM33/EX4999/MIS5127)——**不再假綠、audit 說真話**。三類待辦**已全治本**:①11 張 tick/intraday catalog-有-DB-無表→**table-exists 過濾排除**;②2 空視窗表→FutOptTickInfo(合約 info)snapshot、CapitalReductionReferencePrice(事件)cadence;③9 真差異表根因全查明:
+- **EX4999=TaiwanFuturesSpreadTick tick 串流假象**(全欄 PK+API 回不同 tick 子集,零預測用途)→**intraday 豁免新模式**;
+- **VM33/MIS14=3 張 roster 表(DayTrading/PriceLimit/StockInfo)邊緣日 staleness**——實證 DayTrading VM32 全是 07-14(lag=1 邊緣)DB Volume=0(過早 sync 拿到 0、resume 看 max(date) 不回抓),API 有真值;re-sync 該日即補(非修訂、真舊)。
+**治本=(a) roster-heal**(hugo 拍板):compare 回 fix_keys(VM+MIS 鍵)→reconcile_per_stock 聚合 fix_dates→daily_maintenance roster 分支對 diff 日 sync_by_date 重抓再驗(與 by-date heal 對稱);實證 PriceLimit VM1→heal 07-14→VM0 PASS。**根治「roster 表邊緣過早 sync 舊值卡住(--heal 原只補 by-date)」**。catalog 錯配 2 表(FutOptDailyInfo/ConvertibleBondInfo 無 date 卻 by-date)已歸 snapshot。attestation_mode 值域:byte/snapshot/restating/coverage/cadence/dim_only/intraday。
 
 **v1.28 入憲(2026-07-14 hugo 拍板)**:CLAUDE #18 原「library 不需指令矩陣」**廢止**→ library 模組須執行指令矩陣=自測 CLI(`python -m augur.<pkg>.<mod> --selftest`,零 DB/API 純紅綠)。**全 74 支已補齊+實跑 71/71 全綠**(把不變式固化成回歸鎖)。先例=reconcile/admission。
 
