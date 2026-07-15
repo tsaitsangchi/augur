@@ -374,9 +374,15 @@ def reconcile_by_dim_id(conn, table, dataset=None, *, since=None, progress=None)
         _mx = cur.fetchone()[0]
     dbmax = _mx.isoformat() if _mx is not None and not isinstance(_mx, str) else _mx
     dim_ids = finmind.datalist(dataset) or []
+    if not dim_ids:                              # datalist 無維度端點(如 TaiwanStockTotalReturnIndex=TAIEX/TPEx)→ 退回表內既有 dim
+        dim_col = next((c for c in pk if c != "date"), None)   # 非 date 之 pk 欄=維度欄(stock_id 等)
+        if dim_col:
+            with db.transaction(conn) as cur:
+                cur.execute(f'SELECT DISTINCT "{dim_col}" FROM "{table}" WHERE "{dim_col}" IS NOT NULL')
+                dim_ids = [str(r[0]) for r in cur.fetchall()]
     agg["dim_ids"] = len(dim_ids)
     if not dim_ids:
-        agg["errors"].append({"error": "datalist 無維度 id → 無法逐維度對帳"})
+        agg["errors"].append({"error": "datalist 及表內皆無維度 id → 無法逐維度對帳"})
         agg["incomplete"] = True
         return agg
     api = []
@@ -496,13 +502,15 @@ def verdict(*results):
     """彙整多表 → #7 attestation 判定（value_mismatch=0 ∧ extra_in_db=0 ∧ 無未完整對帳 ∧ 無空視窗未對帳）。"""
     tvm = sum(r["value_mismatch"] for r in results)
     tex = sum(r["extra_in_db"] for r in results)
-    incomplete = any(r.get("incomplete") or r.get("errors") for r in results)   # 有抓取失敗未比對 → 無法 attest（#15:沒比到 ≠ 比過且乾淨）
+    incomplete_tables = [r.get("table") for r in results if r.get("incomplete") or r.get("errors")]  # 有抓取失敗未比對 → 無法 attest（#15:沒比到 ≠ 比過且乾淨;列名供診斷 #8 不藏錯）
+    incomplete = bool(incomplete_tables)
     coverage_gap = [r.get("table") for r in results if r.get("coverage_gap")]    # 空視窗表=從未比對 → 不得當乾淨 PASS（#15 假綠 blocker）
     sampled = [r.get("table") for r in results if r.get("sampled")]              # #29-2:roster 抽樣表=部分覆蓋(非全宇宙 byte-equal)→ 傳出供 headline 誠實揭露,不當無條件「無幻像」
     return {"matched": sum(r["matched"] for r in results),
             "value_mismatch": tvm, "extra_in_db": tex,
             "missing_in_db": sum(r["missing_in_db"] for r in results),
             "incomplete": incomplete,
+            "incomplete_tables": incomplete_tables,
             "coverage_gap": coverage_gap,
             "sampled": sampled,
             "passed": tvm == 0 and tex == 0 and not incomplete and not coverage_gap}

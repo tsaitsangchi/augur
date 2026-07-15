@@ -110,7 +110,14 @@ def main():
                 until = args.audit_until or (today - timedelta(days=lag)).isoformat()   # (a) 滾動安全邊緣
                 print(f"  對帳 [{i}/{n}] {ds}（scope={scope}、窗至 {until}）…", flush=True)
                 try:                                    # #7 韌性:一表對帳錯(catalog scope 錯配/schema/DB 錯)→記 incomplete、續跑不崩全部(--audit-only 暴露之教訓 2026-07-14)
-                    if mode == "coverage":              # 新聞流:量級對帳(逐條 byte 不適用)
+                    if ds == "fred_series":             # FRED 資料走 FRED API(reconcile_fred);非 FinMind by-dim-id(datalist 空→incomplete)——2026-07-14 診斷暴露之路由修
+                        from augur.features import macro
+                        with db.transaction(conn) as cur:
+                            cur.execute("SELECT DISTINCT series_id FROM fred_series ORDER BY series_id")
+                            sids = [r[0] for r in cur.fetchall()]
+                        print(f"    (fred:{len(sids)} series 走 FRED API、不佔 FinMind 額度)", flush=True)
+                        recs.append(reconcile.reconcile_fred(conn, sids, vintage_map=macro.vintage_map(), progress=_plog))
+                    elif mode == "coverage":            # 新聞流:量級對帳(逐條 byte 不適用)
                         recs.append(reconcile.reconcile_coverage(conn, ds, progress=_plog))
                     elif scope == "roster-scoped":      # per-stock 端點(by-date 對會假 VM/EX);抽樣=部分覆蓋
                         print(f"    (roster-scoped 抽樣 {AUDIT_SAMPLE_STOCKS} 股=部分覆蓋,#7 誠實知會)", flush=True)
@@ -146,6 +153,7 @@ def main():
             asym = sum(r.get("endpoint_asym_ex", 0) for r in recs)   # A 案:by-date 證實之端點不對稱假 EX 扣抵(#15 誠實)
             gaps = v.get("coverage_gap") or []   # 空視窗表=從未對帳(死 feed 跌破窗/低頻窗內無料)→ 不得計綠(#15 假綠 blocker 修)
             samp = v.get("sampled") or []        # #29-2:roster 抽樣表=部分覆蓋(非全宇宙 byte-equal)→ headline 誠實揭露、不當無條件「無幻像」
+            inc = v.get("incomplete_tables") or []   # 抓取失敗未比對之表(擋綠)→ headline 列名供診斷(#8 不藏錯)
             tag = "✅ PASS（DB byte-equal API，無幻像）" if v["passed"] else "❌ FAIL（須查根因）"
             print(f"attestation：{tag} | matched={v['matched']:,} "
                   f"value_mismatch={v['value_mismatch']} extra_in_db={v['extra_in_db']} "
@@ -153,7 +161,8 @@ def main():
                   + (f" | ⚠部分覆蓋 {len(samp)} 表(roster 抽樣 {AUDIT_SAMPLE_STOCKS} 股、非全宇宙)" if samp else "")
                   + (f" | 豁免 {len(exempt)} 表({'、'.join(d for d, _ in exempt)})" if exempt else "")
                   + (f" | 端點不對稱假 EX 扣抵 {asym}(by-date 證實存在、非幻像)" if asym else "")
-                  + (f" | ⚠ 未對帳 {len(gaps)} 表(空視窗/死 feed,須 re-sync 或 catalog 豁免:{'、'.join(gaps)})" if gaps else ""))
+                  + (f" | ⚠ 未對帳 {len(gaps)} 表(空視窗/死 feed,須 re-sync 或 catalog 豁免:{'、'.join(gaps)})" if gaps else "")
+                  + (f" | ⚠ 未完整 {len(inc)} 表(抓取失敗、擋綠:{'、'.join(inc)})" if inc else ""))
             if not v["passed"]:
                 # 三態分離(rc=0≠PASS 曾致 selfheal/watchdog/Monitor 三層假綠,2026-07-14 實證):
                 # rc=3=可重試(僅 fetch 錯未完整、VM/EX=0、無空視窗);

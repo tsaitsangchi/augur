@@ -26,4 +26,6 @@ metadata:
 
 **Why**:靈魂「寧誠實紅、不假綠」;假綠燒 hugo 親簽 gate=不可逆。**看到 audit「PASS」先問:是真比對過,還是空視窗/抽樣掃到地毯下?**
 
-**How to apply**:日常查 `python scripts/verify_knowledge_admission_health.py`(admission 側)+ audit rc 三態(0綠/2終態紅含 coverage_gap/3可重試)。攸關開賽=E1_raw_reconcile_exit 唯一紅、attest 真綠才翻;真綠須 dead-table 補回或誠實豁免。見 [[jian-a-admission-hardening]]、[[augur-validation-master-plan]]、[[quota-error-discipline]]。
+**--audit-only --heal 收斂至 VM0/EX0(2026-07-14)**:多輪 --audit-only 生產跑逐一揪隱形 blocker——③ tick/roster staleness 治本後,VM=0/EX=0(FinMind 資料全乾淨)。殘留靠**incomplete 表名診斷**(verdict 加 incomplete_tables 列名+headline「未完整 N 表(...)」,#8 不藏錯)才揪出:2 by-dim-id 表 fetch 失敗擋綠——(1)**TaiwanStockTotalReturnIndex** datalist=0(FinMind 無此 dataset 維度端點)→ reconcile_by_dim_id 加**退回表內 distinct dim**(TAIEX/TPEx)→PASS;(2)**fred_series** 是 FRED 資料被 by-dim-id 誤路由打 FinMind→daily_maintenance 加 **fred 分支走 reconcile_fred**(macro.vintage_map()、31 series、FRED 額度不佔 FinMind);路由修後 fred_series 顯 FRED 資料真差異 EX3/MIS66(sync 落後+微 restatement,FRED 域殘留)。**教訓:coverage_ok 計算但 verdict 不消費(news coverage FAIL 印出卻不 gate);verdict.passed=VM0∧EX0∧¬incomplete∧¬coverage_gap,MIS 不 gate**。
+
+**How to apply**:全量誠實 attest=`daily_maintenance --audit-only --audit-days 14 --heal`(--audit-only 跳 pre-sync 浪費、table-exists 過濾、韌性 try/except)。日常查 `verify_knowledge_admission_health.py`。攸關開賽=E1_raw_reconcile_exit;真綠須 FinMind VM0/EX0(已達)+ fred_series FRED 域收尾。見 [[jian-a-admission-hardening]]、[[augur-validation-master-plan]]、[[quota-error-discipline]]。
