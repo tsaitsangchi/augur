@@ -51,6 +51,9 @@ def main():
     ap.add_argument("--audit-only", action="store_true",
                     help="跳過 by-date 全量 pre-sync,直接對現況 DB 對帳(#31:避 --audit-all 回填 audit-豁免之 stalled "
                          "snapshot 表〔JapanStockInfo 自2019〕白燒額度;被審 byte 表由日常 sync 維持當前、--heal 仍 targeted 補差異日)")
+    ap.add_argument("--full-universe", action="store_true",
+                    help="roster-scoped 表逐股對帳**全真名冊**(3,114 真股、排除權證污染;非抽樣 40 股)——全宇宙真義 attest,"
+                         "sampled_n 歸零、名實相符。~84k FinMind calls/~14h(#24/#25:額度充足+主機不睡眠#22 才跑;過夜須 resume-safe)")
     args = ap.parse_args()
     if args.audit_days and not args.audit_since:   # 滾動窗:啟動時計算、整輪固定(不隨跨日午夜漂移)
         args.audit_since = (date.today() - timedelta(days=args.audit_days)).isoformat()
@@ -97,7 +100,9 @@ def main():
             recs, exempt = [], []
             def _route(ds, scope, mode, until):     # 共用政策路由(#12,(B)):豁免+端點皆走 reconcile.attest_route
                 return reconcile.attest_route(conn, ds, scope=scope, mode=mode, since=args.audit_since,
-                                              until=until, sample_n=AUDIT_SAMPLE_STOCKS, progress=_plog)
+                                              until=until,
+                                              sample_n=None if args.full_universe else AUDIT_SAMPLE_STOCKS,
+                                              roster_only=args.full_universe, progress=_plog)
             for i, r in enumerate(audit_set, 1):
                 ds = r["dataset"]
                 scope, mode, lag = cat.get(ds, ("by-date", "byte", 1))
@@ -124,6 +129,7 @@ def main():
                                  "extra_in_db": 0, "errors": [{"dataset": ds, "error": str(e)}], "incomplete": True})
             v = reconcile.verdict(*recs)
             asym = sum(r.get("endpoint_asym_ex", 0) for r in recs)   # A 案:by-date 證實之端點不對稱假 EX 扣抵(#15 誠實)
+            retr = sum(r.get("upstream_retracted", 0) for r in recs)  # 撤列容忍(雙端點證實 API 現況無;hugo 拍 A 2026-07-16)
             gaps = v.get("coverage_gap") or []   # 空視窗表=從未對帳(死 feed 跌破窗/低頻窗內無料)→ 不得計綠(#15 假綠 blocker 修)
             samp = v.get("sampled") or []        # #29-2:roster 抽樣表=部分覆蓋(非全宇宙 byte-equal)→ headline 誠實揭露、不當無條件「無幻像」
             inc = v.get("incomplete_tables") or []   # 抓取失敗未比對之表(擋綠)→ headline 列名供診斷(#8 不藏錯)
@@ -134,6 +140,7 @@ def main():
                   + (f" | ⚠部分覆蓋 {len(samp)} 表(roster 抽樣 {AUDIT_SAMPLE_STOCKS} 股、非全宇宙)" if samp else "")
                   + (f" | 豁免 {len(exempt)} 表({'、'.join(d for d, _ in exempt)})" if exempt else "")
                   + (f" | 端點不對稱假 EX 扣抵 {asym}(by-date 證實存在、非幻像)" if asym else "")
+                  + (f" | 上游撤列容忍 {retr}(雙端點證實 API 現況無=合法 restatement,DB 保留 as-of 真相)" if retr else "")
                   + (f" | ⚠ 未對帳 {len(gaps)} 表(空視窗/死 feed,須 re-sync 或 catalog 豁免:{'、'.join(gaps)})" if gaps else "")
                   + (f" | ⚠ 未完整 {len(inc)} 表(抓取失敗、擋綠:{'、'.join(inc)})" if inc else ""))
             if not args.datasets:            # (a) 正典全量 attest 才留檔:寫 attestation_result(E1 gate 讀「最近 PASS 且夠新」;run 與 gate 檢查解耦)

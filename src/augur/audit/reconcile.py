@@ -243,7 +243,7 @@ def heal_by_date(conn, table, dataset=None, *, since=None, until=None, progress=
             "passed": after["value_mismatch"] == 0 and after["extra_in_db"] == 0}
 
 
-def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sample_n=None, progress=None):
+def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sample_n=None, roster_only=False, progress=None):
     """per-stock 對帳：逐股以 per-stock 端點重抓（data_id=股）、逐股 compare——對齊抓取端點。
 
     per-stock 抓的表（catalog `reconcile_scope='roster-scoped'`）若改用 by-date 重抓對帳，會因
@@ -256,6 +256,9 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sa
     未定案期差異不入計數（呼叫端計算並誠實知會 #15）；None=DB max(date)。
     `sample_n`：等距抽樣限重抓股數（per-stock 1 call/股，全 roster 太貴）；None=全 roster。
     **取樣＝部分覆蓋（非全股 attest），呼叫端須知會（#7 不靜默縮覆蓋）**。
+    `roster_only`：全真名冊模式——只迭代真名冊(3,114 真股)、排除 table union 之權證/雜項污染(#29 對抗審查:
+    旗艦 table union 98% 為權證,全宇宙誤含之=燒 5 萬權證假成本);sample_n=None + roster_only=True
+    = **全宇宙真義 attest**(真股全覆蓋、非抽樣、agg["sampled"]=False);False=沿用真名冊∪表 union(含權證)。
     回傳含 `per_stock`：{stock_id:{VM,MIS,EX}}（只列有差異股）+ `stocks`（實對股數）、`sampled`（是否抽樣）。
     """
     dataset = dataset or table
@@ -271,6 +274,9 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sa
         _mx = cur.fetchone()[0]
     _date_i = pk.index("date") if "date" in pk else None   # fix_keys(_norm 鍵)中 date 的位置(roster-heal 取 diff 日)
     stocks = sorted(table_ids | roster_ids)   # 全量迭代範圍=真名冊∪表內既有股(含下市、不產假 EX;=_roster_union)
+    if roster_only:                           # 全真名冊模式(#29 全宇宙真義):只迭代真名冊、排除 table union 之權證/雜項污染
+        stocks = sorted(roster_ids)           # roster 缺漏股仍抓(該表 0 列→MIS 可見);table-only 權證/非名冊列不 attest(非漏、超出真宇宙範圍)
+        agg["frame"] = "full_roster"
     dbmax = _mx.isoformat() if _mx is not None and not isinstance(_mx, str) else _mx
     if until is not None:                     # 呼叫端未定案排除:窗上限再收至 until(str 字典序=ISO 日期序)
         u = until if isinstance(until, str) else until.isoformat()
@@ -285,6 +291,7 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sa
         step = len(frame) / sample_n          # 等距抽樣（deterministic、可重現，不用 random）
         stocks = [frame[int(i * step)] for i in range(sample_n)]
     agg["endpoint_asym_ex"] = 0                # A 案:by-date 證實存在之假 EX 扣抵數(誠實留帳 #15)
+    agg["upstream_retracted"] = 0              # 第三層:雙端點證實上游撤列之容忍數(揭露留帳;hugo 拍 A 2026-07-16)
     _bd_cache = {}                             # {date: by-date keys}(同 run 同日只抓一次 #24/#28)
     for i, sid in enumerate(stocks, 1):
         where, params = "stock_id = %s", [sid]
@@ -312,14 +319,17 @@ def reconcile_per_stock(conn, table, dataset=None, *, since=None, until=None, sa
         r = compare(dbr, api, pk, val)
         if _date_i is not None:                 # #31 ③:收集 VM/MIS 之 date(供 roster-heal 重抓那些日)
             agg["fix_dates"].update(k[_date_i] for k in r["fix_keys"])
-        if r["extra_in_db"]:                    # A 案:per-stock 端點無之列 → by-date 交叉驗證扣抵端點不對稱假 EX
-            conf, xvm = _bydate_confirms(dataset, _extra_keys(dbr, api, pk), pk, val, _bd_cache, progress)
+        if r["extra_in_db"]:                    # A 案:per-stock 端點無之列 → by-date 交叉驗證三分(扣抵/VM/撤列)
+            conf, xvm, retr = _bydate_confirms(dataset, _extra_keys(dbr, api, pk), pk, val, _bd_cache, progress)
             if conf:
                 r["extra_in_db"] -= conf
                 agg["endpoint_asym_ex"] += conf
             if xvm:                             # #29-1:by-date 有但值不符→自 EX 移出、改計真 VM(擋綠、須查)
                 r["extra_in_db"] -= xvm
                 r["value_mismatch"] += xvm
+            if retr:                            # 第三層(hugo 拍 A 2026-07-16):雙端點證實上游撤列→容忍、揭露留帳
+                r["extra_in_db"] -= retr
+                agg["upstream_retracted"] += retr
         _merge(agg, r)
         if r["value_mismatch"] or r["missing_in_db"] or r["extra_in_db"]:
             agg["per_stock"][sid] = {k: r[k] for k in ("value_mismatch", "missing_in_db", "extra_in_db")}
@@ -338,13 +348,17 @@ def _extra_keys(dbr, api, pk):
 
 
 def _bydate_confirms(dataset, extra_rows, pk, val, cache, progress=None):
-    """交叉驗證(A 案,2026-07-14;#29-1 加值比對 2026-07-14):per-stock 端點無之 extra 候選,是否存在於
-    **by-date 端點且值逐欄相等**。FinMind per-stock 與 by-date 端點對特定日/股覆蓋可不對稱(實證 Shareholding
-    07-06:by-date 有、per-stock 缺)→ by-date 證實存在**且值相等**者=**非幻像**(DB 由 by-date 落地正確、
-    僅 per-stock 再抓不回),自 extra 扣抵;**by-date 有但值不符=真 value_mismatch**(#29-1:僅比 PK 會讓值損壞列
-    逃 EX+VM,故必比值)→ 改計 VM、不當乾淨扣抵;**兩端點皆無=真 EX 紅旗、留計**(寧紅勿假綠、三敵零容忍)。
-    回 (confirmed, vm_crossverify)。cache:{date: {key:row}|None}(同 run 同日只抓一次,#24/#28;抓失敗 None=保守留 EX)。"""
-    confirmed = vm = 0
+    """交叉驗證(A 案,2026-07-14;#29-1 加值比對;**第三層撤列容忍 2026-07-16 hugo 拍 A**):per-stock 端點無之
+    extra 候選,對 by-date 端點三分——
+    ① by-date 有且值逐欄相等=端點不對稱假 EX(DB 由 by-date 落地正確)→ confirmed 扣抵;
+    ② by-date 有但值不符=真 value_mismatch(#29-1:僅比 PK 會讓值損壞列逃 EX+VM)→ 改計 VM;
+    ③ **by-date 抓成功但亦無此列=雙端點證實 API 現況無=上游撤列(upstream retracted)**→ 撤列容忍、不計 EX——
+      與 FRED Tier A 容忍同構(hugo 2026-07-16 拍 A):writer 只寫 API 曾回之列(sync 決定性、無手寫)→ DB-only
+      列必=「API 曾回、現撤」=合法 restatement 非幻像;DB 保留=as-of 真相(#8),強刪=塗改歷史。守衛:extra 候選
+      已對齊 DB 窗 ≤until(呼叫端),未來日進不來;**by-date 抓失敗(cache=None)仍保守留 EX**(無法證實≠可容忍)。
+      實證:法人 BuySell 2443/4144 API 整日撤列(更正公告)、EX36 全屬此類。
+    回 (confirmed, vm_crossverify, retracted)。cache:{date: {key:row}|None}(同 run 同日只抓一次,#24/#28)。"""
+    confirmed = vm = retracted = 0
     for row in extra_rows:
         d = row.get("date")
         ds = d if isinstance(d, str) else (d.isoformat() if d is not None else None)
@@ -361,12 +375,13 @@ def _bydate_confirms(dataset, extra_rows, pk, val, cache, progress=None):
             continue
         bd_row = m.get(_key(row, pk))
         if bd_row is None:
-            continue                                # by-date 也無=真 EX 紅旗、留計
+            retracted += 1                          # ③ 雙端點證實 API 無=上游撤列容忍(不計 EX、揭露留帳)
+            continue
         if all(_norm(row.get(c)) == _norm(bd_row.get(c)) for c in val):
-            confirmed += 1                          # by-date 有且值逐欄相等=端點不對稱假 EX、扣抵
+            confirmed += 1                          # ① 端點不對稱假 EX、扣抵
         else:
-            vm += 1                                 # by-date 有但值不符=真 VM(#29-1:不得當乾淨扣抵)
-    return confirmed, vm
+            vm += 1                                 # ② by-date 有但值不符=真 VM(#29-1:不得當乾淨扣抵)
+    return confirmed, vm, retracted
 
 
 def reconcile_by_dim_id(conn, table, dataset=None, *, since=None, progress=None):
@@ -524,7 +539,7 @@ def reconcile_fred(conn, series_ids, *, vintage_map=None, progress=None):
     return agg
 
 
-def attest_route(conn, dataset, *, scope, mode, since=None, until=None, sample_n=None, progress=None):
+def attest_route(conn, dataset, *, scope, mode, since=None, until=None, sample_n=None, roster_only=False, progress=None):
     """catalog 驅動之單表 attestation 路由——**attestation 政策單一住所**(#12,(B) 2026-07-14 hugo 拍板)。
     daily_maintenance(日常維運,rolling 窗+heal)與 reconcile_audit(E1 gate,recent 窗+未定案緩衝)共用此→
     豁免與端點路由**兩驅動器一致、不分歧**(先前 reconcile_audit 不認 attestation_mode→tick 假 EX 分歧之根治)。
@@ -543,8 +558,8 @@ def attest_route(conn, dataset, *, scope, mode, since=None, until=None, sample_n
         return "coverage", reconcile_coverage(conn, dataset, progress=progress)
     if scope == "market":                       # snapshot/單一序列 date-insensitive → 單批寬查(逐日對帳=假 EX/MIS)
         return "market", reconcile_market(conn, dataset, progress=progress)
-    if scope == "roster-scoped":                # per-stock 端點(抽樣=部分覆蓋)
-        return "roster", reconcile_per_stock(conn, dataset, since=since, until=until, sample_n=sample_n, progress=progress)
+    if scope == "roster-scoped":                # per-stock 端點(抽樣=部分覆蓋;roster_only=全真名冊全宇宙)
+        return "roster", reconcile_per_stock(conn, dataset, since=since, until=until, sample_n=sample_n, roster_only=roster_only, progress=progress)
     if scope == "by-dim-id":                    # 逐維度 id 端點
         return "dim", reconcile_by_dim_id(conn, dataset, since=since, progress=progress)
     return "byte", reconcile_by_date(conn, dataset, since=since, until=until, progress=progress)   # by-date byte-equal(預設)
@@ -605,16 +620,20 @@ def _selftest():
         chk("since>until fail-loud", False)
     except ValueError:
         chk("since>until fail-loud", True)
-    # #29-1 交叉驗證值比對回歸鎖(預填 cache→零 IO、不觸 finmind):by-date 有且值等→credit;值不符→VM;兩端無→留 EX
+    # #29-1+撤列容忍回歸鎖(預填 cache→零 IO、不觸 finmind):值等→credit;值不符→VM;by-date 成功但無→retracted;抓失敗→留 EX
     pk2, val2 = ["sid", "date"], ["v"]
     extra = [{"sid": "A", "date": "2026-07-06", "v": "10"},   # by-date 有、值相等 → credit
              {"sid": "B", "date": "2026-07-06", "v": "99"},   # by-date 有、值不符 → 真 VM
-             {"sid": "C", "date": "2026-07-06", "v": "5"}]    # by-date 無 → 留 EX
+             {"sid": "C", "date": "2026-07-06", "v": "5"}]    # by-date 成功但無 → 撤列容忍(hugo 拍 A)
     cache = {"2026-07-06": {_key({"sid": "A", "date": "2026-07-06"}, pk2): {"sid": "A", "date": "2026-07-06", "v": 10.0},
                             _key({"sid": "B", "date": "2026-07-06"}, pk2): {"sid": "B", "date": "2026-07-06", "v": 11}}}
-    conf, xvm = _bydate_confirms("T", extra, pk2, val2, cache)
+    conf, xvm, retr = _bydate_confirms("T", extra, pk2, val2, cache)
     chk("交叉驗證:值相等→credit=1", conf == 1)
     chk("交叉驗證:值不符→VM=1(不當乾淨扣抵 #29-1)", xvm == 1)
+    chk("交叉驗證:by-date 成功但無→retracted=1(撤列容忍、不計 EX)", retr == 1)
+    conf2, xvm2, retr2 = _bydate_confirms("T", [{"sid": "D", "date": "2026-07-07", "v": "1"}],
+                                          pk2, val2, {"2026-07-07": None})
+    chk("交叉驗證:by-date 抓失敗→保守留 EX(不容忍、不假綠)", (conf2, xvm2, retr2) == (0, 0, 0))
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

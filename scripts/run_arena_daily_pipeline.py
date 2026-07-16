@@ -6,8 +6,9 @@
    sync_macro.py)→③derive_market_iv --until→④build_market_direction_features --until→
    ⑤build_daily_direction_features --until→(檢查當日 daily_direction_feature_values 落地,
    **無新列=誠實缺席 exit 0 留 log**——休市/資料未更新即斷檔=無列,反回填 trigger 保證不補跑)
-   →⑥run_arena_round --run。**頂部機械閘:direction_gate 無 status='approved' 之 dgate_arena%
-   列即拒跑(先凍後跑,§1 門二;FREEZE 現況必拒=正確)**。任一步非零即中止(不半套)。
+   →⑥run_arena_round --run。**頂部雙機械閘(AND;先凍後跑)**:閘一=direction_gate 有 approved 之
+   dgate_arena% 列(§1 門二);閘二=arena_admission_gate 有 evaluated_pass 之 shared_foundation 列
+   (G1 資料地基 PIN 06-30+G2 anti-leakage 硬前置;G1-G5 計畫 §3.3)。任一關即拒跑;任一步非零即中止(不半套)。
    結算(settle_arena_labels.py)為獨立冪等步、不在本鏈(對局與結算解耦,另掛)。
 
 守 #8/#15(先凍後跑機械閘)· #24(sync 走既有限速引擎,本檔不另抓 API)· #28(本地編排零 usage)
@@ -35,13 +36,25 @@ FEATURE_TABLE = "daily_direction_feature_values"
 
 
 def _gate_approved():
-    """機械閘:approved 之 dgate_arena% 列數(表未建=0=拒跑)。"""
+    """機械閘一:approved 之 dgate_arena% 列數(表未建=0=拒跑)。"""
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT to_regclass('public.direction_gate')")
         if not cur.fetchone()[0]:
             return 0
         cur.execute("SELECT count(*) FROM direction_gate WHERE gate_id LIKE 'dgate_arena%' AND status='approved'")
         return cur.fetchone()[0]
+
+
+def _admission_pass():
+    """機械閘二(G1-G5 計畫 §3.3;AND 前置):arena_admission_gate 有 evaluated_pass 之 shared_foundation
+    列=G1(資料地基 PIN 06-30)+G2(anti-leakage 迴歸)硬前置全綠。fail-closed:表缺/列缺=拒跑。"""
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SELECT to_regclass('public.arena_admission_gate')")
+        if not cur.fetchone()[0]:
+            return False
+        cur.execute("SELECT count(*) FROM arena_admission_gate "
+                    "WHERE axis='shared_foundation' AND status='evaluated_pass'")
+        return cur.fetchone()[0] > 0
 
 
 def _steps(d):
@@ -80,15 +93,18 @@ def _print_plan(d):
 
 def run(d, dry):
     n_gate = _gate_approved()
-    print(f"機械閘:direction_gate approved dgate_arena% 列={n_gate}"
-          f"{'(閘開)' if n_gate else '(閘關→實跑必拒;先凍後跑,arena plan §1 門二)'}")
+    adm = _admission_pass()
+    print(f"機械閘一:direction_gate approved dgate_arena% 列={n_gate}{'(開)' if n_gate else '(關)'} | "
+          f"機械閘二:arena_admission_gate G1-G2 evaluated_pass={'✓(開)' if adm else '✗(關)'}"
+          f"{'' if (n_gate and adm) else ' → 實跑必拒(先凍後跑)'}")
     if dry:
         print(f"--dry-run(as-of {d};只印不執行):")
         _print_plan(d)
         return 0
-    if not n_gate:
-        print("✗ 拒跑:arena direction_gate 未預註冊+核准。前置鏈:A-2 解凍修憲 → unfreeze GATE "
-              "evaluate pass → A2 預註冊 arena gate(hugo TTY 親核)。")
+    if not n_gate or not adm:
+        print("✗ 拒跑:雙閘須全開——閘一=direction_gate dgate_arena% approved(hugo TTY 親核);"
+              "閘二=arena_admission_gate G1-G2 硬前置 evaluated_pass(preregister_arena_admission_gate"
+              " → hugo --freeze → evaluate_arena_admission --evaluate;unfreeze GATE 已退史料 2026-07-16)。")
         return 1
     pre, post = _steps(d)
     for label, argv in pre:

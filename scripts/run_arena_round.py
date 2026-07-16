@@ -5,8 +5,9 @@
    **--smoke-synthetic(A0;FREEZE 內唯一合法模式)**:合成隨機漫步序列(SYNTH_*)餵每個 adapter,
    驗介面/shape/OOM;**不碰任何真實價格、不落任何 DB 列、不輸出任何真實股票之 p_up**(grep 驗收)。
    **--run(A2 後)**:讀 live 價格→各 active 候選出手→寫 direction_arena_prediction(反回填 trigger
-   守真未來)。**前置機械閘:arena direction_gate 列存在且 status=approved(先凍後跑),否則拒跑**
-   ——FREEZE 解凍前此模式必拒。
+   守真未來)。**前置雙機械閘(AND;先凍後跑,同 daily_pipeline 縱深防禦)**:閘一=direction_gate
+   dgate_arena% approved;閘二=arena_admission_gate shared_foundation evaluated_pass(G1+G2 硬前置,
+   G1-G5 計畫 §3.3;fail-closed 表缺=拒)。任一關即拒跑。
 
 守 #8/#15(先凍後跑機械閘)· #25(冒煙=合成最小樣)· #28(本地)· #29a/d。SSOT=arena plan §2.3/§6。
 
@@ -68,7 +69,17 @@ def live_round():
         cur.execute("SELECT count(*) FROM direction_gate WHERE gate_id LIKE 'dgate_arena%%' AND status='approved'")
         if not cur.fetchone()[0]:
             print("✗ live 對局拒跑:arena direction_gate 未預註冊+核准(先凍後跑,arena plan §1 門二)。\n"
-                  "  前置鏈:unfreeze GATE evaluate pass → --preregister-arena → hugo TTY approve。")
+                  "  前置鏈:arena_admission_gate G1-G2 evaluated_pass → dgate_arena hugo TTY approve。")
+            return 1
+        cur.execute("SELECT to_regclass('public.arena_admission_gate')")   # 閘二(縱深防禦,同 daily_pipeline;fail-closed 表缺=拒)
+        adm_n = 0
+        if cur.fetchone()[0]:
+            cur.execute("SELECT count(*) FROM arena_admission_gate "
+                        "WHERE axis='shared_foundation' AND status='evaluated_pass'")
+            adm_n = cur.fetchone()[0]
+        if not adm_n:
+            print("✗ live 對局拒跑:arena_admission_gate G1-G2 硬前置未 evaluated_pass(G1-G5 計畫 §3.3;"
+                  "fail-closed——preregister → hugo --freeze → evaluate;unfreeze GATE 已退史料)。")
             return 1
         cur.execute('SELECT max(date) FROM "TaiwanStockPriceAdj"')
         as_of = cur.fetchone()[0]
