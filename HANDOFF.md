@@ -2,7 +2,7 @@
 
 > **這份文件是什麼**：augur 會在**另一台電腦接續開發**。這是「新機 clone 後第一份該讀的文件」——
 > 告訴你**從哪接、怎麼跑起來、哪些不在 git、進度到哪、紅線是什麼**。
-> 快照時點：**2026-07-12**（`main` HEAD = `5a93cdc`、tag `archive-20260712-pregame-allsigned`;HEAD 之後會前進,以 `git log` 為準）。
+> 快照時點：**2026-07-16**（`main` HEAD = `1ac820c`、tag `archive-20260716-arena-admission-pass`;HEAD 之後會前進,以 `git log` 為準）。
 
 ---
 
@@ -68,15 +68,16 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 
 ## 4. 現況 STATE（取代式：每次封存點整段重寫；歷史＝`git log -p HANDOFF.md`）
 
-> 更新於 **2026-07-14**（三通道公民化+Qdrant+audit 近綠大進度日）、git 前一 commit `c7656ac`（本輪件 A P-apk/P-web/P-drv+smoke 修+HANDOFF 尚未 commit）、最新 tag 見 `git tag -l 'archive-*'`。
+> 更新於 **2026-07-16**（arena admission gate 全落地日）、git HEAD `1ac820c`（tag `archive-20260716-arena-admission-pass`）、最新 tag 見 `git tag -l 'archive-*'`。
 > **紀律：本區每個宣稱都可能過期——待辦一律先跑附帶的驗證指令實查（#15），勿直接信。**
 
-### 4.1 一句話現況（2026-07-14 大進度日；取代前版）
-**開賽鏈**：人工關卡全清；audit 機制經 (a)+(b) 分類感知重構後**近綠**（88,756 差異→逐筆根因清零：Dividend restating 豁免、Shareholding 端點不對稱假 EX 由 by-date 交叉驗證扣抵）——驗綠 attestation 出「✅ PASS」哨兵句即 AI 自動接 E1→strict→unfreeze evaluate→開賽。
-**Qdrant serving 上線**（hugo 拍板「一定要上」）：`augur-qdrant.service`（~/qdrant_augur、6 服務）、sentence_items public en 55,861 已 export、shadow eval 0.972 PASS、retrieval.py 私有讀路修（Qdrant 只服務 public、private 走 pgvector）。發現＝pgvector HNSW+CLEAN over-filter 假 FAIL，Qdrant 反優（見記憶 qdrant-serving-hnsw-overfilter）。
-**件 A 三通道公民化**：code **全完成**（P-A1 本機+admission_gate / P-A2 SFTP 全套 / P-apk / P-web admin 三入口 / P-drv 驅動器通道迭代+timer；對抗審查 6 blocker 折入）；⚠ **DDL 待 apply**（`migrate_local_admission_ddl.py`+`migrate_sftp_sync_ddl.py` `--apply`，#30 dump 後+audit 綠+harvest 靜止）、源活化待 TTY、SFTP/apk 待人工前置。實作級計畫＝`reports/augur_jian_a_channel_citizenship_impl_plan_20260714.md`。
-**知識層 harvest（過夜）**：件 B resolver（`acquire_abstract.py` 多源+`fetch_entity_fulltext.py` 8 源）放量中——paper abstract ~3,000+、公版 book ia_fulltext 160+、entity（chembl/cod/uniprot）585；投資借閱書（在版權）導核心精神軌工具＝`report_principle_candidates.py`。
-**DB dump**：`augur_pgdump_20260714_Fd`（9.9G/247 分片、~/db_dumps）已備。
+### 4.1 一句話現況（2026-07-16；取代前版）
+**arena 可開賽（雙閘全開）**：gate `arena_adm_5305655ad1cd` **evaluated_pass**（approved_by=hugo）∧ 閘一 6 隊 `dgate_arena%` approved——開賽剩「掛 A2 已核 cron+首日陪跑」。
+**unfreeze gate 路徑退役（hugo 拍板 07-16）**：`preregister_unfreeze_gate.evaluate()` 實測=純唯讀診斷（守門1-4 過但 G1-G5 標「本計畫內不可達」未實作、不改 status）→ 接受解凍已由 07-12 入憲完成、`unfreeze_06dcb178267d` **superseded 史料**（evaluation_ref 雙向鏈指新 gate）；**arena 前置改 G1-G5 實質驗證機制**（計畫+決策紀錄＝`reports/arena_g1g5_admission_gate_plan_20260716.md`：D-1~D-6/D-11 全拍板、D-2=Reading A 方向確立走門二、G3/G4 歸相對強度部署）。
+**G1-PIN（hugo 拍板）**：arena 資料地基 **as-of 釘死 2026-06-30、不再滾動追資料完整**（live byte 對帳=移動標靶=「凍一條河」概念錯誤）；≤05-31 凍結期認證+06 月窗抽樣對帳 **PASS**（attestation #4：VM0/EX0、撤列容忍 36 揭露、`audit_since=2026-06-01`）。
+**G1-G5 機制七元件全落地**（`migrate_arena_admission_gate_ddl`/`preregister_arena_admission_gate`(繼承 990ddea sha 斷言)/`freeze_feature_panel_hash`(兩軸 36+2,830 panel 洩漏鎖)/`verify_score_repro`(112 組 5 位復現)/`report_restatement_diff`(U5 佇列)/`evaluate_arena_admission`(核心裁判、--check 唯讀預演)/雙閘接線 daily_pipeline+arena_round fail-closed）。
+**撤列容忍第三層（hugo 拍 A）**：per-stock EX 雙端點證實 API 現況無=上游撤列=合法 restatement 容忍揭露（FRED Tier A 同構；抓失敗保守留 EX）；3 表先例歸類（TaiwanStockInfo→snapshot、SplitPrice→cadence、FuturesDealer→restating 上游整批撤申報實證）。
+**件 A/件 B/Qdrant**：狀態同 07-14 版（件 A DDL 待 apply+TTY 活化；件 B harvest 熔斷停於 ~99,229 abstracts 待續；Qdrant serving 運行中）——見 git log `c7656ac` 前版本段。
 
 > **⚠ #7 attestation 對帳範圍變更（hugo 拍板 2026-07-14，決策層）**：對帳窗由 `since=2026-06-01` **縮至 `2026-07-01`（近 ~14 日）**。理由：6/1 起全量對帳（75 dataset×數十交易日=數千 fetch）之 **sustained API 負載 throttle FinMind IP（sustained 403、額度不滿仍拒）**，反覆循環無法綠；歷史凍結期（至 2026-05-31）已對帳定案、近 14 日足以 attestation 最近 live 增量。同步修：daily_maintenance 對帳加 per-dataset log＋reconcile per-3-date progress（解 audit_selfheal v2 看門狗誤殺無-log 長對帳之死循環）；audit interval 實驗值 0.7（#27，撞 403 退回 0.9）。落地＝`audit_selfheal.sh`。
 
@@ -85,15 +86,13 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 
 ### 4.2 下一步（可直接執行，含前置條件）
 ```bash
-# ① 等 audit 綠(哨兵句「attestation：✅ PASS」出現在 ~/audit_retry.log;舊 rc=0 句已廢=假綠;窗=近14日+滾動邊緣)
-# ② E1 重驗:
-python scripts/verify_validation_evidence.py --run --with-scripts
-# ③ strict 全綠(exit 0 才准下一步):
-python scripts/verify_validation_evidence.py --strict
-# ④ GATE evaluate(僅 strict 綠後;--asof 用滾動 as-of'=raw 最新完整日):
-python scripts/preregister_unfreeze_gate.py --evaluate unfreeze_06dcb178267d --asof <as-of'>
-# ⑤ 開賽:
-python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §A2)
+# 前置已全達成(07-16):E1/strict 19 綠、arena_admission_gate evaluated_pass、雙閘開。驗現況:
+python scripts/run_arena_daily_pipeline.py --dry-run     # 應印「機械閘一…(開) | 機械閘二…✓(開)」
+python scripts/evaluate_arena_admission.py --check arena_adm_5305655ad1cd   # 唯讀預演、應 rc=0
+# ① 開賽(hugo 拍板時點):掛 A2 已核 cron 三行(arena launch plan §5;10 23 * * 1-5 等)+首日手動陪跑:
+python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才真跑
+# ② 開賽後常態:每日管線+settle_arena_labels+arena_scoreboard(cron);方向確立=門二 evaluate(≥60 clusters)
+# ③ 治權修訂批次(§8 提案待 hugo,見 4.5-6)
 ```
 
 ### 4.3 正在跑的東西（殺掉前先看這裡）
@@ -106,7 +105,7 @@ python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §
 **⚠ 換機注意（2026-07-13）**：舊機的 audit 跑者/watcher **不隨機器遷移**——新機還原 DB 後，audit 對帳狀態已在 DB（dump 含 658,911 列增量、取於尾段對帳中），**新機第一件事＝`bash audit_selfheal.sh` 續跑至綠**（DB-driven resume、冪等快轉已對帳段;新 IP 對 FinMind 反而有利），綠後接 4.2 鏈。嵌入積壓（469,551 句）由新機 03:30 timer 或手動 `systemctl --user start augur-embed-catchup` 補。
 
 ### 4.4 紅線（絕不能做）
-- ⚠ **evaluate 嚴禁在 audit/strict 綠前跑**——gate 判準 g5：任一 fail＝`evaluated_fail` 終態、hugo 親簽的 gate 直接燒掉、須重預註冊重簽。
+- ⚠ **`evaluate_arena_admission --evaluate` 是終態寫入**（evaluated_pass/fail 皆不可回改、複核=另立新 gate）——**必先 `--check`（唯讀預演）綠才 evaluate**（07-16 實證:--check 曾因 bug 假紅,預演救了不白燒）。舊「unfreeze gate evaluate」紅線已隨 gate 退史料失效（該 evaluate 實為唯讀 stub）。
 - ⚠ **FinMind 類作業（市場補同步／PriceAdj 修復）與 audit 互斥**——同一 IP，audit 跑完才輪它們（#24 IP sustained ban 07-12 實錘）。
 - ⚠ **PDF 抽取未經 P0 拍板前不啟動**（含 OAPEN 61/skip_pdf 976）——OCR 維持不啟動（P8 原裁定）;IA 掃蕩已完成(491 抓/其餘誠實終態)、勿重複放量。
 
@@ -117,6 +116,8 @@ python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §
 3. ~~舊專案 stock_backend 的平日 16:00 FinMind cron 去留~~ **已裁定（2026-07-13 hugo）：4 條 cron 全部取消**（同 IP 疊加解除；備份=`~/crontab_stock_backend_backup_20260713.txt` 可復原）
 4. **件 A 三通道公民化 DDL apply + 源活化**（code 已完成、非阻塞開賽）：`python scripts/migrate_local_admission_ddl.py --apply` ＋ `python scripts/migrate_sftp_sync_ddl.py --apply`（**須 audit 綠 + harvest 靜止後**，#30 dump 期禁 DDL）→ 再由 hugo **TTY 逐源 approve/activate**（AI 不自活化源、憲章 v1.41.0）→ `systemctl --user restart augur-admin`（載入 P-web 新碼）→ `bash install_services.sh --with-refresh`（開 know-how 週更 timer，R-A-R3）。SFTP/apk 另需 §3 人工前置（`augur-sftp.json`+私鑰 / jadx+JRE）。
 5. **R-H 修憲（OCR/ASR 轉錄≠AI + 本機/SFTP 明文豁免）**：v3 提案＝`reports/augur_rh_amendment_transcription_exemption_v3_20260714.md`；T2 CLAUDE #29b 條文（Fable 5 檔位、治權檔）待 hugo 確認後才動筆改治權檔。
+6. **arena 開賽 cron 掛載時點**（雙閘已開、機械前置全綠;掛載＝開賽＝hugo 決策）。
+7. **G1-G5 治權修訂批次**（`reports/arena_g1g5_admission_gate_plan_20260716.md` §8：原則精華 L77「live 准入依 unfreeze gate 紀律」→G1-G5 機制(v1.9.1)、憲章 L130/L131④ 精確化(v1.46.0)、檔名級聯 README/HANDOFF/CLAUDE——**機制已落地(§8.4 排序紀律滿足)、只剩文字升版待拍**）。
 
 > 解析器計畫 T0 已拍(2026-07-12):D1 核准全計畫、D2 另立 PDF 計畫、D3 IA 200/批——**T1-T3 當日執行完畢**(FRASER textUrl 實證/三策略落 DB/IA 13 批掃蕩 491 抓、熔斷零觸發)。
 
@@ -140,6 +141,9 @@ python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §
 - **pgvector HNSW + CLEAN WHERE 過濾＝假空/假 FAIL**（2026-07-14 實證,記憶 `qdrant-serving-hnsw-overfilter`）：最近向量多為 local_private,HNSW 先取 top-ef 再 WHERE 濾 public→濾空→retrieval 假空、shadow eval 假 FAIL(0.302)。**鑑識法＝exact baseline**(`SET LOCAL enable_indexscan=off` 強制精確)比對；Qdrant 對 exact=0.988(非 Qdrant 之過)。shadow eval baseline 已改強制 exact→0.972 PASS。
 - **FinMind per-stock vs by-date 端點不對稱＝假 EX**（2026-07-14 實證）：同 dataset,名錄(roster-scoped)以 by-date 端點對帳、生產以 per-stock 抓,某日 per-stock 缺該 date 但 by-date 有→假 extra_in_db(非幻像)。**A 案交叉驗證**（by-date confirms→扣抵 EX）已入 `reconcile.py`;catalog `reconcile_scope` 標端點、`daily_maintenance` 依此路由。
 - **scripts/ 改動不入 pytest 回歸＝靜默 regression**（2026-07-14 實證）：P-A1 令 `acquire_local_files.py` --source-key 必填,弄壞 `verify_knowledge_e2e_smoke.py`(scripts/ 非 pytest,200 passed 全套沒抓到)。教訓＝改共用 acquire 函式後須手跑 `verify_knowledge_e2e_smoke.py`(暢通不變式機械判定,憲章 v1.40.0);已修(fixture 帶 --source-key + active 源需 approved_by 過 `chk_ks_active_needs_approval`)。
+- **`SELECT run_at::date … ORDER BY run_at` = 別名遮蔽排序退化**（2026-07-16 實證）：cast 輸出欄名仍=`run_at`,ORDER BY 綁到輸出欄(date 型)→同日兩列未定序→evaluator 抓到舊 FAIL 列(gate --check 假紅)。修=cast 一律 `AS` 別名。
+- **psycopg2 named cursor 跨 commit 即失效**（2026-07-16 實證）：流式讀+分批 commit 必 `conn.cursor(name=…, withhold=True)`,否則首次 commit 殺 cursor(`named cursor isn't valid anymore`)。
+- **背景命令包 `| tail` = exit code 假綠**（2026-07-16 實證）：pipe 的 exit=尾端命令,traceback 進程顯示 exit 0。背景跑不包 pipe、或 `set -o pipefail`。
 
 ### 4.7 路由表（去哪讀什麼；本檔不複述）
 | 要什麼 | 去哪 |
@@ -148,6 +152,7 @@ python scripts/run_arena_round.py   # (讀其矩陣;cron 掛載見 arena plan §
 | 判準/憲法 | `docs/系統架構大憲章_v1.45.0.md`＋`docs/原則精華_v1.9.0.md`＋`docs/系統核心思想_v1.8.0.md` |
 | 這專案怎麼建的 | `reports/augur_construction_understanding_20260710.md`（v3 code-verified） |
 | 擂台規格 | `reports/augur_direction_live_arena_plan_20260711.md` |
+| arena 前置 G1-G5 gate（現行開賽機制+Phase 0 決策紀錄） | `reports/arena_g1g5_admission_gate_plan_20260716.md` |
 | 已完成功能清單/演變史 | `git log`＋封存 tag 序列（`git tag -l 'archive-*'`） |
 | 濃縮經驗/教訓 | memory（`read_handoff.py` 一次讀出；隨 repo＝`handoff_memory/`） |
 
