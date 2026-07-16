@@ -40,3 +40,19 @@
 * **文件**：[INTERPRETATION-RULING-2026-001.md](INTERPRETATION-RULING-2026-001.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **效果**：合憲審計報告（audits/CODE-COMPLIANCE-AUDIT-2026-07-16.md）AUD-08 定 major、AUD-09 回 major；驗證後統計定稿 critical 3／major 11／minor 12；對後續案件具拘束力
+
+## AL-2026-005
+
+* **日期**：2026-07-16
+* **事項**：Steward 裁決第 2026-002 號——Layer 1 規格充任認定暨同案四項程序：(一) AUGUR-WM 充任認定、以 **v1.0** 生效（效力本 specs/WORLD-MODEL-SPECIFICATION.md，v0.1-draft 歸檔）；(二) 五份治權檔 Layer 定位登錄（發動 AL-2026-006）並裁定合規聲明補正期至 2026-10-14；(三) 合規聲明暫行模板發布（[COMPLIANCE-STATEMENT-INTERIM-TEMPLATE.md](COMPLIANCE-STATEMENT-INTERIM-TEMPLATE.md)）並追認 AUGUR-WM Annex C；(四) specs/ 目錄書面地位指定；(五) 措辭 patch 與檔頭從屬聲明之交辦（期限 2026-10-14）
+* **程序依據**：憲章 §0.5、§8.6、§8.3 過渡規則 (a)(b)(c)、§8.1；治理附則第 2 條第 2 款、第 6 條
+* **文件**：[RULING-2026-002-LAYER1-ADOPTION.md](RULING-2026-002-LAYER1-ADOPTION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+
+## AL-2026-006
+
+* **日期**：2026-07-16
+* **修訂**：v1.2 → v1.3（minor）
+* **程序依據**：§8.6（Layer 對照表之增列屬 minor、由 Steward 議決）；治理附則第 2 條第 2 款；與 AL-2026-005 同案辦理
+* **內容摘要**：§0.5 對照表增列五份 augur 領域治權文件之定位登錄（系統核心思想→Layer 1、原則精華→Layer 4、CLAUDE.md→Layer 6、系統架構大憲章與 datasets 參考文件→Layer 7）並註記 Layer 1 規格充任認定。除 §0.5 對照表增列（及 §0.1 版本欄、Appendix E [I] 隨附）外，無其他條文變更、無原則級變更。完整摘要見憲章 Appendix E；v1.2 歸檔於 [META-CONSTITUTION-v1.2.md](META-CONSTITUTION-v1.2.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）

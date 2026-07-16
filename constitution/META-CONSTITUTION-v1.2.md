@@ -1,4 +1,4 @@
-# 《Augur Meta-Constitution v1.3》
+# 《Augur Meta-Constitution v1.2》
 
 Augur Enterprise AI Operating System
 元憲章（Meta Layer）正式定稿
@@ -12,11 +12,10 @@ Augur Enterprise AI Operating System
 
 * 名稱：Augur Meta-Constitution
 * 層級：Layer 0 — Meta Constitution
-* 版本：v1.3（前版：v1.2）
+* 版本：v1.2（前版：v1.1）
 * 生效日：2026-07-16
 * 批准記錄：本次修訂依 **v1.0 §7（修訂當時之有效程序）** 辦理；§8 治理章屬**初始採行（initial adoption）**，自本版生效起，後續修訂改依 §8.5。登錄於 Amendment Log（AL-2026-001），修訂理由書隨卷存檔；理由書載明新增 P5 符合 v1.0 §7 實質判準之論證（見 Appendix C 第 12 點）。
 * 自 v1.0 之變更摘要見 Appendix C。v1.1 → v1.2 為定稿階段之缺陷修復與一致性修正（無新原則、無原則級實質變更，依 §8.6 定為 minor），依 §8.5 辦理並登錄 Amendment Log（AL-2026-002）；修訂記錄見 Appendix D。
-* v1.2 → v1.3：§0.5 Layer 對照表增列五份 augur 領域治權文件之定位登錄（依 §8.6，Layer 對照表之增列屬 minor、由 Steward 議決），與 Layer 1 規格充任認定（Steward 裁決第 2026-002 號）同案辦理，登錄 Amendment Log（AL-2026-006）；變更摘要見 Appendix E。除 §0.5 對照表增列（及 §0.1 版本欄、Appendix E [I] 隨附）外，無其他條文變更、無原則級變更。
 
 ### 0.2 規範用語約定
 
@@ -46,13 +45,13 @@ Augur Enterprise AI Operating System
 
 | Layer | 層名 | 所轄規格 |
 |---|---|---|
-| 1 | World Model | World Model Specification（AUGUR-WM v1.0，經 Steward 裁決第 2026-002 號充任認定）、系統核心思想（augur 領域前身文件） |
+| 1 | World Model | World Model Specification |
 | 2 | Ontology | Ontology Specification |
 | 3 | Identity System | Identity Specification |
-| 4 | Knowledge System | Knowledge Graph Specification、Data Intelligence Layer、原則精華（augur 領域治權文件；跨層條款之逐條 Layer 標注由其合規聲明載明） |
+| 4 | Knowledge System | Knowledge Graph Specification、Data Intelligence Layer |
 | 5 | Cognitive Kernel | Cognitive Kernel Specification、Reasoning Engine、AI Model Selection |
-| 6 | Agent Runtime | Agent Runtime、Planner / Orchestrator、CLAUDE.md（augur 領域 Agent 協作規格） |
-| 7 | External Interface / Infrastructure | External Interface Layer、Database Architecture、Infrastructure Deployment、系統架構大憲章（augur 領域架構／維運承載文件；涉 Layer 4–6 之章節由其合規聲明逐節標注）、datasets 參考文件（datasets_zh.md 及 finmind-references） |
+| 6 | Agent Runtime | Agent Runtime、Planner / Orchestrator |
+| 7 | External Interface / Infrastructure | External Interface Layer、Database Architecture、Infrastructure Deployment |
 
 任何後續技術規格、資料模型、程式實作、AI Agent 行為，均不得違反本憲章。
 
@@ -658,13 +657,3 @@ Layer 7 External Interface / Infrastructure
 33. §1.3 首次出現處補「人類權威（Human Authority）」英文對照。
 34. §8.3「不變量」改「不變式」，統一 invariant 定譯。
 35. §1.2 EV.7–EV.8 引用補標「其節選」，落實 §4 節選標注規則。
-
----
-
-## Appendix E — 自 v1.2 之變更摘要（v1.3）[I]
-
-本輪為 §0.5 Layer 對照表之增列（minor 升版，AL-2026-006），與 Layer 1 規格充任認定（Steward 裁決第 2026-002 號，AL-2026-005）同案辦理。除 §0.5 對照表增列（及 §0.1 版本欄、本摘要 [I] 隨附）外，無其他條文變更、無原則級變更：
-
-1. §0.5 Layer 1 欄註記 World Model Specification 之充任認定（AUGUR-WM v1.0），並增列「系統核心思想」為領域前身文件。
-2. §0.5 增列四份 augur 領域治權文件之定位登錄：原則精華 → Layer 4、CLAUDE.md → Layer 6、系統架構大憲章與 datasets 參考文件 → Layer 7。跨層內容之逐條／逐節 Layer 標注由各檔之 Constitutional Compliance Statement 載明（補正期依 Steward 裁決第 2026-002 號主文二：至 2026-10-14）。
-3. §0.1 版本欄隨升；本摘要新增為 Appendix E。
