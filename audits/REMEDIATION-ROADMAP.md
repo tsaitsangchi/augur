@@ -21,7 +21,7 @@
 | 步 | 事項 | 解消 | 產出位置 | 狀態 |
 |---|---|---|---|---|
 | 6 | **本補正行程**（排程與追蹤） | — | augur-constitution | 🔄 進行中 |
-| 7 | **AUD-02 補正**：raw_supersede_log 帳表＋heal 覆寫前快照舊列（同交易），upsert 主路徑不動 | **AUD-02 critical**（P4.E5 MUST NOT，§8.4 不可豁免） | augur-code 分支 | ⬜ 待辦 |
+| 7 | **AUD-02 補正**：raw_supersede_log 帳表＋heal 覆寫前快照舊列（同交易），upsert 主路徑不動 | **AUD-02 critical**（P4.E5 MUST NOT，§8.4 不可豁免） | augur-code 分支 | ⚠️ 設計定案、實作待審（見下方阻塞）|
 | 8 | **Layer 2 Ontology 規格**：台股世界類型體系、同一性判準框架 | AUD-04 類型面、承接 AUGUR-WM D2/D3 掛鉤 | augur-constitution | ⬜ 待辦 |
 | 9 | **Layer 3 Identity 規格**：entity registry、identifier 鑄造、lifecycle（merge/split/retire）、identity claim、跨來源解析 | **AUD-04/05/06 三項 major**、AUGUR-WM D1/D4/D5/D6 | augur-constitution | ⬜ 待辦 |
 | 10 | **Layer 4 Knowledge System 規格**：Confidence 單一形式化語義、五元組欄位、雙時間 as-of、supersede/tombstone、信任分級 | **AUD-03 critical**、AUD-08/16、形式化 AUD-02、AUGUR-WM D7–D11 | augur-constitution | ⬜ 待辦 |
@@ -30,6 +30,15 @@
 
 **critical 解消里程碑**：步 7 解 AUD-02；步 10 解 AUD-03；步 8–11 完成後 AUD-01 code 面落地——三項 critical 全清。
 
+## ⚠️ 目前阻塞（2026-07-16）
+
+步 7 進行中撞到兩個外部阻塞，自主接力暫停、待你處置：
+
+1. **每月消費上限（monthly spend limit）**：ultracode 工作流程於步 7 之施工／三重審查／修訂階段撞到帳戶消費上限（研究＋三取向設計＋評審已完成、評審擇取向 B）。上限提高前，後續步驟之多代理工作流程無法執行。→ 於 claude.ai/settings/usage 提高上限，或指示改以單迴圈模式（無多代理對抗驗證，較不嚴謹）續行。
+2. **augur-code 推送權限**：推送設計卷宗至生產儲存庫 tsaitsangchi/augur 被權限機制擋下（分支已本機 commit：`remediation/aud-02-raw-supersede-log` @ 9ff3b04）。→ 允許推送該分支，或改由你本機 pull 檢視。
+
+另：步 7 設計卷宗標出**兩項待 Steward 拍板治權項**（append-only trigger、attestation_result 寫序），詳 augur-code `docs/remediation/AUD-02-raw-supersede-log.md` §三。
+
 ## 更新紀錄
 
-* 2026-07-16：行程建立（步 6）；步 7（AUD-02）啟動。
+* 2026-07-16：行程建立（步 6）；步 7（AUD-02）設計＋評審完成（取向 B），施工階段因消費上限中斷，設計卷宗本機 commit 於分支；行程暫停待處置。
