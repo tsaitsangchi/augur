@@ -22,8 +22,8 @@
 |---|---|---|---|---|
 | 6 | **本補正行程**（排程與追蹤） | — | augur-constitution | 🔄 進行中 |
 | 7 | **AUD-02 補正**：raw_supersede_log 帳表＋heal 覆寫前快照舊列（同交易），upsert 主路徑不動 | **AUD-02 critical**（P4.E5 MUST NOT，§8.4 不可豁免） | augur-code 分支 | 🟡 計畫定案（決策 A/B 已拍板）；程式實作依 augur-code #20/#7/#19 受閘，待額度恢復由工作流程 build 續行 |
-| 8 | **Layer 2 Ontology 規格**：台股世界類型體系、同一性判準框架 | AUD-04 類型面、承接 AUGUR-WM D2/D3 掛鉤 | augur-constitution | ⬜ 待辦 |
-| 9 | **Layer 3 Identity 規格**：entity registry、identifier 鑄造、lifecycle（merge/split/retire）、identity claim、跨來源解析 | **AUD-04/05/06 三項 major**、AUGUR-WM D1/D4/D5/D6 | augur-constitution | ⬜ 待辦 |
+| 8 | **Layer 2 Ontology 規格**：台股世界類型體系、同一性判準框架 | AUD-04 類型面、承接 AUGUR-WM D2/D3 掛鉤 | augur-constitution | ✅ 定稿（v0.1-draft，commit fe45620；待 Steward 充任認定）|
+| 9 | **Layer 3 Identity 規格**：entity registry、identifier 鑄造、lifecycle（merge/split/retire）、identity claim、跨來源解析 | **AUD-04/05/06 三項 major**、AUGUR-WM D1/D4/D5/D6 | augur-constitution | 🔄 進行中 |
 | 10 | **Layer 4 Knowledge System 規格**：Confidence 單一形式化語義、五元組欄位、雙時間 as-of、supersede/tombstone、信任分級 | **AUD-03 critical**、AUD-08/16、形式化 AUD-02、AUGUR-WM D7–D11 | augur-constitution | ⬜ 待辦 |
 | 11 | **結構補正施工**：世界概念 registry、SQL 直綁消除（AUD-01）、entity registry＋lifecycle（AUD-04/05）、prediction_values append-only（AUD-08）、行動留痕六元組（AUD-10/11） | AUD-01 code 面、AUD-04/05/07/08/09/10/11 | augur-code 分支 | ⬜ 待辦 |
 | 12 | **治理收尾**：五治權檔合規聲明（依 AUGUR-WM §11）＋檔頭從屬聲明＋「唯一系統記錄」措辭 patch；審計報告最終定案 | AUD-12/13/26、RULING-2026-002 主文二/五交辦（期限 2026-10-14） | augur-code＋augur-constitution | ⬜ 待辦 |
