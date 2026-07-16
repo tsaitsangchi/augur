@@ -10,7 +10,9 @@ Augur 是一套企業級 AI 作業系統，其最高使命：
 
 | 文件 | 說明 |
 |---|---|
-| [constitution/META-CONSTITUTION.md](constitution/META-CONSTITUTION.md) | **現行有效版本**（正式定稿） |
+| [constitution/META-CONSTITUTION.md](constitution/META-CONSTITUTION.md) | **現行有效版本 v1.2**（正式定稿） |
+| [constitution/GOVERNANCE-ANNEX.md](constitution/GOVERNANCE-ANNEX.md) | 治理附則 v1.0（憲章 §8.1 要求） |
+| [constitution/AMENDMENT-LOG.md](constitution/AMENDMENT-LOG.md) | 修訂登錄簿（AL-2026-001 起） |
 | [constitution/META-CONSTITUTION-v1.1.md](constitution/META-CONSTITUTION-v1.1.md) | v1.1 歸檔 |
 | [constitution/META-CONSTITUTION-v1.0-original.md](constitution/META-CONSTITUTION-v1.0-original.md) | v1.0 原始版本歸檔 |
 | [constitution/REVISION-RECORD-v1.0-to-v1.1.md](constitution/REVISION-RECORD-v1.0-to-v1.1.md) | v1.0 → v1.1 修訂證據記錄（36 項議題裁決全文） |
