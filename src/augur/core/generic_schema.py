@@ -26,11 +26,13 @@
 
 自測（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.core.generic_schema              # 印用途+公開入口（唯讀）
-  python -m augur.core.generic_schema --selftest   # 純紅綠自測（零 IO）
+  python -m augur.core.generic_schema --selftest   # 純紅綠自測（零 IO；AUD-02 _supersessions 鎖需共用
+                                                   #  reconcile._norm，未裝 psycopg2 時誠實 skip、其餘全綠）
 """
 from __future__ import annotations
 
 import datetime
+import json
 import re
 
 # ── 型別規則（#5 型別紀律）────────────────────────────────
@@ -272,13 +274,129 @@ def upsert(cur, table, rows, schema, keys):
     return len(data)
 
 
-def provision_and_upsert(cur, table, rows, require_keys=()):
-    """一站式：infer_schema → ensure_table（重用既有 PK）→ upsert。
+def _supersessions(cols, keys, rows, db_rows):
+    """純邏輯（零 IO、可個別驗證 #29a）：incoming rows × DB 現值 pre-image → 「值真異」之 supersession 三元組。
+    共用 `reconcile._norm`（同語意比對，防 Decimal/date/前導零口徑漂移致假/漏 supersession）——**不另實作**。
+    純 insert（DB 無此 PK、無 pre-image）與 no-op（值未變）皆不入帳（P4.E5：只裁決衝突、不記純新增/未變）。
+    回 [(pk, old_row, new_row), …]：old_row=敗方 DB pre-image、new_row=勝方 incoming（_coerce 對齊寫入口徑）。"""
+    from augur.audit.reconcile import _norm   # 延遲 import：避 reconcile→generic_schema 循環
+    valcols = [c for c in cols if c not in keys]
+    db_by_key = {tuple(_norm(d.get(k)) for k in keys): d for d in db_rows}
+    dedup = {}                                # 批內去重：鏡射 upsert 261–263（同鍵保留最後一筆＝API 最新）
+    for r in rows:
+        dedup[tuple(_norm(r.get(k)) for k in keys)] = r
+    out = []
+    for nk, r in dedup.items():
+        d = db_by_key.get(nk)
+        if d is None:                         # 純 insert、無 pre-image → 不留痕
+            continue
+        if not any(_norm(d.get(c)) != _norm(r.get(c)) for c in valcols):
+            continue                          # no-op upsert（值未變）→ 不入帳
+        out.append(({k: d.get(k) for k in keys},
+                    {c: d.get(c) for c in cols},
+                    {c: _coerce(r.get(c)) for c in cols}))
+    return out
+
+
+def _jdump(o):
+    """JSONB 序列化函式：非 JSON 原生型別（Decimal/date/None…）以 `str` 忠實表示——Decimal('12.50')→'12.50'
+    保留精度尾零、date→ISO、None→null、float 仍為 JSON 數字。經 psycopg2 `Json(…, dumps=_jdump)` 注入
+    （**非 `default=`**：psycopg2 `Json.__init__(adapted, dumps=None)` 無 `default` 參數，誤傳即 TypeError）。"""
+    return json.dumps(o, default=str)
+
+
+# P4.E6 斷言主體（issue 3）：記錄「哪個 code 元件斷言此次覆寫」。activity 由 `reason` 承載、活動輸入由
+# table+pk+valid_time 承載、上游依賴由 old_row→new_row 承載——使每列自足回答 P4.E6 溯源三問，不倚賴恆 NULL
+# 之 run_id。（含 git sha 之細粒度版本、activity_params/source_ref 之更完整 provenance 屬卷宗 §三 另注之
+# Layer-4 治權增修、須 P5 拍板，不在本執行層補正範圍——見交付註記。）
+_SUPERSEDE_ACTOR = "augur.core.generic_schema:_snapshot_superseded"
+
+
+def _assert_append_only(cur):
+    """fail-loud（issue 8）：把被取代原值落地前，確認 raw_supersede_log 之 append-only trigger 已就位。
+    bootstrap_infra 只建裸表；硬化（append-only/truncate trigger + tombstone 受控函式）由
+    scripts/migrate_raw_supersede_ddl.py 人工 gate apply。未 apply 前，拒絕把原始證據快照落入「可被 UPDATE/
+    DELETE/TRUNCATE 竄改」之帳表（P4.E5/E3）——同交易 raise → heal 一起 rollback，促人先跑 migration 再 heal
+    （不靜默覆寫、不靜默落入無保護帳表）。"""
+    cur.execute("SELECT to_regclass('raw_supersede_log')")
+    if cur.fetchone()[0] is None:
+        raise RuntimeError("raw_supersede_log 不存在（bootstrap_infra 未跑）；拒絕快照被取代原值（P4.E5）")
+    cur.execute("SELECT 1 FROM pg_trigger WHERE tgrelid='raw_supersede_log'::regclass "
+                "AND tgname='trg_raw_supersede_append_only' AND NOT tgisinternal")
+    if cur.fetchone() is None:
+        raise RuntimeError(
+            "raw_supersede_log 缺 append-only trigger（scripts/migrate_raw_supersede_ddl.py 尚未 apply）；"
+            "拒絕將被取代原值快照落入可竄改帳表（P4.E5/E3 fail-loud）——先 apply 硬化 DDL 再 heal。")
+
+
+def _snapshot_superseded(cur, table, rows, schema, keys, reason, run_id=None):
+    """heal 覆寫前快照（AUD-02、P4.E5）：取 DB 現值 pre-image、值真異者寫 raw_supersede_log。
+    與 upsert 同 `cur`、同交易；快照排在 upsert **之前**先取 pre-image（先取後覆寫，P4.E5 交易同一性、
+    任一例外一起 rollback）。
+
+    `reason`＝產生活動（'heal_by_date'/'daily_heal'/'full_universe_heal'；P4.E6 activity）。
+    `run_id`＝決策 B：`attestation_run_id` nullable。heal 直呼 sync、本無對帳 run 可帶時恆 None——**非「暫時
+    待回填」，而是此路徑結構上無 run 可對**（誠實記；不改 attestation_result 寫序）。P4.E6 溯源三問由每列自身
+    承載：斷言主體＝`actor`、產生活動＝`reason`、活動輸入/上游依賴＝`table`+`pk`+`valid_time`+`old_row`→`new_row`。
+    JSONB 以 `Json(…, dumps=_jdump)` 序列化（psycopg2 Json 無 `default=` 參數，見 _jdump）。回入帳列數。"""
+    from psycopg2.extras import Json, execute_values
+    if not keys or not rows:
+        return 0
+    cols = list(schema)
+    dedup = {}                                # 批內去重後之 PK 集（鏡射 upsert 261–263，比照 IN 子句規模）
+    for r in rows:
+        dedup[tuple(_coerce(r.get(k)) for k in keys)] = r
+    items = list(dedup.values())
+    # pre-image 抓取以 `_coerce` 建 WHERE-IN 參數（issue 4）——刻意鏡射 upsert(260) 之 ON CONFLICT 命中口徑
+    # （找出 upsert「將」覆寫的那些既有列）；_supersessions 內部再以共用 `_norm` join＋比值。字串/日期鍵下
+    # _coerce≡_norm（皆 strip、保前導零識別碼）故抓取與比對口徑一致、既有列不會漏抓致靜默滅失；數字鍵之
+    # 原值交 PG cast 與 upsert 同命中。混合型別複合鍵之紅綠鎖見 _selftest。
+    if len(keys) == 1:                        # 取 DB pre-image：WHERE (pkcols) IN (…)（複合鍵用 tuple IN）
+        where = f'"{keys[0]}" IN (' + ", ".join(["%s"] * len(items)) + ")"
+        params = [_coerce(r.get(keys[0])) for r in items]
+    else:
+        tup = "(" + ", ".join(["%s"] * len(keys)) + ")"
+        where = "(" + ", ".join(f'"{c}"' for c in keys) + ") IN (" + ", ".join([tup] * len(items)) + ")"
+        params = [_coerce(r.get(k)) for r in items for k in keys]
+    collist = ", ".join(f'"{c}"' for c in cols)
+    cur.execute(f'SELECT {collist} FROM "{table}" WHERE {where}', params)
+    db_rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+    sup = _supersessions(cols, keys, rows, db_rows)
+    if not sup:
+        return 0
+    _assert_append_only(cur)                  # issue 8：有被取代列要落地前，確認硬化 trigger 就位（否則 fail-loud、同交易 rollback）
+    date_is_date = schema.get("date") == "DATE"
+    data = []
+    for pk, old_row, new_row in sup:
+        # valid_time：僅真 DATE 欄填典型 DATE 值；varchar-date dataset（契約月 '2026/06' 等）存 NULL——但該列
+        # valid time **未滅失**，仍完整保存於 old_row（含 date 欄）與 pk（date 入鍵時）；typed 欄僅便查用途（issue 6）。
+        dv = old_row.get("date")
+        vt = dv if (date_is_date and isinstance(dv, datetime.date)) else None
+        # 兩側口徑刻意不對稱、各自忠實其來源（卷宗 §2.2；issue 5：明載之取捨非疏漏）：old_row=DB pre-image
+        # （原生 Decimal/date 經 _jdump 保精度字串）、new_row=incoming（_coerce 後值）。
+        data.append((table, Json(pk, dumps=_jdump), Json(old_row, dumps=_jdump),
+                     Json(new_row, dumps=_jdump), vt, reason, run_id, _SUPERSEDE_ACTOR))
+    execute_values(
+        cur,
+        'INSERT INTO raw_supersede_log ("table", pk, old_row, new_row, valid_time, reason, '
+        'attestation_run_id, actor) VALUES %s',
+        data, page_size=500)
+    return len(sup)
+
+
+def provision_and_upsert(cur, table, rows, require_keys=(), snapshot_reason=None, snapshot_run_id=None):
+    """一站式：infer_schema → ensure_table（重用既有 PK）→〔選配快照〕→ upsert。
     require_keys：必納入 PK 之欄（傳給 detect_keys；如 by-date 之 ('date',)）。
+    snapshot_reason：**預設 None＝不快照**（upsert 主路徑與 daily 增量 sync 語義一 byte 不變）；僅 heal 呼叫端
+      透傳非 None（'heal_by_date'/'daily_heal'）→ ensure_table 後、upsert 前快照被取代原值（AUD-02、P4.E5）。
+    snapshot_run_id：決策 B——attestation_run_id nullable（預設 None；heal 直呼 sync 之路徑本無對帳 run 可帶、
+      結構上恆 None，非暫時待回填；P4.E6 溯源改由列內 actor/reason/pk 承載，見 _snapshot_superseded）。
     回傳 (寫入列數, schema, effective_keys)；呼叫端負責 commit + audit。"""
     schema = infer_schema(rows)
     keys = detect_keys(rows, schema, require=require_keys)
     eff = ensure_table(cur, table, schema, keys)
+    if snapshot_reason is not None:   # gate：heal 前先取 pre-image 快照（同 cur 同交易、早於 byte 覆寫）
+        _snapshot_superseded(cur, table, rows, schema, eff, snapshot_reason, snapshot_run_id)
     return upsert(cur, table, rows, schema, eff), schema, eff
 
 
@@ -309,6 +427,40 @@ def _selftest():
     sch = infer_schema(rows)
     chk("detect_keys 單日 sample stock_id 即唯一", detect_keys(rows, sch) == ["stock_id"])
     chk("detect_keys require 補回 date", detect_keys(rows, sch, require=("date",)) == ["stock_id", "date"])
+    # AUD-02 快照純邏輯紅綠鎖（_supersessions 零 IO；byte-differ 入帳、no-op/純 insert 不入帳，P4.E5）。
+    # _supersessions 共用 reconcile._norm（硬約束:不另實作）→ 拖入 reconcile→core.db→psycopg2；未裝該相依時
+    # 誠實 skip（issue 9:還原「免 DB 免 API」可驗性，不讓 ModuleNotFoundError 崩掉整組自測）。
+    try:
+        from augur.audit.reconcile import _norm as _probe_norm   # noqa: F401  探共用 _norm 依賴鏈可用性
+        _have_norm = True
+    except ImportError:
+        _have_norm = False
+        print("  ⏭ SKIP AUD-02 _supersessions 紅綠鎖（未裝 psycopg2/dotenv；共用 reconcile._norm 依賴鏈不可用）")
+    if _have_norm:
+        scols, skeys = ["stock_id", "date", "close"], ["stock_id", "date"]
+        sdb = [{"stock_id": "1101", "date": "2026-06-30", "close": 12.5}]
+        chk("_supersessions no-op（_norm 等價 '12.5'==12.5）不入帳",
+            _supersessions(scols, skeys, [{"stock_id": "1101", "date": "2026-06-30", "close": "12.5"}], sdb) == [])
+        _sup = _supersessions(scols, skeys, [{"stock_id": "1101", "date": "2026-06-30", "close": "9.9"}], sdb)
+        chk("_supersessions byte-differ 入帳恰 1、old=pre-image/new=incoming",
+            len(_sup) == 1 and str(_sup[0][1]["close"]) == "12.5" and str(_sup[0][2]["close"]) == "9.9")
+        chk("_supersessions 純 insert（DB 無此 PK）不留痕",
+            _supersessions(scols, skeys, [{"stock_id": "9999", "date": "2026-06-30", "close": "1"}], sdb) == [])
+        # issue 4:混合型別複合鍵（date 為 date 型 vs str、close 為 float vs str）——共用 _norm 對齊 join，
+        # 既有列不漏抓致靜默滅失；值真異入帳恰 1（鎖「pre-image 抓取口徑 vs 比對口徑一致」不變式）。
+        mdb = [{"stock_id": "1101", "date": datetime.date(2026, 6, 30), "close": 12.5}]
+        minc = [{"stock_id": "1101", "date": "2026-06-30", "close": "9.9"}]
+        chk("_supersessions 混合型別複合鍵（date/str、float/str）_norm 對齊、值真異入帳恰 1",
+            len(_supersessions(scols, skeys, minc, mdb)) == 1)
+    # issue 7:JSONB 序列化契約（_jdump）——psycopg2 Json 經 dumps= 注入、非 default=（Json 無 default 參數）。
+    # 免 psycopg2 亦可驗序列化本身:Decimal 保精度尾零、date→ISO、None→null、float 仍數字（產出合法 JSON）。
+    import decimal
+    _back = json.loads(_jdump({"d": decimal.Decimal("12.50"), "dt": datetime.date(2026, 6, 30), "n": None, "f": 12.5}))
+    chk("_jdump Decimal 保精度字串 '12.50'（不塌成 12.5）", _back["d"] == "12.50")
+    chk("_jdump date→ISO / None→null / float→數字",
+        _back["dt"] == "2026-06-30" and _back["n"] is None and _back["f"] == 12.5)
+    chk("provision_and_upsert 預設 snapshot_reason=None（主路徑不快照、語義不變）",
+        provision_and_upsert.__defaults__ == ((), None, None))
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 
