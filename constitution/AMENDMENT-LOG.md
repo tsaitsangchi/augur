@@ -31,3 +31,12 @@
 * **文件**：[GOVERNANCE-ANNEX.md](GOVERNANCE-ANNEX.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **備註**：~~登錄名義暫以 GitHub 帳號為之；Steward 得隨時以書面裁決補登法定姓名（屬 patch 級編輯修正）~~ 已補登：Steward 於 2026-07-16 確認法定姓名即為 tsaitsangchi（與 GitHub 帳號相同），AL-2026-001 之登錄名義自始即為法定姓名，無待補事項（patch 級修正，依治理附則第 2 條第 3 款辦理）
+
+## AL-2026-004
+
+* **日期**：2026-07-16
+* **事項**：解釋裁決第 2026-001 號——P4.E3 刪除／覆寫家族之 severity 適用尺度（採「原始 vs 衍生＋緩解程度」二軸綜合認定）
+* **程序依據**：憲章 §8.1（解釋權；書面化、附理由、公開存檔、解釋先例）；治理附則第 6 條
+* **文件**：[INTERPRETATION-RULING-2026-001.md](INTERPRETATION-RULING-2026-001.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **效果**：合憲審計報告（audits/CODE-COMPLIANCE-AUDIT-2026-07-16.md）AUD-08 定 major、AUD-09 回 major；驗證後統計定稿 critical 3／major 11／minor 12；對後續案件具拘束力
