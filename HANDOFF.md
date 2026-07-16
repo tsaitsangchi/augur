@@ -72,7 +72,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 > **紀律：本區每個宣稱都可能過期——待辦一律先跑附帶的驗證指令實查（#15），勿直接信。**
 
 ### 4.1 一句話現況（2026-07-16；取代前版）
-**arena 可開賽（雙閘全開）**：gate `arena_adm_5305655ad1cd` **evaluated_pass**（approved_by=hugo）∧ 閘一 6 隊 `dgate_arena%` approved——開賽剩「掛 A2 已核 cron+首日陪跑」。
+**🏆 arena 已開賽（2026-07-16 hugo 拍板）**：gate `arena_adm_5305655ad1cd` **evaluated_pass** ∧ 閘一 6 隊 approved → cron 三行已掛（22:30 每日管線/23:10 結算/月初 scoreboard;pipeline 行補 proposal 漏的 `--run`）→ **首手落地 as-of 07-15：4 隊×344 檔=1,376 列入 `direction_arena_prediction`**（own_daily_rolling/majority/momentum_20/mc_bootstrap;chronos/timesfm 套件缺=operational 誠實缺席待補裝;own_v2_frozen 對照未接線）。反回填 trigger 首次真實出手驗證 ✓（資料未 sync 時正確擋拒 pred_date 過舊）。開賽即 review_observation_only tier、**永不宣稱確立級**;確立升格=門二 `evaluate_direction_gate`（≥60 clusters）。首週監看=A2 §6（每日 pipeline log/settle 首批/scoreboard 首份）。
 **unfreeze gate 路徑退役（hugo 拍板 07-16）**：`preregister_unfreeze_gate.evaluate()` 實測=純唯讀診斷（守門1-4 過但 G1-G5 標「本計畫內不可達」未實作、不改 status）→ 接受解凍已由 07-12 入憲完成、`unfreeze_06dcb178267d` **superseded 史料**（evaluation_ref 雙向鏈指新 gate）；**arena 前置改 G1-G5 實質驗證機制**（計畫+決策紀錄＝`reports/arena_g1g5_admission_gate_plan_20260716.md`：D-1~D-6/D-11 全拍板、D-2=Reading A 方向確立走門二、G3/G4 歸相對強度部署）。
 **G1-PIN（hugo 拍板）**：arena 資料地基 **as-of 釘死 2026-06-30、不再滾動追資料完整**（live byte 對帳=移動標靶=「凍一條河」概念錯誤）；≤05-31 凍結期認證+06 月窗抽樣對帳 **PASS**（attestation #4：VM0/EX0、撤列容忍 36 揭露、`audit_since=2026-06-01`）。
 **G1-G5 機制七元件全落地**（`migrate_arena_admission_gate_ddl`/`preregister_arena_admission_gate`(繼承 990ddea sha 斷言)/`freeze_feature_panel_hash`(兩軸 36+2,830 panel 洩漏鎖)/`verify_score_repro`(112 組 5 位復現)/`report_restatement_diff`(U5 佇列)/`evaluate_arena_admission`(核心裁判、--check 唯讀預演)/雙閘接線 daily_pipeline+arena_round fail-closed）。
