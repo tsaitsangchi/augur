@@ -1,6 +1,6 @@
 # AUD-02 補正設計卷宗：raw_supersede_log
 
-* **狀態**：⚠️ **設計定案、實作待審**——設計與對抗評審已完成；施工／三重審查／修訂階段因執行額度（monthly spend limit）中斷未跑，本文為實作級設計卷宗，**尚未寫入生產程式、未 apply 生產 DB**。
+* **狀態**：✅ **計畫定案（決策 A/B 已解）、實作受閘**——設計與對抗評審已完成、兩項治權決策經 Steward 拍板（見 §三）。本文即 augur-code CLAUDE.md #20 意義下之**計畫先行報告**。程式實作依 #20（拍板後實作）、#7（須實測，本機無 PostgreSQL→須於備援環境跑 migration --check＋selftest）、#19（核心共用模組 generic_schema.py 逐檔檢視）受閘，**尚未寫入生產程式、未 apply 生產 DB**；施工待執行額度恢復後由工作流程 build 階段續行（含被中斷之三重對抗審查）。
 * **憲章依據**：`AUGUR-MC v1.3 §P4.E5`（矛盾保存，MUST NOT last-write-wins，§8.4 不可豁免）、`§P4.E3`（只失效不刪除）、`§P4.E6`（provenance）；`AUGUR-WM v1.0 §WM.16`（矛盾保存）、`§WM.30`（雙時間）、`§WM.34`（機器稽核）。
 * **對應審計**：AUD-02（critical）。解釋裁決 2026-001：AUD-02 為原始證據覆寫滅失，維持 critical。
 * **來源**：ultracode 工作流程 `wf_bd8e98eb-474`（研究基準→三取向設計→評審擇 B→〔施工/審查/修訂因額度中斷〕）。分支：`remediation/aud-02-raw-supersede-log`。
@@ -55,18 +55,25 @@ CREATE INDEX IF NOT EXISTS ix_supersede_pk_gin     ON raw_supersede_log USING GI
 4. **值差判定共用 `reconcile._norm`**，不得另實作（防 Decimal/date/前導零/round 口徑漂移致假 supersession 或漏 supersession）。
 5. **紅綠回歸鎖**：`--selftest` 固化「heal 觸發快照、非 heal 不觸發、no-op upsert 不入帳、byte-differ 入帳、帳表 append-only、同交易回滾」（CLAUDE #7/#15）。
 
-## 三、⚠️ 待 Steward（決策層）拍板之治權項
+## 三、治權決策（Steward 已拍板，2026-07-17）
 
-評審官明示下列二項屬治權硬化／寫序變更，**不得由執行層於 AUD-02 施工中默默植入**，須本人裁決：
+評審官明示下列二項屬治權硬化／寫序變更，須 Steward 裁決。裁決結果：
 
-* **決策 A — append-only DB trigger**：設計含 `BEFORE UPDATE OR DELETE ... RAISE` 硬鎖，使不可覆寫成為機器可稽核保證（WM.34）。但同族帳表（data_audit_log/attestation_result）為**慣例級 append-only、零 trigger**；加 trigger 會（i）破壞同族對稱、（ii）擋 owner 誤更正、（iii）擋 P4.E3 唯一例外「法規強制抹除（須留 tombstone）」。**請裁決**：(a) 加硬 trigger＋另立法規抹除之 tombstone 例外路徑；或 (b) 依同族慣例級 append-only（不加 trigger，靠 REVOKE＋約定）。〔預設建議：(a)，因本帳表承載原始證據，P4.E3/E5 保護需求高於同族對稱；惟須併設 tombstone 例外。〕
-* **決策 B — attestation_result 寫序**：為使 `attestation_run_id` 無 nullable 空窗（P4.E6），須把 heal 前先 `INSERT attestation_result(pending) RETURNING id`、跑完 `UPDATE verdict`——此使 attestation_result 該列被 UPDATE（自身 append-only 例外），屬寫序變更。**請裁決**：(a) 採前置 pending run（附該列可 UPDATE 之例外）；或 (b) 過渡採 `attestation_run_id` nullable＋事後回填（reconcile.heal_by_date 直呼 sync、無對帳 run 時 run_id 恆 NULL，reason 仍留痕）。〔預設建議：(b)，最小侵入、不改既有寫序。〕
+* **決策 A — append-only DB trigger → 採 (a)：加硬 trigger＋併設 tombstone 法規抹除例外路徑**。
+  * 裁決人：Constitution Steward（tsaitsangchi）；依 Steward「就把第七步收尾」之指示採認執行層建議 (a)。
+  * 理由：本帳表承載原始證據，P4.E3/P4.E5 保護需求高於同族帳表對稱；`BEFORE UPDATE OR DELETE ... RAISE` 使不可覆寫成為機器可稽核保證（`AUGUR-WM v1.0 §WM.34`）。
+  * 附帶義務：**必須併設 P4.E3 唯一例外之 tombstone 法規抹除路徑**（受控函式：抹除內容本體但留 tombstone＋完整 provenance；非經該路徑之 UPDATE/DELETE 一律被 trigger RAISE 擋下）。此例外機制列入實作檢查清單。
+* **決策 B — attestation_result 寫序 → 採 (b)：`attestation_run_id` nullable＋事後回填**（Steward 明示確認）。
+  * 裁決人：Constitution Steward（tsaitsangchi），2026-07-17 明示「nullable 事後回填」。
+  * 理由：最小侵入、不改既有寫序；`reconcile.heal_by_date` 直呼 sync、無對帳 run 時 `run_id` 恆 NULL，`reason` 仍留痕（P4.E6 遞迴溯源鏈以 reason＋old_row/new_row 承載，不因無 run_id 而斷）。
+  * 不採 (a) 前置 pending run，故 `attestation_result` 寫序完全不動、無 append-only 例外之新增。
 
 **另注**：`docs/原則精華_v1.9.0.md #7`（correction＝覆蓋為當前值）須改為「新版本入庫、舊版標 superseded」以與本補正一致——屬 Layer 4 治權檔（原則精華）變更，依 CLAUDE #19/#26 須用戶拍板，code 不得先行（見步 12 治理收尾）。
 
 ## 四、實作檢查清單（審查/施工用）
 
-- [ ] `scripts/migrate_raw_supersede_ddl.py`（DDL＋indexes〔＋trigger 視決策 A〕；--check 唯讀；VERIFY）
+- [ ] `scripts/migrate_raw_supersede_ddl.py`（DDL＋indexes＋**append-only trigger〔決策 A=(a)〕**；--check 唯讀；VERIFY）
+- [ ] **tombstone 法規抹除受控函式〔決策 A 附帶義務〕**：唯一得繞過 append-only trigger 之路徑，抹除內容本體但留 tombstone＋provenance（P4.E3 例外）
 - [ ] `src/augur/core/schema.py`：INFRA_DDL＋bootstrap_infra 加本表；**更新 :126 selftest 斷言**
 - [ ] `src/augur/core/generic_schema.py`：`_snapshot_superseded` helper；`provision_and_upsert` 加 `snapshot_reason=None` gate（281–282 間接入）；upsert 本體不動
 - [ ] heal 呼叫鏈透傳 `snapshot_reason`（＋run_id 視決策 B）：reconcile.py、daily_maintenance.py、sync.py、ingest.py
