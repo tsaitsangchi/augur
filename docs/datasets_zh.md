@@ -1,5 +1,7 @@
 # augur 資料源欄位中文總表（FinMind + FRED）— 2026-06-15
 
+> **憲章從屬（AUGUR-MC v1.3）**：本文件為 Augur 資料來源參考文件，受 **AUGUR-MC v1.3** 約束（Layer 0 lex superior，§0.6）。依 Steward 裁決第 2026-002 號（AL-2026-006）登錄為 **Layer 7（External Interface / Infrastructure）**（含 finmind-references）。下層引用格式：`AUGUR-MC v1.3 §{條款}`／`AUGUR-WM v1.0 §{條款}`。憲章與規格存於 [augur-constitution](https://github.com/tsaitsangchi/augur-constitution)。合規聲明補正期至 2026-10-14。
+
 **目的**：augur 要抓的全部 dataset，**逐表逐欄**附中文名 + 來源 + 推定型別。供建模/查表/schema 註解之單一參考。**83 FinMind dataset + FRED，共 ~650 真實欄位**（已含 datasets.md 未列、實證補入的 8 表）。
 
 **中文名來源規則（依用戶指示）**：
