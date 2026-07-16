@@ -3,8 +3,8 @@
 * **審計日期**：2026-07-16
 * **審計對象**：[tsaitsangchi/augur](https://github.com/tsaitsangchi/augur)（台股預測系統，shallow clone @ main，2026-07-15 最後推送）
 * **審計基準**：《Augur Meta-Constitution》v1.2（AUGUR-MC v1.2）
-* **報告狀態**：⚠️ **初步（PRELIMINARY）— 未完成對抗驗證**（詳見附錄之方法與狀態揭露；依 P4 原則，本報告誠實標注其證據狀態）
-* **發現統計**：26 項（critical 3 / major 10 / minor 13）＋合憲亮點 54 項
+* **報告狀態**：✅ **驗證後草案（VERIFIED DRAFT）**——已於 2026-07-16 完成雙重對抗驗證（52 驗證代理＋報告門檢，見第七節）；~~⚠️ 初步（PRELIMINARY）— 未完成對抗驗證~~。正式違憲認定仍屬 Steward §8.2 權限，尤其 P4.E3 刪除家族分級之擇一裁定（見 AUD-08 與第七節）
+* **發現統計**：26 項（初步：critical 3 / major 10 / minor 13 → **驗證後：critical 4 / major 9 / minor 12 ＋ 1 項待 Steward 裁定〔AUD-08〕；0 項被推翻**）＋合憲亮點 54 項
 
 ---
 
@@ -194,7 +194,7 @@
 
 **補正方向**：對名冊類 snapshot 表加 transaction-time 留痕（最輕量：每日 sync 時將 TaiwanStockInfo 差異列 append 進 roster_history，或改用 SCD-2 式 valid_from/valid_to）；build_universe_asof 的產業判定改讀 as-of 當時之屬性版本。在 Layer 3 規格中明文：實體屬性（分類、名稱）屬 Identity 之時變屬性，其消費必須 as-of。
 
-### AUD-08【MAJOR】雙時間性僅覆蓋 FRED 一源：FinMind raw／feature_values 無 transaction time，prediction_values 更以 DELETE+INSERT 覆寫——已對人呈現之建議可被靜默重寫、過去認識狀態不可重建
+### AUD-08【MAJOR｜⚖️ 驗證後：critical vs major 待 Steward 裁定，見第七節】雙時間性僅覆蓋 FRED 一源：FinMind raw／feature_values 無 transaction time，prediction_values 更以 DELETE+INSERT 覆寫——已對人呈現之建議可被靜默重寫、過去認識狀態不可重建
 
 * **憲章條款**：P4.E2（雙時間性）、P2.E2／F5（交叉 P4.E3）
 * **位置**：scripts/predict_asof.py:145-151,196-198；scripts/migrate_prediction_ddl.py:46-60；src/augur/features/panel.py:40-47,169；src/augur/core/generic_schema.py（auto-schema 無 ingested_at）；src/augur/core/schema.py:41-50（data_audit_log）
@@ -206,7 +206,7 @@
 
 **補正方向**：分級補正：(1) 最優先——prediction_values 改 append-only + serving 語意欄（run_id/created_at/git_sha + superseded_by 或 is_current 旗標，配 BEFORE DELETE trigger 禁物理刪除），重寫改為「新列插入＋舊列標 superseded」，至少先加 created_at 並將重寫事件同交易寫 data_audit_log，使任一過去時刻系統實際出過的建議可 as-of 重建；(2) 低成本並行——feature_values 加 computed_at TIMESTAMPTZ DEFAULT now()；(3) FinMind raw 之認識狀態變遷由 AUD-02 之 supersede 帳承載；(4) Layer 4 規格明文宣告哪些表為「可重算之衍生快照」（as-of 重建能力＝由凍結輸入重算）、哪些必須原生雙時間，把 P4.E2 尾句「機制與能力等級由 Layer 4 定義」落地為表級分類。
 
-### AUD-09【MAJOR】衍生 Knowledge 以 DELETE 全量重建：核心宇宙快照與 column_catalog 舊版無 superseded 標記即滅失
+### AUD-09【MAJOR｜⬆️ 驗證後升級：CRITICAL（附 Steward 覆核條件），見第七節】衍生 Knowledge 以 DELETE 全量重建：核心宇宙快照與 column_catalog 舊版無 superseded 標記即滅失
 
 * **憲章條款**：P4.E3（只失效不刪除）
 * **位置**：src/augur/universe/core_gate.py:196,213（DELETE FROM CORE_TABLE / ASOF_TABLE）；src/augur/catalog/__init__.py:312（DELETE FROM column_catalog）
@@ -266,7 +266,7 @@
 
 **補正方向**：(1) 請 Steward 依過渡規則 (a) 發布暫行模板並裁定補正期；(2) 為五治權檔各補一節 Compliance Statement：聲明 AUGUR-MC v1.2、逐 P1–P5 論證（可大量引用既有三敵×二十條框架——映射基礎極佳）、揭露上列四項緊張關係與補正期程；(3) 新計畫書（plan-first 產物）自此一律內含聲明——可直接併入既有「計畫完整性 v1.39.0」條款成為必附項。
 
-### AUD-14【MINOR】同一世界現實的多個表級表徵（原始價 vs 還原價）無同一性宣告，除權息世界事件無表徵、擇用知識散落於各消費模組註解
+### AUD-14【MINOR｜✏️ 驗證後證據修正：「除權息世界事件無表徵」子宣稱被推翻，見第七節】同一世界現實的多個表級表徵（原始價 vs 還原價）無同一性宣告，除權息世界事件無表徵、擇用知識散落於各消費模組註解
 
 * **憲章條款**：P1.E2（每一世界事實有唯一權威表徵）、P1.Y（資料結構不是世界結構）
 * **位置**：src/augur/features/panel.py:5-9；src/augur/features/valuation.py；docs/原則精華_v1.9.0.md #7（restatement 豁免段）
@@ -350,7 +350,7 @@
 
 **補正方向**：將 ON DELETE CASCADE 改為 ON DELETE RESTRICT（或移除 FK 級聯），刪除語意改為 status 標記（quarantined/retracted）；檢索隔離改用標記：chunk 加 invalidated BOOLEAN（或沿用 work.review_flag 於檢索 SQL JOIN 過濾——retrieval.py 已有 CLEAN 准入述詞可掛），使污染內容留存但機制性不可檢索；誤配更正落 attribution_correction 事件表（work_id、舊繫結、新裁定、evidence、actor）；若堅持物理刪（儲存/授權考量），刪前落 tombstone 帳（work_id/chunk 數/內容 hash/deleted_at/reason）。與 knowledge_source_review_log 既有範式對齊即可，工程量低。
 
-### AUD-21【MINOR】philosophy 假說與方向欄位 in-place UPDATE：修訂無 supersede 歷史，何時改、從什麼改來、憑什麼改均不可考
+### AUD-21【MINOR｜⬆️ 驗證後升級：MAJOR，見第七節】philosophy 假說與方向欄位 in-place UPDATE：修訂無 supersede 歷史，何時改、從什麼改來、憑什麼改均不可考
 
 * **憲章條款**：P4.E3、P4.E4
 * **位置**：src/augur/philosophy/framework.py:291,302
@@ -457,9 +457,68 @@ AUD-14（除權息世界事件表徵）、AUD-15（catalog 世界概念欄）、
 
 ---
 
+## 七、雙重對抗驗證結果（2026-07-16）
+
+原設計之第 4–6 階段已於 2026-07-16 補齊執行（Run ID `wf_94841fac-18f`；因原 run 快取不可跨工作階段恢復，本輪為**全新即時查證**，不依賴任何舊快取）：26 項發現 × 2 位獨立對抗驗證官（**程式碼查證官**——逐項親自重跑 grep、逐字比對引文，預設立場為推翻；**憲章適用裁判官**——假定事實為真，只裁條款適用與 severity）＋ 1 位**報告門檢官**（跨發現一致性與最終處置），共 53 代理、758 次工具呼叫、0 錯誤。查證基準：本地 clone HEAD `e23a102`（2026-07-16「arena 開賽」，較審計基準 2026-07-15 有增量提交；驗證官逐項標注 code drift，全部漂移方向為強化而非削弱原發現）。
+
+### 7.1 總體裁決
+
+**26 項發現 0 項被推翻（REFUTED=0）**。25 項核心事實 100% 重現，行號偏移全部在容差內（最大一處 +15 行、內容逐字在位）；唯一被實質推翻之事實子宣稱為 AUD-14 之「除權息世界事件在系統中無表徵」（TaiwanStockDividend／TaiwanStockDividendResult 兩事件 raw 表實已入庫），該發現改寫為弱版本後仍成立、維持 minor。原審計之偏差方向一致偏保守（如 AUD-01 稱 vendor 表名直綁「15+ 檔」，現行 HEAD 實測 37 檔）。
+
+**驗證後統計**：critical 4／major 9／minor 12＋1 項待 Steward 裁定（AUD-08）。變動三項：
+
+| 項目 | 初步 | 驗證後 | 理由 |
+|---|---|---|---|
+| AUD-09 | major | **critical**（附覆核條件） | P4.E3「不得刪除」為 MUST NOT，依報告自訂判準（critical＝違反禁止性規定）應為 critical；原降級理由（確定性衍生物可重算）之事實前提被同段自我否定（raw 遭 heal 覆寫、build_meta 不存成員名單）。惟若 Steward 將「原始 vs 衍生＋緩解程度」尺度明文化入判準，本項應回 major |
+| AUD-21 | minor | **major** | P4.E3 supersede 義務三要件（superseded 標記／歷史保留／失效 Evidence）零履行，非「部分符合」；緩解（seed 低頻、文獻錨定）屬影響面因素而非判準構成要件，與 AUD-09 同類應同級 |
+| AUD-08 | major | **待 Steward 裁定** | 兩官原均裁 major，但其錨定之先例（AUD-09 同類列 major）已被升級推翻；本項同類且事實更重（無 run_id/git_sha 留痕、已呈現出單、風控 DD 熔斷回讀）。critical vs major 之擇定即 P4.E3 家族判準決策，依 §8.2 屬 Steward 權限 |
+
+### 7.2 全 26 項處置表
+
+| ID | 處置 | 驗證後級別 | 門檢要旨 |
+|---|---|---|---|
+| AUD-01 | CONFIRMED | critical | 逐字重現且命中面擴大至 37 檔；修辭級補正：§0.5 改標脈絡定位、補正期依據 §8.3→§8.2 第四點 |
+| AUD-02 | CONFIRMED | critical | P4.E5 MUST NOT 該當閉合，治權條文明文立法化屬加重；修 reconcile.py 行錨 487→502 |
+| AUD-03 | CONFIRMED | critical | 零命中 grep 親自重現、P4.E1 不可豁免核心該當；標題宜限縮至知識／審議軸（預測軸校準機率為部分等價物） |
+| AUD-04 | CONFIRMED | major | 行號零偏移；條款欄應移除 F4、補列 P3.E1 為核心錨點 |
+| AUD-05 | CONFIRMED | major | P3.E2 不變式義務不因 Layer 3 缺位消滅；建議明文處理「未鑄造故無附著對象」抗辯 |
+| AUD-06 | CONFIRMED | major | macro_vintage docstring 已過時（fred_series 已被 build_market_direction_features 消費），feature_values 零 macro 宣稱仍真 |
+| AUD-07 | CONFIRMED | major | 加重發現：industry_category 在 live PK 內致新舊分類殘留並存；法源收斂為 P4.E2 單軸（P3.E3 為誤引） |
+| AUD-08 | **NEEDS_HUMAN** | 待裁定 | 見 7.1 |
+| AUD-09 | CONFIRMED_REVISED | **critical** | 見 7.1；三處 DELETE 逐字重現、superseded 全庫零命中 |
+| AUD-10 | CONFIRMED | major | 六元組缺欄與 §8.3 機器稽核不變式違反確認；F6 應改標風險視角（「無法回答」要件未該當） |
+| AUD-11 | CONFIRMED | major | fail-open epoch 分支經 Bash 重現；最強條文組合應改 P5.E1＋§8.3＋P2.E3 |
+| AUD-12 | CONFIRMED | major | 雙重最高權威歧義與零從屬聲明確認；§0.5「先登錄方生效力」構成要件限新增規格 |
+| AUD-13 | CONFIRMED | major | 零命中以更嚴格參數重跑仍成立；刪「可判定性元規則」對治權檔自有謂詞之誤用 |
+| AUD-14 | DOWNGRADED_EVIDENCE | minor | 「除權息事件無表徵」被推翻（兩事件表已入庫）；改寫為弱版本：無 CorporateAction 一級概念、事件表與價格表還原關係零宣告繫結（多表徵問題實際更廣） |
+| AUD-15 | CONFIRMED | minor | 四項核心證據重現；補 P1.E2 為直接依據、F1/P1.E1 標明為 AUD-01 已承載 |
+| AUD-16 | CONFIRMED | minor | 行號零偏移；Confidence 錨定應更正至 P4.E1/P4.E8 |
+| AUD-17 | CONFIRMED | minor | 行為面合規（status 寫點僅 verifiers 兩處）、缺口為 DB 級機器化保證——「部分符合」精確命中 minor |
+| AUD-18 | CONFIRMED | minor | 事實全數重現；F5/P4.E6 構成要件未該當，應改寫為「解釋粒度未操作化之缺口」而非違反語氣 |
+| AUD-19 | CONFIRMED | minor | 核心落差成立；主引條款應改 P4.E7；grep 檢索詞「通用常識」更正為「常識」 |
+| AUD-20 | CONFIRMED | minor | 11 處 CASCADE 行號全中；分級受 AUD-08/09 家族判準連動，--fix 已行使之 DELETE 屆時一併覆核 |
+| AUD-21 | CONFIRMED_REVISED | **major** | 見 7.1 |
+| AUD-22 | CONFIRMED | minor | 事實零偏移；P4.E3 構成要件實未該當（chat 非 Knowledge/Evidence），重定性為防護性治理缺口、補引 P1.E3 |
+| AUD-23 | CONFIRMED | minor | 11/12 查核成立；「只在註解中」修正為條件性（HANDOFF.md 亦有散文留痕） |
+| AUD-24 | CONFIRMED | minor | env 後門歸責缺陷程式碼層完整確證；補引 P3.E1 與 §8.3 第三點 |
+| AUD-25 | CONFIRMED | minor | 四項缺口重現；§8.1 論證重寫——首任 Steward 已於本 repo 具名登錄，缺口改述為「領域治權檔未承接 Steward 角色」 |
+| AUD-26 | CONFIRMED | minor | 三處指涉不一屬實；主錨由 P2.E4 改為 §2.1＋§2 定義元規則（P2.E4 為 MUST NOT，列名即與 minor 自相矛盾） |
+
+### 7.3 跨發現一致性裁定（門檢官）
+
+1. **P4.E3 刪除／覆寫家族異級為最大跨發現矛盾**（AUD-02 critical／AUD-08 待裁定／AUD-09 升 critical／AUD-20 minor／AUD-21 升 major／AUD-22 minor）。Steward 須擇一：**(A)** 修正判準文字，將「原始 vs 衍生＋緩解程度」尺度明文化（則 AUD-09 回 major、AUD-08 維持 major）；**(B)** 依判準字面機械適用（則 AUD-08 升 critical、AUD-20 已行使之 `--fix` DELETE 須覆核）。此擇一屬 §8.2 Steward 權限——**本報告在正式採認前唯一的實質未決點**。
+2. **體例缺陷（系統性）**：多項發現將禁止性規定或不可豁免核心（F4@AUD-04、F6@AUD-10/11/24、F5+P4.E6@AUD-18、P2.E2@AUD-19、P2.E4@AUD-26、F1/P1.E1@AUD-15）列於【憲章條款】欄卻裁 major/minor，按自訂判準列名即應觸發 critical，形成表面自相矛盾。應建立「受違條款」與「風險視角／對照條款」之區分標注體例。
+3. **重複計數檢核**：無實質重複計罪——F1/P1.E1 系統性違反由 AUD-01 單獨承載；P1.E2 四項分工（AUD-01/06/14/15）可辯護但需明文；P4.E1 Confidence 由 AUD-03 承載；同一 selfheal 鏈四項發現（AUD-10/11/23/24）各有獨立構成要件。
+
+### 7.4 總體結論複核
+
+「精神高度合憲、結構顯著缺層」**驗證後不僅成立且被強化**：「缺層」半句獲全面事實加固（四大結構層缺席診斷全數重現、多處證據比原審計更強）；「合憲」半句同樣經受檢驗（law 官在 AUD-18/22/26 等項認定所引條款構成要件實未該當，實際違憲面比報告標題語氣更窄；亮點描述全部屬實）。需修正處三項（嚴重度重心微幅上移、條款引用體例整修、AUD-14 子宣稱改寫）均不動搖總體結論。**在 Steward 完成家族判準裁定（7.3 第 1 點）與體例整修前，本報告以「驗證後草案」地位流通，非終局違憲認定文書。**
+
+---
+
 ## 附錄：審計方法與狀態揭露
 
 * **方法**：多代理工作流程（Run ID `wf_386f28b1-d49`）—— 6 偵察建圖 → 6 維度審計（35 項原始發現、54 項亮點）→ 跨視角去重整併（26 項，整併官親自重驗每項證據）。
-* **⚠️ 未完成階段**：設計中的第 4–6 階段（52 個獨立驗證代理之雙重對抗驗證、報告門檢）因執行資源之月度上限而未運行。本報告由主迴圈依整併官輸出直接撰寫。
-* **證據狀態**：每項發現的程式碼證據均經整併官親自重跑 grep／重讀檔案確認（非僅轉述審計官）；但未經設計中的獨立對抗驗證，severity 分級與憲章條款適用屬初步判定，最終確認前不應據以裁定違憲（§8.2 之正式違憲審查仍需 Steward 裁決）。
-* **後續**：資源恢復後可以 `resumeFromRunId` 從快取前綴恢復工作流程，僅重跑驗證階段以升級本報告為正式版。
+* **未完成階段（已補齊）**：~~設計中的第 4–6 階段（52 個獨立驗證代理之雙重對抗驗證、報告門檢）因執行資源之月度上限而未運行。本報告由主迴圈依整併官輸出直接撰寫。~~ → **已於 2026-07-16 以全新 Run `wf_94841fac-18f` 補齊執行**（53 代理、0 錯誤；因快取不可跨工作階段恢復，未使用 `resumeFromRunId`，全部證據為即時重查），結果見第七節。
+* **證據狀態**：每項發現的程式碼證據均經整併官親自重跑 grep／重讀檔案確認，**並已經 52 位獨立對抗驗證官雙重驗證（0 項被推翻）**；severity 分級經憲章適用裁判官與門檢官複核，除 AUD-08 與 P4.E3 家族判準待 Steward 依 §8.2 裁定外均已確認。正式違憲認定仍屬 Steward 權限。
+* **驗證產物**：門檢處置表與逐項驗證裁決要旨見第七節；per-finding 原始驗證裁決全文（含每項 checks 的重現方法與實際觀察）存於 [VERIFICATION-2026-07-16-wf_94841fac.json](VERIFICATION-2026-07-16-wf_94841fac.json)。
