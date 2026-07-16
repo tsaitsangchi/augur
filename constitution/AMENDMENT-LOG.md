@@ -12,7 +12,7 @@
 * **程序依據**：v1.0 §7（修訂當時之有效程序）；§8 治理章屬初始採行（initial adoption）
 * **內容摘要**：新增 Principle 5（Accountability Before Action）、§2 Definitions、§8 治理章；§4 技術中立化；統一 canonical chain（EV.1–EV.12）。完整變更見憲章 Appendix C
 * **修訂理由書**：[REVISION-RECORD-v1.0-to-v1.1.md](REVISION-RECORD-v1.0-to-v1.1.md)（載明 P5 符合 v1.0 §7 實質判準之論證）
-* **具名批准人**：tsaitsangchi（GitHub: [tsaitsangchi](https://github.com/tsaitsangchi)）
+* **具名批准人**：tsaitsangchi（法定姓名，同 GitHub 帳號 [tsaitsangchi](https://github.com/tsaitsangchi)）
 * **效果**：依憲章 §8.1，具名批准人自 v1.1 生效時起擔任**首任 Constitution Steward**
 
 ## AL-2026-002
@@ -30,4 +30,4 @@
 * **程序依據**：憲章 §8.1（Steward 制定並公開發布；本次於憲章生效後 90 日期限內完成）
 * **文件**：[GOVERNANCE-ANNEX.md](GOVERNANCE-ANNEX.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
-* **備註**：登錄名義暫以 GitHub 帳號為之；Steward 得隨時以書面裁決補登法定姓名（屬 patch 級編輯修正）
+* **備註**：~~登錄名義暫以 GitHub 帳號為之；Steward 得隨時以書面裁決補登法定姓名（屬 patch 級編輯修正）~~ 已補登：Steward 於 2026-07-16 確認法定姓名即為 tsaitsangchi（與 GitHub 帳號相同），AL-2026-001 之登錄名義自始即為法定姓名，無待補事項（patch 級修正，依治理附則第 2 條第 3 款辦理）
