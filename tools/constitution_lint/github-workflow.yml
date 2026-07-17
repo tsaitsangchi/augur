@@ -1,0 +1,30 @@
+name: constitution-lint
+
+# Augur §8.3 機器稽核 CI（骨架）——依《憲章展開總綱》§5.4、AUGUR-MC v1.3 §8.3。
+# compliance_lint 管規格生效（本 repo）；audit_lint 管 code 合憲（於 augur code repo 之 CI 接線，後續階段）。
+# 治權自動化止於「判定與阻擋」——本 CI 只報 finding／擋 error，決不改內容或自動 apply（P5.W2）。
+#
+# 骨架階段策略：selftest 與規格 compliance-lint 為必過（error 阻斷）；warning/info 不阻斷。
+# linter 設為 merge-gate（強制）留待總綱階段 9（見 CONSTITUTIONAL-ROLLOUT-PLAN.md §六）。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 紅綠自檢（WM v1.0 綠 / 壞樣本紅）
+        run: python -m tools.constitution_lint --selftest
+      - name: compliance-lint 全規格（error 阻斷、warning 不阻斷）
+        shell: bash
+        run: |
+          # SHOULD #15：以 find 列舉，避免 glob 未展開/空目錄字面路徑誤紅
+          mapfile -t specs < <(find specs -name '*.md' -type f | sort)
+          python -m tools.constitution_lint compliance "${specs[@]}"
