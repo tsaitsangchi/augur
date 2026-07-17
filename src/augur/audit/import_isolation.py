@@ -50,6 +50,12 @@ BRIDGE_LITERALS = ("field_term_map", "field_knowhow_lexical_affinity", "knowledg
 # 純預測消費者 package 禁字面觸及;合法寫入者(core/ingestion/audit——本就 SELECT/INSERT 本表)排除在掃描外。
 # 與 setup_predict_role 之 DB 動態 REVOKE 成雙閘(AST/字面擋靜態、GRANT 擋動態),補齊先前對本表僅單閘之不對稱(issue 11)。
 SUPERSEDE_LITERALS = ("raw_supersede_log",)
+# 身份側「事後修正知識」表(步 11 AUD-04/05/07):claim 衝突並存、lifecycle retire/redirect、attribute as-of 修正
+# 版本皆屬事後認識,純預測消費者裸讀=洩漏未來修正=WM.35 消費閘破口。與 setup_predict_role 之 DB REVOKE 成雙閘
+# (AST/字面擋靜態、GRANT 擋動態);補齊步 11 對此三表僅 DB 單閘之不對稱(同 raw_supersede issue 11 雙閘紀律)。
+IDENTITY_LITERALS = ("identity_claim", "identity_lifecycle_event", "entity_attribute_version")
+# 自動行動授權/留痕表(步 11 AUD-10/11):執行層記錄、與預測管線無涉;純預測消費者禁字面觸及(縱深雙閘,對稱 DB REVOKE)。
+ACTION_LITERALS = ("automation_action_log", "authorization_grant")
 PREDICT_CONSUMERS = ("features", "models", "universe", "evaluation")   # 純消費側:排除合法寫入者 core/ingestion/audit/catalog
 # grep-lint 面:預測管線 + core 皆禁字面引用 RBAC/chat(擋不 import 但字串旁路)
 SCAN_STR = PIPELINE + ("core",)
@@ -179,6 +185,8 @@ def check_isolation() -> list[str]:
         + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_DISTILL], DELIB_LITERALS, "deliberation")
         + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_STR], BRIDGE_LITERALS, "bridge")
         + _string_ref_violations([_AUGUR_ROOT / p for p in PREDICT_CONSUMERS], SUPERSEDE_LITERALS, "supersede")
+        + _string_ref_violations([_AUGUR_ROOT / p for p in PREDICT_CONSUMERS], IDENTITY_LITERALS, "identity")
+        + _string_ref_violations([_AUGUR_ROOT / p for p in PREDICT_CONSUMERS], ACTION_LITERALS, "action")
         + _placement_violations()
         + _scripts_predict_leak_violations()
     )
@@ -192,7 +200,8 @@ def main() -> int:
             print("  " + line)
         return 1
     print(f"✓ 隔離不變式通過:{' / '.join(PIPELINE)} 零 import 素養層 + 預測/core 零 RBAC/chat 字面 + "
-          f"預測/core/素養層零 advisor_distill 字面(界線-A)+ 純預測消費者零 raw_supersede_log 字面(WM.35)+ "
+          f"預測/core/素養層零 advisor_distill 字面(界線-A)+ 純預測消費者零 raw_supersede_log/identity(claim/"
+          f"lifecycle/attribute)/action(automation/authz)字面(WM.35 雙閘對稱)+ "
           f"resolver/chat_history 住對位 + scripts 預測腳本零洩漏面")
     return 0
 

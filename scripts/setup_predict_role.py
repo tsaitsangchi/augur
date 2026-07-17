@@ -35,12 +35,27 @@ FORBIDDEN_EXPLICIT = {
     "app_user", "app_session", "user_group", "group_domain_grant",    # RBAC 身分/授權
     "permission_group", "principle_factor_map", "stock_philosophy_tag", "school_thinker",  # 非前綴素養/映射
     "raw_supersede_log",   # AUD-02:old_row(被取代舊值)+superseded_at(事後修正知識)落入預測回讀=WM.35 消費閘破口→REVOKE
+    # 結構補正(步 11):身份側「事後修正知識」表——同 raw_supersede_log 之理(WM.35 消費閘破口)→ REVOKE,
+    # 防被預測回讀當特徵(claim 之衝突並存/lifecycle 之 retire/redirect/attribute 之 as-of 修正版本皆屬事後認識,
+    # 裸讀=洩漏未來修正)。resolution 解析用途走已解析 augur_id(Phase 2 消費端 SQL)、非直讀本三表。
+    "identity_claim", "identity_lifecycle_event", "entity_attribute_version",
+    # 自動行動授權/留痕:執行層記錄,與預測管線無涉 → 預測 role 零存取(縱深)。
+    "authorization_grant", "automation_action_log",
 }
+# 注:entity_type_catalog / entity_registry / entity_alias 屬 resolution 基礎設施(Phase 2 消費端須 JOIN 已解析
+#     augur_id),故不列 forbidden、留 allowed(唯讀);其 append-only/permanence 由 migrate_identity_ddl 硬化。
+# ⚠ 過渡期護欄(issue 13/17,誠實揭露):此三表帶 as-of/事後狀態欄(entity_alias.valid_from/valid_to/
+#     transaction_time/alias_status〔provisional→adopted→retired〕、entity_registry.status〔active/tombstoned〕/
+#     minted_at)。**Layer 4/5 as-of resolver 視圖上線前,預測消費者不得 as-of-blind 直讀現況欄**——裸讀 alias
+#     現況(未來重新映射)或 registry status(未來下市)=洩漏未來、違 anti-leakage #8。合規入口=Phase 2 之 as-of
+#     resolution 視圖(遮蔽 transaction_time/status 現況、僅暴露 as-of 解析結果);屆時把此三基礎表改回 forbidden、
+#     只 GRANT 該視圖(承接 L4/L5)。本步僅留此文件護欄(as-of resolver DEFER L4/L5、過渡期無機械閘)。
 # 預測 role 需寫入(非只讀)之輸出表(2026-07-08 補 harness 記錄表:revalidate/deflation/判停之落地)
 WRITABLE = {"model_registry", "prediction_values", "feature_values",
             "pipeline_execution_log", "data_audit_log",
             "revalidation_ledger", "trial_ledger", "revalidation_baseline",
-            "revalidation_verdict", "judgestop_threshold"}
+            "revalidation_verdict", "judgestop_threshold",
+            "prediction_serving_log"}  # AUD-08:predict 出單伴生 append(Phase 4 改繫);同 prediction_values 為輸出表
 
 
 def classify(cur):
