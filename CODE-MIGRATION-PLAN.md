@@ -4,7 +4,7 @@
 * **目標**：把活的台股系統（tsaitsangchi/augur）**逐步移轉到元憲章治理之下**，並使**一切後續擴張自動生於憲章之內**——不推倒重來、不讓 F1 遺產定義未來。
 * **法源與素材**：`AUGUR-MC v1.3` 五原則；`AUGUR-WM/ONT/ID/KS v1.0` 生效規格；`GROUNDING-MAP.md`（44 條物理義務對映）；`CONSTITUTIONAL-ROLLOUT-PLAN.md` 軌道 B/C 與 strangler-fig 三接縫；合憲審計（critical 3／major 11／minor 12，54 亮點）。
 * **快照日**：2026-07-18。數字紀律：凡數字附產生指令；未驗者明標。
-* ⚠️ **審查狀態揭露**：本計畫書之三重對抗審查（憲章合規／現實可行／誠實完備）因每月消費上限**未執行**（0 代理完成）；現版為主迴圈自查稿——其引用之事實基礎（GROUNDING-MAP、九路研讀）各自經過對抗驗證，但**本文件自身未經**；額度恢復後補行對抗審查再定稿。
+* ✅ **審查狀態**：本計畫書已經對抗審查（2026-07-18，wf_91983484-608，go=false→8 issues 全採納）：修訂 owner 分離斷線風險（major）、Phase 5/1 閘機器可判性、新增 Phase 8 誠實揭露 AUD-09/21 等未涵蓋發現、亮點不可動區改非閉集聲明。事實基線經審查官親驗（250 表/十表零列/37 檔/420 verdict/247 表 owner 皆命中）。
 
 ---
 
@@ -18,12 +18,13 @@
 | 治權檔 | 檔頭從屬聲明✓；完整合規聲明**未作**（期限 2026-10-14） | RULING-2026-002 主文二 |
 | 沙盒 | ✅ augur_sandbox（55GB 複本＋十表）＝常設驗證閘 | build_sandbox [4/4] |
 | 節拍器 | ✅ 已實證之移轉節拍：**沙盒實測 → P5 拍板 → 生產 apply → 唯讀驗證** | 2026-07-18 首輪全程走通 |
+| 未涵蓋發現 | ⚠️ AUD-09/21（MAJOR）＋多項 minor 前七期未涵蓋——列 **Phase 8**（誠實揭露、不沉默） | 審查官親驗；REMEDIATION-ROADMAP 第二波 |
 
 ## 一、移轉原則（自憲章導出，全程不變）
 
 1. **strangler-fig，不推倒**（WM.10）：raw 鏡像層＝合法且必要的 Observation Store，「必須建立於其上、不得取而代之」。病灶只在「vendor 表即世界模型、下游直綁」。
 2. **三接縫絞殺**（ROLLOUT-PLAN §4.1）：①World Model 投影（WM.36 registry）②Identity registry（mint-on-admission）③Confidence 語義層（KS L_C）。消費者逐檔改繫、**一次一檔、雙讀影子比對 diff 零方切、任一非零即熔斷回退**。
-3. **亮點不可動區**（審計 54 項＝補正的參照系）：verify_claim 唯一寫點、admission 四件閘、TTY 唯人閘、guard 閉集、fred_series vintage、review_log append-only、「不下單不動錢」。**改壞任何一項＝拆掉憲章在此系統中已有的落地。**
+3. **亮點不可動區**（**首要 7 項具名；完整清單以審計報告第三節 54 亮點原文為權威**，本處非閉集）：verify_claim 唯一寫點（⚠️ 見下 AUD-17：目前僅 app 層紀律、DB 未 trigger 強制）、admission 四件閘、TTY 唯人閘、guard 閉集、fred_series vintage、review_log append-only、「不下單不動錢」。**改壞任何一項（含未具名之其餘 47 項）＝拆掉憲章在此系統中已有的落地。**
 4. **每步一節拍**：沙盒實測→P5 拍板→生產 apply→唯讀驗證→記錄 push。行為驗證一律在沙盒（生產側破壞性測試禁止）。
 5. **擴張一律 greenfield 合憲**（軌道 C）：新 dataset／新市場／新能力 spec-first——先過 WM.35（落地即整合：世界概念映射登錄，unmapped 得存不得消費）、繫 ONT 型別、mint identifier，**永不再走 raw 直綁老路**。
 6. **誠實邊界**：每期完成判準機器可判；不可落地者（owner 分離前的 trigger 極限、單人、無 GPU）明標不掩蓋。
@@ -37,8 +38,8 @@
 
 ### Phase 1 — code 部署與 P4.E5 行為生效 ⚡（最高優先：讓已 apply 的表開始工作）
 **內容**：(a) `remediation/impl-2026-07-17`＋PR #2 測試檔經 Steward #19 檢視後**併 main**；(b) 生產執行環境切至含快照 gate 之 code（daily_maintenance heal 自此透傳 `snapshot_reason` → raw_supersede_log 開始收衝突留痕）；(c) `setup_predict_role --apply --confirm`（人工跑，分類器擋 AI）；(d) **owner 分離**：建 `augur_app` 應用角色、十張憲章表 owner 改隸 `augur_owner`（或 postgres），應用連線不再用 owner 身分——補上「trigger 擋不住 owner」的最後一塊。
-**【閘】**：下次 heal 遇 value_mismatch 後 `SELECT count(*) FROM raw_supersede_log` > 0 且 old_row/new_row 並存；`SELECT tableowner FROM pg_tables WHERE tablename='raw_supersede_log'` ≠ 應用角色。
-**【規畫】**：無新 DDL；`ALTER TABLE … OWNER TO augur_owner` × 10；systemd 服務重啟（CLAUDE #7：**改 code 必重啟常駐服務**）。
+**【閘】**：下次 heal 遇 value_mismatch 後 `SELECT count(*) FROM raw_supersede_log` > 0 且 old_row/new_row 並存；`SELECT tableowner FROM pg_tables WHERE tablename='raw_supersede_log'` ≠ 應用角色；**且以應用角色（augur_app）實測對十表最小 INSERT/SELECT 成功**（沙盒——否則 owner 已改而應用斷寫之失敗態會被漏判）。
+**【規畫】**（親驗現況：全 247 表 owner＝augur、應用即以 `DB_USER=augur` 連線，`augur_owner`／`augur_app` 角色尚不存在——直接改 owner 會使應用喪失 owner 隱含權限而斷寫）：(a) `CREATE ROLE augur_owner NOLOGIN`＋`CREATE ROLE augur_app LOGIN`；(b) 十張憲章表 `ALTER TABLE … OWNER TO augur_owner`＋逐表 `GRANT INSERT/SELECT`（憲章表禁 UPDATE/DELETE，由 trigger 兜底；serving 例外許 superseded_by）予 augur_app；(c) **其餘 237 張應用需用表之 GRANT 盤點**（現靠 owner 隱含權限，切角色後須顯式 GRANT）；(d) 應用連線角色切換：`.env` `DB_USER=augur→augur_app`、`config.DB_PARAMS`、systemd 服務重啟（CLAUDE #7）；(e) **沙盒實跑一次 heal 寫 raw_supersede_log＋mint 寫 entity_registry，驗權限鏈完整**方得生產。⚠️ 本子項為 major 風險（斷線），須整包沙盒驗證後 P5 拍板。
 
 ### Phase 2 — Identity 接縫：mint-on-admission ＋ 存量鑄造 🪨（AUD-04/05/06/07 行為面；ID.11 義務結清）
 **內容**：(a) `ingestion/ingest.py::store` 准入點接 `resolve_or_mint`（外部碼→entity_alias→augur_id；查無→mint＋alias 登錄；`detect_code_reuse` 紅旗→provisional 不縫合）；(b) **存量鑄造 backfill**：對現有名冊實體一次性 mint（Security ≈3,114、Index、FredSeries——數量以 `core_gate` 名冊實跑為準，勿轉抄）；(c) TaiwanStockInfo 屬性快照開始寫 `entity_attribute_version`（daily sync 差異偵測 → SCD-2 append），`core_gate` 產業判定改讀 as-of（AUD-07 解）；(d) 下市事件消費：TaiwanStockDelisting → `identity_lifecycle_event(retire)`（AUD-05 解）。
@@ -51,13 +52,13 @@
 **【規畫】**：python——audit_selfheal.sh/audit_watchdog.sh 加 psql 寫入段或改呼叫 python helper；`scripts/seed_authorization_grants.py`（新，一次性遷移＋TTY 人核）。
 
 ### Phase 4 — Serving append-only 消費切換 ⚡（AUD-08 行為面）
-**內容**：(a) `predict_asof.py::predict` 出單時**同交易** append `prediction_serving_log`（含 run_id/git_sha）；(b) 建 `prediction_current` 視圖（serving_log 之 superseded_by IS NULL 面）；(c) advisor payload 與風控 `_deployed_dd_returns` 改讀視圖；(d) 穩定一個驗證週期後，prediction_values 之 DELETE+INSERT 路徑退役（改 append＋標記，另案 P5）。
+**內容**：(a) `predict_asof.py::predict` 出單時**同交易** append `prediction_serving_log`（含 run_id/git_sha）；(b) 建 `prediction_current` 視圖（serving_log 之 superseded_by IS NULL 面）；(c) advisor payload 與風控 `_deployed_dd_returns` 改讀視圖；(d) 穩定一個驗證週期後，prediction_values 之 DELETE+INSERT 路徑退役（改 append＋標記）——**屬破壞性改動（現 1695 列活資料），另立獨立提案經 §8.2/P5.W2 治理程序，非本計畫任一 Phase；此處僅預告，不排入本計畫排程**。
 **【閘】**：出單一次後 serving_log 有列且 `--rewrite-all` 重跑時舊列 superseded_by 被標記而非消失；advisor 回歸金題集綠。
 **【規畫】**：python——predict_asof.py 出單段＋10 行；`CREATE VIEW prediction_current AS SELECT … WHERE superseded_by IS NULL`（DDL 一支，入 migrate 腳本）。
 
 ### Phase 5 — Confidence L_C 落地 🪨（AUD-03 行為面；KS §4/Annex CM）
 **內容**：(a) DDL：`CREATE TYPE lc_confidence AS ENUM ('INSUF','LOW','MODERATE','STRONG','DETERMINISTIC')`＋`deliberation_verdict` 加 confidence 欄＋`lc_mapping` 登錄表（CM.1(a) 十一列官方映射：oracle confirmed→DETERMINISTIC、校準機率→banding、green/amber/red→…）；(b) verify_claim 附掛 confidence（唯一寫點原則不變——只擴欄不改寫點）；(c) 消費保守規則：無 Confidence＝INSUF、不得升信（KS.38）；identity_claim.confidence_level 開始填值。
-**【閘】**：`SELECT count(*) FROM deliberation_verdict WHERE confidence IS NULL AND verdict<>'undecidable'` 趨零（新裁決）；lc_mapping 與 KS Annex CM 逐列相符（gate 或人工對照）。
+**【閘】**（親驗現有 420 列既有裁決，ADD COLUMN 後恆 NULL）：`SELECT count(*) FROM deliberation_verdict WHERE confidence IS NULL AND verdict<>'undecidable' AND verdict_id > :部署基準`（**須加序號/時間界方為機器可判**，否則既有 420 列使查詢永不趨零）趨零；lc_mapping 與 KS Annex CM 逐列相符（gate 或人工對照）。
 **【規畫】**：DDL 一支 `migrate_lc_confidence_ddl.py`（ENUM＋兩 ALTER＋lc_mapping 表＋seed 十一列）；python——verifiers.py verify_claim 擴一參數（預設值依 oracle 種類）。
 
 ### Phase 6 — World Concept Registry ＋ 37 檔直綁絞殺 🪨🪨（AUD-01 根治；最大工程量）
@@ -67,6 +68,17 @@
 
 ### Phase 7 — 治權收尾 ⚡（期限 2026-10-14）
 五份治權檔完整合規聲明（AUGUR-WM §11 格式＋WM.44 逐條矩陣，工具：constitution_lint 綠）；原則精華 #7 條文改「新版本入庫、舊版標 superseded」（**Steward 拍板後**與 Phase 1 部署對齊）；審計報告終局定案（§8.2）。
+
+### Phase 8 — 二/三波審計發現（誠實揭露：本計畫前七期未涵蓋者）🪨
+
+審查官親驗指出：審計 26 發現中，下列未被 Phase 0–7 任何期涵蓋。**在此明列而非沉默**（審計 REMEDIATION-ROADMAP 將 AUD-09/21 與已涵蓋之 AUD-08 同列第二波，計畫不得只做孿生之一）：
+
+* **AUD-09（MAJOR）**：core_gate `build_universe`/`build_universe_asof` 之 `DELETE FROM` 與 `catalog/__init__.py` `DELETE FROM column_catalog`——衍生 Knowledge 全量重建無 superseded（違 P4.E3）。親驗 core_universe_asof 776 檔活資料、column_catalog 活表、DELETE 路徑仍在。**處置**：版本化 append＋superseded 標記（比照 Phase 4 之 serving 模式）。排入本期。
+* **AUD-21（MAJOR）**：`framework.py` seed 對齊路徑 `UPDATE philosophy_principle SET hypothesis`／`UPDATE principle_factor_map SET direction`——supersede 三要件零履行（違 P4.E3）。**處置**：比照 curation.py review_log 模式（審計指定範式）。排入本期。
+* **AUD-17（minor）**：verify_claim 唯一寫點僅 app 層紀律、DB 無 trigger 阻旁路寫 confirmed。**處置**：加 BEFORE UPDATE trigger（status→confirmed 須存在對應 is_deterministic verdict），比照 direction_gate trigger 範式。—— ⚠️ 此為 §一原則 3「亮點不可動區」中 verify_claim 之**已知殘餘**，不得呈現為已完成之保證。
+* **AUD-16**（claim 結構化指涉＋verdict confidence 結構欄）、**AUD-20**（ON DELETE CASCADE 物理消滅 identifier/Evidence → RESTRICT＋隔離標記）、**AUD-22**（chat 硬刪除→tombstone）、**AUD-23**（P5.E2 行動風險分級表）、**AUD-24**（admin env 後門歸責）、**AUD-14/15/18/19**（除權息表徵／catalog 世界概念欄／per-pick 解釋／通識標記機械前置）——各為 minor，處置方向見審計第四節；**本計畫排入 Phase 8 或明示延後**，均不沉默。
+
+**【閘】**：每項附審計條款與可判定測試（同各 AUD 補正方向之驗收）；Phase 8 得與擴張軌並行，非關鍵路徑。
 
 ### 擴張軌（與 Phase 2+ 並行，永續）
 
