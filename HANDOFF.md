@@ -2,7 +2,7 @@
 
 > **這份文件是什麼**：augur 會在**另一台電腦接續開發**。這是「新機 clone 後第一份該讀的文件」——
 > 告訴你**從哪接、怎麼跑起來、哪些不在 git、進度到哪、紅線是什麼**。
-> 快照時點：**2026-07-16**（`main` HEAD = `1ac820c`、tag `archive-20260716-arena-admission-pass`;HEAD 之後會前進,以 `git log` 為準）。
+> 快照時點：**2026-07-17**（`main` HEAD = `548f850`、最新 tag 見 `git tag -l 'archive-2026071*'`;HEAD 之後會前進,以 `git log` 為準）。
 
 ---
 
@@ -71,8 +71,21 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 > 更新於 **2026-07-16**（arena admission gate 全落地日）、git HEAD `1ac820c`（tag `archive-20260716-arena-admission-pass`）、最新 tag 見 `git tag -l 'archive-*'`。
 > **紀律：本區每個宣稱都可能過期——待辦一律先跑附帶的驗證指令實查（#15），勿直接信。**
 
-### 4.1 一句話現況（2026-07-16；取代前版）
-**🏆 arena 已開賽（2026-07-16 hugo 拍板）**：gate `arena_adm_5305655ad1cd` **evaluated_pass** ∧ 閘一 6 隊 approved → cron 三行已掛（22:30 每日管線/23:10 結算/月初 scoreboard;pipeline 行補 proposal 漏的 `--run`）→ **首手落地 as-of 07-15：4 隊×344 檔=1,376 列入 `direction_arena_prediction`**（own_daily_rolling/majority/momentum_20/mc_bootstrap;chronos/timesfm 套件缺=operational 誠實缺席待補裝;own_v2_frozen 對照未接線）。反回填 trigger 首次真實出手驗證 ✓（資料未 sync 時正確擋拒 pred_date 過舊）。開賽即 review_observation_only tier、**永不宣稱確立級**;確立升格=門二 `evaluate_direction_gate`（≥60 clusters）。首週監看=A2 §6（每日 pipeline log/settle 首批/scoreboard 首份）。
+### 4.1 一句話現況（2026-07-17；取代前版；git HEAD 見 `git log`、最新 tag `git tag -l 'archive-2026071*'`）
+
+**今日（07-17）大進度日——八個封存點**：治權批次→TSFM benchmark→A4 入賽→alpha 計畫→Phase 1 執行→錨修復鏈。逐塊：
+
+**① arena 8 隊 live（A4 波次 07-17 加入）**：07-16 開賽（gate `arena_adm_5305655ad1cd` evaluated_pass ∧ 閘一 approved；cron 三行 22:30/23:10/月初）。**07-17 加 A4 兩隊**（Chronos-2 `chronos2_market_5` + Moirai-2.0 `moirai2_small_5`；dgate_a4 K=2/α=0.025/21 門全序列揭露；hugo TTY approve×2——**憲章 v1.42.0 TTY 閘實證擋 AI 代跑**）。**8 隊全員 live**（4 本地+4 TSFM）；chronos/timesfm 套件已補（uni2ts 降級 numpy/torch、四關驗綠）。review_observation_only tier、確立唯門二（≥60 clusters）。license 白名單擴 cc-by-nc-4.0（Moirai NC、**商業化前須清算**）。
+
+**② 治權批次（07-17 hugo「全批照案」）**：原則精華 **v1.9.1**／憲章 **v1.46.0**／CLAUDE **v1.29**／README／HANDOFF——live 准入 unfreeze gate(退史料)→arena 前置 G1-G5 機制；判準值零變動。**+平行 meta-憲章體系**（你另一會話：`augur-constitution` AUGUR-MC v1.3 Layer 0 lex superior、5 治權檔已加從屬聲明檔頭、AUD 審計；rebase 整合乾淨）。
+
+**③ TSFM benchmark（鏡射 arXiv:2606.27100）**：台股 top5×10 窗×6 模型——**20 個 DM 檢定零顯著勝隨機漫步**（Chronos-2 最不退化）；「最適合台股點預測=零報酬 RW」。TSFM 正確用途=arena 候選非點預測。報告=`reports/tsfm_taiwan_benchmark_20260717.md`+工具 `scripts/benchmark_tsfm_taiwan.py`。
+
+**④ alpha 提升計畫（07-17 拍板開工）**：`reports/taiwan_alpha_improvement_plan_20260717.md`（三軸 D/P/M、51 項對抗審查、11 拍板點）。**Phase 1 進度**：1-0 P0 診斷 ✅→**§0 驚雷=headline 錨 1.1972 不可再現**→修復鏈（見⑤）；1-1 recipe DDL ✅（trial_ledger +recipe 欄/UNIQUE 8）；1-2 P2 turnover 半和量尺 ✅（headline→1.1302）；1-3 P1 buffer **判死**（雙宇宙判準攔 asof 假象、ledger N=33）；1-4 P4 vol-target **無靶不啟用**（能力清償）；1-5 全鏈刷新 ✅；**1-6~1-9 部分**（D2 選 2 候選進漏斗+1-9 草案已 commit；1-7/1-8/D2 漏斗/判決=**撞月度配額上限未跑**、resumeFromRunId=wf_390aeef6-155 待配額重置）。
+
+**⑤ 錨修復鏈（hugo A/(a)/(i) 三裁）**：PriceAdj 修復（41 真損傷/175=除息跳點誤標定案）→新錨 **net 1.1302／超額+0.372／HAC-t 6.70／DSR 47.9%**（KPI SSOT=N=32 保守口徑）→`revalidation_baseline` re-freeze→**judgestop 相對式條款**（`deflated_decay_margin=0.10` frozen 取代絕對零線；絕對線在 N=32 下 baseline 自身為負=恆觸發失鑑別力）→verdict state=`deploying_unestablished`。econ_verdict 全程 thin 未變向。**DB dump=`C:\database\augur_pgdump_20260718_Fd.tar`（修復後乾淨快照）**。
+
+**舊狀態（07-16 及前，仍有效）**：unfreeze gate 路徑退役+G1-PIN+G1-G5 七元件+撤列容忍——詳 git `f851742`/`1ac820c` 版本段。件 A DDL 待 apply+TTY 活化；件 B harvest 停 ~99,229 abstracts 待續；Qdrant serving 運行中。
 **unfreeze gate 路徑退役（hugo 拍板 07-16）**：`preregister_unfreeze_gate.evaluate()` 實測=純唯讀診斷（守門1-4 過但 G1-G5 標「本計畫內不可達」未實作、不改 status）→ 接受解凍已由 07-12 入憲完成、`unfreeze_06dcb178267d` **superseded 史料**（evaluation_ref 雙向鏈指新 gate）；**arena 前置改 G1-G5 實質驗證機制**（計畫+決策紀錄＝`reports/arena_g1g5_admission_gate_plan_20260716.md`：D-1~D-6/D-11 全拍板、D-2=Reading A 方向確立走門二、G3/G4 歸相對強度部署）。
 **G1-PIN（hugo 拍板）**：arena 資料地基 **as-of 釘死 2026-06-30、不再滾動追資料完整**（live byte 對帳=移動標靶=「凍一條河」概念錯誤）；≤05-31 凍結期認證+06 月窗抽樣對帳 **PASS**（attestation #4：VM0/EX0、撤列容忍 36 揭露、`audit_since=2026-06-01`）。
 **G1-G5 機制七元件全落地**（`migrate_arena_admission_gate_ddl`/`preregister_arena_admission_gate`(繼承 990ddea sha 斷言)/`freeze_feature_panel_hash`(兩軸 36+2,830 panel 洩漏鎖)/`verify_score_repro`(112 組 5 位復現)/`report_restatement_diff`(U5 佇列)/`evaluate_arena_admission`(核心裁判、--check 唯讀預演)/雙閘接線 daily_pipeline+arena_round fail-closed）。
@@ -118,6 +131,9 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 5. **R-H 修憲（OCR/ASR 轉錄≠AI + 本機/SFTP 明文豁免）**：v3 提案＝`reports/augur_rh_amendment_transcription_exemption_v3_20260714.md`；T2 CLAUDE #29b 條文（Fable 5 檔位、治權檔）待 hugo 確認後才動筆改治權檔。
 6. **arena 開賽 cron 掛載時點**（雙閘已開、機械前置全綠;掛載＝開賽＝hugo 決策）。
 7. ~~G1-G5 治權修訂批次~~ **已完成（2026-07-17 hugo「全批照案」）**：原則精華 v1.9.1／憲章 v1.46.0／CLAUDE v1.29／README／HANDOFF 全鏈級聯（判準值零變動、僅機制指向;詳憲章修訂歷程 v1.46.0）。
+8. **alpha 計畫 11 拍板點**（`reports/taiwan_alpha_improvement_plan_20260717.md` §七）——大部分候選待逐支 productionize 拍板;Phase 1 已執行 1-0~1-5+1-6 部分。
+9. **alpha 1-6~1-9 續跑**（配額重置後）：`resumeFromRunId=wf_390aeef6-155`（已完成 2 agent 快取零重耗）——1-7 D3/1-8 D1 前置盤點/D2 兩候選四道漏斗/判決合成。
+10. **A4 Moirai NC license 清算**（商業化前）：cc-by-nc-4.0 依賴 provenance 已留痕。
 
 > 解析器計畫 T0 已拍(2026-07-12):D1 核准全計畫、D2 另立 PDF 計畫、D3 IA 200/批——**T1-T3 當日執行完畢**(FRASER textUrl 實證/三策略落 DB/IA 13 批掃蕩 491 抓、熔斷零觸發)。
 
