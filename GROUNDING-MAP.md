@@ -23,8 +23,8 @@
 | 生產 DB | PG 17.9 於 127.0.0.1:5432，庫 augur ≈55GB、**253 表** | 253 表：rowcounts 253 行（`wc -l`）；≈55GB **未附產生指令＝未驗**（scratchpad 無 size 類抽出物；與審查現實錨定相符；補驗指令＝`SELECT pg_size_pretty(pg_database_size('augur'))`，需 DB 權限，本審禁連） |
 | pgvector | 0.8.4 | `$SP/augur-extensions.txt` |
 | 不可回改 trigger | 12 條（**實質護欄 10 條**，2 條僅 ttai touch updated_at——現實官逐一讀函式體認定） | `grep -c 'CREATE TRIGGER' $S` → 12；函式體 `sed -n '94,390p' $S` |
-| 沙盒 | augur_sandbox 建置中＝**落地驗證閘**。staging `/home/giga/db_stage_sandbox/augur_pgdump_20260718_Fd` 已見 253 個分片（`ls \| wc -l` → 253，目錄 mtime 2026-07-17 13:20） | `ls /home/giga/db_stage_sandbox/augur_pgdump_20260718_Fd \| wc -l` |
-| 環境缺件 | 系統 python3 **無 pytest、無 psycopg2**（`python3 -c 'import pytest'`／`'import psycopg2'` 均 ModuleNotFoundError）——PR #2 之 15 測試現機不可跑 | 上開 import 指令 |
+| 沙盒 | ✅ **augur_sandbox 已落成（2026-07-18）**：pg_restore error 0、240 表、TaiwanStockPrice 至 2026-07-16、55 GB；生產庫同時確認未動 | build_sandbox.sh [4/4] 自帶驗證輸出（tasks/bd9tr5yc3）；複驗：`psql -d augur_sandbox -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'"` |
+| 環境缺件 | ✅ **已補（2026-07-18）**：augur-code/venv/（psycopg2 2.9.12、pytest 9.1.1、requests、python-dotenv） | `venv/bin/python -c 'import psycopg2, pytest'` |
 
 > ⚠️ **infrastructure/ENVIRONMENT-SPEC.md 描述的是另一台不可達的 GB10 機器——與本機實測全面不符，屬主動誤導文件，本圖全程未引用，待重寫（見 §六-5）。**
 
@@ -160,9 +160,12 @@
 
 ### 落地序與各步之閘
 
-1. **環境補件**（閘：`python3 -c 'import pytest, psycopg2'` 通過）——現機二者皆 ModuleNotFoundError。
-2. **augur_sandbox 還原完成**（閘：`psql -d augur_sandbox -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'"` ≈ 253 且生產庫大小未動；build_sandbox.sh [4/4] 自帶驗證）——staging 253 分片已在（`ls … | wc -l` → 253，mtime 2026-07-17 13:20），還原未完成。
-3. **沙盒實測**（閘：各 migration `--check`＋`--selftest` 沙盒全綠；PR #2 15 測試 `DB_HOST=127.0.0.1 DB_NAME=augur_sandbox pytest tests/test_raw_supersede_log.py` → 15 passed；trigger 在位驗證 SQL 見 §二各列判定式）。
+1. ✅ **環境補件完成（2026-07-18）**：venv 建立、`venv/bin/python -c 'import pytest, psycopg2'` 通過。
+2. ✅ **augur_sandbox 還原完成（2026-07-18）**：240 表、55 GB、pg_restore error 0、生產庫未動（[4/4] 驗證輸出）。
+3. ✅ **沙盒實測完成（2026-07-18）——元憲章首次物理落地**：
+   - **十張憲章新表全數 apply 沙盒**（`DB_NAME=augur_sandbox` shell 覆蓋 .env，load_dotenv override=False 實測驗證）：raw_supersede_log（append-only＋no-truncate trigger、tombstone SECURITY DEFINER✓、PUBLIC mutate 無殘餘）；identity 六表（10 條 permanence trigger、lifecycle 九型別 Evidence 硬義務 CHECK、de_identify SECURITY DEFINER✓）＋type catalog seed 4 列；automation 二表（P5.E1 六元組欄全、雙 FK）；prediction_serving_log（A1 能力 COMMENT、僅 superseded_by 可 UPDATE）。
+   - **PR #2 十五測試 15/15 PASSED**（`DB_NAME=augur_sandbox venv/bin/python -m pytest tests/test_raw_supersede_log.py` → `15 passed in 0.33s`，生產同版 **PG 17.9**、55GB 完整複本）——六不變式全數行為驗證：gate 非 heal 不留痕／byte-differ 入帳／no-op 不入帳／append-only 擋 UPDATE+DELETE／TRUNCATE 擋／tombstone 受控抹除／同交易回滾。**取代原不可重驗之「PG 16.14 全綠」宣稱（§五該列解消）**。
+   - 三支 migration `--check` 沙盒綠；終驗：生產 augur 240 表、raw_supersede_log 不存在（未動）；沙盒 250 表（240＋10）。
 4. **P5 拍板**（閘：HANDOFF 部署閘四步逐項書面完成＋Steward 五項升裁決 A-E——此為程序性引用，其內容真偽依鐵律不採信，僅列為 Steward 議程；見 §六）。
 5. **生產 apply**（閘：Steward 書面核准；表 owner≠應用角色確認）。
 6. **Runtime 接線另案**（各有完成判準）：Phase 1 vendor 直綁消除（判準：37 檔 grep → 0）、Phase 2 屬性 as-of 消費、Phase 4 serving_log 消費切換、Phase 5 resolve-or-mint＋action_log 接線（判準：ingestion grep 出現接線且沙盒 entity_registry 有 mint 記錄）。
@@ -176,7 +179,7 @@
 | 本機 LLM 推論（L5 類義務之算力前提） | ⛔ | 無 GPU：`command -v nvidia-smi` → not found；`ls /dev/nvidia*` → 無；12 核/15GB（`nproc`、`free -g`）不足以本地推論實用規模模型 | 外部 API 推論＋一切 AI 產出依 KS.74 永久攜 synthetic 標記、受信任天花板；或待可達之 GPU 硬體到位後遷移（注意：ENVIRONMENT-SPEC 所述 GB10 不可達，不得作為規劃依據） |
 | kill-switch 實體獨立 | ⛔ | 單機：DB、應用、審計載體同在一台 WSL2（本圖 §一全部實測同機產生）——不存在可獨立斷電/斷網之第二實體 | 程序級替代：獨立 OS 帳號持有之 revoke 腳本＋DB 角色權限收斂＋異地備份；並依 §8.4 登錄為豁免（附到期日與補正計畫）；建議 Steward 裁定：豁免登錄不宜宣稱等效實體獨立（裁量屬 §8.1） |
 | 雙人核准（two-person rule） | ⛔ | 單一自然人：Steward 與操作者為同一人（治理文件在卷；人數屬物理事實非文件自陳） | 時間延遲核准（cooling-off 期）＋不可回改留痕（append-only 表）替代第二人在場；依 §8.4 明記豁免與 Evidence 缺口標記 |
-| PR #2「PG 16.14 全綠」之獨立重驗 | ⛔（現況） | 宣稱所依之 userspace PG 本機查無：`find /home/giga -maxdepth 6 -name micromamba -o -name pg_ctl -o -name initdb` → 零命中；系統 python3 無 pytest/psycopg2 | 以 augur_sandbox（生產同版 PG 17.9）重跑 15 測試取代該宣稱（§四落地序步 3） |
+| ~~PR #2「PG 16.14 全綠」之獨立重驗~~ | ✅ **已解消（2026-07-18）** | 原不可重驗（micromamba 環境查無）；已依 §四步 3 於 augur_sandbox（生產同版 PG 17.9、55GB 複本）重跑 → **15/15 passed**，宣稱由新鮮實證取代 | — |
 | 55GB 級沙盒之常駐並存 | ⛔（邊際） | 磁碟/記憶體邊際：15GB RAM、生產庫 55GB——沙盒與生產同機並存屬緊平衡（沙盒還原中，實際佔用未量測＝**不確定**） | 沙盒驗證完成即釋放；或僅還原驗證所需子集 |
 | **生效規格文本自身之標記可信度** | ⛔（引用前提受損） | 本圖以「權威悉依各 [N] 條款原文」為據並引用規格條文行號（WM:283-290、KS:336-348 等），惟同 repo HANDOFF.md:11/57/64/161 錨定：4 份生效規格（L3-L6）**151 個誤標**（MC 側 109／上層側 42）＋ **L2 真值未知**（其 56 列 Annex TR 矩陣從未受檢、卻曾以 ✅ PASS 發布並支撐 RULING-2026-003）。此二數屬文件錨定值，依鐵律**本圖未獨立重驗＝未驗** | 本圖所引條文以規格檔案原文為準，其 **[N]/[I] 標記不得逕信**；Steward 裁決 #22 前應令 gate 重跑出證（見 §六-3） |
 
