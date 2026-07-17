@@ -14,7 +14,7 @@ Augur Enterprise AI Operating System
 > 本文件為 **AUGUR-ID v0.1-draft 提案版本**，**尚未生效**。依 `AUGUR-MC v1.3 §0.5`，任何後續規格必須先在 Layer 對照表登錄所屬 Layer 並經生效程序方生效力；`AUGUR-MC v1.3 §0.5` 對照表 Layer 3「Identity System」欄現登錄之所轄規格為「Identity Specification」，惟本規格經 Steward 依 `AUGUR-MC v1.3 §8.1`／`§8.3` 過渡規則充任認定前，**不生效力**。在充任認定作成前：
 >
 > * 本文件全部 [N] 條款**僅具提案地位**，不對 Layer 4–7 規格產生規範效力，不得被下層引為定義依據；
-> * **形式充分性（`AUGUR-WM v1.0 §WM.44`）尚未成就**：`§WM.44` 要求 `AUGUR-MC v1.3`／`AUGUR-WM v1.0`／`AUGUR-ONT v0.1-draft` 全部 [N] 條款均對應至本規格至少一 [N] 條款、明記 DEFER 掛鉤、或明記「不觸及」及理由，且為機器可判之生效要件（「任一條款無對應且無明記者，聲明不完整，規格不生效力」）。本規格 Annex CS §CS.4 之**逐條對應矩陣尚未完整枚舉**，故形式充分性未成就；在該矩陣完備前，本規格**不生效力**，此與 Steward 充任認定未成就**併為生效阻卻**；
+> * **形式充分性（`AUGUR-WM v1.0 §WM.44`）已成就**：`§WM.44` 要求 `AUGUR-MC v1.3`／`AUGUR-WM v1.0`／`AUGUR-ONT v0.1-draft` 全部 [N] 條款均對應至本規格至少一 [N] 條款、明記 DEFER 掛鉤、或明記「不觸及」及理由，且為機器可判之生效要件（「任一條款無對應且無明記者，聲明不完整，規格不生效力」）。本規格 **Annex TR（TR.A–TR.D）已就三上層全部 [N] 條款逐條完整枚舉落點**（TR.A：`AUGUR-MC v1.3` §P3 家族＋§2.4，本層核心；TR.B：`AUGUR-MC v1.3` 其餘；TR.C：`AUGUR-WM v1.0` WM.1–53＋Annex A＋Annex D；TR.D：`AUGUR-ONT v0.1-draft` ONT.1–62＋Annex T），Annex CS §CS.4 據以自查，形式充分性已成就；**殘餘之生效阻卻僅為 Steward 充任認定未成就**（`AUGUR-MC v1.3 §0.5`、`§8.3`），此為本規格生效之唯一未成就要件；
 > * 本文件依 `AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39` **必須內含**之 Constitutional Compliance Statement（Annex CS）以**正式格式**（`AUGUR-WM v1.0 §WM.39–45`，非暫行模板，`§WM.45`：本聲明作成於 Layer 1〔`AUGUR-WM v1.0`〕生效日 2026-07-16 之後）作成，其充分性之最終判斷屬 Steward 違憲審查與充任認定程序（`AUGUR-MC v1.3 §8.2`、`§8.3`）；
 > * 引用 Layer 2 一律標注其草案地位（`AUGUR-ONT v0.1-draft`）；`AUGUR-ONT` 本身未經充任認定前，本規格對其之承接於 `AUGUR-ONT` 生效時同步生效；
 > * 本文件之條款編號（ID.{n}、AO.{n}、IDO.{n}、CS.{n}、L4.{n}）於本 draft 已宣告穩定性（ID.81），生效後準用 `AUGUR-MC v1.3 §8.6`、`AUGUR-WM v1.0 §WM.46`：永不重用、永不重排。
@@ -39,6 +39,7 @@ Augur Enterprise AI Operating System
 * Annex O [N] — OPEN-1 承接（AO.1–AO.4）
 * Annex DO [N] — 下放下層之 DEFER 掛鉤（IDO.0–IDO.8）
 * Annex L4 [N] — 與 Layer 4（Knowledge System）之分界表
+* Annex TR [N] — WM.44 逐條對應矩陣（憲章＋WM＋ONT → 本規格；TR.0／TR.A–TR.D／TR.Z）
 * Annex CS [N] — 本規格之 Constitutional Compliance Statement（CS.1–CS.4）
 * 附：章節目錄總覽 [I]
 
@@ -62,7 +63,7 @@ Augur Enterprise AI Operating System
 
 * 每章標題標注 **[N]（Normative，規範性）** 或 **[I]（Informative，資訊性）**。[N] 與 [I] 內容不一致時，依 `AUGUR-MC v1.3 §8.2` 以 Normative 為準。**章標題之標注為該章預設；凡子節另有標注者，以子節標注為該子節之效力準據**（如 §1[N] 下 §1.1[I] 為資訊性、§1.2[N] 為規範性）；此為標注層級之解讀規則，非上開內容衝突解消規則之適用範圍。
 * **正文採十位制章段保留編號**：各章間之空號（如 ID.5–9、ID.15–19、ID.25–29、ID.45–49 等）為**保留區塊、非跳號**；保留號之啟用（如 ID.24、ID.44 於本版之啟用）亦適用永不重用、永不重排（`AUGUR-MC v1.3 §8.6`）。
-* 正文條款編號採 **ID.{n}**；Annex 條款編號各自前綴：Annex O（OPEN 承接）採 **AO.{n}**、Annex DO（下放下層掛鉤）採 **IDO.{n}**、Annex CS（合規聲明）採 **CS.{n}**、Annex L4（與 Layer 4 分界）以其所引 ID／IDO 編號為索引，另立表首治理條款 **L4.{n}** 於必要時使用。
+* 正文條款編號採 **ID.{n}**；Annex 條款編號各自前綴：Annex O（OPEN 承接）採 **AO.{n}**、Annex DO（下放下層掛鉤）採 **IDO.{n}**、Annex TR（WM.44 逐條對應矩陣）採 **TR.{n}**（其資料列以所引上層條款編號為索引）、Annex CS（合規聲明）採 **CS.{n}**、Annex L4（與 Layer 4 分界）以其所引 ID／IDO 編號為索引，另立表首治理條款 **L4.{n}** 於必要時使用。
 * 條款編號一經發布**永不重用、永不重排**；廢止條款保留編號並標注 **(repealed)**（`AUGUR-MC v1.3 §8.6`、`AUGUR-WM v1.0 §WM.46`）。
 
 ### 0.4 權威語言聲明 [N]
@@ -400,6 +401,263 @@ Augur Enterprise AI Operating System
 
 ---
 
+## Annex TR [N] — WM.44 逐條對應矩陣（憲章＋WM＋ONT → 本規格）
+
+> **TR.0（矩陣之地位與生效要件性）[N]** 依 `AUGUR-WM v1.0 §WM.44`：`AUGUR-MC v1.3`、`AUGUR-WM v1.0`、`AUGUR-ONT v0.1-draft` 全部 [N] 條款均須對應至本規格至少一 [N] 條款、明記 DEFER 掛鉤、或明記「不觸及」及理由。**本矩陣已就三上層規格全部條款逐條完整枚舉**，分族陳列：**TR.A**（`AUGUR-MC v1.3` §P3 家族＋§2.4——**本層核心**）、**TR.B**（`AUGUR-MC v1.3` 其餘：PA／§1.2／§1.3／P1／P2／P4／P5 各 E／W 條款及 §0／§2／§4／§5／§6／§7／§8 逐條）、**TR.C**（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28 逐條）、**TR.D**（`AUGUR-ONT v0.1-draft` ONT.1–62＋Annex T T.0–T.91 逐條）。逐條完整枚舉已滿足 `§WM.44` 之形式充分性；**餘之生效阻卻僅為 Steward 充任認定未成就**（`§0.5`、`§8.3`）。本規格為 Layer 3，其對應對象為三上層（Layer 0–2）；下層（Layer 4–7）之承接由各該規格於其自身 Annex TR 為之，不在本矩陣範圍。
+> **義務主體**：本規格、Steward。**可判定判準**：如 `§WM.44` 內建之對應完備性檢查——三上層每一 [N] 條款於本矩陣有落點列（承接／細化／DEFER／不觸及＋理由）者為完備。凡標「不觸及＋理由」之列，其理由為機器可判之處置。上層草案（`AUGUR-ONT`）升版或條款增修時本矩陣對應列**必須**同步維護（ID.81 diff 檢查）。
+
+### TR.A — `AUGUR-MC v1.3` §P3 家族＋§2.4（**本層核心**，逐條）[N]
+
+> §P3「Identity Before Knowledge」為本規格之直接機制化對象；本族每一條款均為本層之核心細化落點。
+
+| MC 條款 | ID 落點 | 模式 |
+|---|---|---|
+| §P3.D（Identity Before Knowledge 定義） | ID.1、ID.50、§1.1 | 承接（定位） |
+| §P3.W1（WHAT：Identity 為繫結錨） | ID.1、ID.14 | 承接 |
+| §P3.W2（Identity 類型開放例示） | ID.11、ID.12、ID.24（世界關係）、Annex O（Security／Issuer） | 承接（型別開放之機制側；型別制定屬 L2） |
+| §P3.Y（WHY [I]） | §1.1（Layer 3 定位，[I]） | 承接（資訊性） |
+| §P3.E1（引用與解析義務、mint-on-admission、可稽核指標由 L3 定義） | ID.11（鑄造義務）、ID.21、ID.50–ID.53（解析義務＋升級禁止）、ID.51（可稽核指標，承接 `AUGUR-WM v1.0 §D4`） | **細化（核心，落實 AUD-04）** |
+| §P3.E2（Identity Lifecycle：永不刪除、轉指可追溯、merge/split/retire/lineage、法規抹除準用 P4.E3） | ID.13（永不刪除）、ID.40–ID.44（lifecycle 事件、轉指、tombstone、去識別化、DynamicEntity 終結） | **細化（核心，落實 AUD-05）** |
+| §P3.E3（同一性判準掛鉤、instance/type 明示繫結；判準由 L2／L3 定義） | ID.20–ID.24（採認使生效於 resolution）、ID.53（instance/type 標記存續） | **細化（核心，採認機制）** |
+| §2.4（identifier／identity claim 之區分：系統鑄造之永久參照 vs 同一性斷言） | ID.11（外部識別碼非 identifier）、ID.14（identifier 之 Identity 地位）、ID.30–ID.32（identity claim 一級介面） | **細化（核心，落實 AUD-06）** |
+
+### TR.B — `AUGUR-MC v1.3` 其餘家族（逐條）[N]
+
+| MC 條款 | ID 落點／處置 | 模式 |
+|---|---|---|
+| PA（Prime Axiom）＋§1.1 釐清句 | ID.13（永不刪除）、ID.41（lineage 不變式）、ID.10（跨部署可解析）、ID.30(c)（可追溯 Evidence）、CS.1-PA | 承接 |
+| §1.2（標準鏈引用：Reality→Observation→Representation→Identity→Evidence→Knowledge 節選 EV.1–EV.6；Intelligence 節選 EV.7–EV.8） | CS.1-EV-chain（引 §4 EV.4 為本規格標準鏈落點）、ID.50（provisional→resolved→Knowledge 之標準鏈機制化） | 承接 |
+| §1.3（五條對稱禁令；第三禁令「沒有 Identity，不允許 Knowledge」／P3 為本層直接機制化對象） | ID.50（未解析 Observation 不得升級 Knowledge，機制化第三禁令）；其餘四禁令分屬 P1／P2／P4／P5，見本表與 TR.A 各該原則列 | 承接（第三禁令核心機制化） |
+| P1（Reality First 標題） | ID.11、ID.10 | 承接 |
+| P1.D（定義） | ID.1、ID.11 | 承接 |
+| P1.E1（Reality 最高抽象／來源非最高抽象） | ID.11（外部識別碼降格為指涉資訊） | 細化 |
+| P1.E2（禁來源位置字面直綁、唯一權威表徵、跨部署可解析與對齊） | ID.10（跨部署對齊語義義務）、ID.32（唯一權威表徵結構前提） | 細化（本層語義義務核心） |
+| P1.E3（自然人為 Reality 之一部） | ID.42（去識別化）、ID.60（時變屬性 as-of）；法規對應表本體 DEFER Layer 6（IDO.7） | 承接＋DEFER |
+| P1.W1（來源崇拜警語） | ID.11（禁外部識別碼裸字串直充身份） | 承接 |
+| P1.Y（WHY [I]） | §1.1（[I]） | 承接（資訊性） |
+| P2（Representation Before Intelligence 標題） | ID.21、ID.50 | 承接 |
+| P2.D（定義） | ID.50 | 承接 |
+| P2.E1（候選斷言經 Evidence 通道確立） | ID.50、ID.30(c) | 承接 |
+| P2.E2（Representation 可靠性判定） | ID.30(c)、ID.40（lifecycle 事件之 Evidence 義務） | 承接 |
+| P2.E3（self-reported 標記） | ID.30（claim 之 Evidence 要件）、ID.52 | 承接 |
+| P2.E4（Confidence 槽概念相容） | ID.30(d)（Confidence 槽位存在） | 承接（槽位） |
+| P2.E5（錯誤發現後之 fail-safe 反應） | ID.22（採認撤回之 fail-safe 重評估） | 承接 |
+| P2.W1（Intelligence 不得繞過 Representation） | ID.50（未解析不得升級 Knowledge） | 承接 |
+| P2.W2（確立工作流下放） | ID.50（升級門檻）承接；確立工作流實作 DEFER Layer 4–5，本層不代定（ID.23） | 承接＋界分 |
+| P2.Y（WHY [I]） | §1.1（[I]） | 承接（資訊性） |
+| P3（Identity Before Knowledge 全家族） | 見 **TR.A**（逐條） | 細化（核心） |
+| P4（Evidence Before Conclusion 標題） | ID.14、ID.30–ID.31、ID.40；語義填充 DEFER Layer 4 | 承接＋DEFER |
+| P4.D（定義） | ID.30(c) | 承接 |
+| P4.E1（五元組最低不變式） | ID.31（claim 為 Knowledge）、ID.40；完整欄位設計 DEFER Layer 4（IDO.2） | 承接＋DEFER |
+| P4.E2（雙時間、as-of 重建） | ID.60（繫結存在）、ID.61（分界）；重建引擎 DEFER Layer 4（IDO.6） | 細化（繫結）＋DEFER |
+| P4.E3（只失效不刪除、tombstone） | ID.22（採認只標 superseded）、ID.40（事件只失效不刪除）、ID.42（法規抹除留痕準用） | 細化 |
+| P4.E4（可謬性、禁隱含 1.0） | ID.22（採認之可謬性） | 承接 |
+| P4.E5（矛盾保存、禁 LWW） | ID.31（衝突 claim 並存、禁 last-write-wins） | 承接 |
+| P4.E6（遞迴溯源、禁循環） | ID.30(c)（Evidence 遞迴可溯源） | 承接 |
+| P4.E7（NoLaundering、獨立性、高風險證據） | ID.30(c)；來源信任分級表 DEFER Layer 4（ID.70） | 承接＋DEFER |
+| P4.E8（Confidence 單一形式化、可比較、傳播、消費） | ID.30(d)、ID.70；語義 DEFER Layer 4（IDO.1） | DEFER（本層設槽＋下放） |
+| P4.W1（來源崇拜／證據不足警語） | ID.30(c)、ID.11 | 承接 |
+| P4.Y（WHY [I]） | §1.1（[I]） | 承接（資訊性） |
+| P5（Accountability Before Action 標題） | CS.1-P5 | 部分不適用＋理由 |
+| P5.D（定義） | 不觸及＋理由：Action 定義屬 Layer 6；本層僅型別化行動主體之 identifier（CS.1-P5） | 不觸及＋理由 |
+| P5.E1（Action 六元組與問責） | 不觸及＋理由：Action 六元組與行動治理屬 Layer 6，本層不定義；惟採認（ID.20）／lifecycle（ID.40）／去識別化（ID.42）之作成者記錄與 P5 精神相容 | 不觸及＋理由（治理記錄相容） |
+| P5.E2（風險分級表、完備性等級、Confidence 門檻） | 不觸及＋理由：風險分級／門檻屬 Layer 4–6；本層不定義 | 不觸及＋理由 |
+| P5.W1（問責不可轉嫁警語） | 不觸及＋理由：問責治理屬 Layer 6 | 不觸及＋理由 |
+| P5.W2（人類權威閘） | 不觸及＋理由：人類權威閘資格判準屬 Layer 6；本層去識別化／採認之作成者具名與其精神相容 | 不觸及＋理由 |
+| P5.W3（不可逆／高影響需最高完備性） | 不觸及＋理由：完備性等級與綁定屬 Layer 4–6 | 不觸及＋理由 |
+| P5.W4（監督否決度量） | 不觸及＋理由：監督否決度量屬 Layer 6 | 不觸及＋理由 |
+| P5.W5（缺位預設最高風險） | 不觸及＋理由：風險預設屬 Layer 6；本層不削弱 | 不觸及＋理由 |
+| P5.Y（WHY [I]） | 不觸及＋理由：屬 Layer 6 行動治理，資訊性 | 不觸及＋理由 |
+| §0.2（規範用語約定：必須／不得／應／得四級效力用語） | §0.2（沿用不重定義，全文一致）、【地位】末句（效力準用 `AUGUR-WM v1.0 §WM.53`） | 承接 |
+| §0.4（權威語言聲明） | §0.4 | 承接 |
+| §0.5（引用格式、Layer 對照表） | §0.1、§0.5、【地位】（Layer 3 欄登錄） | 承接 |
+| §0.6(a)（lex superior） | 引言、ID.4 | 承接 |
+| §0.6(b)（概念層獨立性） | §0.5、ID.12、ID.2、Annex DO | 承接 |
+| §2.4（identifier／identity claim 區分） | 見 **TR.A** | 細化（核心） |
+| §2.5（Evidence 定義） | ID.30(c)（不重定義，承接） | 承接（不重定義） |
+| §2.6（Knowledge 定義） | ID.31（claim 為 Knowledge，不重定義） | 承接（不重定義） |
+| §2.10（Confidence 定義） | ID.30(d)（槽位，語義不重定義） | 承接（不重定義） |
+| §2.11（Evidence 通道） | ID.50、CS.1-EV-chain（provisional→resolved→Knowledge） | 承接 |
+| §4 canonical chain（EV.1–EV.12） | ID.50（EV.4 Identity 為本層機制化落點）、CS.1-EV-chain（節選不跳節點）；EV.1–3／EV.5–12 承接不重定義 | 承接 |
+| §5 架構角色（system of record／表徵／Reasoning／Intelligence／介面／執法點） | 不觸及＋理由：架構角色屬 Layer 4–6；本層僅型別化各角色所涉個體之 identifier，不代定角色機制 | 不觸及＋理由 |
+| §6 F1–F6（禁止型態） | F2／F3（無 Identity 繫結／無 Source 之 Knowledge 拒斥）→ ID.11、ID.50；F1／F4／F5／F6 不觸及＋理由：屬 Layer 4–6 之禁止型態 | 承接（F2／F3）＋不觸及＋理由 |
+| §7（Long-Term Stability：五不變核心 Reality／Representation／Identity／Evidence／Accountability，含 §8.5(b) 實質判準所引同一清單） | ID.1、§1.1（Layer 3 核心錨定）；Identity 為五項不變核心之一，本規格即其 Layer 3 機制化全部 | 承接（核心錨定） |
+| §8.1（Amendment Log、Steward 裁決） | 【地位】、ID.81（生效後登錄；充任認定屬 Steward） | 承接 |
+| §8.2（違憲審查） | 【地位】、CS.4（實質充分性屬 §8.2 程序） | 承接 |
+| §8.3（過渡規則、可判定性元規則） | ID.80、§0.5（每條附可判定判準） | 承接 |
+| §8.4（不可豁免核心） | ID.81（全部 MUST NOT 不豁免） | 承接 |
+| §8.5（Amendment Procedure 修訂程序：提案權、Steward 原則級議決之程序＋實質要件、Amendment Log 記錄、Eternity Clause） | 不觸及＋理由：本條規範 MC 自身之修訂程序，義務主體為 Steward 與 MC 修訂行為本身，非 Layer 3 規格義務來源；本規格自身之生效／登錄程序承 §8.1（Amendment Log）／§8.3（過渡規則），已見 ID.81、【地位】，不涉 MC 條文修訂程序本身 | 不觸及＋理由 |
+| §8.6（編號穩定：永不重用、永不重排） | §0.3、ID.81 | 承接 |
+
+### TR.C — `AUGUR-WM v1.0`（全部 [N]，逐條）[N]
+
+**(1) 正文 WM.1–WM.53**
+
+| WM 條款 | ID 落點／處置 |
+|---|---|
+| WM.1（從屬） | 引言、ID.4—承接 |
+| WM.2（細化不重定義） | §0.5（不重定義元規則）—承接 |
+| WM.3（管轄與 DEFER 紀律） | ID.1、ID.4—承接 |
+| WM.4（概念層獨立性＋刪名測試） | §0.5（`§0.6(b)`）—承接 |
+| WM.5（任務） | §1.1—承接 |
+| WM.6（領域 Profile 與領域前身文件） | 不觸及＋理由：Profile 框架屬存在層，本層消費其產物、不重定義框架 |
+| WM.7（最高抽象） | ID.11（外部識別碼非最高抽象）—承接 |
+| WM.8（結構獨立性） | 不觸及＋理由：結構獨立性屬存在層本體 |
+| WM.9（權威三分） | 不觸及＋理由：表徵權威三分屬 Layer 1／Layer 4；本層僅提供 identifier 錨點（ID.32） |
+| WM.10（Observation Store 宣告） | 不觸及＋理由：Observation Store 屬 Layer 1／Layer 4 |
+| WM.11（referent 繫結） | ID.11、ID.50（referent→已解析 Identity）—承接 |
+| WM.12（近似性與來源保留） | 不觸及＋理由：近似性→Confidence 語義屬 Layer 4；本層僅設槽（ID.30(d)） |
+| WM.13（三性質判準＋演化四不變式） | ID.13、ID.40（Identity 存續跨 Ontology／Representation 演化）—承接（不重定義性質判準） |
+| WM.14（語義唯一性與一對多映射） | ID.32（唯一權威表徵結構前提、一對多映射與衝突保存）—落實 |
+| WM.15（同一事實多通道之同一性宣告） | ID.51(c)（顯式待決同一性存量）、ID.32（無宣告即非同一）—承接 |
+| WM.16（衝突與證據不足之表達力） | ID.31（衝突 claim 並存）—承接 |
+| WM.17（模態內容） | 不觸及＋理由：模態型別屬 Layer 1／Layer 4 |
+| WM.18（候選斷言之地位與狀態轉換） | ID.50（provisional 地位與升級禁止）—承接 |
+| WM.19（基本單位） | ID.11、ID.12—承接 |
+| WM.20（跨部署解析與命名空間不強制） | ID.10（授權範圍與語義義務保留）、§3（ID.10–ID.14）—**細化（核心授權承接）** |
+| WM.21（結構位置義務與效力封印） | ID.20（(e) 採認）、ID.21、ID.30（(c) claim 對）、ID.50（(d) 已解析引用義務）、§4／§5—**細化（分項承接）** |
+| WM.22（生命週期存續不變式） | ID.13、ID.40、ID.41、§6—**細化（核心）** |
+| WM.23（實體類型開放例示） | ID.11（承接開放例示，不重定義型別）—承接 |
+| WM.24（canonical chain 承接） | CS.1-EV-chain、ID.50—承接 |
+| WM.25（變更二分） | ID.40（correct／restatement 為 lifecycle 事件）—承接 |
+| WM.26（自反性） | ID.11（Augur 自身之個體亦須鑄造 identifier）—承接 |
+| WM.27（Action 六元組世界事件與禁止型態之無位置性） | 不觸及＋理由：Action 六元組屬 Layer 6；本層僅型別化行動主體 identifier |
+| WM.28（人類權威表徵位置） | 不觸及＋理由：權威表徵位置屬 Layer 4；本層僅提供 identifier 錨點 |
+| WM.29（fail-safe 狀態容納） | ID.22（採認撤回之 fail-safe 重評估）—承接（判定主體 DEFER Layer 4–6） |
+| WM.30（雙時間性） | ID.60、ID.61（身份屬性 valid／transaction time）—細化 |
+| WM.31（時間屬性雙宣告） | ID.60（身份時變屬性雙時間繫結）—細化 |
+| WM.32（觀測定案性） | 不觸及＋理由：觀測定案性判準屬 Layer 4 |
+| WM.33（永久標記表達力） | ID.53（instance/type 標記存續）、ID.21（provisional 標記）—承接 |
+| WM.34（核心不變式之可機器稽核 (a)(b)） | §0.5（每條附義務主體＋可判定判準）—承接 |
+| WM.35（落地即整合；unmapped 顯式存量） | ID.52（unmapped 準用）、ID.51(c)—承接 |
+| WM.36（World Concept Registry 與消費規則） | ID.32（Registry 消費結構前提）；Registry 實作載體 DEFER Layer 4／7—承接＋界分 |
+| WM.37（唯一權威表徵落實義務） | ID.32（結構前提；實際指定 DEFER Layer 4，IDO.8）—落實＋DEFER |
+| WM.38（自然人之有界表徵） | ID.42（去識別化）、§8（ID.60）；L6 slice DEFER Layer 6（IDO.7）—承接＋DEFER |
+| WM.39（適用範圍與效力規則） | ID.80、Annex CS—承接 |
+| WM.40（機器可稽核 front-matter） | Annex CS front-matter—承接 |
+| WM.41（逐原則論證本文） | CS.1—承接 |
+| WM.42（緊張關係與豁免登記） | CS.2—承接 |
+| WM.43（雙向 DEFER 承接表） | CS.3、Annex DO—承接 |
+| WM.44（形式充分性判準） | CS.4、Annex TR（本矩陣）—**落實** |
+| WM.45（過渡承接／正式格式） | ID.80（作成於 Layer 1 生效日 2026-07-16 後）—承接 |
+| WM.46（引用格式與編號穩定性） | §0.3、ID.81—承接 |
+| WM.47（審查與豁免承接） | ID.81、CS.2—承接 |
+| WM.48（重新認證與書面形式） | ID.81—承接 |
+| WM.49（地位與衝突規則） | 【地位】節、ID.4—承接 |
+| WM.50（必備五部結構） | 全文結構（front-matter／CS.1 論證／CS.2 緊張／CS.3 DEFER 表／Annex TR 矩陣）—承接 |
+| WM.51（越界禁止） | ID.2、ID.70—承接 |
+| WM.52（版本節奏隔離） | ID.81—承接 |
+| WM.53（文件約定之規範地位） | 【地位】末句（準用 `§WM.53`）、§0—承接 |
+
+**(2) WM Annex A（A.0–A.59；領域 Profile）**——凡標「領域實例」者，理由為：領域型別／事件實例屬存在層 Profile，本層對其個體一體適用 §3（鑄造）／§4（採認）／§6（lifecycle）／§8（as-of），不逐型別重定義。
+
+| A 條款 | ID 落點／處置 | A 條款 | ID 落點／處置 |
+|---|---|---|---|
+| A.0（地位與範圍） | 不觸及＋理由：Annex A 地位條，存在層 | A.30（DataFinality） | 不觸及＋理由：定案性屬 Layer 4 |
+| A.1（Security） | Annex O（AO.1，Security 判準採認落點）—承接 | A.31（槽位設置） | ID.30—承接 |
+| A.2（Roster） | 不觸及＋理由：領域實例（名冊成員關係 lifecycle 適用 §6） | A.32（候選記載） | ID.50—承接 |
+| A.3（Index） | ID.12（Index 為另一 Instance 命名空間，互斥）—承接 | A.33（第二識別體系繫結） | ID.30、AO.3（外部代碼為 provisional alias）—**承接（核心 AUD-06）** |
+| A.4（TradingCalendar） | 不觸及＋理由：領域實例 | A.34（最小時間粒度） | ID.60—承接 |
+| A.5（MarketParticipant 階層） | 不觸及＋理由：領域實例 | A.35（每通道時間屬性雙宣告） | ID.60—承接 |
+| A.6（DerivativeContract） | ID.44（結算消滅終結表徵）—承接 | A.36（通道時間模型不對稱之揭露） | ID.61—承接 |
+| A.7（ConvertibleBond） | ID.44（轉換／贖回終結表徵）—承接 | A.37（定案性判準之宣告形式） | 不觸及＋理由：定案性屬 Layer 4 |
+| A.8（Warrant） | ID.44（到期失效終結表徵）—承接 | A.38（預測任務時間邊界） | 不觸及＋理由：屬 Layer 4–5 |
+| A.9（ForeignSecurity） | 不觸及＋理由：領域實例（ISIN 繫結見 A.33／ID.30） | A.39（Observation Store 域內認定） | 不觸及＋理由：屬 Layer 4 |
+| A.10（維度族） | ID.12（series_id 空間與 stock_id 空間互斥）—承接 | A.40（「API 即權威」定位限定） | ID.11（外部來源非 identifier）—承接 |
+| A.11（EconomicIndicator） | ID.12（series_id 命名空間）、ID.60（vintage as-of）—承接 | A.41（系統記錄之域內實例） | 不觸及＋理由：屬 Layer 4 |
+| A.12（IndustryClassification） | ID.12（type 節點非 Instance）、ID.60（分類 as-of）—承接 | A.42（排除閉集與排除理由類型） | 不觸及＋理由：屬 Layer 4 |
+| A.13（DataProvider） | ID.11（供應商識別碼為指涉資訊）—承接 | A.43（下市與可見性） | ID.43（retire 之 Evidence 來源）—承接 |
+| A.14（Model 與 CoreUniverse） | ID.60（成員資格 as-of 版本化）—承接 | A.44（語料通道 license 三軌） | 不觸及＋理由：屬 Layer 4–6 |
+| A.15（HumanDecisionMaker） | ID.42（自然人去識別化）—承接 | A.45（真兆三問） | 不觸及＋理由：策略哲學屬 Layer 5–6 |
+| A.16（KnowledgeCorpus 語料實體族） | 不觸及＋理由：領域實例 | A.46（三敵框架） | 不觸及＋理由：屬 Layer 5–6 |
+| A.17（Catalog 元資料） | 不觸及＋理由：領域實例 | A.47（as-of 紀律為判準非實作） | ID.60、ID.61—承接 |
+| A.18（NewsEvent） | 不觸及＋理由：領域實例 | A.48（思想≠特定值） | 不觸及＋理由：屬 Layer 4–6 |
+| A.19（GATE 預註冊實驗） | 不觸及＋理由：領域實例（自反 identifier 適用 ID.11） | A.49（經濟價值≠準確率） | 不觸及＋理由：策略哲學屬 Layer 5–6 |
+| A.20（Augur 自身） | ID.11（自反性，Augur 個體須鑄造 identifier）—承接 | A.50（誠實輸出契約之表達力承接） | 不觸及＋理由：輸出契約屬 Layer 6 |
+| A.21（CorporateAction） | ID.40（corporate action 為 lifecycle Evidence）—承接 | A.51（管線分層本體論之角色對映） | 不觸及＋理由：管線分層屬 Layer 5／7 |
+| A.22（財報與月營收公開事件） | ID.40（restatement 為 correct 事件）—承接 | A.52（假說與 GATE 之定位） | 不觸及＋理由：屬 Layer 5–6 |
+| A.23（RegulatoryStateChange） | ID.40；領域實例—承接 | A.53（系統建議、人決策） | 不觸及＋理由：屬 Layer 6 |
+| A.24（期權結算事件） | ID.44（settle 終結表徵）—承接 | A.54（OPEN-1：stock_id 時間穩定性） | **Annex O（AO.1–AO.4）—承接（核心）** |
+| A.25（Delisting） | ID.43（retire 事件之 Evidence 來源）—承接 | A.55（OPEN 節之消費規則） | 不觸及＋理由：OPEN 承接屬存在層 |
+| A.26（PriceLimit 漲跌停狀態） | 不觸及＋理由：領域實例（point-in-time 狀態） | A.56（Profile 增補程序） | 不觸及＋理由：Profile 程序屬存在層 |
+| A.27（信用交易 stock-flow 狀態族） | 不觸及＋理由：領域實例 | A.57（Issuer） | **AO.4（Issuer 判準採認落點）—承接** |
+| A.28（持股結構狀態） | 不觸及＋理由：領域實例 | A.58（MarketTrade／DailyBar） | 不觸及＋理由：領域實例 |
+| A.29（UniverseMembership） | ID.60（成員資格 as-of）—承接 | A.59（涉自然人通道之域內宣告） | ID.42、CS.1-P1—承接 |
+
+**(3) WM Annex D（D0–D28；下放掛鉤）**——本層之 defers-in 為 **D2（採認側）／D3／D4／D5／D6／D17（L3 slice）**（見 §2.1 ID.3 承接盤點）；D7／D8／D9 為本層引用其概念槽但語義下放 Layer 4（IDO.1／2／6）；餘為下放他層之掛鉤，本層不觸及＋理由。
+
+| D 條款 | ID 落點／處置 | D 條款 | ID 落點／處置 |
+|---|---|---|---|
+| D0（DEFER 總表地位） | ID.3、Annex DO 承接體例—承接 | D15（fail-safe 判定程序） | ID.22（受影響範圍界定 DEFER Layer 4–6）—承接界分 |
+| D1（抓取模式五態） | 不觸及＋理由：下放 Layer 5／7 攝取 | D16（永久標記落地） | ID.53、ID.21（標記存續語義）—承接 |
+| D2（同一性判準之採認側） | **ID.20–ID.24（採認）—承接（核心）** | D17（法規對應表） | ID.42（L3 去識別化 slice）；L6 slice DEFER Layer 6（IDO.7）—承接＋DEFER |
+| D3（identity claim 表介面、轉指、tombstone、去識別化） | **§5（ID.30–ID.32）／§6（ID.40–ID.44）—承接（核心）** | D18（拓撲／Registry 載體／直綁消除） | ID.32（結構前提）；載體 DEFER Layer 4／7—承接＋界分 |
+| D4（provisional 解析時限與未解析存量指標） | **ID.51（可稽核指標）—承接（核心）** | D19（RBAC 表設計） | 不觸及＋理由：下放 Layer 6／7 |
+| D5（identifier 鑄造、結構、命名空間設計） | **§3（ID.10–ID.14）—承接（核心）** | D20（輸出契約本體） | 不觸及＋理由：下放 Layer 6 |
+| D6（證券代碼身份假設之判準採認） | **Annex O（AO.1–AO.4）—承接（核心）** | D21（維度白名單取得機制） | 不觸及＋理由：下放 Layer 4 |
+| D7（Knowledge 五元組欄位） | 不觸及＋理由：欄位設計屬 Layer 4；本層設槽（ID.31）、下放 IDO.2 | D22（多重比較家族治理） | 不觸及＋理由：下放 Layer 4–5 |
+| D8（as-of 重建機制與能力等級） | 不觸及＋理由：重建引擎屬 Layer 4；本層定繫結存在（ID.60/61）、下放 IDO.6 | D23（as-of 查詢操作化） | 不觸及＋理由：下放 Layer 4／7 |
+| D9（Confidence 形式化語義） | 不觸及＋理由：Confidence 語義屬 Layer 4；本層設槽（ID.30(d)）、下放 IDO.1 | D24（序列化格式） | 不觸及＋理由：下放 Layer 7（IDO.5 對應） |
+| D10（supersede／tombstone／信任分級） | ID.40（只失效不刪除）、ID.42（tombstone）；信任分級 DEFER Layer 4—承接＋界分 | D25（儲存引擎） | 不觸及＋理由：下放 Layer 7 |
+| D11（完備性等級） | 不觸及＋理由：完備性等級屬 Layer 4 | D26（重編／對帳差異處置） | ID.40（correct 事件）—承接 |
+| D12（外部知識入判準／GATE 體系） | 不觸及＋理由：確立工作流屬 Layer 4–5 | D27（point-in-time 快照） | ID.60（身份時變屬性 point-in-time）—承接 |
+| D13（隔離稽核落地） | 不觸及＋理由：下放 Layer 5／7 | D28（其餘機制落地） | 不觸及＋理由：下放 Layer 5–7（依 `§WM` D28 所指層） |
+| D14（確立程序與候選斷言工作流） | ID.50（升級門檻）承接；工作流 DEFER Layer 4–5 | | |
+
+### TR.D — `AUGUR-ONT v0.1-draft`（全部 [N]，逐條）[N]
+
+**(1) 正文 ONT.1–ONT.62**
+
+| ONT 條款 | ID 落點／處置 |
+|---|---|
+| ONT.1（從屬） | 引言、ID.4—承接 |
+| ONT.2（細化不重定義） | §0.5（不重定義元規則）—承接 |
+| ONT.3（管轄與 DEFER 紀律） | ID.1、ID.4—承接 |
+| ONT.4（概念層獨立性＋刪名測試承接） | §0.5（`§0.6(b)`）—承接 |
+| ONT.5（[N]/[I] 標注、三態與位置） | §0.3、§0.5（refines／carries／hooks 三態）—承接 |
+| ONT.6（任務） | §1.1（不觸及型別任務，屬 L2）—承接 |
+| ONT.7（定位：三層不僭越） | ID.1—承接 |
+| ONT.8（型別定義不得由來源反推） | ID.11（外部識別碼非最高抽象）—承接（不重定義型別） |
+| ONT.9（引用格式與編號穩定性） | §0.3、ID.81—承接 |
+| ONT.10（頂層本體範疇） | 不觸及＋理由：頂層範疇制定屬 Layer 2 型別層 |
+| ONT.11（開放例示之封閉化紀律） | ID.40（lifecycle 事件開放集之封閉化體例）—承接 |
+| ONT.12（型別定義三要件） | 不觸及＋理由：型別定義屬 Layer 2 |
+| ONT.13（存在宣告 ↔ 分類體系接合） | ID.53（instance/type 標記存續）—承接 |
+| ONT.20（判準宣告義務；制定屬 L2、採認屬 L3） | ID.20（採認使生效於 resolution，不重定義判準內容）—**承接（核心）** |
+| ONT.21（判準效力與 Layer 3 採認之封印） | ID.20、ID.21（未採認即未解析）—**細化（核心，採認解封）** |
+| ONT.22（外部識別碼非 identifier） | ID.11、ID.30(a)—**細化（核心 AUD-06）** |
+| ONT.30（繫結對象標記語義） | ID.53（標記存續與解析落實）—承接 |
+| ONT.31（型別個體命名空間之概念層隔離） | ID.12（型別化命名空間隔離之機制側）—**細化（核心）** |
+| ONT.40（世界關係為一級型別範疇） | ID.24（世界關係之身份解析：端點有序組×valid time）—**細化（核心）** |
+| ONT.41（世界量為維度索引型別） | ID.12（series_id 維度空間與 stock_id 互斥）—承接 |
+| ONT.50（規範性對映義務；唯一權威表徵型別側前提） | ID.32（Representation 唯一權威表徵之結構前提承接）—承接 |
+| ONT.60（版本語義與型別存續不變式） | ID.81—承接 |
+| ONT.61（審查與豁免承接） | ID.81、CS.2—承接 |
+| ONT.62（合規聲明義務） | ID.80、Annex CS—承接 |
+
+**(2) ONT Annex T（T.0–T.91；台股型別階層與同一性判準）**——型別定義與同一性判準屬 Layer 2 型別層；本層對其個體 **採認**（ID.20）與 **機制化**（§3／§5／§6／§8），不重述型別定義／判準文句。故 Annex T 全列之基準處置為 **不觸及＋理由（型別／同一性判準制定屬 Layer 2，本層採認而不重定義）**，逐號涵蓋：T.0、T.1、T.2、T.3、T.4、T.5、T.6、T.7、T.8、T.9、T.10、T.11、T.12、T.13、T.20、T.21、T.22、T.23、T.24、T.25、T.26、T.27、T.28、T.29、T.30、T.31、T.32、T.33、T.34、T.35、T.36、T.40、T.41、T.42、T.43、T.44、T.50、T.51、T.52、T.53、T.60、T.61、T.62、T.90、T.91。**下列具名 Type 於本層另有具名採認／機制落點**（其型別定義仍不重述，僅承接其採認或機制化）：
+
+| T 條款 | ID 落點（採認／機制化，不重定義型別） |
+|---|---|
+| T.1（Security 判準） | AO.1（Security 判準採認落點，承 ID.20） |
+| T.20（Issuer 判準） | AO.4（Issuer 判準採認落點，承 ID.20） |
+| T.90（Security，代碼重用 OPEN-1） | Annex O（AO.1–AO.4）＋ID.43（存續邊界截斷） |
+| T.3（DerivativeContract 生命週期） | ID.44（settle 結算消滅終結表徵） |
+| T.4（ConvertibleBond 生命週期） | ID.44（convert／redeem 終結表徵） |
+| T.5（Warrant 生命週期） | ID.44（expire 到期失效終結表徵） |
+| T.23（HumanDecisionMaker） | ID.42（自然人 identity 側去識別化／法規強制抹除） |
+| T.24（IndustryClassification／身份屬性 as-of 化） | ID.60（時變屬性 as-of 繫結；今日屬性判歷史為禁止型態） |
+| T.34（生命週期屬性宣告／Delisting） | ID.43（retire）、ID.44（DynamicEntity 終結） |
+| T.42（ISIN identity claim） | ID.30（外部識別碼降格為 provisional alias，claim 端點須系統 identifier） |
+| T.43（instance/type 標記；point-in-time；as-of 化） | ID.53（標記存續）、ID.60（as-of 繫結） |
+| T.50（IssuanceRelation） | ID.24（世界關係身份解析：端點有序組×valid time） |
+| T.51（UnderlyingRelation） | ID.24（世界關係身份解析）、ID.44（ConvertibleBond→標的股以事件＋lineage） |
+
+> **TR.Z（逐條完整枚舉之完成與殘餘生效阻卻）[N]** TR.A–TR.D 已就 `AUGUR-MC v1.3`（§P3 家族＋§2.4 核心，及 PA／§1.2／§1.3／P1／P2／P4／P5 與 §0／§2／§4／§5／§6／§7／§8 逐條）、`AUGUR-WM v1.0`（WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）、`AUGUR-ONT v0.1-draft`（ONT.1–62＋Annex T T.0–T.91）**全部條款逐條枚舉落點**（承接／細化／DEFER／不觸及＋理由），滿足 `§WM.44`「任一條款無對應且無明記者，聲明不完整」之形式充分性要件——**形式充分性（`§WM.44`）已成就**。**殘餘之生效阻卻僅為 Steward 充任認定未成就**（`§0.5`、`§8.3`）；實質充分性與充任認定屬 Steward 違憲審查程序（`§8.2`），非本規格單方可成就。上層草案（`AUGUR-ONT v0.1-draft`）於升版或條款增修時，本矩陣對應列**必須**同步維護（ID.81 diff 檢查）。
+> **義務主體**：本規格、Steward。**可判定判準**：三上層全部 [N] 條款逐一於本矩陣有落點列者為完備（已成就）；上層條款增修而本矩陣未同步致某新條款無落點者，聲明重回不完整。
+
+---
+
 ## Annex CS [N] — Constitutional Compliance Statement（依 `AUGUR-WM v1.0 §WM.39–45` 格式）
 
 本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（ID.80、`AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39`）。本聲明依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成（非暫行模板，`§WM.45`：本聲明作成於 Layer 1 生效日 2026-07-16 之後）。**地位提示**：本規格為 v0.1-draft 提案，未經 Steward 充任認定前不生效力（見【地位】、ID.80）；本聲明之充分性最終判斷屬 Steward 違憲審查與充任認定程序。
@@ -430,16 +688,16 @@ compliance-statement:
 
 > **CS.1-P2（Representation Before Intelligence）**〔承接〕引 `§P2.E1`、`§P2.W2`、`§P2.E5`。provisional 不得升級為 Knowledge（ID.50）落實候選斷言經 Evidence 通道方確立；採認前保守解釋為未解析（ID.21）落實權威順序；採認撤回之 fail-safe 重評估（ID.22）承接 `§P2.E5`。判準揭示：「已解析」以採認紀錄存在（ID.20）操作化。
 
-> **CS.1-P3（Identity Before Knowledge）〔核心〕**〔承接＋細化〕引 `§P3.E1`、`§P3.E2`、`§P3.E3`、`§2.4`。
+> **CS.1-P3（Identity Before Knowledge）〔核心〕**〔承接＋細化〕引 `§P3.E1`、`§P3.E2`、`§P3.E3`、`§2.4`；**逐條見 Annex TR.A**（§P3 家族＋§2.4 為本層核心細化落點）。
 > * `§P3.E1`（引用與解析義務）→ ID.50–ID.53、ID.11（mint-on-admission）、ID.51（可稽核指標，承接 `AUGUR-WM v1.0 §D4`）；
 > * `§P3.E2`（Identity Lifecycle）→ ID.13（永不刪除）、ID.40–ID.43（merge/split/retire/relist/轉指全程 lineage、tombstone、去識別化），落實 **AUD-05**；
 > * `§P3.E3`（同一性判準掛鉤）→ ID.20–ID.23（採認，承接 `AUGUR-ONT v0.1-draft §ONT.21`／DO.1）、ID.53（instance/type 標記存續，承接 `§ONT.30`）；
 > * `§2.4`（identifier／identity claim 區分）→ ID.14、ID.30–ID.32（identity claim 一級介面），落實 **AUD-06**。
 > 判準揭示：本節每一評價性用語（「已解析」「可追溯」「唯一權威」）均附可判定判準（ID.20／ID.41／ID.32）。
 
-> **CS.1-P4（Evidence Before Conclusion）**〔承接＋DEFER〕引 `§P4.E1`、`§P4.E2`、`§P4.E3`、`§P4.E5`、`§P4.E6`、`§P4.E8`。identity claim 與 lifecycle 事件為需引用 Evidence 之 Knowledge（ID.30(c)、ID.40）；只失效不刪除（ID.22、ID.40）；衝突並存（ID.31）；身份屬性雙時間（ID.60，錨定 `§P4.E2`）。**DEFER**：Confidence 語義（IDO.1／`§P4.E8`）、Knowledge 五元組欄位（IDO.2／`§P4.E1`）、as-of 重建引擎（IDO.6／`§P4.E2`）下放 Layer 4。判準揭示：DEFER 掛鉤載明目標 Layer 與授權條款（Annex DO）。
+> **CS.1-P4（Evidence Before Conclusion）**〔承接＋DEFER〕引 `§P4.E1`、`§P4.E2`、`§P4.E3`、`§P4.E5`、`§P4.E6`、`§P4.E8`；**逐條見 Annex TR.B**（P4 家族）。identity claim 與 lifecycle 事件為需引用 Evidence 之 Knowledge（ID.30(c)、ID.40）；只失效不刪除（ID.22、ID.40）；衝突並存（ID.31）；身份屬性雙時間（ID.60，錨定 `§P4.E2`）。**DEFER**：Confidence 語義（IDO.1／`§P4.E8`）、Knowledge 五元組欄位（IDO.2／`§P4.E1`）、as-of 重建引擎（IDO.6／`§P4.E2`）下放 Layer 4。判準揭示：DEFER 掛鉤載明目標 Layer 與授權條款（Annex DO）。
 
-> **CS.1-P5（Accountability Before Action）**〔不適用（附理由）〕本規格為概念層 Identity 規格，不定義 Action、授權鏈或風險分級（屬 Layer 6）。惟採認（ID.20）、lifecycle 事件（ID.40）、去識別化（ID.42）均為具作成者之可歸責治理行為，其歸責記錄與 P5 精神相容。判準揭示：本規格未定義任何 Action 六元組事項。
+> **CS.1-P5（Accountability Before Action）**〔不適用（附理由）〕引 `AUGUR-MC v1.3 §P5.E1`（Action 六元組與問責）、`§P5.E2`（風險分級）：本規格為概念層 Identity 規格，不定義 Action、授權鏈或風險分級（屬 Layer 6，逐條見 Annex TR.B P5 各列）。惟採認（ID.20）、lifecycle 事件（ID.40）、去識別化（ID.42）均為具作成者之可歸責治理行為，其歸責記錄與 P5 精神相容。判準揭示：本規格未定義任何 Action 六元組事項（`§P5.E1`）。
 
 > **CS.1-EV-chain（§4 canonical chain）**〔承接〕引 `§4` EV.4（Identity）為本規格之標準鏈落點；引 `AUGUR-WM v1.0 §WM.24`（節選連續性）。本規格機制化 EV.4：Observation（EV.2）經 provisional（ID.50）解析取得 Identity（EV.4），方得繫結為 Evidence（EV.5）／Knowledge（EV.6）。判準揭示：節選不跳節點；provisional→resolved→Knowledge 之單向不可逆升級（ID.21、ID.50）。
 
@@ -463,7 +721,7 @@ compliance-statement:
 
 ### CS.4 形式充分性（`AUGUR-WM v1.0 §WM.44`）[N]
 
-依 `§WM.44` 判準自查：`AUGUR-MC v1.3` **全部** [N] 條款、`AUGUR-WM v1.0` **全部** [N] 條款、`AUGUR-ONT v0.1-draft` **全部** [N] 條款，均須對應至本規格至少一 [N] 條款、或明記 DEFER 掛鉤、或明記「不觸及」及理由（P5 家族依 CS.1-P5 明記不適用）。明記「不觸及」之主要條款群及理由：
+依 `§WM.44` 判準自查：`AUGUR-MC v1.3` **全部** [N] 條款、`AUGUR-WM v1.0` **全部** [N] 條款、`AUGUR-ONT v0.1-draft` **全部** [N] 條款，均須對應至本規格至少一 [N] 條款、或明記 DEFER 掛鉤、或明記「不觸及」及理由（P5 家族依 CS.1-P5 明記不適用）。**此自查之逐條完整枚舉見 Annex TR（TR.A–TR.D）**，本節為其總綱與「不觸及」主要條款群之理由歸納。明記「不觸及」之主要條款群及理由：
 
 * `AUGUR-MC v1.3` P5 全組、§5 架構角色、§6 F5–F6：其規範對象為行動治理／架構角色／智慧輸出可解釋性，屬 Layer 4–6；本層僅型別化行動主體之 identifier，不代定機制。
 * `AUGUR-WM v1.0` WM.24–29（canonical chain 承接於 CS.1-EV-chain；fail-safe／模態表達力屬 Layer 4–6）、WM.49–53（Domain Profile 框架，本層消費其產物而不制定）：本層 Identity 機制不使其不可表達（ID.13、ID.40、ID.41 為表達力承載）。
@@ -471,7 +729,7 @@ compliance-statement:
 
 **明記對應／DEFER（非不觸及）之補正**：`AUGUR-WM v1.0 §WM.38`（自然人有界表徵）及其 Annex D 掛鉤 **D17**（自然人法規對應表，L3/L6）：其 **L3 slice** 對應至 ID.42（去識別化／法規強制抹除機制）＋§8（ID.60，時變屬性 as-of），其 **L6 slice** 明記 DEFER Layer 6（IDO.7）；故 WM.38/D17 於本自查為「對應＋DEFER」，非「不觸及」。`AUGUR-ONT v0.1-draft §DO.3` 之 T.3/T.4/T.5（DynamicEntity 終結生命週期）對應至 ID.44。
 
-**逐條對應矩陣未完整枚舉——生效阻卻**：`AUGUR-MC v1.3`／`AUGUR-WM v1.0`／`AUGUR-ONT v0.1-draft` 全部 [N] 條款 → 本規格落點之**逐條完整枚舉**（`§WM.44` 要求之機器可判完備對應矩陣）**於本 draft 尚未完整作成**。依 `§WM.44`「任一條款無對應且無明記者，聲明不完整，規格不生效力」，在該矩陣完備為附錄追溯矩陣前，**形式充分性未成就、本規格不生效力**（見【地位】）；此矩陣**必須**於 Steward 充任認定前補足，**不得**以「正式定稿時補足」為由延宕其為生效要件之性質。**實質充分性**由違憲審查程序（`AUGUR-MC v1.3 §8.2`）與充任認定（`§0.5`）判斷。
+**逐條對應矩陣已完整枚舉、形式充分性已成就——殘餘生效阻卻僅 Steward 充任認定未成就**：`AUGUR-MC v1.3`／`AUGUR-WM v1.0`／`AUGUR-ONT v0.1-draft` 全部 [N] 條款 → 本規格落點之**逐條完整枚舉**（`§WM.44` 要求之機器可判完備對應矩陣）**已於 Annex TR（TR.0、TR.A–TR.D、TR.Z）完整作成**：TR.A（`AUGUR-MC v1.3` §P3 家族＋§2.4，本層核心）、TR.B（`AUGUR-MC v1.3` PA／§1.2／§1.3／P1／P2／P4／P5 及 §0／§2／§4／§5／§6／§7／§8）、TR.C（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）、TR.D（`AUGUR-ONT v0.1-draft` ONT.1–62＋Annex T T.0–T.91），每一上層 [N] 條款均有落點列（承接／細化／DEFER／不觸及＋理由）。依 `§WM.44`「任一條款無對應且無明記者，聲明不完整」之反面，**逐條完整枚舉已成就、形式充分性已成就**。**殘餘之生效阻卻僅為 Steward 充任認定未成就**（`AUGUR-MC v1.3 §0.5`、`§8.3`）——此為本規格生效之唯一未成就要件。**實質充分性**仍由違憲審查程序（`AUGUR-MC v1.3 §8.2`）與充任認定（`§0.5`）判斷；本規格不自我宣告已生效，充任認定為 Steward 之裁決行為（`§8.1`）。
 
 ---
 
@@ -493,8 +751,9 @@ compliance-statement:
 | Annex O | OPEN-1 承接（stock_id 代碼重用） | AO.1–AO.4 | `A.54`/D6、`ONT` T.90、T.20（AO.4） |
 | Annex DO | 下放下層掛鉤 | IDO.0–IDO.8 | → Layer 4/6/7 |
 | Annex L4 | 與 Layer 4 分界表 | L4.0 | 與 `ONT` L3 同構 |
+| Annex TR | WM.44 逐條對應矩陣（憲章＋WM＋ONT → 本規格） | TR.0、TR.A–TR.D、TR.Z | `WM.44` |
 | Annex CS | 憲章合規聲明 | CS.1–CS.4 | `WM.39–45` |
 
 ---
 
-*本規格計：正文條款 ID.1–ID.81、Annex O（AO.1–AO.4）、Annex DO（IDO.0–IDO.8）、Annex L4（L4.0）、Annex CS 合規聲明 [N]。全文以繁體中文為權威文本（§0.4）。本文件為 v0.1-draft 提案，未經 Steward 充任認定前不生效力（`AUGUR-MC v1.3 §0.5`、【地位】、ID.80）。*
+*本規格計：正文條款 ID.1–ID.81、Annex O（AO.1–AO.4）、Annex DO（IDO.0–IDO.8）、Annex L4（L4.0）、Annex TR（TR.0、TR.A–TR.D、TR.Z：WM.44 逐條對應矩陣，已就三上層全部 [N] 條款逐條完整枚舉）、Annex CS 合規聲明 [N]。全文以繁體中文為權威文本（§0.4）。本文件為 v0.1-draft 提案，形式充分性（`§WM.44`）已成就，殘餘生效阻卻僅 Steward 充任認定未成就；未經 Steward 充任認定前不生效力（`AUGUR-MC v1.3 §0.5`、【地位】、ID.80）。*
