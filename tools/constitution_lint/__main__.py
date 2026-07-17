@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import pathlib
 import sys
+import tempfile
 
-from . import audit_lint, compliance_lint
+from . import audit_lint, compliance_lint, mc_clauses
 
 _HERE = pathlib.Path(__file__).resolve().parent
 _FIX = _HERE / "fixtures"
@@ -63,19 +64,99 @@ def _selftest() -> int:
         ("F5", "自創詞 Answer First（原文＝Intelligence Without Evidence）"),
     ]:
         chk(f"  └ 抓到 `{code}` 誤標：{why}", f"`{code}` 標籤" in msgs)
-    chk("  └ 誤標訊息並列「規格所載」與「憲章原文」", "規格所載" in msgs and "憲章原文" in msgs)
+    chk("  └ 誤標訊息並列「規格所載」與「憲章原文」", "規格所載" in msgs and "原文" in msgs)
 
-    # 正例：合法標籤不得誤紅（引用原文／正文逐字濃縮／僅列代號無標籤／非 MC 代號）
+    # ── B2 回歸鎖：裸英文名之子字串放行漏洞（截半名／前段截取） ──────────────────
+    for code, why in [
+        ("P4.E8", "截半：原文＝Confidence（語義與消費），「消費」面遭截除"),
+        ("P4.E2", "截半：原文＝Time（雙時間性），代以自創詞「單向時鐘」"),
+    ]:
+        chk(f"  └ B2 抓到 `{code}` 截半名：{why}", f"`{code}` 標籤僅引原文半名" in msgs)
+    # ── B5 回歸鎖：上層規格標籤首度受檢（過半矩陣）──────────────────────────────
+    chk("  └ B5 抓到 `WM.36` 誤標（前段截取；原文＝World Concept Registry 與消費規則）",
+        "`WM.36` 標籤未完整引用原文名" in msgs)
+    chk("  └ B5 錯誤訊息指名權威來源為 AUGUR-WM v1.0（非 MC）",
+        any(f.rule == "WM.44-LABEL" and "AUGUR-WM v1.0 原文" in f.message for f in r.errors))
+
+    # 正例：合法標籤不得誤紅（引用原文／正文逐字濃縮／僅列代號無標籤／項次交叉引註）
     rg = compliance_lint.lint_spec(str(_FIX / "good_label_ok.md"), _MC)
     chk("good_label_ok fixture 綠（合法標籤不誤紅）", rg.passed)
     if not rg.passed:
         for f in rg.errors:
             print(f"      ↳ 非預期 error：{f.rule}: {f.message}")
+    chk("  └ B5 正例：上層規格（AUGUR-WM v1.0）之標籤確實受檢、非略過",
+        any(f.rule == "WM.44-LABEL" and "AUGUR-WM v1.0" in f.message
+            and f.severity.value == "info" for f in rg.findings))
+
+    # ── B3 回歸鎖：條款宇宙不完整（§2 定義項為 numbered list item，前版從未進入宇宙）──
+    mc_text = pathlib.Path(_MC).read_text(encoding="utf-8")
+    universe = mc_clauses.enumerate_clauses(mc_text)
+    for c in ["§2.5", "§2.6", "§2.7", "§2.10", "§2.11", "§2.1"]:
+        chk(f"  └ B3 `{c}` 已進入條款宇宙（§2 定義項）", c in universe)
+    chk("  └ B3 §2 十一條定義全數在宇宙（§2.1–§2.11）",
+        all(f"§2.{n}" in universe for n in range(1, 12)))
+    chk("  └ B3 §5 六個架構角色項次全數在宇宙（§5.1–§5.6，同體例）",
+        all(f"§5.{n}" in universe for n in range(1, 7)))
+    chk("  └ B3 Appendix C/D/E 之編號清單未誤入宇宙（[I] 章、非 [N] 項次）",
+        "§9.1" not in universe and not any(c.startswith("§10") for c in universe))
+    labels_mc = mc_clauses.load_clause_labels(_MC)
+    chk("  └ B3 §2 定義項可供標籤檢查（§2.5 原文名＝Evidence）",
+        (labels_mc.get("§2.5") or {}).get("paren_name") == "Evidence")
 
     # ── 新檢查二：WM.40 閉集擴欄 ───────────────────────────────────────────────
-    chk("WM.40 閉集由 WM 規格原文動態解析（非硬編碼）",
-        compliance_lint._wm40_closed_set()[1] == "WM 原文")
-    chk("  └ 解析出 14 欄", len(compliance_lint._wm40_closed_set()[0]) == 14)
+    fields_now, src_now = compliance_lint._wm40_closed_set()
+    chk("WM.40 閉集由 WM 規格原文動態解析（非硬編碼）", src_now == "WM 原文")
+    # **不**斷言 `len(...)==14`（B8）：14 這個數字正是本設計明文拒絕硬編碼之對象。WM 合法增欄時
+    # 該斷言即偽紅，而修復壓力會指向「把 14 改成 15」——即把 linter 拉回硬編碼。改採結構性斷言。
+    chk("  └ 解析結果具閉集之結構性質（≥10 欄且含 spec／archive-path）",
+        len(fields_now) >= 10 and "spec" in fields_now and "archive-path" in fields_now)
+
+    # ── B8 真突變鎖：以**修訂後之 WM 副本**實證 linter 跟隨 WM 而非硬編碼 ──────────
+    #    前版 README:68 宣稱有此測試，實則 selftest 全程未觸及任何 WM 副本——gate 自身犯了
+    #    它要撲滅的病（宣稱與實作脫節）。此處補上真測試。
+    with tempfile.TemporaryDirectory() as td:
+        wm_src = (_REPO / "specs" / "WORLD-MODEL-SPECIFICATION.md")
+        if wm_src.exists():
+            body = wm_src.read_text(encoding="utf-8")
+
+            # 突變一：於 WM.40 圍籬閉集插入新欄 → linter 須回報 15 欄且含 new-field-x
+            mutated = body.replace("  archive-path: {規格存檔",
+                                   "  new-field-x: {突變測試欄}\n  archive-path: {規格存檔", 1)
+            if mutated == body:      # 錨點文字漂移時退回以行號無關之插入點
+                mutated = body.replace("  archive-path:", "  new-field-x: {突變測試欄}\n  archive-path:", 1)
+            p1 = pathlib.Path(td) / "wm_added_field.md"
+            p1.write_text(mutated, encoding="utf-8")
+            f1, s1 = compliance_lint._wm40_closed_set(str(p1))
+            chk("B8 突變鎖①：WM 副本增一欄 → 閉集隨之增為 15 欄（linter 跟隨 WM，非硬編碼）",
+                s1 == "WM 原文" and "new-field-x" in f1 and len(f1) == len(fields_now) + 1)
+            chk("  └ 增欄後 source 仍為「WM 原文」（未退回 fallback）", s1 == "WM 原文")
+
+            # 突變二（B9）：WM.40 錨點格式微漂移 `**WM.40（` → `**WM.40 ：` → 須退 fallback
+            drifted = body.replace("**WM.40（機器可稽核 front-matter）", "**WM.40 ：機器可稽核 front-matter", 1)
+            p2 = pathlib.Path(td) / "wm_anchor_drift.md"
+            p2.write_text(drifted, encoding="utf-8")
+            f2, s2 = compliance_lint._wm40_closed_set(str(p2))
+            chk("B9 突變鎖①：WM.40 錨點漂移 → 閉集解析失敗、退回硬編碼副本", s2 == "fallback")
+            # **關鍵**：退回本身不是問題，「退得無聲而規格照報 PASS」才是。
+            r9 = compliance_lint.lint_spec(str(_FIX / "good_minimal.md"), _MC, wm_path=str(p2))
+            chk("B9 突變鎖②：閉集失準時 good_minimal 不再 PASS（不得靜默降級）", not r9.passed)
+            chk("  └ error 出自 WM.40 且指名『退回工具內硬編碼副本』",
+                any(f.rule == "WM.40" and "硬編碼副本" in f.message for f in r9.errors))
+            chk("  └ error 載明判定不具權威（非 warning 級提示）",
+                any(f.rule == "WM.40" and "不具權威" in f.message for f in r9.errors))
+            # 對照組：WM 可讀且錨點完好時，good_minimal 仍 PASS（B9 修正不得誤紅正常路徑）
+            chk("  └ 對照：WM 原文可解析時 good_minimal 仍 PASS（B9 不誤紅正常路徑）",
+                compliance_lint.lint_spec(str(_FIX / "good_minimal.md"), _MC).passed)
+
+            # B9 突變鎖③：WM 完全不可讀 → 同樣須 error，不得靜默用副本
+            f3, s3 = compliance_lint._wm40_closed_set(str(pathlib.Path(td) / "no_such_wm.md"))
+            chk("B9 突變鎖③：WM 不可讀 → fallback（且 lint 須報 error）",
+                s3 == "fallback" and not compliance_lint.lint_spec(
+                    str(_FIX / "good_minimal.md"), _MC,
+                    wm_path=str(pathlib.Path(td) / "no_such_wm.md")).passed)
+        else:
+            print("  ⚠ 找不到 AUGUR-WM，跳過 B8/B9 突變鎖")
+
     re_ = compliance_lint.lint_spec(str(_FIX / "bad_wm40_extension.md"), _MC)
     red("反例⑦ front-matter 擴欄 → 紅（WM.40 閉集）", "bad_wm40_extension.md", "WM.40")
     chk("  └ error 指名擴欄 `defers-in-count`",

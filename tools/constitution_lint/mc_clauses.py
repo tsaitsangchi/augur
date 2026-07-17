@@ -1,11 +1,18 @@
-"""從 META-CONSTITUTION.md 枚舉 [N] 條款宇宙（供 WM.44 形式充分性覆蓋檢查）。
+"""從 META-CONSTITUTION.md 枚舉 [N] 條款宇宙（供 WM.44 形式充分性覆蓋檢查）＋抽取原文標籤。
 
-依 `AUGUR-MC v1.3 §0.3` 條款編號系統：PA｜P{n}.D / P{n}.W{m} / P{n}.Y / P{n}.E{m}｜EV.1–EV.12｜F1–F6，
-另加 §0–§8 之 [N] 章節條款（§x.y 標 [N] 者）。
+依 `AUGUR-MC v1.3 §0.3` 條款編號系統：PA｜P{n}.D / P{n}.W{m} / P{n}.Y / P{n}.E{m}｜EV.1–EV.12｜F1–F6｜
+**§2.{n}（Definitions）**；另「章節號（§0–§9 及其小節與項次，如 §8.3、§2.11）視同條款編號」。
 
-⚠ 骨架限制：本枚舉以正則抽取「可機器辨識之條款代號」，涵蓋 PA/P#.*/EV.#/F#/§x.y[N]。WM.44 要求之
-「全部 [N] 條款」之完全形式枚舉（含正文散落之 MUST/MUST NOT 細目）為 phase-2 強化；故 compliance_lint
-之 WM.44 覆蓋檢查以 **warning 級**報告（不誤紅已生效之 AUGUR-WM v1.0），完全強制留待嚴格枚舉就緒。
+**B3 修正（條款宇宙不完整）**：前版 `_SECTION_SUB` 僅匹配 heading（`^#{2,4} §?n.m`），而 §2 之十一條
+定義與 §5 之六個架構角色皆為 **numbered list item** 體例（`1. **Reality** ＝ …`），故 §2.1–§2.11 與
+§5.1–§5.6 **從未進入條款宇宙**——其中 §2.5 Evidence／§2.6 Knowledge／§2.7 Intelligence／§2.10
+Confidence 為全憲章最核心之定義。後果：WM.44 所報「均見於聲明文本」為假陽性。本版補 list-item 枚舉。
+
+**「項次」之範圍**：§0.3 所舉之例（§8.3、§2.11）中，§2.11 即 numbered list item——故 numbered list
+item 為 §0.3 明文承認之項次體例，§2/§5 同體例者一併納入，無須解釋即可認定。至於**字母項**
+（§0.6(a)、§8.5(b)(i)）是否亦屬「項次」，§0.3 未舉例、體例亦異（括號字母 vs 點號數字），其認定
+屬條文解釋（§8.1 Steward 專屬）——linter 不得自行造法，故**明示不納入**並於 README 據實揭露，
+而非靜默省略。
 """
 from __future__ import annotations
 
@@ -26,10 +33,36 @@ _CLAUSE_PATTERNS = [
 _SECTION_CH = re.compile(r"^#{2,4}\s+§\s?(\d+)\b[^\n]*\[N\]", re.M)
 # 子條標題：`### 8.3 合規聲明…`／`### 0.6 Hierarchy Rule`（§ 與 [N] 在父章、子標題無之）→ §8.3 等母條款不再隱形（SHOULD #9）。
 _SECTION_SUB = re.compile(r"^#{2,4}\s+§?\s?(\d+\.\d+)\b", re.M)
+# 任一 h2 標題（用以終止「現行 [N] 章」之作用域：Appendix C/D/E 之編號清單不得誤入宇宙）
+_ANY_H2 = re.compile(r"^##\s+")
+# [N] 章下之 numbered list item（§0.3 之「項次」體例，例：`1. **Reality** ＝ …`、
+# `4. **World Understanding Engine（Cognitive Kernel）**：…`）。**必須**具粗體術語才算條款項次
+# ——純敘述性編號段落（如 Appendix C 各點）不具此形式，且已由 [N] 章作用域排除。
+_LIST_ITEM = re.compile(r"^(\d+)\.\s+\*\*(.+?)\*\*")
+
+
+def _list_item_anchors(mc_text: str):
+    """回 [(line_idx, code, raw_name)]：全部 [N] 章之 numbered list item 項次（§n.m）。
+
+    作用域規則：`## §n …[N]` 起算，遇任一其他 h2（含 `## Appendix …[I]`、`## §9 …[I]`）即失效。
+    項次序號取 list 之字面編號（§2 之 11 項恰為 §2.1–§2.11，與憲章自身之引用一致）。
+    """
+    out, cur = [], None
+    for i, ln in enumerate(mc_text.splitlines()):
+        if _ANY_H2.match(ln):
+            m = _SECTION_CH.match(ln)
+            cur = m.group(1) if m else None
+            continue
+        if cur is None:
+            continue
+        m = _LIST_ITEM.match(ln)
+        if m:
+            out.append((i, f"§{cur}.{int(m.group(1))}", _clean_label(m.group(2))))
+    return out
 
 
 def enumerate_clauses(mc_text: str) -> set:
-    """回 MC [N] 條款代號集合（骨架枚舉）：PA/P#.*/EV.#/F#、[N] 章（§n）與子條（§n.m）。"""
+    """回 MC [N] 條款代號集合：PA/P#.*/EV.#/F#、[N] 章（§n）、子條標題（§n.m）與**項次**（§n.m）。"""
     clauses = set()
     for pat, fmt in _CLAUSE_PATTERNS:
         for m in pat.finditer(mc_text):
@@ -38,6 +71,8 @@ def enumerate_clauses(mc_text: str) -> set:
         clauses.add(f"§{m.group(1)}")
     for m in _SECTION_SUB.finditer(mc_text):
         clauses.add(f"§{m.group(1)}")
+    for _, code, _ in _list_item_anchors(mc_text):
+        clauses.add(code)
     return clauses
 
 
@@ -49,8 +84,17 @@ def enumerate_clauses(mc_text: str) -> set:
 # 使「規格所載標籤 vs 憲章原文」成為機器可判之比對，而非人類記憶之比對。
 # ──────────────────────────────────────────────────────────────────────────────
 
-# 條款代號之字面（供憲章側與規格側共用）。§ 前綴於正規化時剝除（`§P5.D` ≡ `P5.D`）。
+# 憲章條款代號之字面。§ 前綴於正規化時剝除（`§P5.D` ≡ `P5.D`）。
 CODE_ALT = r"(?:PA|P[1-5]\.(?:D|Y|W\d+|E\d+)|EV\.\d+|F[1-6]|§\d+(?:\.\d+)?)"
+
+# **上層規格**條款代號之字面（B5：過半矩陣零檢查之修正）。前版 `_CODE_LABEL` 僅以 CODE_ALT
+# 為錨，故 Annex TR.D/E/F/G 之 WM./ONT./ID./KS./L5./L6. 等標籤**完全不檢**——所報「已比對 71 筆」
+# 全為 MC 側。`AUGUR-XX` 之 XX 恰為該規格之條款代號前綴，故此表同時充作 upper-specs 解析之依據。
+SPEC_PREFIXES = ["WM", "ONT", "IDO", "ID", "KDO", "KS", "LDO", "L5", "L6", "L7"]
+SPEC_CODE_ALT = r"(?:" + "|".join(SPEC_PREFIXES) + r")\.\d+"
+# 任一條款代號（憲章側 ∪ 規格側）。規格側置前：`ID.1` 不得被 `§\d+` 等分支搶走。
+ANY_CODE_ALT = (r"(?:" + SPEC_CODE_ALT +
+                r"|PA|P[1-5]\.(?:D|Y|W\d+|E\d+)|EV\.\d+|F[1-6]|§\d+(?:\.\d+)?)")
 
 # 條款自身之結構性標籤（非「名稱」）：`**P1.W1 WHAT [N]**` 之 WHAT 不是 P1.W1 的名字，
 # 而是「這是 WHAT 段」之體例標記。以其為權威標籤將令全部 W/D 條款無從具名 → 排除。
@@ -72,13 +116,18 @@ _EV_NODE = re.compile(r"^EV\.(\d+)\s+([A-Za-z].*)$")
 _BOX_CHARS = re.compile(r"[│┐┤┌└┘├─◄▼║═╗╝╚╔╪╬|]")
 
 
+# 效力標注：憲章側 `[N]`／`[I]`；上層規格側 `[N｜refines｜`AUGUR-MC v1.3 §P4.E6`；…]`
+# （規格條款錨之效力標注載有掛鉤來源，非標籤之一部分，須整塊剝除）。
+_EFFECT_TAG = re.compile(r"\[[NI](?:｜[^\]]*)?\]")
+
+
 def _clean_label(raw: str) -> str:
     """去效力標注／收尾標點／markdown 強調符號，回條款自有標籤之原字串（未正規化）。
 
     標籤緊接代號者體例上整段括起（`* **P1.E1（開放來源）**：`）——此時脫去最外層括號，
     俾錯誤訊息所印之「憲章原文」與規格側標籤同形可比。
     """
-    s = re.sub(r"\[[NI]\]", "", raw)
+    s = _EFFECT_TAG.sub("", raw)
     s = s.replace("**", "").replace("`", "")
     s = _BOX_CHARS.split(s)[0]
     s = s.strip().strip("：:—–- ").strip()
@@ -91,7 +140,7 @@ def _clean_label(raw: str) -> str:
 def normalize_label(s: str) -> str:
     """比對用正規化：NFKC（全半形統一）→ 去 markdown 強調／反引號／效力標注 → 去全部空白 → 小寫。"""
     s = unicodedata.normalize("NFKC", s or "")
-    s = re.sub(r"\[[NI]\]", "", s)
+    s = _EFFECT_TAG.sub("", s)
     s = s.replace("*", "").replace("`", "").replace("　", "")
     s = re.sub(r"\s+", "", s)
     return s.lower()
@@ -124,36 +173,96 @@ def _split_paren(raw: str):
     return [x for x in inside if x.strip()], [x for x in outside if x.strip()]
 
 
-def _name_variants(raw: str) -> list:
-    """由條款自有標籤原字串展開可接受之等值表記。
+def _strip_trailing_markers(seg: str) -> str:
+    """去尾綴體例標記（`風險分級 DEFER` → `風險分級`）。標記非名稱本體。"""
+    words = _clean_label(seg).split()
+    while words and words[-1].strip("[]").lower() in _TRAILING_MARKERS:
+        words.pop()
+    return " ".join(words)
 
-    憲章體例常為「英文名（中文名）」（如 `Five Immutable Principles（五大不可違反原則）`、
-    `Time（雙時間性）`）——兩者皆為憲章原文，規格擇一引用均非轉述，故並列為合法變體。
+
+def _label_forms(raw: str):
+    """由條款自有標籤原字串展開 (full_forms, halves)。
+
+    **B2 修正（子字串放行漏洞）**：前版 `_name_variants` 把裸英文名（Confidence／Time／
+    NoLaundering）與完整標籤**並列為對等變體**，判定又採「任一變體為標籤之子字串即放行」——
+    於是「Confidence 單一形式化」僅因含 `Confidence` 即綠燈，而 P4.E8 原文括號名為
+    「Confidence（語義與消費）」，**被截除之「消費」面才是 L7 之義務**。截半標籤靜默落空
+    半個義務，正是本檢查所要撲滅之病灶，卻由本檢查親手放行。
+
+    故將變體分作兩級：
+
+    * **full_forms（完整表記，單獨匹配即充分）**：標籤整體、去尾綴體例標記者、頂層並列表記
+      （`A／B` 之各支）。
+    * **halves（`X（Y）` 體例之兩半，單獨匹配為必要非充分）**：憲章／規格體例中 `X（Y）` 之
+      X 與 Y——**機器無從分辨** `Five Immutable Principles（五大不可違反原則）` 之譯名對
+      與 `Confidence（語義與消費）` 之名＋限定語。故一律降級：擇一引用僅於「標籤即該半名
+      本身、未添附自撰片段」時放行（§8.2 較嚴格解讀）。
     """
-    variants, seen = [], set()
+    base = _clean_label(raw)
+    if not base:
+        return [], []
+
+    full, seen = [], set()
 
     def push(v):
         v = _clean_label(v)
-        # 變體須具辨識度：< 3 字元者（如 `EV.9  Human Authority Gate (P5)` 之 `P5`）不足以
-        # 作為「引用了憲章原文」之證據，反易造成偽陰性 → 捨棄。
-        if len(normalize_label(v)) < 3:
+        # 表記須具辨識度：< 3 字元者（如 `EV.9  Human Authority Gate (P5)` 之 `P5`）不足以
+        # 作為「引用了原文」之證據，反易造成偽陰性 → 捨棄。
+        n = normalize_label(v)
+        if len(n) < 3 or n in seen:
             return
-        if normalize_label(v) in seen:
-            return
-        seen.add(normalize_label(v))
-        variants.append(v)
+        seen.add(n)
+        full.append(v)
 
-    push(raw)
-    inside, outside = _split_paren(raw)
-    for seg in inside + outside:
-        for part in re.split(r"[—–]{1,2}|／|/", seg):
-            push(part)
-            # 尾綴體例標記（DEFER 等）不屬名稱本體
-            words = part.strip().split()
-            while words and words[-1].strip("[]").lower() in _TRAILING_MARKERS:
-                words.pop()
-                push(" ".join(words))
-    return variants
+    push(base)
+    push(_strip_trailing_markers(base))
+
+    inside, outside = _split_paren(base)
+    if not inside:
+        # 無括號結構時，頂層 `A／B`／`A — B` 之各支為並列之完整表記
+        parts = re.split(r"[—–]{1,2}|／|/", base)
+        if len(parts) > 1:
+            for part in parts:
+                push(part)
+                push(_strip_trailing_markers(part))
+
+    halves, hseen = [], set()
+    if len(inside) == 1 and len(outside) == 1:
+        for seg in (outside[0], inside[0]):
+            seg = _strip_trailing_markers(seg) or _clean_label(seg)
+            n = normalize_label(seg)
+            if len(n) < 3 or n in hseen:
+                continue
+            hseen.add(n)
+            halves.append(seg)
+        if len(halves) < 2:
+            # 一半退化（`Human Authority Gate (P5)` 之 `P5` 為交叉引註而非名之一半）→
+            # 非兩半體例；另一半即該條之**完整**名，逕引之非截半。
+            for h in halves:
+                push(h)
+            halves = []
+    return full, halves
+
+
+def leading_overlap(label: str, name: str) -> float:
+    """回「標籤與原文名之共同前段」占原文名之比例（正規化後逐字元）。
+
+    用途（B2 之推廣）：`WM.36（World Concept Registry 七欄）` 之原文名為
+    「World Concept Registry 與消費規則」——標籤**逐字照抄名之前段後、換上自己的尾巴**，
+    而「七欄」又恰為該條正文用語，故「正文逐字支撐」判準（`_text_supported`）反而放行之。
+    此類「前段截取」與 `X（Y）` 之截半同病：**被換掉之尾段即靜默落空之義務**（WM.36 之
+    「消費規則」正是下層之義務所在）。以共同前段比例辨識之。
+    """
+    a, b = normalize_label(label), normalize_label(name)
+    if not a or not b:
+        return 0.0
+    n = 0
+    for x, y in zip(a, b):
+        if x != y:
+            break
+        n += 1
+    return n / len(b)
 
 
 def _tokens(label: str) -> list:
@@ -180,11 +289,11 @@ def label_overlap(label: str, text: str) -> tuple:
     return hit, len(toks)
 
 
-def enumerate_clause_labels(mc_text: str) -> dict:
-    """回 code → {"paren_name": str|None, "names": [變體…], "text": 條款正文, "line": 行號}。
+def enumerate_clause_labels(mc_text: str, source: str = "MC") -> dict:
+    """回 code → {"paren_name", "full_forms", "halves", "text", "line", "source"}。
 
     `paren_name` 為憲章**自有標籤**（無者為 None）；`text` 為條款正文（含其祖先標題脈絡，
-    供子字串／關鍵詞重疊比對）。
+    供子字串／關鍵詞重疊比對）；`source` 為標籤權威來源之識別（錯誤訊息用）。
     """
     lines = mc_text.splitlines()
     anchors = []          # (line_idx, code, raw_name)
@@ -192,7 +301,15 @@ def enumerate_clause_labels(mc_text: str) -> dict:
     stops = set()         # 條款正文之終止界線：任一錨點或標題
     cur_principle = ""
 
+    # §2 定義項／§5 架構角色項等 numbered list item 項次（B3）
+    item_anchors = {i: (code, raw) for i, code, raw in _list_item_anchors(mc_text)}
+
     for i, ln in enumerate(lines):
+        if i in item_anchors:
+            code, raw = item_anchors[i]
+            stops.add(i)
+            anchors.append((i, code, raw))
+            continue
         m = _H_PRINCIPLE.match(ln)
         if m:
             cur_principle = f"Principle {m.group(1)} — {m.group(2)}"
@@ -239,21 +356,69 @@ def enumerate_clause_labels(mc_text: str) -> dict:
             # 同代號重複現身（如 §4 章標題 vs 圍籬圖）：保留首見之標籤，正文相加
             out[code]["text"] += "\n" + text
             if not out[code]["paren_name"] and name:
-                out[code]["paren_name"] = name
-                out[code]["names"] = _name_variants(name)
+                full, halves = _label_forms(name)
+                out[code].update(paren_name=name, full_forms=full, halves=halves)
             continue
+        full, halves = _label_forms(name) if name else ([], [])
         out[code] = {
             "paren_name": name or None,
-            "names": _name_variants(name) if name else [],
+            "full_forms": full,
+            "halves": halves,
             "text": text,
             "line": i + 1,
+            "source": source,
+        }
+    return out
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 上層規格之原文標籤（B5：TR.D–TR.G 過半矩陣納入同一 gate）
+#
+# 上層規格條款錨之體例高度一致（六份生效規格逐一實測）：
+#   `> **WM.36（World Concept Registry 與消費規則）[N｜refines｜`AUGUR-MC v1.2 §P1.E2`…]**`
+# 標籤即括號名；`[N｜…]` 為效力標注與掛鉤來源，非標籤之一部分（由 `_EFFECT_TAG` 剝除）。
+# ──────────────────────────────────────────────────────────────────────────────
+
+_SPEC_CLAUSE = re.compile(r"^\s*>?\s*(?:[*-]\s+)?\*\*(" + SPEC_CODE_ALT + r")\s*(.*?)\*\*")
+_SPEC_ANY_H = re.compile(r"^\s*>?\s*#{1,4}\s")
+
+
+def enumerate_spec_clause_labels(text: str, source: str) -> dict:
+    """回 code → {…}（同 `enumerate_clause_labels` 之結構）：上層規格之 [N] 條款原文標籤。"""
+    lines = text.splitlines()
+    anchors, stops = [], set()
+    for i, ln in enumerate(lines):
+        if _SPEC_ANY_H.match(ln):
+            stops.add(i)
+            continue
+        m = _SPEC_CLAUSE.match(ln)
+        if m:
+            stops.add(i)
+            anchors.append((i, m.group(1), _clean_label(m.group(2))))
+
+    out = {}
+    for i, code, raw in anchors:
+        end = min([s for s in stops if s > i] or [len(lines)])
+        text_body = "\n".join(lines[i:max(end, i + 1)])
+        name = raw if raw and normalize_label(raw) not in _GENERIC_LABELS else ""
+        if code in out:
+            out[code]["text"] += "\n" + text_body
+            continue
+        full, halves = _label_forms(name) if name else ([], [])
+        out[code] = {
+            "paren_name": name or None,
+            "full_forms": full,
+            "halves": halves,
+            "text": text_body,
+            "line": i + 1,
+            "source": source,
         }
     return out
 
 
 def load_clause_labels(mc_path) -> dict:
     with open(mc_path, encoding="utf-8") as f:
-        return enumerate_clause_labels(f.read())
+        return enumerate_clause_labels(f.read(), source="MC")
 
 
 def current_mc_version(mc_text: str) -> str:
