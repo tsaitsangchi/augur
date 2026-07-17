@@ -19,7 +19,7 @@ augur 知識/哲學層(2026-07-03 建錨)。**三部曲**:①expansion(registry 
 
 **嵌入口徑**:統一 `intfloat/multilingual-e5-small` 384 維 CPU、"passage: "/"query: " 前綴、normalize(bge-m3 CPU 53.7h 遭棄);**分表分層**(HNSW post-filter 陷阱)、灌完才建 HNSW(maintenance_work_mem 2GB)、帶過濾 kNN 用 hnsw.iterative_scan=relaxed_order;zh junk 過濾禁按長度(短句=真訓詁)、僅全符號規則;resume=knowledge_build_meta 游標。吞吐實測:lexicon ~10 條/s(全量 ~4.3h)、句 77/s、T4 44k 列/s。**textnorm=L2/L3/L5 JOIN 鍵契約 SSOT**(NFC+不繁簡互轉、中文逐字+jieba HMM=False ≥2 全 CJK、西文 Porter 1980 內建;jieba 換版須重建 concordance;Porter 正規形查詢 value→'valu')。
 
-**版權雙軌(憲章 v1.20)**:哲學原典 work_text 限公版;knowledge_item_text=公版+CC 白名單四值(cc-by/cc-by-sa/cc0/public_domain,DB CHECK);NC/ND/未明停 metadata;現代版權著作僅核心精神經真實文獻 citation→principle→factor_map→#14。
+**版權三軌五值(憲章 v1.36.0「全文准入三軌」;⚠️2026-07-17 更正原「雙軌四值」)**:哲學原典 work_text 限公版;`knowledge_item_text` LICENSE_WHITELIST=**五值**(`corpus.py:21` + live DB CHECK):公版 `public_domain`、CC 白名單 `cc-by`/`cc-by-sa`/`cc0`、**自有私有 `owned_local`(綁 access_scope=local_private、DB CHECK guard)**。⚠️**owned_local 佔比 96.81%(150,685/155,655)=最大宗**,漏它=完全錯估知識層構成(cc0 2.24%/cc-by 0.70%/cc-by-sa 0.14%/public_domain 0.11%,live 實查 2026-07-17)。NC/ND/未明停 metadata;現代版權著作僅核心精神經真實文獻 citation→principle→factor_map→#14。
 
 **未實作債(2026-07-03)**:`verify_text_integrity.py`(W2)、`review_flagged_works.py`(151 部 flag 人審)、`refresh_text_understanding.py`、L5(`answer.py`/`profile.py`/coverage report)、W6 term_stats/W7 衍生層/W9 en 句嵌入(拍板 C 子集);康熙 p1 餘 174 部首、十三經餘十一經;chunk junk 塊清理(「_」0.84 污染)須先於跨語驗收+rank@10 驗收本身。注意 `embed_philosophy_chunks.py --smoke` 不限量會跑全量、且跳過建索引(index 只在非 smoke 模式建;補建用 script 內同款 DDL idx_chunk_emb_hnsw)。harvest 常規批:`python scripts/harvest_knowledge.py --batch 300 --rounds 4 --max-minutes 120`。
 

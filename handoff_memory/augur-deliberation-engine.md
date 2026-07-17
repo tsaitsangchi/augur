@@ -1,6 +1,6 @@
 ---
 name: augur-deliberation-engine
-description: 本地審議引擎效力成立——GATE PASS(gate_4304;+46.7pp/假確認0/McNemar 3.6e-12);A5 複量報告已交;F1 旗標仍關待 hugo 拍板翻;L2 cron 待掛
+description: 本地審議引擎效力成立——GATE PASS(gate_4304;+46.7pp/假確認0/McNemar 3.6e-12);A5 複量報告已交;⚠2026-07-17更正:L2 cron 已掛且真跑過(親驗 crontab 15:6+delib_daily.log 07-17 有輸出、人裁佇列積壓27);F1 旗標索引稱已開閘(本次未親驗、frontmatter 原「待掛/仍關」已過時)
 metadata: 
   node_type: memory
   type: project

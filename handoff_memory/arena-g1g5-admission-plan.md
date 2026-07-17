@@ -1,6 +1,6 @@
 ---
 name: arena-g1g5-admission-plan
-description: arena 開賽前置=G1-G5 實質驗證機制(取代已退史料的 unfreeze gate);計畫書+Phase 0 決策狀態(D-1~D-5 已拍板)
+description: arena 開賽前置=G1-G5 實質驗證機制(取代已退史料的 unfreeze gate);⚠2026-07-17更正:Phase 0 全7顆已拍板(非僅D-1~D-5)、gate arena_adm_5305655ad1cd evaluated_pass、arena 已開賽(親驗 direction_arena_prediction 4,128 列/8 隊/已結算 0)
 metadata: 
   node_type: memory
   type: project
