@@ -35,6 +35,8 @@ metadata:
 
 **執行邊界(hugo directive)**:皆計畫層方向決策;實作(建表/evaluator/hash/接線)與治權修訂**一律待 hugo 後續拍板才動工**(#26),不因決方向就動手。
 
+**A4 波次入賽(2026-07-17)**:Chronos-2+Moirai-2.0 兩隊入賽(8 隊全員)——依台股 TSFM benchmark(reports/tsfm_taiwan_benchmark_20260717.md:20 個 DM 檢定零顯著勝 RW、Chronos-2 最不退化)。A4 家族 K=2/α=0.025/21 門全序列揭露;license 白名單擴 cc-by-nc-4.0(hugo 拍 A;**Moirai=NC、商業化前須清算**);dgate approve=hugo TTY 親核(憲章 v1.42.0 TTY 閘實證擋 AI 代跑,admission gate 可代跑之對比)。踩雷:Chronos-2 predict_quantiles 回 list[(1,H,9)] 非 v1 stacked;uni2ts 裝機降級 numpy/torch(四關驗綠無傷,score repro 洩漏鎖首次實戰)。**alpha 提升計畫**=reports/taiwan_alpha_improvement_plan_20260717.md(三軸 D/P/M、51 項對抗審查、11 拍板點、DSR 雙基線對帳=P0 交付;待 hugo 拍)。
+
 **治權修訂批次完成(2026-07-17 hugo「全批照案」)**:原則精華 v1.9.1(解凍子條 live 准入=G1-G5 機制+G1-PIN+門二確立)/憲章 v1.46.0(L130 加註+L131④ 精確化+修訂歷程)/CLAUDE v1.29(§2 blockquote)/README/HANDOFF 全鏈級聯;判準值零變動。**發現平行 meta-治理體系**:hugo 另一會話建 `augur-constitution` repo(AUGUR-MC v1.3 Layer 0 lex superior/Steward 裁決/AUD 審計),5 治權檔已加「憲章從屬聲明」檔頭(Layer 登錄;#7 vs P4.E5 緊張揭露、補正期 2026-10-14)——rebase 整合乾淨(雙方改動共存);日後治權工作須認知此上位體系存在。
 
 見 [[augur-unfreeze-20260712]](gate 退史料+解凍入憲)、[[augur-validation-master-plan]](G1-G5 SSOT=master plan §4)、[[audit-attestation-falsegreen]](G1 對帳誠實化史)、[[augur-oracle-direction-verdict]](方向軸六門判死史、arena=解凍後重測)。
