@@ -54,9 +54,9 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 
 * 名稱：Augur Agent Runtime Specification（下層引用簡稱 **AUGUR-L6**）
 * 層級：Layer 6 — Agent Runtime／World Action Layer（`AUGUR-MC v1.3 §0.5` 對照表第 6 列；`§5` 角色五）
-* 版本：v0.1-draft（前版：無）
+* 版本：v1.0（前版：v0.1-draft）
 * 上層規格（upper-specs）：`AUGUR-MC v1.3`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v1.0`（Layer 2）、`AUGUR-ID v1.0`（Layer 3）、`AUGUR-KS v1.0`（Layer 4）、`AUGUR-L5 v1.0`（Layer 5）
-* 生效要件：見【地位】節（殘餘阻卻為 Steward 充任認定未成就、`§8.2` 實質審查保留）。
+* 生效要件：見【地位】節（已全部成就；Steward 裁決第 2026-007 號，AL-2026-011，生效日 2026-07-17；`§8.2` 實質人類審查已作成）。Steward `§8.2` 違憲審查權就 residual 事項完整保留（RULING-2026-007:43）。
 
 ### 0.2 規範用語約定 [N]
 
@@ -416,14 +416,14 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 
 ### TR.Z — 殘餘生效阻卻（DRAFT）[N]
 
-> **TR.Z（充任認定未成就）[N]** 上開逐條／區塊枚舉已就六上層全部 [N] 條款給出落點（承接／細化／DEFER／不觸及＋理由）。**惟本規格為 v0.1-draft 提案，殘餘生效阻卻為 Constitution Steward 依 `AUGUR-MC v1.3 §8.1` 之充任認定未成就、`§8.2` 實質合憲人類審查保留**；形式充分性之最終判斷與實質合憲審查均屬 Steward 裁決，本子代理不代行、不宣稱生效。以十位制區塊枚舉之上層本體條款，其「不觸及＋理由」為機器可判之處置；如經 Steward 認定某區塊須逐條細列，屬 minor 升版維護（L6.91）。**自我起草警示**：本層規範人類對 Agent 之權威，其監督度量與非侵蝕棘輪（L6.16–L6.18）之充分性尤待 Steward `§8.2` 實質審查確認未低估人類監督之真實維度（T-L6-5）。
+> **TR.Z（充任認定已成就；`§8.2` 實質審查已作成、residual 保留）[N]** 上開逐條／區塊枚舉已就六上層全部 [N] 條款給出落點（承接／細化／DEFER／不觸及＋理由）。**本規格經 Constitution Steward 依 `AUGUR-MC v1.3 §8.1` 作成充任認定，並經 `§8.2` 實質合憲人類審查，自 2026-07-17 起以 v1.0 生效**（Steward 裁決第 2026-007 號、AL-2026-011）；**Steward `§8.2` 違憲審查權就 residual 事項完整保留**（RULING-2026-007:43）；形式充分性之最終判斷與實質合憲審查均屬 Steward 裁決，本子代理不代行、不自行宣稱生效。以十位制區塊枚舉之上層本體條款，其「不觸及＋理由」為機器可判之處置；如經 Steward 認定某區塊須逐條細列，屬 minor 升版維護（L6.91）。**自我起草警示**：本層規範人類對 Agent 之權威，其監督度量與非侵蝕棘輪（L6.16–L6.18）之充分性尤待 Steward `§8.2` 實質審查確認未低估人類監督之真實維度（T-L6-5）。
 > **義務主體**：本規格、Steward。**可判定判準**：六上層每一 [N] 條款於本矩陣有落點；Steward 充任認定成就前，本規格不生效力。
 
 ---
 
 ## Annex CS [N] — Constitutional Compliance Statement（依 `AUGUR-WM v1.0 §WM.39–45` 格式）
 
-本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（L6.90、`AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39`）。**地位提示**：本規格為 v0.1-draft 提案，未經 Steward 充任認定前不生效力（見【地位】、L6.90）；本聲明之充分性最終判斷屬 Steward 違憲審查與充任認定程序（DRAFT）。
+本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（L6.90、`AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39`）。**地位提示**：本規格為 **v1.0 生效版本**，Steward 充任認定已作成、`§8.2` 實質人類審查已作成，自 2026-07-17 起生效（Steward 裁決第 2026-007 號，AL-2026-011；見【地位】、L6.90）；**Steward `§8.2` 違憲審查權就 residual 事項完整保留**（RULING-2026-007:43）。
 
 ```
 compliance-statement:
@@ -439,7 +439,7 @@ compliance-statement:
   defers-in: [L5.LDO.2, L5.LDO.6, KS.KDO.2, MC.P5.E2, MC.P4.E7, MC.P5.W5, MC.role5]
   defers-out: [LDO.1, LDO.2, LDO.3, LDO.4, LDO.5, LDO.6]
   date: 2026-07-17
-  author: Layer 6 Agent Runtime 規格起草人（AUGUR-L6 起草子代理；產物為 v0.1-draft 提案，待 Steward 充任認定與 §8.2 實質審查）
+  author: Layer 6 Agent Runtime 規格起草人（AUGUR-L6 起草子代理；產物原為 v0.1-draft 提案，業經 Steward 充任認定與 §8.2 實質審查，以 v1.0 生效；§8.2 residual 保留）
   archive-path: specs/AGENT-RUNTIME-SPECIFICATION-v0.1-draft.md
 ```
 
@@ -495,7 +495,7 @@ compliance-statement:
 
 **MC [N] 條款覆蓋清單（`§WM.44` 骨架自查，逐一具名以資機器盤點；落點見 Annex TR.A／TR.B／TR.C）[N]**：`PA`；`EV.1`、`EV.2`、`EV.3`、`EV.4`、`EV.5`、`EV.6`、`EV.7`、`EV.8`、`EV.9`、`EV.10`、`EV.11`、`EV.12`；`F1`、`F2`、`F3`、`F4`、`F5`、`F6`；`P1.D`、`P1.E1`、`P1.E2`、`P1.E3`、`P1.W1`；`P2.D`、`P2.E1`、`P2.E2`、`P2.E3`、`P2.E4`、`P2.E5`、`P2.W1`、`P2.W2`；`P3.D`、`P3.E1`、`P3.E2`、`P3.E3`、`P3.W1`、`P3.W2`；`P4.D`、`P4.E1`、`P4.E2`、`P4.E3`、`P4.E4`、`P4.E5`、`P4.E6`、`P4.E7`、`P4.E8`、`P4.W1`；`P5.D`、`P5.E1`、`P5.E2`、`P5.W1`、`P5.W2`、`P5.W3`、`P5.W4`、`P5.W5`；`§0`、`§0.1`、`§0.2`、`§0.3`、`§0.4`、`§0.5`、`§0.6`、`§1`、`§1.1`、`§1.2`、`§1.3`、`§2`、`§3`、`§4`、`§5`、`§6`、`§7`、`§8`、`§8.1`、`§8.2`、`§8.3`、`§8.4`、`§8.5`、`§8.6`。各 `Pn.Y`（`P1.Y`、`P2.Y`、`P3.Y`、`P4.Y`、`P5.Y`）為 [I] 說理條款，本層以「不觸及＋理由：屬各原則之風險說理，非規範義務落點」統一處置，惟為骨架覆蓋完備計於此具名。
 
-**逐條對應矩陣已作成——形式充分性之形式面已備，惟殘餘生效阻卻為 Steward 充任認定未成就、`§8.2` 實質審查保留**（見【地位】、TR.Z）。上層升版或條款增修時本矩陣對應列**必須**同步維護（L6.91 diff 檢查），否則聲明重回不完整。本子代理不宣稱任何規格已生效、不登錄正式 Amendment Log（DRAFT）。
+**逐條對應矩陣已作成——形式充分性之形式面已備；Steward 充任認定業經作成、`§8.2` 實質人類審查已作成，本規格自 2026-07-17 起以 v1.0 生效**（Steward 裁決第 2026-007 號、AL-2026-011；見【地位】、TR.Z），**殘餘生效阻卻已解消**；**Steward `§8.2` 違憲審查權就 residual 事項完整保留**（RULING-2026-007:43）。上層升版或條款增修時本矩陣對應列**必須**同步維護（L6.91 diff 檢查），否則聲明重回不完整。本子代理不自行宣稱任何規格已生效、不自行登錄正式 Amendment Log；本規格之生效及其登錄（AL-2026-011）均為 Steward 之裁決行為。
 
 ---
 
@@ -522,6 +522,6 @@ compliance-statement:
 
 ---
 
-*本規格計：正文條款 L6.1–L6.24（核心行動治理）＋L6.90–L6.92（文件治理；L6.25–L6.89 為十位制保留區塊）、Annex LDI（LDI.0–LDI.6）、Annex LDO（LDO.0–LDO.6）、Annex L67（L67.0）、Annex TR（TR.0、TR.A–TR.F、TR.Z）、Annex CS 合規聲明（CS.1–CS.4）、Annex EO（EO.1）。全文以繁體中文為權威文本（§0.4）。本文件為 **v0.1-draft 提案**，未經 Constitution Steward（人類 tsaitsangchi）依 `AUGUR-MC v1.3 §8.1` 充任認定、`§8.2` 實質合憲人類審查前不生效力（【地位】、L6.90）；本文一切裁決標 **DRAFT**；本子代理不宣稱任何規格已生效、不改本文自稱生效、不登錄正式 Amendment Log。本層由 Agent 起草而規範人類對 Agent 之權威，一切條款以機器可稽核地強化人類監督與否決能力為硬設計約束（【地位】、L6.16–L6.18）。*
+*本規格計：正文條款 L6.1–L6.24（核心行動治理）＋L6.90–L6.92（文件治理；L6.25–L6.89 為十位制保留區塊）、Annex LDI（LDI.0–LDI.6）、Annex LDO（LDO.0–LDO.6）、Annex L67（L67.0）、Annex TR（TR.0、TR.A–TR.F、TR.Z）、Annex CS 合規聲明（CS.1–CS.4）、Annex EO（EO.1）。全文以繁體中文為權威文本（§0.4）。本文件為 **v1.0 生效版本**：Constitution Steward（人類 tsaitsangchi）已依 `AUGUR-MC v1.3 §8.1` 作成充任認定，並依 `§8.2` 作成實質合憲人類審查，自 2026-07-17 起生效（Steward 裁決第 2026-007 號、AL-2026-011；【地位】、L6.90）。**Steward `§8.2` 違憲審查權就 residual 事項完整保留**（RULING-2026-007:43）。本規格之生效及其登錄均為 Steward 之裁決行為，非本子代理所得宣稱或代行。本層由 Agent 起草而規範人類對 Agent 之權威，一切條款以機器可稽核地強化人類監督與否決能力為硬設計約束（【地位】、L6.16–L6.18）。*
 
 **核心產物索引 [I]**：Action 問責結構＝§3（L6.1 六元組不變式／L6.2 單一已解析歸責／L6.3 Knowledge Basis 門檻／L6.4 self-reported 回流）；授權鏈與人類權威＝§4（L6.5 人類根節點／L6.6 委派失效可撤銷／L6.7 EV.9 Gate 強制驗證／L6.8 Agent-獨立否決通道）；風險分級＝§5（L6.9 可逆性影響判準／L6.10 RT-0–RT-4／L6.11 完備性門檻／L6.12 Confidence 門檻／L6.13 核准流程／L6.14 確認者獨立／L6.15 最小權限單調）；監督度量＝§6（L6.16 OCV 定義／L6.17 單調棘輪／L6.18 反自我交易 guard-the-guard）；行動迴路與熔斷＝§7（L6.19 EV.8–EV.12／L6.20 熔斷 halt/degrade）；執法與防線＝§8（L6.21 F6 執法點／L6.22 F3 防線／L6.23 分界紀律／L6.24 謂詞錨定）；DEFER 表＝Annex LDI／LDO；WM.44 矩陣＝Annex TR。

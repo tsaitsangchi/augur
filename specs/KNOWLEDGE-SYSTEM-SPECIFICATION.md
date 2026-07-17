@@ -5,7 +5,7 @@ Augur Enterprise AI Operating System
 引用縮寫：**AUGUR-KS**｜版本：**v1.0**（前版：v0.1-draft）
 受 **AUGUR-MC v1.3** 全文約束（`AUGUR-MC v1.3 §0.6(a)` lex superior、`§0.5` 對照表 Layer 4 欄）
 並受 **AUGUR-WM v1.0** 全文約束（`AUGUR-MC v1.3 §0.6(a)`、`AUGUR-WM v1.0 §WM.1`）
-並受 **AUGUR-ONT v0.1-draft**（Layer 2，草案）、**AUGUR-ID v0.1-draft**（Layer 3，草案）之下放掛鉤承接約束（`AUGUR-MC v1.3 §0.6(a)`）
+並受 **AUGUR-ONT v1.0**（Layer 2）、**AUGUR-ID v1.0**（Layer 3）之下放掛鉤承接約束（`AUGUR-MC v1.3 §0.6(a)`）
 
 ---
 
@@ -63,9 +63,9 @@ Augur Enterprise AI Operating System
 
 * 名稱：Augur Knowledge System Specification（下層引用簡稱 **AUGUR-KS**）
 * 層級：Layer 4 — Knowledge System（`AUGUR-MC v1.3 §0.5` 對照表第 4 列）
-* 版本：v0.1-draft（前版：無）
+* 版本：v1.0（前版：v0.1-draft）
 * 上層規格（upper-specs）：`AUGUR-MC v1.3`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v0.1-draft`（Layer 2，草案）、`AUGUR-ID v0.1-draft`（Layer 3，草案）
-* 生效要件：`AUGUR-MC v1.3 §0.5` 對照表登錄（已具欄位）＋ 依 `AUGUR-WM v1.0 §WM.39` 之 Compliance Statement（Annex CS）含 `§WM.44` 逐條矩陣（**已完整枚舉、形式充分性已成就**，見 Annex TR、【地位】）＋ Steward 充任認定（**未成就**，見【地位】）＋ 登錄 Amendment Log（`AUGUR-MC v1.3 §8.1`，屬 Steward 充任認定行為，未成就）。**殘餘生效阻卻僅為 Steward 充任認定未成就**。
+* 生效要件：`AUGUR-MC v1.3 §0.5` 對照表登錄（已具欄位）＋ 依 `AUGUR-WM v1.0 §WM.39` 之 Compliance Statement（Annex CS）含 `§WM.44` 逐條矩陣（**已完整枚舉、形式充分性已成就**，見 Annex TR、【地位】）＋ Steward 充任認定（**已成就**，見【地位】）＋ 登錄 Amendment Log（`AUGUR-MC v1.3 §8.1`）——**已全部成就**（Steward 裁決第 2026-005 號，2026-07-17，AL-2026-009）。**生效日：2026-07-17**。實質充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序，與已成就之形式充分性分屬二事。
 
 ### 0.2 規範用語約定 [N]
 
@@ -642,7 +642,7 @@ Augur Enterprise AI Operating System
 
 ## Annex TR [N] — WM.44 逐條對應矩陣（憲章＋WM＋ONT＋ID → KS）
 
-> **TR.0（矩陣之地位與生效要件性）[N]** 依 `AUGUR-WM v1.0 §WM.44`：`AUGUR-MC v1.3`、`AUGUR-WM v1.0`、`AUGUR-ONT v0.1-draft`、`AUGUR-ID v0.1-draft` 全部 [N] 條款均須對應至本規格至少一 [N] 條款、明記 DEFER 掛鉤、或明記「不觸及」及理由。**本矩陣已就四上層規格全部條款逐條完整枚舉**：TR.A（`AUGUR-MC v1.3` §P4 家族）、TR.B（`AUGUR-MC v1.3` PA／P1／P2／P3／P5 及 §0/§2/§4/§8 逐條）、TR.C（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28 逐條）、TR.D（`AUGUR-ONT v0.1-draft` ONT.1–62＋Annex T T.0–T.91 逐條）、TR.E（`AUGUR-ID v0.1-draft` ID.1–81＋IDO.0–8＋Annex L4 逐條）。逐條完整枚舉已滿足 `§WM.44` 之形式充分性；**餘之生效阻卻僅為 Steward 充任認定未成就**（`§0.5`、`§8.3`）。
+> **TR.0（矩陣之地位與生效要件性）[N]** 依 `AUGUR-WM v1.0 §WM.44`：`AUGUR-MC v1.3`、`AUGUR-WM v1.0`、`AUGUR-ONT v0.1-draft`、`AUGUR-ID v0.1-draft` 全部 [N] 條款均須對應至本規格至少一 [N] 條款、明記 DEFER 掛鉤、或明記「不觸及」及理由。**本矩陣已就四上層規格全部條款逐條完整枚舉**：TR.A（`AUGUR-MC v1.3` §P4 家族）、TR.B（`AUGUR-MC v1.3` PA／P1／P2／P3／P5 及 §0/§2/§4/§8 逐條）、TR.C（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28 逐條）、TR.D（`AUGUR-ONT v0.1-draft` ONT.1–62＋Annex T T.0–T.91 逐條）、TR.E（`AUGUR-ID v0.1-draft` ID.1–81＋IDO.0–8＋Annex L4 逐條）。逐條完整枚舉已滿足 `§WM.44` 之形式充分性；**Steward 充任認定業經作成，本規格自 2026-07-17 起生效**（Steward 裁決第 2026-005 號、AL-2026-009；`§0.5`、`§8.3`），**餘無生效阻卻**；**實質**充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序。
 > **義務主體**：本規格、Steward。**可判定判準**：如 `§WM.44` 內建之對應完備性檢查——四上層每一 [N] 條款於本矩陣有落點列（承接／細化／DEFER／不觸及＋理由）者為完備。凡標「不觸及＋理由」之列，其理由為機器可判之處置。
 
 ### TR.A — `AUGUR-MC v1.3` §P4 家族（核心，逐條）[N]
@@ -927,14 +927,14 @@ Augur Enterprise AI Operating System
 
 **(3) ID Annex L4（與 Layer 4 分界表）**——與本規格 Annex L3U 同構對表，「Layer 4 專屬」欄各列由本規格承接、「Layer 3 專屬」欄各列本層消費不重定義：identity claim 列→KS.90/KS.91/KS.25/KS.62；判準採認列→KS.23（消費）＋KDO.1/KDO.4（演算／量測下放）；lifecycle 列→KS.26/KS.53；provisional 列→KS.83/KS.92／KDO.4。逐列於 Annex L3U 對應承接（L3U.0 判準：兩欄無交集）。
 
-> **TR.Z（逐條完整枚舉之完成與殘餘生效阻卻）[N]** TR.A–TR.E 已就 `AUGUR-MC v1.3`（P4 家族＋非 P4 逐條）、`AUGUR-WM v1.0`（WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）、`AUGUR-ONT v0.1-draft`（ONT.1–62＋Annex T T.0–T.91）、`AUGUR-ID v0.1-draft`（ID.1–81＋IDO.0–8＋Annex L4）**全部條款逐條枚舉落點**（承接／細化／DEFER／不觸及＋理由），滿足 `§WM.44`「任一條款無對應且無明記者，聲明不完整」之形式充分性要件。**殘餘之生效阻卻僅為 Steward 充任認定未成就**（`§0.5`、`§8.3`）——形式充分性已成就，實質充分性與充任認定屬 Steward 違憲審查程序（`§8.2`）。上層草案（`AUGUR-ONT`／`AUGUR-ID`）於各自升版或條款增修時，本矩陣對應列**必須**同步維護（KS.111 diff 檢查）。
+> **TR.Z（逐條完整枚舉之完成與殘餘生效阻卻）[N]** TR.A–TR.E 已就 `AUGUR-MC v1.3`（P4 家族＋非 P4 逐條）、`AUGUR-WM v1.0`（WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）、`AUGUR-ONT v0.1-draft`（ONT.1–62＋Annex T T.0–T.91）、`AUGUR-ID v0.1-draft`（ID.1–81＋IDO.0–8＋Annex L4）**全部條款逐條枚舉落點**（承接／細化／DEFER／不觸及＋理由），滿足 `§WM.44`「任一條款無對應且無明記者，聲明不完整」之形式充分性要件。**Steward 充任認定業經作成，本規格自 2026-07-17 起生效**（Steward 裁決第 2026-005 號、AL-2026-009；`§0.5`、`§8.3`），**殘餘生效阻卻已解消**——形式充分性已成就；**實質**充分性之最終判斷仍屬 Steward 違憲審查程序（`§8.2`），充任不排除嗣後之違憲審查。上層草案（`AUGUR-ONT`／`AUGUR-ID`）於各自升版或條款增修時，本矩陣對應列**必須**同步維護（KS.111 diff 檢查）。
 > **義務主體**：本規格、Steward。**可判定判準**：四上層全部 [N] 條款逐一於本矩陣有落點列者為完備（已成就）；上層條款增修而本矩陣未同步致某新條款無落點者，聲明重回不完整。
 
 ---
 
 ## Annex CS [N] — Constitutional Compliance Statement（依 `AUGUR-WM v1.0 §WM.39–45` 格式）
 
-本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（KS.110、`AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39`）。本聲明依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成（非暫行模板，`§WM.45`）。**地位提示**：本規格為 v0.1-draft 提案，未經 Steward 充任認定前不生效力（見【地位】、KS.110）；本聲明之充分性最終判斷屬 Steward 違憲審查與充任認定程序。
+本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（KS.110、`AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39`）。本聲明依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成（非暫行模板，`§WM.45`）。**地位提示**：本規格為 **v1.0 生效版本**，Steward 充任認定已作成，自 2026-07-17 起生效（Steward 裁決第 2026-005 號，AL-2026-009；見【地位】、KS.110）；本聲明之**實質**充分性最終判斷仍屬 Steward `§8.2` 違憲審查程序。
 
 ```
 compliance-statement:
@@ -942,7 +942,7 @@ compliance-statement:
   spec-version: v1.0
   layer: 4
   mc-version: AUGUR-MC v1.3
-  upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v0.1-draft, AUGUR-ID v0.1-draft]
+  upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0]
   statement-format: AUGUR-WM v1.0 §WM.39–45
   principles: [PA, P1, P2, P3, P4, P5, EV-chain]
   waivers: []
@@ -997,7 +997,7 @@ compliance-statement:
 * **其餘 MC 條款**：Annex TR.B **逐條**枚舉（PA／P1／P2／P3／P5 各 E/W 條款、§0/§2/§4/§5/§6/§8 各條）。
 * **WM／ONT／ID 全部條款**：Annex TR.C（WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）／TR.D（ONT.1–62＋Annex T T.0–T.91）／TR.E（ID.1–81＋IDO.0–8＋Annex L4）**逐條**枚舉落點（承接／細化／DEFER／不觸及＋理由）。
 
-**逐條對應矩陣已完整枚舉——形式充分性成就**：`AUGUR-MC v1.3`／`AUGUR-WM v1.0`／`AUGUR-ONT v0.1-draft`／`AUGUR-ID v0.1-draft` 全部 [N] 條款 → 本規格落點之**逐條完整枚舉**（`§WM.44` 要求之機器可判完備對應矩陣）已於 Annex TR 作成。依 `§WM.44` 判準，形式充分性**已成就**；**殘餘之生效阻卻僅為 Steward 充任認定未成就**（見【地位】、Annex TR.Z）。**實質充分性**由違憲審查程序（`AUGUR-MC v1.3 §8.2`）與充任認定（`§0.5`）判斷；上層草案升版或條款增修時本矩陣對應列**必須**同步維護（KS.111 diff 檢查），否則聲明重回不完整。
+**逐條對應矩陣已完整枚舉——形式充分性成就**：`AUGUR-MC v1.3`／`AUGUR-WM v1.0`／`AUGUR-ONT v0.1-draft`／`AUGUR-ID v0.1-draft` 全部 [N] 條款 → 本規格落點之**逐條完整枚舉**（`§WM.44` 要求之機器可判完備對應矩陣）已於 Annex TR 作成。依 `§WM.44` 判準，形式充分性**已成就**；**Steward 充任認定業經作成，本規格自 2026-07-17 起生效**（Steward 裁決第 2026-005 號、AL-2026-009；見【地位】、Annex TR.Z），**殘餘生效阻卻已解消**。**實質充分性**仍由違憲審查程序（`AUGUR-MC v1.3 §8.2`）判斷，未因充任而終局確認；上層草案升版或條款增修時本矩陣對應列**必須**同步維護（KS.111 diff 檢查），否則聲明重回不完整。
 
 ---
 
@@ -1020,6 +1020,6 @@ compliance-statement:
 
 ---
 
-*本規格計：正文條款 KS.1–KS.111（十位制保留區塊，空號為保留；KS.84 已啟用）、Annex CM（CM.0、CM.1(a)/(b)、CM.2）、Annex EV（EV.0–EV.3）、Annex CL（CL.0–CL.1）、Annex DI（KDI.0–KDI.17）、Annex DO（KDO.0–KDO.7；KDO.3、KDO.5 已啟用）、Annex L3U（L3U.0）、Annex L56（L56.0）、Annex TR（TR.0、TR.A–TR.E、TR.Z）、Annex CS 合規聲明（CS.1–CS.4）、Annex EO（EO.1）。全文以繁體中文為權威文本（§0.4）。本文件為 v0.1-draft 提案，未經 Steward 充任認定前不生效力（`AUGUR-MC v1.3 §0.5`、【地位】、KS.110）；WM.44 逐條矩陣（Annex TR）已就 MC／WM／ONT／ID 全數逐條完成，形式充分性已成就，**殘餘生效阻卻僅為充任認定未成就**。*
+*本規格計：正文條款 KS.1–KS.111（十位制保留區塊，空號為保留；KS.84 已啟用）、Annex CM（CM.0、CM.1(a)/(b)、CM.2）、Annex EV（EV.0–EV.3）、Annex CL（CL.0–CL.1）、Annex DI（KDI.0–KDI.17）、Annex DO（KDO.0–KDO.7；KDO.3、KDO.5 已啟用）、Annex L3U（L3U.0）、Annex L56（L56.0）、Annex TR（TR.0、TR.A–TR.E、TR.Z）、Annex CS 合規聲明（CS.1–CS.4）、Annex EO（EO.1）。全文以繁體中文為權威文本（§0.4）。本文件為 **v1.0 生效版本**，Steward 充任認定已作成，自 2026-07-17 起生效（Steward 裁決第 2026-005 號、AL-2026-009；`AUGUR-MC v1.3 §0.5`、【地位】、KS.110）；WM.44 逐條矩陣（Annex TR）已就 MC／WM／ONT／ID 全數逐條完成，形式充分性已成就，**殘餘生效阻卻已解消**；**實質**充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序。*
 
 **核心產物索引 [I]**：Confidence 單一形式化語義＝§4（KS.30–KS.39）＋Annex CM（單一偏序格 L_C＋官方映射表，解 AUD-03 critical）；五元組欄位不變式＝§3（KS.20，第五元 Confidence 落地）；雙時間 as-of 能力等級＝§5（KS.40–KS.46，A0–A3，解 AUD-08）；supersede/tombstone＝§6（KS.50–KS.55，Supersede Relation 形式化，解 AUD-02）；矛盾保存＝§7；Evidence 分類法/溯源/信任分級/NoLaundering＝§8＋Annex EV；完備性等級＝§9＋Annex CL（DEFER 門檻至 L6）；identity claim Confidence 承接＝§10；L5/L6 分界＝§11＋Annex L56；DEFER 表＝Annex DI/DO；WM.44 矩陣＝Annex TR。

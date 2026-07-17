@@ -45,7 +45,7 @@ Augur Enterprise AI Operating System
 
 ### 0.1 名稱、層級與生效條件
 
-本文件名稱 **Augur Ontology Specification**（引用縮寫 AUGUR-ONT），層級 **Layer 2 — Ontology**，版本 **v0.1-draft**。受 `AUGUR-MC v1.3` 全文約束，並受 `AUGUR-WM v1.0` 全文約束（Layer 2 之上層含 Layer 1，`AUGUR-MC v1.3 §0.6(a)`）。生效要件：`AUGUR-MC v1.3 §0.5` 對照表登錄（已具欄位）＋ Steward 充任認定（**未成就**，見【地位】）＋ 依 `AUGUR-WM v1.0 §WM.39` 之 Compliance Statement（Annex CS）。下層引用格式：`AUGUR-ONT v{version} §{條款}`（§0.3）。
+本文件名稱 **Augur Ontology Specification**（引用縮寫 AUGUR-ONT），層級 **Layer 2 — Ontology**，版本 **v1.0**（前版：v0.1-draft）。受 `AUGUR-MC v1.3` 全文約束，並受 `AUGUR-WM v1.0` 全文約束（Layer 2 之上層含 Layer 1，`AUGUR-MC v1.3 §0.6(a)`）。生效要件：`AUGUR-MC v1.3 §0.5` 對照表登錄（已具欄位）＋ Steward 充任認定（**已成就**，見【地位】）＋ 依 `AUGUR-WM v1.0 §WM.39` 之 Compliance Statement（Annex CS）；本規格之生效要件**已全部成就**（Steward 裁決第 2026-003 號，2026-07-17，AL-2026-007）。**生效日：2026-07-17**。實質充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序，與已成就之形式充分性分屬二事。下層引用格式：`AUGUR-ONT v{version} §{條款}`（§0.3）。
 
 ### 0.2 規範用語約定
 
@@ -488,7 +488,7 @@ Augur Enterprise AI Operating System
 
 # Annex CS [N] — 本規格之 Constitutional Compliance Statement
 
-本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格生效要件（ONT.62、`AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39`）。本聲明依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成（非暫行模板）：本聲明作成於 Layer 1（`AUGUR-WM v1.0`）生效日 2026-07-16 之後，依 `§WM.45` 必須用正式格式。**地位提示**：本規格為 v0.1-draft 提案，未經 Steward 充任認定前不生效力（見【地位】、ONT.1）；本聲明之充分性最終判斷屬 Steward 違憲審查與充任認定程序。
+本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格生效要件（ONT.62、`AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39`）。本聲明依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成（非暫行模板）：本聲明作成於 Layer 1（`AUGUR-WM v1.0`）生效日 2026-07-16 之後，依 `§WM.45` 必須用正式格式。**地位提示**：本規格為 **v1.0 生效版本**，Steward 充任認定已作成，自 2026-07-17 起生效（Steward 裁決第 2026-003 號，AL-2026-007；見【地位】、ONT.1）；本聲明之**實質**充分性最終判斷仍屬 Steward `§8.2` 違憲審查程序。
 
 ```
 compliance-statement:
@@ -598,7 +598,7 @@ compliance-statement:
 * `AUGUR-MC v1.3` P2 全組、P4.E1–E8（除 E5）、P5 全組、§5、§6 F5–F6：其規範對象為 Knowledge 欄位／確立工作流／行動治理／架構角色，屬 Layer 4–6；本層僅型別化其主體與 referent，不代定機制。
 * `AUGUR-WM v1.0` WM.9(a)(c)、WM.10、WM.16–18、WM.28–29、WM.49–53：屬通道權威／表達力保證／Domain Profile 框架，本層消費其產物而不制定。
 
-**形式 vs 實質、及生效之界分**：本節僅陳述**形式**充分性已成就（可機器盤點之逐條枚舉完備）。**實質充分性**（論證是否真正化解各上位不變式）由違憲審查程序（`AUGUR-MC v1.3 §8.2`）判斷；本規格之**生效**另須 Steward **充任認定**（`§0.5`、`§8.6`）——二者均**非**本節所能認定，本規格於認定作成前依【地位】節僅具提案地位。
+**形式 vs 實質、及生效之界分**：本節僅陳述**形式**充分性已成就（可機器盤點之逐條枚舉完備）。**實質充分性**（論證是否真正化解各上位不變式）由違憲審查程序（`AUGUR-MC v1.3 §8.2`）判斷；本規格之**生效**另須 Steward **充任認定**（`§0.5`、`§8.6`）——二者均**非**本節所能認定。充任認定業經 Steward 作成（裁決第 2026-003 號，2026-07-17，AL-2026-007），本規格依【地位】節為 **v1.0 生效版本**；**實質**充分性之判斷仍屬 `§8.2` 違憲審查程序，未因充任而終局確認。
 
 ---
 
@@ -628,4 +628,4 @@ compliance-statement:
 
 ---
 
-*本規格計：正文條款 ONT.1–ONT.62、Annex T（體例 T.0、型別 T.1–T.61、待決事項 T.90–T.91）、Annex DI（DI.0–DI.3）、Annex DO（DO.0–DO.4）、Annex T-Map（TM.0）、Annex EO（EO.1）、Annex CS 合規聲明 [N]。全文以繁體中文為權威文本（§0.4）。本文件為 v0.1-draft 提案，未經 Steward 充任認定前不生效力（`AUGUR-MC v1.3 §0.5`、【地位】、ONT.1）。*
+*本規格計：正文條款 ONT.1–ONT.62、Annex T（體例 T.0、型別 T.1–T.61、待決事項 T.90–T.91）、Annex DI（DI.0–DI.3）、Annex DO（DO.0–DO.4）、Annex T-Map（TM.0）、Annex EO（EO.1）、Annex CS 合規聲明 [N]。全文以繁體中文為權威文本（§0.4）。本文件為 **v1.0 生效版本**，Steward 充任認定已作成，自 2026-07-17 起生效（Steward 裁決第 2026-003 號、AL-2026-007；`AUGUR-MC v1.3 §0.5`、【地位】、ONT.1）；**實質**充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序。*

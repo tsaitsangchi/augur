@@ -53,9 +53,9 @@ Augur Enterprise AI Operating System
 
 * 名稱：Augur Cognitive Kernel Specification（下層引用簡稱 **AUGUR-L5**）
 * 層級：Layer 5 — Cognitive Kernel／World Understanding Engine（`AUGUR-MC v1.3 §0.5` 對照表第 5 列；`§5` 角色四）
-* 版本：v0.1-draft（前版：無）
+* 版本：v1.0（provisional — 形式關卡充任，§8.2 實質審查延後）（前版：v0.1-draft）
 * 上層規格（upper-specs）：`AUGUR-MC v1.3`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v1.0`（Layer 2）、`AUGUR-ID v1.0`（Layer 3）、`AUGUR-KS v1.0`（Layer 4）
-* 生效要件：見【地位】節（殘餘阻卻為 Steward 充任認定未成就）。
+* 生效要件：見【地位】節（已全部成就；Steward 裁決第 2026-006 號，AL-2026-010，生效日 2026-07-17）。**`§8.2` 實質合憲人類審查經 Steward 指示延後，本規格為 provisional；Steward `§8.2` 違憲審查權完整保留。**
 
 ### 0.2 規範用語約定 [N]
 
@@ -404,14 +404,14 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 
 ### TR.Z — 殘餘生效阻卻（DRAFT）[N]
 
-> **TR.Z（充任認定未成就）[N]** 上開逐條／區塊枚舉已就五上層全部 [N] 條款給出落點（承接／細化／DEFER／不觸及＋理由）。**惟本規格為 v0.1-draft 提案，殘餘生效阻卻為 Constitution Steward 依 `AUGUR-MC v1.3 §8.1` 之充任認定未成就**；形式充分性之最終判斷與實質合憲審查（`§8.2`）均屬 Steward 裁決，本子代理不代行、不宣稱生效。以十位制區塊枚舉之上層本體條款，其「不觸及＋理由」為機器可判之處置；如經 Steward 認定某區塊須逐條細列，屬 minor 升版維護（L5.91）。
+> **TR.Z（充任認定已成就；`§8.2` 實質審查延後）[N]** 上開逐條／區塊枚舉已就五上層全部 [N] 條款給出落點（承接／細化／DEFER／不觸及＋理由）。**本規格經 Constitution Steward 依 `AUGUR-MC v1.3 §8.1` 作成充任認定，自 2026-07-17 起以 v1.0（provisional）生效**（Steward 裁決第 2026-006 號、AL-2026-010）；**惟 `§8.2` 實質合憲人類審查經 Steward 指示延後（deferred），本規格為 provisional、待調整，Steward `§8.2` 違憲審查權完整保留**；形式充分性之最終判斷與實質合憲審查（`§8.2`）均屬 Steward 裁決，本子代理不代行、不自行宣稱生效。以十位制區塊枚舉之上層本體條款，其「不觸及＋理由」為機器可判之處置；如經 Steward 認定某區塊須逐條細列，屬 minor 升版維護（L5.91）。
 > **義務主體**：本規格、Steward。**可判定判準**：五上層每一 [N] 條款於本矩陣有落點；Steward 充任認定成就前，本規格不生效力。
 
 ---
 
 ## Annex CS [N] — Constitutional Compliance Statement（依 `AUGUR-WM v1.0 §WM.39–45` 格式）
 
-本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（L5.90、`AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39`）。**地位提示**：本規格為 v0.1-draft 提案，未經 Steward 充任認定前不生效力（見【地位】、L5.90）；本聲明之充分性最終判斷屬 Steward 違憲審查與充任認定程序（DRAFT）。
+本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（L5.90、`AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39`）。**地位提示**：本規格為 **v1.0（provisional）生效版本**，Steward 充任認定已作成，自 2026-07-17 起生效（Steward 裁決第 2026-006 號，AL-2026-010；見【地位】、L5.90）；**`§8.2` 實質合憲人類審查經 Steward 指示延後，本規格為 provisional、待調整**；本聲明之**實質**充分性最終判斷仍屬 Steward `§8.2` 違憲審查程序。
 
 ```
 compliance-statement:
@@ -427,7 +427,7 @@ compliance-statement:
   defers-in: [KS.KDO.1, KS.KDO.3, KS.KDO.4, KS.KDO.6, KS.KS.100, WM.HOOK-02, WM.HOOK-03, MC.role4]
   defers-out: [LDO.1, LDO.2, LDO.3, LDO.4, LDO.5, LDO.6]
   date: 2026-07-17
-  author: Layer 5 Cognitive Kernel 規格起草人（AUGUR-L5 起草子代理；產物為 v0.1-draft 提案，待 Steward 充任認定）
+  author: Layer 5 Cognitive Kernel 規格起草人（AUGUR-L5 起草子代理；產物原為 v0.1-draft 提案，業經 Steward 充任認定為 v1.0 provisional，§8.2 實質審查延後）
   archive-path: specs/COGNITIVE-KERNEL-SPECIFICATION-v0.1-draft.md
 ```
 
@@ -475,7 +475,7 @@ compliance-statement:
 
 **MC [N] 條款覆蓋清單（`§WM.44` 骨架自查，逐一具名以資機器盤點；落點見 Annex TR.A／TR.B）[N]**：`PA`；`EV.1`、`EV.2`、`EV.3`、`EV.4`、`EV.5`、`EV.6`、`EV.7`、`EV.8`、`EV.9`、`EV.10`、`EV.11`、`EV.12`；`F1`、`F2`、`F3`、`F4`、`F5`、`F6`；`P1.D`、`P1.E1`、`P1.E2`、`P1.E3`、`P1.W1`；`P2.D`、`P2.E1`、`P2.E2`、`P2.E3`、`P2.E4`、`P2.E5`、`P2.W1`、`P2.W2`；`P3.D`、`P3.E1`、`P3.E2`、`P3.E3`、`P3.W1`、`P3.W2`；`P4.D`、`P4.E1`、`P4.E2`、`P4.E3`、`P4.E4`、`P4.E5`、`P4.E6`、`P4.E7`、`P4.E8`、`P4.W1`；`P5.D`、`P5.E1`、`P5.E2`、`P5.W1`、`P5.W2`、`P5.W3`、`P5.W4`、`P5.W5`；`§0`、`§0.1`、`§0.2`、`§0.3`、`§0.4`、`§0.5`、`§0.6`、`§1`、`§1.1`、`§1.2`、`§1.3`、`§2`、`§3`、`§4`、`§5`、`§6`、`§7`、`§8`、`§8.1`、`§8.2`、`§8.3`、`§8.4`、`§8.5`、`§8.6`。各 `Pn.Y`（`P1.Y`、`P2.Y`、`P3.Y`、`P4.Y`、`P5.Y`）為 [I] 說理條款，本層以「不觸及＋理由：屬各原則之風險說理，非規範義務落點」統一處置，惟為骨架覆蓋完備計於此具名。
 
-**逐條對應矩陣已作成——形式充分性之形式面已備，惟殘餘生效阻卻為 Steward 充任認定未成就**（見【地位】、TR.Z）。**實質充分性**由違憲審查程序（`AUGUR-MC v1.3 §8.2`）與充任認定（`§8.1`、`§0.5`）判斷；上層升版或條款增修時本矩陣對應列**必須**同步維護（L5.91 diff 檢查），否則聲明重回不完整。本子代理不宣稱任何規格已生效、不登錄正式 Amendment Log（DRAFT）。
+**逐條對應矩陣已作成——形式充分性之形式面已備；Steward 充任認定業經作成，本規格自 2026-07-17 起以 v1.0（provisional）生效**（Steward 裁決第 2026-006 號、AL-2026-010；見【地位】、TR.Z），**殘餘生效阻卻已解消**。**實質充分性**仍由違憲審查程序（`AUGUR-MC v1.3 §8.2`）判斷——**`§8.2` 實質合憲人類審查經 Steward 指示延後，本規格為 provisional、待調整**；上層升版或條款增修時本矩陣對應列**必須**同步維護（L5.91 diff 檢查），否則聲明重回不完整。本子代理不自行宣稱任何規格已生效、不自行登錄正式 Amendment Log；本規格之生效及其登錄（AL-2026-010）均為 Steward 之裁決行為。
 
 ---
 
@@ -500,6 +500,6 @@ compliance-statement:
 
 ---
 
-*本規格計：正文條款 L5.1–L5.9（核心推理引擎）＋L5.90–L5.92（文件治理；L5.10–L5.89 為十位制保留區塊）、Annex LDI（LDI.0–LDI.7）、Annex LDO（LDO.0–LDO.6）、Annex L46（L46.0）、Annex TR（TR.0、TR.A–TR.E、TR.Z）、Annex CS 合規聲明（CS.1–CS.4）、Annex EO（EO.1）。全文以繁體中文為權威文本（§0.4）。本文件為 **v0.1-draft 提案**，未經 Constitution Steward（人類 tsaitsangchi）依 `AUGUR-MC v1.3 §8.1` 充任認定前不生效力（【地位】、L5.90）；本文一切裁決標 **DRAFT**；本子代理不宣稱任何規格已生效、不改本文自稱生效、不登錄正式 Amendment Log。*
+*本規格計：正文條款 L5.1–L5.9（核心推理引擎）＋L5.90–L5.92（文件治理；L5.10–L5.89 為十位制保留區塊）、Annex LDI（LDI.0–LDI.7）、Annex LDO（LDO.0–LDO.6）、Annex L46（L46.0）、Annex TR（TR.0、TR.A–TR.E、TR.Z）、Annex CS 合規聲明（CS.1–CS.4）、Annex EO（EO.1）。全文以繁體中文為權威文本（§0.4）。本文件為 **v1.0（provisional）生效版本**：Constitution Steward（人類 tsaitsangchi）已依 `AUGUR-MC v1.3 §8.1` 作成充任認定，自 2026-07-17 起生效（Steward 裁決第 2026-006 號、AL-2026-010；【地位】、L5.90）。**`§8.2` 實質合憲人類審查經 Steward 指示延後，本規格為 provisional、待調整；Steward `§8.2` 違憲審查權完整保留**。本規格之生效及其登錄均為 Steward 之裁決行為，非本子代理所得宣稱或代行。*
 
 **核心產物索引 [I]**：合法推理＝§3（L5.1 候選斷言經 Evidence 通道／L5.2 雙合法終點引用鏈 DAG）；Confidence 傳播＝§4（L5.3 承接 KDO.1，硬守 KS.34 meet 上限）；Hypothesis 地位與升級紀律＝§5（L5.4 未證可謬須標記／L5.5 承接 KDO.3，GATE 可證偽＋OOS）；Explanation 義務＝§6（L5.6 per-結論四要素、補正 AUD-18）；AI Model 為工具非世界權威＝§7（L5.7 F2 防線、synthetic／TR-C 天花板）；分界紀律與 resolution 定性＝§8（L5.8 不上侵 L4／不下侵 L6、L5.9 T-KS-6 解消）；DEFER 表＝Annex LDI／LDO；WM.44 矩陣＝Annex TR。

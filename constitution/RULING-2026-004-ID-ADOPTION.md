@@ -26,7 +26,7 @@
 1. **層級登錄已具備**：`AUGUR-MC v1.3 §0.5` 對照表 Layer 3 欄已登錄「Identity Specification」。
 2. **核心細化落點明確**：Annex TR.A 就 `AUGUR-MC v1.3 §P3` 家族（P3.D／W1／W2／Y／E1／E2／E3）＋§2.4 逐條標為本層核心細化落點，落實審計 AUD-04／05／06。
 3. **形式充分性（`§WM.44`）＝已成就**：Annex TR（TR.A–TR.Z）就三上層（Layer 0–2）全部 [N] 條款逐條枚舉，**缺 0 條**（對抗審查查出之 5 缺列已補正）；linter PASS（error 0）。
-4. **linter 結構關卡通過**：`python3 -m tools.constitution_lint compliance specs/IDENTITY-SPECIFICATION-v0.1-draft.md` → **PASS（error 0 / warning 1 / info 0）**；唯一 warning 為 WM.44 骨架級覆蓋提示（44/85 條未於合規區內文字面出現，屬 linter 骨架設計、與黃金範本 KS／ONT 同性質、非 error），Annex TR 已另行逐條列表對應。
+4. **linter 結構關卡通過**：`python3 -m tools.constitution_lint compliance specs/IDENTITY-SPECIFICATION-v0.1-draft.md` → **PASS（error 0 / warning 1 / info 0）**；唯一 warning 為 WM.44 骨架級覆蓋提示（44/85 條未於合規區內文字面出現，屬 linter 骨架設計、~~與黃金範本 KS／ONT 同性質~~ **與黃金範本 KS 同性質（KS 亦為 warning 1，見 RULING-2026-005 第 28 行）；「與 ONT 同性質」部分為誤引，應予刪除——RULING-2026-003 第 27、37 行所記 ONT 為 PASS（error 0 / warning 0 / info 1），ONT 之 warning 為 0**、非 error），Annex TR 已另行逐條列表對應。（勘誤依 Steward 裁決第 2026-009 號、AL-2026-012；本勘誤僅更正事實記載，ID 之充任認定〔主文第 18 行〕維持不變，惟其證據基礎確較原裁決所呈為弱，見 RULING-2026-009 主文三（四）4、主文四（一））
 5. **合規聲明具備（`§8.3`）**：Annex CS 為依 `AUGUR-WM v1.0 §11` 格式作成之 Constitutional Compliance Statement。
 
 ## 生效要件成就檢核表
@@ -49,7 +49,7 @@
 
 ## 殘餘生效阻卻
 
-1. **Steward 充任認定未成就**——屬 Steward 裁決行為，非本規格或 Agent 單方可成就。
+1. ~~**Steward 充任認定未成就**——屬 Steward 裁決行為，非本規格或 Agent 單方可成就。~~ **已由本裁決主文一成就**（本項為草案階段文字，定案時漏消；與同文件檢核表第 40 行「✅ 成就（本裁決）」一致化。勘誤依 Steward 裁決第 2026-009 號、AL-2026-012，patch 級，治理附則第 2 條第 3 款）
 2. ~~依賴阻卻~~ 已解消：`AUGUR-ONT v1.0` 已先行生效。
 3. **實質充分性之最終判斷**專屬 Steward 違憲審查程序（`§8.2`）。
 
