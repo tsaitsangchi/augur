@@ -171,7 +171,8 @@ def run(args, dry=False):
                     if fixd:
                         print(f"    heal:重抓 {len(fixd)} 日再驗", flush=True)
                         for d in fixd:
-                            sync.sync_by_date(conn, ds, start=d, end=d)
+                            # AUD-02（P4.E5）：全宇宙 attest heal 亦為覆寫路徑 → 覆寫前留痕被取代舊列（同交易）
+                            sync.sync_by_date(conn, ds, start=d, end=d, snapshot_reason="full_attest_heal")
                         _, res = reconcile.attest_route(conn, ds, scope=scope, mode=mode, since=since,
                                                         until=until, sample_n=None, roster_only=True,
                                                         progress=lambda msg: print(msg, flush=True))

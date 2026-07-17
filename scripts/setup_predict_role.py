@@ -34,6 +34,7 @@ FORBIDDEN_EXPLICIT = {
     "chat_session", "chat_message",                                    # 對話原文
     "app_user", "app_session", "user_group", "group_domain_grant",    # RBAC 身分/授權
     "permission_group", "principle_factor_map", "stock_philosophy_tag", "school_thinker",  # 非前綴素養/映射
+    "raw_supersede_log",   # AUD-02：old_row（被取代舊值）+superseded_at 屬事後修正知識，落預測回讀＝AUGUR-WM §WM.35 消費閘破口 → REVOKE
 }
 # 預測 role 需寫入(非只讀)之輸出表(2026-07-08 補 harness 記錄表:revalidate/deflation/判停之落地)
 WRITABLE = {"model_registry", "prediction_values", "feature_values",

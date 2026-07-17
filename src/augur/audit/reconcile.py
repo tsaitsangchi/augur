@@ -235,7 +235,9 @@ def heal_by_date(conn, table, dataset=None, *, since=None, until=None, progress=
     before = reconcile_by_date(conn, table, dataset, since=since, until=until, progress=progress)
     fixable, flagged = fixable_dates(before), flagged_dates(before)
     for d in fixable:
-        sync.sync_by_date(conn, dataset or table, start=d, end=d, progress=progress)
+        # AUD-02（`AUGUR-MC v1.3 §P4.E5`）：heal 重抓＝以 API 現值覆寫 DB 舊值，屬衝突裁決 →
+        # snapshot_reason 令覆寫前把被取代舊列快照至 raw_supersede_log（同交易；矛盾保存、不 last-write-wins）
+        sync.sync_by_date(conn, dataset or table, start=d, end=d, progress=progress, snapshot_reason="heal_by_date")
     after = reconcile_by_date(conn, table, dataset, since=since, until=until, progress=progress) if fixable else before
     keys = ("value_mismatch", "missing_in_db", "extra_in_db")
     return {"table": table, "fixed": fixable, "flagged": flagged,

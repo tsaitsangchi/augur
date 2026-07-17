@@ -67,6 +67,22 @@ INFRA_DDL = {
             audit_since    VARCHAR(16),
             note           TEXT
         )""",
+    # AUD-02（`AUGUR-MC v1.3 §P4.E5` 矛盾保存）：heal 覆寫前「被取代原值」快照帳本。bootstrap 只建表（store() 依賴其存在）；
+    # append-only trigger＋tombstone 受控函式＋indexes＋REVOKE-from-augur_predict 之硬化由 migrate_raw_supersede_ddl.py 落地。
+    # FK→attestation_result 須其先建（本 dict 順序保證：attestation_result 在前）；決策 B=(b) attestation_run_id nullable。
+    "raw_supersede_log": """
+        CREATE TABLE IF NOT EXISTS raw_supersede_log (
+            id                 BIGSERIAL   PRIMARY KEY,
+            "table"            TEXT        NOT NULL,
+            pk                 JSONB       NOT NULL,
+            old_row            JSONB       NOT NULL,
+            new_row            JSONB       NOT NULL,
+            superseded_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+            valid_time         DATE,
+            reason             TEXT        NOT NULL,
+            attestation_run_id BIGINT      REFERENCES attestation_result(id),
+            note               TEXT
+        )""",
 }
 
 
@@ -123,8 +139,11 @@ def _selftest():
     chk("_pg_type 其餘型別大寫直通", _pg_type("date", None, None, None) == "DATE"
         and _pg_type("bigint", None, None, None) == "BIGINT")
     # INFRA_DDL：三張運維表、皆冪等 CREATE、皆帶 PK（explicit DDL 結構鎖）
-    chk("INFRA_DDL 含 pipeline_execution_log + data_audit_log + attestation_result",
-        set(INFRA_DDL) == {"pipeline_execution_log", "data_audit_log", "attestation_result"})
+    chk("INFRA_DDL 含 pipeline_execution_log + data_audit_log + attestation_result + raw_supersede_log",
+        set(INFRA_DDL) == {"pipeline_execution_log", "data_audit_log", "attestation_result", "raw_supersede_log"})
+    # AUD-02：FK 順序不變式——raw_supersede_log REFERENCES attestation_result，bootstrap 須先建被參照表
+    chk("raw_supersede_log 於 attestation_result 之後（FK 建表順序）",
+        list(INFRA_DDL).index("raw_supersede_log") > list(INFRA_DDL).index("attestation_result"))
     chk("INFRA_DDL 皆 CREATE IF NOT EXISTS（冪等）",
         all("CREATE TABLE IF NOT EXISTS" in ddl for ddl in INFRA_DDL.values()))
     chk("INFRA_DDL 皆含 PRIMARY KEY", all("PRIMARY KEY" in ddl for ddl in INFRA_DDL.values()))

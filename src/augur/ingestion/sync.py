@@ -449,13 +449,16 @@ def _adaptive_sync(conn, dataset, roster, full_start, progress):
     return _per_stock_sync(conn, dataset, roster, era, progress)
 
 
-def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
+def sync_by_date(conn, dataset, *, start=None, end=None, progress=None, snapshot_reason=None, snapshot_run_id=None):
     """全市場增量 by-date sync：不帶 data_id 逐交易日抓整個市場（一筆=一天全市場）+ DB resume。
 
     適用「不帶 data_id 即回整日全市場」之日頻 dataset（價量/法人/融資券…）；需 data_id 之 dataset
     回 mode='not-by-date-capable'。每日維護 request 從 3100（逐股）→ 範圍內交易日數（通常個位數）。
     start 預設 = DB 既有 max(date)（resume，重抓該日補結算）；DB 空且未給 start → 拒絕（首次全史請
     用 sync_finmind_dataset 逐股）。end 預設 = 今日。
+
+    snapshot_reason（AUD-02；透傳 ingest.store）：非 None 時（僅 heal 呼叫端傳，如 'heal_by_date'/
+      'daily_heal'）於覆寫前把被取代舊列快照至 raw_supersede_log；預設 None＝增量 sync 主路徑語義不變（gate）。
     """
     if ingest.is_intraday(dataset):
         return {"dataset": dataset, "mode": "skip-intraday", "rows": 0}
@@ -492,7 +495,8 @@ def sync_by_date(conn, dataset, *, start=None, end=None, progress=None):
             # require_keys=('date',)：by-date 單日 sample 內 stock_id 已唯一會漏掉 date，強制 date 入 PK
             # 防多日 upsert 互相覆蓋塌成每股 1 列（pilot 實證 bug）
             try:
-                total += ingest.store(conn, dataset, rows, require_keys=("date",))["rows"]
+                total += ingest.store(conn, dataset, rows, require_keys=("date",),
+                                      snapshot_reason=snapshot_reason, snapshot_run_id=snapshot_run_id)["rows"]
                 tdays += 1
             except psycopg2.IntegrityError:
                 # by-date 批含 PK-null 髒列（國際股如 USStockPrice 之彙總/髒行 stock_id=null 撞 NOT NULL PK）→

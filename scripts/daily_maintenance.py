@@ -119,7 +119,8 @@ def main():
                         if fixd:
                             print(f"    heal:重抓 {len(fixd)} 日 {fixd[:5]}{'…' if len(fixd) > 5 else ''}", flush=True)
                             for d in fixd:
-                                sync.sync_by_date(conn, ds, start=d, end=d)
+                                # AUD-02（P4.E5）：daily heal 覆寫前留痕被取代舊列（同交易；矛盾保存）
+                                sync.sync_by_date(conn, ds, start=d, end=d, snapshot_reason="daily_heal")
                             _, res = _route(ds, scope, mode, until)     # 補後再驗
                     recs.append(res)
                 except Exception as e:                  # noqa: BLE001  對帳需韌性:單表失敗記帳續跑,不讓一表崩掉全量 attest

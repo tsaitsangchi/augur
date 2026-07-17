@@ -272,14 +272,93 @@ def upsert(cur, table, rows, schema, keys):
     return len(data)
 
 
-def provision_and_upsert(cur, table, rows, require_keys=()):
+def provision_and_upsert(cur, table, rows, require_keys=(), *, snapshot_reason=None, snapshot_run_id=None):
     """一站式：infer_schema → ensure_table（重用既有 PK）→ upsert。
     require_keys：必納入 PK 之欄（傳給 detect_keys；如 by-date 之 ('date',)）。
-    回傳 (寫入列數, schema, effective_keys)；呼叫端負責 commit + audit。"""
+    回傳 (寫入列數, schema, effective_keys)；呼叫端負責 commit + audit。
+
+    snapshot_reason（AUD-02；`AUGUR-MC v1.3 §P4.E5` 矛盾保存，MUST NOT last-write-wins）：
+      **非 None 時**（僅 heal 呼叫端透傳，如 'heal_by_date'/'daily_heal'），於 upsert 覆寫**前**、
+      同一 cur/同一交易內，把「將被 API 現值取代之 DB 舊列」快照至 raw_supersede_log；任一例外一起 rollback。
+      **預設 None＝不快照**＝upsert 主路徑與 daily 增量 sync 語義一 byte 不變（gate）。
+    snapshot_run_id（決策 B=(b) nullable＋事後回填）：對帳 run 之 attestation_result.id；heal 直呼 sync 無 run 時 None。"""
     schema = infer_schema(rows)
     keys = detect_keys(rows, schema, require=require_keys)
     eff = ensure_table(cur, table, schema, keys)
+    if snapshot_reason is not None:   # gate：僅 heal 路徑留痕；主路徑 None 直落 upsert（語義不動）
+        _snapshot_superseded(cur, table, rows, schema, eff, snapshot_reason, run_id=snapshot_run_id)
     return upsert(cur, table, rows, schema, eff), schema, eff
+
+
+def _compute_supersessions(incoming_rows, db_preimage_rows, keys, cols):
+    """純函式（零 DB，可紅綠測）：決定 heal upsert 中哪些 incoming 列**真正取代**了 DB 既有列。
+
+    參數：incoming_rows（本批 incoming API dict 列＝勝方候選）、db_preimage_rows（upsert 前 DB 現值
+      dict 列＝pre-image）、keys（effective PK 欄名）、cols（schema 欄名/欄序）。
+    規則（AUD-02 §2.2）：
+      * 配對鍵＝keys 之 `reconcile._norm` 正規化值（前導零識別碼、Decimal/date 口徑一致，**共用不另實作**）。
+      * incoming 批內同鍵去重＝保留最後一筆（＝upsert 勝方）。
+      * 僅「DB 有既有列」且「至少一非鍵欄 _norm 後值真異」者為 supersession（純新 insert／未變列**不留痕**）。
+    回傳 [{'pk':{...}, 'old_row':{...DB pre-image...}, 'new_row':{...incoming...}}, …]。"""
+    from augur.audit.reconcile import _norm  # 延遲 import 避免 core↔audit 循環（比照 upsert 之區域 import）
+    if not incoming_rows or not db_preimage_rows or not keys:
+        return []
+
+    def _fp(r):   # key fingerprint（正規化配對鍵）
+        return tuple(_norm(r.get(k)) for k in keys)
+
+    inc = {}
+    for r in incoming_rows:   # 批內同鍵去重：保留最後一筆（＝upsert 勝方）
+        inc[_fp(r)] = r
+    dbp = {_fp(r): r for r in db_preimage_rows}
+    non_key = [c for c in cols if c not in keys]
+    out = []
+    for kv, new_r in inc.items():
+        old_r = dbp.get(kv)
+        if old_r is None:
+            continue          # 純新 insert：無被取代之舊值，不留痕
+        if any(_norm(new_r.get(c)) != _norm(old_r.get(c)) for c in non_key):
+            out.append({
+                "pk": {k: new_r.get(k) for k in keys},
+                "old_row": {c: old_r.get(c) for c in cols},
+                "new_row": {c: new_r.get(c) for c in cols},
+            })
+    return out
+
+
+def _snapshot_superseded(cur, table, rows, schema, keys, reason, run_id=None):
+    """heal 覆寫前，把「將被 API 現值取代之 DB 舊列」快照至 raw_supersede_log（AUD-02；`§P4.E5`）。
+    與後續 upsert **同交易、共用同一 cur**（先取 pre-image 後覆寫）；僅值真異者入帳。回傳入帳列數。
+
+    決策 A=(a)：本表 append-only 由 DB trigger 硬保證（migrate_raw_supersede_ddl.py）。
+    決策 B=(b)：run_id nullable＋事後回填；heal 直呼 sync 無對帳 run 時為 None（reason 仍承載溯源鏈）。"""
+    from psycopg2.extras import execute_values, Json
+    if not rows or not keys:
+        return 0
+    cols = list(schema)
+    kcols = ", ".join(f'"{k}"' for k in keys)
+    collist = ", ".join(f'"{c}"' for c in cols)
+    # 取 DB 現值 pre-image：以 coerce 後鍵值查（與 upsert 寫入口徑一致）；tuple-of-tuples → SQL record（複合鍵安全）
+    key_vals = list({tuple(_coerce(r.get(k)) for k in keys): None for r in rows})
+    if not key_vals:
+        return 0
+    cur.execute(f'SELECT {collist} FROM "{table}" WHERE ({kcols}) IN %s', (tuple(key_vals),))
+    db_rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+    supersessions = _compute_supersessions(rows, db_rows, keys, cols)
+    if not supersessions:
+        return 0
+    vcol = "date" if "date" in cols else None   # valid_time（WM.30 有效軸）：日欄取 date、否則 NULL
+    records = [
+        (table, Json(s["pk"], default=str), Json(s["old_row"], default=str),
+         Json(s["new_row"], default=str), (s["new_row"].get(vcol) if vcol else None), reason, run_id)
+        for s in supersessions
+    ]
+    execute_values(
+        cur,
+        'INSERT INTO raw_supersede_log '
+        '("table", pk, old_row, new_row, valid_time, reason, attestation_run_id) VALUES %s',
+        records, page_size=1000)
+    return len(records)
 
 
 def _selftest():
@@ -309,6 +388,33 @@ def _selftest():
     sch = infer_schema(rows)
     chk("detect_keys 單日 sample stock_id 即唯一", detect_keys(rows, sch) == ["stock_id"])
     chk("detect_keys require 補回 date", detect_keys(rows, sch, require=("date",)) == ["stock_id", "date"])
+
+    # ── AUD-02 _compute_supersessions 純邏輯紅綠（零 DB；六不變式之判定核心，P4.E5）──
+    kcols = ["stock_id", "date"]
+    scols = ["stock_id", "date", "close"]
+    inc = [{"stock_id": "2330", "date": "2026-06-30", "close": "605"}]     # API 現值（勝方）
+    dbp = [{"stock_id": "2330", "date": "2026-06-30", "close": "600"}]     # DB 舊值（敗方）
+    sup = _compute_supersessions(inc, dbp, kcols, scols)
+    chk("值真異→入帳(1 筆 supersession)", len(sup) == 1)
+    chk("入帳含衝突雙方 old/new＋pk", sup and sup[0]["old_row"]["close"] == "600"
+        and sup[0]["new_row"]["close"] == "605" and sup[0]["pk"] == {"stock_id": "2330", "date": "2026-06-30"})
+    chk("byte 同值(no-op upsert)→不入帳",
+        _compute_supersessions(inc, [{"stock_id": "2330", "date": "2026-06-30", "close": "605"}], kcols, scols) == [])
+    chk("純新 insert(DB 無此鍵)→不入帳",
+        _compute_supersessions(inc, [{"stock_id": "1101", "date": "2026-06-30", "close": "1"}], kcols, scols) == [])
+    chk("_norm 口徑:'605'≡'605.0'≡605 視為同值→不入帳",
+        _compute_supersessions([{"stock_id": "2330", "date": "2026-06-30", "close": "605.0"}], inc, kcols, scols) == [])
+    chk("前導零識別碼配對:'0050' 不與 50 混(共用 _norm)",
+        len(_compute_supersessions(
+            [{"stock_id": "0050", "date": "2026-06-30", "close": "9"}],
+            [{"stock_id": "0050", "date": "2026-06-30", "close": "8"}], kcols, scols)) == 1)
+    chk("批內同鍵去重＝保留最後一筆(＝upsert 勝方)",
+        _compute_supersessions(
+            [{"stock_id": "2330", "date": "2026-06-30", "close": "601"},
+             {"stock_id": "2330", "date": "2026-06-30", "close": "605"}], dbp, kcols, scols)[0]["new_row"]["close"] == "605")
+    chk("空輸入/無 keys→空(不炸)",
+        _compute_supersessions([], dbp, kcols, scols) == [] and _compute_supersessions(inc, dbp, [], scols) == [])
+
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

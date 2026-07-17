@@ -166,11 +166,15 @@ def ingest_fred(conn, series_id, *, audit=True, **params):
                  require_keys=("date", "realtime_start"))
 
 
-def store(conn, table, rows, *, data_id=None, audit=True, require_keys=()):
+def store(conn, table, rows, *, data_id=None, audit=True, require_keys=(), snapshot_reason=None, snapshot_run_id=None):
     """落地已抓好的列（呼叫端已 fetch；如 sync 的市場別探測列，免重抓）。空列 → 回 0。
     require_keys：必納入 PK 之欄（透傳 provision_and_upsert；如 by-date 之 ('date',)）。
 
-    一段交易內 provision_and_upsert（+ 可選稽核），原子提交（#6）。"""
+    一段交易內 provision_and_upsert（+ 可選稽核），原子提交（#6）。
+
+    snapshot_reason（AUD-02；透傳 provision_and_upsert）：非 None 時（僅 heal 呼叫端傳，如
+      'heal_by_date'/'daily_heal'）於覆寫前把被取代舊列快照至 raw_supersede_log、與 upsert 同交易；
+      預設 None＝主路徑語義不變。snapshot_run_id：對帳 run 之 attestation_result.id（決策 B，可 None）。"""
     if not rows:
         return {"table": table, "rows": 0, "schema": {}, "keys": []}
     agg = aggregate_method(table, conn)   # DB-first(#29b);intraday-source（如 GoldPrice 5-min）→ 聚合日級衍生（#4）、不存 intraday 原始
@@ -180,7 +184,9 @@ def store(conn, table, rows, *, data_id=None, audit=True, require_keys=()):
     if data_id is not None:   # by data_id 落地:該 data_id 對應之維度欄(值=data_id 者,如 GovBonds 之 name/匯率之 currency)強制入 PK,防不同 id 同 date 互相覆蓋塌列
         rk = tuple(set(require_keys) | {k for k in rows[0] if str(rows[0].get(k)) == str(data_id)})
     with db.transaction(conn) as cur:
-        n, schema, keys = generic_schema.provision_and_upsert(cur, table, rows, require_keys=rk)
+        n, schema, keys = generic_schema.provision_and_upsert(
+            cur, table, rows, require_keys=rk,
+            snapshot_reason=snapshot_reason, snapshot_run_id=snapshot_run_id)
         if audit:
             cur.execute(
                 "INSERT INTO data_audit_log (dataset, data_id, action, rows) VALUES (%s, %s, %s, %s)",
