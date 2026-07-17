@@ -83,3 +83,13 @@
 * **文件**：[RULING-2026-005-KS-ADOPTION.md](RULING-2026-005-KS-ADOPTION.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **執行**：同 AL-2026-007（Steward 授權幕僚代為執行機械性生效步驟）
+
+## AL-2026-010
+
+* **日期**：2026-07-17
+* **事項**：Steward 裁決第 2026-006 號——Layer 5 規格（Cognitive Kernel）**形式關卡充任**：`specs/COGNITIVE-KERNEL-SPECIFICATION.md` 充任 §0.5 對照表 Layer 5 欄，以 **v1.0（provisional）** 生效（效力本 specs/COGNITIVE-KERNEL-SPECIFICATION.md，v0.1-draft 歸檔）。上層 L0–L4 已生效（M1）
+* **⚠️ 充任性質**：僅就 §WM.44 形式充分性＋linter 結構關卡＋獨立對抗審查作成；**§8.2 實質合憲人類審查經 Steward 指示延後（deferred）、本充任不含人類實質簽核；規格 provisional 待調整**。Steward §8.2 違憲審查權完整保留
+* **授權依據**：Steward 2026-07-17 明示「先產生所有規格、我先授權你簽、之後再調整」（形式關卡批次充任 L5/L6/L7、§8.2 延後）
+* **程序依據**：憲章 §0.5、§8.6、§8.1、§8.3；`AUGUR-WM v1.0 §WM.44`
+* **文件**：[RULING-2026-006-L5-ADOPTION.md](RULING-2026-006-L5-ADOPTION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
