@@ -65,3 +65,21 @@
 * **文件**：[RULING-2026-003-ONT-ADOPTION.md](RULING-2026-003-ONT-ADOPTION.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **執行**：Steward 裁定採納並指示 ONT→ID→KS 依賴序辦理；機械性生效步驟由 Steward 授權幕僚代為執行（充任決定為 Steward 之裁決，§8.1）
+
+## AL-2026-008
+
+* **日期**：2026-07-17
+* **事項**：Steward 裁決第 2026-004 號——Layer 3 規格（Identity System）充任認定：`specs/IDENTITY-SPECIFICATION.md` 充任 §0.5 對照表 Layer 3 欄所轄「Identity Specification」，以 **v1.0** 生效（效力本 specs/IDENTITY-SPECIFICATION.md，v0.1-draft 歸檔）；落實審計 AUD-04／05／06。上層 AUGUR-ONT v1.0 已先行生效（AL-2026-007）
+* **程序依據**：憲章 §0.5、§8.6、§8.1、§8.3；`AUGUR-WM v1.0 §WM.44`（Annex TR 逐條完整枚舉、缺 0 條，形式充分性成就）
+* **文件**：[RULING-2026-004-ID-ADOPTION.md](RULING-2026-004-ID-ADOPTION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **執行**：同 AL-2026-007（Steward 授權幕僚代為執行機械性生效步驟）
+
+## AL-2026-009
+
+* **日期**：2026-07-17
+* **事項**：Steward 裁決第 2026-005 號——Layer 4 規格（Knowledge System）充任認定：`specs/KNOWLEDGE-SYSTEM-SPECIFICATION.md` 充任 §0.5 對照表 Layer 4 欄所轄規格（概念層總綱），以 **v1.0** 生效（效力本 specs/KNOWLEDGE-SYSTEM-SPECIFICATION.md，v0.1-draft 歸檔）；落實審計 AUD-03／08／02。上層 AUGUR-ONT v1.0（AL-2026-007）、AUGUR-ID v1.0（AL-2026-008）已先行生效。**本裁決生效後概念層 Layer 1–4 全部生效（里程碑 M1）**
+* **程序依據**：憲章 §0.5、§8.6、§8.1、§8.3；`AUGUR-WM v1.0 §WM.44`（Annex TR 逐條完整枚舉、缺 0 條，形式充分性成就）
+* **文件**：[RULING-2026-005-KS-ADOPTION.md](RULING-2026-005-KS-ADOPTION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **執行**：同 AL-2026-007（Steward 授權幕僚代為執行機械性生效步驟）
