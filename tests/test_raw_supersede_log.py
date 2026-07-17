@@ -123,7 +123,11 @@ def cur():
     conn.autocommit = False
     import importlib.util
     import pathlib
-    mig_path = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "migrate_raw_supersede_ddl.py"
+    import sys
+    scripts_dir = pathlib.Path(__file__).resolve().parents[1] / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))     # migration 以 `import _bootstrap`（scripts/ helper）自插 src/ 路徑
+    mig_path = scripts_dir / "migrate_raw_supersede_ddl.py"
     spec = importlib.util.spec_from_file_location("_mig_aud02", mig_path)
     mig = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mig)
