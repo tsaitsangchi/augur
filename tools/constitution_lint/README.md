@@ -172,7 +172,7 @@ Annex TR 標題為 h1（`# Annex TR`），其 WM.44-LABEL **從未執行**，而
 > 二分流混為一談，(a) 實為 ERROR），已於 2026-07-17 由獨立驗證官以突變實測揪出並更正。**撲滅一句
 > 假話的同一段落產出新的假話——此即本工具所欲撲滅之病，記錄於此以為戒。**
 > **本句方向相反地危險**：其所在之「偽陽性控制」節正是讀者查核本檢查邊界之第一處，讀者據以
-> 認定上層標籤未受檢，將**逕行折抵掉真實之上層側 error**（現行實測上層側 error 為 **<!--lint:label_errors_upper-->47<!--/lint-->** 筆，
+> 認定上層標籤未受檢，將**逕行折抵掉真實之上層側 error**（現行實測上層側 error 為 **<!--lint:label_errors_upper-->0<!--/lint-->** 筆，
 > 見下「實測」節）。此為 B5 期之殘留，與本工具所欲撲滅之病同型：**README 陳述與程式行為不符**。
 
 ### WM.40 閉集擴欄（error）
@@ -246,7 +246,7 @@ ERROR**（`_check_wm40_closed_set_authority`）：閉集失準時，`_check_wm40
   >   先把這些列丟了，永遠到不了那裡），現正好接上。
   >
   > **偽陽性實測（前版所憂者，已量測而非臆測）**：七份規格之 **error 數一筆未變**
-  > （<!--lint:errors_L1-->0<!--/lint-->／<!--lint:errors_L2-->0<!--/lint-->／<!--lint:errors_L3-->0<!--/lint-->／<!--lint:errors_L4-->0<!--/lint-->／<!--lint:errors_L5-->0<!--/lint-->／<!--lint:errors_L6-->0<!--/lint-->／<!--lint:errors_L7-->48<!--/lint-->，與突變前逐格相同），**無任何規格因此翻紅或翻綠**；
+  > （<!--lint:errors_L1-->0<!--/lint-->／<!--lint:errors_L2-->0<!--/lint-->／<!--lint:errors_L3-->0<!--/lint-->／<!--lint:errors_L4-->0<!--/lint-->／<!--lint:errors_L5-->0<!--/lint-->／<!--lint:errors_L6-->0<!--/lint-->／<!--lint:errors_L7-->0<!--/lint-->，與突變前逐格相同），**無任何規格因此翻紅或翻綠**；
   > 新增者全為 **WARNING**（ID 1→<!--lint:warnings_L3-->44<!--/lint-->、KS 9→<!--lint:warnings_L4-->39<!--/lint-->、L5 7→<!--lint:warnings_L5-->17<!--/lint-->；箭頭左側為突變前之歷史值，不綁定），內容為 Annex TR 中**他文件之代號**
   > （如 ID 之 `A.0（地位與範圍）`＝系統架構大憲章 Annex A 之對照列）——該等標籤確實**未受檢**，
   > 依本工具「未受檢 ≠ 已比對且通過」之教義，發 WARNING 留痕為正辦，且不影響 PASS／FAIL。
@@ -301,7 +301,7 @@ python3 -m tools.constitution_lint report --sync   # 將數字寫回本表之 li
 
 > **本表為何不會再腐爛**：表中每個數字都以一對 lint HTML 註解（開標籤帶 key、閉標籤結束，值夾在中間）綁定至
 > `report` 之輸出，selftest 逐處比對，**不一致即 FAIL**（`selftest._binding_and_consistency`）。
-> 本句之總 error ＝ <!--lint:total_errors-->48<!--/lint--> 即為一個活的綁定：它的 `200` 也是
+> 本句之總 error ＝ <!--lint:total_errors-->0<!--/lint--> 即為一個活的綁定：它的 `200` 也是
 > `--sync` 寫進來的，讀者可直接 `view-source` 該處看標記形式。前輪
 > 「專為導正 Steward 而寫的表格三處落地即假」之所以可能，正因為當時表格與程式之間只有人的
 > 手。手已拿掉：改數字的唯一途徑是改程式所量到的東西，然後跑 `--sync`。
@@ -319,12 +319,12 @@ python3 -m tools.constitution_lint report --sync   # 將數字寫回本表之 li
 | L4 KNOWLEDGE-SYSTEM | <!--lint:compared_L4-->168<!--/lint-->（<!--lint:compared_mc_L4-->58<!--/lint-->／<!--lint:compared_upper_L4-->110<!--/lint-->） | **<!--lint:errors_L4-->0<!--/lint-->**（<!--lint:errors_mc_L4-->0<!--/lint-->／<!--lint:errors_upper_L4-->0<!--/lint-->） | <!--lint:wm40_extension_L4-->0<!--/lint--> | <!--lint:wm44_uncited_L4-->66<!--/lint-->/<!--lint:mc_universe-->102<!--/lint--> | ❌ FAIL |
 | L5 COGNITIVE-KERNEL | <!--lint:compared_L5-->100<!--/lint-->（<!--lint:compared_mc_L5-->55<!--/lint-->／<!--lint:compared_upper_L5-->45<!--/lint-->） | **<!--lint:errors_L5-->0<!--/lint-->**（<!--lint:errors_mc_L5-->0<!--/lint-->／<!--lint:errors_upper_L5-->0<!--/lint-->） | <!--lint:wm40_extension_L5-->0<!--/lint--> | <!--lint:wm44_uncited_L5-->16<!--/lint-->/<!--lint:mc_universe-->102<!--/lint--> | ❌ FAIL |
 | L6 AGENT-RUNTIME | <!--lint:compared_L6-->83<!--/lint-->（<!--lint:compared_mc_L6-->50<!--/lint-->／<!--lint:compared_upper_L6-->33<!--/lint-->） | **<!--lint:errors_L6-->0<!--/lint-->**（<!--lint:errors_mc_L6-->0<!--/lint-->／<!--lint:errors_upper_L6-->0<!--/lint-->） | <!--lint:wm40_extension_L6-->0<!--/lint--> | <!--lint:wm44_uncited_L6-->16<!--/lint-->/<!--lint:mc_universe-->102<!--/lint--> | ❌ FAIL |
-| L7 INFRASTRUCTURE（draft） | <!--lint:compared_L7-->151<!--/lint-->（<!--lint:compared_mc_L7-->71<!--/lint-->／<!--lint:compared_upper_L7-->80<!--/lint-->） | **<!--lint:errors_L7-->48<!--/lint-->**（<!--lint:errors_mc_L7-->1<!--/lint-->／<!--lint:errors_upper_L7-->47<!--/lint-->） | <!--lint:wm40_extension_L7-->0<!--/lint--> | <!--lint:wm44_uncited_L7-->15<!--/lint-->/<!--lint:mc_universe-->102<!--/lint--> | ❌ FAIL |
+| L7 INFRASTRUCTURE（draft） | <!--lint:compared_L7-->151<!--/lint-->（<!--lint:compared_mc_L7-->71<!--/lint-->／<!--lint:compared_upper_L7-->80<!--/lint-->） | **<!--lint:errors_L7-->0<!--/lint-->**（<!--lint:errors_mc_L7-->0<!--/lint-->／<!--lint:errors_upper_L7-->0<!--/lint-->） | <!--lint:wm40_extension_L7-->0<!--/lint--> | <!--lint:wm44_uncited_L7-->15<!--/lint-->/<!--lint:mc_universe-->102<!--/lint--> | ❌ FAIL |
 
 合計比對 **<!--lint:compared_total-->645<!--/lint--> 筆**（MC **<!--lint:compared_mc-->300<!--/lint-->**／上層規格 **<!--lint:compared_upper-->345<!--/lint-->**）。
 
-error 合計 **<!--lint:total_errors-->48<!--/lint--> 筆**：**MC 側 <!--lint:label_errors_mc-->1<!--/lint-->／上層側
-<!--lint:label_errors_upper-->47<!--/lint-->／未歸類 <!--lint:label_errors_unclassified-->0<!--/lint-->**（三項並列；
+error 合計 **<!--lint:total_errors-->0<!--/lint--> 筆**：**MC 側 <!--lint:label_errors_mc-->0<!--/lint-->／上層側
+<!--lint:label_errors_upper-->0<!--/lint-->／未歸類 <!--lint:label_errors_unclassified-->0<!--/lint-->**（三項並列；
 逐檔相加即得，selftest 另有斷言複驗三者加總 ≡ 總 error）。
 
 > ⚠ **「未歸類 1」不是湊數之餘項**：ONT 該筆為**區段非覆蓋**之發聲，發生於任何 clause 受判**之前**，
@@ -335,17 +335,17 @@ error 合計 **<!--lint:total_errors-->48<!--/lint--> 筆**：**MC 側 <!--lint:
 > 此分佈、上表係另行統計」——該敘述於本輪已不再為真，據實更正。** 取得方式：
 > `python3 -m tools.constitution_lint report`（或 `--json` 取 `values.label_errors_{mc,upper,unclassified}`）。
 > 又：INFO 行所印之「已比對 N 筆（MC x／…）」為**已比對筆數**之分佈，**非 error 之分佈** —— 二者
-> 不可混用（<!--lint:compared_total-->645<!--/lint-->/<!--lint:compared_mc-->300<!--/lint-->/<!--lint:compared_upper-->345<!--/lint--> 屬前者，<!--lint:total_errors-->48<!--/lint-->/<!--lint:label_errors_mc-->1<!--/lint-->/<!--lint:label_errors_upper-->47<!--/lint-->/<!--lint:label_errors_unclassified-->0<!--/lint--> 屬後者）；`report` 將二者分列於不同區塊，勿跨區相加。
+> 不可混用（<!--lint:compared_total-->645<!--/lint-->/<!--lint:compared_mc-->300<!--/lint-->/<!--lint:compared_upper-->345<!--/lint--> 屬前者，<!--lint:total_errors-->0<!--/lint-->/<!--lint:label_errors_mc-->0<!--/lint-->/<!--lint:label_errors_upper-->0<!--/lint-->/<!--lint:label_errors_unclassified-->0<!--/lint--> 屬後者）；`report` 將二者分列於不同區塊，勿跨區相加。
 
 分型（取自 finding 之 `kind` 欄，**於生成處指定、非事後 grep 訊息反推**；合計
-<!--lint:total_errors-->48<!--/lint-->）：括號名全然不符 **<!--lint:kind_paren_mismatch-->33<!--/lint-->**／
-無自有標籤且正文無支撐 **<!--lint:kind_no_text_support-->11<!--/lint-->**／
-`X（Y）` 截半名 **<!--lint:kind_halved_name-->1<!--/lint-->**／
-前段截取 **<!--lint:kind_leading_truncation-->3<!--/lint-->**／
+<!--lint:total_errors-->0<!--/lint-->）：括號名全然不符 **<!--lint:kind_paren_mismatch-->0<!--/lint-->**／
+無自有標籤且正文無支撐 **<!--lint:kind_no_text_support-->0<!--/lint-->**／
+`X（Y）` 截半名 **<!--lint:kind_halved_name-->0<!--/lint-->**／
+前段截取 **<!--lint:kind_leading_truncation-->0<!--/lint-->**／
 Annex TR 非覆蓋發聲 **<!--lint:kind_tr_absent-->0<!--/lint-->**。
 
-> **前版記「括號名全然不符 27」，實為 <!--lint:kind_paren_mismatch-->33<!--/lint-->** —— 差額之來源即判準 4 之無條件大赦：該型之漏網者
-> （如 `P1.E1`）從未計入其所報之清單。**此為本輪最大之單項低估（27 → <!--lint:kind_paren_mismatch-->33<!--/lint-->；「27」為前版之歷史值，不綁定）。**
+> **前版記「括號名全然不符 27」，實為 <!--lint:kind_paren_mismatch-->0<!--/lint-->** —— 差額之來源即判準 4 之無條件大赦：該型之漏網者
+> （如 `P1.E1`）從未計入其所報之清單。**此為本輪最大之單項低估（27 → <!--lint:kind_paren_mismatch-->0<!--/lint-->；「27」為前版之歷史值，不綁定）。**
 
 **計數上升係 gate 硬化之正確結果**，非規格劣化——四項來源：(a) 條款宇宙由 85 補為
 <!--lint:mc_universe-->102<!--/lint-->（§2 定義項、§5 角色項次首度進入；「85」為硬化前之歷史值，不綁定）；(b) 上層規格標籤首度受檢（更前版「已比對 71 筆」全為

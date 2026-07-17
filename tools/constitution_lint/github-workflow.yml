@@ -26,8 +26,8 @@
 #
 #   結果：受檢規格 <!--lint:corpus_total-->7<!--/lint--> 份
 #         （生效本 <!--lint:corpus_effective-->6<!--/lint--> ＋ draft <!--lint:corpus_draft-->1<!--/lint-->）
-#         <!--lint:corpus_fail-->1<!--/lint--> FAIL / <!--lint:corpus_pass-->6<!--/lint--> PASS；
-#         error 合計 <!--lint:total_errors-->48<!--/lint--> 筆
+#         <!--lint:corpus_fail-->0<!--/lint--> FAIL / <!--lint:corpus_pass-->7<!--/lint--> PASS；
+#         error 合計 <!--lint:total_errors-->0<!--/lint--> 筆
 #         （全部為 WM.44-LABEL，非 LABEL error 為 <!--lint:non_label_errors-->0<!--/lint-->）
 #     L1 WORLD-MODEL          error  <!--lint:errors_L1-->0<!--/lint-->  ✅ PASS（唯一通過者）
 #     L2 ONTOLOGY             error  <!--lint:errors_L2-->0<!--/lint-->  ❌ FAIL（Annex TR 標題為 h1 致零覆蓋，強制發聲）
@@ -35,8 +35,8 @@
 #     L4 KNOWLEDGE-SYSTEM     error <!--lint:errors_L4-->0<!--/lint-->  ❌ FAIL
 #     L5 COGNITIVE-KERNEL     error <!--lint:errors_L5-->0<!--/lint-->  ❌ FAIL
 #     L6 AGENT-RUNTIME        error <!--lint:errors_L6-->0<!--/lint-->  ❌ FAIL
-#     L7 INFRASTRUCTURE(draft) error <!--lint:errors_L7-->48<!--/lint--> ❌ FAIL（draft，非生效規格）
-#   → 接線後將有 <!--lint:corpus_fail-->1<!--/lint--> 份規格擋下全部 push／PR。
+#     L7 INFRASTRUCTURE(draft) error <!--lint:errors_L7-->0<!--/lint--> ❌ FAIL（draft，非生效規格）
+#   → 接線後將有 <!--lint:corpus_fail-->0<!--/lint--> 份規格擋下全部 push／PR。
 #     **其中 <!--lint:corpus_fail_effective-->0<!--/lint--> 份為已生效規格**（其餘為 L7 draft；
 #     二數不得混用——draft 之紅不動搖任何已生效規格之地位）。
 #

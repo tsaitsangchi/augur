@@ -59,9 +59,9 @@
 | L4 Knowledge System | `specs/KNOWLEDGE-SYSTEM-SPECIFICATION.md` | ✅ v1.0 生效 | 🔴 **<!--lint:errors_L4-->0<!--/lint-->**（MC <!--lint:errors_mc_L4-->0<!--/lint-->／上層 <!--lint:errors_upper_L4-->0<!--/lint-->；原 25、更原 15） |
 | L5 Cognitive Kernel | `specs/COGNITIVE-KERNEL-SPECIFICATION.md` | ✅ v1.0 生效（§8.2 延後） | 🔴 **<!--lint:errors_L5-->0<!--/lint-->**（MC <!--lint:errors_mc_L5-->0<!--/lint-->／上層 <!--lint:errors_upper_L5-->0<!--/lint-->；原 28、更原 7） |
 | L6 Agent Runtime | `specs/AGENT-RUNTIME-SPECIFICATION.md` | ✅ v1.0 生效（**含 §8.2 人類審查**） | 🔴 **<!--lint:errors_L6-->0<!--/lint-->**（MC <!--lint:errors_mc_L6-->0<!--/lint-->／上層 <!--lint:errors_upper_L6-->0<!--/lint-->；原 20、更原 5） |
-| L7 Infrastructure | `specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md` | 🔴 **草稿，充任受阻** | 🔴 **<!--lint:errors_L7-->48<!--/lint-->**（MC <!--lint:errors_mc_L7-->1<!--/lint-->／上層 <!--lint:errors_upper_L7-->47<!--/lint-->；原 19） |
+| L7 Infrastructure | `specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md` | 🔴 **草稿，充任受阻** | 🔴 **<!--lint:errors_L7-->0<!--/lint-->**（MC <!--lint:errors_mc_L7-->0<!--/lint-->／上層 <!--lint:errors_upper_L7-->0<!--/lint-->；原 19） |
 
-**<!--lint:l3_l6_specs-->4<!--/lint--> 份生效規格（L3–L6）誤標合計 <!--lint:l3_l6_errors-->0<!--/lint-->**（MC 側 <!--lint:l3_l6_mc-->0<!--/lint-->／上層側 <!--lint:l3_l6_upper-->0<!--/lint-->）＋ **L2 真值未知**（其 <!--lint:tr_rows_L2-->56<!--/lint--> 列矩陣因 h1 標題從未受檢）。全 <!--lint:corpus_total-->7<!--/lint--> 份 error **<!--lint:total_errors-->48<!--/lint--> 筆**（MC 側 <!--lint:label_errors_mc-->1<!--/lint-->／上層側 <!--lint:label_errors_upper-->47<!--/lint-->／未歸類 <!--lint:label_errors_unclassified-->0<!--/lint-->——ONT 之零覆蓋 error 發生於 clause 解析之前，本無 source 可歸，**三項須並列，寫成「MC 110／上層 90」即為捏造**）；**全部皆為 WM.44-LABEL，非 LABEL error 為 <!--lint:non_label_errors-->0<!--/lint-->**。
+**<!--lint:l3_l6_specs-->4<!--/lint--> 份生效規格（L3–L6）誤標合計 <!--lint:l3_l6_errors-->0<!--/lint-->**（MC 側 <!--lint:l3_l6_mc-->0<!--/lint-->／上層側 <!--lint:l3_l6_upper-->0<!--/lint-->）＋ **L2 真值未知**（其 <!--lint:tr_rows_L2-->56<!--/lint--> 列矩陣因 h1 標題從未受檢）。全 <!--lint:corpus_total-->7<!--/lint--> 份 error **<!--lint:total_errors-->0<!--/lint--> 筆**（MC 側 <!--lint:label_errors_mc-->0<!--/lint-->／上層側 <!--lint:label_errors_upper-->0<!--/lint-->／未歸類 <!--lint:label_errors_unclassified-->0<!--/lint-->——ONT 之零覆蓋 error 發生於 clause 解析之前，本無 source 可歸，**三項須並列，寫成「MC 110／上層 90」即為捏造**）；**全部皆為 WM.44-LABEL，非 LABEL error 為 <!--lint:non_label_errors-->0<!--/lint-->**。
 
 > **計數三度上升，每次都是 gate 變準、非規格惡化**：39（初版）→ 93（一輪硬化，母集 85→102）→ **151**（二輪硬化：Annex TR 零覆蓋強制發聲、詞元去重、判準四收緊、代號脫檢發聲）。**#22 必須裁在此數之上**——前兩個數字皆為低估。〔✅ 2026-07-18 已依 151＋L2 真值（4/4）裁決並執行完畢：RULING-2026-010，六份生效本歸零全 PASS〕
 
@@ -85,7 +85,7 @@ L7 草稿三輪對抗審查全數 **go=false**（阻斷 7 → 8 → 9），而 `
 新增之 **WM.44-LABEL** 檢查（標籤須為憲章原文）實測七份規格：
 
 ```
-L1 <!--lint:errors_L1-->0<!--/lint--> ｜ L2 <!--lint:errors_L2-->0<!--/lint-->(真值未知) ｜ L3 <!--lint:errors_L3-->0<!--/lint--> ｜ L4 <!--lint:errors_L4-->0<!--/lint--> ｜ L5 <!--lint:errors_L5-->0<!--/lint--> ｜ L6 <!--lint:errors_L6-->0<!--/lint--> ｜ L7(draft) <!--lint:errors_L7-->48<!--/lint-->
+L1 <!--lint:errors_L1-->0<!--/lint--> ｜ L2 <!--lint:errors_L2-->0<!--/lint-->(真值未知) ｜ L3 <!--lint:errors_L3-->0<!--/lint--> ｜ L4 <!--lint:errors_L4-->0<!--/lint--> ｜ L5 <!--lint:errors_L5-->0<!--/lint--> ｜ L6 <!--lint:errors_L6-->0<!--/lint--> ｜ L7(draft) <!--lint:errors_L7-->0<!--/lint-->
                         └────── <!--lint:l3_l6_errors-->0<!--/lint--> 個誤標在已生效規格 ──────┘
 （二輪硬化後實測；前版此處為 L3 20／L4 25／L5 28／L6 20＝93，係一輪 gate 之低估）
 ```

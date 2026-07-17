@@ -198,4 +198,4 @@
 * **程序依據**：憲章 §0.6(a)（上位原文為權威）、§8.6（patch 級編輯修正）、§8.2；治理附則第 2 條第 3 款；先例 RULING-2026-009
 * **文件**：[RULING-2026-010-LABEL-REMEDIATION.md](RULING-2026-010-LABEL-REMEDIATION.md)（含執行記錄）
 * **裁決人**：Constitution Steward（tsaitsangchi）；機械執行由授權幕僚為之（額度中斷後以確定性腳本續行，全程留痕）
-* **效果**：#22 之生效規格部分**結案**；殘餘＝L7 draft 48 筆（草案修復另續）＋CI merge-gate 接線（另裁）
+* **效果**：#22 之生效規格部分結案；**L7 draft 48 筆亦於同日辦竣（見裁決 §五）——七份規格 gate 全 PASS，專案首次全綠**。殘餘＝L7 之 §8.2 實質審查／三鏡重審／充任（屬 Steward）＋CI merge-gate 接線（另裁）
