@@ -312,6 +312,88 @@ class MarketTimesFM:
         return out
 
 
+class MarketChronos2:
+    """Chronos-2(2025-10;A4 波次):同 MarketChronos 轉換口徑(終點分位 vs 現價插值、口徑凍結)。
+    回形雷(2026-07-17 benchmark 實證):predict_quantiles 回 list[(1,H,9)]非 v1 stacked→squeeze 統一。"""
+    key = "chronos2_market_5"
+    model_id = "amazon/chronos-2"
+
+    def __init__(self):
+        self._pipe = None
+
+    def _load(self):
+        if self._pipe is None:
+            from chronos import BaseChronosPipeline
+            import torch
+            self._pipe = BaseChronosPipeline.from_pretrained(
+                self.model_id, device_map="cuda" if torch.cuda.is_available() else "cpu",
+                torch_dtype="auto")
+        return self._pipe
+
+    def predict(self, series, horizon_td):
+        import torch
+        pipe = self._load()
+        levels = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+        out = {}
+        for t, px in series.items():
+            ctx = torch.tensor(np.asarray(px, float)[-512:], dtype=torch.float32)
+            q, _ = pipe.predict_quantiles([ctx], prediction_length=horizon_td,
+                                          quantile_levels=list(levels))
+            arr = np.asarray(q[0], float)
+            while arr.ndim > 2:                    # Chronos-2 list[(1,H,9)] → (H,9)
+                arr = arr[0]
+            qe = arr[-1, :]
+            last = float(px[-1])
+            if last <= qe[0]:
+                p = 0.95
+            elif last >= qe[-1]:
+                p = 0.05
+            else:
+                p = 1.0 - float(np.interp(last, qe, levels))
+            out[t] = float(np.clip(p, 0.0, 1.0))
+        return out
+
+
+class MarketMoirai2:
+    """Moirai-2.0-R-small(Salesforce;A4 波次):gluonts 批次路徑、樣本→終點九分位→同插值口徑(凍結)。"""
+    key = "moirai2_small_5"
+    model_id = "Salesforce/moirai-2.0-R-small"
+
+    def __init__(self):
+        self._pred = None
+        self._h = None
+
+    def _load(self, h):
+        if self._pred is None or self._h != h:
+            from uni2ts.model.moirai2 import Moirai2Forecast, Moirai2Module
+            m = Moirai2Forecast(module=Moirai2Module.from_pretrained(self.model_id),
+                                prediction_length=h, context_length=512, target_dim=1,
+                                feat_dynamic_real_dim=0, past_feat_dynamic_real_dim=0)
+            self._pred, self._h = m.create_predictor(batch_size=32), h
+        return self._pred
+
+    def predict(self, series, horizon_td):
+        import pandas as pd
+        from gluonts.dataset.common import ListDataset
+        levels = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+        keys = list(series.keys())
+        ds = ListDataset([{"target": np.asarray(series[t], float)[-512:],
+                           "start": pd.Period("2000-01-03", freq="B")} for t in keys], freq="B")
+        out = {}
+        for t, fc in zip(keys, self._load(horizon_td).predict(ds)):
+            qe = np.sort(np.array([float(np.asarray(fc.quantile(q_)).reshape(-1)[-1]) for q_ in levels])
+                         if hasattr(fc, "quantile") else np.quantile(fc.samples[:, -1], levels))
+            last = float(np.asarray(series[t], float)[-1])
+            if last <= qe[0]:
+                p = 0.95
+            elif last >= qe[-1]:
+                p = 0.05
+            else:
+                p = 1.0 - float(np.interp(last, qe, levels))
+            out[t] = float(np.clip(p, 0.0, 1.0))
+        return out
+
+
 class OwnThreelensInteract:
     """own_threelens_interact(三鏡頭候選 T3):44 特徵(35 直餵+9 交互)月頻,HistGBM 3-seed+isotonic,
     rolling refit(train=標籤結算<as-of 之全歷史 panel;as-of=特徵表最新 panel);特徵源=
@@ -385,7 +467,7 @@ class OwnThreelensInteract:
 
 REGISTRY = {a.key: a for a in (BaselineMajority, BaselineMomentum, BaselineMcBootstrap,
                                OwnDailyRolling, OwnStackRolling, MarketChronos, MarketTimesFM,
-                               OwnThreelensInteract)}
+                               OwnThreelensInteract, MarketChronos2, MarketMoirai2)}
 
 
 def _selftest():
@@ -407,8 +489,8 @@ def _selftest():
     chk("_roll_beta 自身 beta≡1", np.allclose(beta[2:], 1.0))
     p = BaselineMajority().predict({"A": [1.0, 2.0, 3.0, 4.0, 5.0]}, 1)   # 全升 → 全正 fwd → P=1
     chk("BaselineMajority 單調升→P=1", p == {"A": 1.0})
-    chk("REGISTRY 八參賽者+key 一致",
-        len(REGISTRY) == 8 and all(k == a.key and hasattr(a, "predict") for k, a in REGISTRY.items()))
+    chk("REGISTRY 十參賽者+key 一致(A4 波次 +chronos2/moirai2 2026-07-17)",
+        len(REGISTRY) == 10 and all(k == a.key and hasattr(a, "predict") for k, a in REGISTRY.items()))
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

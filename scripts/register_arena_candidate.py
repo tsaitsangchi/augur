@@ -23,7 +23,7 @@ from pathlib import Path
 import _bootstrap  # noqa: F401
 from augur.core import db
 
-LICENSE_WHITELIST = ("apache-2.0", "mit")
+LICENSE_WHITELIST = ("apache-2.0", "mit", "cc-by-nc-4.0")   # cc-by-nc-4.0:hugo 拍板 2026-07-17(Moirai-2.0 A4 入賽);NC=非商業限定——augur 現為個人研究相容;**日後商業化前須清算 NC 依賴**(provenance 可追)
 
 
 def _git7():
@@ -56,6 +56,18 @@ DEFAULTS = [
         "offline_only": True,
         "conversion": "同 chronos(分位頭終點分位插值)",
         "conversion_selection_log": "唯一嘗試之口徑、零調參;無凍結資料表現參與選擇", "horizons": [5]}),
+    ("chronos2_market_5", "market", "D", True, {   # A4 波次(2026-07-17 hugo 拍板;提案=arena_candidate_tsfm2_proposal_20260717)
+        "provenance": {"repo": "amazon/chronos-2", "revision": "main", "license": "apache-2.0"},
+        "offline_only": True,
+        "conversion": "同 chronos(終點分位插值;Chronos-2 回形 list[(1,H,9)] squeeze 統一)",
+        "conversion_selection_log": "唯一嘗試之口徑、零調參;台股 benchmark 20260717 僅供入選動機、未參與口徑選擇",
+        "horizons": [5]}),
+    ("moirai2_small_5", "market", "D", True, {     # A4 波次(同上)
+        "provenance": {"repo": "Salesforce/moirai-2.0-R-small", "revision": "main", "license": "cc-by-nc-4.0"},
+        "offline_only": True,
+        "conversion": "同 chronos(樣本→終點九分位插值;gluonts 批次路徑)",
+        "conversion_selection_log": "唯一嘗試之口徑、零調參;台股 benchmark 20260717 僅供入選動機、未參與口徑選擇",
+        "horizons": [5]}),
     ("own_stack_rolling", "own", "H", True, {
         "recipe": "DirStackM 配方(月頻 stack)+MktLogit_v2 分量;滾動 refit",
         "refit_policy": "per-month;train_data_max_date 留痕",
