@@ -116,6 +116,29 @@ def build_long_portfolio(sids, preds, top_frac=0.2, weight="equal", prev_ids=Non
     return [(str(sids[k]), float(w[j]), j + 1) for j, k in enumerate(top_idx)]
 
 
+def vol_target_series(series, ppy, target_ann_vol=None, lookback=4, max_scale=1.0):
+    """波動率目標 overlay(P4,alpha 1-4;誠實化籃=分母工程):逐期以 **trailing ≤t−1** 已實現 vol 縮放曝險。
+
+    scale_t = min(max_scale, target/realized_{t-lookback..t-1});首 lookback 期無足夠歷史→scale=1
+    (dormant,誠實揭露);target_ann_vol=None→用全序列已實現年化 vol(口徑內生、零外生魔數,預註冊單點)。
+    long-only 無槓桿:max_scale=1.0=只縮不放(縮=部分轉現金,現金報酬 0 保守)。
+    回 (scaled_series, scales, dormant_n)。#8:scale_t 嚴禁用 t 期當期報酬。純函式(selftest 可測)。"""
+    s = np.asarray(series, float)
+    n = len(s)
+    if n == 0:
+        return [], [], 0
+    if target_ann_vol is None:
+        target_ann_vol = float(np.std(s, ddof=1)) * float(np.sqrt(ppy)) if n > 1 else 0.0
+    scales, dormant = [], 0
+    for t in range(n):
+        if t < lookback:
+            scales.append(1.0); dormant += 1
+            continue
+        rv = float(np.std(s[t - lookback:t], ddof=1)) * float(np.sqrt(ppy))   # ≤t−1 窗(#8)
+        scales.append(1.0 if rv <= 0 else min(max_scale, target_ann_vol / rv))
+    return [float(s[t] * scales[t]) for t in range(n)], scales, dormant
+
+
 def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
                  long_short=False, weight="equal", seed=42, asof=True, cost=0.0, interactions=None,
                  short_borrow=0.0, exit_frac=None):
@@ -225,6 +248,15 @@ def _selftest():
     chk("_turnover ids 相容:list 呼法=等權半和(破窗修 2026-07-17;等檔數≡交集法)",
         _turnover(["a", "b"], ["a", "c"]) == 0.5 and _turnover(["a", "b"], ["a", "b"]) == 0.0
         and _turnover(["a", "b"], None) == 1.0)
+    # P4 vol targeting(1-4)紅綠:≤t−1 無前視/dormant 揭露/高 vol 期縮/只縮不放
+    calm = [0.01] * 6
+    spike = calm + [0.30, -0.30, 0.30, -0.30]
+    vt, sc, dn = vol_target_series(spike, ppy=4.0, lookback=4)
+    chk("vol_target:首 lookback 期 dormant=scale 1", dn == 4 and all(x == 1.0 for x in sc[:4]))
+    chk("vol_target:高 vol 段被縮(scale<1)", sc[-1] < 1.0 and abs(vt[-1]) < abs(spike[-1]))
+    chk("vol_target:平靜段不放大(max_scale=1)", all(x <= 1.0 for x in sc))
+    _, sc2, _ = vol_target_series(calm + [9.9], ppy=4.0, lookback=4)
+    chk("vol_target:#8 無前視——t 期爆量不影響 t 期 scale(仍由 ≤t−1 決定)", sc2[-1] == sc[len(calm)] or sc2[-1] == 1.0)
 
     # _metrics:全正報酬 hit_rate=1、len<2→{}
     m = _metrics([0.1, 0.1, 0.1], 1.0)
