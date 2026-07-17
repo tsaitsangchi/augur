@@ -56,3 +56,12 @@
 * **程序依據**：§8.6（Layer 對照表之增列屬 minor、由 Steward 議決）；治理附則第 2 條第 2 款；與 AL-2026-005 同案辦理
 * **內容摘要**：§0.5 對照表增列五份 augur 領域治權文件之定位登錄（系統核心思想→Layer 1、原則精華→Layer 4、CLAUDE.md→Layer 6、系統架構大憲章與 datasets 參考文件→Layer 7）並註記 Layer 1 規格充任認定。除 §0.5 對照表增列（及 §0.1 版本欄、Appendix E [I] 隨附）外，無其他條文變更、無原則級變更。完整摘要見憲章 Appendix E；v1.2 歸檔於 [META-CONSTITUTION-v1.2.md](META-CONSTITUTION-v1.2.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
+
+## AL-2026-007
+
+* **日期**：2026-07-17
+* **事項**：Steward 裁決第 2026-003 號——Layer 2 規格（Ontology）充任認定：`specs/ONTOLOGY-SPECIFICATION.md` 充任 §0.5 對照表 Layer 2 欄所轄「Ontology Specification」，以 **v1.0** 生效（效力本 specs/ONTOLOGY-SPECIFICATION.md，v0.1-draft 歸檔）
+* **程序依據**：憲章 §0.5、§8.6、§8.1、§8.3；`AUGUR-WM v1.0 §WM.39`／`§WM.44`（形式充分性成就）
+* **文件**：[RULING-2026-003-ONT-ADOPTION.md](RULING-2026-003-ONT-ADOPTION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **執行**：Steward 裁定採納並指示 ONT→ID→KS 依賴序辦理；機械性生效步驟由 Steward 授權幕僚代為執行（充任決定為 Steward 之裁決，§8.1）
