@@ -81,7 +81,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 
 **③ TSFM benchmark（鏡射 arXiv:2606.27100）**：台股 top5×10 窗×6 模型——**20 個 DM 檢定零顯著勝隨機漫步**（Chronos-2 最不退化）；「最適合台股點預測=零報酬 RW」。TSFM 正確用途=arena 候選非點預測。報告=`reports/tsfm_taiwan_benchmark_20260717.md`+工具 `scripts/benchmark_tsfm_taiwan.py`。
 
-**④ alpha 提升計畫（07-17 拍板開工）**：`reports/taiwan_alpha_improvement_plan_20260717.md`（三軸 D/P/M、51 項對抗審查、11 拍板點）。**Phase 1 進度**：1-0 P0 診斷 ✅→**§0 驚雷=headline 錨 1.1972 不可再現**→修復鏈（見⑤）；1-1 recipe DDL ✅（trial_ledger +recipe 欄/UNIQUE 8）；1-2 P2 turnover 半和量尺 ✅（headline→1.1302）；1-3 P1 buffer **判死**（雙宇宙判準攔 asof 假象、ledger N=33）；1-4 P4 vol-target **無靶不啟用**（能力清償）；1-5 全鏈刷新 ✅；**1-6~1-9 部分**（D2 選 2 候選進漏斗+1-9 草案已 commit；1-7/1-8/D2 漏斗/判決=**撞月度配額上限未跑**、resumeFromRunId=wf_390aeef6-155 待配額重置）。
+**④ alpha 提升計畫（07-17 拍板開工）**：`reports/taiwan_alpha_improvement_plan_20260717.md`（三軸 D/P/M、51 項對抗審查、11 拍板點）。**Phase 1 進度**：1-0 P0 診斷 ✅→**§0 驚雷=headline 錨 1.1972 不可再現**→修復鏈（見⑤）；1-1 recipe DDL ✅（trial_ledger +recipe 欄/UNIQUE 8）；1-2 P2 turnover 半和量尺 ✅（headline→1.1302）；1-3 P1 buffer **判死**（雙宇宙判準攔 asof 假象、ledger N=33）；1-4 P4 vol-target **無靶不啟用**（能力清償）；1-5 全鏈刷新 ✅；**1-6~1-9 完成**（opus-4-8 resume；**D2+D3 共 7 候選全滅、無一抵經濟終關**——預診放棄 3〔size/vol 代理〕、死於 IC 3〔x_foreign_streak_60d=iid −2.22 越線但 HAC −1.78 崩線=G8 教科書〕、死於增量 1〔x_limitup_reversal_5d Δ−0.049，帶稀疏宇宙混淆→S1〕；**N 維持 33、headline 1.1302 不動、生產表全淨**）。1-8 D1 前置=純盤點（BS 15 系統性缺季/~2.4–3.1k calls 待授權、去累計 32+2、金融股 60d 分支設計）；1-9 live OOS 承接=草案（排程歸屬+R1–R8 預註冊+**DSR N 陳舊斷鏈發現**）。報告=`reports/alpha_phase1_tail_verdict_20260717.md`；**9 拍板點待 hugo**（重點 C2=DSR 重算涵蓋修 N=32/33 陳舊）。**→ Phase 1 全 9 項落定（1-3/1-4/1-6~1-7 全誠實紅=功能非缺陷）**。
 
 **⑤ 錨修復鏈（hugo A/(a)/(i) 三裁）**：PriceAdj 修復（41 真損傷/175=除息跳點誤標定案）→新錨 **net 1.1302／超額+0.372／HAC-t 6.70／DSR 47.9%**（KPI SSOT=N=32 保守口徑）→`revalidation_baseline` re-freeze→**judgestop 相對式條款**（`deflated_decay_margin=0.10` frozen 取代絕對零線；絕對線在 N=32 下 baseline 自身為負=恆觸發失鑑別力）→verdict state=`deploying_unestablished`。econ_verdict 全程 thin 未變向。**DB dump=`C:\database\augur_pgdump_20260718_Fd.tar`（修復後乾淨快照）**。
 
@@ -132,7 +132,7 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 6. **arena 開賽 cron 掛載時點**（雙閘已開、機械前置全綠;掛載＝開賽＝hugo 決策）。
 7. ~~G1-G5 治權修訂批次~~ **已完成（2026-07-17 hugo「全批照案」）**：原則精華 v1.9.1／憲章 v1.46.0／CLAUDE v1.29／README／HANDOFF 全鏈級聯（判準值零變動、僅機制指向;詳憲章修訂歷程 v1.46.0）。
 8. **alpha 計畫 11 拍板點**（`reports/taiwan_alpha_improvement_plan_20260717.md` §七）——大部分候選待逐支 productionize 拍板;Phase 1 已執行 1-0~1-5+1-6 部分。
-9. **alpha 1-6~1-9 續跑**（配額重置後）：`resumeFromRunId=wf_390aeef6-155`（已完成 2 agent 快取零重耗）——1-7 D3/1-8 D1 前置盤點/D2 兩候選四道漏斗/判決合成。
+9. **alpha 1-6~1-9 之 9 拍板點**（`reports/alpha_phase1_tail_verdict_20260717.md`）：S1 稀疏公平測、D1-放量(BS 缺季 API)、D1-lag(金融法源)、A1 systemd timer、A2 季頻續建、A3 告警檢視、B(R1–R8 凍結)、C1 dsr provenance、**C2 DSR 重算涵蓋(修 N=32/33 陳舊斷鏈,最實質)**。
 10. **A4 Moirai NC license 清算**（商業化前）：cc-by-nc-4.0 依賴 provenance 已留痕。
 
 > 解析器計畫 T0 已拍(2026-07-12):D1 核准全計畫、D2 另立 PDF 計畫、D3 IA 200/批——**T1-T3 當日執行完畢**(FRASER textUrl 實證/三策略落 DB/IA 13 批掃蕩 491 抓、熔斷零觸發)。
