@@ -56,10 +56,34 @@ def test_norm_numeric_equivalence():
 
 
 def test_leading_zero_identifier_pairing():
-    """前導零識別碼配對:'0050' 不與 50 混（共用 reconcile._norm 之識別碼保護）。"""
-    sup = gs._compute_supersessions([_row("0050", "2026-06-30", "9")],
-                                    [_row("0050", "2026-06-30", "8")], KCOLS, SCOLS)
-    assert len(sup) == 1
+    """前導零識別碼配對:'0050'(incoming) 不與 '50'(db) 誤配（共用 reconcile._norm 識別碼保護）。
+
+    反例鎖：若 _norm 前導零分支退化（'0050'→50.0），會與 '50'→50.0 碰撞→誤配→入帳→轉紅。
+    """
+    # 不同識別碼 → 不配對 → 無被取代舊值 → 不入帳
+    assert gs._compute_supersessions([_row("0050", "2026-06-30", "9")],
+                                     [_row("50", "2026-06-30", "8")], KCOLS, SCOLS) == []
+    # 正向：同一 '0050' 值真異 → 入帳
+    assert len(gs._compute_supersessions([_row("0050", "2026-06-30", "9")],
+                                         [_row("0050", "2026-06-30", "8")], KCOLS, SCOLS)) == 1
+
+
+def test_gate_calls_snapshot_only_when_reason(monkeypatch):
+    """S6 主路徑 gate 零 DB 回歸鎖：provision_and_upsert 僅 snapshot_reason 非 None 時呼叫 _snapshot_superseded。
+
+    monkeypatch 掉 DB 相依（ensure_table/upsert）與快照本體，純驗 gate 分流——鎖住「主路徑一 byte 不變」承諾於 CI。
+    """
+    calls = []
+    monkeypatch.setattr(gs, "infer_schema", lambda rows: {"stock_id": "TEXT", "date": "DATE", "close": "NUMERIC(20,6)"})
+    monkeypatch.setattr(gs, "detect_keys", lambda rows, schema, require=(): ["stock_id", "date"])
+    monkeypatch.setattr(gs, "ensure_table", lambda cur, t, s, k: k)
+    monkeypatch.setattr(gs, "upsert", lambda cur, t, rows, s, k: len(rows))
+    monkeypatch.setattr(gs, "_snapshot_superseded", lambda cur, t, rows, s, k, reason, run_id=None: calls.append(reason) or 0)
+    rows = [{"stock_id": "2330", "date": "2026-06-30", "close": "1"}]
+    gs.provision_and_upsert(None, "t", rows, require_keys=("date",))                              # reason=None（主路徑）
+    assert calls == []                                                                            # 不快照
+    gs.provision_and_upsert(None, "t", rows, require_keys=("date",), snapshot_reason="heal_by_date")
+    assert calls == ["heal_by_date"]                                                             # heal→快照，reason 正確透傳
 
 
 def test_batch_dedup_keeps_last():
@@ -156,7 +180,10 @@ def test_db_heal_byte_differ_logged(cur):
     _heal(cur, "605")
     cur.execute('SELECT old_row->>%s, new_row->>%s, reason FROM raw_supersede_log WHERE "table"=%s',
                 ("close", "close", _TEST_TABLE))
-    assert cur.fetchone() == ("600", "605", "heal_by_date")
+    old_c, new_c, reason = cur.fetchone()
+    # old_row 忠實反映 DB typed 值（close 型別 NUMERIC(20,6) → '600.000000'）；new_row 為 incoming 原字串 '605'。
+    # 兩側口徑本就不對稱，以數值比對鎖語義（M2：勿寫死字串 '600'）。
+    assert (float(old_c), float(new_c), reason) == (600.0, 605.0, "heal_by_date")
 
 
 def test_db_heal_noop_not_logged(cur):
@@ -178,6 +205,18 @@ def test_db_append_only_blocks_update_delete(cur):
             cur.execute(stmt, params)
         cur.execute("ROLLBACK TO SAVEPOINT sp")     # 復原被 RAISE 中止之交易態、續驗
     assert _log_count(cur) == 1                      # 兩次違規皆被擋、帳列仍在
+
+
+def test_db_truncate_blocked(cur):
+    """M3：TRUNCATE 亦被 statement-level BEFORE TRUNCATE trigger 擋（row-level trigger 擋不住 TRUNCATE）。"""
+    import psycopg2
+    _seed(cur, "600")
+    _heal(cur, "605")
+    cur.execute("SAVEPOINT sp")
+    with pytest.raises(psycopg2.Error):
+        cur.execute("TRUNCATE raw_supersede_log")
+    cur.execute("ROLLBACK TO SAVEPOINT sp")
+    assert _log_count(cur) == 1                      # 證據帳未被清空
 
 
 def test_db_tombstone_controlled_erasure(cur):

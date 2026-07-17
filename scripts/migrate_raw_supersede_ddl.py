@@ -59,10 +59,11 @@ DDL = [
         BEGIN
           IF TG_OP = 'UPDATE'
              AND current_setting('augur.supersede_tombstone', true) = 'on' THEN
-            RETURN NEW;   -- 受控 tombstone 路徑(P4.E3 法規抹除唯一例外)
+            RETURN NEW;   -- 受控 tombstone 路徑(P4.E3 法規抹除唯一例外;僅 row-level UPDATE)
           END IF;
+          -- UPDATE/DELETE/TRUNCATE 一律擋（TRUNCATE 亦落此路徑；tombstone 例外不及於 DELETE/TRUNCATE）
           RAISE EXCEPTION 'raw_supersede_log append-only (AUD-02/AUGUR-MC P4.E5,§8.4 不可豁免);'
-            ' UPDATE/DELETE 僅得經 tombstone_raw_supersede(id,reason) 法規抹除受控路徑';
+            ' UPDATE/DELETE/TRUNCATE 一律禁止;抹除僅得經 tombstone_raw_supersede(id,reason) 法規受控路徑';
         END;
         $fn$ LANGUAGE plpgsql"""),
     ("trigger raw_supersede_log_no_mutate", """
@@ -72,6 +73,17 @@ DDL = [
             CREATE TRIGGER raw_supersede_log_no_mutate
               BEFORE UPDATE OR DELETE ON raw_supersede_log
               FOR EACH ROW EXECUTE FUNCTION raw_supersede_log_append_only();
+          END IF;
+        END $mig$"""),
+    # M3（對抗審查）：row-level trigger 擋不住 TRUNCATE（PG TRUNCATE 不觸發 FOR EACH ROW）→ 整本證據帳可被一語句清空。
+    # 補 statement-level BEFORE TRUNCATE trigger（共用同函式，TG_OP='TRUNCATE' 落 RAISE 分支），使決策 A 之 WM.34 硬保證真閉合。
+    ("trigger raw_supersede_log_no_truncate", """
+        DO $mig$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='raw_supersede_log_no_truncate'
+                           AND tgrelid='raw_supersede_log'::regclass) THEN
+            CREATE TRIGGER raw_supersede_log_no_truncate
+              BEFORE TRUNCATE ON raw_supersede_log
+              FOR EACH STATEMENT EXECUTE FUNCTION raw_supersede_log_append_only();
           END IF;
         END $mig$"""),
     # ── 決策 A 附帶義務:tombstone 法規抹除受控函式（P4.E3 唯一例外）。抹除 old_row/new_row 內容本體，
@@ -109,7 +121,7 @@ VERIFY = [
     ("raw_supersede_log 欄", "SELECT string_agg(column_name,', ' ORDER BY ordinal_position) FROM information_schema.columns WHERE table_name='raw_supersede_log'"),
     ("FK → attestation_result", "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid='raw_supersede_log'::regclass AND contype='f'"),
     ("索引", "SELECT string_agg(indexname,', ' ORDER BY indexname) FROM pg_indexes WHERE tablename='raw_supersede_log'"),
-    ("append-only trigger", "SELECT tgname FROM pg_trigger WHERE tgrelid='raw_supersede_log'::regclass AND NOT tgisinternal"),
+    ("append-only triggers（no_mutate+no_truncate）", "SELECT string_agg(tgname,', ' ORDER BY tgname) FROM pg_trigger WHERE tgrelid='raw_supersede_log'::regclass AND NOT tgisinternal"),
     ("tombstone 受控函式", "SELECT proname FROM pg_proc WHERE proname='tombstone_raw_supersede'"),
     ("表 COMMENT", "SELECT obj_description('raw_supersede_log'::regclass)"),
     ("現有列數", "SELECT count(*) FROM raw_supersede_log"),
@@ -145,7 +157,10 @@ def _selftest():
     chk("FK 指向 attestation_result(P4.E6 provenance)", "REFERENCES attestation_result(id)" in blob)
     chk("append-only trigger:BEFORE UPDATE OR DELETE + RAISE(決策 A=(a))",
         "BEFORE UPDATE OR DELETE ON raw_supersede_log" in blob and "RAISE EXCEPTION" in blob)
-    chk("trigger 冪等(pg_trigger 存在性守衛)", "FROM pg_trigger WHERE tgname='raw_supersede_log_no_mutate'" in blob)
+    chk("TRUNCATE 守衛:BEFORE TRUNCATE FOR EACH STATEMENT(M3；row-level 擋不住 TRUNCATE)",
+        "BEFORE TRUNCATE ON raw_supersede_log" in blob and "FOR EACH STATEMENT" in blob)
+    chk("trigger 冪等(pg_trigger 存在性守衛;含 no_truncate)",
+        "tgname='raw_supersede_log_no_mutate'" in blob and "tgname='raw_supersede_log_no_truncate'" in blob)
     chk("tombstone 受控函式存在(P4.E3 唯一例外)+ 須具事由",
         "FUNCTION tombstone_raw_supersede" in blob and "provenance 不得空" in blob)
     chk("tombstone 僅 UPDATE 放行、DELETE 恆禁(保留 tombstone 列)",

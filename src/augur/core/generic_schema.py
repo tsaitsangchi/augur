@@ -31,6 +31,7 @@
 from __future__ import annotations
 
 import datetime
+import json
 import re
 
 # ── 型別規則（#5 型別紀律）────────────────────────────────
@@ -330,9 +331,12 @@ def _snapshot_superseded(cur, table, rows, schema, keys, reason, run_id=None):
     """heal 覆寫前，把「將被 API 現值取代之 DB 舊列」快照至 raw_supersede_log（AUD-02；`§P4.E5`）。
     與後續 upsert **同交易、共用同一 cur**（先取 pre-image 後覆寫）；僅值真異者入帳。回傳入帳列數。
 
-    決策 A=(a)：本表 append-only 由 DB trigger 硬保證（migrate_raw_supersede_ddl.py）。
-    決策 B=(b)：run_id nullable＋事後回填；heal 直呼 sync 無對帳 run 時為 None（reason 仍承載溯源鏈）。"""
+    決策 A=(a)：本表 append-only 由 DB trigger 硬保證（migrate_raw_supersede_ddl.py）。fail-closed：
+      有 supersession 待寫時先驗 trigger 存在，缺則 RAISE（防「bootstrap 建裸表、migration 漏跑」下靜默寫入無保護表）。
+    決策 B=(b)：run_id nullable；heal 直呼 sync 無對帳 run 時為 None，provenance 由 reason＋old/new 承載
+      （run_id 保留供未來帶 run 脈絡之呼叫端回填，目前不主動回填）。"""
     from psycopg2.extras import execute_values, Json
+    _json = lambda o: json.dumps(o, default=str)   # psycopg2 Json 無 default 參數 → 以 dumps 注入（Decimal/date 序列化）
     if not rows or not keys:
         return 0
     cols = list(schema)
@@ -347,10 +351,19 @@ def _snapshot_superseded(cur, table, rows, schema, keys, reason, run_id=None):
     supersessions = _compute_supersessions(rows, db_rows, keys, cols)
     if not supersessions:
         return 0
+    # S1 fail-closed（決策 A）：待寫證據帳前確認 append-only trigger 就緒，否則拒寫（附指示），不靜默寫入無保護表
+    cur.execute("SELECT 1 FROM pg_trigger WHERE tgname='raw_supersede_log_no_mutate' "
+                "AND tgrelid = to_regclass('raw_supersede_log')")
+    if cur.fetchone() is None:
+        raise RuntimeError(
+            "raw_supersede_log 之 append-only trigger 未就緒（AUD-02/P4.E5）：請先跑 "
+            "scripts/migrate_raw_supersede_ddl.py 再啟用 heal；拒絕寫入無保護之證據帳（fail-closed）")
     vcol = "date" if "date" in cols else None   # valid_time（WM.30 有效軸）：日欄取 date、否則 NULL
     records = [
-        (table, Json(s["pk"], default=str), Json(s["old_row"], default=str),
-         Json(s["new_row"], default=str), (s["new_row"].get(vcol) if vcol else None), reason, run_id)
+        (table, Json(s["pk"], dumps=_json), Json(s["old_row"], dumps=_json), Json(s["new_row"], dumps=_json),
+         # 僅在該值確為乾淨 ISO 日（可轉 DATE）時填 valid_time，否則 NULL（防非 ISO date 欄如 '2026/06' 使 cast 中止整條 heal）
+         (s["new_row"].get(vcol) if (vcol and _is_date(s["new_row"].get(vcol))) else None),
+         reason, run_id)
         for s in supersessions
     ]
     execute_values(
@@ -404,8 +417,11 @@ def _selftest():
         _compute_supersessions(inc, [{"stock_id": "1101", "date": "2026-06-30", "close": "1"}], kcols, scols) == [])
     chk("_norm 口徑:'605'≡'605.0'≡605 視為同值→不入帳",
         _compute_supersessions([{"stock_id": "2330", "date": "2026-06-30", "close": "605.0"}], inc, kcols, scols) == [])
-    chk("前導零識別碼配對:'0050' 不與 50 混(共用 _norm)",
-        len(_compute_supersessions(
+    chk("前導零識別碼配對:'0050'(incoming) 不與 '50'(db) 誤配(反例鎖;共用 _norm)",
+        _compute_supersessions(
+            [{"stock_id": "0050", "date": "2026-06-30", "close": "9"}],
+            [{"stock_id": "50", "date": "2026-06-30", "close": "8"}], kcols, scols) == []
+        and len(_compute_supersessions(
             [{"stock_id": "0050", "date": "2026-06-30", "close": "9"}],
             [{"stock_id": "0050", "date": "2026-06-30", "close": "8"}], kcols, scols)) == 1)
     chk("批內同鍵去重＝保留最後一筆(＝upsert 勝方)",
