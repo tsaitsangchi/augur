@@ -21,7 +21,7 @@
 | 步 | 事項 | 解消 | 產出位置 | 狀態 |
 |---|---|---|---|---|
 | 6 | **本補正行程**（排程與追蹤） | — | augur-constitution | 🔄 進行中 |
-| 7 | **AUD-02 補正**：raw_supersede_log 帳表＋heal 覆寫前快照舊列（同交易），upsert 主路徑不動 | **AUD-02 critical**（P4.E5 MUST NOT，§8.4 不可豁免） | augur-code 分支 | ✅ 程式實作完成（分支 `remediation/impl-2026-07-17` @ 5cee263，已推 GitHub；三審 11 issue 2 修 1 升裁決；待人類 #7 實測＋P5 apply）|
+| 7 | **AUD-02 補正**：raw_supersede_log 帳表＋heal 覆寫前快照舊列（同交易），upsert 主路徑不動 | **AUD-02 critical**（P4.E5 MUST NOT，§8.4 不可豁免） | augur-code 分支 | ✅ 程式實作完成、統一於 [PR #2](https://github.com/tsaitsangchi/augur/pull/2)（分支 `remediation/aud-02-consolidated`）＝ `impl-2026-07-17` 實作 ＋ 補可執行 DB 行為回歸測試；另一 session 之獨立實作（PR #1）交叉驗證同樣三發現後關閉、統一取代。待人類 #7 實測＋P5 apply |
 | 8 | **Layer 2 Ontology 規格**：台股世界類型體系、同一性判準框架 | AUD-04 類型面、承接 AUGUR-WM D2/D3 掛鉤 | augur-constitution | ✅ 定稿（v0.1-draft，commit fe45620；待 Steward 充任認定）|
 | 9 | **Layer 3 Identity 規格**：entity registry、identifier 鑄造、lifecycle（merge/split/retire）、identity claim、跨來源解析 | **AUD-04/05/06 三項 major**、AUD-07、AUGUR-WM D1/D3/D4/D5/D6/D17 | augur-constitution | ✅ 定稿（v0.1-draft，commit 2a38255；待充任認定）|
 | 10 | **Layer 4 Knowledge System 規格**：Confidence 單一形式化語義、五元組欄位、雙時間 as-of、supersede/tombstone、信任分級 | **AUD-03 critical**、AUD-08/16、形式化 AUD-02、AUGUR-WM D7–D11 | augur-constitution | ✅ 定稿（v0.1-draft，commit 49a6add；WM.44 矩陣完整、形式充分性成就；待充任認定）|
@@ -49,3 +49,4 @@
 * 2026-07-17：步 7 兩項治權決策拍板、計畫定案（decisions A/B）；消費上限解除；步 8（Layer 2 Ontology）定稿封存（fe45620，27 issue 全處置）；步 9（Layer 3 Identity）定稿封存（2a38255，18 issue 全處置）；步 10（Layer 4 Knowledge）啟動。
 * 2026-07-17：步 12 部分完成——augur-code 治權檔憲章從屬聲明（5 檔）＋SSOT 措辭正名＋AUD-02 卷宗進 augur main（493fd73），封存 tag `augur-mc-v1.3-compliance-seal`。
 * 2026-07-17：步 7（AUD-02 程式實作，5cee263）＋步 11（結構補正 9 table＋python，7932ba9）完成，推 augur 分支 `remediation/impl-2026-07-17`，交接 `docs/remediation/HANDOFF-2026-07-17.md`。全走分支、未 apply DB、未併 main（待人類 #7 實測＋#19 檢視＋P5 拍板）。5 項升 Steward/P5 裁決（見 HANDOFF §三）。
+* 2026-07-17：**兩份 AUD-02 實作合流**。另一 session 獨立以工作流程實作 AUD-02（PR #1，`remediation/aud-02-raw-supersede-log`），經三重對抗審查抓到 psycopg2 `Json(default=)` blocker＋TRUNCATE 繞過＋第三 heal 路徑——與 `impl-2026-07-17` **獨立同抓**同三發現（強交叉驗證）。依 Steward「合併取長、統一一份」：以 `impl-2026-07-17`（超集：REVOKE 縱深/SECURITY DEFINER/actor 欄/INFRA_DDL 單一源/`_supersessions` 純函式）為 canonical 基底，補其所缺之可執行 DB 行為回歸測試 `tests/test_raw_supersede_log.py`，統一於 [PR #2](https://github.com/tsaitsangchi/augur/pull/2)（`remediation/aud-02-consolidated`）；PR #1 關閉。零 DB 全綠；DB 六不變式待真 PG 實測＋P5。
