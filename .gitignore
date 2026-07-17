@@ -3,3 +3,6 @@
 
 __pycache__/
 *.pyc
+
+# 參考資料：augur code repo 之本機 clone（不提交——避免重複副本漂移、兩 repo 混合）
+ref_augur/
