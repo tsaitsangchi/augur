@@ -166,8 +166,13 @@
    - **十張憲章新表全數 apply 沙盒**（`DB_NAME=augur_sandbox` shell 覆蓋 .env，load_dotenv override=False 實測驗證）：raw_supersede_log（append-only＋no-truncate trigger、tombstone SECURITY DEFINER✓、PUBLIC mutate 無殘餘）；identity 六表（10 條 permanence trigger、lifecycle 九型別 Evidence 硬義務 CHECK、de_identify SECURITY DEFINER✓）＋type catalog seed 4 列；automation 二表（P5.E1 六元組欄全、雙 FK）；prediction_serving_log（A1 能力 COMMENT、僅 superseded_by 可 UPDATE）。
    - **PR #2 十五測試 15/15 PASSED**（`DB_NAME=augur_sandbox venv/bin/python -m pytest tests/test_raw_supersede_log.py` → `15 passed in 0.33s`，生產同版 **PG 17.9**、55GB 完整複本）——六不變式全數行為驗證：gate 非 heal 不留痕／byte-differ 入帳／no-op 不入帳／append-only 擋 UPDATE+DELETE／TRUNCATE 擋／tombstone 受控抹除／同交易回滾。**取代原不可重驗之「PG 16.14 全綠」宣稱（§五該列解消）**。
    - 三支 migration `--check` 沙盒綠；終驗：生產 augur 240 表、raw_supersede_log 不存在（未動）；沙盒 250 表（240＋10）。
-4. **P5 拍板**（閘：HANDOFF 部署閘四步逐項書面完成＋Steward 五項升裁決 A-E——此為程序性引用，其內容真偽依鐵律不採信，僅列為 Steward 議程；見 §六）。
-5. **生產 apply**（閘：Steward 書面核准；表 owner≠應用角色確認）。
+4. ✅ **P5 拍板（2026-07-18）**：Steward（tsaitsangchi）於工作對話書面指示「apply進生產」。
+5. ✅ **生產 apply 完成（2026-07-18）**：
+   - 前置：生產快照（240 表、TaiwanStockPrice 至 2026-07-16＝與 dump 同步、prediction_values 1695／feature_values 2,510,040／deliberation_claim 396、活躍寫入者 0）；回滾態勢＝新增式（DROP 十新表即復原）＋9.9G dump 雙保險。
+   - Apply：五支 migration＋seed 依沙盒同序 → 生產 `augur`。
+   - 事後驗證（全唯讀）：**250 表**；快照三表列數**逐一相等**（1695／2,510,040／396）；**18 條護欄 trigger 在位**（pg_trigger 唯讀列舉）；tombstone/de_identify **SECURITY DEFINER✓**；**十新表對 augur_predict SELECT 全拒**（has_table_privilege 逐表查證——WM.35 消費閘已達，setup_predict_role --apply 僅餘 Phase 4 之 serving 寫權授予、非隔離必需）。
+   - 行為證據承接：同一份 DDL 於沙盒經 PR #2 **15/15 行為測試**驗證（含 append-only 擋改刪、TRUNCATE 擋、tombstone 受控、同交易回滾）。
+   - **殘餘（誠實揭露）**：表 owner＝augur＝應用角色——owner 分離未落地（owner 可 DISABLE TRIGGER），列 §五既有 ⛔ 族、待部署層處置；runtime 接線（Phase 1/2/4/5）未動，新表現全零列屬預期。
 6. **Runtime 接線另案**（各有完成判準）：Phase 1 vendor 直綁消除（判準：37 檔 grep → 0）、Phase 2 屬性 as-of 消費、Phase 4 serving_log 消費切換、Phase 5 resolve-or-mint＋action_log 接線（判準：ingestion grep 出現接線且沙盒 entity_registry 有 mint 記錄）。
 
 ---
