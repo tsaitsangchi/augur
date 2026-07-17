@@ -49,6 +49,39 @@ def _selftest() -> int:
     red("反例④ 附錄遮蔽真缺節 → 紅（WM.41 順序，MUST-FIX A）", "bad_appendix_mask.md", "WM.41")
     red("反例⑤ scalar 空值 → 紅（WM.40，MUST-FIX B）", "bad_empty_value.md", "WM.40")
 
+    # ── 新檢查一：WM.44-LABEL 原文標籤 ──────────────────────────────────────────
+    r = compliance_lint.lint_spec(str(_FIX / "bad_label_mislabel.md"), _MC)
+    red("反例⑥ Annex TR 憲章誤標 → 紅（WM.44-LABEL）", "bad_label_mislabel.md", "WM.44-LABEL")
+    # 五項實證誤標逐一鎖住（回歸鎖：任一漏抓即 FAIL）
+    msgs = " ".join(f.message for f in r.errors if f.rule == "WM.44-LABEL")
+    for code, why in [
+        ("§3", "自有括號名不符（原文＝Five Immutable Principles）"),
+        ("P1.E1", "自有括號名不符（原文＝開放來源）"),
+        ("P2.E4", "自創詞反充上位標籤（憲章 0 次）"),
+        ("P3.E3", "自有括號名不符（原文＝同一性判準掛鉤）"),
+        ("F4", "自創詞 Automation First（原文＝Knowledge Without Identity）"),
+        ("F5", "自創詞 Answer First（原文＝Intelligence Without Evidence）"),
+    ]:
+        chk(f"  └ 抓到 `{code}` 誤標：{why}", f"`{code}` 標籤" in msgs)
+    chk("  └ 誤標訊息並列「規格所載」與「憲章原文」", "規格所載" in msgs and "憲章原文" in msgs)
+
+    # 正例：合法標籤不得誤紅（引用原文／正文逐字濃縮／僅列代號無標籤／非 MC 代號）
+    rg = compliance_lint.lint_spec(str(_FIX / "good_label_ok.md"), _MC)
+    chk("good_label_ok fixture 綠（合法標籤不誤紅）", rg.passed)
+    if not rg.passed:
+        for f in rg.errors:
+            print(f"      ↳ 非預期 error：{f.rule}: {f.message}")
+
+    # ── 新檢查二：WM.40 閉集擴欄 ───────────────────────────────────────────────
+    chk("WM.40 閉集由 WM 規格原文動態解析（非硬編碼）",
+        compliance_lint._wm40_closed_set()[1] == "WM 原文")
+    chk("  └ 解析出 14 欄", len(compliance_lint._wm40_closed_set()[0]) == 14)
+    re_ = compliance_lint.lint_spec(str(_FIX / "bad_wm40_extension.md"), _MC)
+    red("反例⑦ front-matter 擴欄 → 紅（WM.40 閉集）", "bad_wm40_extension.md", "WM.40")
+    chk("  └ error 指名擴欄 `defers-in-count`",
+        any("defers-in-count" in f.message for f in re_.errors))
+    chk("  └ error 指名擴欄 `reviewer`", any("`reviewer`" in f.message for f in re_.errors))
+
     # audit_lint 框架 smoke + MUST-FIX C 回歸鎖（型別括號之合規表不誤紅）
     chk("audit_lint 對不存在路徑回 error（不炸）", not audit_lint.lint_code(str(_FIX / "no_such_dir"), "legacy").passed)
     ar = audit_lint.lint_code(str(_FIX / "audit_sample"), "greenfield")
@@ -64,7 +97,7 @@ def main(argv=None) -> int:
     if not argv or argv[0] in ("-h", "--help"):
         print(__doc__)
         return 0
-    if argv[0] == "--selftest":
+    if argv[0] in ("--selftest", "selftest"):
         return _selftest()
 
     cmd, rest = argv[0], argv[1:]
