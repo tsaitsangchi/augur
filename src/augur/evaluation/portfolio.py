@@ -52,11 +52,20 @@ def _metrics(simple_rets, ppy):
             "max_drawdown": maxdd, "calmar": calmar, "hit_rate": float((a > 0).mean())}
 
 
-def _turnover(cur_ids, prev_ids):
-    """投組成分變動比例(0=完全不變、1=全換);prev None → 1(初次建倉)。"""
-    if prev_ids is None or not cur_ids:
+def _turnover(cur_w, prev_w, prev_ret=None):
+    """換手率=半和口徑 0.5·Σ|Δw|(P2 量尺校準,alpha 計畫 1-2/hugo 開工 2026-07-17;
+    取代交集法——交集法只看成分不看權重,pred 加權下系統性低估)。
+    cur_w/prev_w={sid: weight}(和為 1);prev None→1.0(初次建倉)。
+    prev_ret={sid: 持有窗簡單報酬}給了→前期權重先按報酬**漂移**再比(0.5·Σ|w_cur−w_prev_drifted|;
+    P0 §1a 實證含漂移口徑);缺股報酬視 0(保守)。等權配方下與交集法幾乎重合(P0:+2.8% 相對)。"""
+    if prev_w is None or not cur_w:
         return 1.0
-    return 1.0 - len(set(cur_ids) & set(prev_ids)) / len(cur_ids)
+    if prev_ret is not None:
+        drift = {s: w * (1.0 + float(prev_ret.get(s, 0.0))) for s, w in prev_w.items()}
+        tot = sum(drift.values())
+        prev_w = {s: v / tot for s, v in drift.items()} if tot > 0 else prev_w
+    union = set(cur_w) | set(prev_w)
+    return 0.5 * sum(abs(cur_w.get(s, 0.0) - prev_w.get(s, 0.0)) for s in union)
 
 
 def build_long_portfolio(sids, preds, top_frac=0.2, weight="equal"):
@@ -99,7 +108,7 @@ def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
     cal = label_mod.full_calendar(conn)
     folds = walkforward.splits(panels, h, calendar=cal)   # 保證 embargo 下界 = h+62td(#8、A'-3 口徑a、逐折真實交易日)
     gross, net, bench, dates, turns, bturns = [], [], [], [], [], []
-    prev_top, prev_uni = None, None
+    prev_top, prev_uni, prev_ret = None, None, None
     for fold in folds:
         tpd = fold["test"]
         stocks = baseline._asof_stocks(conn, tpd) if asof else None
@@ -139,9 +148,11 @@ def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
         order = np.argsort(pred)[::-1]
         nt = len(port)
         g = long_ret - (float(simple[order[-nt:]].mean()) if long_short else 0.0)
-        turn = _turnover(top_ids, prev_top)
-        bturn = _turnover(common, prev_uni)
-        prev_top, prev_uni = top_ids, common
+        cur_w = {sid: w for sid, w, _ in port}                       # P2 半和口徑:權重 dict(等權/pred 加權皆真權重)
+        uni_w = {s: 1.0 / len(common) for s in common}
+        turn = _turnover(cur_w, prev_top, prev_ret)
+        bturn = _turnover(uni_w, prev_uni, prev_ret)
+        prev_top, prev_uni, prev_ret = cur_w, uni_w, ret_by_id
         sb = (short_borrow * h / 252.0) if long_short else 0.0        # 放空借券成本:年化→持有期、套短腿名目
         gross.append(g)
         net.append(g - turn * cost - sb)                              # 淨=毛 − 換手成本 − 放空借券成本
@@ -175,9 +186,15 @@ def _selftest():
     chk("drawdown_series 空序列→空", len(e0) == 0 and len(d0) == 0)
 
     # _turnover:0=不變、1=全換、None=初次建倉、半換=0.5
-    chk("_turnover 完全不變=0", _turnover(["a", "b"], ["a", "b"]) == 0.0)
-    chk("_turnover 半換=0.5", _turnover(["a", "b"], ["a", "c"]) == 0.5)
-    chk("_turnover prev=None→1(初次)", _turnover(["a", "b"], None) == 1.0)
+    eq = {"a": 0.5, "b": 0.5}
+    chk("_turnover 半和:完全不變=0", _turnover(eq, {"a": 0.5, "b": 0.5}) == 0.0)
+    chk("_turnover 半和:等權半換=0.5", _turnover(eq, {"a": 0.5, "c": 0.5}) == 0.5)
+    chk("_turnover prev=None→1(初次)", _turnover(eq, None) == 1.0)
+    chk("_turnover 半和:權重變動被計(交集法盲區)",
+        abs(_turnover({"a": 0.8, "b": 0.2}, {"a": 0.2, "b": 0.8}) - 0.6) < 1e-12)
+    chk("_turnover 漂移:a 翻倍後權重漂移被計入",
+        abs(_turnover(eq, eq, {"a": 1.0, "b": 0.0}) - abs(0.5 - 2.0 / 3.0)) < 1e-12)
+    chk("_turnover 漂移:零報酬=無漂移(同無 prev_ret)", _turnover(eq, eq, {"a": 0.0, "b": 0.0}) == 0.0)
 
     # _metrics:全正報酬 hit_rate=1、len<2→{}
     m = _metrics([0.1, 0.1, 0.1], 1.0)
