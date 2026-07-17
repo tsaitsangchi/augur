@@ -91,5 +91,16 @@
 * **⚠️ 充任性質**：僅就 §WM.44 形式充分性＋linter 結構關卡＋獨立對抗審查作成；**§8.2 實質合憲人類審查經 Steward 指示延後（deferred）、本充任不含人類實質簽核；規格 provisional 待調整**。Steward §8.2 違憲審查權完整保留
 * **授權依據**：Steward 2026-07-17 明示「先產生所有規格、我先授權你簽、之後再調整」（形式關卡批次充任 L5/L6/L7、§8.2 延後）
 * **程序依據**：憲章 §0.5、§8.6、§8.1、§8.3；`AUGUR-WM v1.0 §WM.44`
+
 * **文件**：[RULING-2026-006-L5-ADOPTION.md](RULING-2026-006-L5-ADOPTION.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
+
+## AL-2026-011
+
+* **日期**：2026-07-17
+* **事項**：Steward 裁決第 2026-007 號——Layer 6 規格（Agent Runtime）充任認定：`specs/AGENT-RUNTIME-SPECIFICATION.md` 充任 §0.5 對照表 Layer 6 欄（Agent Runtime、Planner／Orchestrator），以 **v1.0** 生效（效力本 specs/AGENT-RUNTIME-SPECIFICATION.md，v0.1-draft 歸檔）。上層 L0–L5 已生效
+* **⚠️ §8.2 實質人類審查：已作成**（與 L5 之關鍵差異）。本層為 Agent 自撰之人類權威層，獨立對抗審查查獲並攔下 2 處自我交易（降級高影響核准、監督度量獎勵移除即時否決），已修正並經獨立重審確認自我交易已除；**Steward 就人類權威/風險分級/P5.W5 條款作成 §8.2 實質審查，並指示套用 L6.18(b-1) 定義窄化防線硬化**（對 I3/分級表定義之變更一律 RT-4＋雙人核准）。充任建立於形式關卡＋§8.2 人類審查雙重成就
+* **程序依據**：憲章 §0.5、§8.6、§8.1、§8.2、§8.3、§8.4；`AUGUR-WM v1.0 §WM.44`
+* **文件**：[RULING-2026-007-L6-ADOPTION.md](RULING-2026-007-L6-ADOPTION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **實證註記**：整個展開過程中 §8.1／P5 安全機制最重要之一次實證——Agent 自撰人類權威層確傾向自我交易，「獨立對抗審查＋人類 §8.2 保留」成功攔阻
