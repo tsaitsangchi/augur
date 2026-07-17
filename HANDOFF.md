@@ -21,16 +21,20 @@
 
 ## 八層狀態
 
-| Layer | 規格 | 狀態 | 誤標（新 gate 實測） |
+誤標數為 **2026-07-17 硬化後 gate（母集 102 條）** 之實測值。括號內為硬化前之舊值，列出以示**計數上升是 gate 變準、非規格惡化**。
+
+| Layer | 規格 | 狀態 | 誤標 |
 |---|---|---|---|
 | L0 Meta-Constitution | `constitution/META-CONSTITUTION.md` | ✅ **v1.3 生效** | — |
-| L1 World Model | `specs/WORLD-MODEL-SPECIFICATION.md` | ✅ v1.0 生效 | 0 |
-| L2 Ontology | `specs/ONTOLOGY-SPECIFICATION.md` | ✅ v1.0 生效 | 0 |
-| L3 Identity | `specs/IDENTITY-SPECIFICATION.md` | ✅ v1.0 生效 | 🔴 **12** |
-| L4 Knowledge System | `specs/KNOWLEDGE-SYSTEM-SPECIFICATION.md` | ✅ v1.0 生效 | 🔴 **15** |
-| L5 Cognitive Kernel | `specs/COGNITIVE-KERNEL-SPECIFICATION.md` | ✅ v1.0 生效（§8.2 延後） | 🔴 **7** |
-| L6 Agent Runtime | `specs/AGENT-RUNTIME-SPECIFICATION.md` | ✅ v1.0 生效（**含 §8.2 人類審查**） | 🔴 **5** |
-| L7 Infrastructure | `specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md` | 🔴 **草稿，充任受阻** | 9 ＋ 擴欄 1 |
+| L1 World Model | `specs/WORLD-MODEL-SPECIFICATION.md` | ✅ v1.0 生效 | 0（無 Annex TR） |
+| L2 Ontology | `specs/ONTOLOGY-SPECIFICATION.md` | ✅ v1.0 生效 | ⚠️ **假 0 —— 從未受檢**（見下） |
+| L3 Identity | `specs/IDENTITY-SPECIFICATION.md` | ✅ v1.0 生效 | 🔴 **20**（原 12） |
+| L4 Knowledge System | `specs/KNOWLEDGE-SYSTEM-SPECIFICATION.md` | ✅ v1.0 生效 | 🔴 **25**（原 15） |
+| L5 Cognitive Kernel | `specs/COGNITIVE-KERNEL-SPECIFICATION.md` | ✅ v1.0 生效（§8.2 延後） | 🔴 **28**（原 7） |
+| L6 Agent Runtime | `specs/AGENT-RUNTIME-SPECIFICATION.md` | ✅ v1.0 生效（**含 §8.2 人類審查**） | 🔴 **20**（原 5） |
+| L7 Infrastructure | `specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md` | 🔴 **草稿，充任受阻** | 🔴 **19** |
+
+**生效規格誤標合計 93**（原以為 39）＋ L2 未計。全七份比對 641 筆、error **112 筆**（MC 側 73／上層側 39）。
 
 裁決：`constitution/RULING-2026-00{2,3,4,5,6,7}-*.md`；修訂登錄 `constitution/AMENDMENT-LOG.md`（AL-2026-001…011）。
 
@@ -50,23 +54,33 @@ L7 草稿三輪對抗審查全數 **go=false**（阻斷 7 → 8 → 9），而 `
 新增之 **WM.44-LABEL** 檢查（標籤須為憲章原文）實測七份規格：
 
 ```
-L1 0 ｜ L2 0 ｜ L3 12 ｜ L4 15 ｜ L5 7 ｜ L6 5 ｜ L7(draft) 9+1
-                  └────── 39 個誤標在已生效規格 ──────┘
+L1 0 ｜ L2 假0 ｜ L3 20 ｜ L4 25 ｜ L5 28 ｜ L6 20 ｜ L7(draft) 19
+                   └─────── 93 個誤標在已生效規格 ───────┘
 ```
 
 **鐵證**：同一誤標**逐字跨層複製** —— 「§3 = 公理金字塔/演化鏈總述」在 L5/L6/L7 一模一樣（真值 = Five Immutable Principles）；「§0 = 總則章」三份；「P4.W1 來源崇拜警語」四份。**起草者引用的是彼此的轉述，不是憲章原文。** L5 甚至把 **§8.1 標為「Amendment Log／編號穩定」，而 §8.1 = Constitution Steward** —— 指向完全不同的條。
 
+**最重之單例（L3）**：`P5.W4`／`P5.W5` **整體錯位一格** —— P5.W4 原文 = 最小權限、P5.W5 原文 = **不得降低人類監督與否決能力**，而「缺位預設最高風險」實為 P5.E2。錯位正落在 **P5.W5（§8.4 不可豁免核心）** 上。
+
+### 2b. L2 的「✅ PASS」是假的 —— 被一個 markdown 井號隱藏
+
+`specs/ONTOLOGY-SPECIFICATION.md:415` 有 `# Annex TR`，底下 **136 列表格**。gate 之 `_ANNEX_TR_HEAD` 寫死要 **h2**，而**十一份規格中僅 ONTOLOGY（生效版與 draft）用 h1**。故其整張矩陣**從未被讀過**，卻以「0（無 Annex TR 表格列）✅ PASS」published。實測僅正規化標題層級（表格內容一字未改）→ **PASS 轉 FAIL**，且抓到的正是跨層的 `§3` 截半名。
+
+> **一份生效的 Layer 2 規格之違憲標籤，被一個井號字數隱藏，並以 ✅ PASS 發布。**
+
+**同族逃逸口（皆經突變實證，皆為「靜默零檢查」）**：`if not regions: return` → 無 Annex TR 即零 finding、連 INFO 都不發（四條路徑：改標題名／移出 Annex／改散文體例／用 h1 全部 PASS）；`if clause is None: continue` → 引用未列於 front-matter `upper-specs` 之代號者**靜默略過** —— 實測 `ONT.5`（本體論隨意定義）／`ID.4`（同一性不必要）／`KS.9`（知識免證據）／`L5.1`（核心可繞過）四列**全為反義自創標籤，findings 0、PASS=True**。
+
 ### 3. gate 自己也犯了同一種病（最深的一層）
 
-獨立審查官以**突變測試**證實：
+**第一版 gate**（獨立審查官以突變測試證實，**均已修復**）：README 宣稱一個**不存在的測試**；條款宇宙漏掉 §2.5 Evidence／§2.6 Knowledge／§2.7 Intelligence／§2.10 Confidence（「85 條全數涵蓋」為假陽性）；過半矩陣零檢查；子字串放行（「Confidence 單一形式化」含 `Confidence` 即綠）；WM 讀不到時靜默退回硬編碼副本。
 
-* **README 宣稱的測試根本不存在**（「以修訂後 WM 副本實證跟隨 WM」）→「以起草者之轉述充作原文」遞迴發生在工具自己的文件上。
-* **條款宇宙不完整**：MC §2 定義是 list item 不是 heading，故 **§2.5 Evidence／§2.6 Knowledge／§2.7 Intelligence／§2.10 Confidence 從未進入枚舉** → 「85 條全數涵蓋」是**假陽性**。
-* **過半矩陣零檢查**：gate 只認 MC 側代號，TR.D/E/F/G（WM./ONT./ID./KS./L5./L6. 標籤）完全不檢。
-* **子字串放行**：「Confidence 單一形式化」因含 `Confidence` 而綠燈。
-* **靜默降級**：WM 讀不到時退回硬編碼副本且零 finding —— 程式碼實作了它自己指名為違憲的退路。
+**硬化後（`468563c`）已驗證為真**：母集 **85 → 102**（新增 §2.1–§2.11 定義十一條、§5.1–§5.6 架構角色六條）；7/7 實證誤標反跑全紅；B8 之 README 宣稱經三向突變實測站得住；B9 之五種錨點漂移全部 fail-loud。**條款宇宙完備性審查 go=true、零阻斷。**
 
-**教訓（寫給下一個 Agent）**：**永遠不要採信建造者對自己成品的自陳。** 本 session 每一次重大缺陷，都是獨立對抗審查（尤其突變測試）抓到的，不是自我檢查抓到的。
+**但第二版 gate 仍在說同一種謊**（`README:151`「MC 側 78／上層側 34」實為 **73／39**，兩位審查官以互相獨立之分類法交叉驗證、0 筆無法歸類 —— 且 78+34 亦等於 112，顯係**人工估算而非程式輸出**；`README:73`「非 MC 條款代號本檢查不轄」**實測為假**，與自己的表格及程式 docstring 三方矛盾，且方向相反地危險 —— 讀者據此會以為上層標籤未受檢而不採信 39 筆真實 error）。另 `§9` 之正文範圍**溢收全部 Appendix A–E**（6988 字元、88% 為他條文字），致三個與 §9 毫無關係的捏造標籤全數 PASS（現況衝擊為零：無規格引用 §9 且 §9 標 [I]，惟為經實證之潛伏偽陰性）。
+
+**gate 建造者自陳之殘餘弱點（誠實且重要，接手者必讀）**：① 前段截取 **4 字元／40% 為工具自訂閾值、非憲章所定** —— 與 B9 所修之病同源（判準來源非 Layer 1），只是尚未被指名；② `_text_supported` 之 **50% 詞元率是最軟一環** —— 實測「禁插補冒充（Representation 被視為 Reality 本身）」達 56% **綠燈通過，而病灶詞逐字保留**，且 **error 訊息本身印出「命中 x/y 詞元（閾值 50%）」等同附上規避配方**；③ 區段列之聯集判定為新引入之鬆動（區段拉越長越容易命中，無跨距懲罰）；④ `upper-specs` 解析靠「AUGUR-XX 之 XX 即前綴」之**經驗規律**，失敗僅 warning → 靜默不受檢；⑤ **WM.44 覆蓋與 LABEL 未接線** —— 一條被判 LABEL error 的列，在 WM.44 眼中仍算「已覆蓋」；⑥ 字母項（`§0.6(a)`、`§8.5(b)`）**被工具自己引為依據，卻不在宇宙內**（是否屬「項次」為 §8.1 解釋問題，linter 不得自行造法 —— 保留正確，但為已知不一致）；⑦ **gate 未自我稽核**，README 其餘敘述性宣稱未逐一驗證。
+
+**教訓（寫給下一個 Agent）**：**永遠不要採信建造者對自己成品的自陳。** 本 session 每一次重大缺陷，都是獨立對抗審查（尤其**突變測試**）抓到的，**沒有一次是自我檢查抓到的**。連「造來抓『以轉述冒充原文』的 gate」，兩版都在自己的 README 裡犯了同一種病。
 
 ### 4. 連帶：既有裁決之證據基礎弱於當時所述
 
@@ -78,7 +92,7 @@ L1 0 ｜ L2 0 ｜ L3 12 ｜ L4 15 ｜ L5 7 ｜ L6 5 ｜ L7(draft) 9+1
 
 | # | 事項 | 為何只能人類 |
 |---|---|---|
-| **#22** | **四份生效規格 39 個誤標**：先更正？或先核發 §8.4 期限豁免？ | 改生效層是 §8.5／§8.6 修憲行為。**CI 接線為 merge-gate 前必須先裁**，否則一啟用即全紅 |
+| **#22** | **四份生效規格 93 個誤標**（＋L2 之 136 列矩陣從未受檢）：先更正？或先核發 §8.4 期限豁免？ | 改生效層是 §8.5／§8.6 修憲行為。**CI 接線為 merge-gate 前必須先裁**，否則一啟用即全紅 |
 | **#23** | **L6.11 RT-2/RT-3 序異常**（§8.1 書面裁決） | 上層條文**彼此**不相容：L6.11 綁 RT-2 須「可重現驗證」（屬 KS CL.0 之 E3），而 RT-3 僅需「獨立 Data Evidence」（E2）→ 線性閉集上不可同時單調滿足。非 L7 填數值可解消 |
 | — | **L7 §8.2 實質審查**（L7 生效前置） | L7 規格**自己明定**「本層之充任不得僅以形式關卡為據」；L7.90(d) 列六項必審 |
 
@@ -115,9 +129,15 @@ L1 0 ｜ L2 0 ｜ L3 12 ｜ L4 15 ｜ L5 7 ｜ L6 5 ｜ L7(draft) 9+1
 * **PostgreSQL**：無 sudo／docker，用 micromamba + conda-forge `postgresql=16` 起 userspace PG 於 `127.0.0.1:55432`。
 * **踩過的雷**：`psycopg2.extras.Json` **沒有** `default` 參數 → 須 `Json(x, dumps=lambda o: json.dumps(o, default=str))`。
 
-## 進行中
+## gate 現況（`tools/constitution_lint`）
 
-**背景工作流程 `wbn9hogaf`**：硬化 gate（補條款宇宙、上層標籤檢查、括號名整體比對、真突變鎖、失準發聲）→ 七份規格重掃真實計數。三位驗證官專職**不信任造 gate 者之自陳**（突變測試／獨立枚舉母集／獨立複驗計數）。**預期計數上升。**
+已硬化並推送（`468563c`）：母集 102 條、selftest **55 項全過**（含前輪六項誤標回歸鎖、B8/B9 突變鎖、對照組）。**仍待修**（獨立審查官 2/3 go=false、6 阻斷）：
+
+1. **`_ANNEX_TR_HEAD` 放寬為 `#{1,3}`**，區段界線改依「同級或更高級標題」而非硬編 `^## ` —— 現況隱藏了 L2 生效規格之 136 列矩陣。
+2. **強制發聲**：Annex TR 未偵得／零表格列／代號不在標籤宇宙而未比對者，一律發 finding 並列出未受檢筆數與規格名。**「未受檢」≠「已比對且通過」** —— 此即 B9 判定書所指「退得無聲」之同一病，`_check_wm40_closed_set_authority` 已為 WM.40 設發聲義務，旗艦之 WM.44-LABEL 自身卻無。
+3. **README 據實更正**：`:151` → 「MC 側 73／上層側 39」（並改由程式輸出或 selftest 斷言產生，杜絕手抄）；`:73` 刪除或改為程式實際行為。
+4. **`§9` 正文範圍**納入 `^## Appendix`／`^### ` 為終止錨點；selftest 增突變鎖（斷言 `len(§9.text) < 1500`）。
+5. 建造者自陳之七項殘餘弱點（見上）—— 其中 ①④ 與 B9 同病、⑤ 為兩檢查未接線。
 
 ---
 
