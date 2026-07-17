@@ -35,4 +35,6 @@ metadata:
 
 **執行邊界(hugo directive)**:皆計畫層方向決策;實作(建表/evaluator/hash/接線)與治權修訂**一律待 hugo 後續拍板才動工**(#26),不因決方向就動手。
 
+**治權修訂批次完成(2026-07-17 hugo「全批照案」)**:原則精華 v1.9.1(解凍子條 live 准入=G1-G5 機制+G1-PIN+門二確立)/憲章 v1.46.0(L130 加註+L131④ 精確化+修訂歷程)/CLAUDE v1.29(§2 blockquote)/README/HANDOFF 全鏈級聯;判準值零變動。**發現平行 meta-治理體系**:hugo 另一會話建 `augur-constitution` repo(AUGUR-MC v1.3 Layer 0 lex superior/Steward 裁決/AUD 審計),5 治權檔已加「憲章從屬聲明」檔頭(Layer 登錄;#7 vs P4.E5 緊張揭露、補正期 2026-10-14)——rebase 整合乾淨(雙方改動共存);日後治權工作須認知此上位體系存在。
+
 見 [[augur-unfreeze-20260712]](gate 退史料+解凍入憲)、[[augur-validation-master-plan]](G1-G5 SSOT=master plan §4)、[[audit-attestation-falsegreen]](G1 對帳誠實化史)、[[augur-oracle-direction-verdict]](方向軸六門判死史、arena=解凍後重測)。
