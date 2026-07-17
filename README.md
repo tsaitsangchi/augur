@@ -8,7 +8,7 @@ Augur 是一套企業級 AI 作業系統，其最高使命：
 
 **現行生效狀態（2026-07-17）**：**Layer 0–6 已生效**（L0 元憲章 v1.3；L1–L6 規格 v1.0，各經 Steward 充任認定，見下表）；其中 **L5 為 provisional**（形式關卡充任、`§8.2` 實質人類審查延後），**L6 為唯一另經 `§8.2` 實質人類審查者**。**Layer 7（Infrastructure）僅有 `v0.1-draft`、尚未生效**，其充任受阻於 `§8.2` 實質審查。
 
-> ⚠️ **生效 ≠ 無瑕疵**：`§8.3` 機器 gate（`tools/constitution_lint/`）於 2026-07-17 硬化後，測得**已生效規格仍有未結之 WM.44-LABEL error**（憲章標籤誤標），且 L2 之 Annex TR 矩陣曾因標題層級而**從未受檢**卻以 PASS 發布。**不得以 linter 綠燈為充任依據**。現況、待裁事項與具體數字見 [HANDOFF.md](HANDOFF.md)（待裁 #22）。
+> ⚠️ **生效 ≠ 無瑕疵**：`§8.3` 機器 gate（`tools/constitution_lint/`）於 2026-07-17 硬化後，測得**已生效規格仍有未結之 WM.44-LABEL error**（憲章標籤誤標），且 L2 之 Annex TR 矩陣曾因標題層級而**從未受檢**卻以 PASS 發布。**不得以 linter 綠燈為充任依據**。現況與待裁事項見 [HANDOFF.md](HANDOFF.md)（待裁 #22）；**具體數字一律見 `python3 -m tools.constitution_lint report`**（全 corpus 權威數字之單一產生點，於 repo 根執行）——**本檔刻意不載任何 gate 數字**，故其於 `report` 之綁定普查表恆為 `0 處`，此為正辦而非漏綁。
 
 ## 文件
 

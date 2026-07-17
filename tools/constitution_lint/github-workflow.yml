@@ -12,24 +12,42 @@
 # 照原樣接線將立即全紅（阻斷全部 push／PR）。應先經 Steward 裁決「先更正規格、或先核發
 # §8.4 期限豁免」——見 HANDOFF.md 待裁 #22。
 #
-# 【實測數量（Measure 階段實填，硬化後之現行工作區 gate）】
+# 【實測數量】
 #   產生指令（於 repo 根 /home/giga/augur/augur-constitution 執行）：
-#     for f in specs/*-SPECIFICATION*.md; do python3 -m tools.constitution_lint compliance "$f"; done
-#     （glob 須為 -SPECIFICATION*.md：前版寫 -SPECIFICATION.md，漏掉 L7 之 -v0.1-draft.md，
-#      照該指令重跑僅得六份/152，與下表七份/200 不符——2026-07-17 由獨立驗證官實測揪出並更正。
-#      注意此 glob 亦會納入 specs/*-v0.1-draft.md 歸檔本；下表為「六份生效本＋L7 draft」之七份。）
-#   結果：七份受檢規格 6 FAIL / 1 PASS；error 合計 200 筆（全部為 WM.44-LABEL，非 LABEL error 為 0）
-#     L1 WORLD-MODEL          error  0  ✅ PASS（唯一通過者）
-#     L2 ONTOLOGY             error  1  ❌ FAIL（Annex TR 標題為 h1 致零覆蓋，強制發聲）
-#     L3 IDENTITY             error 31  ❌ FAIL
-#     L4 KNOWLEDGE-SYSTEM     error 34  ❌ FAIL
-#     L5 COGNITIVE-KERNEL     error 49  ❌ FAIL
-#     L6 AGENT-RUNTIME        error 37  ❌ FAIL
-#     L7 INFRASTRUCTURE(draft) error 48 ❌ FAIL（draft，非生效規格）
-#   → 接線後將有 6 份規格擋下全部 push／PR。**六份中五份為已生效規格。**
+#     python3 -m tools.constitution_lint report
+#   下列數字**由該指令導出並以 `--sync` 寫入**，非手抄；下列 lint 標記之值與 report 輸出
+#   不一致時，selftest 即 FAIL（`_binding_and_consistency`）。
 #
-# ⚠ 上列數字繫於「現行工作區之 gate」。gate 一經再動（判準、母集、發聲義務），計數必變；
-#   引用前請重跑上列指令，勿轉抄。此橫幅之前身即因轉抄未實測之數字而失準。
+#   （前版此處之產生指令為 `for f in specs/*-SPECIFICATION*.md; do … compliance "$f"; done`：
+#    該 glob 併入 specs/*-v0.1-draft.md **歸檔本**，實得 13 份/352，與其下表之七份/200 不符
+#    ——「修好」的 glob 自己是假的。受檢 corpus 之定義自本輪起寫在**程式**裡
+#    〔`report.corpus_files`：六份生效本＋尚無生效本之 draft；歸檔本除外〕，不再靠註解描述
+#    一個要靠人正確重打的 glob。）
+#
+#   結果：受檢規格 <!--lint:corpus_total-->7<!--/lint--> 份
+#         （生效本 <!--lint:corpus_effective-->6<!--/lint--> ＋ draft <!--lint:corpus_draft-->1<!--/lint-->）
+#         <!--lint:corpus_fail-->6<!--/lint--> FAIL / <!--lint:corpus_pass-->1<!--/lint--> PASS；
+#         error 合計 <!--lint:total_errors-->200<!--/lint--> 筆
+#         （全部為 WM.44-LABEL，非 LABEL error 為 <!--lint:non_label_errors-->0<!--/lint-->）
+#     L1 WORLD-MODEL          error  <!--lint:errors_L1-->0<!--/lint-->  ✅ PASS（唯一通過者）
+#     L2 ONTOLOGY             error  <!--lint:errors_L2-->1<!--/lint-->  ❌ FAIL（Annex TR 標題為 h1 致零覆蓋，強制發聲）
+#     L3 IDENTITY             error <!--lint:errors_L3-->31<!--/lint-->  ❌ FAIL
+#     L4 KNOWLEDGE-SYSTEM     error <!--lint:errors_L4-->34<!--/lint-->  ❌ FAIL
+#     L5 COGNITIVE-KERNEL     error <!--lint:errors_L5-->49<!--/lint-->  ❌ FAIL
+#     L6 AGENT-RUNTIME        error <!--lint:errors_L6-->37<!--/lint-->  ❌ FAIL
+#     L7 INFRASTRUCTURE(draft) error <!--lint:errors_L7-->48<!--/lint--> ❌ FAIL（draft，非生效規格）
+#   → 接線後將有 <!--lint:corpus_fail-->6<!--/lint--> 份規格擋下全部 push／PR。
+#     **其中 <!--lint:corpus_fail_effective-->5<!--/lint--> 份為已生效規格**（其餘為 L7 draft；
+#     二數不得混用——draft 之紅不動搖任何已生效規格之地位）。
+#
+# ⚠ 上列數字繫於**產生它們的那一次 gate**，非「現行」之 gate（「現行／工作區／HEAD」等
+#   相對詞不得寫進文件——HEAD 會移動，寫下它的那一刻起該詞即開始腐爛；本 repo 已三度栽於此）。
+#   數字所繫之 commit **不由本註解宣稱**，而由 `report` 輸出末尾之 `git HEAD` 行據實印出
+#   （工作區不乾淨時印 `<sha>+dirty`，明示該輸出無法僅由該 SHA 重現）。
+#   gate 一經再動（判準、母集、發聲義務），計數必變；**惟自本輪起無須人工重抄**：
+#   跑 `python3 -m tools.constitution_lint report --sync` 即更新，且忘記更新者由 selftest
+#   擋下（不一致即 FAIL）。此橫幅之前身即因轉抄未實測之數字而失準：其自附之「產生指令」
+#   `for f in specs/*-SPECIFICATION*.md; …` 實得 13 份/352，照辦者永遠得不到它下面那張表。
 # ══════════════════════════════════════════════════════════════════════════════
 
 name: constitution-lint
@@ -61,6 +79,10 @@ jobs:
       - name: compliance-lint 全規格（error 阻斷、warning 不阻斷）
         shell: bash
         run: |
-          # SHOULD #15：以 find 列舉，避免 glob 未展開/空目錄字面路徑誤紅
-          mapfile -t specs < <(find specs -name '*.md' -type f | sort)
+          # 受檢 corpus 之定義**只有一處**：`report.corpus_files`（六份生效本＋尚無生效本之
+          # draft；歸檔本除外）。前版此處為 `find specs -name '*.md'`，列舉 13 份（含 6 份
+          # 歸檔 draft），與本檔橫幅之七份/200 **不符**——CI 實際所檢與文件所載分家，正是
+          # 本工具要撲滅之病。改由 `report --files` 列舉，二者自此不可能再分家。
+          mapfile -t specs < <(python -m tools.constitution_lint report --files)
+          test "${#specs[@]}" -gt 0 || { echo "corpus 為空——report --files 異常"; exit 1; }
           python -m tools.constitution_lint compliance "${specs[@]}"

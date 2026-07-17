@@ -63,7 +63,7 @@ Layer 5（Cognitive Kernel）、Layer 6（Agent Runtime）**橫跨兩層**：
 | L4 Knowledge System | ✅ AUGUR-KS v1.0 生效 | — |
 | L5 Cognitive Kernel | ✅ AUGUR-L5 v1.0 生效（provisional，§8.2 延後） | ❌ 引擎未建 |
 | L6 Agent Runtime | ✅ AUGUR-L6 v1.0 生效（**含 §8.2 實質人類審查**；裁決 2026-007／AL-2026-011） | ❌ 引擎未建 |
-| L7 Infrastructure | 🔄 AUGUR-L7 v0.1-draft 草擬完成、充任受阻（待 §8.2 實質審查；規格自訂 L7.90(d) 必審清單 (i)–(vii) **共七項**〔產生指令：`sed -n '566,600p' specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md \| grep -cE '^>\s+\((i\|ii\|iii\|iv\|v\|vi\|vii)\)'` → 7；第 (vii) 項 T-L7-13 自身即為依 §8.1 之書面裁決聲請。該規格第 942／1134 行仍作「六項」，為 L7 草案之內部不一致，另案〕） | ⚠️ 僅測試 PostgreSQL；qdrant/圖DB/ML 皆無 |
+| L7 Infrastructure | 🔄 AUGUR-L7 v0.1-draft 草擬完成、充任受阻（待 §8.2 實質審查；規格自訂 L7.90(d) 必審清單 (i)–(vii) **共七項**〔產生指令：`sed -n '566,600p' specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md \| grep -cE '^>\s+\((i\|ii\|iii\|iv\|v\|vi\|vii)\)'` → 7；第 (vii) 項 T-L7-13 自身即為依 §8.1 之書面裁決聲請。該規格第 **942／1004／1134** 行仍作「六項」〔產生指令：`grep -n '六項' specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md` → 三行；前版此處漏列 :1004（T-L7-7 緊張關係表列），係手數〕，為 L7 草案之內部不一致，另案〕） | ⚠️ 僅測試 PostgreSQL；qdrant/圖DB/ML 皆無 |
 
 ```
 概念層  ████████████████████  L0–L6 生效、L7 草擬待充任  ← 遙遙領先
