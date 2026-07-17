@@ -10,6 +10,7 @@ Augur 是一套企業級 AI 作業系統，其最高使命：
 
 | 文件 | 說明 |
 |---|---|
+| [HANDOFF.md](HANDOFF.md) | **交接文件 [I]**（現況、待裁事項、紅線、踩過的雷 — 接手請先讀） |
 | [ARCHITECTURE-OVERVIEW.md](ARCHITECTURE-OVERVIEW.md) | **架構總覽 [I]**（2 層 × 8 層 × 2 repo 對映；給人看的導覽圖） |
 | [CONSTITUTIONAL-ROLLOUT-PLAN.md](CONSTITUTIONAL-ROLLOUT-PLAN.md) | **憲章展開總綱**（治權主導混合式；L0→L7 展開路徑、九階段、三里程碑） |
 | [constitution/META-CONSTITUTION.md](constitution/META-CONSTITUTION.md) | **現行有效版本 v1.3** |
