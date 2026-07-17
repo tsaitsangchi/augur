@@ -282,8 +282,15 @@ def _tokens(label: str) -> list:
 
 
 def label_overlap(label: str, text: str) -> tuple:
-    """回 (命中詞元數, 總詞元數)：標籤詞元於條款正文中之逐字命中率。"""
-    toks = _tokens(label)
+    """回 (命中相異詞元數, 相異詞元總數)：標籤詞元於條款正文中之逐字命中率。
+
+    **詞元須去重**：前版以 `_tokens()` 之**清單**計數，故同一詞重複出現即重複計入分子——
+    起草者只須把一個碰巧命中之詞複製數遍，即可把命中率推過閾值，而誤標之標籤原封不動。
+    實證：`禁插補冒充 Representation` ×4 → 4/8 命中，恰過 50% 閘門，README 之旗艦病例
+    `P2.E4` 就此靜默轉綠。以清單計數等同**獎勵冗詞**：判準所量者應為「標籤用了多少憲章
+    原文之詞」，而非「起草者按了幾次複製」。故取相異詞元集合為分母與分子之共同基礎。
+    """
+    toks = set(_tokens(label))
     hay = normalize_label(text)
     hit = sum(1 for t in toks if t in hay)
     return hit, len(toks)

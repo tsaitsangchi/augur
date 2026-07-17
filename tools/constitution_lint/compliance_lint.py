@@ -294,6 +294,15 @@ def _check_wm44(res, region, mc_path):
 # 括號多為說明而非標籤宣稱，一律檢查將製造大量偽陽性。
 _ANNEX_TR_HEAD = re.compile(r"^##\s+.*Annex\s+TR\b", re.M | re.I)
 _H2 = re.compile(r"^##\s+")
+# **任一層級**之 Annex TR 標題（`# Annex TR`／`### Annex TR`…）。用途見 `_check_wm44_label`
+# 之無區段分支：`_ANNEX_TR_HEAD` 硬性要求 `##`，故 h1／h3 之 Annex TR 會令區段解析回空集，
+# 而「有 Annex TR 但解析不到」與「根本沒有 Annex TR」是**截然不同**之二事，須分別處置。
+# **須以 `Annex TR` 起首**（不採 `.*Annex TR` 之寬鬆式）：文件標題順帶提及者（`# Fixture：
+# Annex TR 憲章誤標`）並非附錄本身，以之報「標題層級錯誤」即為不實陳述。
+_ANNEX_TR_HEAD_ANY = re.compile(r"^#{1,6}\s+(?:\*\*)?Annex\s+TR\b", re.M | re.I)
+# 「本規格之形式充分性以 Annex TR 之逐條枚舉為據」之斷言用語（ONT Annex CS §CS.10、
+# ID【地位】節皆屬之）。斷言其存在卻無可解析之區段者，該斷言即無從查證。
+_TR_ASSERT_TOKENS = ("形式充分性", "逐條枚舉", "逐條完整枚舉", "逐條對照", "追溯矩陣")
 # 表格列（首格為條款代號欄）
 _TABLE_ROW = re.compile(r"^\s*\|(.+)$")
 # 代號緊接標籤：`§P5.D（…`、`P1.E1（…`、`F4（…`、`EV.1（…`、`§3（…`、`WM.36（…`、`ID.30（…`
@@ -317,6 +326,66 @@ _LABEL_MIN_TOKENS = 2
 # 之下界）；40% 濾去長名之零星偶合（30 字元名偶合 4 字元＝13%，不足以認定起草者在引該名）。
 _LEAD_MIN_CHARS = 4
 _LEAD_MIN_RATIO = 0.4
+
+
+def _asserts_tr_enumeration(text: str) -> bool:
+    """規格是否**自稱**其形式充分性繫於 Annex TR 之逐條枚舉。
+
+    以 `Annex TR` 各出現處之鄰近視窗（±120 字元）內是否見 `_TR_ASSERT_TOKENS` 判之——
+    斷言與其標的恆同段出現，跨段之偶合則不予採認。
+    """
+    for m in re.finditer(r"Annex\s+TR\b", text, re.I):
+        window = text[max(0, m.start() - 120): m.end() + 120]
+        if any(t in window for t in _TR_ASSERT_TOKENS):
+            return True
+    return False
+
+
+def _report_no_tr_region(res, text, fields):
+    """無可解析之 Annex TR 區段時之**發聲**（取代前版之靜默 `return`）。
+
+    B9 教義之直接適用：前版 `if not regions: return` 令「本規格無 Annex TR」與「Annex TR
+    全部比對通過」在輸出上**完全不可分辨**——兩者皆為零 finding、皆 PASS。實證突變：
+    IDENTITY 之 `## Annex TR` 改為 `### Annex TR`，20 個 error 歸零且零 finding。
+    實例（非假想）：`specs/ONTOLOGY-SPECIFICATION.md` 之 Annex TR 標題為 h1（`# Annex TR`），
+    故其 WM.44-LABEL **從未執行**，而其 `PASS（error 0）` 曾用以支撐 RULING-2026-003。
+
+    嚴重度分流（依「該規格是否有可查證之 Annex TR 主張」而非「是否綁定上層規格」）：
+
+    * **ERROR｜有 Annex TR 標題但層級非 `##`**：Annex TR 確實存在，區段解析卻失敗——
+      此為最惡之情形：標籤檢查零覆蓋，輸出卻與全數通過同形。
+    * **ERROR｜無 Annex TR 標題，惟本文斷言形式充分性繫於 Annex TR 之逐條枚舉**：
+      斷言之依據不存在於可查證之處，該斷言無從成立（ONT §CS.10 型態）。
+    * **INFO｜二者皆無**：確無 Annex TR 之規格（Layer 1／最小規格）。WM.44-LABEL 之義務
+      標的為 Annex TR 表列標籤，無表列即無標籤可比——此為「不適用」，非「通過」，
+      故仍留痕，俾「未執行」不被讀作「已比對且通過」。
+    """
+    head = _ANNEX_TR_HEAD_ANY.search(text)
+    base = ("本規格未偵得可解析之 Annex TR 區段，WM.44-LABEL 原文標籤檢查**未執行**"
+            "（非「已比對且通過」）")
+    if head:
+        lvl = len(head.group(0)) - len(head.group(0).lstrip("#"))
+        res.add("WM.44-LABEL", Severity.ERROR,
+                f"{base}——惟本規格**確有** Annex TR 標題（`{head.group(0).strip()}`），"
+                f"其標題層級為 h{lvl}，非 WM.44-LABEL 區段錨點所要求之 `##`（h2），"
+                f"故區段解析回空集、該附錄全部表列標籤**零覆蓋**。"
+                f"零覆蓋之輸出與「全數比對通過」同形，正是本工具所欲撲滅之靜默降級（B9）；"
+                f"**本次標籤判定不具權威**。應回復 Annex TR 標題為 `##`（規格之編輯權屬其作者／"
+                f"Steward，工具不得代改）",
+                "AUGUR-WM v1.0 §WM.44 / AUGUR-MC v1.3 §8.2")
+        return
+    if _asserts_tr_enumeration(text):
+        res.add("WM.44-LABEL", Severity.ERROR,
+                f"{base}——惟本規格本文**斷言**其形式充分性繫於 Annex TR 之逐條枚舉。"
+                f"所斷言之枚舉依據不存在於可解析之 Annex TR 區段，該斷言本次無從查證；"
+                f"以未受檢之枚舉充作形式要件已成就之依據，即 `§8.2` 所禁之「以轉述代原文」。"
+                f"**本次標籤判定不具權威**",
+                "AUGUR-WM v1.0 §WM.44 / AUGUR-MC v1.3 §8.2")
+        return
+    res.add("WM.44-LABEL", Severity.INFO,
+            f"{base}。本規格無 Annex TR 標題，亦未斷言形式充分性繫於 Annex TR 之逐條枚舉，"
+            f"故 WM.44-LABEL 對本規格**不適用**（非「已比對且通過」）",
+            "AUGUR-WM v1.0 §WM.44")
 
 
 def _annex_tr_regions(text: str):
@@ -444,17 +513,26 @@ def _upper_spec_labels(res, spec_path, fields):
     for pre, ver in tokens:
         path = index.get((pre, ver))
         if path is None:
-            res.add("WM.44-LABEL", Severity.WARNING,
+            # B9 教義（`_check_wm40_closed_set_authority`）之逐字適用：front-matter 既已宣告
+            # 受 `AUGUR-{pre} {ver}` 拘束（WM.40 閉集要求），該上層規格即為本規格標籤判定之
+            # **判準來源**；其無法解析至規格檔者，非「某一列存疑」，而是該來源之**全部**標籤
+            # 判定失其權威基礎——與閉集退回硬編碼副本為同一病灶。以 warning 呈現等於容許 CI
+            # 綠燈通過一份判準來源已崩解之判定，故取 ERROR。
+            res.add("WM.44-LABEL", Severity.ERROR,
                     f"front-matter `upper-specs` 所列 `AUGUR-{pre} {ver}` 無法解析至規格檔——"
-                    f"該上層規格之條款標籤本次未受檢（標籤權威來源缺位，非「已比對且通過」）",
+                    f"該上層規格之條款標籤本次**全部未受檢**（標籤權威來源缺位，非「已比對且通過」）。"
+                    f"front-matter 既已宣告受其拘束，其原文即本次標籤判定之判準來源；來源缺位時"
+                    f"**該來源側之判定不具權威**（同 WM.40 閉集退回副本之情形）。"
+                    f"應回復該規格檔之可解析性或更正 `upper-specs`，而非以「未檢＝無誤」續行",
                     "AUGUR-WM v1.0 §WM.44 / AUGUR-MC v1.3 §8.2")
             continue
         try:
             body = pathlib.Path(path).read_text(encoding="utf-8")
         except OSError as e:
-            res.add("WM.44-LABEL", Severity.WARNING,
-                    f"上層規格 `AUGUR-{pre} {ver}`（{path}）不可讀：{e}；其條款標籤本次未受檢",
-                    "AUGUR-WM v1.0 §WM.44")
+            res.add("WM.44-LABEL", Severity.ERROR,
+                    f"上層規格 `AUGUR-{pre} {ver}`（{path}）不可讀：{e}——其條款標籤本次"
+                    f"**全部未受檢**；判準來源不可讀時該來源側之判定不具權威（同上）",
+                    "AUGUR-WM v1.0 §WM.44 / AUGUR-MC v1.3 §8.2")
             continue
         src = f"AUGUR-{pre} {ver}"
         sources.append(src)
@@ -479,6 +557,42 @@ def _range_clause(codes, labels):
     }
 
 
+_MC_CODE_FULL = re.compile(r"^" + mc_clauses.CODE_ALT + r"$")
+_SPEC_CODE_FULL = re.compile(r"^(" + "|".join(mc_clauses.SPEC_PREFIXES) + r")\.\d+$")
+
+
+def _report_unresolved_code(res, code, label, universe, sources, loc):
+    """代號無法解析至任何受檢條款時之**發聲**（取代前版之靜默 `continue`）。
+
+    前版註解自承「非受檢宇宙之代號（未列於 upper-specs）」即略過，且零 finding。後果為
+    **誘因倒置**：把 11 列紅牌之代號改寫成不存在之 `P9.E9`、標籤照錯不誤，LABEL error 由
+    20 降為 10 而輸出無一字提及——**弄壞代號比修好標籤容易**。README 所載之不罰情形僅二
+    （「無標籤者不罰」「項次交叉引註不罰」），「代號不在宇宙」不在其列，故前版之寬待逾越
+    其自載之判準。
+    """
+    base = (f"`{code}` 無法解析至任何受檢條款，其標籤「{label}」本次**未受檢**"
+            f"（非「已比對且通過」）")
+    first = code.split("–")[0]
+    if _MC_CODE_FULL.match(first) and first not in universe:
+        res.add("WM.44-LABEL", Severity.ERROR,
+                f"{base}——該代號合於 `AUGUR-MC §0.3` 之條款編號形態，卻不在憲章 [N] 條款宇宙"
+                f"（共 {len(universe)} 條）之內：憲章側代號之宇宙為封閉且可枚舉，形態合致而不在其中者，"
+                f"非誤植即杜撰。**代號不存在則其標籤無所附麗**，該列不得作為形式充分性之枚舉依據"
+                f"（`§8.2`：[N] 原文優於轉述）",
+                "AUGUR-WM v1.0 §WM.44 / AUGUR-MC v1.3 §8.2", loc)
+        return
+    if _SPEC_CODE_FULL.match(first):
+        pre = _SPEC_CODE_FULL.match(first).group(1)
+        res.add("WM.44-LABEL", Severity.WARNING,
+                f"{base}——代號前綴 `{pre}` 屬已知規格前綴，惟 `AUGUR-{pre}` 未見於本規格"
+                f"front-matter `upper-specs` 之可解析清單（本次已解析：{sources or '（無）'}），"
+                f"故其原文標籤無權威來源可比對（同 `upper-specs` 無法解析之情形）",
+                "AUGUR-WM v1.0 §WM.44 / AUGUR-MC v1.3 §8.2", loc)
+        return
+    res.add("WM.44-LABEL", Severity.WARNING, base + "——代號不合任何已知條款編號形態",
+            "AUGUR-WM v1.0 §WM.44", loc)
+
+
 def _check_wm44_label(res, text, mc_path, spec_path, fields):
     """WM.44-LABEL（error）：Annex TR 表格列所載之條款標籤須為**上位原文**，非轉述／自創詞。
 
@@ -488,6 +602,7 @@ def _check_wm44_label(res, text, mc_path, spec_path, fields):
     """
     regions = _annex_tr_regions(text)
     if not regions:
+        _report_no_tr_region(res, text, fields)
         return
     try:
         labels = mc_clauses.load_clause_labels(mc_path)
@@ -497,6 +612,10 @@ def _check_wm44_label(res, text, mc_path, spec_path, fields):
         return
     upper, sources = _upper_spec_labels(res, spec_path, fields)
     labels.update(upper)
+    try:
+        universe, _ = mc_clauses.load(mc_path)
+    except OSError:
+        universe = set()
 
     checked = {}
     for base, region in regions:
@@ -516,7 +635,8 @@ def _check_wm44_label(res, text, mc_path, spec_path, fields):
                     clause = labels.get(codes[0])
                     code = codes[0]
                 if clause is None:
-                    continue                          # 非受檢宇宙之代號（未列於 upper-specs）
+                    _report_unresolved_code(res, code, label, universe, sources, loc)
+                    continue
                 checked[clause["source"]] = checked.get(clause["source"], 0) + 1
                 _judge_label(res, code, label, clause, loc)
     if checked:
@@ -579,7 +699,20 @@ def _judge_label(res, code, label, clause, loc):
                     "AUGUR-WM v1.0 §WM.44 / AUGUR-MC v1.3 §8.2", loc)
             return
 
-    # 三、「前段截取」（B2 之推廣）：標籤逐字照抄原文名之前段、後段換上起草者之語。
+    # 三、**純節引不罰**：標籤為原文名之**逐字子字串**且未添附任何字元（`WM.4`（刪名測試）
+    #     vs 原文「概念層獨立性＋刪名測試」；`§0.4`（權威語言）vs 原文「權威語言聲明」）。
+    #     本檢查所攔者恆為「起草者之自撰片段取代原文之一部分」——純節引無自撰片段可言，
+    #     報之即為不實陳述（正是本工具要撲滅之病）。前版倚賴「判準五之無條件放行」承接此類；
+    #     判準五收緊後，須於此**顯式**放行，否則節引誤紅。
+    #
+    #     **限 `halves` 不在場者**：`X（Y）` 體例之截半（`Time（雙時間性）` → 「雙時間」）
+    #     亦為子字串，惟其落空之半個義務正是 B2 所攔之病灶，故排除於本放行之外——該體例
+    #     之擇一引用已由判準二依較嚴格解讀（`§8.2`）處理。
+    if clause.get("paren_name") and not halves and \
+            norm_label in mc_clauses.normalize_label(clause["paren_name"]):
+        return
+
+    # 四、「前段截取」（B2 之推廣）：標籤逐字照抄原文名之前段、後段換上起草者之語。
     #     `WM.36`（World Concept Registry 七欄）之原文名為「World Concept Registry 與消費規則」，
     #     而「七欄」恰為該條正文用語 → 詞元命中 4/4，「正文逐字支撐」判準反而放行之。
     #     此與 `X（Y）` 截半同病，故同視：**被換掉之尾段即靜默落空之義務**（WM.36 之
@@ -604,11 +737,19 @@ def _judge_label(res, code, label, clause, loc):
                     "AUGUR-WM v1.0 §WM.44 / AUGUR-MC v1.3 §8.2", loc)
             return
 
-    # 四、自有標籤不在場，仍容「取自正文之逐字濃縮」（如 `P4.E1`（五元組最低不變式）——
-    #     「五元組」「最低不變式」皆為 P4.E1 正文原文）。此非本檢查所針對之病灶：起草者
-    #     顯然讀過條文。真正要攔的是**正文毫無支撐**之自創詞。
+    # 四、**僅限自有標籤不在場之條款**，容「取自正文之逐字濃縮」（如 `P4.E1`（五元組最低
+    #     不變式）——「五元組」「最低不變式」皆為 P4.E1 正文原文）。此非本檢查所針對之病灶：
+    #     該條無自有標籤，起草者本就只能自正文取詞，且其顯然讀過條文。
+    #
+    #     **`paren_name` 在場者不適用本判準**：前版對**全部**條款跑 `_text_supported` 並於
+    #     `ok` 時放行，致判準四成為判準一之**無條件大赦**——凡標籤詞元有半數見於正文者，縱
+    #     其與原文名全然不符亦放行，而條款正文本就富含該條用語，此條件幾乎恆真。實證漏網：
+    #     `P1.E1`（原文名＝開放來源）掛 IDENTITY 之「Reality 最高抽象／來源非最高抽象」，
+    #     詞元 8/10 命中正文 → 靜默放行。README 明載判準四之適用範圍為「未觸及原文名者」，
+    #     前版程式碼未實作其自身之規格。條款既有自有標籤，該標籤即為 `§8.2` 之 [N] 原文，
+    #     「正文有支撐」不足以取代之——**正文用語不等於該條之標籤**。
     ok, hit, total = _text_supported(label, clause)
-    if ok:
+    if ok and not clause.get("paren_name"):
         return
 
     if full:

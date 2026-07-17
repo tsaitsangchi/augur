@@ -88,6 +88,40 @@ def _selftest() -> int:
         any(f.rule == "WM.44-LABEL" and "AUGUR-WM v1.0" in f.message
             and f.severity.value == "info" for f in rg.findings))
 
+    # ── G1 回歸鎖：判準四之無條件大赦（原文名在場者不得以「正文有支撐」放行）──────────
+    for code, why in [
+        ("P1.E1", "原文＝開放來源；詞元命中正文卻與原文名全然不符"),
+        ("P4.E1", "原文＝Knowledge 五元組；「Knowledge」遭捨、代以正文用語"),
+    ]:
+        chk(f"  └ G1 抓到 `{code}` 判準四大赦漏網：{why}", f"`{code}` 標籤與 MC 原文不符" in msgs)
+    chk("  └ G1 指名之漏網標籤即 finding 所載者（Reality 最高抽象／來源非最高抽象）",
+        "Reality 最高抽象／來源非最高抽象" in msgs)
+    # **純節引不得誤紅**：收緊判準四之對向鎖——`WM.4`（刪名測試）為原文名之逐字子字串、
+    # 無自撰片段，good_label_ok 須續綠（該正例列由 rg 之綠斷言涵蓋，此處另證訊息未指名之）
+    chk("  └ G1 對向：純節引 `WM.4`（刪名測試）不得被判大赦漏網",
+        "`WM.4` 標籤與" not in msgs)
+
+    # ── G2 回歸鎖：重複詞灌分（label_overlap 詞元須去重）────────────────────────────
+    #    實測之真實利用手法：以**命中詞**填充（非如原 finding 所述之整體重複——整體重複
+    #    分子分母同步放大，比值不變、無從灌分）。`禁插補冒充` ＋ `Representation` ×4 →
+    #    去重前 4/8 ＝ 50% 恰跨閾值而放行；去重後恆為 1/5 ＝ 20%。
+    p2e4 = mc_clauses.load_clause_labels(_MC)["P2.E4"]
+    chk("G2 突變鎖：`P2.E4` 以命中詞灌分，任何倍數均不得放行（詞元去重）",
+        all(not compliance_lint._text_supported("禁插補冒充" + " Representation" * n, p2e4)[0]
+            for n in range(1, 12)))
+    chk("  └ G2 灌分比值恆定（去重後不隨重複次數上升）",
+        len({mc_clauses.label_overlap("禁插補冒充" + " Representation" * n, p2e4["text"])
+             for n in range(1, 12)}) == 1)
+    chk("  └ G2 該灌分列於 fixture 中實際報紅",
+        "禁插補冒充 Representation Representation" in msgs)
+
+    # ── G3 回歸鎖：代號脫檢不得靜默（弄壞代號不得比修好標籤容易）────────────────────
+    chk("G3 突變鎖：代號形態合致但不在 [N] 宇宙（`P5.E9`）→ error、非靜默略過",
+        any(f.rule == "WM.44-LABEL" and "`P5.E9`" in f.message and "不在憲章 [N] 條款宇宙" in f.message
+            for f in r.errors))
+    chk("  └ G3 前綴已知但未列於 upper-specs（`KS.1`）→ warning（非 error、非靜默）",
+        any(f.rule == "WM.44-LABEL" and "`KS.1`" in f.message for f in r.warnings))
+
     # ── B3 回歸鎖：條款宇宙不完整（§2 定義項為 numbered list item，前版從未進入宇宙）──
     mc_text = pathlib.Path(_MC).read_text(encoding="utf-8")
     universe = mc_clauses.enumerate_clauses(mc_text)
@@ -156,6 +190,64 @@ def _selftest() -> int:
                     wm_path=str(pathlib.Path(td) / "no_such_wm.md")).passed)
         else:
             print("  ⚠ 找不到 AUGUR-WM，跳過 B8/B9 突變鎖")
+
+    # ── G4 突變鎖（BLOCKER）：Annex TR 區段缺位不得靜默 ──────────────────────────────
+    #    前版 `if not regions: return`：`_ANNEX_TR_HEAD` 硬性要求 `##`，故標題層級一改即
+    #    全部標籤檢查蒸發，且**零 finding、照報 PASS**——「無 Annex TR」與「Annex TR 全數
+    #    通過」在輸出上不可分辨。此非假想：`specs/ONTOLOGY-SPECIFICATION.md` 之 Annex TR
+    #    標題為 h1，其 WM.44-LABEL 從未執行，而其 PASS 曾用以支撐 RULING-2026-003。
+    with tempfile.TemporaryDirectory() as td:
+        src = (_FIX / "bad_label_mislabel.md").read_text(encoding="utf-8")
+        n_err_ok = len(compliance_lint.lint_spec(str(_FIX / "bad_label_mislabel.md"), _MC).errors)
+
+        for tag, mut, desc in [
+            ("h3", src.replace("## Annex TR", "### Annex TR", 1), "`## Annex TR` → `### Annex TR`"),
+            ("h1", src.replace("## Annex TR", "# Annex TR", 1), "`## Annex TR` → `# Annex TR`（ONT 實例之形態）"),
+        ]:
+            p = pathlib.Path(td) / f"tr_{tag}.md"
+            p.write_text(mut, encoding="utf-8")
+            rm = compliance_lint.lint_spec(str(p), _MC)
+            chk(f"G4 突變鎖：{desc} → 仍不得 PASS（標籤檢查蒸發不得靜默）", not rm.passed)
+            chk("  └ error 指名『未偵得可解析之 Annex TR 區段』且『未執行』",
+                any(f.rule == "WM.44-LABEL" and "未偵得可解析之 Annex TR 區段" in f.message
+                    and "未執行" in f.message for f in rm.errors))
+            chk("  └ error 明言非「已比對且通過」（不得與全數通過同形）",
+                any(f.rule == "WM.44-LABEL" and "非「已比對且通過」" in f.message for f in rm.errors))
+        chk("  └ 對照：標題完好時該 fixture 之 LABEL error 確實存在（突變前後非恆紅）",
+            n_err_ok > 0)
+
+        # 對向鎖：確無 Annex TR 且未斷言者 → info（不得誤紅）。good_minimal 宣告 upper-specs
+        # 綁定卻無 Annex TR——嚴重度**不得**繫於 upper-specs 之有無（否則此正例即誤紅）。
+        rmin = compliance_lint.lint_spec(str(_FIX / "good_minimal.md"), _MC)
+        chk("G4 對向鎖：無 Annex TR 且未斷言之規格 → 仍 PASS（不誤紅）", rmin.passed)
+        chk("  └ 惟仍留 info 痕跡（「未執行」不得被讀作「已比對且通過」）",
+            any(f.rule == "WM.44-LABEL" and f.severity.value == "info"
+                and "不適用" in f.message for f in rmin.findings))
+
+        # 斷言型 ERROR：無可解析區段、卻斷言形式充分性繫於 Annex TR 逐條枚舉（ONT §CS.10 型態）
+        asserted = src.replace("## Annex TR [N] — WM.44 逐條對應矩陣",
+                               "## 附錄（非 TR）\n\n本規格之形式充分性依 Annex TR 之逐條枚舉已成就。", 1)
+        p = pathlib.Path(td) / "tr_asserted.md"
+        p.write_text(asserted, encoding="utf-8")
+        ra = compliance_lint.lint_spec(str(p), _MC)
+        chk("G4 突變鎖：無區段卻斷言「形式充分性依 Annex TR 逐條枚舉已成就」→ error", not ra.passed)
+        chk("  └ error 指名該斷言無從查證",
+            any(f.rule == "WM.44-LABEL" and "斷言" in f.message and "無從查證" in f.message
+                for f in ra.errors))
+
+        # ── G5 突變鎖：upper-specs 無法解析 → error（B9 教義：判準來源崩解不得僅 warning）──
+        broken = src.replace("upper-specs: [AUGUR-WM v1.0]", "upper-specs: [AUGUR-WM v9.9]", 1)
+        p = pathlib.Path(td) / "upper_broken.md"
+        p.write_text(broken, encoding="utf-8")
+        rb = compliance_lint.lint_spec(str(p), _MC)
+        chk("G5 突變鎖：upper-specs 版本改為不存在之 v9.9 → error（非 warning）",
+            any(f.rule == "WM.44-LABEL" and "AUGUR-WM v9.9" in f.message
+                and f.severity is compliance_lint.Severity.ERROR for f in rb.errors))
+        chk("  └ error 載明該來源側判定不具權威（B9 教義一致）",
+            any(f.rule == "WM.44-LABEL" and "不具權威" in f.message for f in rb.errors))
+        chk("  └ 未降級為 warning（判準來源崩解不得 CI 綠燈）",
+            not any(f.rule == "WM.44-LABEL" and "AUGUR-WM v9.9" in f.message
+                    for f in rb.warnings))
 
     re_ = compliance_lint.lint_spec(str(_FIX / "bad_wm40_extension.md"), _MC)
     red("反例⑦ front-matter 擴欄 → 紅（WM.40 閉集）", "bad_wm40_extension.md", "WM.40")

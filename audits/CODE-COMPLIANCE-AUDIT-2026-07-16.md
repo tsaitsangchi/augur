@@ -105,10 +105,37 @@
 * P4.E7 NoLaundering 精神已有等價物：禁 AI 生成內容入庫（admission_gate fail-closed＋DB CHECK）、advisor verdict_block 雙標示（宣稱原文＝LLM 提出非系統背書；系統背書僅及 oracle 證據行）、審議 claim provenance 全鏈留痕＝synthetic 標記與「說話者身份」機械區分。
 * append-only 與留痕傾向部分落實 P4.E3/§5 角色一：gate 廢止＝superseded 非 DELETE、attestation_result/data_audit_log/trial_ledger/review_log 構成證據帳本、附錄 A「寧空不填舊數字」；「目前證據不足」為合法狀態（escalated＝誠實待人裁非失敗）直接對應 P4.E5 末句。
 
-## 四、差距發現（26 項，依嚴重度排序）
+## 四、差距發現（26 項，**依初步嚴重度排序；終局級別見第七節與各條標題**）
+
+> **排序與級別之關係（2026-07-17 補註）**：本節之排列係依**初步判定**之嚴重度。其後經門檢與**解釋裁決第 2026-001 號**，部分項目之級別變動（如 **AUD-21 minor→MAJOR**、AUD-09 critical→MAJOR），**AUD 編號一律不重排**（編號穩定優先，重排將破壞既有引用之 ID 穩定性）。故**本節之排列順序不得逕行讀作終局嚴重度**；終局級別以**各條標題**及**第七節（尤 7.2／7.5）**為準。
 
 > severity 分級（依 AUGUR-MC §8.2/§8.4）：critical＝違反不可豁免核心或禁止性規定；major＝違反 [N] 義務；minor＝部分符合但有缺口。
 > ⚠️ 所有發現之證據均經整併官親自重驗（「親查屬實」），但設計中的獨立雙重對抗驗證（程式碼查證官＋憲章適用裁判官）因故未執行 —— severity 與條款適用暫列為初步判定。
+
+> ### 🔖 基準銘牌（2026-07-17 後補；**本節全部證據錨定於此**）
+>
+> **本節（§4）全部行號／檔名／grep 結果，一律錨定 augur code repo commit `e23a102`（2026-07-16 18:12）之樹狀態。**
+> 個別條目**維持審計時之記載不改**——那是**審計時之證據**，改之即毀損稽核軌跡。以下為**現行對照**，供再查者換算：
+>
+> **(一) 治權檔已升版，13 處引用路徑於現行 HEAD 無法解析**（檔名內嵌版號，升版即改名）：
+>
+> | 審計時（`e23a102`） | 現行（`origin/main`） | 本節引用次數 |
+> |---|---|---|
+> | `docs/原則精華_v1.9.0.md` | `docs/原則精華_v1.9.1.md` | 6 |
+> | `docs/系統架構大憲章_v1.45.0.md` | `docs/系統架構大憲章_v1.46.0.md` | 7 |
+>
+> **(二) 行號漂移 +2**：二治權檔頂端各插入二行「憲章從屬（AUGUR-MC v1.3）」聲明，其後行號全數 +2。
+> **此漂移為靜默**——舊行號**依然存在**且仍落在同一條款區塊內，僅內容已非所指，**再查者不會收到任何錯誤訊號**。已受影響且經確認者：
+>
+> | 發現 | 審計時錨點 | 現行對應 |
+> |---|---|---|
+> | **AUD-02（critical）** | 原則精華 **L52** | **v1.9.1 為 L54**（`value_mismatch` 段） |
+> | AUD-12 | 大憲章 **L3** | **v1.46.0 為 L5** |
+> | AUD-26 | 大憲章 **L26-28** | **v1.46.0 為 L28-30** |
+>
+> **(三) 基準已整體漂移**：`origin/main` HEAD ＝ `0b04ecc`（2026-07-17 17:37），距 `e23a102` 已遠。
+> 再查請**錨定 tag 而非 HEAD**（`augur-mc-v1.3-compliance-seal` → `493fd73`；`archive-20260718-alpha-p0-repair` → `4951aee`）——tag 不移動，HEAD 會。
+> 本報告 §7 所載之 clone HEAD `e23a102` 為唯一權威基準；**本報告非歷史快照而係流通中之已裁決文件**（見文末），故此銘牌置於 §4 之首而非僅列於 §7。
 
 ### AUD-01【CRITICAL】資料來源 schema 即系統最高抽象：全系統無 World Model／Ontology 層，治權條文（「API 即權威」）且將此立為法律（F1 教科書式命中）
 
@@ -242,7 +269,12 @@
 
 **補正方向**：(1) 將 watchdog 的終態判定來源從 grep log 檔改為讀 attestation_result 表（該表本就是為「run 與 gate 檢查解耦」設計的正典留檔，schema.py 註解親查屬實）——判態依據即刻變為 append-only 可稽核；(2) watchdog/selfheal 的 kill、relaunch、探測結果等行動事件同步 INSERT 至 pipeline_execution_log（或新設 automation_action_log），文字 log 降級為人讀便利品；(3) log 檔缺失時 fail-loud 記異常而非默認走 relaunch。
 
-### AUD-12【MAJOR】兩套「憲章」撞名且無 Layer 登錄：大憲章自稱最高承載文件、README 逕稱「憲法」，與 Layer 0 形成雙重最高權威歧義
+### AUD-12【MAJOR｜🔧 部分補正 2026-07-17：v1.46.0 已加憲章從屬聲明＋Layer 7 登錄（RULING-2026-002／AL-2026-006）；README L24「憲法」用語仍待處理】兩套「憲章」撞名且無 Layer 登錄：大憲章自稱最高承載文件、README 逕稱「憲法」，與 Layer 0 形成雙重最高權威歧義
+
+> **補正現況（2026-07-17 後補；本註為狀態同步，非新結案認定）**：`docs/系統架構大憲章_v1.46.0.md:3` 現載「**憲章從屬（AUGUR-MC v1.3）**」聲明，並依 **Steward 裁決第 2026-002 號（AL-2026-006）登錄為 Layer 7**，且明載「本檔自稱『最高承載文件』之範圍限於 augur **領域架構**，位階受 AUGUR-MC v1.3 約束（牴觸部分無效，§0.6(a) lex superior）」。**本條「grep AUGUR-MC 零命中」之審計時證據已不成立**——現行 `origin/main` 之 `git grep -l 'AUGUR-MC'` 命中 **8** 檔。
+> **⚠️ 惟本條尚未全部解消**：`README.md:24` 仍以「**憲法**」逕稱大憲章，撞名之表層用語未除。**故維持 MAJOR、不予結案**；終局結案屬 Steward `§8.2` 事項。
+
+
 
 * **憲章條款**：§0.5（Layer 對照表：每份規格恰屬一層、先登錄方生效力）、§0.6 Lex superior、§8.3
 * **位置**：docs/系統架構大憲章_v1.45.0.md L3（「性質」段）；README.md L24；HANDOFF.md §4.7
@@ -350,13 +382,13 @@
 
 **補正方向**：將 ON DELETE CASCADE 改為 ON DELETE RESTRICT（或移除 FK 級聯），刪除語意改為 status 標記（quarantined/retracted）；檢索隔離改用標記：chunk 加 invalidated BOOLEAN（或沿用 work.review_flag 於檢索 SQL JOIN 過濾——retrieval.py 已有 CLEAN 准入述詞可掛），使污染內容留存但機制性不可檢索；誤配更正落 attribution_correction 事件表（work_id、舊繫結、新裁定、evidence、actor）；若堅持物理刪（儲存/授權考量），刪前落 tombstone 帳（work_id/chunk 數/內容 hash/deleted_at/reason）。與 knowledge_source_review_log 既有範式對齊即可，工程量低。
 
-### AUD-21【MINOR｜⬆️ 驗證後升級：MAJOR，見第七節】philosophy 假說與方向欄位 in-place UPDATE：修訂無 supersede 歷史，何時改、從什麼改來、憑什麼改均不可考
+### AUD-21【MAJOR｜⬆️ 門檢升級 minor→MAJOR，經解釋裁決 2026-001 維持 MAJOR，見 7.5 節】philosophy 假說與方向欄位 in-place UPDATE：修訂無 supersede 歷史，何時改、從什麼改來、憑什麼改均不可考
 
 * **憲章條款**：P4.E3、P4.E4
 * **位置**：src/augur/philosophy/framework.py:291,302
 * **發現視角**：P4 Evidence Before Conclusion
 
-**描述**：framework.py seed 對齊路徑對既有列執行 UPDATE philosophy_principle SET hypothesis=%s WHERE principle_id=%s 與 UPDATE principle_factor_map SET direction=%s WHERE map_id=%s（整併官親查兩條裸 UPDATE 屬實）——投資哲學假說文字與文獻預期方向（皆為 Knowledge 級斷言）被原地覆寫，前值不留痕。P4.E4 要求 Knowledge 可被推翻，此處確實可改（符合可謬性），但 P4.E3 要求推翻是「需要 Evidence 之知識行為、全歷史保留」。此為 seed 對齊路徑、頻率低、且大師假說本體另有文獻 source 錨定，故列 minor。
+**描述**：framework.py seed 對齊路徑對既有列執行 UPDATE philosophy_principle SET hypothesis=%s WHERE principle_id=%s 與 UPDATE principle_factor_map SET direction=%s WHERE map_id=%s（整併官親查兩條裸 UPDATE 屬實）——投資哲學假說文字與文獻預期方向（皆為 Knowledge 級斷言）被原地覆寫，前值不留痕。P4.E4 要求 Knowledge 可被推翻，此處確實可改（符合可謬性），但 P4.E3 要求推翻是「需要 Evidence 之知識行為、全歷史保留」。此為 seed 對齊路徑、頻率低、且大師假說本體另有文獻 source 錨定，**原列 minor**；**惟門檢認定該等緩解（seed 低頻、文獻錨定）屬影響面因素而非判準構成要件——P4.E3 supersede 義務三要件（superseded 標記／歷史保留／失效 Evidence）為零履行，非「部分符合」，與 AUD-09 同類應同級，故升 major；經解釋裁決第 2026-001 號維持 MAJOR**（見 7.2／7.5 節）。
 
 **證據**：framework.py:291 與 :302 之裸 UPDATE 親查屬實，無伴隨歷史表寫入或 note 欄記錄前值；對照 knowledge/curation.py 同類狀態轉移均 append review_log，證明 repo 內已有正確模式可套用。
 
@@ -410,7 +442,11 @@
 
 **補正方向**：(1) 於 MC 治理附則（或 augur 合規聲明）具名登錄 hugo 為 Steward 或其授權代理，既有「決策層人拍板」機制原樣承接 §8.1 職能；(2) 升版規則補「patch」級：純文字微修至少升 patch 版號；(3) 修訂流程加一步「MC 牴觸檢查」（CLAUDE.md #19 跨檔一致性檢查已存在，擴一項對 Layer 0 即可）；(4) 治權判準變更之計畫書補「原則失效 Evidence」段以對齊 §8.5(a)。
 
-### AUD-26【MINOR】「PostgreSQL＝唯一真相來源」措辭將 Representation 稱為真相，牴觸 P2.E4 用語紀律；全體系「真相/事實」指涉三處不一
+### AUD-26【MINOR｜✅ 已補正 2026-07-17：大憲章 v1.46.0 措辭正名為「唯一系統記錄」＋WM.9 權威三分釐清（RULING-2026-002 主文五）】「PostgreSQL＝唯一真相來源」措辭將 Representation 稱為真相，牴觸 P2.E4 用語紀律；全體系「真相/事實」指涉三處不一
+
+> **補正現況（2026-07-17 後補；本註為狀態同步，非新結案認定）**：`docs/系統架構大憲章_v1.46.0.md` 之標題與內文已將「唯一真相來源(SSOT)」正名為「**唯一系統記錄(system of record)**」（措辭 patch，依 **RULING-2026-002 主文五**），並於其下增列「釐清（AUD-26 補正；`AUGUR-WM v1.0 §WM.9` 權威三分）」一段，明確區分 **Reality 之權威＝API 觀測** vs **系統內權威 Representation＝PG**。**審計時所指之該處措辭已不存在。** 下游 docstring 之 SSOT 引用隨各檔補正時漸改（patch 級），屬既有補正軌道。
+
+
 
 * **憲章條款**：P2.E4（禁止 Representation 被視為 Reality 本身）、§2.1、§5 角色一
 * **位置**：docs/系統架構大憲章_v1.45.0.md L26-28（第一部「資料本質」條，v1.26.0）
@@ -440,20 +476,20 @@
 | 項目 | 理由 | 工程量 |
 |---|---|---|
 | AUD-02 | P4.E5 為 MUST NOT，依 §8.4 無時限豁免可言 — 建 raw_supersede_log 帳表（heal 覆寫前快照舊列），upsert 主路徑不動 | 小 |
-| AUD-12 | 治權撞名是所有後續合規工作的法源前提 | 極小（文件）|
+| AUD-12 | 治權撞名是所有後續合規工作的法源前提 | 極小（文件）｜🔧 **部分補正 2026-07-17**：憲章從屬聲明＋Layer 7 登錄已加（RULING-2026-002／AL-2026-006）；**殘餘：README L24「憲法」用語** |
 | AUD-13 | 無合規聲明依條文「規格不生效力」，僅賴過渡規則推定有效 — 請 Steward 發布暫行模板 | 小（文件）|
 | AUD-10/11 | 行動留痕表加 actor_identity/authorization_ref 欄；watchdog 判態改讀 attestation_result 表 | 小 |
-| AUD-26 | SSOT 措辭修正 — 順手夾帶 | 極小 |
+| AUD-26 | SSOT 措辭修正 — 順手夾帶 | 極小 ｜✅ **已補正 2026-07-17**（大憲章 v1.46.0 正名「唯一系統記錄」＋WM.9 權威三分釐清） |
 
 **critical 但屬結構工程者（AUD-01/03）**：第一波先做補償控制 —— 於合規聲明揭露緊張關係＋暫行保守規則（無 Confidence＝不得升高信任，依 §8.3 保守解釋），結構性補正排入第二波。
 
 ### 第二波（一個版本週期內 — 結構層建設）
 
-AUD-01（世界概念 registry → SQL 直綁消除 → 唯一權威表徵，配合 Layer 1 規格）、AUD-03（Layer 4 Confidence 統一語義＋既有狀態官方映射表）、AUD-04/05（entity registry ＋ identity lifecycle 事件表）、AUD-06（跨來源 identity claim）、AUD-07（名冊屬性 as-of 化）、AUD-08（prediction_values 改 append-only）、AUD-09（快照版本化）、AUD-17（confirmed trigger 化）、AUD-20（CASCADE → RESTRICT ＋隔離標記）、AUD-23（行動風險分級表）、AUD-25（治權程序接軌）。
+AUD-01（世界概念 registry → SQL 直綁消除 → 唯一權威表徵，配合 Layer 1 規格）、AUD-03（Layer 4 Confidence 統一語義＋既有狀態官方映射表）、AUD-04/05（entity registry ＋ identity lifecycle 事件表）、AUD-06（跨來源 identity claim）、AUD-07（名冊屬性 as-of 化）、AUD-08（prediction_values 改 append-only）、AUD-09（快照版本化）、**AUD-21（假說變更留痕；2026-07-17 自第三波移入 —— 終局級別為 major，與同族之 AUD-08／09 同波）**、AUD-17（confirmed trigger 化）、AUD-20（CASCADE → RESTRICT ＋隔離標記）、AUD-23（行動風險分級表）、AUD-25（治權程序接軌）。
 
 ### 第三波（長期 — 品質完善）
 
-AUD-14（除權息世界事件表徵）、AUD-15（catalog 世界概念欄）、AUD-16（claim 結構化指涉）、AUD-18（per-pick 解釋面）、AUD-19（通識標頭機械前置）、AUD-21（假說變更留痕）、AUD-22（chat 刪除 tombstone）、AUD-24（env 後門歸責標記）。
+AUD-14（除權息世界事件表徵）、AUD-15（catalog 世界概念欄）、AUD-16（claim 結構化指涉）、AUD-18（per-pick 解釋面）、AUD-19（通識標頭機械前置）、AUD-22（chat 刪除 tombstone）、AUD-24（env 後門歸責標記）。（**AUD-21 已移至第二波** —— 其終局級別 major，前版與純 minor 項並列係未同步之殘留。）
 
 ---
 

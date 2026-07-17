@@ -14,7 +14,9 @@
 
 **0.3 與 REMEDIATION-ROADMAP 之關係。** `audits/REMEDIATION-ROADMAP.md` 是程式碼違憲審計（26 發現、critical 3／major 11／minor 12）的**補正支線 roadmap**；本總綱為**上位**框架，補正 roadmap 收攏於本總綱「軌道 B（既有系統遷移）」之下。兩者的對應見附錄 A。凡二者排序衝突，以本總綱之依賴骨架為準；凡二者對個別 AUD 項之技術內容，以補正 roadmap 為準。個別 §8.2 違憲認定與補正到期日仍屬 Steward 個案裁定權限。
 
-**0.4 三份權威來源。** 本總綱不虛構任何現況；一切事實錨定於：(a) `constitution/`（憲章、治理附則、Amendment Log、兩份裁決）；(b) `specs/`（AUGUR-WM v1.0 生效，ONT/ID/KS v0.1-draft）；(c) `audits/`（審計報告、補正 roadmap、驗證紀錄）＋ Layer 7 硬體盤點快照 [I]。
+**0.4 三份權威來源。** 本總綱不虛構任何現況；一切事實錨定於：(a) `constitution/`（憲章、治理附則、Amendment Log、**裁決八份**：`INTERPRETATION-RULING-2026-001`、`RULING-2026-002`…`-007`、`RULING-2026-009`；另 `constitution/adoption-drafts/` 有 **L7 充任裁決草案一份**（`RULING-2026-008-L7-ADOPTION-DRAFT.md`），**不生效力**）；(b) `specs/`（**AUGUR-WM／ONT／ID／KS／L5／L6 均為 v1.0 生效**，其中 L5 為 provisional〔`§8.2` 延後〕；**AUGUR-L7 為 v0.1-draft、未生效**）；(c) `audits/`（審計報告、補正 roadmap、驗證紀錄）＋ Layer 7 硬體盤點快照 [I]。
+
+> **本節之更正記錄（2026-07-17）**：前版載「兩份裁決」及「ONT/ID/KS v0.1-draft」，二者於本節自我聲明「不虛構任何現況」之標準下**均已不實** —— 裁決實為八份（`ls constitution/*RULING*.md | wc -l` → 8），且 ONT／ID／KS 已於 2026-07-17 分別依裁決 2026-003／004／005 充任生效。**一份自稱不虛構現況之條款，其兩個錨點全錯**；據前版援引者將對 ONT／ID／KS 之 [N] 條款現行效力得出完全相反之結論。**數字均以指令導出，勿手數。**
 
 ---
 
@@ -43,18 +45,22 @@
 
 ## 二、現況基線
 
-**2.1 Layer 0–7 狀態表（2026-07-16 快照）**
+**2.1 Layer 0–7 狀態表（2026-07-17 快照｜基線重切）**
+
+> **本表已於 2026-07-17 重切基線。** 前版為 2026-07-16 快照，其**六列規格狀態全部過時**（L2/L3/L4 記「草案未生效」、L5/L6 記「尚未撰寫／不存在」、L7 記「尚未撰寫」）。因本表為本總綱九階段排程與三里程碑（§4 里程碑節）所依之**現況基線**，前版形同以「落後五層之基線」推導排程 —— 依前版排程者將重複已完成之工作。**依快照體例，此處重新戳記日期，不默默改寫。**
 
 | Layer | 規格檔 | 規格狀態 | 實作狀態 | 關鍵缺口／待辦 |
 |---|---|---|---|---|
-| L0 治權 | META-CONSTITUTION v1.3、GOVERNANCE-ANNEX v1.0 | **已生效**（AL 六筆齊備） | 治權運作中 | Steward 繼任人未預先指定；審議體未成立；無豁免登錄 |
-| L1 World Model | specs/WORLD-MODEL-SPECIFICATION.md（AUGUR-WM v1.0） | **已生效**（RULING-2026-002／AL-2026-005 充任） | D0–D28 DEFER 掛鉤生效；Annex F Registry 首批附卷 | 引 MC v1.2；因 v1.2→v1.3 為 minor（§8.6，僅 §0.5 對照表增列、無原則級變更），此為**編輯性對齊**（patch 級 re-cite，非重新認證），聲明續效 |
-| L2 Ontology | AUGUR-ONT v0.1-draft | 草案未生效 | — | 充任認定未作成；Annex TR 標 [I]，須確認生效要件性（詳 P-3 兩收斂路徑） |
-| L3 Identity | AUGUR-ID v0.1-draft | 草案未生效（**明文雙重阻卻**） | — | 充任認定＋Annex CS §CS.4 WM.44 逐條矩陣未枚舉（須認定前補足） |
-| L4 Knowledge | AUGUR-KS v0.1-draft | 草案未生效 | — | 充任認定未作成；§0.1 樣板矛盾（稱矩陣「尚待補足」，與 TR/CS.4「已成就」互斥）待 patch |
-| L5 Cognitive Kernel | 尚未撰寫 | 不存在 | — | 承接 KDO.1、WM D12/D14/D25、resolution、reasoning |
-| L6 Agent Runtime／Governance | 尚未撰寫 | 不存在 | — | 承接 WM D16/D17/D24/D28、KDO.2 風險分級/banding/RBAC |
-| L7 Infra／Deployment | 尚未撰寫 | 硬體到位、基建幾乎全缺 | GB10 aarch64 就緒；無任何 RDBMS | 承接 WM D18/D23/D25、KDO.7；§5 資料角色無實體 |
+| L0 治權 | META-CONSTITUTION v1.3、GOVERNANCE-ANNEX v1.0 | **已生效** | 治權運作中 | Steward 繼任人未預先指定；審議體未成立；無豁免登錄。**單一自然人 Steward 使「雙人類獨立核准」物理上不可能**（見 HANDOFF） |
+| L1 World Model | specs/WORLD-MODEL-SPECIFICATION.md（AUGUR-WM v1.0） | **已生效**（RULING-2026-002／AL-2026-005） | D0–D28 DEFER 掛鉤生效；Annex F Registry 首批附卷 | 引 MC v1.2；v1.2→v1.3 為 minor（§8.6），屬**編輯性對齊**（patch 級 re-cite，非重新認證），聲明續效 |
+| L2 Ontology | specs/ONTOLOGY-SPECIFICATION.md（AUGUR-ONT v1.0） | ✅ **v1.0 生效**（2026-07-17；RULING-2026-003／AL-2026-007） | — | ⚠️ **其 linter PASS 為偽陰性**：Annex TR 標題為 h1，56 列矩陣從未受檢（見 HANDOFF §2b、待裁 #22）；Annex TR 標 [I] 而 ID／KS 標 [N] |
+| L3 Identity | specs/IDENTITY-SPECIFICATION.md（AUGUR-ID v1.0） | ✅ **v1.0 生效**（2026-07-17；RULING-2026-004／AL-2026-008） | — | WM.44 逐條矩陣**已枚舉、缺 0 條**（阻卻已解）；尚有未結之 WM.44-LABEL 誤標（待裁 #22） |
+| L4 Knowledge | specs/KNOWLEDGE-SYSTEM-SPECIFICATION.md（AUGUR-KS v1.0） | ✅ **v1.0 生效**（2026-07-17；RULING-2026-005／AL-2026-009） | — | 同上；矩陣已枚舉、缺 0 條 |
+| L5 Cognitive Kernel | specs/COGNITIVE-KERNEL-SPECIFICATION.md（AUGUR-L5 v1.0） | ⚠️ **v1.0 生效（provisional）** — 形式關卡充任、**§8.2 實質審查延後**（RULING-2026-006／AL-2026-010） | ❌ 引擎未建 | **§8.2 實質人類審查尚未作成**；CS.2 六項緊張關係待審 |
+| L6 Agent Runtime／Governance | specs/AGENT-RUNTIME-SPECIFICATION.md（AUGUR-L6 v1.0） | ✅ **v1.0 生效** — **含 §8.2 實質人類審查**（RULING-2026-007／AL-2026-011） | ❌ 引擎未建 | **八層中唯一通過 §8.2 者**；L6.11 RT-2/RT-3 序異常待 §8.1 裁決（待裁 #23） |
+| L7 Infra／Deployment | specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md（AUGUR-L7 v0.1-draft） | 🔴 **草擬完成、未生效**（充任受阻） | 硬體到位、基建幾乎全缺 | **待 §8.2 實質審查**（L7 規格自訂 L7.90(d) 六項必審，明定「本層之充任不得僅以形式關卡為據」）；裁決草案已備於 `constitution/adoption-drafts/`。GB10 aarch64 就緒；無任何 RDBMS |
+
+**里程碑現況（對照 §4）**：**M1（概念層 L1–L4 全數生效）已達成** —— ONT `15d61b6`（11:43）、ID＋KS `3b50197`（11:49），二者均為 HEAD 之祖先。**M2（全棧貫通）未宣告** —— 阻於：(i) 四份生效規格之憲章誤標待 Steward 裁決「先更正、或先核發 §8.4 期限豁免」（**具體筆數見 HANDOFF 待裁 #22；該數繫於 gate 版本，此處不轉抄**）；(ii) L2 之 56 列 Annex TR 矩陣從未受檢；(iii) L7 之 §8.2 前置未成就。**M2 若照原計畫宣告，將係為門面背書。**
 
 **2.2 既有系統定位。** `tsaitsangchi/augur` 是活躍台股預測系統（相對強弱／三個敵人世界觀、日為最小單位、系統建議人決策）。靈魂邊界「不下單、不動錢」經全庫 grep 查證屬實（無券商/下單 API、因果迴路在 Action 端天然斷開）。審計總結：**精神高度合憲、結構顯著缺層**（World Model／Identity／Confidence 三結構層缺位＝F1 Data First 教科書式命中），另有 54 項合憲亮點（verify_claim 單一 confirmed 寫點、FRED ALFRED 雙時間 vintage、release_lag PIT、raw byte-level attestation、TTY 人拍板閘）。
 
