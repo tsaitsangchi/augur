@@ -125,7 +125,7 @@ def _fold_xy(conn, panels, feats, h, cal, lookup):
     return np.vstack(Xs), np.concatenate(ys)
 
 
-def run_pit_economic(conn, pds, h, feats, lookup, *, top_frac=0.1, cost=COST):
+def run_pit_economic(conn, pds, h, feats, lookup, *, top_frac=0.1, cost=COST, exit_frac=None):
     """PIT 宇宙 + 清算 label 之 long-only 經濟回測(同 portfolio.run_backtest 結構、換宇宙/報酬)。
     cost 參數化(default=COST;供成本敏感度帶掃描,#29b 不寫死);回 gross/turn 序列供 cost 解析套用。"""
     from sklearn.linear_model import Ridge
@@ -153,7 +153,8 @@ def run_pit_economic(conn, pds, h, feats, lookup, *, top_frac=0.1, cost=COST):
         sc = StandardScaler().fit(Xtr)
         pred = Ridge(alpha=1.0).fit(sc.transform(Xtr), ytr).predict(sc.transform(Xc))
         simple = {s: float(np.expm1(ret[s])) for s in common}
-        port = portfolio.build_long_portfolio(common, pred, top_frac=top_frac)
+        port = portfolio.build_long_portfolio(common, pred, top_frac=top_frac,
+                                              prev_ids=prev_top, exit_frac=exit_frac)   # P1 buffer 透傳(1-3;None=原行為)
         top_ids = [sid for sid, _, _ in port]
         long_ret = float(sum(w * simple[sid] for sid, w, _ in port))
         turn = portfolio._turnover(top_ids, prev_top)

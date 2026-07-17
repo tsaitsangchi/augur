@@ -56,8 +56,16 @@ def _turnover(cur_w, prev_w, prev_ret=None):
     """換手率=半和口徑 0.5·Σ|Δw|(P2 量尺校準,alpha 計畫 1-2/hugo 開工 2026-07-17;
     取代交集法——交集法只看成分不看權重,pred 加權下系統性低估)。
     cur_w/prev_w={sid: weight}(和為 1);prev None→1.0(初次建倉)。
+    **向後相容(2026-07-17 破窗修)**:傳 ids 序列(list/tuple/set)→自動轉等權 dict——五個既有呼叫點
+    (predict_asof/risk_control/direction_econ/survivorship×2)零改動、語意=等權半和(等檔數時≡交集法)。
     prev_ret={sid: 持有窗簡單報酬}給了→前期權重先按報酬**漂移**再比(0.5·Σ|w_cur−w_prev_drifted|;
     P0 §1a 實證含漂移口徑);缺股報酬視 0(保守)。等權配方下與交集法幾乎重合(P0:+2.8% 相對)。"""
+    def _as_w(x):
+        if x is None or isinstance(x, dict):
+            return x
+        xs = [str(s) for s in x]
+        return {s: 1.0 / len(xs) for s in xs} if xs else {}
+    cur_w, prev_w = _as_w(cur_w), _as_w(prev_w)
     if prev_w is None or not cur_w:
         return 1.0
     if prev_ret is not None:
@@ -68,12 +76,17 @@ def _turnover(cur_w, prev_w, prev_ret=None):
     return 0.5 * sum(abs(cur_w.get(s, 0.0) - prev_w.get(s, 0.0)) for s in union)
 
 
-def build_long_portfolio(sids, preds, top_frac=0.2, weight="equal"):
+def build_long_portfolio(sids, preds, top_frac=0.2, weight="equal", prev_ids=None, exit_frac=None):
     """預測 → top-frac long 選取 + 權重(#12 命門:backtest 與 live 唯一選股邏輯住所)。
 
     sids/preds 同序、任意尺度(只看序位)。回 [(stock_id, weight, rank), ...] 依預測降序、
     weight 和為 1。weight='equal'(等權 1/N)或 'pred'(rank 加權:第 1 名權重最大、線性遞減)。
     nt=max(1, int(N*top_frac))。**run_backtest 與 predict_asof 皆呼叫此支**,選股位元一致零漂移。
+
+    **buffer-zone 遲滯(P1,alpha 計畫 1-3;預設關=行為零漂移)**:prev_ids+exit_frac 給了→
+    已持有股 rank 仍在前 exit_frac 內則**保留**(遲滯帶抑制 rank 噪音換手),空位由未持有之
+    最強新股補至 nt;進場帶=top_frac、出場帶=exit_frac(exit>entry,如 0.1/0.2 預註冊單點)。
+    保留股權重序位=其當期 rank(誠實:非凍結舊權重)。
     """
     import numpy as _np
     preds = _np.asarray(preds, dtype=float)
@@ -82,6 +95,19 @@ def build_long_portfolio(sids, preds, top_frac=0.2, weight="equal"):
         return []
     order = _np.argsort(preds)[::-1]                     # 分數降序=相對強
     nt = max(1, int(n * top_frac))
+    if prev_ids and exit_frac:
+        rank_of = {str(sids[k]): i for i, k in enumerate(order)}      # 0-based 當期序位
+        nx = max(nt, int(n * exit_frac))
+        keep = [s for s in prev_ids if rank_of.get(str(s), n) < nx]   # 未跌出出場帶之舊股
+        kept = set(keep)
+        fill = [str(sids[k]) for k in order if str(sids[k]) not in kept][:max(0, nt - len(keep))]
+        chosen = sorted(set(keep) | set(fill), key=lambda s: rank_of[s])[:max(nt, len(keep))]
+        m = len(chosen)
+        if weight == "pred":
+            w = _np.arange(m, 0, -1, dtype=float); w /= w.sum()
+        else:
+            w = _np.full(m, 1.0 / m)
+        return [(s, float(w[j]), rank_of[s] + 1) for j, s in enumerate(chosen)]
     top_idx = order[:nt]
     if weight == "pred":                                 # 預測 rank 加權(正權重、和為 1、第一名最大)
         w = _np.arange(nt, 0, -1, dtype=float); w /= w.sum()
@@ -92,7 +118,7 @@ def build_long_portfolio(sids, preds, top_frac=0.2, weight="equal"):
 
 def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
                  long_short=False, weight="equal", seed=42, asof=True, cost=0.0, interactions=None,
-                 short_borrow=0.0):
+                 short_borrow=0.0, exit_frac=None):
     """模型預測 → 投組 → 經濟指標(gross/net)+ 等權基準。
 
     weight：'equal'（等權 top）或 'pred'（預測值 rank 加權，正權重）。cost：來回成本（如 0.00585）套於換手。
@@ -142,7 +168,8 @@ def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
                                  random_state=seed, verbose=-1).fit(Xtr, ytr).predict(Xc)
         simple = np.array([float(np.expm1(fwd[s])) for s in common])
         ret_by_id = {common[k]: simple[k] for k in range(len(common))}
-        port = build_long_portfolio(common, pred, top_frac=top_frac, weight=weight)  # #12 共用選股(backtest≡live)
+        port = build_long_portfolio(common, pred, top_frac=top_frac, weight=weight,   # #12 共用選股(backtest≡live)
+                                    prev_ids=(list(prev_top) if prev_top else None), exit_frac=exit_frac)
         top_ids = [sid for sid, _, _ in port]
         long_ret = float(sum(w * ret_by_id[sid] for sid, w, _ in port))
         order = np.argsort(pred)[::-1]
@@ -195,6 +222,9 @@ def _selftest():
     chk("_turnover 漂移:a 翻倍後權重漂移被計入",
         abs(_turnover(eq, eq, {"a": 1.0, "b": 0.0}) - abs(0.5 - 2.0 / 3.0)) < 1e-12)
     chk("_turnover 漂移:零報酬=無漂移(同無 prev_ret)", _turnover(eq, eq, {"a": 0.0, "b": 0.0}) == 0.0)
+    chk("_turnover ids 相容:list 呼法=等權半和(破窗修 2026-07-17;等檔數≡交集法)",
+        _turnover(["a", "b"], ["a", "c"]) == 0.5 and _turnover(["a", "b"], ["a", "b"]) == 0.0
+        and _turnover(["a", "b"], None) == 1.0)
 
     # _metrics:全正報酬 hit_rate=1、len<2→{}
     m = _metrics([0.1, 0.1, 0.1], 1.0)
@@ -209,6 +239,18 @@ def _selftest():
     chk("build_long_portfolio pred 加權第一名最大·和=1",
         pw[0][1] > pw[-1][1] and abs(sum(w for _, w, _ in pw) - 1.0) < 1e-9)
     chk("build_long_portfolio 空輸入→[]", build_long_portfolio([], []) == [])
+    # P1 buffer-zone(1-3)紅綠:遲滯保留/跌出即換/無 prev=原行為
+    sids5 = ["a", "b", "c", "d", "e"]
+    p5 = [5.0, 4.0, 3.0, 2.0, 1.0]                      # a 最強…e 最弱
+    base = build_long_portfolio(sids5, p5, top_frac=0.4)                       # top2=a,b
+    buf_same = build_long_portfolio(sids5, p5, top_frac=0.4, prev_ids=None, exit_frac=0.8)
+    chk("buffer:無 prev=原行為零漂移", [s for s, _, _ in base] == [s for s, _, _ in buf_same] == ["a", "b"])
+    held = build_long_portfolio(sids5, p5, top_frac=0.4, prev_ids=["c"], exit_frac=0.8)
+    chk("buffer:持有 c(rank3<出場帶4)保留+補最強 a", set(s for s, _, _ in held) == {"a", "c"})
+    drop = build_long_portfolio(sids5, p5, top_frac=0.4, prev_ids=["e"], exit_frac=0.6)
+    chk("buffer:持有 e(rank5>出場帶3)跌出→換回 top2", set(s for s, _, _ in drop) == {"a", "b"})
+    wsum = sum(w for _, w, _ in held)
+    chk("buffer:權重和=1", abs(wsum - 1.0) < 1e-12)
 
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
