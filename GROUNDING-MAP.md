@@ -1,6 +1,6 @@
 # 元憲章落地地圖（GROUNDING-MAP）[I]
 
-- **快照日**：2026-07-17（生產庫資料至 2026-07-16）
+- **快照日**：2026-07-17（生產庫資料至 2026-07-16——此值未附產生指令＝**未驗**，僅與審查現實錨定相符；本審禁連 DB 無法補跑）
 - **性質**：資訊性 [I]。本文件不創設任何義務，權威悉依各 [N] 條款原文（AUGUR-MC v1.3、AUGUR-WM v1.0、AUGUR-ID v1.0、AUGUR-KS v1.0）。本文件不宣稱任何充任或生效；一切 apply／生效認定屬 Constitution Steward（MC §8.1）。
 - **產生方法**：三路獨立盤點（義務官：憲章條文逐條抽出 44 項物理義務＋3 項程序性歸併；現實官：生產 schema 唯讀抽出物逐表比對；載具官：已寫成但未 apply 之 migration／程式盤點）之統整。衝突以現實官之 schema 行號證據為準。
 - **證據紀律**：凡數字必附產生指令；凡「已存在」必附 schema 行證據；凡「不存在」必附 grep 零命中證明；不確定者明標「不確定」。**未採信任何文件自陳**（本專案已五度實證文件自陳不可信，含 ENVIRONMENT-SPEC 整份描述另一台機器、HANDOFF 鐵證數字全錯——凡引 HANDOFF/審計處均另附獨立實跑證據或明標未驗）。
@@ -20,7 +20,7 @@
 | CPU | 12 核 | `nproc` → 12 |
 | RAM | 15 GB | `free -g` → total 15 |
 | GPU | **無** | `command -v nvidia-smi` → not found；`ls /dev/nvidia*` → 無 |
-| 生產 DB | PG 17.9 於 127.0.0.1:5432，庫 augur ≈55GB、**253 表** | rowcounts 253 行（`wc -l`）；pg_stat 抽出 |
+| 生產 DB | PG 17.9 於 127.0.0.1:5432，庫 augur ≈55GB、**253 表** | 253 表：rowcounts 253 行（`wc -l`）；≈55GB **未附產生指令＝未驗**（scratchpad 無 size 類抽出物；與審查現實錨定相符；補驗指令＝`SELECT pg_size_pretty(pg_database_size('augur'))`，需 DB 權限，本審禁連） |
 | pgvector | 0.8.4 | `$SP/augur-extensions.txt` |
 | 不可回改 trigger | 12 條（**實質護欄 10 條**，2 條僅 ttai touch updated_at——現實官逐一讀函式體認定） | `grep -c 'CREATE TRIGGER' $S` → 12；函式體 `sed -n '94,390p' $S` |
 | 沙盒 | augur_sandbox 建置中＝**落地驗證閘**。staging `/home/giga/db_stage_sandbox/augur_pgdump_20260718_Fd` 已見 253 個分片（`ls \| wc -l` → 253，目錄 mtime 2026-07-17 13:20） | `ls /home/giga/db_stage_sandbox/augur_pgdump_20260718_Fd \| wc -l` |
@@ -50,7 +50,7 @@
 | 條款 | 原文名 | 物理要求 | 現況 | 證據或指令 |
 |---|---|---|---|---|
 | MC §P2.E1 | 禁 AI 直接從 raw 建永久 Knowledge | 衍生層與 raw 分表 | ✅ | 衍生特徵/預測 29 表（`$SP/cat_deriv.txt`，wc -l → 29）；feature_values 純衍生 schema（$S L8712）；daily_direction_feature_values\|19,281,992 |
-| MC §P2（表徵載具） | 向量僅為表徵載具 | pgvector 本地落地 | ✅ | vector 0.8.4（extensions.txt）；vector(384) 恰 3 表：$S L9647、L9773、L10448（`grep -n 'vector(' $S`） |
+| MC §P2（表徵載具） | 向量僅為表徵載具 | pgvector 本地落地 | ✅ | vector 0.8.4（extensions.txt）；vector(384) 恰 3 表：CREATE TABLE 行 $S L9647/L9773/L10448；vector 欄行 L9649/L9775/L10450（`grep -n 'vector(' $S` → 9649、9775、10450） |
 | MC §P2.E3 / WM.33 / KS.21 | 十類永久標記表達力；self-reported | 十標記欄位＋隨轉引存續 | 🔨 | 實跑：`grep -ciE 'self_reported\|synthetic' $S` → **0**；supersede/retracted/invalidated/tombstone 家族 → **22** 命中（部分載具已備跡象，覆蓋面不確定） |
 | WM.18 | 候選斷言狀態閉集 candidate→established→… | 狀態 CHECK 閉集＋Evidence/Confidence 槽 | 🔨 | 判定式：`grep -icE "'candidate'\|'established'" "$S"`；條文 WM:204-208 |
 | MC §P2.E5 / WM.29 | Fail-safe 三狀態容納 | 污染標記、暫停狀態、降級旗標 | 🔨 | 判定式：`grep -icE 'quarantine\|suspended\|degraded\|reassess' "$S"`；條文 MC:219、WM:270-272 |
@@ -78,7 +78,7 @@
 
 | 條款 | 原文名 | 物理要求 | 現況 | 證據或指令 |
 |---|---|---|---|---|
-| MC §P4（對帳留痕） | DB↔API 對帳結果落表 | attestation_result | ✅（覆蓋率誠實有限） | $S L7420-7435（15 欄）；rowcounts：attestation_result\|**3**（表在、僅 3 列） |
+| MC §P4（對帳留痕） | DB↔API 對帳結果落表 | attestation_result | ✅（覆蓋率誠實有限） | $S L7421-7434（14 欄；L7420 為 CREATE TABLE、L7435 為右括號；`sed -n '7421,7434p' $S \| wc -l` → 14）；rowcounts：attestation_result\|**3**（表在、僅 3 列） |
 | MC §P4.E1/E6（留痕面） | 寫入/對帳逐筆留痕 | data_audit_log | ✅ | $S L7726-7734；rowcounts：data_audit_log\|**259,975**（實際在用） |
 | MC §P4.E1 / KS.20-24、KS.26 | Knowledge 五元組（不可豁免核心） | 五槽俱在可機器解析 | 🔨 | 現實官精確陳述為準：public schema（236 表）**零** confidence 欄；僅 ttai_import 遺留二欄（$S L11850/L12014）＋一 view（L12149）：`grep -ci confidence $S` → 5，逐行檢視全在 ttai_import（義務官 `grep -cE '^\s+confidence'` → 2 為欄位計數，不衝突） |
 | MC §P4.E2 / WM.30 / KS.22、KS.40 | 雙時間性 | valid time＋transaction time 二獨立槽 | 🔨（部分✅＋部分🚚） | ✅僅 fred_series vintage（$S L8831-8836，realtime_start NOT NULL 入 PK；rowcounts 344,063）；**84 張 FinMind 鏡像皆無 tx-time**；欄名模式全庫 0：`grep -cE '^\s+(valid_time\|valid_from\|valid_to\|transaction_time\|tx_time)\s' $S` → 0；🚚 entity_attribute_version（身份屬性面） |
@@ -109,7 +109,7 @@
 |---|---|---|---|---|
 | MC §P5.E1 / WM.27 / §F6 / §P5.W1 | Action 六元組；禁無法歸責之 Action | authorization_grant＋automation_action_log 六元組留痕 | 🚚（表＋helper）＋🔨（接線 Phase 5） | `grep -c 'authorization_grant\|automation_action_log' $S` → **0**；載具 migrate_automation_action_ddl.py:37,49＋action_log.py:1-30（缺 actor_identity 即 ValueError），`--selftest` 本機實跑綠；現行 watchdog/selfheal 仍寫家目錄純文字 log（audit_selfheal.sh:9 → $HOME/audit_retry.log） |
 | MC §P5.E2 | 風險分級 DEFER：分級表生效前一律最高風險、人類事前逐案核准 | human_approval 留痕＋暫行分級欄 | 🔨（部分✅候選） | 通用 human_approval 表零跡象（判定式 `grep -icE 'human_approval\|pre_approval' "$S"`）；既有候選＝direction_gate 簽核閘（僅覆蓋 gate 流程） |
-| MC §P5.W2 | 授權鏈根節點必須是人類權威 | fail-closed 產物閘＋人簽 | ✅ | direction_product_gate_guard fn（$S L248-262）：gate 非 evaluated_pass 即 RAISE，掛 direction_probability＋daily_direction_probability（L15608、L15622）；staging_source_gate（L15573）；knowledge_source_review_log 11 動作 actor NOT NULL（L9886-9899，rowcounts\|81） |
+| MC §P5.W2 | 授權鏈根節點必須是人類權威 | fail-closed 產物閘＋人簽 | ✅ | direction_product_gate_guard fn（$S L248-262）：gate 非 evaluated_pass 即 RAISE，掛 daily_direction_probability＋direction_probability（L15608、L15622）；staging_source_gate（L15573）；knowledge_source_review_log 11 動作 actor NOT NULL（L9886-9899，rowcounts\|81） |
 | MC §P5.W2（item 層缺口） | knowledge_item 層來源門 | trg_item_source_gate 掛表執法 | 🔨 | **函式在庫未掛表**：fn $S L288-312 存在，`grep -c 'EXECUTE FUNCTION public.trg_item_source_gate' $S` → **0**（現實官發現；僅 staging 層有執法） |
 | MC §P5.W4 | 最小權限 | prediction_serving_log＋predict 角色隔離 | 🚚 | `grep -c 'prediction_serving_log' $S` → 0；載具 migrate_prediction_serving_ddl.py:37＋setup_predict_role.py＋test_predict_role_isolation.py |
 | MC §P5（執行留痕） | 管線執行留痕 | pipeline_execution_log | ✅結構＋🔨接線 | $S L10701-10710 表在；rowcounts：pipeline_execution_log\|**0**——表在但零列，執法未接線 |
@@ -130,7 +130,7 @@
 
 每項附 schema 行號或可重跑指令：
 
-1. **attestation_result**（P4 對帳留痕）：$S L7420-7435，15 欄全列；僅 3 列（rowcounts）——覆蓋率誠實有限。
+1. **attestation_result**（P4 對帳留痕）：14 欄全列（$S L7421-7434）；僅 3 列（rowcounts）——覆蓋率誠實有限。
 2. **data_audit_log**（P4.E1/E6）：$S L7726-7734；**259,975 列**實際在用。
 3. **審議可判定性 CHECK 群**（§8.3）：claim anchor 非空、verifier 七值閉集、status 五值閉集（$S L7921-7938）；**verdict 非 undecidable 必附 evidence 直接由 DB 執法**（L8356-8366）；「證據不足」為合法一級狀態（undecidable ∈ 值域，L8365，P4.E5）。
 4. **direction_gate 預註冊賭注**（P4）：criteria+criteria_sha+git_sha NOT NULL、status DEFAULT 'preregistered'、狀態機閉集、approved 強制簽核（$S L8515-8534）；21 列。
@@ -174,10 +174,11 @@
 | 項 | 憲章關聯 | 不可落地原因（實測） | 最小解法 |
 |---|---|---|---|
 | 本機 LLM 推論（L5 類義務之算力前提） | ⛔ | 無 GPU：`command -v nvidia-smi` → not found；`ls /dev/nvidia*` → 無；12 核/15GB（`nproc`、`free -g`）不足以本地推論實用規模模型 | 外部 API 推論＋一切 AI 產出依 KS.74 永久攜 synthetic 標記、受信任天花板；或待可達之 GPU 硬體到位後遷移（注意：ENVIRONMENT-SPEC 所述 GB10 不可達，不得作為規劃依據） |
-| kill-switch 實體獨立 | ⛔ | 單機：DB、應用、審計載體同在一台 WSL2（本圖 §一全部實測同機產生）——不存在可獨立斷電/斷網之第二實體 | 程序級替代：獨立 OS 帳號持有之 revoke 腳本＋DB 角色權限收斂＋異地備份；並依 §8.4 登錄為豁免（附到期日與補正計畫），不得宣稱等效實體獨立 |
+| kill-switch 實體獨立 | ⛔ | 單機：DB、應用、審計載體同在一台 WSL2（本圖 §一全部實測同機產生）——不存在可獨立斷電/斷網之第二實體 | 程序級替代：獨立 OS 帳號持有之 revoke 腳本＋DB 角色權限收斂＋異地備份；並依 §8.4 登錄為豁免（附到期日與補正計畫）；建議 Steward 裁定：豁免登錄不宜宣稱等效實體獨立（裁量屬 §8.1） |
 | 雙人核准（two-person rule） | ⛔ | 單一自然人：Steward 與操作者為同一人（治理文件在卷；人數屬物理事實非文件自陳） | 時間延遲核准（cooling-off 期）＋不可回改留痕（append-only 表）替代第二人在場；依 §8.4 明記豁免與 Evidence 缺口標記 |
 | PR #2「PG 16.14 全綠」之獨立重驗 | ⛔（現況） | 宣稱所依之 userspace PG 本機查無：`find /home/giga -maxdepth 6 -name micromamba -o -name pg_ctl -o -name initdb` → 零命中；系統 python3 無 pytest/psycopg2 | 以 augur_sandbox（生產同版 PG 17.9）重跑 15 測試取代該宣稱（§四落地序步 3） |
 | 55GB 級沙盒之常駐並存 | ⛔（邊際） | 磁碟/記憶體邊際：15GB RAM、生產庫 55GB——沙盒與生產同機並存屬緊平衡（沙盒還原中，實際佔用未量測＝**不確定**） | 沙盒驗證完成即釋放；或僅還原驗證所需子集 |
+| **生效規格文本自身之標記可信度** | ⛔（引用前提受損） | 本圖以「權威悉依各 [N] 條款原文」為據並引用規格條文行號（WM:283-290、KS:336-348 等），惟同 repo HANDOFF.md:11/57/64/161 錨定：4 份生效規格（L3-L6）**151 個誤標**（MC 側 109／上層側 42）＋ **L2 真值未知**（其 56 列 Annex TR 矩陣從未受檢、卻曾以 ✅ PASS 發布並支撐 RULING-2026-003）。此二數屬文件錨定值，依鐵律**本圖未獨立重驗＝未驗** | 本圖所引條文以規格檔案原文為準，其 **[N]/[I] 標記不得逕信**；Steward 裁決 #22 前應令 gate 重跑出證（見 §六-3） |
 
 ---
 
@@ -187,9 +188,9 @@
 
 1. **PR #2 apply**（raw_supersede_log）：前置＝§四落地序步 1-3（沙盒 15 測試全綠為硬閘，取代不可重驗之 PG 16.14 宣稱）。附帶裁決：attestation_run_id nullable（決策 B）維持與否。
 2. **步 11 九表沙盒實測後 apply**：六 identity 表＋二行動表＋一 serving 表；本機四支 `--selftest` 已綠，沙盒 `--check` 與行為測試為硬閘。附帶裁決：authorization_ref 是否 NOT NULL（升裁決項 C）；apply ≠ 落實——ID.11/P5.E1 之 runtime 接線（Phase 1/2/4/5）各為獨立後續案。
-3. **#22 audit_lint 與 CI 接線**：現為 120 行檔案掃描骨架（零 DB）。決策：是否授權新增 `--db` 模式（驗收判準＝能對 augur_sandbox 重現 12 條 gate trigger 在位檢查）＋DB 面 legacy 豁免清單之建立。
+3. **#22 audit_lint 與 CI 接線**：現為 120 行檔案掃描骨架（零 DB）。**#22 之由來即 4 份生效規格 151 個誤標＋L2 真值未知**（HANDOFF.md:161 錨定，依鐵律本圖未重驗；見 §五末列）——裁決前應令 gate 重跑出證、確認數值已收斂。決策：是否授權新增 `--db` 模式（驗收判準＝能對 augur_sandbox 重現 12 條 gate trigger 在位檢查）＋DB 面 legacy 豁免清單之建立。
 4. **L7 六阻斷**：本三路盤點未涵蓋其細節（**不確定**——僅列為既有議程項）；建議 Steward 以與本圖同等之證據紀律（每數字附指令）要求其盤點後再議。
-5. **ENVIRONMENT-SPEC.md 重寫**：現版整份描述另一台不可達之 GB10——主動誤導。決策：作廢並以本圖 §一實測基線（含產生指令）重寫；重寫前該文件不得被任何規格或程式引用。
+5. **ENVIRONMENT-SPEC.md 重寫**：現版整份描述另一台不可達之 GB10——主動誤導。決策：作廢並以本圖 §一實測基線（含產生指令）重寫；建議裁定：重寫前凍結該文件之引用（是否凍結屬 §8.1 裁量）。
 6. **既有缺口之快速接線裁決**（低成本高收益，均有 schema 證據）：(a) trg_item_source_gate 函式在庫未掛表（$S L288-312、CREATE TRIGGER 零命中）；(b) pipeline_execution_log 表在零列（rowcounts\|0）；(c) model_registry 無 immutability trigger；(d) 84 張 FinMind 鏡像無 transaction-time（補正方向與 as-of tier 宣告 KS.42 一併議）。
 
 ---
