@@ -21,7 +21,7 @@
 | 步 | 事項 | 解消 | 產出位置 | 狀態 |
 |---|---|---|---|---|
 | 6 | **本補正行程**（排程與追蹤） | — | augur-constitution | 🔄 進行中 |
-| 7 | **AUD-02 補正**：raw_supersede_log 帳表＋heal 覆寫前快照舊列（同交易），upsert 主路徑不動 | **AUD-02 critical**（P4.E5 MUST NOT，§8.4 不可豁免） | augur-code 分支 | ✅ 程式實作完成、統一於 [PR #2](https://github.com/tsaitsangchi/augur/pull/2)（分支 `remediation/aud-02-consolidated`）＝ `impl-2026-07-17` 實作 ＋ 補可執行 DB 行為回歸測試；另一 session 之獨立實作（PR #1）交叉驗證同樣三發現後關閉、統一取代。待人類 #7 實測＋P5 apply |
+| 7 | **AUD-02 補正**：raw_supersede_log 帳表＋heal 覆寫前快照舊列（同交易），upsert 主路徑不動 | **AUD-02 critical**（P4.E5 MUST NOT，§8.4 不可豁免） | augur-code 分支 | ✅ 程式實作完成、統一於 [PR #2](https://github.com/tsaitsangchi/augur/pull/2)（分支 `remediation/aud-02-consolidated`）＝ `impl-2026-07-17` 實作 ＋ 補可執行 DB 行為回歸測試；另一 session 之獨立實作（PR #1）交叉驗證同樣三發現後關閉、統一取代。**✅ 真 PG 16.14 實測全綠**（userspace micromamba/conda-forge；15 tests：8 純函式/gate＋7 DB 六不變式；migration 冪等＋VERIFY；51 回歸）——六不變式門檻已達；待人類 #19 檢視＋P5 拍板後 apply 生產 DB、併 main |
 | 8 | **Layer 2 Ontology 規格**：台股世界類型體系、同一性判準框架 | AUD-04 類型面、承接 AUGUR-WM D2/D3 掛鉤 | augur-constitution | ✅ 定稿（v0.1-draft，commit fe45620；待 Steward 充任認定）|
 | 9 | **Layer 3 Identity 規格**：entity registry、identifier 鑄造、lifecycle（merge/split/retire）、identity claim、跨來源解析 | **AUD-04/05/06 三項 major**、AUD-07、AUGUR-WM D1/D3/D4/D5/D6/D17 | augur-constitution | ✅ 定稿（v0.1-draft，commit 2a38255；待充任認定）|
 | 10 | **Layer 4 Knowledge System 規格**：Confidence 單一形式化語義、五元組欄位、雙時間 as-of、supersede/tombstone、信任分級 | **AUD-03 critical**、AUD-08/16、形式化 AUD-02、AUGUR-WM D7–D11 | augur-constitution | ✅ 定稿（v0.1-draft，commit 49a6add；WM.44 矩陣完整、形式充分性成就；待充任認定）|
