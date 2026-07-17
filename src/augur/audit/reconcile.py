@@ -235,7 +235,11 @@ def heal_by_date(conn, table, dataset=None, *, since=None, until=None, progress=
     before = reconcile_by_date(conn, table, dataset, since=since, until=until, progress=progress)
     fixable, flagged = fixable_dates(before), flagged_dates(before)
     for d in fixable:
-        sync.sync_by_date(conn, dataset or table, start=d, end=d, progress=progress)
+        # AUD-02：heal 覆寫前快照被取代原值（P4.E5 矛盾保存，非 last-write-wins）。attestation_run_id 依決策 B
+        # 恆 None（heal 直呼 sync、本無對帳 run 可帶——結構上不可回填、非暫時待回填）；P4.E6 溯源三問由每列自身
+        # 承載:actor(斷言主體)＋reason(產生活動)＋pk/valid_time(活動輸入)＋old_row→new_row(上游依賴)。
+        sync.sync_by_date(conn, dataset or table, start=d, end=d, progress=progress,
+                          snapshot_reason="heal_by_date")
     after = reconcile_by_date(conn, table, dataset, since=since, until=until, progress=progress) if fixable else before
     keys = ("value_mismatch", "missing_in_db", "extra_in_db")
     return {"table": table, "fixed": fixable, "flagged": flagged,

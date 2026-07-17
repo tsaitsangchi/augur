@@ -67,6 +67,27 @@ INFRA_DDL = {
             audit_since    VARCHAR(16),
             note           TEXT
         )""",
+    # AUD-02 補正:heal 覆寫前「被取代原值」快照帳本(P4.E5 矛盾保存、MUST NOT last-write-wins)。
+    # store() 於 heal 路徑依賴其存在故納 INFRA_DDL(bootstrap 建表本體;append-only/truncate trigger + tombstone
+    # 受控函式 + REVOKE 由 scripts/migrate_raw_supersede_ddl.py 硬化——bootstrap 只需表在、INSERT 不受 trigger
+    # 擋;未硬化前 _snapshot_superseded fail-loud 拒絕落地，見 generic_schema._assert_append_only)。
+    # **本 DDL 為表本體單一權威(issue 10)**:migrate 腳本引用本常數、不另手維 CREATE TABLE。
+    # FK→attestation_result 故須排在其後(dict 序=建表序)。attestation_run_id 決策 B nullable(heal 直呼 sync
+    # 無對帳 run 時結構上恆 None、非待回填);actor=P4.E6 斷言主體(產生此覆寫斷言之 agent/code 身分),reason=產生活動。
+    "raw_supersede_log": """
+        CREATE TABLE IF NOT EXISTS raw_supersede_log (
+            id                 BIGSERIAL   PRIMARY KEY,
+            "table"            TEXT        NOT NULL,
+            pk                 JSONB       NOT NULL,
+            old_row            JSONB       NOT NULL,
+            new_row            JSONB       NOT NULL,
+            superseded_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+            valid_time         DATE,
+            reason             TEXT        NOT NULL,
+            attestation_run_id BIGINT      REFERENCES attestation_result(id),
+            actor              TEXT,
+            note               TEXT
+        )""",
 }
 
 
@@ -122,9 +143,12 @@ def _selftest():
     chk("_pg_type TIMESTAMP 去時區", _pg_type("timestamp without time zone", None, None, None) == "TIMESTAMP")
     chk("_pg_type 其餘型別大寫直通", _pg_type("date", None, None, None) == "DATE"
         and _pg_type("bigint", None, None, None) == "BIGINT")
-    # INFRA_DDL：三張運維表、皆冪等 CREATE、皆帶 PK（explicit DDL 結構鎖）
-    chk("INFRA_DDL 含 pipeline_execution_log + data_audit_log + attestation_result",
-        set(INFRA_DDL) == {"pipeline_execution_log", "data_audit_log", "attestation_result"})
+    # INFRA_DDL：四張運維表、皆冪等 CREATE、皆帶 PK（explicit DDL 結構鎖；AUD-02 補入 raw_supersede_log）
+    chk("INFRA_DDL 含 pipeline_execution_log + data_audit_log + attestation_result + raw_supersede_log",
+        set(INFRA_DDL) == {"pipeline_execution_log", "data_audit_log", "attestation_result", "raw_supersede_log"})
+    # raw_supersede_log 之 FK 標的須先建 → dict 序中 attestation_result 早於 raw_supersede_log
+    chk("raw_supersede_log 排在 attestation_result 之後（FK 建表序）",
+        list(INFRA_DDL).index("attestation_result") < list(INFRA_DDL).index("raw_supersede_log"))
     chk("INFRA_DDL 皆 CREATE IF NOT EXISTS（冪等）",
         all("CREATE TABLE IF NOT EXISTS" in ddl for ddl in INFRA_DDL.values()))
     chk("INFRA_DDL 皆含 PRIMARY KEY", all("PRIMARY KEY" in ddl for ddl in INFRA_DDL.values()))
