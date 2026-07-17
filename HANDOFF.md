@@ -15,8 +15,8 @@
 | 檔 | 是什麼 |
 |---|---|
 | `docs/系統核心思想_v1.8.0.md` | **靈魂**：預測**相對強弱**＋預言機軸(絕對方向機率,唯過 direction_gate;v1.6.0;v1.8.0 三度堅持刪「不是預測絕對漲跌幅」句,E[r] 升格幅度級得逐股(GATE/econ 同源/揭露硬綁不動))（非絕對漲跌機率）、成功=經濟價值非 IC、系統建議人決策、禁 AI 占卜大師 |
-| `docs/原則精華_v1.9.0.md` | **20 條不可違反法律** + 資料完整性判準（**FREEZE 已解凍→live 增量維運** v1.9.0/2026-07-12） |
-| `docs/系統架構大憲章_v1.45.0.md` | **憲法**：三敵×管線、12-PHASE、升版規則、**第六部計畫先行/計畫完整性 v1.39.0**、修訂歷程 |
+| `docs/原則精華_v1.9.1.md` | **20 條不可違反法律** + 資料完整性判準（**FREEZE 已解凍→live 增量維運**;live 准入=arena 前置 G1-G5 機制 v1.9.1/2026-07-16） |
+| `docs/系統架構大憲章_v1.46.0.md` | **憲法**：三敵×管線、12-PHASE、升版規則、**第六部計畫先行/計畫完整性 v1.39.0**、修訂歷程 |
 | `CLAUDE.md`（版本見檔頭） | AI 協作工具規則（Read-before-Edit、clean-room #16、plan-first #20、一支一支檢視 #19、常駐服務改碼須重啟實測 #7、最小 usage #28、DB 備份慣例 #30） |
 | `reports/augur_construction_understanding_20260710.md` | **⭐建構作法完整理解 v3（code-verified 16 子系統、supersede 20260709 版）**：兩半系統框架、逐層 how-built、跨系統 meta-pattern、治權→code 接線——**接手必讀「這專案怎麼建的」** |
 | `reports/augur_omniscient_advisor_plan_20260709.md` | **活躍計畫①**：全能全知顧問端到端（know-how→DB→逐字理解→Qdrant→qwen→web UI）——**未執行、待拍板** |
@@ -117,7 +117,7 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 4. **件 A 三通道公民化 DDL apply + 源活化**（code 已完成、非阻塞開賽）：`python scripts/migrate_local_admission_ddl.py --apply` ＋ `python scripts/migrate_sftp_sync_ddl.py --apply`（**須 audit 綠 + harvest 靜止後**，#30 dump 期禁 DDL）→ 再由 hugo **TTY 逐源 approve/activate**（AI 不自活化源、憲章 v1.41.0）→ `systemctl --user restart augur-admin`（載入 P-web 新碼）→ `bash install_services.sh --with-refresh`（開 know-how 週更 timer，R-A-R3）。SFTP/apk 另需 §3 人工前置（`augur-sftp.json`+私鑰 / jadx+JRE）。
 5. **R-H 修憲（OCR/ASR 轉錄≠AI + 本機/SFTP 明文豁免）**：v3 提案＝`reports/augur_rh_amendment_transcription_exemption_v3_20260714.md`；T2 CLAUDE #29b 條文（Fable 5 檔位、治權檔）待 hugo 確認後才動筆改治權檔。
 6. **arena 開賽 cron 掛載時點**（雙閘已開、機械前置全綠;掛載＝開賽＝hugo 決策）。
-7. **G1-G5 治權修訂批次**（`reports/arena_g1g5_admission_gate_plan_20260716.md` §8：原則精華 L77「live 准入依 unfreeze gate 紀律」→G1-G5 機制(v1.9.1)、憲章 L130/L131④ 精確化(v1.46.0)、檔名級聯 README/HANDOFF/CLAUDE——**機制已落地(§8.4 排序紀律滿足)、只剩文字升版待拍**）。
+7. ~~G1-G5 治權修訂批次~~ **已完成（2026-07-17 hugo「全批照案」）**：原則精華 v1.9.1／憲章 v1.46.0／CLAUDE v1.29／README／HANDOFF 全鏈級聯（判準值零變動、僅機制指向;詳憲章修訂歷程 v1.46.0）。
 
 > 解析器計畫 T0 已拍(2026-07-12):D1 核准全計畫、D2 另立 PDF 計畫、D3 IA 200/批——**T1-T3 當日執行完畢**(FRASER textUrl 實證/三策略落 DB/IA 13 批掃蕩 491 抓、熔斷零觸發)。
 
@@ -149,7 +149,7 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 | 要什麼 | 去哪 |
 |---|---|
 | 規則/工具紀律 | `CLAUDE.md`（版本見檔頭；#31＝接續慣例） |
-| 判準/憲法 | `docs/系統架構大憲章_v1.45.0.md`＋`docs/原則精華_v1.9.0.md`＋`docs/系統核心思想_v1.8.0.md` |
+| 判準/憲法 | `docs/系統架構大憲章_v1.46.0.md`＋`docs/原則精華_v1.9.1.md`＋`docs/系統核心思想_v1.8.0.md` |
 | 這專案怎麼建的 | `reports/augur_construction_understanding_20260710.md`（v3 code-verified） |
 | 擂台規格 | `reports/augur_direction_live_arena_plan_20260711.md` |
 | arena 前置 G1-G5 gate（現行開賽機制+Phase 0 決策紀錄） | `reports/arena_g1g5_admission_gate_plan_20260716.md` |
