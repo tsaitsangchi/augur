@@ -234,56 +234,56 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | MC 條款 | L5 落點 | 模式 |
 |---|---|---|
 | §P4.D（Evidence 可追溯） | L5.2 | 承接 |
-| §P4.W1（無 Evidence 之斷言拒斥；hardcoded 值禁止） | L5.5（`§A.48` hardcoded＝無 Evidence 斷言） | 承接 |
-| §P4.E1（五元組最低不變式） | L5.1（推理產物確立為五元組 Knowledge）、L5.6（解釋五問） | 承接 |
-| §P4.E2（雙時間、as-of 重建） | L5.2（as-of 推理消費）；查詢引擎操作化 DEFER（LDO.5） | 承接＋DEFER |
-| §P4.E3（只失效不刪除、tombstone） | 不觸及＋理由：supersede／tombstone 語義屬 L4（`AUGUR-KS v1.0` §6）；本層 L5.5(c) 承接 GATE 二次證偽之 supersede 特例（演算面） | 承接（演算面）＋不觸及（語義） |
-| §P4.E4（可謬性、禁隱含 1.0） | L5.4（Hypothesis 可謬、禁隱含 1.0、禁不可修正） | 承接 |
-| §P4.E5（矛盾保存、禁 LWW） | 不觸及＋理由：矛盾保存語義屬 L4（`AUGUR-KS v1.0` §7）；本層產生之衝突結論以候選斷言入 L4 Conflict Set，不重定義保存語義 | 不觸及＋理由 |
-| §P4.E6（遞迴溯源、禁循環） | L5.2（雙合法終點、DAG、禁循環） | 承接（核心） |
-| §P4.E7（NoLaundering、獨立性、synthetic、高風險證據） | L5.3（meet 上限）、L5.5（升級守上限）、L5.7（synthetic／TR-C／高風險） | 承接 |
-| §P4.E8（Confidence 單一形式化、可比較、傳播、消費） | L5.3（傳播聚合實作，承接 KDO.1）；序與語義消費自 L4 | 細化（傳播面）＋承接 |
+| §P4.W1（Augur 不接受：無 Source 之 Knowledge、不可重現之結果、無 Evidence 之推論） | L5.5（`§A.48` hardcoded＝無 Evidence 斷言） | 承接 |
+| §P4.E1（Knowledge 五元組） | L5.1（推理產物確立為五元組 Knowledge）、L5.6（解釋五問） | 承接 |
+| §P4.E2（Time（雙時間性）） | L5.2（as-of 推理消費）；查詢引擎操作化 DEFER（LDO.5） | 承接＋DEFER |
+| §P4.E3（Supersede（只失效不刪除）） | 不觸及＋理由：supersede／tombstone 語義屬 L4（`AUGUR-KS v1.0` §6）；本層 L5.5(c) 承接 GATE 二次證偽之 supersede 特例（演算面） | 承接（演算面）＋不觸及（語義） |
+| §P4.E4（Defeasible（可謬性）） | L5.4（Hypothesis 可謬、禁隱含 1.0、禁不可修正） | 承接 |
+| §P4.E5（Conflict（矛盾保存）） | 不觸及＋理由：矛盾保存語義屬 L4（`AUGUR-KS v1.0` §7）；本層產生之衝突結論以候選斷言入 L4 Conflict Set，不重定義保存語義 | 不觸及＋理由 |
+| §P4.E6（Provenance（遞迴溯源）） | L5.2（雙合法終點、DAG、禁循環） | 承接（核心） |
+| §P4.E7（NoLaundering（信任不可洗白）） | L5.3（meet 上限）、L5.5（升級守上限）、L5.7（synthetic／TR-C／高風險） | 承接 |
+| §P4.E8（Confidence（語義與消費）） | L5.3（傳播聚合實作，承接 KDO.1）；序與語義消費自 L4 | 細化（傳播面）＋承接 |
 
 ### TR.B — `AUGUR-MC v1.3` 非 P4 家族（逐條）[N]
 
 | MC 條款 | L5 落點／處置 | 模式 |
 |---|---|---|
 | PA（Prime Axiom）＋§1.1 釐清句 | L5.1、L5.2、L5.6、CS.1-PA（可追溯 Evidence／不確定性可追溯／錯誤可修正） | 承接 |
-| §0（總則章） | §0（本規格文件約定，效力依 L5.92 承載） | 承接 |
-| §0.1（名稱、層級、版本自我登錄慣例） | §0.1 | 承接 |
-| §0.2（規範用語 MUST／MUST NOT／SHOULD／MAY） | §0.2 | 承接 |
-| §0.3（條款編號系統） | §0.3 | 承接 |
+| §0（Document Status & Conventions（文件地位與約定）） | §0（本規格文件約定，效力依 L5.92 承載） | 承接 |
+| §0.1（名稱、層級與版本） | §0.1 | 承接 |
+| §0.2（規範用語約定） | §0.2 | 承接 |
+| §0.3（條文效力標注） | §0.3 | 承接 |
 | §0.4（權威語言） | §0.4 | 承接 |
-| §0.5（引用格式、Layer 對照表） | §0.5、§0.1 | 承接 |
-| §0.6（lex superior／概念層獨立性） | §0.5、L5.7、L5.8、Annex LDO | 承接 |
-| §1（公理金字塔章） | §1（Layer 定位） | 承接 |
-| §1.1（PA 釐清句：可追溯 Evidence／不確定性可追溯／錯誤可修正） | L5.2、L5.3、L5.4、CS.1-PA | 承接 |
+| §0.5（適用範圍：Layer 對照表） | §0.5、§0.1 | 承接 |
+| §0.6（Hierarchy Rule（層級規則）） | §0.5、L5.7、L5.8、Annex LDO | 承接 |
+| §1（Supreme Purpose — Prime Axiom（最高使命）） | §1（Layer 定位） | 承接 |
+| §1.1（Prime Axiom（PA）—— 永恆條款（Eternity Clause）） | L5.2、L5.3、L5.4、CS.1-PA | 承接 |
 | §1.2（標準鏈引用；Intelligence 於 EV.7–EV.8 落點） | L5.1（Reasoning 為 Intelligence 子集、經通道）、CS.1-EV-chain | 承接 |
-| §1.3（五對稱禁令；模態內容 referent 釐清） | L5.4（Hypothesis referent 為可能狀態、須顯式標記）；型別歸 L2 不重定義 | 承接 |
+| §1.3（五條對稱禁令） | L5.4（Hypothesis referent 為可能狀態、須顯式標記）；型別歸 L2 不重定義 | 承接 |
 | §2（Definitions 章） | §0.5 不重定義元規則 | 承接 |
 | §2.5（Evidence 定義） | L5.2（引用 Evidence，不重定義） | 承接 |
 | §2.6（Knowledge 定義） | L5.1（確立為 Knowledge，不重定義） | 承接 |
 | §2.7（Intelligence 定義） | L5.1（Reasoning／Inference 為 Intelligence 子集） | 承接（核心） |
 | §2.10（Confidence 定義） | L5.3（傳播；序與語義消費自 L4，不重定義） | 承接 |
 | §2.11（Evidence 通道） | L5.1、L5.2（候選斷言經通道確立） | 承接（核心） |
-| §3（公理金字塔／演化鏈總述） | L5.1、CS.1-EV-chain | 承接 |
-| §4（canonical chain EV.1–EV.12） | 見 EV.* 逐列；本層止於 Reasoning（EV.7） | 承接＋DEFER |
+| §3（Five Immutable Principles（五大不可違反原則）） | L5.1、CS.1-EV-chain | 承接 |
+| §4（World Evolution Model（世界演化模型）） | 見 EV.* 逐列；本層止於 Reasoning（EV.7） | 承接＋DEFER |
 | §5 角色一/二（system of record／表徵） | 不觸及＋理由：屬 L4 Knowledge 側（`AUGUR-KS v1.0`），本層消費不重定義 | 不觸及＋理由 |
 | §5 角色四（World Understanding Engine：Reasoning／Inference／Hypothesis／Explanation） | §3–§8（L5.1–L5.9），本規格核心職掌 | 細化（核心） |
 | §5 角色三/五/六（Intelligence 泛稱／介面／執法點） | 不觸及＋理由：介面與執法點屬 L6/L7；本層限 Reasoning | 不觸及＋理由 |
 | §6 F1（Data First Architecture） | 不觸及＋理由：資料表先於世界模型屬 L1/L4 建置紀律；本層不涉 | 不觸及＋理由 |
 | §6 F2（Model First Architecture） | L5.7（禁先選 AI model 再設計系統，核心防線） | 承接（核心） |
 | §6 F3（Agent First Architecture） | 不觸及＋理由：Agent 建置順序屬 L6 Agent Runtime | 不觸及＋理由 |
-| §6 F4（禁止型態泛則） | L5.1、L5.4（未標記假說／逕寫權威層為禁止型態） | 承接 |
+| §6 F4（Knowledge Without Identity） | L5.1、L5.4（未標記假說／逕寫權威層為禁止型態） | 承接 |
 | §6 F5（Intelligence Without Evidence） | L5.6（per-結論可解釋，核心落實） | 承接（核心） |
 | §6 F6（Unaccountable Action） | 不觸及＋理由：Action 問責六元組與執行屬 L6（LDO.6） | 不觸及＋理由 |
-| §7（十年演化／技術中立／不依賴特定 AI model） | L5.7、L5.8、§0.5（刪名測試、技術中立，核心防線） | 承接（核心） |
-| §8.1（Amendment Log／編號穩定） | L5.91、§0.3；充任認定屬 Steward，本層不登錄 | 承接 |
-| §8.2（違憲審查） | L5.90、L5.92（較嚴格解讀）；裁決屬 Steward | 承接 |
-| §8.3（過渡規則、可判定性元規則） | L5.4（保守推定 INSUF）、Annex EO（謂詞判準） | 承接 |
+| §7（Long-Term Stability Rule（十年以上演化原則）） | L5.7、L5.8、§0.5（刪名測試、技術中立，核心防線） | 承接（核心） |
+| §8.1（Constitution Steward（憲章權威）） | L5.91、§0.3；充任認定屬 Steward，本層不登錄 | 承接 |
+| §8.2（違憲後果、審查程序與衝突優先序） | L5.90、L5.92（較嚴格解讀）；裁決屬 Steward | 承接 |
+| §8.3（合規聲明義務與可判定性元規則） | L5.4（保守推定 INSUF）、Annex EO（謂詞判準） | 承接 |
 | §8.4（不可豁免核心） | L5.91（MUST NOT 不豁免） | 承接 |
-| §8.5（修訂程序／Eternity Clause） | 不觸及＋理由：修憲程序屬 L0 憲章自身治理，本層僅為受規範對象（L5.90） | 不觸及＋理由 |
-| §8.6（編號穩定、major 換證） | L5.91、§0.3 | 承接 |
+| §8.5（Amendment Procedure（修訂程序）） | 不觸及＋理由：修憲程序屬 L0 憲章自身治理，本層僅為受規範對象（L5.90） | 不觸及＋理由 |
+| §8.6（版本語義、引用格式與編號穩定性） | L5.91、§0.3 | 承接 |
 | P1（Reality First 家族：P1.D／P1.E1／P1.E2／P1.E3／P1.W1） | L5.7（model output 非最高抽象／非世界權威）、L5.1（權威順序）；自然人／法規對應 DEFER L6；CS.1-P1 | 承接＋DEFER |
 | P2（Representation Before Intelligence 家族：P2.D／P2.E1／P2.E2／P2.E3／P2.E4／P2.E5／P2.W1／P2.W2） | L5.1（候選斷言經通道）、L5.5（P2.W2 確立工作流承接）、L5.7（P2.E2 model output）；self-reported 標記承 L4（`AUGUR-KS v1.0` KS.21/77）；CS.1-P2 | 承接 |
 | P3（Identity Before Knowledge 家族：P3.D／P3.E1／P3.E2／P3.E3／P3.W1／P3.W2） | L5.6（解釋繫已解析 Identity）、L5.9（resolution inference；claim 信度歸 L4）；採認機制屬 L3；CS.1-P3 | 承接 |
@@ -313,28 +313,28 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | WM.4（概念層獨立性＋刪名測試） | §0.5、L5.7、L5.8—承接 |
 | WM.5（任務） | §1—承接 |
 | WM.6–WM.11（領域 Profile／最高抽象／結構獨立性／形式權威範圍等存在層本體） | 不觸及＋理由：屬存在層本體，本層消費不重定義；WM.7（最高抽象）於 L5.7（model 非世界權威）呼應 |
-| WM.12（不確定性之結構位置／Confidence 槽位） | L5.3、L5.4（Confidence 沿鏈傳播、Hypothesis 保守 INSUF）—承接 |
-| WM.13（世界量／維度白名單存在層面向） | 不觸及＋理由：白名單完整性紀律屬 L4（`AUGUR-KS v1.0` KS.78）；本層 L5.5 引 `§A.48` hardcoded 禁止 |
+| WM.12（近似性與來源保留） | L5.3、L5.4（Confidence 沿鏈傳播、Hypothesis 保守 INSUF）—承接 |
+| WM.13（三性質可判定判準+演化四不變式） | 不觸及＋理由：白名單完整性紀律屬 L4（`AUGUR-KS v1.0` KS.78）；本層 L5.5 引 `§A.48` hardcoded 禁止 |
 | WM.14–WM.17（唯一權威表徵／登錄結構存在層面向） | 不觸及＋理由：唯一權威表徵落點屬 L4（`AUGUR-KS v1.0` KS.25） |
-| WM.18（Knowledge 概念相容／status insufficient-evidence） | L5.1、L5.4—承接 |
-| WM.19（四層分工／Layer 定位） | §1—承接 |
+| WM.18（候選斷言之地位與狀態轉換） | L5.1、L5.4—承接 |
+| WM.19（基本單位） | §1—承接 |
 | WM.20–WM.23（存在層結構條款） | 不觸及＋理由：存在層本體，本層消費不重定義 |
 | WM.24（canonical chain 承接／節選連續性） | L5.1、CS.1-EV-chain—承接 |
-| WM.25–WM.29（表徵治理／fail-safe 存在層面向） | 不觸及＋理由：屬存在層／L4–L6 fail-safe（`AUGUR-KS v1.0` KS.102）；本層不定判定主體 |
+| WM.25–WM.29（變更二分／自反性／Action 六元組世界事件與禁止型態之無位置性／人類權威表徵位置／fail-safe 狀態容納） | 不觸及＋理由：屬存在層／L4–L6 fail-safe（`AUGUR-KS v1.0` KS.102）；本層不定判定主體 |
 | WM.30–WM.31（雙時間／as-of 存在層宣告） | L5.2（as-of 推理消費）；能力等級屬 L4、查詢實作 DEFER（LDO.5）—承接＋DEFER |
-| WM.32（Evidence 三分類存在層宣告） | 不觸及＋理由：分類法維護權屬 L4（`AUGUR-KS v1.0` KS.71）；本層消費 |
-| WM.33（標記存續：self-reported／synthetic／assumption） | L5.4（assumption 永久標記）、L5.7（synthetic 永久標記）—承接 |
-| WM.34（機器可稽核／引用鏈遍歷） | L5.1、L5.2、L5.3（可機器稽核判準）—承接 |
-| WM.35–WM.38（表徵唯一性／登錄存在層面向） | 不觸及＋理由：屬存在層／L4 落點 |
-| WM.39（合規聲明適用範圍與效力） | L5.90、Annex CS—承接 |
-| WM.40（front-matter 閉集） | Annex CS front-matter—承接 |
-| WM.41（七節論證） | CS.1—承接 |
+| WM.32（觀測定案性） | 不觸及＋理由：分類法維護權屬 L4（`AUGUR-KS v1.0` KS.71）；本層消費 |
+| WM.33（永久標記表達力） | L5.4（assumption 永久標記）、L5.7（synthetic 永久標記）—承接 |
+| WM.34（核心不變式之可機器稽核） | L5.1、L5.2、L5.3（可機器稽核判準）—承接 |
+| WM.35–WM.38（落地即整合；消費設閘不阻斷落地／World Concept Registry 與消費規則／唯一權威表徵落實義務／自然人之有界表徵） | 不觸及＋理由：屬存在層／L4 落點 |
+| WM.39（適用範圍與效力規則） | L5.90、Annex CS—承接 |
+| WM.40（機器可稽核 front-matter） | Annex CS front-matter—承接 |
+| WM.41（逐原則論證本文） | CS.1—承接 |
 | WM.42（緊張關係與豁免登記） | CS.2—承接 |
-| WM.43（DEFER 雙向承接） | CS.3、Annex LDI／LDO—承接 |
+| WM.43（雙向 DEFER 承接表） | CS.3、Annex LDI／LDO—承接 |
 | WM.44（形式充分性判準） | CS.4、Annex TR（本矩陣）—落實 |
-| WM.45（正式格式 vs 暫行模板） | L5.90、Annex CS—承接 |
+| WM.45（過渡承接） | L5.90、Annex CS—承接 |
 | WM.46–WM.47（編號穩定／升版） | L5.91、§0.3—承接 |
-| WM.48–WM.52（存在層治理雜項） | 不觸及＋理由：屬存在層治理，本層不涉 |
+| WM.48–WM.52（重新認證與書面形式／地位與衝突規則／必備五部結構／越界禁止／版本節奏隔離） | 不觸及＋理由：屬存在層治理，本層不涉 |
 | WM.53（文件約定之規範地位） | L5.92—承接 |
 
 **(2) Annex A（A.0–A.59，領域經驗前身）＋ HOOK**
@@ -372,10 +372,10 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | ONT 區塊 | L5 落點／處置 |
 |---|---|
 | ONT.1–ONT.13（型別層總則／Type 判準／schema） | 不觸及＋理由：型別層本體，本層消費 Type／schema 不重定義 |
-| ONT.20–ONT.22（Attribute schema／欄位） | 不觸及＋理由：屬性 schema 屬 L2；Confidence 不設於 L2，本層消費 L4 語義 |
+| ONT.20–ONT.22（判準宣告義務／判準效力與 Layer 3 採認之封印／外部識別碼非 identifier） | 不觸及＋理由：屬性 schema 屬 L2；Confidence 不設於 L2，本層消費 L4 語義 |
 | ONT.30–ONT.31（instance／type 標記） | L5.6（解釋繫個體，繫結 instance/type 標記，消費 L2）—承接（消費） |
 | ONT.40–ONT.41（同一性判準／維度散列） | 不觸及＋理由：採認判準屬 L2/L3；白名單屬 L4 |
-| ONT.50（型別演化） | 不觸及＋理由：型別層本體 |
+| ONT.50（規範性對映義務） | 不觸及＋理由：型別層本體 |
 | ONT.60–ONT.62（合規聲明義務／存續） | L5.90、L5.92、Annex CS—承接 |
 | Annex T（T.0–T.6／T.20–T.36／T.40–T.44／T.50–T.53／T.60–T.61／T.90–T.91，型別素材與分界） | 不觸及＋理由：型別層素材與 L2 內部分界，本層消費既定 Type 不重定義 |
 | DO.0–DO.4（ONT 下放掛鉤） | 不觸及＋理由：目標 L3–L4，已由 `AUGUR-ID v1.0`／`AUGUR-KS v1.0` 承接 |
@@ -384,16 +384,16 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 
 | ID 區塊 | L5 落點／處置 |
 |---|---|
-| ID.1–ID.5（個體層總則／從屬／不重定義） | 不觸及＋理由：個體層本體，本層消費已解析 Identity 不重定義 |
+| ID.1–ID.5（三層不僭越／下界封印／承接盤點／不擴張管轄） | 不觸及＋理由：個體層本體，本層消費已解析 Identity 不重定義 |
 | ID.10–ID.15（identifier 鑄造／永久參照） | 不觸及＋理由：identifier 機制屬 L3；本層 L5.6 消費已解析 Identity |
-| ID.20–ID.25（跨體系繫結） | 不觸及＋理由：屬 L3 |
+| ID.20–ID.25（採認行為／未採認即未解析／採認之可謬性／resolution 演算與時限指標之下放／世界關係之身份解析） | 不觸及＋理由：屬 L3 |
 | ID.30–ID.32（identity claim／唯一權威表徵結構前提） | L5.9（resolution inference 產出 claim；信度／欄位歸 L4 `AUGUR-KS v1.0` KS.90/91）—承接（推論面） |
 | ID.40–ID.45（lifecycle 事件／lineage／tombstone） | 不觸及＋理由：lifecycle 機制屬 L3；Knowledge 側欄位歸 L4 |
 | ID.50–ID.53（已解析／provisional／resolution 狀態／instance-type） | L5.6（解釋繫已解析 Identity）、L5.9（provisional 不逕升；狀態映 L_C 歸 L4 KS.92）—承接（消費） |
-| ID.60–ID.61（同一性衝突保存個體層面向） | 不觸及＋理由：衝突保存語義屬 L4（`AUGUR-KS v1.0` §7）；本層產出以候選斷言入 |
-| ID.70–ID.71（上下界封印） | L5.8（分界紀律，不上侵 L3/L4）—承接 |
+| ID.60–ID.61（身份屬性 as-of 繫結義務／繫結存在 vs 重建引擎之分界） | 不觸及＋理由：衝突保存語義屬 L4（`AUGUR-KS v1.0` §7）；本層產出以候選斷言入 |
+| ID.70–ID.71（Layer 4 專屬事項清單／分界表） | L5.8（分界紀律，不上侵 L3/L4）—承接 |
 | ID.80–ID.81（合規聲明／存續） | L5.90、L5.92、Annex CS—承接 |
-| IDO.0（下放盤點） | 不觸及＋理由：IDO 掛鉤目標 L4/L5/L7 |
+| IDO.0（承接義務） | 不觸及＋理由：IDO 掛鉤目標 L4/L5/L7 |
 | IDO.1–IDO.2（identity claim Confidence／五元組→L4） | 不觸及＋理由：目標 L4，已由 `AUGUR-KS v1.0` KS.90/91 承接；本層消費 |
 | IDO.3（lifecycle 欄位→L4/L7） | 不觸及＋理由：目標 L4/L7 |
 | IDO.4（resolution 演算實作＋未解析存量量測） | L5.9（resolution inference 歸 L5）、LDI.4／LDO.4（量測落地）—承接（核心，T-L5-6／T-KS-6） |

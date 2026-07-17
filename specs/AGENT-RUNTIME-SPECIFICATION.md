@@ -307,44 +307,44 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 | MC 條款 | L6 落點／處置 | 模式 |
 |---|---|---|
 | §P4.D（Evidence 可追溯） | L6.3、L6.22 | 承接 |
-| §P4.W1（無 Evidence 之斷言拒斥） | L6.3（Knowledge Basis 須經通道確立） | 承接 |
-| §P4.E1（五元組最低不變式） | L6.3（Knowledge Basis 引用五元組 Knowledge，消費自 L4） | 承接 |
-| §P4.E2（雙時間、as-of 重建） | L6.1（Timestamp 欄雙時間性） | 承接 |
-| §P4.E3（只失效不刪除、tombstone） | 不觸及＋理由：supersede／tombstone 語義屬 L4；本層以 Observation 回流不重定義保存語義 | 不觸及＋理由 |
-| §P4.E4（可謬性、禁隱含 1.0） | 不觸及＋理由：可謬性屬 L4/L5 Knowledge／Hypothesis 語義；本層消費 Confidence 不重定義 | 不觸及＋理由 |
-| §P4.E5（矛盾保存、禁 LWW） | L6.20（未裁決 Conflict 為熔斷觸發／完備性門檻要件）；保存語義屬 L4 | 承接（消費面）＋不觸及（語義） |
-| §P4.E6（遞迴溯源、禁循環） | L6.9（宣告受 provenance 約束）、L6.20（受影響範圍沿溯源鏈閉包） | 承接 |
-| §P4.E7（NoLaundering、獨立性、synthetic、高風險證據） | L6.3、L6.12、L6.14、L6.18（確認者資格與獨立性之落地；高風險須獨立 Data Evidence／人類確認） | 細化（核心） |
-| §P4.E8（Confidence 單一形式化、可比較、傳播、消費、Action 允許等級） | L6.3、L6.12（下游消費門檻之風險級綁定；序與語義消費自 L4） | 細化（消費面） |
+| §P4.W1（Augur 不接受：無 Source 之 Knowledge、不可重現之結果、無 Evidence 之推論） | L6.3（Knowledge Basis 須經通道確立） | 承接 |
+| §P4.E1（Knowledge 五元組） | L6.3（Knowledge Basis 引用五元組 Knowledge，消費自 L4） | 承接 |
+| §P4.E2（Time（雙時間性）） | L6.1（Timestamp 欄雙時間性） | 承接 |
+| §P4.E3（Supersede（只失效不刪除）） | 不觸及＋理由：supersede／tombstone 語義屬 L4；本層以 Observation 回流不重定義保存語義 | 不觸及＋理由 |
+| §P4.E4（Defeasible（可謬性）） | 不觸及＋理由：可謬性屬 L4/L5 Knowledge／Hypothesis 語義；本層消費 Confidence 不重定義 | 不觸及＋理由 |
+| §P4.E5（Conflict（矛盾保存）） | L6.20（未裁決 Conflict 為熔斷觸發／完備性門檻要件）；保存語義屬 L4 | 承接（消費面）＋不觸及（語義） |
+| §P4.E6（Provenance（遞迴溯源）） | L6.9（宣告受 provenance 約束）、L6.20（受影響範圍沿溯源鏈閉包） | 承接 |
+| §P4.E7（NoLaundering（信任不可洗白）） | L6.3、L6.12、L6.14、L6.18（確認者資格與獨立性之落地；高風險須獨立 Data Evidence／人類確認） | 細化（核心） |
+| §P4.E8（Confidence（語義與消費）） | L6.3、L6.12（下游消費門檻之風險級綁定；序與語義消費自 L4） | 細化（消費面） |
 
 ### TR.C — `AUGUR-MC v1.3` 非 P4/P5 家族（逐條）[N]
 
 | MC 條款 | L6 落點／處置 | 模式 |
 |---|---|---|
 | PA（Prime Axiom）＋§1.1 釐清句 | L6.1、L6.3、L6.22、CS.1-PA（可追溯 Evidence／不確定性可追溯／錯誤可修正之行動側） | 承接 |
-| §0（總則章）／§0.1–§0.6 | §0（本規格文件約定，效力依 L6.92 承載） | 承接 |
-| §0.2（規範用語 MUST／MUST NOT／SHOULD／MAY 等級） | §0.2（本規格沿用 `AUGUR-MC v1.3 §0.2` 必須／不得／應／得等級，全文一致不重定義） | 承接 |
-| §0.4（權威語言：繁中權威版本／規範術語用英文原詞） | §0.4（本規格以繁體中文為權威版本、規範術語一律用英文原詞，術語同一性） | 承接 |
+| §0（Document Status & Conventions（文件地位與約定））／§0.1–§0.6 | §0（本規格文件約定，效力依 L6.92 承載） | 承接 |
+| §0.2（規範用語約定） | §0.2（本規格沿用 `AUGUR-MC v1.3 §0.2` 必須／不得／應／得等級，全文一致不重定義） | 承接 |
+| §0.4（權威語言聲明） | §0.4（本規格以繁體中文為權威版本、規範術語一律用英文原詞，術語同一性） | 承接 |
 | §1／§1.1／§1.2／§1.3 | §1（Layer 定位）；§1.3 第五禁令（未授權行動）→ L6.5、L6.21 | 承接 |
 | §2（Definitions 章） | §0.5 不重定義元規則；§2.9 Action 定義 → L6.1、L6.21 | 承接 |
-| §3（公理金字塔／演化鏈總述） | L6.19、CS.1-EV-chain | 承接 |
-| §4（canonical chain EV.1–EV.12） | 見 EV.* 逐列；本層為 EV.8–EV.12 行動迴路落點 | 細化（核心） |
+| §3（Five Immutable Principles（五大不可違反原則）） | L6.19、CS.1-EV-chain | 承接 |
+| §4（World Evolution Model（世界演化模型）） | 見 EV.* 逐列；本層為 EV.8–EV.12 行動迴路落點 | 細化（核心） |
 | §5 角色一/二/三/四 | 不觸及＋理由：屬 L1/L4/L5（record／表徵／Intelligence 泛稱／Reasoning），本層消費不重定義 | 不觸及＋理由 |
 | §5 角色五（Agent Runtime：Planning／Execution／Feedback 受 P5 約束） | §3–§8（L6.1–L6.24），本規格核心職掌 | 細化（核心） |
 | §5 角色六（Controlled External Interface 執法點） | L6.21、L6.10（六元組完備性＋分級執法點） | 細化（核心） |
 | §6 F1（Data First Architecture） | 不觸及＋理由：資料表先於世界模型屬 L1/L4 建置紀律 | 不觸及＋理由 |
 | §6 F2（Model First Architecture） | 不觸及＋理由：先選 model 再設計系統屬 L5 防線（`AUGUR-L5 v1.0` L5.7） | 不觸及＋理由 |
 | §6 F3（Agent First Architecture） | L6.22（Accountability Before Runtime，核心防線） | 承接（核心） |
-| §6 F4（禁止型態泛則） | L6.1、L6.5、L6.17（未授權行動／降低監督為禁止型態） | 承接 |
+| §6 F4（Knowledge Without Identity） | L6.1、L6.5、L6.17（未授權行動／降低監督為禁止型態） | 承接 |
 | §6 F5（Intelligence Without Evidence） | 不觸及＋理由：per-結論可解釋屬 L5（`AUGUR-L5 v1.0` L5.6）；本層要求 Knowledge Basis 經通道（L6.3） | 承接（行動側）＋不觸及 |
 | §6 F6（Unaccountable Action） | L6.1、L6.21（六元組完備性阻卻，核心執法） | 承接（核心） |
-| §7（技術中立／不依賴特定構件） | L6.23、§0.5（刪名測試、物理下放 L7） | 承接（核心） |
-| §8.1（Amendment Log／解釋權） | L6.17、L6.18（Steward 書面裁決推翻推定）；充任認定屬 Steward | 承接 |
-| §8.2（違憲審查） | L6.90、L6.92（較嚴格解讀）；實質審查屬 Steward | 承接 |
-| §8.3（過渡規則、可判定性元規則、保守預設） | L6.9、L6.10、L6.17、L6.24、Annex EO | 承接（核心） |
+| §7（Long-Term Stability Rule（十年以上演化原則）） | L6.23、§0.5（刪名測試、物理下放 L7） | 承接（核心） |
+| §8.1（Constitution Steward（憲章權威）） | L6.17、L6.18（Steward 書面裁決推翻推定）；充任認定屬 Steward | 承接 |
+| §8.2（違憲後果、審查程序與衝突優先序） | L6.90、L6.92（較嚴格解讀）；實質審查屬 Steward | 承接 |
+| §8.3（合規聲明義務與可判定性元規則） | L6.9、L6.10、L6.17、L6.24、Annex EO | 承接（核心） |
 | §8.4（不可豁免核心） | L6.5、L6.8、L6.17、L6.91（P5.W2／P5.W5 不豁免） | 承接（核心） |
-| §8.5（修訂程序／Eternity Clause） | 不觸及＋理由：修憲程序屬 L0 憲章自身治理，本層為受規範對象（L6.90） | 不觸及＋理由 |
-| §8.6（編號穩定、major 換證） | L6.91、§0.3 | 承接 |
+| §8.5（Amendment Procedure（修訂程序）） | 不觸及＋理由：修憲程序屬 L0 憲章自身治理，本層為受規範對象（L6.90） | 不觸及＋理由 |
+| §8.6（版本語義、引用格式與編號穩定性） | L6.91、§0.3 | 承接 |
 | P1（Reality First 家族：P1.D／P1.E1／P1.E2／P1.E3／P1.W1） | L6.9（I 軸涉自然人 P1.E3 敏感 Identity）；Reality 本體屬 L0/L1，本層消費；CS.1-P1 | 承接＋不觸及 |
 | P2（Representation Before Intelligence 家族：P2.D／P2.E1／P2.E2／P2.E3／P2.E4／P2.E5／P2.W1／P2.W2） | L6.4、L6.19（P2.E3 影響須以 Observation 回流、不直寫）、L6.20（P2.E5 Fail-safe）；CS.1-P2 | 承接（核心） |
 | P3（Identity Before Knowledge 家族：P3.D／P3.E1／P3.E2／P3.E3／P3.W1／P3.W2） | L6.2（已解析 Identity 歸責）、L6.14（獨立性以 lineage 稽核）、L6.5（人類決策者 Human）；CS.1-P3 | 承接 |
@@ -366,16 +366,16 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 |---|---|
 | `AUGUR-WM v1.0` WM.1–WM.12（從屬／管轄／概念層獨立性／刪名測試／不確定性結構位置） | L6.23、§0.5、L6.3—承接（刪名測試、Confidence 槽消費） |
 | `AUGUR-WM v1.0` WM.13–WM.32（存在層本體／唯一權威表徵／canonical chain／Evidence 三分類存在層宣告） | 不觸及＋理由：屬存在層本體，L6 消費不重定義；WM.24 canonical chain → L6.19 承接 |
-| `AUGUR-WM v1.0` WM.33（標記存續：self-reported／synthetic／assumption） | L6.4、L6.19（self-reported 永久標記）—承接（核心） |
-| `AUGUR-WM v1.0` WM.34（機器可稽核／引用鏈遍歷） | L6.1、L6.5、L6.16、L6.17（可機器稽核判準）—承接 |
-| `AUGUR-WM v1.0` WM.35–WM.38（表徵唯一性／登錄存在層面向） | 不觸及＋理由：屬存在層／L4 落點 |
+| `AUGUR-WM v1.0` WM.33（永久標記表達力） | L6.4、L6.19（self-reported 永久標記）—承接（核心） |
+| `AUGUR-WM v1.0` WM.34（核心不變式之可機器稽核） | L6.1、L6.5、L6.16、L6.17（可機器稽核判準）—承接 |
+| `AUGUR-WM v1.0` WM.35–WM.38（落地即整合；消費設閘不阻斷落地／World Concept Registry 與消費規則／唯一權威表徵落實義務／自然人之有界表徵） | 不觸及＋理由：屬存在層／L4 落點 |
 | `AUGUR-WM v1.0` WM.39–WM.47（合規聲明格式／編號穩定／升版） | L6.90、L6.91、§0.3、Annex CS、Annex TR—承接／落實 |
 | `AUGUR-WM v1.0` WM.48–WM.53（存在層治理雜項／文件約定規範地位） | WM.53 → L6.92—承接；WM.48–52 不觸及＋理由：屬存在層治理 |
 | `AUGUR-WM v1.0` Annex A（A.0–A.59）／Annex D（D0–D28）／HOOK-01/02/03 | 不觸及＋理由：領域素材與 L2–L4 下放掛鉤，非行動治理落點；經 L4/L5 工作流入徵 |
 | `AUGUR-ONT v1.0` ONT.1–ONT.62（型別層本體／Type 判準／schema／型別演化） | 不觸及＋理由：型別層本體，本層消費既定 Type 不重定義；ONT.60–62 合規存續 → L6.90/L6.92 承接 |
 | `AUGUR-ONT v1.0` Annex T／DO.0–DO.4 | 不觸及＋理由：型別素材與 L2 下放掛鉤，目標 L3–L4 已承接 |
 | `AUGUR-ID v1.0` ID.1–ID.53（個體層本體／identifier／lifecycle／已解析與 provisional 狀態） | L6.2（消費已解析 Identity）、L6.5（人類決策者 Human）、L6.14（lineage 獨立性）—承接（消費）；其餘個體層機制不觸及＋理由：屬 L3 |
-| `AUGUR-ID v1.0` ID.60–ID.81（同一性衝突保存／上下界封印／合規存續） | L6.23（分界紀律不上侵 L3）、L6.90/L6.92（合規存續）—承接；衝突保存語義不觸及＋理由：屬 L4 |
+| `AUGUR-ID v1.0` ID.60–ID.81（身份屬性 as-of 繫結義務／繫結存在 vs 重建引擎之分界／Layer 4 專屬事項清單／分界表／格式承接／存續與升版） | L6.23（分界紀律不上侵 L3）、L6.90/L6.92（合規存續）—承接；衝突保存語義不觸及＋理由：屬 L4 |
 | `AUGUR-ID v1.0` IDO.0–IDO.8（ID 下放掛鉤） | 不觸及＋理由：目標 L4/L5/L7，已由對應層承接；本層消費已解析 Identity |
 
 ### TR.E — `AUGUR-KS v1.0`（全部 [N]，十位制區塊）[N]
@@ -385,16 +385,16 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 | KS.1–KS.19（總則／從屬／不重定義／管轄紀律） | §0.5、L6.23—承接 |
 | KS.20–KS.29（五元組／唯一權威表徵／欄位） | L6.3（Knowledge Basis 引用五元組，消費）—承接（消費） |
 | KS.30–KS.38（Confidence Lattice L_C／Grading Method／meet／單調／INSUF 保守） | L6.3、L6.12（⊓Conf 消費門檻綁定，硬守 KS.34 meet）—承接（消費，核心） |
-| KS.39（Confidence 生成／評定方法登錄） | 不觸及＋理由：Confidence 生成屬 L5、語義屬 L4；本層僅消費 ⊓Conf 為 Action 門檻，不重定義生成 |
+| KS.39（Confidence 非 Reasoning） | 不觸及＋理由：Confidence 生成屬 L5、語義屬 L4；本層僅消費 ⊓Conf 為 Action 門檻，不重定義生成 |
 | KS.40–KS.54（雙時間／as-of／supersede／重編） | L6.1（Timestamp）—承接（消費）；as-of 引擎不觸及＋理由：屬 L4/L7 |
-| KS.55（supersede／重編之保存語義） | 不觸及＋理由：supersede 語義屬 L4；本層以 Observation 回流不重定義保存語義 |
+| KS.55（衍生物 DELETE 重建之禁止） | 不觸及＋理由：supersede 語義屬 L4；本層以 Observation 回流不重定義保存語義 |
 | KS.60–KS.61（Conflict Set 保存／下游消費） | L6.20（未裁決 Conflict 為熔斷觸發／完備性門檻要件）—承接（消費面）＋不觸及保存語義（屬 L4），與 TR.C `§P4.E5`→L6.20 一致 |
 | KS.62–KS.78（Evidence 分類／Trust Rank／NoLaundering／完備性維度／白名單／self-reported） | L6.3、L6.11、L6.14（完備性維度消費、確認者獨立、self-reported）—承接（消費，核心） |
-| KS.79（審議／Evidence 強度） | L6.3（審議 Evidence 強度落行動側 Knowledge Basis 門檻，高風險須獨立 Data Evidence）—承接（行動側） |
+| KS.79（審議通道之 Evidence 強度分級——解 AUD-16） | L6.3（審議 Evidence 強度落行動側 Knowledge Basis 門檻，高風險須獨立 Data Evidence）—承接（行動側） |
 | KS.80–KS.84（Completeness Level／GATE 統計治理設計權） | L6.11（Completeness Level 風險級綁定，L4 定等級、L6 定綁定）—承接（核心）；GATE 設計權不觸及＋理由：屬 L4/L5 |
 | KS.90–KS.92（identity claim Confidence／欄位／狀態映 L_C） | 不觸及＋理由：屬 L4 Knowledge 側，本層消費 |
 | KS.100–KS.102（分界／L56／Fail-safe） | L6.23（分界紀律承 KS.100/101）、L6.20（Fail-safe 承 KS.102）—承接（核心） |
-| KS.110–KS.111（合規存續／KDO 盤點） | L6.90、L6.91—承接 |
+| KS.110–KS.111（格式承接／存續與升版） | L6.90、L6.91—承接 |
 | KDO.0–KDO.7（KS 下放掛鉤） | KDO.2 → L6.10/L6.11/L6.12（消費門檻綁定，核心承接）；KDO.0（下放義務標頭）由本區塊 child-row 承載；其餘 KDO 目標 L5/L7，不觸及＋理由：非本層行動治理落點 |
 | Annex CL（Completeness Level）／Annex EV（Evidence 分類） | L6.11（消費 CL 為完備性量尺）、L6.3（消費 EV 分類）—承接（消費） |
 
@@ -402,16 +402,16 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 
 | L5 條款 | L6 落點／處置 |
 |---|---|
-| L5.1（合法推理／候選斷言經通道） | L6.3、L6.19（Knowledge Basis 須經通道確立；Learning 產出以候選斷言）—承接（核心） |
+| L5.1（合法推理之定義——推理產物為候選斷言,非權威真值） | L6.3、L6.19（Knowledge Basis 須經通道確立；Learning 產出以候選斷言）—承接（核心） |
 | L5.2（Evidence 引用鏈 DAG／雙合法終點） | L6.9（宣告受溯源約束）、L6.20（受影響閉包沿溯源鏈）—承接 |
-| L5.3（Confidence 傳播／meet 上限） | L6.3、L6.12（消費 ⊓Conf 為 Action 門檻，不重定義傳播）—承接（消費） |
-| L5.4（Hypothesis 地位／保守 INSUF） | 不觸及＋理由：Hypothesis 地位屬 L5；本層要求 Knowledge Basis 非候選斷言（L6.3） |
+| L5.3（Confidence 沿推理鏈之傳播——承接 KDO.1,硬守 KS.34 上限） | L6.3、L6.12（消費 ⊓Conf 為 Action 門檻，不重定義傳播）—承接（消費） |
+| L5.4（Hypothesis 之地位——未證斷言、可謬、須顯式標記） | 不觸及＋理由：Hypothesis 地位屬 L5；本層要求 Knowledge Basis 非候選斷言（L6.3） |
 | L5.5（Hypothesis 不得無證升級） | 不觸及＋理由：升級紀律屬 L5；本層消費已確立 Knowledge |
-| L5.6（Explanation per-結論義務） | 不觸及＋理由：解釋內容義務屬 L5；本層要求六元組可稽核（L6.1）與 Gate 揭露（L6.16 T 分量）—承接（行動側揭露） |
-| L5.7（AI Model 為工具非世界權威／F2 防線） | 不觸及＋理由：model output 地位屬 L5；本層 L6.3 承接「高風險不得僅以 Computational Evidence」之行動側 |
-| L5.8（分界紀律不上侵 L4／不下侵 L6） | L6.23（對稱：本層不上侵 L5、不下侵 L7）—承接（核心） |
-| L5.9（resolution 為 inference 之定性） | 不觸及＋理由：resolution 定性屬 L5；本層消費已解析 Identity（L6.2） |
-| L5.90–L5.92（文件治理） | L6.90、L6.91、L6.92—承接 |
+| L5.6（Explanation 義務——per-結論可解釋,F5 之落實,承接 AUD-18） | 不觸及＋理由：解釋內容義務屬 L5；本層要求六元組可稽核（L6.1）與 Gate 揭露（L6.16 T 分量）—承接（行動側揭露） |
+| L5.7（AI Model 為 Reasoning 之工具而非世界權威——F2 Model First 之防線） | 不觸及＋理由：model output 地位屬 L5；本層 L6.3 承接「高風險不得僅以 Computational Evidence」之行動側 |
+| L5.8（Reasoning 引擎之分界紀律——不下侵 L4 語義、不上侵 L6 消費） | L6.23（對稱：本層不上侵 L5、不下侵 L7）—承接（核心） |
+| L5.9（identity resolution 演算之定性承接——T-KS-6 之解消） | 不觸及＋理由：resolution 定性屬 L5；本層消費已解析 Identity（L6.2） |
+| L5.90–L5.92（合規聲明格式承接／存續與升版／文件約定之規範地位） | L6.90、L6.91、L6.92—承接 |
 | Annex LDO（LDO.0–LDO.6，尤 LDO.2／LDO.6） | LDI.1／LDI.2／LDI.3／LDI.4（本層承接 L5 下放之行動 gating／風險分級／確認者資格／監督度量）—承接（核心）；LDO.0（下放義務標頭）由本區塊 child-row 承載 |
 
 ### TR.Z — 殘餘生效阻卻（DRAFT）[N]

@@ -44,7 +44,7 @@
 
 1. ~~每月消費上限~~ ✅ **已解除**（2026-07-17 起工作流程正常執行；步 8、9 均以完整多代理流程完成）。
 1b. ~~**充任認定前置（Layer 2–4 共同）**：各層合規聲明依 `AUGUR-WM v1.0 §WM.44` 須有**逐條對應矩陣**~~ ✅ **已解（2026-07-17）**：ONT／ID／KS 三層 Annex TR **逐條完整枚舉、缺 0 條**，`§WM.44` 形式充分性成就，已隨充任認定生效（裁決 2026-003／004／005）——依據見 `IDENTITY-SPECIFICATION.md:17`、`KNOWLEDGE-SYSTEM-SPECIFICATION.md:17` 之【地位】節逐字記載。
-    > **惟形式充分性 ≠ 實質正確**（交叉參照，非本檔之認定）：`§8.3` gate 硬化後測得 —— (i) **L2（ONT）之 Annex TR 標題為 h1，其 <!--lint:tr_rows_L2-->56<!--/lint--> 列矩陣從未被 gate 讀取**（比對筆數 <!--lint:compared_L2-->0<!--/lint--> 筆——矩陣在場、一列未讀；二數均由 `python3 -m tools.constitution_lint report` 導出並綁定），故其「缺 0 條／PASS」未經機器複核；(ii) ONT 之 Annex TR 標 **[I]** 而 ID／KS 標 **[N]**，同一義務之標注不一致。二者均屬 **Steward 事項**（生效規格之編輯屬 `§8.5`／`§8.6`），本檔不作認定，見 **HANDOFF 待裁 #22**。
+    > **惟形式充分性 ≠ 實質正確**（交叉參照，非本檔之認定）：`§8.3` gate 硬化後測得 —— (i) **L2（ONT）之 Annex TR 標題為 h1，其 <!--lint:tr_rows_L2-->56<!--/lint--> 列矩陣從未被 gate 讀取**（比對筆數 <!--lint:compared_L2-->4<!--/lint--> 筆——矩陣在場、一列未讀；二數均由 `python3 -m tools.constitution_lint report` 導出並綁定），故其「缺 0 條／PASS」未經機器複核；(ii) ONT 之 Annex TR 標 **[I]** 而 ID／KS 標 **[N]**，同一義務之標注不一致。二者均屬 **Steward 事項**（生效規格之編輯屬 `§8.5`／`§8.6`），本檔不作認定，見 **HANDOFF 待裁 #22**。
 2. ~~augur-code 推送權限~~ ✅ **已授權並完成**（2026-07-17，Steward 明示「直接進 main＋tag」）：AUD-02 卷宗＋治權檔憲章從屬聲明＋SSOT patch 已進 augur main（`493fd73`），封存 tag `augur-mc-v1.3-compliance-seal`。
    > ⚠️ **分支名碰撞，讀此句務必分辨**：`remediation/aud-02-raw-supersede-log` **有二個不同物**——
    > * **本機分支 @`759f3e5`**（AUD-02 **卷宗** commit）：確為 `main` 之祖先，**已 ff-merge 入 main**（`git merge-base --is-ancestor` → YES）。**本句所指者為此。**

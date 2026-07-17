@@ -264,9 +264,12 @@ def run(quiet: bool = False):
         with tempfile.TemporaryDirectory() as td:
             body = _id.read_text(encoding="utf-8")
             base_r = compliance_lint.lint_spec(str(_id), _MC)
-            chk("G6 對照：未突變之 IDENTITY 確為 FAIL 且 LABEL error > 0（突變前後非恆紅）",
-                not base_r.passed
-                and sum(1 for f in base_r.errors if f.rule == "WM.44-LABEL") > 0)
+            # 2026-07-18 #22 執行後（RULING-2026-010）IDENTITY 已修至 error 0——對照鎖由
+            # 「未突變即紅」改為**雙向差分**：未突變 PASS（綠基線）、突變必 FAIL（紅），
+            # 差分更強；紅對照另由 fixtures/bad_label_mislabel.md 恆備（前段既有斷言）。
+            chk("G6 對照：未突變之 IDENTITY 為 PASS（#22 修畢之綠基線；突變後必紅＝雙向差分）",
+                base_r.passed
+                and sum(1 for f in base_r.errors if f.rule == "WM.44-LABEL") == 0)
 
             def _tr_rows(text):
                 """回 (區段內表列之索引, 全部行)。"""
@@ -576,8 +579,11 @@ def _binding_and_consistency(chk, records):
         d["values"]["label_errors_mc"] + d["values"]["label_errors_upper"]
         + d["values"]["label_errors_unclassified"] == d["values"]["total_errors"]))
     _add("sub", lambda d: (
-        "  └ 未歸類獨立成類且確實在場（ONT 之零覆蓋發聲無 `source` 可歸）",
-        d["values"]["label_errors_unclassified"] >= 1))
+        "  └ 未歸類 ≡ 零覆蓋類 error 數（機制一致：無 source 可歸者恰為 tr_absent/tr_zero_coverage 族；"
+        "#22 修畢後兩者同為 0，出現零覆蓋時同步 ≥1，不得併入任一側）",
+        d["values"]["label_errors_unclassified"]
+        == d["kinds"].get("tr_absent", 0) + d["kinds"].get("tr_asserted_absent", 0)
+        + d["kinds"].get("tr_zero_coverage", 0)))
     _add("sub", lambda d: (
         "  └ 分型（`kind`）加總 ≡ 七份總 error（每筆 error 皆有機器可辨之型）",
         sum(d["kinds"].values()) == d["values"]["total_errors"] and "«untagged»" not in d["kinds"]))

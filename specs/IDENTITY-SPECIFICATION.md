@@ -413,7 +413,7 @@ Augur Enterprise AI Operating System
 | MC 條款 | ID 落點 | 模式 |
 |---|---|---|
 | §P3.D（Identity Before Knowledge 定義） | ID.1、ID.50、§1.1 | 承接（定位） |
-| §P3.W1（WHAT：Identity 為繫結錨） | ID.1、ID.14 | 承接 |
+| §P3.W1（Augur 的基本單位：Identity） | ID.1、ID.14 | 承接 |
 | §P3.W2（Identity 類型開放例示） | ID.11、ID.12、ID.24（世界關係）、Annex O（Security／Issuer） | 承接（型別開放之機制側；型別制定屬 L2） |
 | §P3.Y（WHY [I]） | §1.1（Layer 3 定位，[I]） | 承接（資訊性） |
 | §P3.E1（引用與解析義務、mint-on-admission、可稽核指標由 L3 定義） | ID.11（鑄造義務）、ID.21、ID.50–ID.53（解析義務＋升級禁止）、ID.51（可稽核指標，承接 `AUGUR-WM v1.0 §D4`） | **細化（核心，落實 AUD-04）** |
@@ -430,47 +430,47 @@ Augur Enterprise AI Operating System
 | §1.3（五條對稱禁令；第三禁令「沒有 Identity，不允許 Knowledge」／P3 為本層直接機制化對象） | ID.50（未解析 Observation 不得升級 Knowledge，機制化第三禁令）；其餘四禁令分屬 P1／P2／P4／P5，見本表與 TR.A 各該原則列 | 承接（第三禁令核心機制化） |
 | P1（Reality First 標題） | ID.11、ID.10 | 承接 |
 | P1.D（定義） | ID.1、ID.11 | 承接 |
-| P1.E1（Reality 最高抽象／來源非最高抽象） | ID.11（外部識別碼降格為指涉資訊） | 細化 |
-| P1.E2（禁來源位置字面直綁、唯一權威表徵、跨部署可解析與對齊） | ID.10（跨部署對齊語義義務）、ID.32（唯一權威表徵結構前提） | 細化（本層語義義務核心） |
-| P1.E3（自然人為 Reality 之一部） | ID.42（去識別化）、ID.60（時變屬性 as-of）；法規對應表本體 DEFER Layer 6（IDO.7） | 承接＋DEFER |
-| P1.W1（來源崇拜警語） | ID.11（禁外部識別碼裸字串直充身份） | 承接 |
+| P1.E1（開放來源） | ID.11（外部識別碼降格為指涉資訊） | 細化 |
+| P1.E2（共同世界模型之語義） | ID.10（跨部署對齊語義義務）、ID.32（唯一權威表徵結構前提） | 細化（本層語義義務核心） |
+| P1.E3（Bounded Representation） | ID.42（去識別化）、ID.60（時變屬性 as-of）；法規對應表本體 DEFER Layer 6（IDO.7） | 承接＋DEFER |
+| P1.W1（Augur 必須優先描述 Reality，而不是優先適配現有資料來源） | ID.11（禁外部識別碼裸字串直充身份） | 承接 |
 | P1.Y（WHY [I]） | §1.1（[I]） | 承接（資訊性） |
 | P2（Representation Before Intelligence 標題） | ID.21、ID.50 | 承接 |
 | P2.D（定義） | ID.50 | 承接 |
-| P2.E1（候選斷言經 Evidence 通道確立） | ID.50、ID.30(c) | 承接 |
-| P2.E2（Representation 可靠性判定） | ID.30(c)、ID.40（lifecycle 事件之 Evidence 義務） | 承接 |
+| P2.E1（禁止 AI 直接從 raw data 建立永久性 Knowledge） | ID.50、ID.30(c) | 承接 |
+| P2.E2（Model output 不得未經 Evidence 通道） | ID.30(c)、ID.40（lifecycle 事件之 Evidence 義務） | 承接 |
 | P2.E3（self-reported 標記） | ID.30（claim 之 Evidence 要件）、ID.52 | 承接 |
-| P2.E4（Confidence 槽概念相容） | ID.30(d)（Confidence 槽位存在） | 承接（槽位） |
+| P2.E4（禁止 Representation 被視為 Reality 本身） | ID.30(d)（Confidence 槽位存在） | 承接（槽位） |
 | P2.E5（錯誤發現後之 fail-safe 反應） | ID.22（採認撤回之 fail-safe 重評估） | 承接 |
-| P2.W1（Intelligence 不得繞過 Representation） | ID.50（未解析不得升級 Knowledge） | 承接 |
-| P2.W2（確立工作流下放） | ID.50（升級門檻）承接；確立工作流實作 DEFER Layer 4–5，本層不代定（ID.23） | 承接＋界分 |
+| P2.W1（任何 Prediction、Reasoning、Planning、Decision、Agent Action，皆必須建立於 World Representation） | ID.50（未解析不得升級 Knowledge） | 承接 |
+| P2.W2（權威順序釐清） | ID.50（升級門檻）承接；確立工作流實作 DEFER Layer 4–5，本層不代定（ID.23） | 承接＋界分 |
 | P2.Y（WHY [I]） | §1.1（[I]） | 承接（資訊性） |
 | P3（Identity Before Knowledge 全家族） | 見 **TR.A**（逐條） | 細化（核心） |
 | P4（Evidence Before Conclusion 標題） | ID.14、ID.30–ID.31、ID.40；語義填充 DEFER Layer 4 | 承接＋DEFER |
 | P4.D（定義） | ID.30(c) | 承接 |
-| P4.E1（五元組最低不變式） | ID.31（claim 為 Knowledge）、ID.40；完整欄位設計 DEFER Layer 4（IDO.2） | 承接＋DEFER |
-| P4.E2（雙時間、as-of 重建） | ID.60（繫結存在）、ID.61（分界）；重建引擎 DEFER Layer 4（IDO.6） | 細化（繫結）＋DEFER |
-| P4.E3（只失效不刪除、tombstone） | ID.22（採認只標 superseded）、ID.40（事件只失效不刪除）、ID.42（法規抹除留痕準用） | 細化 |
-| P4.E4（可謬性、禁隱含 1.0） | ID.22（採認之可謬性） | 承接 |
-| P4.E5（矛盾保存、禁 LWW） | ID.31（衝突 claim 並存、禁 last-write-wins） | 承接 |
-| P4.E6（遞迴溯源、禁循環） | ID.30(c)（Evidence 遞迴可溯源） | 承接 |
-| P4.E7（NoLaundering、獨立性、高風險證據） | ID.30(c)；來源信任分級表 DEFER Layer 4（ID.70） | 承接＋DEFER |
-| P4.E8（Confidence 單一形式化、可比較、傳播、消費） | ID.30(d)、ID.70；語義 DEFER Layer 4（IDO.1） | DEFER（本層設槽＋下放） |
-| P4.W1（來源崇拜／證據不足警語） | ID.30(c)、ID.11 | 承接 |
+| P4.E1（Knowledge 五元組） | ID.31（claim 為 Knowledge）、ID.40；完整欄位設計 DEFER Layer 4（IDO.2） | 承接＋DEFER |
+| P4.E2（Time（雙時間性）） | ID.60（繫結存在）、ID.61（分界）；重建引擎 DEFER Layer 4（IDO.6） | 細化（繫結）＋DEFER |
+| P4.E3（Supersede（只失效不刪除）） | ID.22（採認只標 superseded）、ID.40（事件只失效不刪除）、ID.42（法規抹除留痕準用） | 細化 |
+| P4.E4（Defeasible（可謬性）） | ID.22（採認之可謬性） | 承接 |
+| P4.E5（Conflict（矛盾保存）） | ID.31（衝突 claim 並存、禁 last-write-wins） | 承接 |
+| P4.E6（Provenance（遞迴溯源）） | ID.30(c)（Evidence 遞迴可溯源） | 承接 |
+| P4.E7（NoLaundering（信任不可洗白）） | ID.30(c)；來源信任分級表 DEFER Layer 4（ID.70） | 承接＋DEFER |
+| P4.E8（Confidence（語義與消費）） | ID.30(d)、ID.70；語義 DEFER Layer 4（IDO.1） | DEFER（本層設槽＋下放） |
+| P4.W1（Augur 不接受：無 Source 之 Knowledge、不可重現之結果、無 Evidence 之推論） | ID.30(c)、ID.11 | 承接 |
 | P4.Y（WHY [I]） | §1.1（[I]） | 承接（資訊性） |
 | P5（Accountability Before Action 標題） | CS.1-P5 | 部分不適用＋理由 |
 | P5.D（定義） | 不觸及＋理由：Action 定義屬 Layer 6；本層僅型別化行動主體之 identifier（CS.1-P5） | 不觸及＋理由 |
 | P5.E1（Action 六元組與問責） | 不觸及＋理由：Action 六元組與行動治理屬 Layer 6，本層不定義；惟採認（ID.20）／lifecycle（ID.40）／去識別化（ID.42）之作成者記錄與 P5 精神相容 | 不觸及＋理由（治理記錄相容） |
 | P5.E2（風險分級表、完備性等級、Confidence 門檻） | 不觸及＋理由：風險分級／門檻屬 Layer 4–6；本層不定義 | 不觸及＋理由 |
-| P5.W1（問責不可轉嫁警語） | 不觸及＋理由：問責治理屬 Layer 6 | 不觸及＋理由 |
+| P5.W1（任何 Action 必須可歸責於單一 Identity） | 不觸及＋理由：問責治理屬 Layer 6 | 不觸及＋理由 |
 | P5.W2（人類權威閘） | 不觸及＋理由：人類權威閘資格判準屬 Layer 6；本層去識別化／採認之作成者具名與其精神相容 | 不觸及＋理由 |
 | P5.W3（不可逆／高影響需最高完備性） | 不觸及＋理由：完備性等級與綁定屬 Layer 4–6 | 不觸及＋理由 |
-| P5.W4（監督否決度量） | 不觸及＋理由：監督否決度量屬 Layer 6 | 不觸及＋理由 |
-| P5.W5（缺位預設最高風險） | 不觸及＋理由：風險預設屬 Layer 6；本層不削弱 | 不觸及＋理由 |
+| P5.W4（Agent 僅持有完成當前經授權 Plan 所需之最小權限） | 不觸及＋理由：監督否決度量屬 Layer 6 | 不觸及＋理由 |
+| P5.W5（系統不得規劃、執行或學習任何降低人類監督與否決能力之行為） | 不觸及＋理由：風險預設屬 Layer 6；本層不削弱 | 不觸及＋理由 |
 | P5.Y（WHY [I]） | 不觸及＋理由：屬 Layer 6 行動治理，資訊性 | 不觸及＋理由 |
 | §0.2（規範用語約定：必須／不得／應／得四級效力用語） | §0.2（沿用不重定義，全文一致）、【地位】末句（效力準用 `AUGUR-WM v1.0 §WM.53`） | 承接 |
 | §0.4（權威語言聲明） | §0.4 | 承接 |
-| §0.5（引用格式、Layer 對照表） | §0.1、§0.5、【地位】（Layer 3 欄登錄） | 承接 |
+| §0.5（適用範圍：Layer 對照表） | §0.1、§0.5、【地位】（Layer 3 欄登錄） | 承接 |
 | §0.6(a)（lex superior） | 引言、ID.4 | 承接 |
 | §0.6(b)（概念層獨立性） | §0.5、ID.12、ID.2、Annex DO | 承接 |
 | §2.4（identifier／identity claim 區分） | 見 **TR.A** | 細化（核心） |
@@ -480,14 +480,14 @@ Augur Enterprise AI Operating System
 | §2.11（Evidence 通道） | ID.50、CS.1-EV-chain（provisional→resolved→Knowledge） | 承接 |
 | §4 canonical chain（EV.1–EV.12） | ID.50（EV.4 Identity 為本層機制化落點）、CS.1-EV-chain（節選不跳節點）；EV.1–3／EV.5–12 承接不重定義 | 承接 |
 | §5 架構角色（system of record／表徵／Reasoning／Intelligence／介面／執法點） | 不觸及＋理由：架構角色屬 Layer 4–6；本層僅型別化各角色所涉個體之 identifier，不代定角色機制 | 不觸及＋理由 |
-| §6 F1–F6（禁止型態） | F2／F3（無 Identity 繫結／無 Source 之 Knowledge 拒斥）→ ID.11、ID.50；F1／F4／F5／F6 不觸及＋理由：屬 Layer 4–6 之禁止型態 | 承接（F2／F3）＋不觸及＋理由 |
-| §7（Long-Term Stability：五不變核心 Reality／Representation／Identity／Evidence／Accountability，含 §8.5(b) 實質判準所引同一清單） | ID.1、§1.1（Layer 3 核心錨定）；Identity 為五項不變核心之一，本規格即其 Layer 3 機制化全部 | 承接（核心錨定） |
-| §8.1（Amendment Log、Steward 裁決） | 【地位】、ID.81（生效後登錄；充任認定屬 Steward） | 承接 |
-| §8.2（違憲審查） | 【地位】、CS.4（實質充分性屬 §8.2 程序） | 承接 |
-| §8.3（過渡規則、可判定性元規則） | ID.80、§0.5（每條附可判定判準） | 承接 |
+| §6 F1–F6（Data First Architecture／Model First Architecture／Agent First Architecture／Knowledge Without Identity／Intelligence Without Evidence／Unaccountable Action） | F2／F3（無 Identity 繫結／無 Source 之 Knowledge 拒斥）→ ID.11、ID.50；F1／F4／F5／F6 不觸及＋理由：屬 Layer 4–6 之禁止型態 | 承接（F2／F3）＋不觸及＋理由 |
+| §7（Long-Term Stability Rule（十年以上演化原則）） | ID.1、§1.1（Layer 3 核心錨定）；Identity 為五項不變核心之一，本規格即其 Layer 3 機制化全部 | 承接（核心錨定） |
+| §8.1（Constitution Steward（憲章權威）） | 【地位】、ID.81（生效後登錄；充任認定屬 Steward） | 承接 |
+| §8.2（違憲後果、審查程序與衝突優先序） | 【地位】、CS.4（實質充分性屬 §8.2 程序） | 承接 |
+| §8.3（合規聲明義務與可判定性元規則） | ID.80、§0.5（每條附可判定判準） | 承接 |
 | §8.4（不可豁免核心） | ID.81（全部 MUST NOT 不豁免） | 承接 |
 | §8.5（Amendment Procedure 修訂程序：提案權、Steward 原則級議決之程序＋實質要件、Amendment Log 記錄、Eternity Clause） | 不觸及＋理由：本條規範 MC 自身之修訂程序，義務主體為 Steward 與 MC 修訂行為本身，非 Layer 3 規格義務來源；本規格自身之生效／登錄程序承 §8.1（Amendment Log）／§8.3（過渡規則），已見 ID.81、【地位】，不涉 MC 條文修訂程序本身 | 不觸及＋理由 |
-| §8.6（編號穩定：永不重用、永不重排） | §0.3、ID.81 | 承接 |
+| §8.6（版本語義、引用格式與編號穩定性） | §0.3、ID.81 | 承接 |
 
 ### TR.C — `AUGUR-WM v1.0`（全部 [N]，逐條）[N]
 
@@ -507,7 +507,7 @@ Augur Enterprise AI Operating System
 | WM.10（Observation Store 宣告） | 不觸及＋理由：Observation Store 屬 Layer 1／Layer 4 |
 | WM.11（referent 繫結） | ID.11、ID.50（referent→已解析 Identity）—承接 |
 | WM.12（近似性與來源保留） | 不觸及＋理由：近似性→Confidence 語義屬 Layer 4；本層僅設槽（ID.30(d)） |
-| WM.13（三性質判準＋演化四不變式） | ID.13、ID.40（Identity 存續跨 Ontology／Representation 演化）—承接（不重定義性質判準） |
+| WM.13（三性質可判定判準+演化四不變式） | ID.13、ID.40（Identity 存續跨 Ontology／Representation 演化）—承接（不重定義性質判準） |
 | WM.14（語義唯一性與一對多映射） | ID.32（唯一權威表徵結構前提、一對多映射與衝突保存）—落實 |
 | WM.15（同一事實多通道之同一性宣告） | ID.51(c)（顯式待決同一性存量）、ID.32（無宣告即非同一）—承接 |
 | WM.16（衝突與證據不足之表達力） | ID.31（衝突 claim 並存）—承接 |
@@ -529,7 +529,7 @@ Augur Enterprise AI Operating System
 | WM.32（觀測定案性） | 不觸及＋理由：觀測定案性判準屬 Layer 4 |
 | WM.33（永久標記表達力） | ID.53（instance/type 標記存續）、ID.21（provisional 標記）—承接 |
 | WM.34（核心不變式之可機器稽核 (a)(b)） | §0.5（每條附義務主體＋可判定判準）—承接 |
-| WM.35（落地即整合；unmapped 顯式存量） | ID.52（unmapped 準用）、ID.51(c)—承接 |
+| WM.35（落地即整合;消費設閘不阻斷落地） | ID.52（unmapped 準用）、ID.51(c)—承接 |
 | WM.36（World Concept Registry 與消費規則） | ID.32（Registry 消費結構前提）；Registry 實作載體 DEFER Layer 4／7—承接＋界分 |
 | WM.37（唯一權威表徵落實義務） | ID.32（結構前提；實際指定 DEFER Layer 4，IDO.8）—落實＋DEFER |
 | WM.38（自然人之有界表徵） | ID.42（去識別化）、§8（ID.60）；L6 slice DEFER Layer 6（IDO.7）—承接＋DEFER |

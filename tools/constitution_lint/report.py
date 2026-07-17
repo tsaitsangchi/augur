@@ -322,6 +322,12 @@ def build(selftest=None, specs_dir=None, mc_path=None) -> dict:
     dup_groups.sort(key=lambda g: (-g["n"], g["code"]))
     for k, n in kinds.items():
         v[f"kind_{k}"] = n
+    # kind keys 穩定化：已知分型即使計 0 亦輸出（否則歸零後 key 消失 → 綁定文件成孤兒標記）
+    for k in ("verbatim", "halved_name", "leading_truncation", "paren_mismatch",
+              "no_text_support", "tr_absent", "tr_asserted_absent", "tr_zero_coverage",
+              "code_not_in_universe", "upper_spec_undeclared", "upper_spec_unresolved",
+              "status_draft_claims_effective", "status_effective_claims_draft"):
+        v.setdefault(f"kind_{k}", 0)
     try:
         v["mc_universe"] = len(mc_clauses.load(mc)[0])
     except OSError:
