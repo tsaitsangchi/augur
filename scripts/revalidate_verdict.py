@@ -57,7 +57,15 @@ def evaluate(baseline, current, thr, prior_streak):
     if ht is not None and ht < thr["hac_t_floor"]:                 # None(小樣本)→ 不觸發
         b.append(f"IC HAC-t {ht:.2f} < {thr['hac_t_floor']:.0f} = 顯著性崩"); conds.append("hac_t_floor")
     da = current.get("deflated_ann")
-    if da is not None and da <= thr["deflated_floor_zero"]:
+    bda = baseline.get("deflated_ann")
+    margin = thr.get("deflated_decay_margin")
+    if margin is not None and bda is not None:
+        # 相對式(hugo (i) 2026-07-17):絕對零線在 N=32 口徑下 baseline 自身為負→恆觸發失鑑別力;
+        # 改「相對凍結 baseline 惡化逾 margin」=恢復軌B 真功能(偵測相對惡化、非口徑數學)
+        if da is not None and da < bda - float(margin):
+            b.append(f"deflated {da:+.3f} 相對凍結基線 {bda:+.3f} 惡化逾 {float(margin):.2f}")
+            conds.append("deflated_decay_margin")
+    elif da is not None and da <= thr["deflated_floor_zero"]:      # fallback:margin 未凍結時沿用舊絕對零線
         b.append(f"deflated 年化有效 Sharpe {da:+.3f} ≤ 0 = 地板轉負"); conds.append("deflated_floor_zero")
     # ── 三態(連續 k 輪)──
     k = int(thr.get("consecutive_k", 2))

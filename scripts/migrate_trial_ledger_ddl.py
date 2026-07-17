@@ -85,7 +85,7 @@ BACKFILL = f"""
       'backfill from revalidation_ledger stage=' || stage AS note
     FROM revalidation_ledger
     WHERE metric_name = 'net_sharpe'
-    ON CONFLICT (model, horizon, top_frac, weight, feats_hash, cost, sample_since)
+    ON CONFLICT (model, horizon, top_frac, weight, feats_hash, cost, sample_since, recipe)
     DO UPDATE SET metric_value = EXCLUDED.metric_value,
                   n_periods    = EXCLUDED.n_periods,
                   run_at       = now(),

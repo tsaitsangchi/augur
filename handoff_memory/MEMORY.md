@@ -1,5 +1,6 @@
 # Memory Index
 
+- [alpha Phase1 錨修復鏈](alpha-phase1-anchor-repair.md) — 新錨 1.1321(KPI N=32);PriceAdj 41 真損傷/175 除息誤標;judgestop 相對式條款(hugo 三裁);踩雷:verdict 重跑墊 streak/無參數凍結工具/pipe 截斷/DDL 寫入端
 - [arena 前置 G1-G5 機制計畫](arena-g1g5-admission-plan.md) — unfreeze gate 退史料(evaluate 純唯讀未實作);arena 前置改 G1-G5;軸別 blocker(方向 arena≠相對強度 G3/G4);兩層切分;Phase 0 決策 D-1~D-5 已拍板(D-6/D-11 待)
 - [audit 假綠+v1.28 自測入憲](audit-attestation-falsegreen.md) — audit「PASS」曾假綠(死表空視窗靜默PASS,blocker已修coverage_gap/rc=2);#29 audit-of-audit;v1.28 library 須自測CLI(74/74);死表=本機漏sync可補
 - [件A admission 硬化+健檢](jian-a-admission-hardening.md) — 對抗審查 R1-R6 硬化+verify_knowledge_admission_health.py 日常哨兵;**live-vs-repo drift 教訓**:驗 DB 層宣稱查 live DB 非只 grep repo(chk 存 live 但曾無 migration)
