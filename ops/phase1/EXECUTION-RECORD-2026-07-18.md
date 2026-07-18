@@ -31,7 +31,10 @@ hugo 側切換（過渡橋保證未切換期間零斷線，可從容執行）：
 #    SELECT count(*) FROM raw_supersede_log; > 0
 ```
 
-切換完成後，建議以 `ALTER ROLE augur NOLOGIN` 收尾（或保留作維運通道，由 Steward 裁）。
+**〔Steward 裁示（2026-07-18）：`augur` 保留作維運通道，不設 NOLOGIN。〕** 附帶效果與歸責註記：
+* 步 7 切換後之歸責分工反而更清晰——**服務行為＝augur_app、人工維運＝augur**，兩通道於 pg 層可區分（`pg_stat_activity.usename`），優於切換前「服務與維運同走 augur」之混同。
+* `augur` 對憲章十表維持僅 SELECT/INSERT（UPDATE/DELETE 已收回、非 owner）——維運通道**不構成**憲章表旁路。
+* 殘餘揭露（AUD-24 同族）：維運通道為共享憑證，其行為歸責至「持有該憑證之人」而非個人——個人化維運帳號屬 Phase 3（行動六元組）之後的收斂項，不在本步範圍。
 
 ## 回退
 
