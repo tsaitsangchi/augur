@@ -17,8 +17,12 @@ from augur.core import config
 
 PREDICT_ROLE = "augur_predict"
 # 素養層(預測 role 一律 SELECT 拒;洩漏=FAIL)——跨前綴取樣
+# 步 11 新增 forbidden 表(身份側事後修正知識 + 自動行動留痕):把 setup_predict_role 之 REVOKE 釘成可實證回歸鎖
+# (issue 18:DB 閘是否真生效須測試驗證;identity_claim/lifecycle/attribute + authz/action 對 predict 一律 SELECT 拒)。
 FORBIDDEN = ["philosophy_work", "philosophy_work_text", "knowledge_item", "knowledge_concordance",
-             "knowledge_sentence", "chat_message", "chat_session", "app_user", "advisor_distill_context"]
+             "knowledge_sentence", "chat_message", "chat_session", "app_user", "advisor_distill_context",
+             "identity_claim", "identity_lifecycle_event", "entity_attribute_version",
+             "authorization_grant", "automation_action_log"]
 # 預測管線(SELECT 准)
 ALLOWED_READ = ["feature_values", "core_universe_asof", "model_registry", "prediction_values",
                 "revalidation_ledger", "judgestop_threshold"]
