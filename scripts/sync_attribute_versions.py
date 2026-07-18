@@ -6,6 +6,8 @@
    禁原地覆蓋;append-only ACL 型下純 INSERT 可跑),值同→零寫入(冪等:重跑 appended=0)。
    名冊現值口徑:每檔取 **max(date) 當日之列集**(FinMind 逐列 date=更新日;多列屬性以 sorted DISTINCT '|'
    聚合,如 2330 產業='半導體業|電子工業'——不擅裁單值、聚合口徑本身可回放);valid_from=該 max(date)。
+   **date 全 NULL 之檔=誠實跳過並計數 null_date**(無 as-of 起點可繫,不以 today() 兜底編造 valid_from
+   ——today() 非來源事實、違 #9;minors 批 RULING-2026-015)。
    使 core_gate 產業判定日後可改讀 as-of(attribute_version.get_asof;消費切換屬 Phase 2 後段/Phase 6,
    本腳本只結清「屬性繫結存在」義務 ID.60)。範圍=Security 名冊(數字碼;指數列無時變屬性且 date=NULL,不納)。
 
@@ -50,9 +52,10 @@ ROSTER_SQL = """
 
 
 def roster_rows(cur):
-    """名冊現值實讀 → [{stock_id, valid_from, 各屬性}](唯讀)。"""
+    """名冊現值實讀 → [{stock_id, valid_from, 各屬性}](唯讀;valid_from 可 None=date 全 NULL 之檔,
+    由 sync_versions 誠實跳過計數 null_date——不以 today() 兜底編造 as-of 起點 #9)。"""
     cur.execute(ROSTER_SQL)
-    return [{"stock_id": sid, "valid_from": d or _date.today(),
+    return [{"stock_id": sid, "valid_from": d,
              "industry_category": ind, "stock_name": name, "type": typ}
             for sid, d, ind, name, typ in cur.fetchall()]
 
@@ -72,11 +75,18 @@ def diff_attrs(current, row):
 
 
 def sync_versions(cur, rows, code_system, actor=ACTOR, dry_run=False):
-    """差異偵測→SCD-2 append;回計數 dict。已鑄 alias 唯一未退役者才同步(未繫/歧義誠實計數、不強縫)。"""
+    """差異偵測→SCD-2 append;回計數 dict。已鑄 alias 唯一未退役者才同步(未繫/歧義/無 date 誠實計數、不強縫)。
+
+    valid_from=None(名冊 date 全 NULL)→ 計 null_date 跳過(先於任何 DB 存取;不以 today() 編造起點 #9)。
+    """
     from augur.identity import attribute_version, claim, resolve
     from augur.identity.resolve import resolution_action
-    counts = {"entities": 0, "appended": 0, "unchanged": 0, "unresolved": 0, "ambiguous": 0}
+    counts = {"entities": 0, "appended": 0, "unchanged": 0, "unresolved": 0,
+              "ambiguous": 0, "null_date": 0}
     for row in rows:
+        if row.get("valid_from") is None:
+            counts["null_date"] += 1     # 誠實跳過:無 as-of 起點可繫(ID.60 valid_from 硬義務)
+            continue
         cands = claim.resolve_alias(cur, code_system, row["stock_id"])
         cand_ids = [c["augur_id"] for c in cands]
         action, aid = resolution_action(cand_ids, resolve._retired_subset(cur, cand_ids))
@@ -106,6 +116,7 @@ def _report(counts, elapsed=None, dry=False):
     print(f"── {tag} ──")
     print(f"  已繫實體 {counts['entities']} | append {counts['appended']} | 無變 {counts['unchanged']}"
           f" | 未鑄 {counts['unresolved']} | 歧義 {counts['ambiguous']}"
+          f" | 無 date 跳過 {counts['null_date']}"
           + (f" | 耗時 {elapsed:.1f}s" if elapsed is not None else ""))
 
 
@@ -129,6 +140,13 @@ def _selftest():
         diff_attrs({**same, "type": "emerging"}, row) == [("type", "twse")])
     chk("名冊值 None 之屬性不 append(不以缺值覆蓋)",
         diff_attrs(same, {**row, "stock_name": None}) == [])
+    # NULL date 誠實跳過(minors 批):valid_from=None 之列於任何 DB 存取前計 null_date 跳過
+    # → cur=None 可跑即證「跳過先於 IO」;不以 today() 兜底編造 as-of 起點(#9)
+    nd = sync_versions(None, [{**row, "valid_from": None}], "test:cs")
+    chk("valid_from=None→null_date 計數跳過(零 DB、零 append、不 today() 兜底)",
+        (nd["null_date"], nd["appended"], nd["entities"]) == (1, 0, 0))
+    chk("roster_rows 不含 _date.today() 兜底(誠實跳過取代編造)",
+        "_date.today()" not in __import__("inspect").getsource(roster_rows))
     chk("ATTRS 恰為名冊三時變屬性", ATTRS == ("industry_category", "stock_name", "type"))
     chk("名冊 SQL 唯讀且以 max(date) 列集聚合(sorted DISTINCT)",
         ROSTER_SQL.strip().upper().startswith("WITH")

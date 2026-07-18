@@ -61,6 +61,13 @@ ROSTERS = [
 
 ACTOR = "scripts/backfill_entity_registry"
 
+# 名冊分割前瞻縫隙之殘差計數(minors 批 RULING-2026-015):非數字碼 ∧ 非 Index/大盤 → 不落
+# Security/Index 任一名冊之列;現況 0,>0 時=來源新增未涵蓋類目,誠實計數供人檢視、不靜默漏鑄。
+RESIDUAL_SQL = """
+    SELECT count(DISTINCT stock_id) FROM "TaiwanStockInfo"
+    WHERE stock_id !~ '^[0-9]'
+      AND (industry_category IS NULL OR industry_category NOT IN ('Index', '大盤'))"""
+
 
 def read_roster(cur, sql):
     """名冊實讀 → [(external_code, evidence_ref, valid_from), …](唯讀;數量以此為準 #9)。"""
@@ -120,6 +127,10 @@ def _check(cur):
             (code_system, [r[0] for r in roster] or ["_"]))
         bound = cur.fetchone()[0]
         print(f"  {label:<10} 名冊 {len(roster):>5} | 已繫 alias {bound:>5} | 未繫 {len(roster) - bound:>5}")
+    cur.execute(RESIDUAL_SQL)
+    residual = cur.fetchone()[0]
+    print(f"  名冊殘差列(非數字∧非 Index/大盤,不落任一名冊){residual:>5}"
+          + (" ⚠ >0:來源新增未涵蓋類目、須人檢視" if residual else ""))
     cur.execute("SELECT count(*) FROM entity_registry")
     print(f"  entity_registry 現有 {cur.fetchone()[0]} 列")
 
@@ -143,6 +154,11 @@ def _selftest():
         "~ '^[0-9]'" in dict((r[0], r[3]) for r in ROSTERS)["Security"])
     chk("Index 以來源自標 industry_category(Index/大盤)判別、非硬編碼名單",
         "industry_category IN ('Index', '大盤')" in dict((r[0], r[3]) for r in ROSTERS)["Index"])
+    chk("名冊殘差計數 SQL 唯讀且=兩名冊謂詞之補集(非數字∧非 Index/大盤)",
+        RESIDUAL_SQL.strip().upper().startswith("SELECT")
+        and "!~ '^[0-9]'" in RESIDUAL_SQL
+        and "NOT IN ('Index', '大盤')" in RESIDUAL_SQL
+        and not any(w in RESIDUAL_SQL.upper() for w in ("INSERT", "UPDATE", "DELETE", "TRUNCATE")))
     chk("每份名冊 evidence 皆引名冊來源列(表名+鍵)",
         all(src in sql for (_, _, _, sql), src in
             zip(ROSTERS, ("TaiwanStockInfo|stock_id=", "TaiwanStockInfo|stock_id=", "fred_series|series_id="))))

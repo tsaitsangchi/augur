@@ -70,14 +70,17 @@ def resolve_alias(cur, code_system, external_code):
     """外部碼→候選 augur_id(provisional 解析;經 entity_alias,禁裸字串 join 逕充同一)。
 
     回候選 list(可能 >1=代碼重用/歧義待解析,見 lifecycle.detect_code_reuse);空 list=未登錄。
+    次序鍵 (transaction_time, alias_id):同一交易內多 alias 之 transaction_time 相等(now() 交易內恆等),
+    以 bigserial alias_id 單調破 tie → 候選序確定(resolve.resolution_action 之 ambiguous「最新者」不漂移)。
     resolution 演算(相似度/比對/批次)DEFER Layer 4/5。
     """
     cur.execute(
-        "SELECT augur_id, alias_status, valid_from, valid_to, transaction_time FROM entity_alias "
-        "WHERE code_system=%s AND external_code=%s ORDER BY transaction_time",
+        "SELECT augur_id, alias_status, valid_from, valid_to, transaction_time, alias_id "
+        "FROM entity_alias WHERE code_system=%s AND external_code=%s "
+        "ORDER BY transaction_time, alias_id",
         (code_system, external_code))
     return [{"augur_id": r[0], "alias_status": r[1], "valid_from": r[2],
-             "valid_to": r[3], "transaction_time": r[4]} for r in cur.fetchall()]
+             "valid_to": r[3], "transaction_time": r[4], "alias_id": r[5]} for r in cur.fetchall()]
 
 
 def _selftest():
