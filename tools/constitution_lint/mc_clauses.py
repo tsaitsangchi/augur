@@ -133,7 +133,15 @@ def _clean_label(raw: str) -> str:
     s = s.strip().strip("：:—–- ").strip()
     inside, outside = _split_paren(s)
     if len(inside) == 1 and not outside:
-        s = inside[0].strip()
+        # 剝外層括號須於**原字串**為之：`_split_paren` 先 NFKC，其 inside 已把全形標點
+        # 半形化——前版逕取 inside[0]，致 `paren_name` 半形、錯誤訊息所印「原文」非逐字，
+        # 採信訊息之執行者遂寫入半形標籤（2026-07-18 對抗全查實證 18 筆）。比對不受影響
+        # （full_forms／halves／比對一律另過 normalize_label），本修僅使訊息回歸逐字。
+        t = s.strip()
+        if len(t) >= 2 and t[0] in "（(" and t[-1] in "）)":
+            s = t[1:-1].strip()
+        else:
+            s = inside[0].strip()
     return s
 
 

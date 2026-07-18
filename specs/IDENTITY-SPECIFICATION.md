@@ -438,7 +438,7 @@ Augur Enterprise AI Operating System
 | P2（Representation Before Intelligence 標題） | ID.21、ID.50 | 承接 |
 | P2.D（定義） | ID.50 | 承接 |
 | P2.E1（禁止 AI 直接從 raw data 建立永久性 Knowledge） | ID.50、ID.30(c) | 承接 |
-| P2.E2（Model output 不得未經 Evidence 通道） | ID.30(c)、ID.40（lifecycle 事件之 Evidence 義務） | 承接 |
+| P2.E2（Model output 不得未經 Evidence 通道（§2.11），直接成為權威 World Representation 或 Knowledge） | ID.30(c)、ID.40（lifecycle 事件之 Evidence 義務） | 承接 |
 | P2.E3（self-reported 標記） | ID.30（claim 之 Evidence 要件）、ID.52 | 承接 |
 | P2.E4（禁止 Representation 被視為 Reality 本身） | ID.30(d)（Confidence 槽位存在） | 承接（槽位） |
 | P2.E5（錯誤發現後之 fail-safe 反應） | ID.22（採認撤回之 fail-safe 重評估） | 承接 |
@@ -507,7 +507,7 @@ Augur Enterprise AI Operating System
 | WM.10（Observation Store 宣告） | 不觸及＋理由：Observation Store 屬 Layer 1／Layer 4 |
 | WM.11（referent 繫結） | ID.11、ID.50（referent→已解析 Identity）—承接 |
 | WM.12（近似性與來源保留） | 不觸及＋理由：近似性→Confidence 語義屬 Layer 4；本層僅設槽（ID.30(d)） |
-| WM.13（三性質可判定判準+演化四不變式） | ID.13、ID.40（Identity 存續跨 Ontology／Representation 演化）—承接（不重定義性質判準） |
+| WM.13（三性質可判定判準＋演化四不變式） | ID.13、ID.40（Identity 存續跨 Ontology／Representation 演化）—承接（不重定義性質判準） |
 | WM.14（語義唯一性與一對多映射） | ID.32（唯一權威表徵結構前提、一對多映射與衝突保存）—落實 |
 | WM.15（同一事實多通道之同一性宣告） | ID.51(c)（顯式待決同一性存量）、ID.32（無宣告即非同一）—承接 |
 | WM.16（衝突與證據不足之表達力） | ID.31（衝突 claim 並存）—承接 |
@@ -529,7 +529,7 @@ Augur Enterprise AI Operating System
 | WM.32（觀測定案性） | 不觸及＋理由：觀測定案性判準屬 Layer 4 |
 | WM.33（永久標記表達力） | ID.53（instance/type 標記存續）、ID.21（provisional 標記）—承接 |
 | WM.34（核心不變式之可機器稽核 (a)(b)） | §0.5（每條附義務主體＋可判定判準）—承接 |
-| WM.35（落地即整合;消費設閘不阻斷落地） | ID.52（unmapped 準用）、ID.51(c)—承接 |
+| WM.35（落地即整合；消費設閘不阻斷落地） | ID.52（unmapped 準用）、ID.51(c)—承接 |
 | WM.36（World Concept Registry 與消費規則） | ID.32（Registry 消費結構前提）；Registry 實作載體 DEFER Layer 4／7—承接＋界分 |
 | WM.37（唯一權威表徵落實義務） | ID.32（結構前提；實際指定 DEFER Layer 4，IDO.8）—落實＋DEFER |
 | WM.38（自然人之有界表徵） | ID.42（去識別化）、§8（ID.60）；L6 slice DEFER Layer 6（IDO.7）—承接＋DEFER |

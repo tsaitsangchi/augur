@@ -363,6 +363,18 @@ _TABLE_ROW = re.compile(r"^\s*\|(.+)$")
 _CODE_LABEL = re.compile(
     r"(?<![A-Za-z0-9.])(§?" + mc_clauses.ANY_CODE_ALT + r")"
     r"(?:\s*[–—]\s*(§?" + mc_clauses.ANY_CODE_ALT + r"))?\s*[（(]")
+# 多代號共一標籤之複合列（`ID.70–ID.71／ID.80–ID.81（…）`、`L6.11／L6.12（…）`）——
+# 前版僅 `_CODE_LABEL` 匹配**緊鄰開括號之末代號（組）**，其餘代號靜默不入比對集：標籤被
+# 拿去只對末組正文相繩（三鏡重審／鏡三指認之盲區；誠實之全段標籤反因此誤紅）。現抽出
+# 全部代號組，聯集交 `_range_clause`。
+_CODE_GROUP_SRC = (r"§?" + mc_clauses.ANY_CODE_ALT
+                   + r"(?:\s*[–—]\s*§?" + mc_clauses.ANY_CODE_ALT + r")?")
+_COMPOUND_LABEL = re.compile(
+    r"(?<![A-Za-z0-9.])(" + _CODE_GROUP_SRC
+    + r"(?:\s*[／/]\s*" + _CODE_GROUP_SRC + r")+)\s*[（(]")
+_GROUP_SPLIT = re.compile(
+    r"(§?" + mc_clauses.ANY_CODE_ALT + r")"
+    r"(?:\s*[–—]\s*(§?" + mc_clauses.ANY_CODE_ALT + r"))?")
 # 項次交叉引註而非標籤：`ID.30(c)`、`§WM.13(iii)`、`§8.5(b)` 之括號內容為項次代號，非標籤宣稱。
 _ITEM_REF = re.compile(r"^(?:[a-z]{1,2}|[ivx]{1,4}|\d+)$", re.I)
 # **兜底錨**（`_row_code_labels` 用）：「像條款代號」卻不合 `ANY_CODE_ALT` 者——形如
@@ -561,6 +573,9 @@ def _row_code_labels(cell: str):
     # 偽陽性。）
     spans = [(m.start(), m.end()) for m in _CODE_LABEL.finditer(s)]
 
+    # 複合列先抽（多代號組共一標籤）：登錄其全span，使主錨／兜底錨不得在其內二次匹配
+    compound_spans = []
+
     def _label_at(open_idx):
         """回逐字引錄之標籤（NFKC 僅用於定位，引錄取原字串）；無標籤／空白者回 None。"""
         norm, close = _scan_paren(s, open_idx)
@@ -572,7 +587,33 @@ def _row_code_labels(cell: str):
             return None
         return text
 
+    for m in _COMPOUND_LABEL.finditer(s):
+        label = _label_at(m.end() - 1)
+        if label is None:
+            continue
+        all_codes, bad = [], False
+        for gm in _GROUP_SPLIT.finditer(m.group(1)):
+            c1 = _norm_code(gm.group(1))
+            if gm.group(2):
+                cs = _expand_range(c1, _norm_code(gm.group(2)))
+                if cs is None:
+                    bad = True
+                    break
+                all_codes.extend(cs)
+            else:
+                all_codes.append(c1)
+        if bad or len(all_codes) < 2:
+            continue
+        out.append((all_codes, label))
+        compound_spans.append((m.start(), m.end()))
+        spans.append((m.start(), m.end()))
+
+    def _in_compound(pos):
+        return any(a <= pos < b for a, b in compound_spans)
+
     for m in _CODE_LABEL.finditer(s):
+        if _in_compound(m.start()):
+            continue
         label = _label_at(m.end() - 1)
         if label is None:
             continue

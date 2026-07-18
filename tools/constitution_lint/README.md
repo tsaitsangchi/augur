@@ -319,9 +319,9 @@ python3 -m tools.constitution_lint report --sync   # 將數字寫回本表之 li
 | L4 KNOWLEDGE-SYSTEM | <!--lint:compared_L4-->168<!--/lint-->（<!--lint:compared_mc_L4-->58<!--/lint-->／<!--lint:compared_upper_L4-->110<!--/lint-->） | **<!--lint:errors_L4-->0<!--/lint-->**（<!--lint:errors_mc_L4-->0<!--/lint-->／<!--lint:errors_upper_L4-->0<!--/lint-->） | <!--lint:wm40_extension_L4-->0<!--/lint--> | <!--lint:wm44_uncited_L4-->66<!--/lint-->/<!--lint:mc_universe-->102<!--/lint--> | ❌ FAIL |
 | L5 COGNITIVE-KERNEL | <!--lint:compared_L5-->100<!--/lint-->（<!--lint:compared_mc_L5-->55<!--/lint-->／<!--lint:compared_upper_L5-->45<!--/lint-->） | **<!--lint:errors_L5-->0<!--/lint-->**（<!--lint:errors_mc_L5-->0<!--/lint-->／<!--lint:errors_upper_L5-->0<!--/lint-->） | <!--lint:wm40_extension_L5-->0<!--/lint--> | <!--lint:wm44_uncited_L5-->16<!--/lint-->/<!--lint:mc_universe-->102<!--/lint--> | ❌ FAIL |
 | L6 AGENT-RUNTIME | <!--lint:compared_L6-->83<!--/lint-->（<!--lint:compared_mc_L6-->50<!--/lint-->／<!--lint:compared_upper_L6-->33<!--/lint-->） | **<!--lint:errors_L6-->0<!--/lint-->**（<!--lint:errors_mc_L6-->0<!--/lint-->／<!--lint:errors_upper_L6-->0<!--/lint-->） | <!--lint:wm40_extension_L6-->0<!--/lint--> | <!--lint:wm44_uncited_L6-->16<!--/lint-->/<!--lint:mc_universe-->102<!--/lint--> | ❌ FAIL |
-| L7 INFRASTRUCTURE（draft） | <!--lint:compared_L7-->151<!--/lint-->（<!--lint:compared_mc_L7-->71<!--/lint-->／<!--lint:compared_upper_L7-->80<!--/lint-->） | **<!--lint:errors_L7-->0<!--/lint-->**（<!--lint:errors_mc_L7-->0<!--/lint-->／<!--lint:errors_upper_L7-->0<!--/lint-->） | <!--lint:wm40_extension_L7-->0<!--/lint--> | <!--lint:wm44_uncited_L7-->15<!--/lint-->/<!--lint:mc_universe-->102<!--/lint--> | ❌ FAIL |
+| L7 INFRASTRUCTURE（draft） | <!--lint:compared_L7-->142<!--/lint-->（<!--lint:compared_mc_L7-->71<!--/lint-->／<!--lint:compared_upper_L7-->71<!--/lint-->） | **<!--lint:errors_L7-->0<!--/lint-->**（<!--lint:errors_mc_L7-->0<!--/lint-->／<!--lint:errors_upper_L7-->0<!--/lint-->） | <!--lint:wm40_extension_L7-->0<!--/lint--> | <!--lint:wm44_uncited_L7-->0<!--/lint-->/<!--lint:mc_universe-->102<!--/lint--> | ❌ FAIL |
 
-合計比對 **<!--lint:compared_total-->645<!--/lint--> 筆**（MC **<!--lint:compared_mc-->300<!--/lint-->**／上層規格 **<!--lint:compared_upper-->345<!--/lint-->**）。
+合計比對 **<!--lint:compared_total-->636<!--/lint--> 筆**（MC **<!--lint:compared_mc-->300<!--/lint-->**／上層規格 **<!--lint:compared_upper-->336<!--/lint-->**）。
 
 error 合計 **<!--lint:total_errors-->0<!--/lint--> 筆**：**MC 側 <!--lint:label_errors_mc-->0<!--/lint-->／上層側
 <!--lint:label_errors_upper-->0<!--/lint-->／未歸類 <!--lint:label_errors_unclassified-->0<!--/lint-->**（三項並列；
@@ -335,7 +335,7 @@ error 合計 **<!--lint:total_errors-->0<!--/lint--> 筆**：**MC 側 <!--lint:l
 > 此分佈、上表係另行統計」——該敘述於本輪已不再為真，據實更正。** 取得方式：
 > `python3 -m tools.constitution_lint report`（或 `--json` 取 `values.label_errors_{mc,upper,unclassified}`）。
 > 又：INFO 行所印之「已比對 N 筆（MC x／…）」為**已比對筆數**之分佈，**非 error 之分佈** —— 二者
-> 不可混用（<!--lint:compared_total-->645<!--/lint-->/<!--lint:compared_mc-->300<!--/lint-->/<!--lint:compared_upper-->345<!--/lint--> 屬前者，<!--lint:total_errors-->0<!--/lint-->/<!--lint:label_errors_mc-->0<!--/lint-->/<!--lint:label_errors_upper-->0<!--/lint-->/<!--lint:label_errors_unclassified-->0<!--/lint--> 屬後者）；`report` 將二者分列於不同區塊，勿跨區相加。
+> 不可混用（<!--lint:compared_total-->636<!--/lint-->/<!--lint:compared_mc-->300<!--/lint-->/<!--lint:compared_upper-->336<!--/lint--> 屬前者，<!--lint:total_errors-->0<!--/lint-->/<!--lint:label_errors_mc-->0<!--/lint-->/<!--lint:label_errors_upper-->0<!--/lint-->/<!--lint:label_errors_unclassified-->0<!--/lint--> 屬後者）；`report` 將二者分列於不同區塊，勿跨區相加。
 
 分型（取自 finding 之 `kind` 欄，**於生成處指定、非事後 grep 訊息反推**；合計
 <!--lint:total_errors-->0<!--/lint-->）：括號名全然不符 **<!--lint:kind_paren_mismatch-->0<!--/lint-->**／

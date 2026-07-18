@@ -676,7 +676,7 @@ Augur Enterprise AI Operating System
 | P2（Representation Before Intelligence 標題） | KS.23 | 承接 |
 | P2.D（首要任務＝建立一致可追溯可演化 Representation，非產生智慧） | KS.24（Evidence 槽承載可追溯性）、KS.100（Confidence 之生成推論〔Intelligence〕界分於 Layer 5，本層僅定 Knowledge 側語義） | 承接 |
 | P2.E1（禁止 AI 直接從 raw data 建立永久性 Knowledge） | KS.20、KS.77 | 承接 |
-| P2.E2（Model output 不得未經 Evidence 通道） | KS.24、KS.34（表徵可靠性繫於 Evidence 鏈） | 承接 |
+| P2.E2（Model output 不得未經 Evidence 通道（§2.11），直接成為權威 World Representation 或 Knowledge） | KS.24、KS.34（表徵可靠性繫於 Evidence 鏈） | 承接 |
 | P2.E3（self-reported 標記） | KS.21、KS.77 | 承接 |
 | P2.E4（禁止 Representation 被視為 Reality 本身） | KS.20、§4 | 承接 |
 | P2.E5（錯誤發現後之失效反應／fail-safe） | KS.36、KS.102（判定主體 DEFER L4–L6，`§WM.29`／D15） | 承接＋DEFER |
@@ -701,7 +701,7 @@ Augur Enterprise AI Operating System
 | P5.W5（系統不得規劃、執行或學習任何降低人類監督與否決能力之行為） | KS.82 引述缺位預設（`§P5.E2`），本層不削弱 | 承接（引述不削弱） |
 | §0.1（名稱、層級與版本：規格自我登錄慣例） | KS §0.1（名稱、層級與版本節，效力依 KS.5 承載）：本規格依同一慣例自我登錄名稱、Layer 4、版本、上層規格 | 承接 |
 | §0.2（規範用語約定：MUST／MUST NOT／SHOULD／MAY） | KS §0.2（規範用語約定節：「沿用 `AUGUR-MC v1.3 §0.2`……全文一致，不重定義」，效力依 KS.5 承載） | 承接 |
-| §0.4／§0.5（適用範圍：Layer 對照表） | KS.4（§0.4 權威語言）、§0.5（引用格式）、KS.3（§0.5 對照表 Layer 4 職掌） | 承接 |
+| §0.4／§0.5（權威語言聲明／權威語言聲明／適用範圍：Layer 對照表） | KS.4（§0.4 權威語言）、§0.5（引用格式）、KS.3（§0.5 對照表 Layer 4 職掌） | 承接 |
 | §0.6(a)（lex superior） | KS.1 | 承接 |
 | §0.6(b)（概念層獨立性） | KS.4、KS.11、Annex DO | 承接 |
 | §2.5（Evidence 定義） | KS.2（不重定義）、§8（Evidence 分類法細化） | 細化 |
@@ -714,10 +714,10 @@ Augur Enterprise AI Operating System
 | §6 F1（Data First Architecture：禁先建資料表再想世界模型；違反 P1） | KS.4（概念層獨立性＋刪名測試：Knowledge 五元組／Confidence 為概念層形式，不以特定資料庫欄位結構為定義依據）、KS.20（Confidence／五元組 hooks 物理欄位→L7，非資料表結構決定 Knowledge 存在） | 承接 |
 | §6 F2（Model First Architecture：禁先選 AI model 再設計系統；違反 P2） | 不觸及＋理由：AI model 選型屬 Layer 5（Cognitive Kernel／AI Model Selection，`§0.5` 對照表）；本層僅定 Confidence 之語義與消費約束（§4），不涉模型選型 | 不觸及＋理由 |
 | §6 F3（Agent First Architecture：禁先做 Agent 再補資料治理；違反 P2、P5） | 不觸及＋理由：Agent 建置順序屬 Layer 6 Agent Runtime；本層僅定 Source 槽承接已解析 Identity（含 Agent，KS.21），不定義 Agent 建置順序 | 不觸及＋理由 |
-| §6 F4／F5（Intelligence Without Evidence） | KS.24（F5 空 Evidence 拒斥）、KS.27 對應（無位置性） | 承接 |
+| §6 F4／F5（Knowledge Without Identity／Knowledge Without Identity／Intelligence Without Evidence） | KS.24（F5 空 Evidence 拒斥）、KS.27 對應（無位置性） | 承接 |
 | §6 F6（Unaccountable Action：禁無法回答誰發起／誰授權／憑何知識之 Action；違反 P5.E1） | 不觸及＋理由：Action 問責之六元組與執行機制屬 Layer 6（同 P5.E1，KS.101）；本層僅提供 Knowledge Basis 一環之 Confidence／完備性語義（KS.35、KS.80） | 不觸及＋理由 |
 | §7（Long-Term Stability Rule（十年以上演化原則）） | KS.4（概念層獨立性＋刪名測試：本層之技術中立與長期穩定性落實，呼應 §7「不依賴特定 AI model／database」）；五項不變核心逐項見 TR.A／TR.B 各 P1–P5 對應列 | 承接 |
-| §8.1／§8.6（版本語義、引用格式與編號穩定性） | KS.111、§0.3 | 承接 |
+| §8.1／§8.6（Constitution Steward（憲章權威）／Constitution Steward（憲章權威）／版本語義、引用格式與編號穩定性） | KS.111、§0.3 | 承接 |
 | §8.2（違憲後果、審查程序與衝突優先序） | KS.1、KS.5（較嚴格解讀） | 承接 |
 | §8.3（合規聲明義務與可判定性元規則） | KS.38、KS.75、Annex EO（可判定性元規則全文落實） | 承接 |
 | §8.4（不可豁免核心） | KS.20（§P4.E1 不可豁免）、KS.111（MUST NOT 不豁免） | 承接 |
@@ -741,7 +741,7 @@ Augur Enterprise AI Operating System
 | WM.10（Observation Store 宣告） | KS.24、KS.54（對帳獨立裁決）—承接 |
 | WM.11（referent 繫結） | KS.23—承接 |
 | WM.12（近似性與來源保留） | KS.25、§4（近似性→Confidence 語義填充）、KS.72（來源保留→Trust Rank）—語義填充 |
-| WM.13（三性質可判定判準+演化四不變式） | KS.7；三性質判準屬存在層，本層不重定義—承接（不觸及判準本體） |
+| WM.13（三性質可判定判準＋演化四不變式） | KS.7；三性質判準屬存在層，本層不重定義—承接（不觸及判準本體） |
 | WM.14（語義唯一性與一對多映射） | KS.25、KS.62、KS.63—落實 |
 | WM.15（多通道之同一性宣告） | KS.63（無宣告即非同一）—承接 |
 | WM.16（衝突與證據不足之表達力） | KS.60–KS.63、KS.31（INSUF）—承接 |

@@ -402,12 +402,12 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 
 | L5 條款 | L6 落點／處置 |
 |---|---|
-| L5.1（合法推理之定義——推理產物為候選斷言,非權威真值） | L6.3、L6.19（Knowledge Basis 須經通道確立；Learning 產出以候選斷言）—承接（核心） |
+| L5.1（合法推理之定義——推理產物為候選斷言，非權威真值） | L6.3、L6.19（Knowledge Basis 須經通道確立；Learning 產出以候選斷言）—承接（核心） |
 | L5.2（Evidence 引用鏈 DAG／雙合法終點） | L6.9（宣告受溯源約束）、L6.20（受影響閉包沿溯源鏈）—承接 |
-| L5.3（Confidence 沿推理鏈之傳播——承接 KDO.1,硬守 KS.34 上限） | L6.3、L6.12（消費 ⊓Conf 為 Action 門檻，不重定義傳播）—承接（消費） |
+| L5.3（Confidence 沿推理鏈之傳播——承接 KDO.1，硬守 KS.34 上限） | L6.3、L6.12（消費 ⊓Conf 為 Action 門檻，不重定義傳播）—承接（消費） |
 | L5.4（Hypothesis 之地位——未證斷言、可謬、須顯式標記） | 不觸及＋理由：Hypothesis 地位屬 L5；本層要求 Knowledge Basis 非候選斷言（L6.3） |
 | L5.5（Hypothesis 不得無證升級） | 不觸及＋理由：升級紀律屬 L5；本層消費已確立 Knowledge |
-| L5.6（Explanation 義務——per-結論可解釋,F5 之落實,承接 AUD-18） | 不觸及＋理由：解釋內容義務屬 L5；本層要求六元組可稽核（L6.1）與 Gate 揭露（L6.16 T 分量）—承接（行動側揭露） |
+| L5.6（Explanation 義務——per-結論可解釋，F5 之落實，承接 AUD-18） | 不觸及＋理由：解釋內容義務屬 L5；本層要求六元組可稽核（L6.1）與 Gate 揭露（L6.16 T 分量）—承接（行動側揭露） |
 | L5.7（AI Model 為 Reasoning 之工具而非世界權威——F2 Model First 之防線） | 不觸及＋理由：model output 地位屬 L5；本層 L6.3 承接「高風險不得僅以 Computational Evidence」之行動側 |
 | L5.8（Reasoning 引擎之分界紀律——不下侵 L4 語義、不上侵 L6 消費） | L6.23（對稱：本層不上侵 L5、不下侵 L7）—承接（核心） |
 | L5.9（identity resolution 演算之定性承接——T-KS-6 之解消） | 不觸及＋理由：resolution 定性屬 L5；本層消費已解析 Identity（L6.2） |
