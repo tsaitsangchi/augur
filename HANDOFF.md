@@ -6,6 +6,15 @@
 
 ---
 
+## 0.5 增補快照 2026-07-18（Phase 1 憲章化收官——接續者必讀）
+
+**main HEAD＝`f95557b`**（AUD-02＋identity 補正已併入並部署生產）。本日完成：
+* **Phase 1 全線收官**（憲章移轉計畫第一期）：(a) 分支三鏡對抗審查全 GO＋Steward 准併；(b) hugo 側部署＋heal 快照 gate 上線；(c) predict role refresh（REVOKE 84 素養／GRANT 163 預測）；(d) **owner 分離生產生效**——十張憲章表＋2 抹除函式隸 `augur_owner`（NOLOGIN），應用角色 `augur_app` 僅 SELECT/INSERT，`augur` 留維運通道；服務連線已切 `augur_app`。
+* **權限紅線（新）**：憲章十表 append-only＝ACL＋19 trigger 雙層；抹除函式唯 owner/superuser；tombstone 測試已把「應用角色被拒」鎖為回歸。**測試要跑 DB 行為層須有 `DB_SUPERUSER_PASSWORD` env（fixture 雙角色模式）**。
+* **備份**：`/home/giga/augur/backups/`（10GB dump）＋restic 異碟庫 `D:\augur_restic`（密碼檔 backups/restic.pass，600，不在 git）；pg_stat_statements 已預載。
+* **詳細執行記錄／裁決軌跡**＝augur-constitution 倉 `ops/phase1/`（EXECUTION-RECORD、#19 卷宗）與 `CODE-MIGRATION-PLAN.md`（Phase 2–8 路線）。
+* 待組織性事件：heal 首遇 value_mismatch → `raw_supersede_log` 首列（P4.E5 行為生效之標誌）。
+
 ## 0. 一句話
 
 源碼在 GitHub（clone 即得全部,含預測層+顧問層）;**DB 不在 git、靠 dump 搬（最新位置見 §3）**;`.env` 與 build 產物不在 git、**須手動重建**;治權、計劃、建構理解都在 repo 內（讀 §1）。**Claude memory 原機器本地、不隨 git**——現用 `sync_memory.py export` 快照進 repo `handoff_memory/`(隨 git 遷移),新機 clone 後 `python3 sync_memory.py restore` 還原回活 memory(見 §2)。換機續作以本 HANDOFF + repo 內文件為 SSOT。
