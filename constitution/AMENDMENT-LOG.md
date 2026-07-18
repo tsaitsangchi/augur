@@ -253,3 +253,11 @@
 * **文件**：[RULING-2026-017-MC-REVIEW-DISPOSITION.md](RULING-2026-017-MC-REVIEW-DISPOSITION.md)＋findings 冊 audits/MC-THREE-MIRROR-REVIEW-2026-07-18.md
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **要旨**：**零原則級變更、PA 與五原則本文零改**；L0 首次對抗審查閉環。MC 102 母集完好、全 corpus 7/7 PASS、selftest 綠。本批補正之獨立核驗待補
+
+## AL-2026-021
+
+* **日期**：2026-07-18
+* **事項**：Steward 裁決第 2026-018 號——**AUGUR-WM v1.0（L1）首次三鏡對抗審查 findings 處置（§8.6 patch）**：處置一＝**全艦引用版號齊一 v1.4**（L1 223 處 v1.2＋L2–L7 495 處 v1.3→v1.4，含各 mc-version 與 L1 §0.3 凍結 MUST 根治）；處置二＝C.10 §8.1 雙歸類更正（改 carries WM.47/48）；處置三＝WM.38/34 條頭具名目標層
+* **文件**：[RULING-2026-018-L1-REVIEW-DISPOSITION.md](RULING-2026-018-L1-REVIEW-DISPOSITION.md)＋findings 冊 audits/WM-THREE-MIRROR-REVIEW-2026-07-18.md
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：七份 gate 全 PASS、selftest 全綠（版本落差鎖改合成落差）；L1 首審閉環。本批獨立核驗待補

@@ -1,10 +1,11 @@
-# Augur Steward 裁決草案第 2026-018 號〔DRAFT——未經 Steward 簽核不生效力〕
+# Augur Steward 裁決第 2026-018 號
 
 **AUGUR-WM v1.0（L1）首次三鏡對抗審查 findings 之處置——§8.6 patch＋§8.1 解釋**
 
 * **依據**：`AUGUR-MC v1.4 §8.1`／`§8.6`；findings 冊 audits/WM-THREE-MIRROR-REVIEW-2026-07-18.md
-* **裁決人（擬）**：Constitution Steward（tsaitsangchi）——尚未作成
-* **性質**：幕僚彙整審查 findings 擬處置**供 Steward 裁酌**；不代改 WM、不代行 §8.1 解釋。
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-18 書面核示「全艦明採 v1.4」
+* **登錄**：Amendment Log AL-2026-021
+* **性質**：Steward 作成；幕僚機械執行。WM 之修正為 §8.6 patch（引用格式／[I]／條頭），非原則級。
 * **審查結論**：L1 首審**強過關**——三鏡零 major 存活（唯一 major 經雙反駁殺）、規範核心經證穩固、無一觸憲。殘餘全為 minor/patch。
 
 ## 一、擬處置（三項，Steward 裁酌）
@@ -29,3 +30,19 @@ WM.9 權威三分位置名未入 WM.2 清單｜B.1 MC-34 hooks vs clause carries
 
 ---
 *本草案不生效力；一切修訂與解釋俟 Steward 親為。*
+
+---
+
+## 四、執行記錄（2026-07-18，Steward「全艦明採 v1.4」）
+
+* **處置一（全艦 v1.4）**：Steward 裁定明採 v1.4。L1 之 223 處 `AUGUR-MC v1.2`→v1.4（含 §0.3 凍結 MUST 改為「升版同步更新」根治、WM.44 枚舉基準、Annex C mc-version、地位句改寫）；L2–L7 之 `AUGUR-MC v1.3`→v1.4（ONT 90／ID 79／KS 113／L5 48／L6 71／L7 94；含各 front-matter mc-version）。**七份規格引用版號自此齊一 v1.4；L1 之版本落差警訊消失**。
+* **處置二（C.10）**：§8.1 由「不觸及」改列「效力面對應 WM.47/48（carries）」，僅留 §8.5 於不觸及——解 WM.44 三分互斥矛盾。
+* **處置三（WM.38/34）**：WM.38 條頭 carries→carries＋hooks 具名目標 L3/L6（承 D17）；WM.34 稽核實作 DEFER 具名 Layer 1＋Layer 7（承 RULING-2026-017 工具保真解釋）。
+* **selftest 維護**：版本落差鎖原依 WM 真實 v1.2 落差當 fixture，全艦對齊後改以**合成落差**驗（暫存本降一 minor），判準不變、鎖更強。
+* **驗證**：七份 gate 全 PASS、selftest 全綠、report 綁定同步。
+* **待補**：本批全艦變更之獨立核驗（隨後發包——防批量替換誤傷）。
+
+## 五、對 L1「完成」之結算
+**AUGUR-WM v1.0 完成首次對抗審查閉環**：強過關（零 major）＋三項 findings 全數處置。L1「完成」自本裁決生效起成立；殘餘 observation（WM.9 命名／B.1 hooks／WM.15 衍生地點）登錄待 Phase 6 前 §8.1 釐清，不阻卻。
+
+*本裁決生效。*
