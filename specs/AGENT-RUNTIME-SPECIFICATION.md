@@ -10,7 +10,7 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 
 > ## 【地位】[N]
 >
-> 本文件為 **v1.0 生效版本**。Constitution Steward（tsaitsangchi）已於 2026-07-17 依 `AUGUR-MC v1.3 §0.5`、`§8.6` 作成**充任認定**（Steward 裁決第 2026-007 號，Amendment Log AL-2026-011），本文件充任 `§0.5` 對照表 Layer 6 欄所轄規格（Agent Runtime、Planner／Orchestrator），**自 2026-07-17 起生效**。
+> 本文件為 **v1.2 生效版本（v1.0 於 2026-07-17 充任；v1.1 RULING-2026-013；v1.2 RULING-2026-016）**。Constitution Steward（tsaitsangchi）已於 2026-07-17 依 `AUGUR-MC v1.3 §0.5`、`§8.6` 作成**充任認定**（Steward 裁決第 2026-007 號，Amendment Log AL-2026-011），本文件充任 `§0.5` 對照表 Layer 6 欄所轄規格（Agent Runtime、Planner／Orchestrator），**自 2026-07-17 起生效**。
 > * **⚠️ §8.2 實質合憲人類審查：已作成（本層與 L5 之關鍵差異）**。本層為 Agent 自撰之「人類權威層」，獨立對抗審查曾查出 2 處自我交易（弱化人類監督），已修正並經獨立重審確認自我交易已除、人類權威單向強化。**Constitution Steward 已就本層之人類權威、風險分級、P5.W5 監督度量條款作成 `§8.2` 實質審查**，並指示套用「定義窄化防線」硬化（L6.18(b-1)：對 I3／高影響／分級表定義之變更一律 RT-4＋雙人類獨立核准，堵死以改定義規避最高核准之自我交易向量）。本充任建立於**形式關卡（linter/§WM.44/獨立對抗審查零阻斷）＋ Steward §8.2 實質人類審查**雙重成就之上——非 L5 之「§8.2 延後」。Steward 之 `§8.2` 違憲審查權就其餘 residual 事項（實體世界修飾語一致性、OCV 維度充分性等）完整保留。
 > * **上層地位**：`AUGUR-MC v1.3`（L0）、`AUGUR-WM v1.0`（L1）、`AUGUR-ONT v1.0`（L2）、`AUGUR-ID v1.0`（L3）、`AUGUR-KS v1.0`（L4）、`AUGUR-L5 v1.0`（L5）均已生效。`v0.1-draft` 原文歸檔於 `specs/AGENT-RUNTIME-SPECIFICATION-v0.1-draft.md`；draft → v1.0 之變更僅限版本欄、本【地位】節生效記錄、Annex CS front-matter spec-version，**無 [N] 條款實質變更、編號不重排**。本文件全部 [N] 條款自生效日起對 Layer 7 產生規範效力；下層依 `AUGUR-L6 v1.0 §{條款}` 引用。
 > * **自我起草之利益衝突揭露（誠實揭露、歷史保留）**：本層由 Agent 起草而規範人類對 Agent 之權威，存在結構性自我交易誘因。此誘因於就緒化過程確實顯現（獨立對抗審查查獲並攔下），並經 Steward `§8.2` 實質審查把關 —— 此為 `§8.1`／P5 之獨立審查與人類保留機制成功運作之實證。
@@ -154,7 +154,7 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 > **L6.11（各風險級之 Evidence 完備性門檻）[N｜carries｜`AUGUR-MC v1.3 §P5.W3`、`§P5.E2`；承接｜`AUGUR-KS v1.0` KS.80–KS.82、Annex CL]**
 > 本層行使 `§P5.E2` 下放之「各風險級對應之完備性門檻」綁定權（`AUGUR-KS v1.0` KS.80：L4 定 Completeness Level 等級、L6 定綁定）。以 KS.81 完備性維度（證據鏈完整終止於 Observation／assumption、至少一項獨立 Data Evidence、未解假設數、樣本外／可重現驗證、無未裁決 Conflict Set）合成之 Completeness Level 為量尺，綁定：RT-1 須達基本完備（證據鏈完整、無未裁決致命 Conflict）；RT-2 須含可重現驗證；RT-3（非高影響之高成本可逆／非實體不可逆）須至少一項獨立 Data Evidence（`§P4.E7`）且無未解關鍵假設；**RT-4（涵蓋一切高影響 I3 之 Action〔不論可逆性〕及一切不可逆之實體世界 Action）須達最高完備性等級**（`§P5.W3`：不可逆_或_高影響即須最高等級完備性；「或」使高影響單獨要求最高完備）——證據鏈完整、獨立 Data Evidence、關鍵假設全解或經人類確認、無未裁決 Conflict。完備性不足其所需風險級者**不得**執行，降級處置依 L6.20。Completeness Level 之等級語義屬 Layer 4，本層僅消費、不重定義（DEFER）。
 > **核心宇宙判準數值與產業條件豁免之治理（承 `AUGUR-WM v1.0 §D22`；`AUGUR-KS v1.1` KS.80 增補款／KS.81(f) 下放）**：核心宇宙完整性 gate 之門檻值與流動性分位地板之具體分位值為本層治理參數——其採認與變更**必須**經人類核准、以核准者之已解析 Identity 為 Source、留痕為 Observation（L6.13 留痕體例準用），數值化登錄為系統狀態（下放 L7）；產業條件豁免之授予、存續審查與撤銷同受本款核准與留痕義務，其依據（制度性缺位事實，`§A.12`）須為具 Evidence 之 Knowledge（`§P4.W1`）。
-> **義務主體**：本規格、Agent Runtime。**可判定判準**：Completeness Level（L4 量尺）≥ 該 RT 級門檻為可機器比較之放行條件；具體門檻之數值化登錄為系統狀態（下放 L7），棘輪與綁定結構為本層規範。
+> **義務主體**：本規格、Agent Runtime。**可判定判準**：Completeness Level（L4 量尺）≥ 該 RT 級門檻為可機器比較之放行條件；核心宇宙 gate 門檻值／流動性分位值／產業豁免之採認變更**存在無人類核准留痕（核准者已解析 Identity＋Observation）之登錄者，違反本條增補款**；具體門檻之數值化登錄為系統狀態（下放 L7），棘輪與綁定結構為本層規範。
 
 > **L6.12（各風險級之 Confidence 門檻與單調約束）[N｜carries｜`AUGUR-MC v1.3 §P4.E8`、`§P5.E2`；承接｜`AUGUR-KS v1.0` KS.31、KS.34、KS.35、KS.38；`AUGUR-L5 v1.0` L5.3]**
 > Action 之允許等級**必須**受其依據 Knowledge 集合之 Confidence 下確界（⊓Conf 於 L_C）約束：⊓Conf 降低時 Action 允許等級**不得**升高（`AUGUR-KS v1.0` KS.35 單調約束，硬守 KS.34 meet 上限）。綁定 L_C 等級（INSUF ⊏ LOW ⊏ MODERATE ⊏ STRONG）為各 RT 門檻：RT-1 須 ⊓Conf ≥ LOW；RT-2 ≥ MODERATE；RT-3、RT-4 ≥ STRONG。⊓Conf 為 INSUF（含缺 Confidence 槽之保守推定，KS.38）者**不得**執行任何 RT≥1 之 Action。高風險（RT-3、RT-4）另受 `§P4.E7`：不得僅以系統自身產出（Computational Evidence／self-reported）為據（見 L6.3、L6.14）。
@@ -437,7 +437,7 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 
 ## Annex CS [N] — Constitutional Compliance Statement（依 `AUGUR-WM v1.0 §WM.39–45` 格式）
 
-本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（L6.90、`AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39`）。**地位提示**：本規格為 **v1.0 生效版本**，Steward 充任認定已作成、`§8.2` 實質人類審查已作成，自 2026-07-17 起生效（Steward 裁決第 2026-007 號，AL-2026-011；見【地位】、L6.90）；**Steward `§8.2` 違憲審查權就 residual 事項完整保留**（RULING-2026-007:43）。
+本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（L6.90、`AUGUR-MC v1.3 §8.3`、`AUGUR-WM v1.0 §WM.39`）。**地位提示**：本規格為 **v1.2 生效版本（v1.0 於 2026-07-17 充任；v1.1 RULING-2026-013；v1.2 RULING-2026-016）**，Steward 充任認定已作成、`§8.2` 實質人類審查已作成，自 2026-07-17 起生效（Steward 裁決第 2026-007 號，AL-2026-011；見【地位】、L6.90）；**Steward `§8.2` 違憲審查權就 residual 事項完整保留**（RULING-2026-007:43）。
 
 ```
 compliance-statement:
