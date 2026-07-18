@@ -334,6 +334,21 @@ DDL = [
     ("comment identity_de_identify", """
         COMMENT ON FUNCTION identity_de_identify(TEXT, TEXT, TEXT) IS
         'ID.42 唯一得繞過 append-only 之受控去識別化(SECURITY DEFINER、EXECUTE 須授權);抹除自然人屬性內容本體但留骨架＋provenance、標 registry status=tombstoned;法規對應表/法源 DEFER Layer 6 IDO.7'"""),
+    # 9) ONT.20 判準宣告載體（RULING-2026-014／AL-2026-017）：identity_criteria 欄＋四列判準。
+    #    冪等：ADD COLUMN IF NOT EXISTS；UPDATE 僅填 NULL 者（不覆寫既有裁決文字）。
+    ("column entity_type_catalog.identity_criteria (ONT.20)", """
+        ALTER TABLE entity_type_catalog ADD COLUMN IF NOT EXISTS identity_criteria text
+    """),
+    ("seed identity_criteria (RULING-2026-014)", """
+        UPDATE entity_type_catalog SET identity_criteria = CASE entity_type
+          WHEN 'Security'   THEN 'T.1 操作化判準（RULING-2026-014 採認）：stock_id ~ ''^[0-9]''（與 core_gate._REAL_STOCK_PREDICATE 同一謂詞）；同一性＝交易所證券代碼於未退役期間之唯一指涉；代碼重用依 ID.43 紅旗分裂、不縫合。'
+          WHEN 'Index'      THEN 'T.2 操作化判準（RULING-2026-014 採認）：來源自標 industry_category ∈ {Index, 大盤}；同一性＝一碼一指數個體（編製序列之同一）；編製方法論變更依 lifecycle correct/supersede 留痕、不刪除。'
+          WHEN 'FredSeries' THEN '操作化判準（RULING-2026-014 採認）：FRED series_id 之唯一指涉；同一性＝該統計序列本體；資料改版（revision/vintage）屬觀測層、不分裂身份。'
+          WHEN 'Automobile' THEN '守衛列・負面判準（RULING-2026-014 確認）：T.24 分類節點、非個體型別——禁止 instance 繫結；凡產業分類名不得鑄 instance（ONT.31／AUD-04 之防回歸錨）。'
+        END
+        WHERE entity_type IN ('Security','Index','FredSeries','Automobile')
+          AND identity_criteria IS NULL
+    """),
 ]
 
 VERIFY = [
