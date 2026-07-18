@@ -1,4 +1,4 @@
-# augur-code 憲章化移轉暨擴張計畫書 [I]（v0.1-draft，提交 Steward）
+# augur-code 憲章化移轉暨擴張計畫書 [I]（v1.0——2026-07-18 經 RULING-2026-012 採認生效；五決策點處置見該裁決主文二）
 
 * **性質**：[I] 計畫書（不創設義務；一切 apply／併 main／充任屬 Steward，`AUGUR-MC v1.3 §8.1`／P5.W2）。依 augur-code CLAUDE.md #20（計畫先行）與大憲章「計畫完整性」紀律（附 DDL＋python 程式規畫）作成。
 * **目標**：把活的台股系統（tsaitsangchi/augur）**逐步移轉到元憲章治理之下**，並使**一切後續擴張自動生於憲章之內**——不推倒重來、不讓 F1 遺產定義未來。
