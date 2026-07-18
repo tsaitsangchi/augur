@@ -10,6 +10,7 @@
   claim.py            — identity claim 一級介面(ID.30-32)
   lifecycle.py        — lifecycle 事件與 lineage 重建(ID.40-44)
   attribute_version.py— 身份屬性 as-of 雙時間繫結(ID.60-61)
+  resolve.py          — resolve-or-mint 准入解析單一入口(ID.11/ID.43;重用上四模組)
 
 DDL 單一權威=scripts/migrate_identity_ddl.py(#12,內聯 DDL);本 package 僅經既有表消費、不重維 CREATE TABLE。
 守 #12(DDL 單一住所)· #18(每支 library 可個別 --selftest)· 憲章 ID.11-61。
