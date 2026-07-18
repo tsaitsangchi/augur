@@ -36,7 +36,7 @@
 ### Phase 0 — 結構層落地 ✅（2026-07-18 已完成）
 十表＋trigger＋REVOKE apply 生產；15/15 行為測試（沙盒）。**本計畫其餘各期皆立於此。**
 
-### Phase 1 — code 部署與 P4.E5 行為生效 ⚡（最高優先：讓已 apply 的表開始工作）
+### Phase 1 — code 部署與 P4.E5 行為生效 ⚡ **〔✅ 2026-07-18 全線完成——(a)(b)(c)(d)＋步7＋安裝①②③；詳 ops/phase1/EXECUTION-RECORD〕**
 **內容**：(a) `remediation/impl-2026-07-17`＋PR #2 測試檔經 Steward #19 檢視後**併 main**；(b) 生產執行環境切至含快照 gate 之 code（daily_maintenance heal 自此透傳 `snapshot_reason` → raw_supersede_log 開始收衝突留痕）；(c) `setup_predict_role --apply --confirm`（人工跑，分類器擋 AI）；(d) **owner 分離**：建 `augur_app` 應用角色、十張憲章表 owner 改隸 `augur_owner`（或 postgres），應用連線不再用 owner 身分——補上「trigger 擋不住 owner」的最後一塊。
 **【閘】**：下次 heal 遇 value_mismatch 後 `SELECT count(*) FROM raw_supersede_log` > 0 且 old_row/new_row 並存；`SELECT tableowner FROM pg_tables WHERE tablename='raw_supersede_log'` ≠ 應用角色；**且以應用角色（augur_app）實測對十表最小 INSERT/SELECT 成功**（沙盒——否則 owner 已改而應用斷寫之失敗態會被漏判）。
 **【規畫】**（親驗現況：全 247 表 owner＝augur、應用即以 `DB_USER=augur` 連線，`augur_owner`／`augur_app` 角色尚不存在——直接改 owner 會使應用喪失 owner 隱含權限而斷寫）：(a) `CREATE ROLE augur_owner NOLOGIN`＋`CREATE ROLE augur_app LOGIN`；(b) 十張憲章表 `ALTER TABLE … OWNER TO augur_owner`＋逐表 `GRANT INSERT/SELECT`（憲章表禁 UPDATE/DELETE，由 trigger 兜底；serving 例外許 superseded_by）予 augur_app；(c) **其餘 237 張應用需用表之 GRANT 盤點**（現靠 owner 隱含權限，切角色後須顯式 GRANT）；(d) 應用連線角色切換：`.env` `DB_USER=augur→augur_app`、`config.DB_PARAMS`、systemd 服務重啟（CLAUDE #7）；(e) **沙盒實跑一次 heal 寫 raw_supersede_log＋mint 寫 entity_registry，驗權限鏈完整**方得生產。⚠️ 本子項為 major 風險（斷線），須整包沙盒驗證後 P5 拍板。**〔2026-07-18 沙盒實測已完成 7/7 ✅（十表 ACL 10/10、heal/mint 真實寫入、augur_app 與原 owner augur 之 UPDATE/DELETE/ALTER/DISABLE TRIGGER 全拒）——施工包 ops/phase1/（施工 SQL＋回退 SQL＋P5 呈核單），待 P5 拍板即可生產施作。〕**

@@ -48,3 +48,17 @@ hugo 側切換（過渡橋保證未切換期間零斷線，可從容執行）：
   * `.env` 切換 ✅：腳本自檔案實讀印出 `DB_USER=augur_app`；四進程均於變更後重啟（config.py 於啟動載入）。
   * **連線身分直接捕獲 ⏳ 待組織性流量**：服務對 PG 隨用隨開（毫秒級），50×0.25s 採樣＋六路由觸發均未命中活連線——**已部署哨兵**（每 2s 採樣、捕獲即報、12h 超時），待真實使用或夜間維護之首個連線完成 `usename=augur_app` 之最終實證。誠實定性：閘 B 之三項中二項已證、一項待證，**不宣稱全綠**。
 * 遺留：`ALTER DEFAULT PRIVILEGES` 之效果與 heal 首筆 supersede 留痕（待 Phase 1(a)(b) code 部署後）。
+
+## Phase 1 全線收官（2026-07-18）
+
+| 子項 | 狀態 | 證據 |
+|---|---|---|
+| (a) 分支併 main | ✅ | #19 三鏡全 GO＋Steward 准併；merge `12210c5`＋tombstone 測試升級 `f95557b`；18/18 綠 |
+| (b) hugo 側部署 | ✅ | fast-forward 至 f95557b（23 檔 +2365/−16）、四服務重啟、健檢綠、部署側 selftest 綠；heal 快照 gate 上線 |
+| (c) predict role | ✅ | Steward TTY：REVOKE 84 素養表／GRANT 163 預測表；抽驗＝素養 false／預測 true／憲章表 false |
+| (d) owner 分離 | ✅ | 閘 A 全綠＋抹除函式 REVOKE（#19 major 修復） |
+| 步 7 .env 切換 | ✅ | 服務＝augur_app、維運＝augur 雙通道 |
+| 安裝①②③ | ✅ | giga venv 滿配；restic 異碟備份鏈（snapshot cbb73c19＋5% 讀取驗證零錯誤）；pg_stat_statements 追蹤中 |
+| 監看 | ▶ | 連線身分哨兵＋首筆 supersede 留痕（5 分鐘輪詢） |
+
+**Phase 1 之憲章意義**：owner 分離（L7.16）＋append-only 雙層強制＋抹除唯人路徑＋predict 三層隔離＋heal 快照 gate 上線——**行為層武裝完畢，等待第一筆 value_mismatch 將 P4.E5 從條文變成資料列。**
