@@ -2,7 +2,7 @@
 
 Augur Enterprise AI Operating System
 知識系統規格（Layer 4 — Knowledge System）
-引用縮寫：**AUGUR-KS**｜版本：**v1.0**（前版：v0.1-draft）
+引用縮寫：**AUGUR-KS**｜版本：**v1.1**（前版：v1.0；minor 修正 RULING-2026-016／AL-2026-019：KS.80 核心宇宙成員資格判準增補款＋KS.81(f) 產業條件豁免維＋TR/DI 承接更正）
 受 **AUGUR-MC v1.3** 全文約束（`AUGUR-MC v1.3 §0.6(a)` lex superior、`§0.5` 對照表 Layer 4 欄）
 並受 **AUGUR-WM v1.0** 全文約束（`AUGUR-MC v1.3 §0.6(a)`、`AUGUR-WM v1.0 §WM.1`）
 並受 **AUGUR-ONT v1.0**（Layer 2）、**AUGUR-ID v1.0**（Layer 3）之下放掛鉤承接約束（`AUGUR-MC v1.3 §0.6(a)`）
@@ -489,10 +489,11 @@ Augur Enterprise AI Operating System
 
 > **KS.80（完備性等級之定義權界分）[N｜refines｜`AUGUR-MC v1.3 §P5.E2`（完備性等級由 Layer 4 定義）；hooks｜門檻→L6（KDO.2）]**
 > 定義 **Completeness Level**（完備性等級，描述一 Knowledge／結論之證據完備程度之有序等級，為 `§P5.E2` 「完備性等級」之細化構件）。本層定等級語義；**各風險級須達之完備性門檻、Confidence 門檻、核准流程**由 Layer 6 風險分級表定義（`§P5.E2`，KDO.2）。
+> **核心宇宙成員資格判準（承 `AUGUR-WM v1.0 §D22`、`§A.14`）**：核心宇宙（模型消費之成員集）之成員資格判準**必須**為資料品質之函數、**不得**含投資價值面因素（`§A.14` 判準定位）；其判準結構為 (i) **完整性 gate**——成員須達以 KS.81 維度可盤點之資料完整性要求；(ii) **流動性分位地板**——以分位表述之流動性下限，本層定其量測口徑與分位基準之結構，具體分位值與 gate 門檻值為 operational 層參數（`§A.48`：於 operational 層合法且須透明揭露），其採認與變更核准 DEFER Layer 6；(iii) **產業條件豁免**（KS.81(f)）。成員資格斷言為 Knowledge 級衍生斷言，受 KS.20／KS.45／KS.55 既有約束；判準之計算實作屬 Layer 5 inference（比照 KS.83(ii) 體例），本層不定演算。**可判定判準**：成員資格判準含任一投資價值面因素、或 gate／地板／豁免不可解析至本款結構者，違反本條。
 > **義務主體**：本規格、Layer 6 規格作者。**可判定判準**：本層對「哪一風險級需哪一完備性」作實質定義者，下侵違本條。
 
 > **KS.81（完備性維度）[N｜refines｜`AUGUR-MC v1.3 §P5.E2`、`§P5.W3`；Annex CL]**
-> 完備性等級由下列可判定維度合成（Annex CL）：(a) 證據鏈是否完整終止於 Observation／assumption（`§P4.E6`）；(b) 是否含至少一項獨立 Data Evidence（KS.75）；(c) 是否含未解假設（assumption 標記數）；(d) 是否經樣本外／可重現驗證（Grading Method provenance），含預註冊判準凍結與多重比較調整之踐行（KS.84）；(e) 是否存在未裁決之 Conflict Set（§7）。
+> 完備性等級由下列可判定維度合成（Annex CL）：(a) 證據鏈是否完整終止於 Observation／assumption（`§P4.E6`）；(b) 是否含至少一項獨立 Data Evidence（KS.75）；(c) 是否含未解假設（assumption 標記數）；(d) 是否經樣本外／可重現驗證（Grading Method provenance），含預註冊判準凍結與多重比較調整之踐行（KS.84）；(e) 是否存在未裁決之 Conflict Set（§7）；(f) **產業條件豁免（承 `§D22`、`§A.12`）**：某產業板塊制度性缺某類資料者（如金融保險業無月營收申報制度），該缺位為世界結構事實，**不得**計為 (a)–(e) 之完備性缺陷或完整性 gate 之未達；豁免以『產業分類×資料類』為粒度，其依據（制度性缺位事實）本身為須具 Evidence 之 Knowledge（`§P4.W1`）；豁免之授予、存續審查與撤銷之核准 DEFER Layer 6。
 > **義務主體**：本規格、Layer 5–7 構件。**可判定判準**：每一維度可機器盤點者合規。
 
 > **KS.82（完備性與不可逆性成正比之承接）[N｜carries｜`AUGUR-MC v1.3 §P5.W3`；hooks｜綁定→L6（KDO.2）]**
@@ -799,9 +800,9 @@ Augur Enterprise AI Operating System
 | A.9（ForeignSecurity） | 不觸及＋理由：領域實例 | A.39（Observation Store 域內認定） | KS.24—承接 |
 | A.10（Commodity／FX／Rate／BondYield 維度族） | KS.78（維度白名單）—承接 | A.40（「API 即權威」定位限定） | KS.72、CM.1(a)—承接 |
 | A.11（EconomicIndicator） | KS.41（vintage＝A3 範式）、KS.45—承接 | A.41（系統記錄之域內實例） | KS.24—承接 |
-| A.12（IndustryClassification） | 不觸及＋理由：領域實例 | A.42（排除閉集與排除理由類型） | KS.71—承接 |
+| A.12（IndustryClassification） | KS.81(f)—承接（產業條件豁免之粒度，RULING-2026-016） | A.42（排除閉集與排除理由類型） | KS.71—承接 |
 | A.13（DataProvider） | KS.72（Trust Rank 來源型態）—承接 | A.43（下市與可見性） | KS.55—承接 |
-| A.14（Model 與 CoreUniverse） | KS.55、KS.74（synthetic；成員資格版本化）—承接 | A.44（語料通道 license 三軌與隔離） | KS.72、KS.78—承接 |
+| A.14（Model 與 CoreUniverse） | KS.55、KS.74（synthetic；成員資格版本化）、KS.80 增補款（成員資格判準結構）—承接 | A.44（語料通道 license 三軌與隔離） | KS.72、KS.78—承接 |
 | A.15（HumanDecisionMaker） | KS.76（人類確認）；承 Layer 3—承接 | A.45（真兆三問） | KS.75、KS.81—承接 |
 | A.16（KnowledgeCorpus 語料實體族） | KS.71（Knowledge Evidence）、KS.72—承接 | A.46（三敵框架＝防線組織） | KS.75、KS.76—承接 |
 | A.17（Catalog 元資料） | KS.25（Registry 實作載體 [I]）—承接 | A.47（as-of 紀律為判準非實作） | KS.44—承接 |
@@ -829,7 +830,7 @@ Augur Enterprise AI Operating System
 | D4（AST 稽核） | 不觸及＋理由：下放 L5/L7 | D19（RBAC 表設計） | 不觸及＋理由：下放 L6/L7 |
 | D5（DB trigger fail-closed） | 不觸及＋理由：下放 L7 | D20（輸出契約本體） | 不觸及＋理由：下放 L6 |
 | D6（展示分級） | 不觸及＋理由：下放 L6 | D21（維度白名單取得機制） | KDI.7→KS.78—承接 |
-| D7（Knowledge 五元組欄位） | KDI.1→§3—承接 | D22（多重比較家族治理） | KS.84（L4 面向）；演算 DEFER L5（KDO.3）—承接＋DEFER |
+| D7（Knowledge 五元組欄位） | KDI.1→§3—承接 | D22（核心宇宙完整性 gate、流動性分位地板、產業條件豁免） | KS.80 增補款＋KS.81(f)—承接（RULING-2026-016 更正：原誤標「多重比較家族治理→KS.84」，該實質屬 D12、:837 列既承） |
 | D8（as-of 重建機制與能力等級） | KDI.2→§5—承接 | D23（as-of 查詢操作化） | KDO.6—下放 L5/L7 |
 | D9（Confidence 形式化語義） | KDI.3→§4—承接 | D24（序列化格式） | 不觸及＋理由：下放 L7（KDO.7） |
 | D10（supersede／tombstone／三分類／信任分級） | KDI.4→§6／§8—承接 | D25（儲存引擎） | 不觸及＋理由：下放 L7（KDO.7） |
@@ -924,6 +925,7 @@ Augur Enterprise AI Operating System
 | IDO.6（as-of 重建引擎與能力等級） | KDI.14→§5＋KDO.6—承接＋轉下放 |
 | IDO.7（ID 內部其他下放，非 L4 承接對象） | 不觸及＋理由：IDO.7 目標非 Layer 4（依 ID 原文所指層下放） |
 | IDO.8（唯一權威 Representation 實際指定） | KDI.15→KS.25／KS.62—承接 |
+| `AUGUR-WM v1.0 §D22`（核心宇宙 gate／流動性地板／產業豁免；目標 L4–L6） | **KDI.18**→KS.80 增補款／KS.81(f)—承接（RULING-2026-016 增列）；數值治理 DEFER L6（L6.11 增補款）、計算 DEFER L5 |
 
 **(3) ID Annex L4（與 Layer 4 分界表）**——與本規格 Annex L3U 同構對表，「Layer 4 專屬」欄各列由本規格承接、「Layer 3 專屬」欄各列本層消費不重定義：identity claim 列→KS.90/KS.91/KS.25/KS.62；判準採認列→KS.23（消費）＋KDO.1/KDO.4（演算／量測下放）；lifecycle 列→KS.26/KS.53；provisional 列→KS.83/KS.92／KDO.4。逐列於 Annex L3U 對應承接（L3U.0 判準：兩欄無交集）。
 
@@ -986,7 +988,7 @@ compliance-statement:
 
 ### CS.3 雙向 DEFER 承接表（`AUGUR-WM v1.0 §WM.43`）[N]
 
-* **(a) 承接上層之掛鉤（defers-in）**：`AUGUR-WM v1.0 §D7`→§3；`§D8`→§5；`§D9`→§4；`§D10`→§6／§8；`§D11`→§9；`§D12`（HOOK-03，L4 面向）→KS.84（＋§8/§9）；`§D18`→KS.25/KS.62（L7 機制 slice 對稱下放 KDO.5）；`§D21`→KS.78；`§D26`→KS.54；`§D27`→KS.45；`AUGUR-ONT v0.1-draft §ONT.2`／散列→KS.20/§4；`AUGUR-ID v0.1-draft` IDO.1→§4/§10、IDO.2→§3/§10、IDO.3→KS.26、IDO.4→KS.83（＋轉 L5 KDO.1／L5/L7 KDO.4）、IDO.6→§5、IDO.8→KS.25/KS.62。與 front-matter `defers-in` 欄及 Annex DI 三向對表。
+* **(a) 承接上層之掛鉤（defers-in）**：`AUGUR-WM v1.0 §D7`→§3；`§D8`→§5；`§D9`→§4；`§D10`→§6／§8；`§D22`→KS.80 增補款／KS.81(f)（KDI.18，RULING-2026-016）；`§D11`→§9；`§D12`（HOOK-03，L4 面向）→KS.84（＋§8/§9）；`§D18`→KS.25/KS.62（L7 機制 slice 對稱下放 KDO.5）；`§D21`→KS.78；`§D26`→KS.54；`§D27`→KS.45；`AUGUR-ONT v0.1-draft §ONT.2`／散列→KS.20/§4；`AUGUR-ID v0.1-draft` IDO.1→§4/§10、IDO.2→§3/§10、IDO.3→KS.26、IDO.4→KS.83（＋轉 L5 KDO.1／L5/L7 KDO.4）、IDO.6→§5、IDO.8→KS.25/KS.62。與 front-matter `defers-in` 欄及 Annex DI 三向對表。
 * **(b) 下放下層之掛鉤（defers-out）**：KDO.1、KDO.2、KDO.3（HOOK-02/03 之 L5 面向）、KDO.4、KDO.5（`§D18` 之 L7 機制 slice）、KDO.6、KDO.7（見 Annex DO），與 front-matter `defers-out` 欄互為索引。原 KDO.HOOK02 已改編為 KDO.3、目標收斂為純 L5。
 
 ### CS.4 形式充分性（`AUGUR-WM v1.0 §WM.44`）[N]

@@ -2,7 +2,7 @@
 
 Augur Enterprise AI Operating System
 Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
-引用縮寫：**AUGUR-L6**｜版本：**v1.1**（前版：v1.0；minor 修正 RULING-2026-013／AL-2026-016：L6.15 增補授權受限資料用途邊界款、TR 之 D24 承接拆分）（前版：v0.1-draft）
+引用縮寫：**AUGUR-L6**｜版本：**v1.2**（前版：v1.1；minor 修正 RULING-2026-016／AL-2026-019：D13/D15/D17/D22/D28 五增補款〔L6.9(d)/L6.11/L6.19/L6.20/L6.21〕＋Annex D 六列 TR 拆分＋LDI.7 增列。v1.1＝RULING-2026-013）
 受 **AUGUR-MC v1.3** 全文約束（`AUGUR-MC v1.3 §0.6(a)` lex superior、`§0.5` 對照表 Layer 6 欄）
 並受 **AUGUR-WM v1.0**（Layer 1）、**AUGUR-ONT v1.0**（Layer 2）、**AUGUR-ID v1.0**（Layer 3）、**AUGUR-KS v1.0**（Layer 4）、**AUGUR-L5 v1.0**（Layer 5）全文約束（`AUGUR-MC v1.3 §0.6(a)`）
 
@@ -144,7 +144,8 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 
 > **L6.9（可逆性與影響之可判定判準）[N｜refines｜`AUGUR-MC v1.3 §P5.W3`、`§8.3` 可判定性元規則；為 L6.10 分級之認定輸入]**
 > (a) **不可逆性軸 R**：一 Action 為可逆，當且僅當系統持有一經宣告之**補償／回復 Action**（compensating Action），其可於有界成本與有界時間內將受影響 Identity 之可觀測狀態回復至行動前狀態，且該回復之達成可由 Observation 驗證；無此經宣告且可驗證之回復 Action 者，推定為不可逆。分 **R1** 可逆低成本／**R2** 高成本可逆／**R3** 不可逆。(b) **影響軸 I**：以行動對受影響 Identity 集合之經宣告量值認定，維度含受影響已解析 Identity 之數量、所涉物理／資源量、安全／法律／財務暴險、是否涉及標記為安全／法律／自然人（`§P1.E3`）敏感之 Identity、是否逾越單一 Plan 邊界之外部主體。分 **I1** 局部低影響／**I2** 中影響／**I3** 高影響或系統性或涉自然人安全法益。(c) **缺宣告即保守**：可逆性或影響未經宣告、或宣告不可機器解析者，一律推定為 R3 且 I3（`§8.3` 存疑即不允許）。宣告本身為受 `§P4.E6` provenance 與 Evidence 約束之 Knowledge，**不得**為規避分級而虛列。
-> **義務主體**：本規格、Plan 產生者、Controlled External Interface。**可判定判準**：每一 Action 之（R 軸、I 軸）二元標籤可由上述維度機器判定，缺值走保守分支（R3×I3）。
+> (d) **自然人法規對應表（承 `AUGUR-WM v1.0 §D17` L6 slice、`AUGUR-ID v1.0` IDO.7；`AUGUR-MC v1.3 §P1.E3`、`AUGUR-WM v1.0 §WM.38`）**：本層行使 `§WM.38`／`§D17` 下放之定義權，定義**自然人法規對應表**為本層治理結構：凡 Agent 工作流觀測、消費或表徵涉自然人之資料者，其所涉觀測通道或處理活動**必須**於本表具生效登錄項，載明〔所在法域、適用法規義務（含法規強制抹除／去識別化義務之引用，連結 `AUGUR-ID v1.0` ID.42）、目的正當性、授權依據〕四欄。**表之登錄項為系統狀態、非本規格條文**（準用 `AUGUR-WM v1.0 §WM.35` Registry 前例，其增補不構成本規格升版），其採認**必須**由人類權威作成並留痕為 Observation（`§P4.E7`）。**保守預設**（`§8.3`；`§WM.38` 判準）：未登錄或四欄不全者，該涉自然人資料之觀測消費與相應 Action **不允許**；合規義務與功能衝突時**合規優先**，惟於合法觀測範圍內對已觀測事實之忠實表徵義務（PA）不減損，本款**不得**引為選擇性表徵之依據（`§WM.38`）。本條 (b) I 軸之「自然人（`§P1.E3`）敏感」標記**必須**可解析至本表登錄項。物理載體與部署面（表之儲存、語料隔離、egress 預設拒絕）細化下放 Layer 7（L7.33 既載）。
+> **義務主體**：本規格、Plan 產生者、Controlled External Interface。**可判定判準**：涉自然人資料之任一觀測消費或 Action，其法規對應表登錄項存在且四欄俱全者為合規；未登錄或欄位不全而仍消費或執行者違反本條。每一 Action 之（R 軸、I 軸）二元標籤可由上述維度機器判定，缺值走保守分支（R3×I3）。
 
 > **L6.10（Action 風險分級表 RT-0–RT-4）[N｜carries｜`AUGUR-MC v1.3 §P5.E2`、`§P5.W3`；為 `§P4.E7`、`§P5.W3` 全憲章同一分級之落點]**
 > 本條定義 `§P5.E2` 下放 Layer 6 之風險分級表，全憲章同一分級。依 L6.9 二軸（R×I）合成有序風險級（低→高）：**RT-0** 純表徵狀態變更（`§2.1`）——非 Action、不受 P5.E1 六元組約束（列此為邊界標記，防 Action 偽裝為純表徵以規避 Gate），其歸責改由 P2／P4 通道承擔；**RT-1** 可逆且低影響（R1×I1，具經驗證回復 Action）；**RT-2** 有成本可逆或中影響（R2 或 I2，且非 I3）；**RT-3** 難以回復之**非高影響**情形（高成本可逆〔R2〕或 R3 之非實體不可逆，且影響 ≤ I2、非 I3）；**RT-4** **一切高影響（I3）之實體世界 Action，不論可逆性**，及一切不可逆之實體世界 Action，或 R3×I3，或一切涉自然人安全法益之 Action（對應 `§P5.W3`：不可逆_或_高影響即需最高等級核准——**「或」使高影響單獨觸發最高風險級 RT-4**；`§P5.E2` 下放之分級權僅及『何謂高影響（I3）』之認定，**不得反用以降低已認定為高影響之 Action 之風險級或核准層級**）。核准級與人類介入強度、Evidence 完備性、Confidence 門檻均與風險級成正比（見 L6.11–L6.13）。**缺位預設規則**（承 `§P5.E2`、`AUGUR-KS v1.0` KS.82）：凡未經本表分級、或分級有爭議之意圖改變實體世界之 Action，一律視為 **RT-4**——須人類事前逐案核准方得執行，並記錄為暫行分級；本層引述不得削弱此缺位預設。存疑時從嚴歸入較高級（`§8.3` 保守解釋）。
@@ -152,6 +153,7 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 
 > **L6.11（各風險級之 Evidence 完備性門檻）[N｜carries｜`AUGUR-MC v1.3 §P5.W3`、`§P5.E2`；承接｜`AUGUR-KS v1.0` KS.80–KS.82、Annex CL]**
 > 本層行使 `§P5.E2` 下放之「各風險級對應之完備性門檻」綁定權（`AUGUR-KS v1.0` KS.80：L4 定 Completeness Level 等級、L6 定綁定）。以 KS.81 完備性維度（證據鏈完整終止於 Observation／assumption、至少一項獨立 Data Evidence、未解假設數、樣本外／可重現驗證、無未裁決 Conflict Set）合成之 Completeness Level 為量尺，綁定：RT-1 須達基本完備（證據鏈完整、無未裁決致命 Conflict）；RT-2 須含可重現驗證；RT-3（非高影響之高成本可逆／非實體不可逆）須至少一項獨立 Data Evidence（`§P4.E7`）且無未解關鍵假設；**RT-4（涵蓋一切高影響 I3 之 Action〔不論可逆性〕及一切不可逆之實體世界 Action）須達最高完備性等級**（`§P5.W3`：不可逆_或_高影響即須最高等級完備性；「或」使高影響單獨要求最高完備）——證據鏈完整、獨立 Data Evidence、關鍵假設全解或經人類確認、無未裁決 Conflict。完備性不足其所需風險級者**不得**執行，降級處置依 L6.20。Completeness Level 之等級語義屬 Layer 4，本層僅消費、不重定義（DEFER）。
+> **核心宇宙判準數值與產業條件豁免之治理（承 `AUGUR-WM v1.0 §D22`；`AUGUR-KS v1.0` KS.80 增補款／KS.81(f) 下放）**：核心宇宙完整性 gate 之門檻值與流動性分位地板之具體分位值為本層治理參數——其採認與變更**必須**經人類核准、以核准者之已解析 Identity 為 Source、留痕為 Observation（L6.13 留痕體例準用），數值化登錄為系統狀態（下放 L7）；產業條件豁免之授予、存續審查與撤銷同受本款核准與留痕義務，其依據（制度性缺位事實，`§A.12`）須為具 Evidence 之 Knowledge（`§P4.W1`）。
 > **義務主體**：本規格、Agent Runtime。**可判定判準**：Completeness Level（L4 量尺）≥ 該 RT 級門檻為可機器比較之放行條件；具體門檻之數值化登錄為系統狀態（下放 L7），棘輪與綁定結構為本層規範。
 
 > **L6.12（各風險級之 Confidence 門檻與單調約束）[N｜carries｜`AUGUR-MC v1.3 §P4.E8`、`§P5.E2`；承接｜`AUGUR-KS v1.0` KS.31、KS.34、KS.35、KS.38；`AUGUR-L5 v1.0` L5.3]**
@@ -190,13 +192,15 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 
 ## §7 行動迴路與錯誤傳播熔斷 [N]（`§4 EV.8–EV.12`、`§P2.E3/E5`）
 
-> **L6.19（Planning→Execution→Feedback 迴路與 Observation 回流）[N｜carries｜`AUGUR-MC v1.3 §P2.E3`、`§P5.E1`、`§4 EV.8–EV.12`]**
+> **L6.19（Planning→Execution→Feedback 迴路與 Observation 回流）[N｜carries｜`AUGUR-MC v1.3 §P2.E3`、`§P5.E1`、`§4 EV.8–EV.12`；refines｜`§P3.E1`；承接｜`AUGUR-WM v1.0` Annex D D13]**
 > 行動迴路：Planning（EV.8，消費 `AUGUR-L5 v1.0` 之 EV.7 Reasoning 產物）→ Human Authority Gate（EV.9，L6.7）→ Execution（EV.10 Action）→ Feedback（EV.11）→ Learning（EV.12）。Execution 之 execution receipt 與外部確認訊號以 Observation 之姿回流（`§P2.E3`），**必須永久攜帶 self-reported 標記**、以該 Agent Identity 為 Source，僅構成關於該 Action 之宣稱性 Observation，**非**世界狀態之權威確認；其升級為 Knowledge 受 `§P4.E7` 約束（見 L6.4）。回流之 Observed Effect 填入六元組（`§P5.E1`）並與 Expected Effect 比對（背離處置見 L6.20）。Learning（EV.12）改變的僅為表徵狀態（`§2.1`），**不得**實作為世界狀態直寫；其產出仍以候選斷言經 Evidence 通道（`§2.11`、`§P2.W2`、`§P2.E1`）確立，且受非侵蝕棘輪（L6.17）約束——不得以 Learning 落地任何降低 OCV 之行為變更。Agent **不得**繞過通道將意圖或未證實結果直寫 World Representation（`§P2.E3`）。
-> **義務主體**：本規格、Agent Runtime。**可判定判準**：每一 Action 之 Observed Effect 具 self-reported 標記與 Source Identity、且經通道確立，引用鏈可機器稽核。
+> **Planning 側結構化物件之定義與 Identity 引用紀律（承 `AUGUR-WM v1.0` Annex D D13、`AUGUR-MC v1.3 §P3.E1`；2026-07-18 RULING-2026-016 增補）**：本層行使 `§P3.E1` 下放 Layer 5–6 之定義權（Reasoning 側之引用兜底屬 Layer 5：`AUGUR-L5 v1.0` L5.1、L5.6）。(i) **Plan**：意圖進入 EV.8 Planning 之經授權結構化物件，繫結其 Goal、Constraint、所需 Capability 與已授權 Action 集合，為授權委派繫結（L6.6(d)）、權限範圍化（L6.15）、否決／暫停／中止（L6.8）與熔斷（L6.20）之作用單位。(ii) **Goal**：Plan 所宣告之意圖世界狀態；其 referent 為所繫結 Identity 之可能狀態，屬模態內容（`AUGUR-WM v1.0 §WM.17`），**必須**攜顯式模態標記，**不得**充當世界事實。(iii) **Constraint**：Plan 所載對其 Action 集合之顯式限制（含 L6.6(a) scope 與風險級上限、L6.15 之用途邊界）；本層風險分級與門檻（L6.10–L6.13）為一切 Constraint 之不可低於之下限，Plan **不得**載入弱於其之限制。(iv) **Capability**：Agent 為執行 Plan 所持之權限，其概念語義即 L6.15 之最小權限與 Plan 範圍化（capability token 之物理機制下放 Layer 7，LDO.2）。**引用紀律（`§P3.E1` 兜底、`AUGUR-WM v1.0 §WM.21(d)`）**：凡意圖進入 Reasoning／Planning 之結構化物件——不問其於本層或下層之命名——所指涉之世界實體**必須**引用已解析之 Identity；Goal／Constraint／Capability／Plan 引用未解析（provisional）Identity 者，該 Plan **不得**通過 EV.9 Gate（L6.7）、其 Action **不得**進入 EV.10（連 L6.2）。四物件之欄位設計與 serialization 下放 Layer 7（LDO.6）。
+> **義務主體**：本規格、Agent Runtime。**可判定判準**：每一 Action 之 Observed Effect 具 self-reported 標記與 Source Identity、且經通道確立，引用鏈可機器稽核；存在任一 Plan（或其 Goal／Constraint／Capability）指涉世界實體而未引用已解析 Identity 仍通過 Gate 者，違反本條。
 
 > **L6.20（錯誤傳播熔斷）[N｜carries｜`AUGUR-MC v1.3 §P2.E5`（Fail-safe，Layer 4–6 落地）、`§P5.E1`；承接｜`AUGUR-KS v1.0` KS.102]**
 > 觸發條件（任一）：(i) 所依賴之 Representation 或 Evidence 被判定錯誤或撤回（`§P2.E5`）；(ii) Observed Effect 與 Expected Effect 之背離逾經登錄之容差；(iii) 進行中 Plan 之依據 ⊓Conf 跌破其 RT 級門檻（L6.12）或 Completeness Level 跌破門檻（L6.11）。受影響範圍之可判定界定：自錯誤 Representation／Evidence 沿 Evidence 溯源鏈（`§P4.E6`）與 Identity 依賴（`§P3`）之遞迴傳遞閉包（transitive closure）。處置分級：(a) 衍生 Knowledge 標記並重新評估；(b) 受影響進行中之 Plan／Action 暫停（suspend）；(c) 受影響範圍降級為觀測與建議模式（degrade）。**degrade 與 halt 之釘定**：涉 RT-4／不可逆 Action 者一律 **halt**（硬停，不得以 degrade 續行）；低階 Action 得 degrade，惟 degrade 期間**不得**延長自動執行鏈（L6.17(iii)）亦**不得**降低核准層級（L6.17(i)）。
-> **義務主體**：本規格、Agent Runtime、Controlled External Interface。**可判定判準**：受影響範圍之閉包可由依賴圖機器計算；熔斷處置與 RT 級之對應為機器可查之義務。
+> **判定主體／程序之釘定（承 `AUGUR-MC v1.3 §P2.E5` DEFER、`AUGUR-WM v1.0 §D15`；承接 `AUGUR-KS v1.0` KS.102 界分）**：觸發條件 (i) 所稱『被判定錯誤或撤回』，謂該 Representation／Evidence 上已依 `AUGUR-KS v1.0` KS.51 確立 Supersede Relation（失效類型 ∈ {retracted, invalidated}）、或已依 KS.62 確立衝突裁決 Knowledge。**判定主體**為該失效關係／裁決之作成者**已解析 Identity**（任一得經 Evidence 通道確立 Knowledge 之 Identity 均得作成）；**判定程序**依 KS.51 結構（失效理由 Evidence、transaction time、作成者 Identity）與 KS.36（失效事件本身為需 Evidence 之 Knowledge），**不得**匿名或無證作成。判定一經確立，本條熔斷**必須**機械觸發，Agent **不得**裁量攔阻或延遲（否則構成 `§P5.W5` 侵蝕，L6.18）。**修復之判定**（解除 suspend／degrade）同為需 Evidence 之 Knowledge 行為，以作成者已解析 Identity 為 Source、留痕為 Observation；受影響 Plan／Action 之恢復**不因曾經熔斷而豁免或降低**其 RT 級核准層級（L6.13）與 Completeness／Confidence 門檻（L6.11／L6.12）之全套約束。判定或修復之爭議由 Constitution Steward 依 `§8.1` 裁決（`§P2.E5`）。
+> **義務主體**：本規格、Agent Runtime、Controlled External Interface。**可判定判準**：受影響範圍之閉包可由依賴圖機器計算；熔斷處置與 RT 級之對應為機器可查之義務；任一熔斷觸發事件可回溯至一已確立之 KS.51／KS.62 行為及其作成者 Identity、任一解除事件具修復 Evidence 與 Source Identity 留痕者合規；存在無對應已確立判定行為之熔斷攔阻或無證解除者違反本條。
 
 ---
 
@@ -204,7 +208,8 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 
 > **L6.21（F6 執法點：Controlled External Interface 之六元組完備性阻卻）[N｜carries｜`AUGUR-MC v1.3 F6`、`§P5.E2`、`§5` 角色六；refines｜`§2.9`]**
 > Controlled External Interface（`§5` 角色六）為本層行動分級（L6.10）與六元組完備性之**單一執法點**。凡經該介面對系統外發出之操作，介面**必須**於放行前驗證其攜帶完整且可稽核之 Action 六元組（L6.1）並已通過 Human Authority Gate（L6.7）；任一未能回答「誰發起、誰授權、憑什麼知識」之操作（`F6` Unaccountable Action）**必須**於介面被阻卻、**不得**對外發出。非經授權鏈而實際造成 Reality 變更之事件為 `F6` 所禁止之違憲事件，**必須**以 Observation 回流並溯責於引致其發生之 Identity（`§2.9`）。
-> **義務主體**：本規格、Controlled External Interface、執行構件。**可判定判準**：存在任一對外操作未經介面六元組＋Gate 驗證即發出、或經介面發出之操作缺完整可稽核六元組者，違反本條。
+> **誠實輸出契約之行動側承接（承 `AUGUR-WM v1.0 §D28`／`§A.50`；憲章依據 `§P2.E5`、`§P4.E4`）**：凡經 Controlled External Interface 對人呈現之預測性產物，介面**必須**於放行前另行驗證：(i) **產物閉集**——產物屬經登錄之產物閉集，閉集外之預測性數字**不得**對外呈現（閉集之枚舉登錄為系統狀態，下放 Layer 7，仿 L6.11／L6.12 數值登錄模式）；(ii) **硬綁揭露**——每一呈現之預測性數字與其揭露事實五項（基線對照、校準 provenance、歷史／即時標示、對映偏差等，`AUGUR-WM v1.0 §A.50`；其世界模型結構位置＝`§WM.12`／`§WM.33`）於同一呈現單位內不可分離同現，缺任一項者該數字**不得**呈現；(iii) **展示分級**——呈現級別屬閉集有序分級：未達 GATE 成就（`AUGUR-L5 v1.0` L5.5）者**不得**呈現；達成就而經濟裁決否定者**僅得**研究級呈現且與裁決標籤硬綁；達成就且裁決存活者方得完整呈現；分級狀態缺位或不可解析者從最嚴（`§8.3`）；(iv) **fail-closed 閘**——上開任一驗證不成立或不可判定者一律阻卻，改以顯式之誠實拒答形呈現（不得以部分產物或降級數字充填），且產物持久層保持零寫入；其 DB 機械強制（trigger 級）與揭露載體下放 Layer 7（L7.43／L7.44 準用）。
+> **義務主體**：本規格、Controlled External Interface、執行構件。**可判定判準**：存在任一對外操作未經介面六元組＋Gate 驗證即發出、或經介面發出之操作缺完整可稽核六元組者，違反本條；存在任一對人呈現之預測性數字屬閉集之外、或未同現其硬綁揭露五項、或其展示級高於其 GATE／經濟裁決狀態所許、或於狀態不可解析時仍呈現數字或寫入產物表者，違反本條。
 
 > **L6.22（F3 防線：Accountability Before Runtime——治理鏈先於 Agent 行動）[N｜carries｜`AUGUR-MC v1.3 F3`、`§P2.E3`、`§P5.D`]**
 > 本層**不得**於治理鏈（Evidence 通道、已解析 Identity、可追溯至人類權威之授權鏈）成就前使 Agent 具備任何 Action 能力（`F3` 禁止「先做 Agent、再補資料治理」）。具體落實：(a) Agent **不得**以未經 Evidence 通道確立之 Knowledge Basis 執行 Action（L6.3）；(b) Agent **不得**自我授予權威——授權鏈根節點恆為人類（L6.5）；(c) Runtime 啟動（bootstrap）序列**必須**先建立人類根授權與 Human Authority Gate（L6.7），方得啟用任何 Action 能力；(d) Planning／Execution 之任何階段**不得**繞過 EV.9 Gate。
@@ -244,9 +249,10 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 | 掛鉤 | 承接來源 | 事項 | 本規格落點 |
 |---|---|---|---|
 | **LDI.1** | `AUGUR-L5 v1.0` LDO.6、`AUGUR-MC v1.3 §5` 角色五 | Planning／Human Authority Gate／Action 授權鏈驗證與行動 gating（EV.8–EV.10） | L6.1、L6.5、L6.7、L6.19、L6.21 |
-| **LDI.2** | `AUGUR-L5 v1.0` LDO.2、`AUGUR-KS v1.0` KDO.2、`AUGUR-MC v1.3 §P5.E2` | 風險分級表、各風險級之完備性／Confidence 門檻 | L6.10、L6.11、L6.12 |
-| **LDI.3** | `AUGUR-MC v1.3 §P4.E7`、`AUGUR-L5 v1.0` LDO.2 | 確認者資格與獨立性判準 | L6.14 |
-| **LDI.4** | `AUGUR-MC v1.3 §P5.W5`、`§8.3` | 人類監督與否決能力之可稽核度量 | L6.16、L6.17 |
+| **LDI.2** | `AUGUR-L5 v1.0` LDO.2、`AUGUR-KS v1.0` KDO.2、`AUGUR-MC v1.3 §P5.E2`、`AUGUR-WM v1.0 §D16`〔風險分級面，RULING-2026-016〕 | 風險分級表、各風險級之完備性／Confidence 門檻 | L6.10、L6.11、L6.12 |
+| **LDI.3** | `AUGUR-MC v1.3 §P4.E7`、`AUGUR-L5 v1.0` LDO.2、`AUGUR-WM v1.0 §D16`〔確認者面〕 | 確認者資格與獨立性判準 | L6.14 |
+| **LDI.4** | `AUGUR-MC v1.3 §P5.W5`、`§8.3`、`AUGUR-WM v1.0 §D16`〔監督度量面〕 | 人類監督與否決能力之可稽核度量 | L6.16、L6.17 |
+| **LDI.7** | `AUGUR-ID v1.0` IDO.7（目標 L6；經 `AUGUR-WM v1.0 §D17` L6 slice） | 自然人法規對應表本體與其授權 | L6.9(d)〔RULING-2026-016 增列〕 |
 | **LDI.5** | `AUGUR-KS v1.0` KS.80–KS.82、Annex CL | Completeness Level 之風險級綁定（等級語義屬 L4，本層消費） | L6.11 |
 | **LDI.6** | `AUGUR-KS v1.0` KS.31/KS.34/KS.35、`AUGUR-L5 v1.0` L5.3 | Confidence 下確界（⊓Conf）之下游消費門檻綁定（序與語義屬 L4/L5，本層消費） | L6.3、L6.12 |
 
@@ -368,16 +374,23 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 | `AUGUR-WM v1.0` WM.13–WM.32（存在層本體／唯一權威表徵／canonical chain／Evidence 三分類存在層宣告） | 不觸及＋理由：屬存在層本體，L6 消費不重定義；WM.24 canonical chain → L6.19 承接 |
 | `AUGUR-WM v1.0` WM.33（永久標記表達力） | L6.4、L6.19（self-reported 永久標記）—承接（核心） |
 | `AUGUR-WM v1.0` WM.34（核心不變式之可機器稽核） | L6.1、L6.5、L6.16、L6.17（可機器稽核判準）—承接 |
-| `AUGUR-WM v1.0` WM.35–WM.38（落地即整合；消費設閘不阻斷落地／World Concept Registry 與消費規則／唯一權威表徵落實義務／自然人之有界表徵） | 不觸及＋理由：屬存在層／L4 落點 |
+| `AUGUR-WM v1.0` WM.35–WM.37（落地即整合；消費設閘不阻斷落地／World Concept Registry 與消費規則／唯一權威表徵落實義務） | 不觸及＋理由：屬存在層／L4 落點 |
+| `AUGUR-WM v1.0` WM.38（自然人之有界表徵） | **承接**（RULING-2026-016 析出）：L6.9(d)（法規對應表四欄登錄）、L6.10／L6.13（涉自然人 I3⇒RT-4 行動強制） |
 | `AUGUR-WM v1.0` WM.39–WM.47（合規聲明格式／編號穩定／升版） | L6.90、L6.91、§0.3、Annex CS、Annex TR—承接／落實 |
 | `AUGUR-WM v1.0` WM.48–WM.53（存在層治理雜項／文件約定規範地位） | WM.53 → L6.92—承接；WM.48–52 不觸及＋理由：屬存在層治理 |
-| `AUGUR-WM v1.0` Annex A（A.0–A.59）／Annex D（D0–D28 除 D24 外）／HOOK-01/02/03 | 不觸及＋理由：領域素材與 L2–L4 下放掛鉤，非行動治理落點；經 L4/L5 工作流入徵。〔**旗標（RULING-2026-013 主文三）**：Annex D 目標含 L6 者七列中，D16／D17 之概括判定存疑、D13／D15／D22／D28 之理由未經逐列驗證——提請 Steward 另案逐列裁決〕 |
+| `AUGUR-WM v1.0` Annex A（A.0–A.59）／Annex D（D0–D28，除 D13、D15、D16、D17、D22、D24、D28 外）／HOOK-01/02/03 | 不觸及＋理由：領域素材與 L2–L4 下放掛鉤，非行動治理落點；經 L4/L5 工作流入徵。〔**六列旗標已全數逐列裁決**（RULING-2026-016；查證 12 代理、反駁全數失敗）：D16 純文件補正、D13／D15／D17／D22／D28 實質承接補正——各見下列承接列〕 |
 | `AUGUR-WM v1.0` **D24**（存取控制 RBAC；授權資料不入預測特徵之隔離強制） | **承接**（2026-07-18 RULING-2026-013 補正）：RBAC 面＝L6.15（最小權限與 Plan 範圍化）＋L6.6（委派範圍／失效／可撤銷）；隔離強制面＝L6.15 增補款（授權受限資料之用途邊界）；物理面細化下放 L7.16／L7.33(b)／L7.49 |
+| `AUGUR-WM v1.0` **D13**（Goal、Constraint、Capability、Plan 之定義；目標 L5–L6，`AUGUR-MC v1.3 §P3.E1`、WM.21(d) 兜底） | **承接**（2026-07-18 RULING-2026-016 補正）：定義面＝L6.19 增補款（Planning 側四物件概念語義——Plan 繫結 Goal／Constraint／Capability 與已授權 Action 集合，連 L6.6(d)／L6.8／L6.15／L6.20；Goal 為模態內容承 `AUGUR-WM v1.0 §WM.17`；Constraint 承 L6.6(a) scope／風險級上限；Capability＝L6.15 權限語義）；引用紀律面（P3.E1 兜底）＝L6.19 增補款（引用未解析 Identity 之 Planning 物件不得通過 EV.9 Gate，連 L6.2／L6.7）；Reasoning 側兜底屬 L5（`AUGUR-L5 v1.0` L5.1／L5.6、CS.1-P3）；欄位／serialization 與 capability token 物理面下放 L7（LDO.2、LDO.6） |
+| `AUGUR-WM v1.0` **D15**（fail-safe 判定主體／程序、污染追蹤、觀測建議模式邊界） | **承接**（RULING-2026-013 主文三逐列查證補正）：污染追蹤面＝L6.20（受影響範圍＝自錯誤 Representation／Evidence 沿 Evidence 溯源鏈與 Identity 依賴之遞迴傳遞閉包，Annex EO「熔斷之受影響範圍」；表達力承 `AUGUR-KS v1.0` KS.70／KS.34）；觀測建議模式邊界面＝L6.20（degrade／halt 釘定：RT-4／不可逆一律 halt；degrade 期間不得延長自動執行鏈〔L6.17(iii)〕、不得降低核准層級〔L6.17(i)〕；否決通道恆常可用 L6.8）；判定主體／程序面＝L6.20 增補款（判定＝KS.51 Supersede Relation／KS.62 裁決之確立，作成者已解析 Identity 攜失效理由 Evidence；熔斷機械觸發不得裁量攔阻；修復判定同為需 Evidence 之行為且恢復不豁免 RT 級約束；爭議→Steward `§8.1`）；失效與 Supersede 形式表達力屬 L4（KS.51／KS.36／KS.62；KS.102 界分），本層消費不重定義 |
+| `AUGUR-WM v1.0` **D16**（風險分級表、核准流程、確認者資格與獨立性、監督否決度量；WM 掛鉤 WM.28、A.53） | **承接**（本列補正：本層即該列之目標 Layer，四子項落點既存、無需增補條文）：風險分級表＝L6.9（R×I 可判定判準）＋L6.10（RT-0–RT-4，含 `§P5.E2` 缺位最高級預設之引述不削弱、全憲章同一分級）＋L6.11／L6.12（各級完備性／Confidence 門檻）＋L6.21（受控介面執法點）；核准流程＝L6.13（有序核准層級與各 RT 綁定、核准者已解析 Identity 為 Source 留痕為 Observation）＋L6.7（EV.9 Gate 強制驗證）；確認者資格與獨立性＝L6.14（行使 `§P4.E7` 下放之定義權）；監督否決度量＝L6.16（OCV）＋L6.17（單調棘輪）＋L6.18（反自我交易／guard-the-guard）；A.53 域內人類決策動作閉集之維護紀律＝L6.18(b)（介入點登錄之變更為最高核准層級 Action）＋L6.7／L6.13，閉集域內內容經 L4/L5 工作流入徵、物理佈點與數值登錄下放 L7（LDO.3／LDO.4／LDO.5） |
+| `AUGUR-WM v1.0` **D17**（自然人法規對應表；目標 L3/L6，`§WM.38`、`§P1.E3`） | **承接**（RULING-2026-016 補正）：**L6 slice**（法規對應表本體與其授權，承 `AUGUR-ID v1.0` IDO.7）＝L6.9(d) 增補款（自然人法規對應表：四欄登錄義務、登錄項為系統狀態、未登錄即不允許之保守預設、合規優先且忠實表徵不減損、I 軸敏感標記可解析至表）；行動風險面＝L6.9(b)／L6.10／L6.13 既載（涉自然人敏感 Identity ⇒ I3 ⇒ RT-4 ⇒ 事前雙人類獨立核准）；**L3 slice** 由 `AUGUR-ID v1.0` ID.42（去識別化／法規強制抹除）＋ID.60（as-of 繫結）既承；部署面細化下放 L7.33（語料隔離之機器強制、egress 預設拒絕） |
+| `AUGUR-WM v1.0` **D22**（核心宇宙完整性 gate、流動性分位地板、產業條件豁免機制） | **承接**（RULING-2026-013 主文三旗標之逐列補正）：判準結構面＝L4（`AUGUR-KS v1.0` KS.80 增補款〔成員資格為資料品質之函數、三機制結構〕＋KS.81(f)〔產業條件豁免之完備性語義〕）；計算面＝L5（成員資格衍生為 inference，`AUGUR-L5 v1.0` L5.2／L5.3 既有紀律）；治理面＝L6.11 增補款（gate 門檻值與流動性分位值之採認變更核准、產業豁免之授予存續審查——人類核准留痕，數值登錄下放 L7 系統狀態） |
+| `AUGUR-WM v1.0` **D28**（誠實輸出契約本體：產物閉集、硬綁揭露五項、展示分級、fail-closed 閘） | **承接**（2026-07-18 RULING-2026-016 補正）：契約本體＝L6.21 增補款（受控介面放行前四驗證：產物閉集／硬綁揭露五項／展示分級／fail-closed 閘）；分級狀態消費 `AUGUR-L5 v1.0` L5.4／L5.5（GATE 成就與模態標記——D28 之 L5 面，既載）；表達力承 `AUGUR-WM v1.0 §A.50`（WM.12／WM.17／WM.33）；物理面下放 L7——揭露載體 L7.43、介面 fail-closed L7.44、產物表 trigger 級機械強制與閉集枚舉登錄 |
 | `AUGUR-ONT v1.0` ONT.1–ONT.62（型別層本體／Type 判準／schema／型別演化） | 不觸及＋理由：型別層本體，本層消費既定 Type 不重定義；ONT.60–62 合規存續 → L6.90/L6.92 承接 |
 | `AUGUR-ONT v1.0` Annex T／DO.0–DO.4 | 不觸及＋理由：型別素材與 L2 下放掛鉤，目標 L3–L4 已承接 |
 | `AUGUR-ID v1.0` ID.1–ID.53（個體層本體／identifier／lifecycle／已解析與 provisional 狀態） | L6.2（消費已解析 Identity）、L6.5（人類決策者 Human）、L6.14（lineage 獨立性）—承接（消費）；其餘個體層機制不觸及＋理由：屬 L3 |
 | `AUGUR-ID v1.0` ID.60–ID.81（身份屬性 as-of 繫結義務／繫結存在 vs 重建引擎之分界／Layer 4 專屬事項清單／分界表／格式承接／存續與升版） | L6.23（分界紀律不上侵 L3）、L6.90/L6.92（合規存續）—承接；衝突保存語義不觸及＋理由：屬 L4 |
-| `AUGUR-ID v1.0` IDO.0–IDO.8（ID 下放掛鉤） | 不觸及＋理由：目標 L4/L5/L7，已由對應層承接；本層消費已解析 Identity |
+| `AUGUR-ID v1.0` IDO.0–IDO.8（ID 下放掛鉤） | **IDO.7（目標 L6）→ 承接（L6.9(d)，RULING-2026-016 更正——原列理由對 IDO.7 為誤述）**；其餘（目標 L4/L5/L7）不觸及＋理由：已由對應層承接；本層消費已解析 Identity |
 
 ### TR.E — `AUGUR-KS v1.0`（全部 [N]，十位制區塊）[N]
 
@@ -437,7 +450,7 @@ compliance-statement:
   principles: [PA, P1, P2, P3, P4, P5, EV-chain]
   waivers: []
   open-tensions: [T-L6-1, T-L6-2, T-L6-3, T-L6-4, T-L6-5, T-L6-6]
-  defers-in: [L5.LDO.2, L5.LDO.6, KS.KDO.2, MC.P5.E2, MC.P4.E7, MC.P5.W5, MC.role5]
+  defers-in: [L5.LDO.2, L5.LDO.6, KS.KDO.2, MC.P5.E2, MC.P4.E7, MC.P5.W5, MC.role5, ID.IDO.7]
   defers-out: [LDO.1, LDO.2, LDO.3, LDO.4, LDO.5, LDO.6]
   date: 2026-07-17
   author: Layer 6 Agent Runtime 規格起草人（AUGUR-L6 起草子代理；產物原為 v0.1-draft 提案，業經 Steward 充任認定與 §8.2 實質審查，以 v1.0 生效；§8.2 residual 保留）
@@ -450,6 +463,7 @@ compliance-statement:
 > 引 `AUGUR-MC v1.3 §1.1`、`§P5.D`。行動治理落實 PA 之三性：每一 Action 之 Knowledge Basis 須引用可追溯 Evidence（L6.3）落實「可追溯之 Evidence」；風險級門檻與 ⊓Conf 綁定（L6.12）落實「不確定性可追溯」；熔斷與否決通道（L6.8、L6.20）落實「錯誤可被修正／可中止」。判準揭示：「可追溯」以六元組引用鏈可機器遍歷（L6.1 判準）操作化，「錯誤可修正」以 Agent-獨立否決通道恆常可達（L6.8 判準）操作化。
 
 > **CS.1-P1（Reality First）**〔承接＋不觸及〕
+> 〔RULING-2026-016 補述〕P1.E3 之法規對應面：L6.9(d) 課自然人法規對應表四欄登錄義務（未登錄即不允許之保守預設）；**判準揭示**：登錄項存在性與四欄完備性可機器盤點。
 > 引 `§P1.E3`、`§2.9`。影響軸 I 之高影響判準涵蓋涉自然人（`§P1.E3`）安全法益之敏感 Identity（L6.9），觸此者最高風險級 RT-4（L6.10）；Reality 唯經 Action 改變、系統外變化逕以 Observation 進入（L6.19，承 `§4` 因果迴路）。Reality／表徵本體屬 Layer 0/1，本層消費不重定義。判準揭示：涉自然人敏感 Identity 之 Action 落最高風險分支（L6.9(b)、L6.10 判準）以 Identity 標記可機器盤點操作化。
 
 > **CS.1-P2（Representation Before Intelligence）**〔承接〕
@@ -482,7 +496,7 @@ compliance-statement:
 
 ### CS.3 雙向 DEFER 承接表（`AUGUR-WM v1.0 §WM.43`）[N]
 
-* **(a) 承接上層／Layer 5 之掛鉤（defers-in）**：`AUGUR-L5 v1.0` LDO.6→L6.1/L6.5/L6.7/L6.19/L6.21（LDI.1）；`AUGUR-L5 v1.0` LDO.2＋`AUGUR-KS v1.0` KDO.2＋`AUGUR-MC v1.3 §P5.E2`→L6.10/L6.11/L6.12（LDI.2）；`§P4.E7`→L6.14（LDI.3）；`§P5.W5`＋`§8.3`→L6.16/L6.17（LDI.4）；`AUGUR-KS v1.0` KS.80–KS.82/Annex CL→L6.11（LDI.5）；`AUGUR-KS v1.0` KS.31/KS.34/KS.35→L6.3/L6.12（LDI.6）；`AUGUR-MC v1.3 §5` 角色五→§3–§8。與 front-matter `defers-in` 欄及 Annex LDI 三向對表。
+* **(a) 承接上層／Layer 5 之掛鉤（defers-in）**：`AUGUR-L5 v1.0` LDO.6→L6.1/L6.5/L6.7/L6.19/L6.21（LDI.1）；`AUGUR-L5 v1.0` LDO.2＋`AUGUR-KS v1.0` KDO.2＋`AUGUR-MC v1.3 §P5.E2`→L6.10/L6.11/L6.12（LDI.2）；`§P4.E7`→L6.14（LDI.3）；`§P5.W5`＋`§8.3`→L6.16/L6.17（LDI.4）；`AUGUR-ID v1.0` IDO.7→L6.9(d)（LDI.7）；`AUGUR-KS v1.0` KS.80–KS.82/Annex CL→L6.11（LDI.5）；`AUGUR-KS v1.0` KS.31/KS.34/KS.35→L6.3/L6.12（LDI.6）；`AUGUR-MC v1.3 §5` 角色五→§3–§8。與 front-matter `defers-in` 欄及 Annex LDI 三向對表。
 * **(b) 下放下層之掛鉤（defers-out）**：LDO.1（否決信號物理傳輸／停止時延數值／kill-switch→L7）、LDO.2（Identity／授權鏈密碼學綁定／capability token→L7）、LDO.3（監督介面 UI／透明度載體→L7）、LDO.4（風險分級物理執法佈點→L7）、LDO.5（各 RT 級數值門檻登錄→L7/系統狀態）、LDO.6（特定框架／Planner／Orchestrator／Scheduler／LLM／受控介面實作→L7），與 front-matter `defers-out` 欄互為索引（見 Annex LDO）。
 
 ### CS.4 形式充分性（`AUGUR-WM v1.0 §WM.44`）[N]

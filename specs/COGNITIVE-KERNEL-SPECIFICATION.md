@@ -226,7 +226,7 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 
 ## Annex TR [N] — WM.44 逐條對應矩陣（憲章＋WM＋ONT＋ID → L5）
 
-> **TR.0（矩陣之地位與生效要件性）[N]** 依 `AUGUR-WM v1.0 §WM.44`：`AUGUR-MC v1.3`、`AUGUR-WM v1.0`、`AUGUR-ONT v1.0`、`AUGUR-ID v1.0`、`AUGUR-KS v1.0` 全部 [N] 條款均須對應至本規格至少一 [N] 條款、明記 DEFER 掛鉤、或明記「不觸及」及理由（P#.Y 為 [I] 不計）。本矩陣：TR.A（`AUGUR-MC v1.3` §P4 家族逐條）、TR.B（`AUGUR-MC v1.3` PA／P1／P2／P3／P5 家族、EV.1–EV.12、F1–F6 及 §0/§1/§2/§5/§7/§8 逐條）、TR.C（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28＋HOOK-01/02/03，以十位制區塊逐條枚舉）、TR.D（`AUGUR-ONT v1.0` ONT.1–62＋Annex T T.0–T.91＋DO.0–4）、TR.E（`AUGUR-ID v1.0` ID.1–81＋IDO.0–8）。以十位制區塊枚舉者，區塊內各條款共享所標處置。**本層為交界層，多數上層本體條款之處置為「承接不觸及＋理由：屬 Layer 0–4 本體，L5 消費不重定義」**。
+> **TR.0（矩陣之地位與生效要件性）[N]** 依 `AUGUR-WM v1.0 §WM.44`：`AUGUR-MC v1.3`、`AUGUR-WM v1.0`、`AUGUR-ONT v1.0`、`AUGUR-ID v1.0`、`AUGUR-KS v1.0` 全部 [N] 條款均須對應至本規格至少一 [N] 條款、明記 DEFER 掛鉤、或明記「不觸及」及理由（P#.Y 為 [I] 不計）。本矩陣：TR.A（`AUGUR-MC v1.3` §P4 家族逐條）、TR.B（`AUGUR-MC v1.3` PA／P1／P2／P3／P5 家族、EV.1–EV.12、F1–F6 及 §0/§1/§2/§5/§7/§8 逐條）、TR.C（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28＋HOOK-01/02/03，以十位制區塊逐條枚舉）、TR.D（`AUGUR-ONT v1.0` ONT.1–62＋Annex T T.0–T.91＋DO.0–4）、TR.E（`AUGUR-ID v1.0` ID.1–81＋IDO.0–8）。以十位制區塊枚舉者，區塊內各條款共享所標處置。**本層為交界層，多數上層本體條款之處置為「承接不觸及＋理由：屬 Layer 0–4 本體，L5 消費不重定義」**。〔**TR 更正記錄（patch，RULING-2026-016／AL-2026-019）**：TR.C(3) 原對 D13–D17／D19–D25／D28 之概括理由（「目標 L2–L4」「非本層落點」）與 `AUGUR-WM v1.0` Annex D 原文目標欄矛盾，屬誤植——D13／D22／D28 已析出改列，D14–D17 括注據實更正；[N] 義務零變更。〕
 > **義務主體**：本規格、Steward。**可判定判準**：如 `§WM.44` 對應完備性——五上層每一 [N] 條款於本矩陣有落點列（承接／細化／DEFER／不觸及＋理由）者為完備；標「不觸及＋理由」之列，其理由為機器可判之處置。
 
 ### TR.A — `AUGUR-MC v1.3` §P4 家族（逐條）[N]
@@ -361,11 +361,13 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | D0（下放盤點） | 不觸及＋理由：D 掛鉤主要下放 L2–L4；本層經 L4（`AUGUR-KS v1.0`）間接承接 |
 | D7–D11（五元組／as-of／Confidence／Evidence／完備性→L4） | 不觸及＋理由：目標 L4，已由 `AUGUR-KS v1.0` 承接；本層消費 L4 產物 |
 | D12（HOOK-03 GATE 統計→L4 設計權） | L5.5（演算面實作，設計權承 `AUGUR-KS v1.0` KS.84）—承接（演算面） |
-| D13–D17（表徵治理下放） | 不觸及＋理由：目標 L2–L4 |
+| D13（Goal／Constraint／Capability／Plan 之定義；目標 L5–L6，`AUGUR-MC v1.3 §P3.E1`） | 承接（部分）＋轉下放（2026-07-18 補正；原概括「目標 L2–L4」為誤植）：Reasoning 側引用兜底＝L5.1（候選斷言紀律）、L5.6（解釋繫已解析 Identity）；Planning 側四物件之定義權隨 EV.8–EV.10 經 LDO.6 轉 Layer 6（`AUGUR-L6` L6.19 增補款承接） |
+| D14–D17（表徵治理下放其餘列） | 不觸及＋理由：各列依 Annex D 原文之目標 Layer 由對應層承接（原概括「目標 L2–L4」為誤植，RULING-2026-016 更正；D16/D17 之 L6 側承接見 AUGUR-L6 v1.2） |
 | D18（Registry／部署拓撲→L4/L7） | 不觸及＋理由：目標 L4/L7（`AUGUR-KS v1.0` KDO.5） |
-| D19–D25（存在層下放雜項） | 不觸及＋理由：目標 L2–L4 |
+| D19–D21、D23–D25（存在層下放雜項） | 不觸及＋理由：目標 L2–L4 |
+| D22（核心宇宙完整性 gate／流動性地板／產業豁免） | 承接（計算面）：成員資格衍生計算為本層 inference（承 `AUGUR-KS v1.1` KS.80 增補款下放，比照 KS.83(ii) 體例），受 L5.2（as-of 消費）、L5.3（Confidence 傳播）既有紀律約束，不另立新條；判準結構屬 L4、數值與豁免核准屬 L6（RULING-2026-016） |
 | D26–D27（重編／point-in-time→L4） | 不觸及＋理由：目標 L4（`AUGUR-KS v1.0` KS.54/45） |
-| D28（下放尾項） | 不觸及＋理由：非本層落點 |
+| D28（誠實輸出契約本體） | 承接界分：本層供契約所消費之 GATE 成就狀態與 Hypothesis 模態標記（L5.4、L5.5）；契約本體（產物閉集、硬綁五項、展示分級、fail-closed 閘）落點 L6（`AUGUR-L6` L6.21 增補款）——呈現面依 LDO.3 本層不定 |
 
 ### TR.D — `AUGUR-ONT v1.0`（全部 [N]，逐條）[N]
 
