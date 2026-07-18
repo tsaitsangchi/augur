@@ -223,3 +223,10 @@
 * **文件**：[RULING-2026-013-D24-L6-REMEDIATION.md](RULING-2026-013-D24-L6-REMEDIATION.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **驗證**：L6 gate PASS（error 0）；全 corpus 7/7 PASS；版本引用零漣漪（minor 之向後相容，`§8.6`）
+
+## AL-2026-017
+
+* **日期**：2026-07-18
+* **事項**：Steward 裁決第 2026-014 號——**ONT.20 判準操作化採認＋`entity_type_catalog.identity_criteria` 補欄**：T.1 Security／T.2 Index／FredSeries 三判準採認（ID.20）、Automobile 守衛列確認；四列判準文字沙盒→生產寫入；**ONT.20 首次機器可判**（無判準列=0 為閘）；Phase 2 卷宗裁②結案（路線 a）
+* **文件**：[RULING-2026-014-ONT20-CRITERIA.md](RULING-2026-014-ONT20-CRITERIA.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
