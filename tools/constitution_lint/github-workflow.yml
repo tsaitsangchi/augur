@@ -25,7 +25,7 @@
 #    一個要靠人正確重打的 glob。）
 #
 #   結果：受檢規格 <!--lint:corpus_total-->7<!--/lint--> 份
-#         （生效本 <!--lint:corpus_effective-->6<!--/lint--> ＋ draft <!--lint:corpus_draft-->1<!--/lint-->）
+#         （生效本 <!--lint:corpus_effective-->7<!--/lint--> ＋ draft <!--lint:corpus_draft-->0<!--/lint-->）
 #         <!--lint:corpus_fail-->0<!--/lint--> FAIL / <!--lint:corpus_pass-->7<!--/lint--> PASS；
 #         error 合計 <!--lint:total_errors-->0<!--/lint--> 筆
 #         （全部為 WM.44-LABEL，非 LABEL error 為 <!--lint:non_label_errors-->0<!--/lint-->）

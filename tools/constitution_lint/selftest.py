@@ -567,8 +567,10 @@ def _binding_and_consistency(chk, records):
         == {pathlib.Path(f).name for f in d["corpus"]
             if not pathlib.Path(f).name.endswith("-v0.1-draft.md")}))
     _add("sub", lambda d: (
-        "  └ 尚無生效本之 draft（L7）在 corpus 內（充任受阻者不得因此脫檢）",
-        any(pathlib.Path(f).name.endswith("-v0.1-draft.md") for f in d["corpus"])))
+        "  └ corpus 內任一 draft 之生效本必不存在（draft 受檢 ⟺ 該層尚無生效本；2026-07-18 L7 充任"
+        "〔RULING-2026-011〕後七層生效本俱在→corpus 內 draft=0 為空真成立；他層日後充任受阻時其 draft 必受檢不脫檢）",
+        all(not (pathlib.Path(f).parent / pathlib.Path(f).name.replace("-v0.1-draft.md", ".md")).exists()
+            for f in d["corpus"] if pathlib.Path(f).name.endswith("-v0.1-draft.md"))))
     _add("sub", lambda d: (
         "  └ `specs/*.md` 裸 glob **不等於** corpus（該 glob 含歸檔本，曾致 13 份/352 之誤）",
         len(list((_REPO / "specs").glob("*.md"))) > len(d["corpus"])))

@@ -199,3 +199,12 @@
 * **文件**：[RULING-2026-010-LABEL-REMEDIATION.md](RULING-2026-010-LABEL-REMEDIATION.md)（含執行記錄）
 * **裁決人**：Constitution Steward（tsaitsangchi）；機械執行由授權幕僚為之（額度中斷後以確定性腳本續行，全程留痕）
 * **效果**：#22 之生效規格部分結案；**L7 draft 48 筆亦於同日辦竣（見裁決 §五）——七份規格 gate 全 PASS，專案首次全綠**。殘餘＝L7 之 §8.2 實質審查／三鏡重審／充任（屬 Steward）＋CI merge-gate 接線（另裁）
+
+## AL-2026-014
+
+* **日期**：2026-07-18
+* **事項**：Steward 裁決第 2026-011 號——**Layer 7 規格充任認定（AUGUR-L7 v1.0，provisional）**：形式關卡充任＋`§8.2` 深度實質審查誠實保留列管（七項必審、期限 2026-10-14，比照 RULING-2026-006 先例）；併案三項 `§8.1` 解釋裁決（T-L7-13 取較嚴交集／未裁決 Conflict 推定致命之保守預設維持／matrix_missing＝WM.44 覆蓋缺口集合）；**達成里程碑 M2（L0–L7 全棧治權骨幹貫通）**
+* **程序依據**：`§0.5`、`§8.1`、`§8.6`；三鏡重審全數 go＋203 筆對抗全查結案（audits/L7-REREVIEW-2026-07-18.md）
+* **文件**：[RULING-2026-011-L7-ADOPTION.md](RULING-2026-011-L7-ADOPTION.md)；生效本 `specs/INFRASTRUCTURE-SPECIFICATION.md`（draft 歸檔）
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **效果**：八層全棧生效（L0–L7）；corpus 7 生效本／0 draft；CI 接線與 Bearer Registry 補齊列為充任後首批
