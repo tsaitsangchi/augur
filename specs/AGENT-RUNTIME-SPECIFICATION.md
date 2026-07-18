@@ -223,7 +223,7 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 ## §9 文件治理與合規存續 [N]
 
 > **L6.90（合規聲明格式承接）[N｜carries｜`AUGUR-WM v1.0 §WM.39–45`；`AUGUR-MC v1.3 §8.3`]**
-> 本規格之 Constitutional Compliance Statement 依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成（見 **Annex CS**），非暫行模板。無有效聲明使本規格不生效力。front-matter 閉集欄位、七節論證、緊張關係節、雙向 DEFER 表、WM.44 逐條矩陣（Annex TR）俱全為機器可判生效要件（惟 Steward 充任認定與 `§8.2` 實質審查另為裁決要件，DRAFT）。
+> 本規格之 Constitutional Compliance Statement 依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成（見 **Annex CS**），非暫行模板。無有效聲明使本規格不生效力。front-matter 閉集欄位、七節論證、緊張關係節、雙向 DEFER 表、WM.44 逐條矩陣（Annex TR）俱全為機器可判生效要件（Steward 充任認定已作成：RULING-2026-007／AL-2026-011）。
 > **義務主體**：本規格自身、Steward。**可判定判準**：Annex CS 之 front-matter 欄位、七節論證、緊張關係節、雙向 DEFER 表俱全（`§WM.40–44`），且 Annex TR 逐條矩陣完備。
 
 > **L6.91（存續與升版）[N｜carries｜`AUGUR-MC v1.3 §8.6`；`AUGUR-WM v1.0 §WM.46–47`]**
@@ -418,7 +418,7 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 ### TR.Z — 殘餘生效阻卻（DRAFT）[N]
 
 > **TR.Z（充任認定已成就；`§8.2` 實質審查已作成、residual 保留）[N]** 上開逐條／區塊枚舉已就六上層全部 [N] 條款給出落點（承接／細化／DEFER／不觸及＋理由）。**本規格經 Constitution Steward 依 `AUGUR-MC v1.3 §8.1` 作成充任認定，並經 `§8.2` 實質合憲人類審查，自 2026-07-17 起以 v1.0 生效**（Steward 裁決第 2026-007 號、AL-2026-011）；**Steward `§8.2` 違憲審查權就 residual 事項完整保留**（RULING-2026-007:43）；形式充分性之最終判斷與實質合憲審查均屬 Steward 裁決，本子代理不代行、不自行宣稱生效。以十位制區塊枚舉之上層本體條款，其「不觸及＋理由」為機器可判之處置；如經 Steward 認定某區塊須逐條細列，屬 minor 升版維護（L6.91）。**自我起草警示**：本層規範人類對 Agent 之權威，其監督度量與非侵蝕棘輪（L6.16–L6.18）之充分性尤待 Steward `§8.2` 實質審查確認未低估人類監督之真實維度（T-L6-5）。
-> **義務主體**：本規格、Steward。**可判定判準**：六上層每一 [N] 條款於本矩陣有落點；Steward 充任認定成就前，本規格不生效力。
+> **義務主體**：本規格、Steward。**可判定判準**：六上層每一 [N] 條款於本矩陣有落點；Steward 充任認定成就前，本規格不生效力（該要件已成就：RULING-2026-007／AL-2026-011）。
 
 ---
 

@@ -31,7 +31,7 @@ GEN_COMMAND = "python3 -m tools.constitution_lint report"
 
 # ── 受檢 corpus 之定義（**權威定義在此，不在文件**）────────────────────────────────────
 #
-#   受檢 corpus ＝ 六份生效本（L1–L6，檔名無 `-v0.1-draft`）＋ L7 draft ＝ **七份**。
+#   受檢 corpus ＝ 各層生效本（檔名無 `-v0.1-draft`）＋尚無生效本之 draft（2026-07-18 L7 充任後＝七份生效本、零 draft）。
 #   歸檔本除外：`X-v0.1-draft.md` 於 `X.md`（其生效本）存在時即為**歸檔本**，不受檢。
 #
 # 此定義以「生效本是否存在」判斷歸檔與否，**非**以檔名白名單或層號硬編碼——L7 之 draft
@@ -381,7 +381,7 @@ def render(data: dict) -> str:
     L.append("═══ constitution_lint report — 全 corpus 權威數字 ═══")
     L.append("")
     L.append("【受檢 corpus 之定義】（權威定義寫在程式：`tools/constitution_lint/report.py::corpus_files`）")
-    L.append(f"  七份 ＝ 六份生效本（L1–L6，檔名無 `-v0.1-draft`）＋ L7 draft（尚無生效本）")
+    L.append(f"  corpus ＝ 各層生效本（檔名無 `-v0.1-draft`）＋尚無生效本之 draft（有則入檢）")
     L.append(f"  歸檔本除外：`X-v0.1-draft.md` 於其生效本 `X.md` 在場時即為歸檔本，不受檢。")
     L.append(f"  ⚠ 不得以 `specs/*.md` glob 代之——該 glob 含 6 份歸檔 draft，得 13 份而非本表之 "
              f"{v['corpus_total']} 份。")
