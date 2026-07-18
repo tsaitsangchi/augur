@@ -17,7 +17,7 @@ metadata:
 migrate_text_understanding_ddl.py CONSTRAINTS(冪等)· R4 admission_gate source_type=None 改 fail-closed ·
 R5 acquire_local/remote_files 無參數 graceful(矩陣印出移出 db.connect)· R6 sftpsync/sftpbrowse walk 加深度上限 ·
 R2/R3 pending item_source_gate trigger 改 BEFORE INSERT OR UPDATE + active 判準加 adapter 鍵(防 NULL-protocol SFTP 漏閘)。
-附帶修既存 bug:原 TRIGGER_FN RAISE 用 %% 致佔位符/arg 數不符(從未 apply 故沒發現)。
+附帶修既存 bug:原 TRIGGER_FN RAISE 用 %% 致佔位符/arg 數不符。⚠**2026-07-17 live 實查:函式 `trg_item_source_gate()` 確在 pg_proc(修正後單%版)、但 trigger 不在 pg_trigger(=半套)**;此組合(函式在+trigger 不在)無法由 migration 任一次執行產生(函式+CREATE TRIGGER 同一 transaction)→有一條不在 repo 裡的執行路徑碰過 live DB(成因未驗證)。現況零實害(admission.py 只有 Python belt、物理牆未掛),見 [[augur-mechanical-gate-gaps]]。
 
 **Why**:admission 是知識庫准入安全邊界(命門 #1 鄰接、處理不可信 SFTP/apk 輸入),DDL/活化待 hugo=上線前抓漏窗。
 

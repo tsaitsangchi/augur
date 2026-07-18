@@ -14,11 +14,11 @@ metadata:
 **架構心智模型（v4 更新）**：不是兩半、是**三塊**——半-1 預測、半-2 素養/顧問、**第三塊本地審議引擎（開發治理）**。總綱五句：先凍後跑（criteria_sha 鎖門柱）／強制下沉機械閘／做不到留誠實終態帳／長跑帳本冪等可續／拍板權綁人。
 
 **本輪承重新發現（讀報告前先知道的）**：
-1. **redline 對三大治權檔失聯**：`deliberation_redline_trigger` pattern 釘死舊版檔名（v1.5.0/v1.8.0/`_v%`），對現行靈魂/原則精華/憲章全 MISS→治權宣稱不會強制人裁；修法＝UPDATE 3 列。
+1. ~~redline 對三大治權檔失聯~~ ⚠**2026-07-17 已修、移出斷線清單**:`deliberation_redline_trigger` pattern 已是版本無關前綴(`docs/系統核心思想_v`/`docs/原則精華_v`/`docs/系統架構大憲章_v`/`CLAUDE.md`/`README.md` 5 列全活)、`deliberation/redlines.py:21` 已接線消費(2026-07-13 修,留痕 reports/augur_doctrine_compliance_remediation_20260713.md)。
 2. **predict role applied-but-connection-unwired**：role+GRANT 已 live，但無 `DB_PARAMS_PREDICT`、無 code 用它連線。
 3. **A3 三鏡頭三門 DB＝preregistered、approved_by 空**（07-12 17:39 重新預註冊、無 `_r2` gate_id）——與「已簽」記憶/commit 訊息不符，**以 DB 為準**；開賽鏈若含 A3 先問 hugo。
 4. **本機 DB＝07-12 dump，無 491 件全文/47 萬句**（那批在原機落地；adapter_config.fulltext 本機 NULL）——引用時勿當本機事實。
-5. **macro 埋雷不變**：fred_series 有 vintage PIT 結構、無 PIT reader；接 macro 特徵前必須先落 reader。
+5. ~~macro 埋雷不變~~ ⚠**2026-07-17:reader 已在(此為 v4 §8.3 vs §3.3 自相矛盾之錯半)**:`features/macro_vintage.py`(5,376B、commit abf5da8 07-11、含 tests)已存在;缺的是**生產消費者**(35 特徵零 macro),殘留風險=無機械閘阻止繞過它直寫 fred_series raw SQL。軸別限定:指方向軸成立、指選股軸不成立。見 [[cross-claim-contradiction-check]]。
 6. 方向軸 fail-closed＝DB trigger 物理零列；幅度軸判死列照存靠展示層貼標——**兩軸強制強度不對稱（by design）**。
 7. 活體增量中途態：feature_values→2026-06-30、universe/prediction 仍 2026-05-31、payload as-of 錨自洽不污染。
 

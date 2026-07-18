@@ -18,6 +18,6 @@ metadata:
 
 相關:[[augur-oracle-direction-verdict]]、[[augur-oracle-pivot]]。
 
-**2026-07-11 深夜終局:v2 全家族判死(二次證偽)**。四門全 evaluated_fail/never_shown:D5_v2 hit p=0.072(修 purge+校準後自 v1 的 0.038 退化=灌水懷疑實證)、Brier 四門全敗、ECE 全過(校準誠實、無訊號);econ 標示軸 H82 名目 alive(Sharpe 差 0.027 雜訊級)。fail_path 執行:**方向軸凍結至解凍+新資料、不開 v3**(criteria 凍結句)。結案報告=reports/augur_oracle_direction_v2_verdict_20260711.md(待 hugo 親簽=拍板點③,含 no-v3 入憲與否)。advisor 誠實句已更新「十道關卡」並重啟驗證。commits:2430b15(P0-P2)+b3b709e(判決),未 push。
+**2026-07-11 深夜終局:v2 全家族判死(二次證偽)**。四門全 evaluated_fail/never_shown:D5_v2 hit p=0.072(修 purge+校準後自 v1 的 0.038 退化=灌水懷疑實證)、Brier 四門全敗、ECE 全過(校準誠實、無訊號);econ 標示軸 H82 名目 alive(Sharpe 差 0.027 雜訊級)。fail_path 執行:**方向軸凍結至解凍+新資料、不開 v3**(criteria 凍結句)。結案報告=reports/augur_oracle_direction_v2_verdict_20260711.md(待 hugo 親簽=拍板點③,含 no-v3 入憲與否)。advisor 誠實句已更新「十道關卡」並重啟驗證。commits:2430b15(P0-P2)+b3b709e(判決)⚠**2026-07-17 實查:兩者皆已在 origin/main、非「未 push」**。
 
 **Live 擂台計畫(2026-07-11 深夜)**:reports/augur_direction_live_arena_plan_20260711.md(對抗審查 22 項/6 blocker 全採納定稿、**待拍板 A-1/A-2**)。核心:真未來擂台(自家滾動 refit+timesfm-2.5-200m/chronos 本地推論+基線不立門)、K 枚舉 Bonferroni 綁定、A2 預註冊+evaluate 自動觸發(先凍後跑)、反回填 trigger。**審查改寫承諾**:檢定力親算=確認 +1.4pp 需 12-29 年→gate 誠實定位=偵測「可交易級 MDE(5-10pp)」、禁「蓋棺」措辭。硬前置:A-2 解凍修憲(完整清單:原則精華 L74/76/77+憲章 L132/L200+CLAUDE L26)+**FinMind 續訂(已過期降 Free tier、fetch 400 實測)**+PriceAdj 拼接損傷 15 檔修復。檔案未 commit(待用戶授權)。

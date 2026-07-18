@@ -1,6 +1,6 @@
 ---
 name: local-handoff-tooling
-description: "三支本地零-usage 工具(sync_from_github/read_handoff/sync_memory)+ 記憶隨 repo 遷移機制,供跨機接續"
+description: "五支本地零-usage 工具(resume_project/sync_from_github/sync_memory/import_database/read_handoff)+ 記憶隨 repo 遷移機制,供跨機接續(⚠原記三支已過時)"
 metadata: 
   node_type: memory
   type: project

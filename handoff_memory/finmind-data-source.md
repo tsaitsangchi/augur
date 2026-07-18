@@ -10,7 +10,7 @@ metadata:
 augur 主資料源 FinMind 全貌。**完整研究**：`reports/augur_finmind_research_20260611.md`（dataset 全集 ~75+ / tier / endpoints / data_id 來源 / 特殊模式）。
 
 **augur token 實況**（live probe `api.web.finmindtrade.com/v2/user_info` Bearer，2026-06-11）：**level 3 `Sponsor`、限速 6000/hr、user_id tsaitsangchi**。
-⏰ **訂閱 `2026-06-24` 到期**（除非續訂）→ 之後降 Free（600/hr）、**sponsor-only dataset（分點 TradingDailyReport / tick / snapshot / KBar / 可轉債 / 法人 by-date）抓不到** → **全市場全史 sync 須趕在到期前跑完 sponsor 資料**。目前能抓**全部** dataset。
+⏰ **訂閱原 `2026-06-24` 到期**——⚠**2026-07-12 已由 Sponsor 續訂,此急迫性不存在**(旁證:`data_audit_log` 07-17 仍正常 sync)。降 Free 之風險(sponsor-only dataset 抓不到)為續訂前之假設情境、現不適用。
 
 **API endpoints**（base `api.finmindtrade.com/api/v4`）：`/data`、**`/datalist`（列 data_id 全集，僅 7 總經類：CrudeOilPrices/CurrencyCirculation/ExchangeRate/GovernmentBondsYield/GovernmentBonds/InterestRate/TaiwanExchangeRate）**、`/translation`、`/storage_objects`（parquet bulk, sponsor）、`/login`。
 

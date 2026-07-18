@@ -1,6 +1,6 @@
 ---
 name: core-universe-and-f3-model
-description: 核心股選拔四道閘(候選空間+完整度+流動性+conditional)→875;F3 模型 as-of Ridge H60 rank IC+0.132 alpha 為真;全管線打通
+description: 核心股選拔四道閘(候選空間+完整度+流動性+conditional)→⚠**344(2026-07-17 實查 core_universe;原記 875 為 06-25 pilot 史值,已被 06-29 SOP P25 重建取代)**;F3 模型 as-of Ridge H60 rank IC+0.132(→現+0.1418);全管線打通
 metadata:
   node_type: memory
   type: project

@@ -3,6 +3,7 @@
 - [AUGUR-MC 上位治權體系](augur-mc-upper-governance.md) — ⚠**augur 已受外部憲章 AUGUR-MC v1.3 約束(Layer 0 lex superior)**;四治權檔 Layer 登錄(L1/L4/L6/L7、README無檔頭);AUD-02 critical=原則精華#7違§P4.E5;補正期2026-10-14;三條未併remediation分支;**憲章原文不在本機=本機無法驗證合憲性**
 - [機械閘缺口盤點](augur-mechanical-gate-gaps.md) — 最弱防護在最關鍵表(trial_ledger/revalidation_baseline 零DB trigger);base_rate寫死0.5=誠實鎖沒接線;全新DB上trial_ledger建不起來(UNIQUE 7欄vs ON CONFLICT 8欄);refetch_fixed_tables無參數=DROP+放量;vol_target #8前視(未親驗待複)
 - [跨宣稱矛盾檢查](cross-claim-contradiction-check.md) — 對抗驗證抓不到跨章矛盾(v4 §3.3vs§8.3自打架存活58agent);鐘擺型記憶自帶權威口吻最危險;索引/frontmatter/內文三處各自漂移;無對抗層深讀結論須標【親驗/單域/索引時效】級別
+- [PriceAdj修復=減資非除息](priceadj-repair-capital-reduction.md) — 175檔「除息誤標」真機制=減資(1109在減資表親驗);結構反證=除息使factor上跳不可能觸發guard;⚠backlog照「排除除息日」字面實作只消5/250、殘留245會白打FinMind撞#24
 - [alpha Phase1 錨修復鏈](alpha-phase1-anchor-repair.md) — 簽核錨 1.1321(hugo,另一台機器);⚠本機07-16快照 dry-run=1.1302/DSR 34.3%(差0.0019=PriceAdj快照漂;DSR「47.9%」查無來源、真值≈34.5%@N=32);PriceAdj 41真損傷/175減資誤標(非除息);7候選全滅headline未動;踩雷四型
 - [arena 前置 G1-G5 機制計畫](arena-g1g5-admission-plan.md) — unfreeze gate 退史料;arena 前置改 G1-G5;Phase 0 **全7顆已拍板**、gate evaluated_pass、**arena 已開賽(4,128列/8隊/結算0)**
 - [audit 假綠+v1.28 自測入憲](audit-attestation-falsegreen.md) — audit「PASS」曾假綠(死表空視窗靜默PASS);⚠**射程註記:reconcile_audit.py 仍會假綠**(不呼叫 verdict()、:158 自算漏 coverage_gap);v1.28 library 自測CLI;死表=本機漏sync可補

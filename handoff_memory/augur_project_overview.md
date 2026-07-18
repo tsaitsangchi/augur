@@ -40,7 +40,7 @@
 - **北極星問題**：寫任何數字/結論前問「**這是真兆，還是假兆？**」三個都「是」才寫。
 
 ## 20 條原則（速查；全文以 原則精華_v1.6.0 為準）
-**A 資料紀律**：#1 零幻像★ / #2 API即權威 / #3 純通用ingestion(無白名單；**唯一資料本質排除=#4日；`OUT_OF_UNIT` 重定義為「規模物理不可行之 operational 暫緩」**:券商分點/權證/鉅額,非治權排除) / **#4 日為最小單位(唯一資料本質排除準則,v1.4.0)**:不收intraday;凡API日級真兆皆抓、不以抓取維度/非個股標的排除 / #5 型別紀律(字串VARCHAR255→TEXT、數字NUMERIC(20,6)自動擴大) / #6 冪等+斷點續傳 / #7 DB↔API對帳(value_mismatch=0∧extra=0) / **#17 API速率公民/主動限速**(現操作值 MIN_INTERVAL=**0.7s**、PER_STOCK_WORKERS=32;非治權凍結值、依 #19 試錯逐級調整、住 finmind.py 單一處;防IP ban) / **#18 抓取依API探測方式+範圍/不空抓**(探測抓法 market/per-stock/by-date/**by維度id** + 起點 resume/backward-probe;**需特殊維度id→補通用多維度抓取(非排除)**;唯規模不可行者 operational 暫緩)
+**A 資料紀律**：#1 零幻像★ / #2 API即權威 / #3 純通用ingestion(無白名單；**唯一資料本質排除=#4日；`OUT_OF_UNIT` 重定義為「規模物理不可行之 operational 暫緩」**:券商分點/權證/鉅額,非治權排除) / **#4 日為最小單位(唯一資料本質排除準則,v1.4.0)**:不收intraday;凡API日級真兆皆抓、不以抓取維度/非個股標的排除 / #5 型別紀律(字串VARCHAR255→TEXT、數字NUMERIC(20,6)自動擴大) / #6 冪等+斷點續傳 / #7 DB↔API對帳(value_mismatch=0∧extra=0) / **#17 API速率公民/主動限速**(現操作值 MIN_INTERVAL=**0.9s〔⚠原記0.7s已過時、finmind.py 現操作值0.9〕**、PER_STOCK_WORKERS=32;非治權凍結值、依 #19 試錯逐級調整、住 finmind.py 單一處;防IP ban) / **#18 抓取依API探測方式+範圍/不空抓**(探測抓法 market/per-stock/by-date/**by維度id** + 起點 resume/backward-probe;**需特殊維度id→補通用多維度抓取(非排除)**;唯規模不可行者 operational 暫緩)
 **B 建模紀律**：#8 Anti-Leakage★(walk-forward IC附purged) / #9 思想≠特定值(Pareto 0.80、康波40-60年等不硬編進feature) / #10 核心股質>量(可少、不評分排名) / #11 五鏡特徵治理(IC/共線/必要性/SHAP/purged-CV合看) / #12 單一引用源(panel+metric由單一helper)
 **C 風險治理**：#13 空頭防護規則地板優先(預測為輔) / #14 經濟價值判定(MaxDD/Calmar非AUC) / #15 誠實回報★ / **#19 可控風險下逐級逼近最佳奇異點**(試錯即進步;可恢復+有界+即時退場;重覆驗證再定論;只試方法/參數絕不試資料真假)
 **D 開發/協作紀律**：#16 **Clean-Room 重建/零 stock_backend 參考**（augur 所有 code 只依 5 治權檔+schema目錄+live API；**不讀/不移植 stock_backend 任何 code/數字/設定**；唯一觸點＝憲章附錄B考古+思想啟發，皆不得回流 code） / **#20 自驅動×實證決策**(2026-06-12入憲;經授權AI自己prompt自己[loop]推進+執行層方法AI主導+自我糾錯試錯;凡判斷/做法/operational決策先實證[probe/API/code/DB]、嚴禁憑「我以為」;**決策層人拍板/執行層AI自駕**;實證動因:憑臆測pattern連兩次誤殺進程→無實證的主動必闖禍;＝#15誠實擴展)
@@ -66,7 +66,7 @@
 ## Code 現況（src/augur/，全 clean-room、§18 精簡標頭、實測過）
 **已建 F0+F1+F4+F2**：
 - `core/`：config.py(.env→SSOT,守#12) / db.py(connect/transaction/ping,守#6) / generic_schema.py(auto-schema infer/detect_keys/ensure_table/upsert,守#5#3#2#6#1;**3韌性修正**:date型別推導 + upsert按主鍵去重 + detect_keys(require=)強制納指定鍵欄防by-date單日塌陷) / schema.py(infra log DDL + DB-derived helper)
-- `ingestion/finmind.py`：FinMind client + **主動限速三層防護**:`_pace()` **MIN_INTERVAL=0.7s**(現操作值、依 #19/#27 試錯逼近、非治權凍結) + **`_quota_gate()` 主動額度閘**(閉環問 /user_info 權威錶、撞 403 前先停、退夠續) + 403 `QUOTA_COOLDOWN=1800s` 長冷卻(防重試風暴);PER_STOCK_WORKERS=32(fetch 並發、DB 寫序列、start rate 仍 _pace-bound) + `fetch_dedicated`(分點/權證專屬 endpoint) + list_datasets/datalist/translation（守#7#3#2#1#17#24）
+- `ingestion/finmind.py`：FinMind client + **主動限速三層防護**:`_pace()` **MIN_INTERVAL=0.9s〔⚠原記0.7s已過時、finmind.py 現操作值0.9〕**(現操作值、依 #19/#27 試錯逼近、非治權凍結) + **`_quota_gate()` 主動額度閘**(閉環問 /user_info 權威錶、撞 403 前先停、退夠續) + 403 `QUOTA_COOLDOWN=1800s` 長冷卻(防重試風暴);PER_STOCK_WORKERS=32(fetch 並發、DB 寫序列、start rate 仍 _pace-bound) + `fetch_dedicated`(分點/權證專屬 endpoint) + list_datasets/datalist/translation（守#7#3#2#1#17#24）
 - `ingestion/fred.py`：FRED client，"."→NULL；**只存(series_id,date,value)丟realtime metadata**（守#7#2#1）
 - `ingestion/ingest.py`：單來源orchestrator + **#4 intraday守門** + **OUT_OF_UNIT 排除券商分點/權證/鉅額交易(#3#18)** + require_keys透傳（守#4#3#1#6）
 - `ingestion/sync.py`：全市場sync engine — seed_roster+daily_datasets+sync_finmind_dataset(market-probe→per-stock→canonical-2330-probe)+sync_fred+sync_all + by-date增量(sync_by_date/sync_all_by_date,require_keys=('date',)) + **by-date backward-probe(自近往遠探資料邊界,取代forward-probe空掃,#18)**（守#3#4#6#1#2#17#18）
@@ -87,7 +87,7 @@
 ## 全史 sync 現況（區分本機 vs 原機，DB 不隨 git）
 - **本機 WSL2**（實查 **2026-06-12 17:0x**）：run2 sync **跑中**(PID 81095、nohup)、[2/82] 完成、**31.1M 列/7 表**;HEAD `796bdf6`、今日 8 tag(treaty-v1.6.0→f3-self-critique);**0.8s/8w=用戶決策、gate 週期暫停=預期**;跨機接續讀 `reports/augur_cross_machine_handoff_20260612b.md`。(用戶頻繁清空重測,永遠以實查為準。)
 - **原機 Mac**（handoff 20260611）：8/82 dataset、~78M、背景跑中 ETA~1週；防護 caffeinate+nohup+resume-safe。**2 個 #7 FAIL 皆 reconcile artifact 非資料問題**：(1) GovBank VM=0 EX=MIS=412111＝`_key` 寬PK數值欄 Decimal vs raw 永不配對，已修 fadba1a；(2) Institutional per-stock 落地 vs reconcile market by-date scope 不一致(含權證)，scope 待修。
-- **IP-ban 教訓**：0.7s持續串流曾觸發 FinMind「持續濫用/每日累積」ban(非hourly quota)→放慢+跨日分批+commit-per-stock resume；冷卻須靜置零請求honor retry_after。測試用**最小單位(單股單日)**先確認IP健康才放量。
+- **IP-ban 教訓**：0.9s〔⚠原記0.7s已過時、finmind.py 現操作值0.9〕持續串流曾觸發 FinMind「持續濫用/每日累積」ban(非hourly quota)→放慢+跨日分批+commit-per-stock resume；冷卻須靜置零請求honor retry_after。測試用**最小單位(單股單日)**先確認IP健康才放量。
 
 ## 與 AI 協作的硬規則（CLAUDE.md）
 - **clean-room #16**：產生 augur code 絕不讀/移植 stock_backend code。

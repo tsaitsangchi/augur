@@ -13,4 +13,4 @@ augur 第二資料源 FRED（總經因子：殖利率曲線/利率/通膨/失業
 
 **augur `fred.py`**：observations only、補 series_id 成 `(series_id,date)` PK、**丟 realtime/vintage**、`"."`→NULL；`FRED_SERIES`=12 人選標準總經因子（非窮舉、YAGNI）；無主動節流（120/min 寬鬆、量小）。
 
-⚠️ **#8 vintage 洩漏警示（最重要）**：FRED 總經數據**事後頻繁修訂**，用「最新修訂值」做歷史回測 = **look-ahead bias**（反 #8 anti-leakage）。嚴格 point-in-time 須走 vintage（ALFRED `realtime_start`）。**augur 建模階段必須正視**——目前 fred.py 只存最新值（守冪等對帳），但那不是當時可見值。連結 [[augur_project_overview]] [[finmind-data-source]]。
+⚠️ **#8 vintage 洩漏警示——2026-07-17 實查已解除**:原稱「fred.py 只存最新值」為**材料性錯誤**(會誤導重造已存在的 reader)。實況:`fred.py:42-64` 早已支援 `vintage=True`(ALFRED realtime_start)、`fred_series` PK **含 realtime_start**、**100,572 列真 vintage 已落地**、`ingest._fred_pk_ok` 加了硬閘。原理(修訂值=look-ahead)仍正確,但**已被實作解決、非待辦**。連結 [[augur_project_overview]] [[finmind-data-source]]。
