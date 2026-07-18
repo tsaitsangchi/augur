@@ -15,7 +15,7 @@
 | **CPU** | AMD Ryzen 5 3600（6 核 12 緒） |
 | **記憶體** | 15 GiB＋swap 4 GiB |
 | **儲存** | 1007 GB（vhdx 虛擬磁碟；2026-07-18 快照可用約 645 GB） |
-| **GPU** | **無**（`nvidia-smi` 不存在；CPU-only） |
+| **GPU** | **NVIDIA GeForce GTX 1650 4GB VRAM**（WSL2 半虛擬化 `/dev/dxg`；driver 560.94、CUDA 12.6 runtime；`nvidia-smi` 位於 `/usr/lib/wsl/lib/`——**前版「無」係僅查 PATH 之量測錯誤，經 Steward 質疑更正**） |
 
 ## 二、作業系統（實測：`uname -r`／`lsb_release`）
 
@@ -41,7 +41,7 @@
 | Python | 3.12.3（應用 venv 於 `/home/hugo/project/augur/venv`） |
 | git | 2.43.0；gh CLI 已授權 tsaitsangchi |
 | qdrant | 1.18.2（127.0.0.1:6333，運行中） |
-| ollama | 運行中（127.0.0.1:11434；模型 qwen3:4b、qwen3:8b） |
+| ollama | 運行中（127.0.0.1:11434；模型 qwen3:4b、qwen3:8b；**GPU 加速實證**：qwen3:4b 載入 2.3GB/3.2GB 進 VRAM 部分卸載） |
 | Docker | 未安裝 |
 | systemd 服務 | 無 augur 相關單位；四個 serving 進程（advisor／admin_console／chat_ui／probability_ui）以腳本方式常駐於 **`/home/hugo/project/augur`**（hugo 使用者） |
 
@@ -63,4 +63,4 @@
 
 ## 七、與 L7 草案之關係
 
-AUGUR-L7 v0.1-draft 之 L7.50 現行登錄值已與本檔對齊（x86_64／WSL2／無 GPU）。**T-L7-6 張力照舊適用**：目標架構之選型約束對任何架構同型，且本機無 GPU 使「模型 runtime 於目標架構之可得性」更為現實之約束——載體不可得者依 L7.50(c) 改選或 OPEN，不得放寬角色語義。
+AUGUR-L7 v0.1-draft 之 L7.50 現行登錄值已與本檔對齊（x86_64／WSL2／GTX 1650 4GB／CUDA 12.6）。**T-L7-6 張力照舊適用**：目標架構之選型約束對任何架構同型，且本機 GPU 僅 4GB VRAM 使「模型規模 vs 載體可得性」為現實約束（>4GB 模型部分卸載、大模型不可行）——載體不可得者依 L7.50(c) 改選或 OPEN，不得放寬角色語義。
