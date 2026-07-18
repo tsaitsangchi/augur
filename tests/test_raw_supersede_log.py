@@ -134,8 +134,27 @@ def cur():
     c = conn.cursor()
     schema.bootstrap_infra(c)                       # 建 infra 表（含 raw_supersede_log；IF NOT EXISTS 冪等）
     c.execute(f'DROP TABLE IF EXISTS "{_TEST_TABLE}"')
-    for _label, ddl in mig.DDL:                     # 套 migration 硬化（trigger/tombstone/REVOKE/index；冪等）
-        c.execute(ddl)
+    # 守原則 #6：owner 分離（Phase 1(d)）後應用角色對憲章表無 DDL 權——守衛 trigger 在場即略過硬化；
+    # 未套用之庫以 DB_SUPERUSER 連線套用（映照部署現實：migration 屬 owner 側、行為屬應用側）
+    c.execute("SELECT 1 FROM pg_trigger t JOIN pg_class r ON t.tgrelid = r.oid"
+              " WHERE r.relname = 'raw_supersede_log' AND NOT t.tgisinternal LIMIT 1")
+    if c.fetchone() is None:
+        import os
+        su_pw = os.getenv("DB_SUPERUSER_PASSWORD")
+        if su_pw:
+            aconn = psycopg2.connect(connect_timeout=10, **{**config.DB_PARAMS,
+                                     "user": os.getenv("DB_SUPERUSER", "postgres"),
+                                     "password": su_pw})
+            aconn.autocommit = True
+            try:
+                ac = aconn.cursor()
+                for _label, ddl in mig.DDL:         # 套 migration 硬化（trigger/tombstone/REVOKE/index；冪等）
+                    ac.execute(ddl)
+            finally:
+                aconn.close()
+        else:
+            for _label, ddl in mig.DDL:             # 未分離環境之後備（原行為）
+                c.execute(ddl)
     try:
         yield c
     finally:
