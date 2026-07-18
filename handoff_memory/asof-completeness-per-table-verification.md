@@ -7,7 +7,7 @@ metadata:
   originSessionId: c3c40e0c-7154-4936-8937-6d9ce947808c
 ---
 
-宣稱 augur DB「到 as-of 2026-05-31 完整」前，須**逐表實證 `max(date)` vs as-of**，不能假設 sync 跑過「全市場全史」就每表到 as-of。2026-06-24 驗證 84 表 → 發現 **GoldPrice 唯一真漏抓**（2022-2026），補後 **84/84 達成**。
+宣稱 augur DB「到 as-of 2026-05-31 完整」前，須**逐表實證 `max(date)` vs as-of**，不能假設 sync 跑過「全市場全史」就每表到 as-of。2026-06-24 驗證 84 表 → 發現 **GoldPrice 唯一真漏抓**（2022-2026），補後 **84/84 達成**。⚠**2026-07-17:此「84/84 @ 2026-05-31」為凍結期里程碑,現況已 live 增量滾動**(GoldPrice max 已 2026-07-16、非 05-31);表名=`GoldPrice`(非 TaiwanStockGoldPrice);dataset_catalog 現 97。方法(逐表 max(date) vs as-of、勿假設 sync=每表到)仍現行。
 
 **驗證法（三分類）**：查 84 表 `max(date)` vs as-of —
 - `max ≥ as-of` → ✅ 完整（67 表）

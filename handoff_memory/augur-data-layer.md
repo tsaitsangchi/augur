@@ -7,7 +7,7 @@ metadata:
   originSessionId: c3c40e0c-7154-4936-8937-6d9ce947808c
 ---
 
-augur 資料層(94 表 772 欄)經 2026-06-29 **四層逐欄實證**(非 catalog 照抄、非「我以為」)。完整四層字典＝`reports/augur_full_column_walkthrough_20260629.md`(1306 行、commit 4b030d6);**理解結論報告(我的判斷、九節)＝`reports/augur_data_layer_understanding_20260629.md`(封存 tag `data-layer-understanding-20260629`、commit 559c47e)**。
+augur 資料層(⚠**2026-07-17 實查已成長:public relkind='r' 246 純表**〔+3 view〕、`column_catalog` 769 欄;原 94 表 772 欄為 06-29 建錨值)經 2026-06-29 **四層逐欄實證**(非 catalog 照抄、非「我以為」)。完整四層字典＝`reports/augur_full_column_walkthrough_20260629.md`(1306 行、commit 4b030d6);**理解結論報告(我的判斷、九節)＝`reports/augur_data_layer_understanding_20260629.md`(封存 tag `data-layer-understanding-20260629`、commit 559c47e)**。
 
 **四層 + SSOT 位置**:
 1. **table 定義**:`dataset_catalog`(95 列、抓法/tier/頻率/最早/排除)。
