@@ -245,3 +245,11 @@
 * **文件**：[RULING-2026-016-ANNEXD-SIX-ROWS.md](RULING-2026-016-ANNEXD-SIX-ROWS.md)＋附件 ops/ANNEXD-SIX-ROWS-CASE-2026-07-18.md
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **驗證**：三檔 gate 逐一 PASS、全 corpus 7/7、selftest 全綠。**獨立對抗核驗因額度中斷未完成**；建造者機械自查更正五處版本一致性缺陷（KS/L6 文末版本、KDI 盤點、二處時代錯置引用），詳裁決事後更正記錄；深度語義核驗待額度恢復補行
+
+## AL-2026-020
+
+* **日期**：2026-07-18
+* **事項**：Steward 裁決第 2026-017 號——**AUGUR-MC 首次三鏡對抗審查 findings 一次處置（MC v1.3→v1.4，minor）**：八項 §8.1 解釋（修訂自鎖解除／共享憑證歸責／單一 Steward 雙人核准過渡／102 母集／工具輸出保真／時序措辭／provisional 二義／P1.E3 主責層／P5.W4）＋MC 本文 [I] 補正（§0.5 充任補登＋跨層例外、§0.2／§0.3／§2.5-6／§8.6）＋治理附則第 2/3 條 minor（條款級別對映、繼任人恆存）
+* **文件**：[RULING-2026-017-MC-REVIEW-DISPOSITION.md](RULING-2026-017-MC-REVIEW-DISPOSITION.md)＋findings 冊 audits/MC-THREE-MIRROR-REVIEW-2026-07-18.md
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **要旨**：**零原則級變更、PA 與五原則本文零改**；L0 首次對抗審查閉環。MC 102 母集完好、全 corpus 7/7 PASS、selftest 綠。本批補正之獨立核驗待補
