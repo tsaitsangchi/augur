@@ -60,7 +60,7 @@
 | 首次全庫備份 | 2026-07-18 `augur_pre_phase1_20260718_0928.dump`（pg_dump -Fc，10.04 GB，11 分鐘） |
 | 還原實測 | 同日至臨時庫 `augur_restore_test` 演練（Phase 1 施工前置；紀錄見 ops/phase1/） |
 | **異碟副本（2026-07-18 建立）** | restic 0.19.1（官方 binary、SHA256 驗證）；庫＝`D:\augur_restic`（異實體碟）；首備 snapshot `cbb73c19`＝9.35GiB dump（3 分 51 秒）；**`restic check --read-data-subset=5%` 零錯誤**（經實測）；密碼檔 chmod 600 不入 git |
-| **殘餘缺口（誠實）** | 異碟≠異機——機器全損（火災／竊失）仍單點；**異機／雲端第二目的地待 Steward 給定**（restic 原生支援 S3／B2／sftp，一條指令加掛）；RPO／RTO 與演練節奏待核定（建議 RPO 24h＋季度還原演練） |
+| **殘餘風險（Steward 已接受）** | 異碟≠異機——機器全損（火災／竊失）仍單點。**2026-07-18 Steward 裁示取消第二目的地／RPO-RTO／演練節奏之核定（RULING-2026-012 主文三）**：現況為既定終態、殘餘風險經知悉並接受。此為風險接受非缺口消滅；後任不得引為「缺口不存在」（restic 加掛 S3/B2/sftp 之技術路徑保留可隨時啟用） |
 
 ## 七、與 L7 草案之關係
 

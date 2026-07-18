@@ -208,3 +208,10 @@
 * **文件**：[RULING-2026-011-L7-ADOPTION.md](RULING-2026-011-L7-ADOPTION.md)；生效本 `specs/INFRASTRUCTURE-SPECIFICATION.md`（draft 歸檔）
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **效果**：八層全棧生效（L0–L7）；corpus 7 生效本／0 draft；CI 接線與 Bearer Registry 補齊列為充任後首批
+
+## AL-2026-015
+
+* **日期**：2026-07-18
+* **事項**：Steward 裁決第 2026-012 號——**CODE-MIGRATION-PLAN 採認生效（v1.0）**＋五決策點逐點處置（節奏採建議／Phase 1 兩點結案登錄／升裁決 C＝authorization_ref NOT NULL 嚴格面／原則精華 #7 方向採認排 Phase 7／**CI merge-gate 即日解鎖**）；併案登錄**備份第二目的地決策之取消**（殘餘風險經 Steward 知悉並接受，非缺口消滅）
+* **文件**：[RULING-2026-012-MIGRATION-PLAN-ADOPTION.md](RULING-2026-012-MIGRATION-PLAN-ADOPTION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
