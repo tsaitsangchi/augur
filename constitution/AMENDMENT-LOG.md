@@ -230,3 +230,10 @@
 * **事項**：Steward 裁決第 2026-014 號——**ONT.20 判準操作化採認＋`entity_type_catalog.identity_criteria` 補欄**：T.1 Security／T.2 Index／FredSeries 三判準採認（ID.20）、Automobile 守衛列確認；四列判準文字沙盒→生產寫入；**ONT.20 首次機器可判**（無判準列=0 為閘）；Phase 2 卷宗裁②結案（路線 a）
 * **文件**：[RULING-2026-014-ONT20-CRITERIA.md](RULING-2026-014-ONT20-CRITERIA.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
+
+## AL-2026-018
+
+* **日期**：2026-07-18
+* **事項**：Steward 裁決第 2026-015 號——**Phase 2 分支准併**（merge 4c6d3b6、27/27 綠）＋裁①（advisory lock 接線前置＋backfill 單實例）＋裁③（生產順序：retire backfill 先行→存量鑄造→屬性同步；預期 ~235 provisional 為憲章正確樣貌）＋**P5 一次拍板制**（補件審畢後單一核准涵蓋全順序）＋七 minors 併補件分支
+* **文件**：[RULING-2026-015-PHASE2-MERGE.md](RULING-2026-015-PHASE2-MERGE.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
