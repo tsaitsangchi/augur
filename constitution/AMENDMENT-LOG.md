@@ -215,3 +215,11 @@
 * **事項**：Steward 裁決第 2026-012 號——**CODE-MIGRATION-PLAN 採認生效（v1.0）**＋五決策點逐點處置（節奏採建議／Phase 1 兩點結案登錄／升裁決 C＝authorization_ref NOT NULL 嚴格面／原則精華 #7 方向採認排 Phase 7／**CI merge-gate 即日解鎖**）；併案登錄**備份第二目的地決策之取消**（殘餘風險經 Steward 知悉並接受，非缺口消滅）
 * **文件**：[RULING-2026-012-MIGRATION-PLAN-ADOPTION.md](RULING-2026-012-MIGRATION-PLAN-ADOPTION.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
+
+## AL-2026-016
+
+* **日期**：2026-07-18
+* **事項**：Steward 裁決第 2026-013 號——**`§D24` 之 L6 側承接補正（minor，AUGUR-L6 v1.0→v1.1）**：L6.15 增補「授權受限資料之用途邊界」款（承 D24 隔離強制面；判準同步）；Annex TR 概括列拆分（D24 改列承接：RBAC 面＝L6.15＋L6.6、物理面下放 L7）；**WM Annex D 目標含 L6 之其餘六列（D13/15/16/17/22/28）同型疑義登錄旗標**，提請 Steward 另案逐列裁決
+* **文件**：[RULING-2026-013-D24-L6-REMEDIATION.md](RULING-2026-013-D24-L6-REMEDIATION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：L6 gate PASS（error 0）；全 corpus 7/7 PASS；版本引用零漣漪（minor 之向後相容，`§8.6`）

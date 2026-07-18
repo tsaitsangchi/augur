@@ -2,7 +2,7 @@
 
 Augur Enterprise AI Operating System
 Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
-引用縮寫：**AUGUR-L6**｜版本：**v1.0**（前版：v0.1-draft）
+引用縮寫：**AUGUR-L6**｜版本：**v1.1**（前版：v1.0；minor 修正 RULING-2026-013／AL-2026-016：L6.15 增補授權受限資料用途邊界款、TR 之 D24 承接拆分）（前版：v0.1-draft）
 受 **AUGUR-MC v1.3** 全文約束（`AUGUR-MC v1.3 §0.6(a)` lex superior、`§0.5` 對照表 Layer 6 欄）
 並受 **AUGUR-WM v1.0**（Layer 1）、**AUGUR-ONT v1.0**（Layer 2）、**AUGUR-ID v1.0**（Layer 3）、**AUGUR-KS v1.0**（Layer 4）、**AUGUR-L5 v1.0**（Layer 5）全文約束（`AUGUR-MC v1.3 §0.6(a)`）
 
@@ -167,8 +167,8 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 > **義務主體**：本規格、Controlled External Interface。**可判定判準**：確認者 Identity 之解析狀態、授權範圍涵蓋、與 Actor／Planner 之非同一性及（RT-4）非共享主體，均可經 Identity lineage 機器判定。
 
 > **L6.15（最小權限與 Plan 範圍化——無常駐環境權限、權限與不可逆性成反比）[N｜carries｜`AUGUR-MC v1.3 §P5.W4`、`§P5.W3`、`F3`]**
-> Agent 僅得持有完成當前經授權 Plan 所需之**最小權限**（`§P5.W4`）。權限**必須** Plan 範圍化（Plan-scoped）並於 Plan 完成或失效時即時收回；**禁止**常駐（standing）或環境（ambient）權限、**禁止**與當前 Plan 無關之預留權限。權限授予集合**必須**可由當前 Plan 之已授權 Action 集合推導，且為滿足該集合之最小超集。權限之擴張本身為 Action，受本層風險分級與 Gate（L6.7）約束；且權限授予與不可逆性成反比——所需之 Completeness、Confidence 門檻與人類事前核准層級隨風險級（L6.10）**單調非遞減**（`§P5.W3`），系統**不得**對較高不可逆性之 Action 授予較低核准級之權限（單調不變式）。
-> **義務主體**：本規格、權限管理構件、Agent Runtime。**可判定判準**：Agent 於任一時點之權限集合 ⊆ 當前經授權 Plan 可推導之最小必要超集（超集即違反）；且存在任一 Action 其實得核准級／完備性／Confidence 門檻低於同級或更高風險級所適用者（違反單調性），違反本條。
+> Agent 僅得持有完成當前經授權 Plan 所需之**最小權限**（`§P5.W4`）。權限**必須** Plan 範圍化（Plan-scoped）並於 Plan 完成或失效時即時收回；**禁止**常駐（standing）或環境（ambient）權限、**禁止**與當前 Plan 無關之預留權限。權限授予集合**必須**可由當前 Plan 之已授權 Action 集合推導，且為滿足該集合之最小超集。權限之擴張本身為 Action，受本層風險分級與 Gate（L6.7）約束；且權限授予與不可逆性成反比——所需之 Completeness、Confidence 門檻與人類事前核准層級隨風險級（L6.10）**單調非遞減**（`§P5.W3`），系統**不得**對較高不可逆性之 Action 授予較低核准級之權限（單調不變式）。**授權受限資料之用途邊界（承 `AUGUR-WM v1.0 §D24` 隔離強制面；2026-07-18 RULING-2026-013 增補）**：凡經授權取得、其授權條款限制用途之資料，Agent 工作流**不得**將其路由入預測特徵或模型訓練／微調輸入；其物理層機器強制（血緣追蹤）細化下放 Layer 7（L7.33(b)）。
+> **義務主體**：本規格、權限管理構件、Agent Runtime。**可判定判準**：Agent 於任一時點之權限集合 ⊆ 當前經授權 Plan 可推導之最小必要超集（超集即違反）；且存在任一 Action 其實得核准級／完備性／Confidence 門檻低於同級或更高風險級所適用者（違反單調性）、或存在授權受限資料進入預測特徵／訓練輸入之資料流（違反用途邊界），違反本條。
 
 ---
 
@@ -371,7 +371,8 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 | `AUGUR-WM v1.0` WM.35–WM.38（落地即整合；消費設閘不阻斷落地／World Concept Registry 與消費規則／唯一權威表徵落實義務／自然人之有界表徵） | 不觸及＋理由：屬存在層／L4 落點 |
 | `AUGUR-WM v1.0` WM.39–WM.47（合規聲明格式／編號穩定／升版） | L6.90、L6.91、§0.3、Annex CS、Annex TR—承接／落實 |
 | `AUGUR-WM v1.0` WM.48–WM.53（存在層治理雜項／文件約定規範地位） | WM.53 → L6.92—承接；WM.48–52 不觸及＋理由：屬存在層治理 |
-| `AUGUR-WM v1.0` Annex A（A.0–A.59）／Annex D（D0–D28）／HOOK-01/02/03 | 不觸及＋理由：領域素材與 L2–L4 下放掛鉤，非行動治理落點；經 L4/L5 工作流入徵 |
+| `AUGUR-WM v1.0` Annex A（A.0–A.59）／Annex D（D0–D28 除 D24 外）／HOOK-01/02/03 | 不觸及＋理由：領域素材與 L2–L4 下放掛鉤，非行動治理落點；經 L4/L5 工作流入徵。〔**旗標（RULING-2026-013 主文三）**：Annex D 目標含 L6 者七列中，D16／D17 之概括判定存疑、D13／D15／D22／D28 之理由未經逐列驗證——提請 Steward 另案逐列裁決〕 |
+| `AUGUR-WM v1.0` **D24**（存取控制 RBAC；授權資料不入預測特徵之隔離強制） | **承接**（2026-07-18 RULING-2026-013 補正）：RBAC 面＝L6.15（最小權限與 Plan 範圍化）＋L6.6（委派範圍／失效／可撤銷）；隔離強制面＝L6.15 增補款（授權受限資料之用途邊界）；物理面細化下放 L7.16／L7.33(b)／L7.49 |
 | `AUGUR-ONT v1.0` ONT.1–ONT.62（型別層本體／Type 判準／schema／型別演化） | 不觸及＋理由：型別層本體，本層消費既定 Type 不重定義；ONT.60–62 合規存續 → L6.90/L6.92 承接 |
 | `AUGUR-ONT v1.0` Annex T／DO.0–DO.4 | 不觸及＋理由：型別素材與 L2 下放掛鉤，目標 L3–L4 已承接 |
 | `AUGUR-ID v1.0` ID.1–ID.53（個體層本體／identifier／lifecycle／已解析與 provisional 狀態） | L6.2（消費已解析 Identity）、L6.5（人類決策者 Human）、L6.14（lineage 獨立性）—承接（消費）；其餘個體層機制不觸及＋理由：屬 L3 |
