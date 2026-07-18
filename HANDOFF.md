@@ -1,5 +1,8 @@
 # Augur 憲章 Repo — 交接文件
 
+> **2026-07-18 快照增補（接手先讀）**：#22 結案＋L7 全綠（七份規格 gate 0 error；L7 連 warning 0）＋三鏡重審＋203 全查（30 缺陷補正）＋**移轉計畫 Phase 1 全線收官**（owner 分離生產生效、heal gate 上線、predict 隔離 refresh、restic 異碟備份鏈）。詳：`audits/L7-REREVIEW-2026-07-18.md`、`ops/phase1/`（執行記錄＋#19 卷宗）、`CODE-MIGRATION-PLAN.md`。**待 Steward**：L7 充任（§8.2＋三小件）、計畫書採認＋五決策點、備份第二目的地、gate 三輪硬化包。
+
+
 * **快照日**：2026-07-17
 * **性質**：[I] 資訊性（不創設義務；權威悉依憲章與各層生效規格之 [N] 條款）
 * **給誰**：接手本 repo 的人或 Agent
