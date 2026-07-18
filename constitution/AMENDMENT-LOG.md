@@ -249,7 +249,7 @@
 ## AL-2026-020
 
 * **日期**：2026-07-18
-* **事項**：Steward 裁決第 2026-017 號——**AUGUR-MC 首次三鏡對抗審查 findings 一次處置（MC v1.3→v1.4，minor）**：八項 §8.1 解釋（修訂自鎖解除／共享憑證歸責／單一 Steward 雙人核准過渡／102 母集／工具輸出保真／時序措辭／provisional 二義／P1.E3 主責層／P5.W4）＋MC 本文 [I] 補正（§0.5 充任補登＋跨層例外、§0.2／§0.3／§2.5-6／§8.6）＋治理附則第 2/3 條 minor（條款級別對映、繼任人恆存）
+* **事項**：Steward 裁決第 2026-017 號——**AUGUR-MC 首次三鏡對抗審查 findings 處置（MC v1.3→v1.4，minor）**：**七項 §8.1 解釋**（M1 修訂自鎖之合法解鎖〔維持原則級門檻、釋明判準〕／M2 共享憑證歸責／單一 Steward 雙人核准過渡／§0.3 母集〔子項受保護不入 102、§5.{n} 入〕／工具輸出保真／時序措辭／provisional 二義／P1.E3 主責 L6）＋MC [I] 補正（§0.5 充任補登＋跨層例外、§0.2／§2.6）＋治理附則第 3 條繼任人恆存（annex minor）。**§8／構成性依據之 [N] 本文一律未動**（原則級 self-entrenchment，非 minor）——初次越權（§8.6/§0.3/附則對映當 minor）經獨立核驗糾正、全數 revert；P5.W4 認定已由 §8.3 兜底、非解釋項
 * **文件**：[RULING-2026-017-MC-REVIEW-DISPOSITION.md](RULING-2026-017-MC-REVIEW-DISPOSITION.md)＋findings 冊 audits/MC-THREE-MIRROR-REVIEW-2026-07-18.md
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **要旨**：**零原則級變更、PA 與五原則本文零改**；L0 首次對抗審查閉環。MC 102 母集完好、全 corpus 7/7 PASS、selftest 綠。本批補正之獨立核驗待補

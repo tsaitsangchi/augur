@@ -1,4 +1,4 @@
-# 《Augur Meta-Constitution v1.3》
+# 《Augur Meta-Constitution v1.4》
 
 Augur Enterprise AI Operating System
 元憲章（Meta Layer）正式定稿
@@ -17,7 +17,7 @@ Augur Enterprise AI Operating System
 * 批准記錄：本次修訂依 **v1.0 §7（修訂當時之有效程序）** 辦理；§8 治理章屬**初始採行（initial adoption）**，自本版生效起，後續修訂改依 §8.5。登錄於 Amendment Log（AL-2026-001），修訂理由書隨卷存檔；理由書載明新增 P5 符合 v1.0 §7 實質判準之論證（見 Appendix C 第 12 點）。
 * 自 v1.0 之變更摘要見 Appendix C。v1.1 → v1.2 為定稿階段之缺陷修復與一致性修正（無新原則、無原則級實質變更，依 §8.6 定為 minor），依 §8.5 辦理並登錄 Amendment Log（AL-2026-002）；修訂記錄見 Appendix D。
 * v1.2 → v1.3：§0.5 Layer 對照表增列五份 augur 領域治權文件之定位登錄（依 §8.6，Layer 對照表之增列屬 minor、由 Steward 議決），與 Layer 1 規格充任認定（Steward 裁決第 2026-002 號）同案辦理，登錄 Amendment Log（AL-2026-006）；變更摘要見 Appendix E。除 §0.5 對照表增列（及 §0.1 版本欄、Appendix E [I] 隨附）外，無其他條文變更、無原則級變更。
-* v1.3 → v1.4：MC 首次三鏡對抗審查（2026-07-18）findings 之處置（RULING-2026-017／AL-2026-020，minor）——§0.5 L2–L7 充任註記補登＋跨層治權檔例外句、§0.2／§0.3／§2.5-6／§8.6 之 [I] 補述、治理附則第 2/3 條 minor 補強；八項 §8.1 解釋另記於裁決。**無原則級變更、無 PA 變更、五原則本文零改**；變更摘要見 Appendix F。
+* v1.3 → v1.4：MC 首次三鏡對抗審查（2026-07-18）findings 之處置（RULING-2026-017／AL-2026-020，minor）——§0.5 L2–L7 充任註記補登＋跨層治權檔例外句（§8.6 明定之 minor）、§0.2／§2.6 之 [I] 補述、治理附則第 3 條繼任人恆存（annex minor）；**七項 §8.1 解釋**記於裁決（不改 MC 本文）。**§8／構成性依據之 [N] 本文一律不動**（§8 self-entrenchment＝原則級，非 minor 可為；2026-07-18 獨立核驗糾正越權）。**無原則級變更、無 PA 變更、五原則本文零改**；摘要見 Appendix F。
 
 ### 0.2 規範用語約定
 
@@ -37,7 +37,7 @@ Augur Enterprise AI Operating System
 * 每一章節標題標注 **[N]（Normative，規範性）** 或 **[I]（Informative，資訊性）**。
 * 各原則之 WHY 段一律為 [I]：其功能為說理，不產生獨立義務；義務僅由 [N] 條款產生。
 * [N] 與 [I] 內容不一致時之處理，依 §8.2。
-* 條款編號系統：PA｜P{n}.D / P{n}.W{m} / P{n}.Y / P{n}.E{m}｜EV.1–EV.12｜F1–F6｜§2.{n}（Definitions）｜§5.{n}（Architectural Roles）。章節號（§0–§9 及其小節、項次與**子項**，如 §8.3、§2.11、§8.5(d)）視同條款編號，得為 §8.6 引用格式之引用對象、受 §8.6 編號穩定性保護。〔**RULING-2026-017 §8.1 釋明**：字母子項（§8.5(a)–(d)、§0.6(a)–(c)）與羅馬子項（§8.5(b)(i)/(ii)）屬「項次」、受編號穩定性保護（含永恆條款防禦圈 §8.5(d)）；§5.{n} 角色碼屬條款宇宙——`§8.3` 機器稽核之「102 條母集」據此確定。〕編號穩定性規則（永不重用、永不重排、廢止標注）依 §8.6。
+* 條款編號系統：PA｜P{n}.D / P{n}.W{m} / P{n}.Y / P{n}.E{m}｜EV.1–EV.12｜F1–F6｜§2.{n}（Definitions）。章節號（§0–§9 及其小節與項次，如 §8.3、§2.11）視同條款編號，得為 §8.6 引用格式之引用對象。編號穩定性規則（永不重用、永不重排、廢止標注）依 §8.6。
 
 ### 0.4 權威語言聲明
 
@@ -53,7 +53,7 @@ Augur Enterprise AI Operating System
 | 2 | Ontology | Ontology Specification（AUGUR-ONT v1.0，經 Steward 裁決第 2026-003 號充任認定） |
 | 3 | Identity System | Identity Specification（AUGUR-ID v1.0，經 Steward 裁決第 2026-004 號充任認定） |
 | 4 | Knowledge System | Knowledge Graph Specification（AUGUR-KS：v1.0 經 Steward 裁決第 2026-005 號充任，現行 v1.1／RULING-2026-016）、Data Intelligence Layer、原則精華（augur 領域治權文件；跨層條款之逐條 Layer 標注由其合規聲明載明） |
-| 5 | Cognitive Kernel | Cognitive Kernel Specification（AUGUR-L5 v1.0，經 Steward 裁決第 2026-006 號充任認定）、Reasoning Engine、AI Model Selection |
+| 5 | Cognitive Kernel | Cognitive Kernel Specification（AUGUR-L5 v1.0 provisional，經 Steward 裁決第 2026-006 號充任認定；§8.2 實質審查延後）、Reasoning Engine、AI Model Selection |
 | 6 | Agent Runtime | Agent Runtime Specification（AUGUR-L6：v1.0 經 Steward 裁決第 2026-007 號充任，現行 v1.2／RULING-2026-016）、Planner / Orchestrator、CLAUDE.md（augur 領域 Agent 協作規格） |
 | 7 | External Interface / Infrastructure | Infrastructure Specification（AUGUR-L7 v1.0 provisional，經 Steward 裁決第 2026-011 號充任認定；§8.2 深度審查列管至 2026-10-14）、External Interface Layer、Database Architecture、系統架構大憲章（augur 領域架構／維運承載文件；涉 Layer 4–6 之章節由其合規聲明逐節標注）、datasets 參考文件（datasets_zh.md 及 finmind-references） |
 
@@ -525,7 +525,7 @@ Augur 不依賴：特定 AI model、特定 database、特定 programming languag
 
 ### 8.6 版本語義、引用格式與編號穩定性
 
-* 原則級實質變更 = **major**（觸發全下層合憲複審）；附則與 Informative 變更 = **minor**；編輯修正 = **patch**。Layer 對照表（§0.5）之增列屬 minor，由 Steward 議決。**非核心 [N] 條款之實質（非原則級）變更亦為 minor**（RULING-2026-017 M1 釋明：具體級別對映由治理附則第 2 條定；§8.5(b)(ii) 之實質判準專適用於原則本體增修，不使治理／定義類條款回落原則級而自鎖）。**規格版本之錨定不得繫於檔名或行號**——版本以規格內部版本欄與充任裁決為權威錨（RULING-2026-017 [I]，防雙副本靜默斷鏈）。
+* 原則級實質變更 = **major**（觸發全下層合憲複審）；附則與 Informative 變更 = **minor**；編輯修正 = **patch**。Layer 對照表（§0.5）之增列屬 minor，由 Steward 議決。
 * 下層引用格式：`AUGUR-MC v{version} §{條款編號}`（例：`AUGUR-MC v1.2 §P5.W3`）。
 * 條款編號一經發布永不重用、永不重排；廢止條款保留編號並標注 (repealed)。
 * 憲章 major 升版時，既有規格進入重新認證期（期限由 Steward 裁定），期內效力延續。
@@ -680,13 +680,11 @@ Layer 7 External Interface / Infrastructure
 
 本輪為 AUGUR-MC v1.3 **首次三鏡對抗審查**（2026-07-18，L0 元憲章生涯首審）findings 之處置（Steward 裁決第 2026-017 號、AL-2026-020，minor）。findings 冊見 audits/MC-THREE-MIRROR-REVIEW-2026-07-18.md。**無新增原則、無原則級實質變更、PA 與五原則本文零改**——全為治理程序、語彙與 editorial 之精修。
 
-**MC 本文變更（[I]／minor）**：
-1. §0.5：L2–L7 充任認定補登（原僅 L1 有註記）；「每份規格恰屬一層」增跨層領域治權檔例外句。
-2. §0.2：增 [I] 用語補述——「須／需」為「必須（MUST）」同義。
-3. §0.3：編號系統納入 §5.{n}；§8.1 釋明字母／羅馬子項屬「項次」受編號穩定性保護、「102 母集」據此確定。
-4. §2.5-6：增 [I] 補述——Evidence／Knowledge 為共定義對。
-5. §8.6：非核心 [N] 條款實質變更明定為 minor（解修訂自鎖 M1）；規格版本錨定不得繫於檔名／行號。
+**MC 本文變更（[I]／minor；§8 與構成性依據之 [N] 本文一律不動）**：
+1. §0.5：L2–L7 充任認定補登（原僅 L1 有註記；§8.6 明定之 minor）；「每份規格恰屬一層」增跨層領域治權檔例外句。
+2. §0.2：增 [I] 用語補述——「須／需」為「必須（MUST）」同義（[I] 添加，不改 [N] 效力）。
+3. §2.6：增 [I] 補述——Evidence／Knowledge 為共定義對（[I] 添加）。
 
-**治理附則變更（minor）**：第 2 條增條款級別對映（解 M1 自鎖）；第 3 條增繼任人恆存義務（解 §8.1 單點故障死鎖）。
+**明示不以 minor 為之（§8 self-entrenchment；2026-07-18 獨立核驗糾正越權）**：§8.6／§0.3 之 [N] 本文與治理附則之條款級別對映**不在本批執行**——§8.4 列 §8 為核心、§8.5(b) 定 §8 自身及構成性依據（§0.2-0.3、§2）之修訂一律原則級，非 minor 可為。此類事項改由 §8.1 解釋處理，或俟 Steward 依 §8.5 原則級程序（14 日公示）另辦。
 
-**另記於裁決之 §8.1 解釋**（不改 MC 本文，效力自裁決）：M2 共享憑證↔行動者專屬綁定（P5.W1）；§8.3 稽核工具自身輸出保真；F1/F3 時序措辭讀為權威順序；P3.E1 provisional 二義區分；P1.E3 主責 Layer 6；P5.W4 最小權限判準。
+**§8.1 解釋（七項，效力自裁決、不改 MC 本文）**：**M1 修訂自鎖**——§8 維持原則級門檻不降，§8.5(b)(ii) 判準對治理／定義條款讀為「更完整**實現**五原則之治理落實」，**解鎖而不降門檻**（不以自舉 minor 動作規避 self-entrenchment）；M2 共享憑證↔行動者專屬綁定（P5.W1）；§8.3 稽核工具輸出保真；§0.3 母集（字母子項屬項次受編號穩定性保護、但不入 102；§5.{n} 屬 102）；F1/F3 權威順序；P3.E1 provisional 二義；P1.E3 主責 Layer 6。〔P5.W4「最小權限」經審查認定已由 §8.3「存疑即不允許」兜底、**無須另立判準**——原稿誤列為解釋項，於此更正；治理附則第 3 條繼任人恆存義務屬 annex minor（附則自身授權範圍內），另行。〕
