@@ -244,4 +244,4 @@
 * **事項**：Steward 裁決第 2026-016 號——**WM Annex D 六列旗標一次處置**：D16 TR 逐列化；D13（Planning 四物件定義＋P3.E1 引用紀律）／D15（fail-safe 判定主體釘定）／D17（自然人法規對應表 L6 本體）／D22（核心宇宙判準三機制）／D28（誠實輸出契約四驗證）五列實質承接補正。**AUGUR-L6 v1.1→v1.2、AUGUR-KS v1.0→v1.1（minor）、AUGUR-L5 TR patch 更正**；三層循環空指與「code 先行規格未書」反向缺口關閉
 * **文件**：[RULING-2026-016-ANNEXD-SIX-ROWS.md](RULING-2026-016-ANNEXD-SIX-ROWS.md)＋附件 ops/ANNEXD-SIX-ROWS-CASE-2026-07-18.md
 * **裁決人**：Constitution Steward（tsaitsangchi）
-* **驗證**：三檔 gate 逐一 PASS、全 corpus 7/7、selftest 全綠；對抗核驗收尾另記
+* **驗證**：三檔 gate 逐一 PASS、全 corpus 7/7、selftest 全綠。**獨立對抗核驗因額度中斷未完成**；建造者機械自查更正五處版本一致性缺陷（KS/L6 文末版本、KDI 盤點、二處時代錯置引用），詳裁決事後更正記錄；深度語義核驗待額度恢復補行
