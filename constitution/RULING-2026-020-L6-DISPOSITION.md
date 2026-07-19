@@ -1,10 +1,12 @@
-# Augur Steward 裁決草案第 2026-020 號〔DRAFT——M2 待 Steward 裁決〕
+# Augur Steward 裁決第 2026-020 號
 
 **L6（AUGUR-Agent Runtime）之 2 存活 major 處置——補 RULING-2026-019 之遺漏**
 
 * **緣起**：RULING-2026-019 四決策圍繞 L3/L4/L5 矩陣主病灶，**沉默漏列 L6 之 2 存活 major**（第 12 度定律，獨立核驗 af8694 查獲）。本裁決補處置。
 * **依據**：`AUGUR-MC v1.4 §8.6`（M1 patch）、`§8.1`（M2 架構解釋）；findings 冊 audits/AGENT-RUNTIME-THREE-MIRROR-REVIEW-2026-07-18.md
-* **狀態**：M1 已依已立 patch 原則執行；**M2 為架構決策，待 Steward 裁**。
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-19 M2 書面核示「甲·收窄 L6.21 下放」
+* **登錄**：AL-2026-024
+* **狀態**：M1、M2 均已執行畢。
 
 ## M1（已執行，commit `2db7456`）— defers-in 宣告完備性
 
@@ -24,4 +26,10 @@
 
 **幕僚傾向**：(甲) 為最誠實之即時解（不留幽靈、不擅增 provisional L7 之物理承接），物理強制之正式歸屬留待 L7 §8.2——與 L5 橋接、L7 provisional 之謹慎一致。
 
-*M1 已執行並登錄（AL-2026-024 待補）；M2 俟 Steward 裁定甲/乙/丙後，幕僚據以施作並轉正本裁決。*
+## M2 執行（甲案，commit `f3730d9`）
+Steward 裁定甲。L6.21 之下放收窄：**揭露載體**下放 `L7.43`（對外呈現標記，L7 確有承接）保留；**產物閉集／展示分級／零寫入之 DB 物理強制**下放收窄——L7 現未承接，俟 L7 `§8.2` 正式設計；此前 L6 側 fail-closed 介面義務仍為單一執法點、不因 L7 未承接而免除。幽靈下放已閉、provisional L7 未增料。gate PASS、selftest 綠。
+
+## 結算
+L6 之 2 存活 major（M1 defers-in 宣告、M2 幽靈下放）**均處置畢**。L6 待 G5 複驗後蓋章（L6 為 in-force v1.2、未經撤回，蓋章為 G 關卡形式封印，非重採認）。
+
+*本裁決生效。*

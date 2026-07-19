@@ -280,3 +280,11 @@
 * **文件**：[RULING-2026-021-L2-MATRIX-COMPLETENESS.md](RULING-2026-021-L2-MATRIX-COMPLETENESS.md)
 * **裁決人**：Constitution Steward（tsaitsangchi，2026-07-19 逐步完成指示）
 * **驗證**：gate PASS、selftest 綠（tr_rows_L2 56→59）；G5 複驗待補、蓋章前置
+
+## AL-2026-024
+
+* **日期**：2026-07-19
+* **事項**：Steward 裁決第 2026-020 號——**L6（AGENT-RUNTIME）之 2 存活 major 處置**（補 RULING-2026-019 之沉默漏列）：M1＝defers-in 補宣告 7 條 WM.D 直達掛鉤（宣告完備性 patch）；M2（甲案）＝收窄 L6.21→L7 幽靈下放（揭露載體留 L7.43、DB 物理強制俟 L7 §8.2）
+* **文件**：[RULING-2026-020-L6-DISPOSITION.md](RULING-2026-020-L6-DISPOSITION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：gate PASS、selftest 綠；L6 待 G5 蓋章
