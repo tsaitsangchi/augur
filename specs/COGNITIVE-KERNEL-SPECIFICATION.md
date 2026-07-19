@@ -162,6 +162,13 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 
 ## §9 文件治理與合規存續 [N]
 
+> **L5.10（as-of 推理消費——推理之時間邊界與 anti-leakage）[N｜carries｜`AUGUR-MC v1.4 §P4.E2`；refines｜`AUGUR-KS v1.1` KS.40–KS.46；承接｜`AUGUR-KS v1.1` KDO.6 之 L5 面向]**
+> 本規格之 Inference **消費**上游 Layer 4（`AUGUR-KS v1.1 §5` KS.40–KS.46）所定之 as-of 重建能力等級，**不重定義**重建機制。凡以 as-of 時點 T 為基準之推理：
+> **(a) 時間邊界**：結論所引之全部 Evidence／Knowledge 節點，其 valid time／發布日（vintage）**必須** ≤ T（`§P4.E2` 雙時間性）；納入 vintage ＞ T 之節點（未來洩漏／lookahead）者，**不得**產出 as-of T 之結論。
+> **(b) anti-leakage 消費**：purged／embargo／發布日 gate 之判定由 KS §5 能力等級與其下放之查詢引擎（`KDO.6`→L5／L7 實作）供給；本層**必須**於推理入口以該 gate 過濾輸入，未過濾即納入者違反本條。
+> **(c) 能力等級透明**：as-of 重建之能力等級（KS.40–46 之 A0–A3）**必須**隨結論標示；能力等級不足以支持所宣稱 as-of 精度者，結論之 as-of 宣稱降級或標 provisional。
+> **義務主體**：本規格、Reasoning 引擎、Layer 5–7 承載構件。**可判定判準**：存在任一 as-of T 推理，其輸入 Evidence 集含 vintage ＞ T 之節點、或未經 KS §5 as-of gate 過濾者，違反本條（機器可判：對每一 as-of 結論之輸入集掃描 vintage vs T）。（RULING-2026-019 決策二重作；Steward 2026-07-19 准入 [N]。）
+
 > **L5.90（合規聲明格式承接）[N｜carries｜`AUGUR-WM v1.0 §WM.39–45`；`AUGUR-MC v1.4 §8.3`]**
 > 本規格之 Constitutional Compliance Statement 依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成（見 **Annex CS**），非暫行模板。無有效聲明使本規格不生效力。front-matter 閉集欄位、七節論證、緊張關係節、雙向 DEFER 表、WM.44 逐條矩陣（Annex TR）俱全為機器可判生效要件（惟 Steward 充任認定另為裁決要件，DRAFT）。
 > **義務主體**：本規格自身、Steward。**可判定判準**：Annex CS 之 front-matter 欄位、七節論證、緊張關係節、雙向 DEFER 表俱全（`§WM.40–44`），且 Annex TR 逐條矩陣完備。
@@ -187,7 +194,7 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | **LDI.2** | `AUGUR-KS v1.1` KDO.3（HOOK-02 之 L5 面向） | 外部知識入 World Representation 之推論工作流實作 | L5.5 |
 | **LDI.3** | `AUGUR-KS v1.1` KDO.3（HOOK-03 之演算面）、KS.84 | GATE 統計治理之統計計算實作（設計權屬 L4，本層僅實作演算） | L5.5 |
 | **LDI.4** | `AUGUR-KS v1.1` KDO.4、`AUGUR-ID v1.0` IDO.4 | 未解析存量指標之量測落地（L5 面向） | L5.9（＋轉 LDO.4） |
-| **LDI.5** | `AUGUR-KS v1.1` KDO.6 | as-of gate／purged／embargo 之查詢引擎操作化（L5 面向） | L5.2〔⚠️ as-of 待補條款，見 TR.F〕（＋轉 LDO.5 之 L7 面向） |
+| **LDI.5** | `AUGUR-KS v1.1` KDO.6 | as-of gate／purged／embargo 之查詢引擎操作化（L5 面向） | **L5.10**（＋轉 LDO.5 之 L7 面向） |
 | **LDI.6** | `AUGUR-KS v1.1` KS.100、`AUGUR-MC v1.4 §5` 角色四 | Reasoning／Inference／Hypothesis／Explanation 引擎、Confidence 傳播算子推論實作、外部知識確立工作流 | §3–§8（L5.1–L5.9） |
 | **LDI.7** | `AUGUR-WM v1.0` HOOK-02、HOOK-03 | 可證偽→OOS＋經濟裁決工作流之推論面、GATE 預註冊實驗之推論面 | L5.5 |
 
@@ -237,7 +244,7 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | §P4.D（Evidence 可追溯） | L5.2 | 承接 |
 | §P4.W1（Augur 不接受：無 Source 之 Knowledge、不可重現之結果、無 Evidence 之推論） | L5.5（`§A.48` hardcoded＝無 Evidence 斷言） | 承接 |
 | §P4.E1（Knowledge 五元組） | L5.1（推理產物確立為五元組 Knowledge）、L5.6（解釋五問） | 承接 |
-| §P4.E2（Time（雙時間性）） | L5.2〔⚠️ as-of 待補條款，見 TR.F〕；查詢引擎操作化 DEFER（LDO.5） | 承接＋DEFER |
+| §P4.E2（Time（雙時間性）） | **L5.10**；查詢引擎操作化 DEFER（LDO.5） | 承接＋DEFER |
 | §P4.E3（Supersede（只失效不刪除）） | 不觸及＋理由：supersede／tombstone 語義屬 L4（`AUGUR-KS v1.1` §6）；本層 L5.5(c) 承接 GATE 二次證偽之 supersede 特例（演算面） | 承接（演算面）＋不觸及（語義） |
 | §P4.E4（Defeasible（可謬性）） | L5.4（Hypothesis 可謬、禁隱含 1.0、禁不可修正） | 承接 |
 | §P4.E5（Conflict（矛盾保存）） | 不觸及＋理由：矛盾保存語義屬 L4（`AUGUR-KS v1.1` §7）；本層產生之衝突結論以候選斷言入 L4 Conflict Set，不重定義保存語義 | 不觸及＋理由 |
@@ -322,7 +329,7 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | WM.20–WM.23（存在層結構條款） | 不觸及＋理由：存在層本體，本層消費不重定義 |
 | WM.24（canonical chain 承接／節選連續性） | L5.1、CS.1-EV-chain—承接 |
 | WM.25–WM.29（變更二分／自反性／Action 六元組世界事件與禁止型態之無位置性／人類權威表徵位置／fail-safe 狀態容納） | 不觸及＋理由：屬存在層／L4–L6 fail-safe（`AUGUR-KS v1.1` KS.102）；本層不定判定主體 |
-| WM.30–WM.31（雙時間／as-of 存在層宣告） | L5.2〔⚠️ as-of 待補條款，見 TR.F〕；能力等級屬 L4、查詢實作 DEFER（LDO.5）—承接＋DEFER |
+| WM.30–WM.31（雙時間／as-of 存在層宣告） | **L5.10**；能力等級屬 L4、查詢實作 DEFER（LDO.5）—承接＋DEFER |
 | WM.32（觀測定案性） | 不觸及＋理由：分類法維護權屬 L4（`AUGUR-KS v1.1` KS.71）；本層消費 |
 | WM.33（永久標記表達力） | L5.4（assumption 永久標記）、L5.7（synthetic 永久標記）—承接 |
 | WM.34（核心不變式之可機器稽核） | L5.1、L5.2、L5.3（可機器稽核判準）—承接 |
@@ -351,7 +358,7 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | A.49–A.51（領域素材） | 不觸及＋理由：經 HOOK-02 入徵 |
 | A.52（假說非真兆／須經證偽） | L5.5（假說須經 GATE 可證偽＋OOS）—承接（核心） |
 | A.53–A.59（領域素材） | 不觸及＋理由：經 HOOK-02 入徵 |
-| HOOK-01（anti-leakage：vintage／發布日 gate／purged／embargo） | L5.2〔⚠️ as-of 待補條款，見 TR.F〕；能力等級屬 L4、實作 DEFER（LDO.5）—承接＋DEFER |
+| HOOK-01（anti-leakage：vintage／發布日 gate／purged／embargo） | **L5.10**；能力等級屬 L4、實作 DEFER（LDO.5）—承接＋DEFER |
 | HOOK-02（外部知識入 World Representation 之推論工作流） | L5.5、LDI.2—承接（核心） |
 | HOOK-03（GATE 統計嚴謹化；設計權屬 L4，演算面屬 L5） | L5.5、LDI.3、LDO 無（演算落本層）；概念約束 `AUGUR-KS v1.1` KS.84—承接（演算面） |
 
@@ -416,7 +423,7 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | KS §1 KS.6–KS.11（任務／範圍／承接盤點／KS.11 DEFER 下放） | 承接：KS.11 所設 defers-out（KDO 家族）為 L5 §2/Annex LDI 承接之源；矩陣須列承接（L5 消費 KS 分層定位、承接其下放掛鉤） |
 | KS §3 KS.20–KS.26（Knowledge 五元組欄位不變式） | 承接：L5.1 明示『五元組欄位承接 KS.20』、self-reported 標記承 KS.21/77——矩陣本應逐列『承接（消費，不重定義）』，卻整區塊缺席 |
 | KS §4 KS.30–KS.39 ＋ Annex CM（Confidence 單一形式化語義／統一映射表） | 承接：L5.3 之硬約束整條倚賴：KS.30（L_C 取值）、KS.32（Grading Method provenance）、KS.34（meet 上限）；T-L5-2 亦以 KS.3 |
-| KS §5 KS.40–KS.46（雙時間 as-of 重建能力等級） | 承接（as-of 推理消費）〔⚠️ **落點條款待補**：現行 L5.2 不含 as-of 內涵，須新增 as-of 消費 [N] 條款，Steward 重採認前補〕 |
+| KS §5 KS.40–KS.46（雙時間 as-of 重建能力等級） | 承接（as-of 推理消費，落點 **L5.10**；Steward 2026-07-19 准入） |
 | KS §6 KS.50–KS.55（Supersede／Tombstone 與失效語義） | 不觸及：supersede/tombstone 語義屬 L4；理由：L5.5(c) 僅承接 GATE 二次證偽之 supersede 演算特例，餘語義不重定義（與 TR.A §P4.E3  |
 | KS §7 矛盾保存（KS.6x 家族） | 不觸及：矛盾保存語義屬 L4；理由：L5 產生之衝突結論以候選斷言入 L4 Conflict Set，不重定義保存語義（與 TR.A §P4.E5、TR.E ID.60-61 處置一致） |
 | KS §8 KS.70–KS.79 ＋ Annex EV（Evidence 分類法／遞迴溯源／信任分級／NoLaundering） | 承接：L5 核心倚賴：KS.70（引用鏈 DAG，L5.1/L5.2）、KS.71（Computational Evidence 分類，L5.7）、KS.72（Trust Rank，L5 |
