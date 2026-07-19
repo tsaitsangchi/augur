@@ -35,7 +35,7 @@ Augur Enterprise AI Operating System
 | §5 | Hypothesis 之地位與升級紀律 | L5.4、L5.5 | `MC §1.3`、`§P4.E4`；`WM` HOOK-02/03 |
 | §6 | Explanation 義務 | L5.6 | `MC F5`、`§P4.E1`、`§P4.E6` |
 | §7 | AI Model 為工具而非世界權威 | L5.7 | `MC F2`、`§P2.E2`、`§7` |
-| §8 | 分界紀律與 resolution 定性 | L5.8、L5.9 | `MC §5` 角色四、`§0.6(b)`；`KS` KS.100/101 |
+| §8 | 分界紀律與 resolution 定性；as-of 推理消費 | L5.8、L5.9、L5.10 | `MC §5` 角色四、`§0.6(b)`；`KS` KS.100/101 |
 | §9 | 文件治理與合規存續 | L5.90–L5.92 | `WM.39–46` |
 | Annex LDI [N] | 承接上層／Layer 4 DEFER 掛鉤（defers-in） | LDI.0–LDI.7 | `KS` KDO.1/3/4/6、`WM` HOOK-02/03 |
 | Annex LDO [N] | 下放下層 DEFER 掛鉤（defers-out） | LDO.0–LDO.6 | → L6／L7 |
@@ -160,8 +160,6 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 
 ---
 
-## §9 文件治理與合規存續 [N]
-
 > **L5.10（as-of 推理消費——推理之時間邊界與 anti-leakage）[N｜carries｜`AUGUR-MC v1.4 §P4.E2`；refines｜`AUGUR-KS v1.1` KS.40–KS.46；承接｜`AUGUR-KS v1.1` KDO.6 之 L5 面向]**
 > 本規格之 Inference **消費**上游 Layer 4（`AUGUR-KS v1.1 §5` KS.40–KS.46）所定之 as-of 重建能力等級，**不重定義**重建機制。凡以 as-of 時點 T 為基準之推理：
 > **(a) 時間邊界**：結論所引之全部 Evidence／Knowledge 節點，其 valid time／發布日（vintage）**必須** ≤ T（`§P4.E2` 雙時間性）；納入 vintage ＞ T 之節點（未來洩漏／lookahead）者，**不得**產出 as-of T 之結論。
@@ -171,6 +169,9 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 
 > **L5.90（合規聲明格式承接）[N｜carries｜`AUGUR-WM v1.0 §WM.39–45`；`AUGUR-MC v1.4 §8.3`]**
 > 本規格之 Constitutional Compliance Statement 依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成（見 **Annex CS**），非暫行模板。無有效聲明使本規格不生效力。front-matter 閉集欄位、七節論證、緊張關係節、雙向 DEFER 表、WM.44 逐條矩陣（Annex TR）俱全為機器可判生效要件（惟 Steward 充任認定另為裁決要件，DRAFT）。
+
+## §9 文件治理與合規存續 [N]
+
 > **義務主體**：本規格自身、Steward。**可判定判準**：Annex CS 之 front-matter 欄位、七節論證、緊張關係節、雙向 DEFER 表俱全（`§WM.40–44`），且 Annex TR 逐條矩陣完備。
 
 > **L5.91（存續與升版）[N｜carries｜`AUGUR-MC v1.4 §8.6`；`AUGUR-WM v1.0 §WM.46–47`]**
@@ -211,7 +212,7 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | **LDO.2** | L5.3、L5.6、L5.7、L5.8 | Confidence 消費門檻值、banding 帶界閾值、風險分級表、各風險級之完備性／Confidence 門檻、確認者資格與獨立性、監督否決度量 | L6 | `AUGUR-KS v1.1` KDO.2、KS.101、`AUGUR-MC v1.4 §P5.E2` |
 | **LDO.3** | L5.6 | Explanation 之呈現／交付格式與 UI（解釋內容義務屬本層 L5.6，排版／注入 payload／對外呈現下放） | L6／L7 | `AUGUR-MC v1.4 §5` 角色五／六、`§0.6(b)` |
 | **LDO.4** | L5.9 | 未解析存量指標（未解析存量、解析時效、顯式待決同一性存量）之量測實作 | L5／L7 | `AUGUR-KS v1.1` KDO.4、`AUGUR-ID v1.0` IDO.4 |
-| **LDO.5** | L5.2 | as-of gate／purged／embargo 之查詢引擎物理載體、雙時間查詢實作 | L7 | `AUGUR-KS v1.1` KDO.6、`AUGUR-MC v1.4 §P4.E2` |
+| **LDO.5** | L5.10 | as-of gate／purged／embargo 之查詢引擎物理載體、雙時間查詢實作 | L7 | `AUGUR-KS v1.1` KDO.6、`AUGUR-MC v1.4 §P4.E2` |
 | **LDO.6** | §2、§8 | Planning／Human Authority Gate／Action 之授權鏈驗證與行動 gating（EV.8–EV.10；本層止於 Reasoning EV.7） | L6 | `AUGUR-MC v1.4 §5` 角色五、`§P5`、`§4` canonical chain |
 
 ---
@@ -234,7 +235,7 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 
 ## Annex TR [N] — WM.44 逐條對應矩陣（憲章＋WM＋ONT＋ID＋**KS** → L5）
 
-> **TR.0（矩陣之地位與生效要件性）[N]** 依 `AUGUR-WM v1.0 §WM.44`：`AUGUR-MC v1.4`、`AUGUR-WM v1.0`、`AUGUR-ONT v1.0`、`AUGUR-ID v1.0`、`AUGUR-KS v1.1`——〔**2026-07-19 更正（RULING-2026-019 決策二重作）**：原「五上層全部覆蓋」不實（KS 整份缺席/WM D1-6 漏/as-of 幽靈），已補 TR.F＋D1-6＋改標；as-of 消費條款待補、Steward 重採認前置〕——全部 [N] 條款均須對應至本規格至少一 [N] 條款、明記 DEFER 掛鉤、或明記「不觸及」及理由（P#.Y 為 [I] 不計）。本矩陣：TR.A（`AUGUR-MC v1.4` §P4 家族逐條）、TR.B（`AUGUR-MC v1.4` PA／P1／P2／P3／P5 家族、EV.1–EV.12、F1–F6 及 §0/§1/§2/§5/§7/§8 逐條）、TR.C（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28＋HOOK-01/02/03，以十位制區塊逐條枚舉）、TR.D（`AUGUR-ONT v1.0` ONT.1–62＋Annex T T.0–T.91＋DO.0–4）、TR.E（`AUGUR-ID v1.0` ID.1–81＋IDO.0–8）。以十位制區塊枚舉者，區塊內各條款共享所標處置。**本層為交界層，多數上層本體條款之處置為「承接不觸及＋理由：屬 Layer 0–4 本體，L5 消費不重定義」**。〔**TR 更正記錄（patch，RULING-2026-016／AL-2026-019）**：TR.C(3) 原對 D13–D17／D19–D25／D28 之概括理由（「目標 L2–L4」「非本層落點」）與 `AUGUR-WM v1.0` Annex D 原文目標欄矛盾，屬誤植——D13／D22／D28 已析出改列，D14–D17 括注據實更正；[N] 義務零變更。〕
+> **TR.0（矩陣之地位與生效要件性）[N]** 依 `AUGUR-WM v1.0 §WM.44`：`AUGUR-MC v1.4`、`AUGUR-WM v1.0`、`AUGUR-ONT v1.0`、`AUGUR-ID v1.0`、`AUGUR-KS v1.1`——〔**2026-07-19 更正（RULING-2026-019 決策二重作）**：原「五上層全部覆蓋」不實（KS 整份缺席/WM D1-6 漏/as-of 幽靈），已補 TR.F＋D1-6＋改標；as-of 消費落點＝L5.10（Steward 2026-07-19 准入）〕——全部 [N] 條款均須對應至本規格至少一 [N] 條款、明記 DEFER 掛鉤、或明記「不觸及」及理由（P#.Y 為 [I] 不計）。本矩陣：TR.A（`AUGUR-MC v1.4` §P4 家族逐條）、TR.B（`AUGUR-MC v1.4` PA／P1／P2／P3／P5 家族、EV.1–EV.12、F1–F6 及 §0/§1/§2/§5/§7/§8 逐條）、TR.C（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28＋HOOK-01/02/03，以十位制區塊逐條枚舉）、TR.D（`AUGUR-ONT v1.0` ONT.1–62＋Annex T T.0–T.91＋DO.0–4）、TR.E（`AUGUR-ID v1.0` ID.1–81＋IDO.0–8）。以十位制區塊枚舉者，區塊內各條款共享所標處置。**本層為交界層，多數上層本體條款之處置為「承接不觸及＋理由：屬 Layer 0–4 本體，L5 消費不重定義」**。〔**TR 更正記錄（patch，RULING-2026-016／AL-2026-019）**：TR.C(3) 原對 D13–D17／D19–D25／D28 之概括理由（「目標 L2–L4」「非本層落點」）與 `AUGUR-WM v1.0` Annex D 原文目標欄矛盾，屬誤植——D13／D22／D28 已析出改列，D14–D17 括注據實更正；[N] 義務零變更。〕
 > **義務主體**：本規格、Steward。**可判定判準**：如 `§WM.44` 對應完備性——五上層每一 [N] 條款於本矩陣有落點列（承接／細化／DEFER／不觸及＋理由）者為完備；標「不觸及＋理由」之列，其理由為機器可判之處置。
 
 ### TR.A — `AUGUR-MC v1.4` §P4 家族（逐條）[N]
@@ -374,7 +375,7 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | D14–D17（表徵治理下放其餘列） | 不觸及＋理由：各列依 Annex D 原文之目標 Layer 由對應層承接（原概括「目標 L2–L4」為誤植，RULING-2026-016 更正；D16/D17 之 L6 側承接見 AUGUR-L6 v1.2） |
 | D18（Registry／部署拓撲→L4/L7） | 不觸及＋理由：目標 L4/L7（`AUGUR-KS v1.1` KDO.5） |
 | D19–D21、D23–D25（存在層下放雜項） | 據實分列（RULING-2026-016 更正：原「目標 L2–L4」對 D19／D23／D25 為假）：**D20（目標 L2）／D21（目標 L4）**不觸及＋理由：目標層低於本層；**D24（目標 L6）**不觸及＋理由：L6 專屬（RULING-2026-013 已承）；**D19（L4–L7 治權文件唯一真相收斂）／D23（L4–L7 供應商防護額度）／D25（L5–L7 語料隔離部署面）目標含本層**——其 L5 承接與否**未經逐列驗證**（逾 016 之六列範圍），〔**旗標**：提請 Steward 另案逐列裁決，比照 D13/D22/D28 體例〕 |
-| D22（核心宇宙完整性 gate／流動性地板／產業豁免） | 承接（計算面）：成員資格衍生計算為本層 inference（承 `AUGUR-KS v1.1` KS.80 增補款下放，比照 KS.83(ii) 體例），受 L5.2（as-of 消費）、L5.3（Confidence 傳播）既有紀律約束，不另立新條；判準結構屬 L4、數值與豁免核准屬 L6（RULING-2026-016） |
+| D22（核心宇宙完整性 gate／流動性地板／產業豁免） | 承接（計算面）：成員資格衍生計算為本層 inference（承 `AUGUR-KS v1.1` KS.80 增補款下放，比照 KS.83(ii) 體例），受 L5.10（as-of 消費）、L5.3（Confidence 傳播）既有紀律約束，不另立新條；判準結構屬 L4、數值與豁免核准屬 L6（RULING-2026-016） |
 | D26–D27（重編／point-in-time→L4） | 不觸及＋理由：目標 L4（`AUGUR-KS v1.1` KS.54/45） |
 | D28（誠實輸出契約本體） | 承接界分：本層供契約所消費之 GATE 成就狀態與 Hypothesis 模態標記（L5.4、L5.5）；契約本體（產物閉集、硬綁五項、展示分級、fail-closed 閘）落點 L6（`AUGUR-L6` L6.21 增補款）——呈現面依 LDO.3 本層不定 |
 
@@ -415,26 +416,26 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 
 ### TR.F — `AUGUR-KS v1.1`（直接上游 L4，2026-07-19 重作補列 RULING-2026-019 決策二）[N]
 
-> **TR.F（KS 全份補列與『五上層覆蓋』宣稱之更正）[N]** 本規格首次三鏡查獲：直接上游 `AUGUR-KS` **整份未進本矩陣**——TR.0／CS.4「五上層全部 [N] 覆蓋」宣稱**不實**。經窮舉工作流（wf_3ecf8b7c）＋獨立複核（確認 ks_absent）補列 KS 16 區塊如下。**⚠️ 誠實界限**：(1) as-of 消費落點（KS §5）現無真實 L5 條款、待補；(2) 完備性機械強制待決策四；(3) 本補列為 L5 重採認之前置，非自我充任。
+> **TR.F（KS 全份補列與『五上層覆蓋』宣稱之更正）[N]** 本規格首次三鏡查獲：直接上游 `AUGUR-KS` **整份未進本矩陣**——TR.0／CS.4「五上層全部 [N] 覆蓋」宣稱**不實**。經窮舉工作流（wf_3ecf8b7c）＋獨立複核（確認 ks_absent）補列 KS 16 區塊如下。**⚠️ 誠實界限**：(1) as-of 消費落點（KS §5）＝L5.10（Steward 2026-07-19 准入）；(2) 完備性機械強制待決策四；(3) 本補列為 L5 重採認之前置，非自我充任。
 
 | 上層 [N] 區塊 | 處置＋理由 |
 |---|---|
-| KS §0.6 KS.1–KS.5（層級規則／刪名測試／文件約定） | 不觸及：多為 KS 自身文件治理／層級規則，非 L5 推理落點——惟 KS.4 刪名測試同構為 L5.7/L5.8 所直接倚賴，須改列『承接』（L5 §1.2 正文 L93 明引『AUGU |
+| KS §0.6 KS.1–KS.5（層級規則／刪名測試／文件約定） | **承接（KS.4 刪名測試——L5.7/L5.8 直接倚賴，L5 §1.2 承接）／不觸及（KS.1-3/5 屬 L4 文件治理、層級規則，非 L5 推理落點）** |
 | KS §1 KS.6–KS.11（任務／範圍／承接盤點／KS.11 DEFER 下放） | 承接：KS.11 所設 defers-out（KDO 家族）為 L5 §2/Annex LDI 承接之源；矩陣須列承接（L5 消費 KS 分層定位、承接其下放掛鉤） |
 | KS §3 KS.20–KS.26（Knowledge 五元組欄位不變式） | 承接：L5.1 明示『五元組欄位承接 KS.20』、self-reported 標記承 KS.21/77——矩陣本應逐列『承接（消費，不重定義）』，卻整區塊缺席 |
-| KS §4 KS.30–KS.39 ＋ Annex CM（Confidence 單一形式化語義／統一映射表） | 承接：L5.3 之硬約束整條倚賴：KS.30（L_C 取值）、KS.32（Grading Method provenance）、KS.34（meet 上限）；T-L5-2 亦以 KS.3 |
-| KS §5 KS.40–KS.46（雙時間 as-of 重建能力等級） | 承接（as-of 推理消費，落點 **L5.10**；Steward 2026-07-19 准入） |
-| KS §6 KS.50–KS.55（Supersede／Tombstone 與失效語義） | 不觸及：supersede/tombstone 語義屬 L4；理由：L5.5(c) 僅承接 GATE 二次證偽之 supersede 演算特例，餘語義不重定義（與 TR.A §P4.E3  |
+| KS §4 KS.30–KS.39 ＋ Annex CM（Confidence 單一形式化語義／統一映射表） | 承接：L5.3 之硬約束整條倚賴：KS.30（L_C 取值）、KS.32（Grading Method provenance）、KS.34（meet 上限）；T-L5-2 亦以 KS.34 為硬約束。須列『承接（消費）＋細化（傳播面）』，現全缺 |
+| KS §5 KS.40–KS.46（雙時間 as-of 重建能力等級） | 承接（as-of 推理消費，落點 **L5.10**）：as-of 能力等級 A0–A3 由 L5.10 消費（時間邊界/anti-leakage）；查詢實作對稱下放 KDO.6→LDO.5 |
+| KS §6 KS.50–KS.55（Supersede／Tombstone 與失效語義） | 不觸及：supersede/tombstone 語義屬 L4；理由：L5.5(c) 僅承接 GATE 二次證偽之 supersede 演算特例，餘語義不重定義（與 TR.A §P4.E3 處置一致） |
 | KS §7 矛盾保存（KS.6x 家族） | 不觸及：矛盾保存語義屬 L4；理由：L5 產生之衝突結論以候選斷言入 L4 Conflict Set，不重定義保存語義（與 TR.A §P4.E5、TR.E ID.60-61 處置一致） |
-| KS §8 KS.70–KS.79 ＋ Annex EV（Evidence 分類法／遞迴溯源／信任分級／NoLaundering） | 承接：L5 核心倚賴：KS.70（引用鏈 DAG，L5.1/L5.2）、KS.71（Computational Evidence 分類，L5.7）、KS.72（Trust Rank，L5 |
-| KS §9 KS.80–KS.84 ＋ Annex CL（完備性等級／核心宇宙／GATE 統計治理） | 承接：KS.84（GATE 統計設計權，L5.5 承接演算面、T-L5-5）、KS.80（核心宇宙成員資格，D22 承接計算面）須列『承接（演算面/計算面）』；完備性等級 KS.80 消 |
+| KS §8 KS.70–KS.79 ＋ Annex EV（Evidence 分類法／遞迴溯源／信任分級／NoLaundering） | 承接：L5 核心倚賴：KS.70（引用鏈 DAG，L5.1/L5.2）、KS.71（Computational Evidence 分類，L5.7）、KS.72（Trust Rank，L5.6）、KS.73（NoLaundering，L5.2）、KS.74（synthetic 永久，L5.4/L5.7）、KS.76（高風險獨立證據，L5.7）。須逐列承接（消費），現全缺 |
+| KS §9 KS.80–KS.84 ＋ Annex CL（完備性等級／核心宇宙／GATE 統計治理） | 承接：KS.84（GATE 統計設計權，L5.5 承接演算面、T-L5-5）、KS.80（核心宇宙成員資格，D22 承接計算面）須列『承接（演算面/計算面）』；完備性等級 KS.80 消費面『不觸及＋理由：屬 L4/L6』。混合處置，現全缺 |
 | KS §10 KS.90–KS.92（承接 identity claim 之 Confidence） | 承接：L5.9 之 T-KS-6 解消整條倚賴：resolution claim 之信度/欄位/as-of 能力承 KS.90–92；須列承接（消費，信度歸 L4），現全缺 |
-| KS §11 KS.100–KS.102 ＋ Annex L56（與 Layer 5／6 分界） | 承接：此為 L5 分界紀律之直接上游：L5.8 明引 KS.100（L4 專屬僅消費）/KS.101（L6 專屬）、LDI.6 承接 KS.100、L5.8 refines KS.102 |
+| KS §11 KS.100–KS.102 ＋ Annex L56（與 Layer 5／6 分界） | 承接：此為 L5 分界紀律之直接上游：L5.8 明引 KS.100（L4 專屬僅消費）/KS.101（L6 專屬）、LDI.6 承接 KS.100、L5.8 refines KS.102 Annex L56。L5 最核心之分界依據，卻於矩陣零列——最尖銳之矛盾 |
 | KS §12 KS.110–KS.111（Compliance Statement Format 承接與存續） | 承接：L5.90/L5.92/Annex CS 對應之上游存續義務；須列承接（格式承接＋存續升版），現缺 |
-| KS Annex DI KDI.0–KDI.18（KS 承接上層 defers-in 掛鉤） | 不觸及：KDI 為 KS 對其上層（MC/WM/ONT/ID）之承接掛鉤，非對 L5 之下放；理由：L5 經 L4 間接消費，非直接承接對象。惟仍須於矩陣具名列出『不觸及＋理由』方合 WM |
-| KS Annex DO KDO.0–KDO.7（KS 下放下層 defers-out 掛鉤） | 承接：L5 全部 defers-in 之源頭：KDO.1→L5.3/L5.9(LDI.1)、KDO.3→L5.5(LDI.2/3)、KDO.4→L5.9(LDI.4)、KDO.6→L5. |
+| KS Annex DI KDI.0–KDI.18（KS 承接上層 defers-in 掛鉤） | 不觸及：KDI 為 KS 對其上層（MC/WM/ONT/ID）之承接掛鉤，非對 L5 之下放；理由：L5 經 L4 間接消費，非直接承接對象。惟仍須於矩陣具名列出『不觸及＋理由』方合 WM.44 |
+| KS Annex DO KDO.0–KDO.7（KS 下放下層 defers-out 掛鉤） | 承接：L5 全部 defers-in 之源頭：KDO.1→L5.3/L5.9(LDI.1)、KDO.3→L5.5(LDI.2/3)、KDO.4→L5.9(LDI.4)、KDO.6→L5.2(LDI.5)；KDO.2 轉下放 L6(LDO.2)、KDO.5(Registry/部署)→L4/L7、KDO.0/7 待列。此為 L5 承接骨幹卻於矩陣零列——與正文/LDI 表自相矛盾 |
 | KS Annex L3U（與 Layer 3 之分界表） | 不觸及：L3–L4 分界，非 L5 落點；理由：本層承 L4 之產物，不涉 L3–L4 分界。須具名列出方合完備性 |
-| KS Annex TR／CS／EO（KS 自身 WM.44 矩陣／合規聲明／評價性謂詞判準） | 不觸及：屬 KS 自身之合規 apparatus（其對 MC/WM/ONT/ID 之矩陣、CS front-matter、EO 謂詞表），非 L5 之推理落點；理由：各層自備 WM.39– |
+| KS Annex TR／CS／EO（KS 自身 WM.44 矩陣／合規聲明／評價性謂詞判準） | 不觸及：屬 KS 自身之合規 apparatus（其對 MC/WM/ONT/ID 之矩陣、CS front-matter、EO 謂詞表），非 L5 之推理落點；理由：各層自備 WM.39–45 機制，L5 不重複承接。須具名列出 |
 
 ### TR.Z — 殘餘生效阻卻（DRAFT）[N]
 
@@ -496,7 +497,7 @@ compliance-statement:
 
 ### CS.3 雙向 DEFER 承接表（`AUGUR-WM v1.0 §WM.43`）[N]
 
-* **(a) 承接上層／Layer 4 之掛鉤（defers-in）**：`AUGUR-KS v1.1` KDO.1→L5.3/L5.9（LDI.1）；KDO.3〔HOOK-02〕→L5.5（LDI.2）；KDO.3〔HOOK-03 演算面〕＋KS.84→L5.5（LDI.3）；KDO.4→L5.9（LDI.4，＋轉 LDO.4）；KDO.6→L5.2（LDI.5，＋轉 LDO.5）；KS.100→§3–§8（LDI.6）；`AUGUR-WM v1.0` HOOK-02／HOOK-03→L5.5（LDI.7）；`AUGUR-MC v1.4 §5` 角色四→§3–§8。與 front-matter `defers-in` 欄及 Annex LDI 三向對表。
+* **(a) 承接上層／Layer 4 之掛鉤（defers-in）**：`AUGUR-KS v1.1` KDO.1→L5.3/L5.9（LDI.1）；KDO.3〔HOOK-02〕→L5.5（LDI.2）；KDO.3〔HOOK-03 演算面〕＋KS.84→L5.5（LDI.3）；KDO.4→L5.9（LDI.4，＋轉 LDO.4）；KDO.6→L5.10（LDI.5，＋轉 LDO.5）；KS.100→§3–§8（LDI.6）；`AUGUR-WM v1.0` HOOK-02／HOOK-03→L5.5（LDI.7）；`AUGUR-MC v1.4 §5` 角色四→§3–§8。與 front-matter `defers-in` 欄及 Annex LDI 三向對表。
 * **(b) 下放下層之掛鉤（defers-out）**：LDO.1（物理 model／向量庫／統計庫→L7）、LDO.2（Confidence 門檻／風險分級／確認者資格／監督否決→L6）、LDO.3（Explanation 呈現／UI→L6/L7）、LDO.4（未解析存量量測→L5/L7）、LDO.5（as-of 查詢引擎實作→L7）、LDO.6（Planning／Human Authority Gate／Action gating→L6），與 front-matter `defers-out` 欄互為索引（見 Annex LDO）。
 
 ### CS.4 形式充分性（`AUGUR-WM v1.0 §WM.44`）[N]
