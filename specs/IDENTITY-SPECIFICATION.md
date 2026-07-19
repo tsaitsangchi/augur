@@ -14,7 +14,7 @@ Augur Enterprise AI Operating System
 > 本文件為 **v1.0 生效版本**。Constitution Steward（tsaitsangchi）已於 2026-07-17 依 `AUGUR-MC v1.4 §0.5`、`§8.6` 作成**充任認定**（Steward 裁決第 2026-004 號，Amendment Log AL-2026-008）：本文件充任 `AUGUR-MC v1.4 §0.5` 對照表 Layer 3「Identity System」欄所轄之「Identity Specification」，`§0.1` 生效要件全部成就（Layer 對照表登錄、Compliance Statement、`§WM.44` 形式充分性成就〔Annex TR 逐條完整枚舉、缺 0 條〕、linter 結構關卡通過、上層 `AUGUR-ONT v1.0` 已先行生效），**自 2026-07-17 起生效**。`v0.1-draft` 原文歸檔於 `specs/IDENTITY-SPECIFICATION-v0.1-draft.md`；draft → v1.0 之變更僅限：版本欄、本【地位】節生效記錄、Annex CS front-matter spec-version，**無任何 [N] 條款實質變更、條款編號（ID.{n}／AO.{n}／IDO.{n}／CS.{n}／L4.{n}）不重排**。
 >
 > * 本文件全部 [N] 條款自生效日起對 Layer 4–7 規格產生規範效力；下層依 `AUGUR-ID v1.0 §{條款}` 格式引用。落實審計 AUD-04／05／06（§P3 家族細化）。
-> * **形式充分性**：Annex TR（TR.A–TR.Z）就三上層（`AUGUR-MC v1.4`／`AUGUR-WM v1.0`／`AUGUR-ONT v1.0`）全部 [N] 條款逐條完整枚舉、缺 0 條（對抗審查查出之 §0.2／§1.2／§1.3／§7／§8.5 缺列已補正）。
+> * **形式充分性**：Annex TR（TR.A–TR.Z）就三上層（`AUGUR-MC v1.4`／`AUGUR-WM v1.0`／`AUGUR-ONT v1.0`）之 [N] 條款枚舉落點（**括號所列 §0.2／§1.2／§1.3／§7／§8.5 係更早一輪之補正**）。〔**2026-07-18 更正（見 Annex TR.Y）**：本『缺 0 條』宣稱經三鏡＋窮舉查獲原不實、尚缺 15 組已補列於 TR.Y；本節及 §0.1／TR.0／TR.Z 各處『缺 0 條／形式充分性已成就』均應**連同 TR.Y 之更正讀**——手工維護、不得以單方宣稱視為終局，完備性機械強制待決策四第二輪。〕
 > * **上層承接**：`AUGUR-ONT v1.0`（Layer 2）已於 2026-07-17 先行生效（AL-2026-007），本規格對其之承接自即生效；正文對 `AUGUR-ONT` 之引用之版本標注由 v0.1-draft 更新為 v1.0 屬 patch 級編輯（依 `§8.6`），不影響條款內容。
 > * **實質充分性**之最終判斷仍屬 Steward 違憲審查程序（`AUGUR-MC v1.4 §8.2`），與已成就之形式充分性分屬二事；充任認定不排除嗣後之違憲審查。
 > * 條款編號穩定性依 `AUGUR-MC v1.4 §8.6`、`AUGUR-WM v1.0 §WM.46`：永不重用、永不重排。
@@ -654,6 +654,8 @@ Augur Enterprise AI Operating System
 | T.51（UnderlyingRelation） | ID.24（世界關係身份解析）、ID.44（ConvertibleBond→標的股以事件＋lineage） |
 
 ### TR.Y — 2026-07-18 窮舉補列（RULING-2026-019 決策一）[N]
+
+> **ONT Annex L3 之處置記錄（G5 複驗補閉，2026-07-19）**：G1 三鏡曾列 ONT Annex L3（Layer 2/3 分界表）為漏列項。查 Annex L3 於 `AUGUR-ONT v1.0 §0.3` **不另立獨立條款號**，故無可枚舉之 [N] 條款；其規範內容已由本規格 ID.1（`carries｜AUGUR-ONT v1.0 Annex L3`）、ID.71／Annex L4（同構）及矩陣內 DO.0–4／ONT.20–22 列承接。**故不另立矩陣列**——此記錄閉合「G1 標記後未書面說明」之審計斷點。
 
 > **TR.Y（矩陣完備性補列與『缺 0 條』宣稱之更正）[N]** 本規格首次三鏡對抗審查（2026-07-18）查獲：TR.0／TR.Z／【地位】之「三上層（`AUGUR-MC v1.4`／`AUGUR-WM v1.0`／`AUGUR-ONT v1.0`）全部 [N] 條款逐條完整枚舉、**缺 0 條**」宣稱**不實**——15 組上層 [N] 條款於矩陣完全無落點列（下表補列）。（§5.1–§5.6 及裸章 §0/§1/§2/§3/§8 之 [N] 由既有 §5 架構角色章列及各章子條列於章／子條 granularity 覆蓋，linter 形式關卡滿足；本表補列者為既有矩陣完全無落點之子條與 Annex 群。）經窮舉工作流（wf_ba742919-e04）＋獨立複核逐條定處置。**⚠️ 誠實界限**：完備性之**機械強制**（`§8.3` linter matrix-coverage check——窮舉上層 [N] 條款 vs 矩陣列）尚未建置；在其建置前（RULING-2026-019 決策四第二輪），「逐條完整枚舉」係**手工維護**，其完備性不得再以單方宣稱視為終局。TR.A–TR.Z 各處「缺 0 條」字樣應連同本更正讀。
 

@@ -11,10 +11,10 @@ Augur Enterprise AI Operating System
 
 > ## 【地位】[N]
 >
-> 本文件為 **v1.0 生效版本**。Constitution Steward（tsaitsangchi）已於 2026-07-17 依 `AUGUR-MC v1.4 §0.5`、`§8.6` 作成**充任認定**（Steward 裁決第 2026-005 號，Amendment Log AL-2026-009）：本文件充任 `AUGUR-MC v1.4 §0.5` 對照表 Layer 4「Knowledge System」欄所轄規格（概念層總綱），`§0.1` 生效要件全部成就（Layer 對照表登錄、Compliance Statement、`§WM.44` 形式充分性成就〔Annex TR 逐條完整枚舉、缺 0 條〕、linter 結構關卡通過、上層 `AUGUR-ONT v1.0`／`AUGUR-ID v1.0` 已先行生效），**自 2026-07-17 起生效**。`v0.1-draft` 原文歸檔於 `specs/KNOWLEDGE-SYSTEM-SPECIFICATION-v0.1-draft.md`；draft → v1.0 之變更僅限：版本欄、本【地位】節生效記錄、Annex CS front-matter spec-version，**無任何 [N] 條款實質變更、條款編號不重排**。
+> 本文件為 **v1.1 生效版本**（v1.0 首次充任 2026-07-17；RULING-2026-016／AL-2026-019 minor 升 v1.1）。Constitution Steward（tsaitsangchi）已於 2026-07-17 依 `AUGUR-MC v1.4 §0.5`、`§8.6` 作成**充任認定**（Steward 裁決第 2026-005 號，Amendment Log AL-2026-009）：本文件充任 `AUGUR-MC v1.4 §0.5` 對照表 Layer 4「Knowledge System」欄所轄規格（概念層總綱），`§0.1` 生效要件全部成就（Layer 對照表登錄、Compliance Statement、`§WM.44` 形式充分性成就〔Annex TR 逐條完整枚舉、缺 0 條〕、linter 結構關卡通過、上層 `AUGUR-ONT v1.0`／`AUGUR-ID v1.0` 已先行生效），**自 2026-07-17 起生效**。`v0.1-draft` 原文歸檔於 `specs/KNOWLEDGE-SYSTEM-SPECIFICATION-v0.1-draft.md`；draft → v1.0 之變更僅限：版本欄、本【地位】節生效記錄、Annex CS front-matter spec-version，**無任何 [N] 條款實質變更、條款編號不重排**。
 >
-> * 本文件全部 [N] 條款自生效日起對 Layer 5–7 規格產生規範效力；下層依 `AUGUR-KS v1.0 §{條款}` 格式引用。落實審計 AUD-03（Confidence 單一形式化語義，Annex CM）／AUD-08（雙時間 as-of）／AUD-02（supersede/tombstone 形式化）。
-> * **形式充分性**：Annex TR（TR.A–TR.Z）就四上層（`AUGUR-MC v1.4`／`AUGUR-WM v1.0`／`AUGUR-ONT v1.0`／`AUGUR-ID v1.0`）全部 [N] 條款逐條完整枚舉、缺 0 條（對抗審查查出之 §8.5／§0.1／§0.2／§1.2／§1.3／§7／F1／F2／F3／F6／P1.D／P2.D／P3.D／P5.D 缺列已補正；P#.Y 為 [I] 不計）。
+> * 本文件全部 [N] 條款自生效日起對 Layer 5–7 規格產生規範效力；下層依 `AUGUR-KS v1.1 §{條款}` 格式引用。落實審計 AUD-03（Confidence 單一形式化語義，Annex CM）／AUD-08（雙時間 as-of）／AUD-02（supersede/tombstone 形式化）。
+> * **形式充分性**：Annex TR（TR.A–TR.Z）就四上層（`AUGUR-MC v1.4`／`AUGUR-WM v1.0`／`AUGUR-ONT v1.0`／`AUGUR-ID v1.0`）之 [N] 條款枚舉落點（**括號所列 §8.5／§0.1／§0.2／§1.2／§1.3／§7／F1-F6／P#.D 係更早一輪之補正**）。〔**2026-07-18 更正（見 Annex TR.Y）**：本『缺 0 條』宣稱經三鏡＋窮舉查獲原不實、尚缺 9 組已補列於 TR.Y；**本節及 §0.1、TR.0、CS.4、TR.Z、CS 結語、尾註各處『缺 0 條／形式充分性已成就／殘餘生效阻卻已解消』均應連同 TR.Y 之更正讀**——手工維護、不得以單方宣稱視為終局，完備性機械強制待決策四第二輪。〕
 > * **上層承接**：`AUGUR-ONT v1.0`（Layer 2，AL-2026-007）與 `AUGUR-ID v1.0`（Layer 3，AL-2026-008）均已於 2026-07-17 先行生效，本規格對其之承接自即生效；正文對其之版本標注由 v0.1-draft 更新為 v1.0 屬 patch 級編輯（`§8.6`），不影響條款內容。
 > * **實質充分性**之最終判斷仍屬 Steward 違憲審查程序（`AUGUR-MC v1.4 §8.2`），與已成就之形式充分性分屬二事；充任認定不排除嗣後之違憲審查。
 > * 條款編號穩定性依 `AUGUR-MC v1.4 §8.6`、`AUGUR-WM v1.0 §WM.46`：永不重用、永不重排。
@@ -63,8 +63,8 @@ Augur Enterprise AI Operating System
 
 * 名稱：Augur Knowledge System Specification（下層引用簡稱 **AUGUR-KS**）
 * 層級：Layer 4 — Knowledge System（`AUGUR-MC v1.4 §0.5` 對照表第 4 列）
-* 版本：v1.0（前版：v0.1-draft）
-* 上層規格（upper-specs）：`AUGUR-MC v1.4`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v1.0`（Layer 2，草案）、`AUGUR-ID v1.0`（Layer 3，草案）
+* 版本：v1.1（前版：v1.0／v0.1-draft；RULING-2026-016 minor 升）
+* 上層規格（upper-specs）：`AUGUR-MC v1.4`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v1.0`（Layer 2）、`AUGUR-ID v1.0`（Layer 3）
 * 生效要件：`AUGUR-MC v1.4 §0.5` 對照表登錄（已具欄位）＋ 依 `AUGUR-WM v1.0 §WM.39` 之 Compliance Statement（Annex CS）含 `§WM.44` 逐條矩陣（**已完整枚舉、形式充分性已成就**，見 Annex TR、【地位】）＋ Steward 充任認定（**已成就**，見【地位】）＋ 登錄 Amendment Log（`AUGUR-MC v1.4 §8.1`）——**已全部成就**（Steward 裁決第 2026-005 號，2026-07-17，AL-2026-009）。**生效日：2026-07-17**。實質充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序，與已成就之形式充分性分屬二事。
 
 ### 0.2 規範用語約定 [N]
@@ -715,7 +715,7 @@ Augur Enterprise AI Operating System
 | §6 F1（Data First Architecture：禁先建資料表再想世界模型；違反 P1） | KS.4（概念層獨立性＋刪名測試：Knowledge 五元組／Confidence 為概念層形式，不以特定資料庫欄位結構為定義依據）、KS.20（Confidence／五元組 hooks 物理欄位→L7，非資料表結構決定 Knowledge 存在） | 承接 |
 | §6 F2（Model First Architecture：禁先選 AI model 再設計系統；違反 P2） | 不觸及＋理由：AI model 選型屬 Layer 5（Cognitive Kernel／AI Model Selection，`§0.5` 對照表）；本層僅定 Confidence 之語義與消費約束（§4），不涉模型選型 | 不觸及＋理由 |
 | §6 F3（Agent First Architecture：禁先做 Agent 再補資料治理；違反 P2、P5） | 不觸及＋理由：Agent 建置順序屬 Layer 6 Agent Runtime；本層僅定 Source 槽承接已解析 Identity（含 Agent，KS.21），不定義 Agent 建置順序 | 不觸及＋理由 |
-| §6 F4／F5（Knowledge Without Identity／Knowledge Without Identity／Intelligence Without Evidence） | KS.24（F5 空 Evidence 拒斥）、KS.27 對應（無位置性） | 承接 |
+| §6 F4／F5（Knowledge Without Identity／Intelligence Without Evidence） | KS.24（F5 空 Evidence 拒斥；F4 無位置性由此承接）〔KS.27 為 §0.3 保留空號、非落點〕 | 承接 |
 | §6 F6（Unaccountable Action：禁無法回答誰發起／誰授權／憑何知識之 Action；違反 P5.E1） | 不觸及＋理由：Action 問責之六元組與執行機制屬 Layer 6（同 P5.E1，KS.101）；本層僅提供 Knowledge Basis 一環之 Confidence／完備性語義（KS.35、KS.80） | 不觸及＋理由 |
 | §7（Long-Term Stability Rule（十年以上演化原則）） | KS.4（概念層獨立性＋刪名測試：本層之技術中立與長期穩定性落實，呼應 §7「不依賴特定 AI model／database」）；五項不變核心逐項見 TR.A／TR.B 各 P1–P5 對應列 | 承接 |
 | §8.1／§8.6（Constitution Steward（憲章權威）／Constitution Steward（憲章權威）／版本語義、引用格式與編號穩定性） | KS.111、§0.3 | 承接 |
@@ -750,7 +750,7 @@ Augur Enterprise AI Operating System
 | WM.18（候選斷言之地位與狀態轉換） | KS.20（五元組概念相容，D7）、KS.77—承接 |
 | WM.19（基本單位） | KS.7—承接 |
 | WM.20（跨部署解析與命名空間不強制） | 承 Layer 3；本層不觸及命名機制—承接（不觸及機制） |
-| WM.21（結構位置義務與效力封印） | KS.24、KS.27 對應（禁止型態無位置性）—承接 |
+| WM.21（結構位置義務與效力封印） | KS.24（禁止型態無位置性）〔KS.27 保留空號、非落點〕—承接 |
 | WM.22（生命週期存續不變式） | KS.50、KS.53（只失效不刪除）—承接 |
 | WM.23（實體類型開放例示） | KS.71（開放列舉體例）；型別制定屬 L2—承接（不重定義型別） |
 | WM.24（canonical chain 承接） | KS.70、CS.1-EV-chain—承接 |
@@ -758,7 +758,7 @@ Augur Enterprise AI Operating System
 | WM.26（自反性） | KS.84（GATE 為自反 Dynamic Entity，`§A.19`）—承接 |
 | WM.27（Action 六元組世界事件與禁止型態之無位置性） | KS.24（空 Evidence 無位置）；Action 六元組屬 L6—承接（無位置性）＋不觸及（六元組） |
 | WM.28（人類權威表徵位置） | KS.80–KS.82（完備性側）；判定主體 DEFER—承接＋DEFER |
-| WM.29（fail-safe 狀態容納） | KS.102、KS.29 對應；判定主體 DEFER L4–L6—承接＋DEFER |
+| WM.29（fail-safe 狀態容納） | KS.102〔KS.29 保留空號、非落點〕；判定主體 DEFER L4–L6—承接＋DEFER |
 | WM.30（雙時間性） | KS.22、KS.40、§5（D8）—細化 |
 | WM.31（時間屬性雙宣告） | KS.42、KS.44—細化 |
 | WM.32（觀測定案性） | KS.43、KS.50、KS.54—細化 |
@@ -952,7 +952,7 @@ Augur Enterprise AI Operating System
 
 ## Annex CS [N] — Constitutional Compliance Statement（依 `AUGUR-WM v1.0 §WM.39–45` 格式）
 
-本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（KS.110、`AUGUR-MC v1.4 §8.3`、`AUGUR-WM v1.0 §WM.39`）。本聲明依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成（非暫行模板，`§WM.45`）。**地位提示**：本規格為 **v1.0 生效版本**，Steward 充任認定已作成，自 2026-07-17 起生效（Steward 裁決第 2026-005 號，AL-2026-009；見【地位】、KS.110）；本聲明之**實質**充分性最終判斷仍屬 Steward `§8.2` 違憲審查程序。
+本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（KS.110、`AUGUR-MC v1.4 §8.3`、`AUGUR-WM v1.0 §WM.39`）。本聲明依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成（非暫行模板，`§WM.45`）。**地位提示**：本規格為 **v1.1 生效版本**（v1.0 首次充任、RULING-2026-016 minor 升），Steward 充任認定已作成，自 2026-07-17 起生效（Steward 裁決第 2026-005 號，AL-2026-009；見【地位】、KS.110）；本聲明之**實質**充分性最終判斷仍屬 Steward `§8.2` 違憲審查程序。
 
 ```
 compliance-statement:
