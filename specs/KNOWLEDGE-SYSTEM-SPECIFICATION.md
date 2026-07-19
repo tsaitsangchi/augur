@@ -957,7 +957,7 @@ Augur Enterprise AI Operating System
 ```
 compliance-statement:
   spec: Augur Knowledge System Specification
-  spec-version: v1.0
+  spec-version: v1.1
   layer: 4
   mc-version: AUGUR-MC v1.4
   upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0]
