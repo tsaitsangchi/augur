@@ -272,3 +272,11 @@
 * **驗證**：七份 gate 全 PASS、selftest 全綠、PA/五原則 byte 零改、M2 保全；本批獨立核驗待補
 * **處置完整性糾正（2026-07-19 獨立核驗，第 12 度定律）**：四決策遺漏 L6 之 2 存活 major（M1 defers-in 未宣告 7 掛鉤／M2 L6.21→L7 幽靈下放），carried RULING-2026-020 待裁；另修裁決 2 處草案語態、IDENTITY/KS 失效散文、count 115行/140處
 * **意義**：八層首審全部完成（L0–L7 各受首次對抗審查）。定律至第 12 度，12/12 皆獨立審查捕獲、建造者自查零攔截
+
+## AL-2026-023
+
+* **日期**：2026-07-19
+* **事項**：Steward 裁決第 2026-021 號——**L2（AUGUR-ONT）矩陣形式完備性補正**（執行 RULING-2026-019 決策一之已立 patch 原則於窮舉新浮現之 L2 缺口）：TR.2 補 A.0（承接）＋WM Annex C／E／D非L2（不觸及）4 群；CS.10 [N] 狀態陳述誠實更正。三鏡曾誤判 CS.10 major「雙反駁出局」，經窮舉（wf_d8a73802）證為真——定律第 13 度、首見對抗審查自身失手由更深窮舉接住
+* **文件**：[RULING-2026-021-L2-MATRIX-COMPLETENESS.md](RULING-2026-021-L2-MATRIX-COMPLETENESS.md)
+* **裁決人**：Constitution Steward（tsaitsangchi，2026-07-19 逐步完成指示）
+* **驗證**：gate PASS、selftest 綠（tr_rows_L2 56→59）；G5 複驗待補、蓋章前置
