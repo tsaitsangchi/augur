@@ -24,7 +24,7 @@
 | **L3** ID | ✅ | ✅ | ✅ | ✅ | ✅再驗乾淨(aa7cc78e) | ✅ **已蓋章** | — |
 | **L4** KS | ✅ | ✅ | ✅ | ✅ | ✅再驗乾淨(a0cda4f) | ✅ **已蓋章** | — |
 | **L5** Cognitive | ✅ | ✅撤回+橋接 | ⏳需重作 | — | — | — | **矩陣重作**（含 KS 全列、WM D1-D6、as-of）→ 重採認 |
-| **L6** Agent Runtime | ✅ | ⏳RULING-020 | — | — | — | — | Steward 裁 M1/M2→修→複驗 |
+| **L6** Agent Runtime | ✅ | ✅RULING-020(M1+M2甲) | ✅ | ✅ | 🔄G5中 | — | M1/M2 處置畢、G5 複驗中→蓋章 |
 | **L7** Infra | ✅ | ✅ | 部分 | — | provisional | — | §8.2 期限 2026-10-14 |
 
 ## 執行順序（一層一層）
@@ -57,3 +57,22 @@
 1. **可運作探測**：PG/augur DB、ollama(11434)/qdrant(6333) 服務、GPU/VRAM、核心模組 import、advisor/core_gate 短連線通、審議引擎跑通一輪。
 2. **概念層資料完整性**：entity_registry(3,491)、knowledge、identity lifecycle 可查且一致。
 3. **可移機驗證**：確認機器特定性真隔離在 .env＋DB config＋探測（PORTABILITY.md 之縫），核心碼零硬編碼（已初掃、待實機再驗）。
+
+
+---
+
+# 第三階段：ultracode 交互檢查（層帶整體對抗，單層蓋章之盲區）
+
+**動機**：單層 G5＝「此層乾淨」；交互檢查＝「層與層之間、貫穿層帶之不變式」。L2 之教訓（三鏡誤反駁、窮舉才接住）證明——**再深一層方可靠**。
+
+## 3a. 概念層 L1–4 交互檢查 — ✅ 已執行（2026-07-19，wf_7d822c3c）
+* 5 接縫＋4 橫貫維度＋major 雙反駁＋完備性批評（26 代理）。
+* **結果：41 findings、4 存活 cross-layer major**（單層 G5 全未見）——
+  (1) P5.W4 最小權限於 WM 全篇無承接（核心 [N] 無家）；(2) ID/KS 之 WM Annex D 處置表用廢棄舊編號、兩層互斥；(3) KS 誤標 9 列 D 編號；(4) KS 誤認 D19 為 RBAC、斷鏈。
+* **處置**：→ **RULING-2026-022**（cross-layer patch）待作成。**「單層完整」成立、「整合完整」差此 4 條**。
+
+## 3b. 執行層 L5–7 交互檢查 — ⏳ 排定（L5–7 全蓋章後執行）
+* **前置**：L5 重採認、L6 G5 蓋章、L7 §8.2——三者完成後方執行（比照概念層先全蓋章再交互檢查）。
+* **接縫**：L4→L5（KS→Cognitive，KDO 落點）、L5→L6（LDO→Agent Runtime）、L6→L7（L6 defers-out→Infra 承接，含 M2 收窄後之物理強制歸屬）、**L7→物理/本機**（Bearer Registry↔ENVIRONMENT-SPEC↔實機）。
+* **執行層特有維度**：(1) **物理性守門**（§0.6(b) 概念層不得引執行層；反向執行層物理綁定是否洩入規範本文）；(2) **可移機隔離縫**（機器特定性是否真隔離於 L7 綁定＋config，實機驗 PORTABILITY.md 之縫）；(3) **可運作 spec↔實機**（L5 模型/L6 advisor/L7 部署之規格描述 vs 本機實跑：ollama/qdrant/advisor/GPU）。
+* **狀態以本檔更新**；比照 3a 之 5 接縫＋維度＋雙反駁＋批評規格。
