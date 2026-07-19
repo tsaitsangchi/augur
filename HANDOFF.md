@@ -11,7 +11,7 @@
 
 ## 一句話現況
 
-**L0–L6 已生效、L7 草擬完成但充任受阻。M2（全棧貫通）未達成 —— 且這是正確的**：本輪造出的機器 gate 證明，先前六層賴以充任的「形式關卡全綠」有假陽性成分 —— 四份**已生效**規格（L3/L4/L5/L6）共有 **<!--lint:l3_l6_errors-->0<!--/lint--> 個誤標**——其中**憲章（MC）側 <!--lint:l3_l6_mc-->0<!--/lint-->、上層規格側 <!--lint:l3_l6_upper-->0<!--/lint-->**（舊值 93 係前一版 gate 之低估，且曾誤將 MC＋上層合計冠以「憲章」）。第五份（L2）之 **<!--lint:tr_rows_L2-->56<!--/lint--> 列**矩陣（Annex TR）**從未被讀過**卻以 ✅ PASS 發布（gate 對該檔之比對筆數為 <!--lint:compared_L2-->4<!--/lint--> 筆——**矩陣在場、一列未讀**）。
+**L0–L6 已生效、L7 草擬完成但充任受阻。M2（全棧貫通）未達成 —— 且這是正確的**：本輪造出的機器 gate 證明，先前六層賴以充任的「形式關卡全綠」有假陽性成分 —— 四份**已生效**規格（L3/L4/L5/L6）共有 **<!--lint:l3_l6_errors-->0<!--/lint--> 個誤標**——其中**憲章（MC）側 <!--lint:l3_l6_mc-->0<!--/lint-->、上層規格側 <!--lint:l3_l6_upper-->0<!--/lint-->**（舊值 93 係前一版 gate 之低估，且曾誤將 MC＋上層合計冠以「憲章」）。第五份（L2）之 **<!--lint:tr_rows_L2-->59<!--/lint--> 列**矩陣（Annex TR）**從未被讀過**卻以 ✅ PASS 發布（gate 對該檔之比對筆數為 <!--lint:compared_L2-->4<!--/lint--> 筆——**矩陣在場、一列未讀**）。
 >
 > 產生指令（於 repo 根執行）：**`python3 -m tools.constitution_lint report`** —— 全 corpus 權威數字之**單一產生點**（人可讀＋JSON；`--json` 取 `values.*`）。
 >
@@ -57,14 +57,14 @@
 |---|---|---|---|
 | L0 Meta-Constitution | `constitution/META-CONSTITUTION.md` | ✅ **v1.3 生效** | — |
 | L1 World Model | `specs/WORLD-MODEL-SPECIFICATION.md` | ✅ v1.0 生效 | **<!--lint:errors_L1-->0<!--/lint-->** ✅ 唯一 PASS（無 Annex TR，INFO 不適用） |
-| L2 Ontology | `specs/ONTOLOGY-SPECIFICATION.md` | ✅ v1.0 生效 | 🔴 **<!--lint:errors_L2-->0<!--/lint-->**（＝零覆蓋之強制發聲；**其 <!--lint:tr_rows_L2-->56<!--/lint--> 列矩陣仍未受檢，真值未知**） |
+| L2 Ontology | `specs/ONTOLOGY-SPECIFICATION.md` | ✅ v1.0 生效 | 🔴 **<!--lint:errors_L2-->0<!--/lint-->**（＝零覆蓋之強制發聲；**其 <!--lint:tr_rows_L2-->59<!--/lint--> 列矩陣仍未受檢，真值未知**） |
 | L3 Identity | `specs/IDENTITY-SPECIFICATION.md` | ✅ v1.0 生效 | 🔴 **<!--lint:errors_L3-->0<!--/lint-->**（MC <!--lint:errors_mc_L3-->0<!--/lint-->／上層 <!--lint:errors_upper_L3-->0<!--/lint-->；原 20、更原 12） |
 | L4 Knowledge System | `specs/KNOWLEDGE-SYSTEM-SPECIFICATION.md` | ✅ v1.0 生效 | 🔴 **<!--lint:errors_L4-->0<!--/lint-->**（MC <!--lint:errors_mc_L4-->0<!--/lint-->／上層 <!--lint:errors_upper_L4-->0<!--/lint-->；原 25、更原 15） |
 | L5 Cognitive Kernel | `specs/COGNITIVE-KERNEL-SPECIFICATION.md` | ✅ v1.0 生效（§8.2 延後） | 🔴 **<!--lint:errors_L5-->0<!--/lint-->**（MC <!--lint:errors_mc_L5-->0<!--/lint-->／上層 <!--lint:errors_upper_L5-->0<!--/lint-->；原 28、更原 7） |
 | L6 Agent Runtime | `specs/AGENT-RUNTIME-SPECIFICATION.md` | ✅ v1.0 生效（**含 §8.2 人類審查**） | 🔴 **<!--lint:errors_L6-->0<!--/lint-->**（MC <!--lint:errors_mc_L6-->0<!--/lint-->／上層 <!--lint:errors_upper_L6-->0<!--/lint-->；原 20、更原 5） |
 | L7 Infrastructure | `specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md` | 🔴 **草稿，充任受阻** | 🔴 **<!--lint:errors_L7-->0<!--/lint-->**（MC <!--lint:errors_mc_L7-->0<!--/lint-->／上層 <!--lint:errors_upper_L7-->0<!--/lint-->；原 19） |
 
-**<!--lint:l3_l6_specs-->4<!--/lint--> 份生效規格（L3–L6）誤標合計 <!--lint:l3_l6_errors-->0<!--/lint-->**（MC 側 <!--lint:l3_l6_mc-->0<!--/lint-->／上層側 <!--lint:l3_l6_upper-->0<!--/lint-->）＋ **L2 真值未知**（其 <!--lint:tr_rows_L2-->56<!--/lint--> 列矩陣因 h1 標題從未受檢）。全 <!--lint:corpus_total-->7<!--/lint--> 份 error **<!--lint:total_errors-->0<!--/lint--> 筆**（MC 側 <!--lint:label_errors_mc-->0<!--/lint-->／上層側 <!--lint:label_errors_upper-->0<!--/lint-->／未歸類 <!--lint:label_errors_unclassified-->0<!--/lint-->——ONT 之零覆蓋 error 發生於 clause 解析之前，本無 source 可歸，**三項須並列，寫成「MC 110／上層 90」即為捏造**）；**全部皆為 WM.44-LABEL，非 LABEL error 為 <!--lint:non_label_errors-->0<!--/lint-->**。
+**<!--lint:l3_l6_specs-->4<!--/lint--> 份生效規格（L3–L6）誤標合計 <!--lint:l3_l6_errors-->0<!--/lint-->**（MC 側 <!--lint:l3_l6_mc-->0<!--/lint-->／上層側 <!--lint:l3_l6_upper-->0<!--/lint-->）＋ **L2 真值未知**（其 <!--lint:tr_rows_L2-->59<!--/lint--> 列矩陣因 h1 標題從未受檢）。全 <!--lint:corpus_total-->7<!--/lint--> 份 error **<!--lint:total_errors-->0<!--/lint--> 筆**（MC 側 <!--lint:label_errors_mc-->0<!--/lint-->／上層側 <!--lint:label_errors_upper-->0<!--/lint-->／未歸類 <!--lint:label_errors_unclassified-->0<!--/lint-->——ONT 之零覆蓋 error 發生於 clause 解析之前，本無 source 可歸，**三項須並列，寫成「MC 110／上層 90」即為捏造**）；**全部皆為 WM.44-LABEL，非 LABEL error 為 <!--lint:non_label_errors-->0<!--/lint-->**。
 
 > **計數三度上升，每次都是 gate 變準、非規格惡化**：39（初版）→ 93（一輪硬化，母集 85→102）→ **151**（二輪硬化：Annex TR 零覆蓋強制發聲、詞元去重、判準四收緊、代號脫檢發聲）。**#22 必須裁在此數之上**——前兩個數字皆為低估。〔✅ 2026-07-18 已依 151＋L2 真值（4/4）裁決並執行完畢：RULING-2026-010，六份生效本歸零全 PASS〕
 
@@ -110,7 +110,7 @@ L5 甚至把 **§8.1 標為「Amendment Log／編號穩定」，而 §8.1 = Cons
 
 ### 2b. L2 的「✅ PASS」是假的 —— 被一個 markdown 井號隱藏
 
-`specs/ONTOLOGY-SPECIFICATION.md:415` 有 `# Annex TR`，底下 **<!--lint:tr_rows_L2-->56<!--/lint--> 列資料列**。gate 之 `_ANNEX_TR_HEAD` 寫死要 **h2**，而**十一份規格中僅 ONTOLOGY（生效版與 draft）用 h1**。故其整張矩陣**從未被讀過**（比對筆數 <!--lint:compared_L2-->4<!--/lint--> 筆），卻以「0（無 Annex TR 表格列）✅ PASS」published —— 而該 PASS 曾用以支撐 `RULING-2026-003`（L2 充任認定）。
+`specs/ONTOLOGY-SPECIFICATION.md:415` 有 `# Annex TR`，底下 **<!--lint:tr_rows_L2-->59<!--/lint--> 列資料列**。gate 之 `_ANNEX_TR_HEAD` 寫死要 **h2**，而**十一份規格中僅 ONTOLOGY（生效版與 draft）用 h1**。故其整張矩陣**從未被讀過**（比對筆數 <!--lint:compared_L2-->4<!--/lint--> 筆），卻以「0（無 Annex TR 表格列）✅ PASS」published —— 而該 PASS 曾用以支撐 `RULING-2026-003`（L2 充任認定）。
 
 > **列數之產生指令**（勿手數、勿手抄）：
 > ```bash
@@ -133,7 +133,7 @@ L5 甚至把 **§8.1 標為「Amendment Log／編號穩定」，而 §8.1 = Cons
 sed -i '415s/^# Annex TR/## Annex TR/; 421s/^## TR\.1/### TR.1/; 451s/^## TR\.2/### TR.2/' <沙盒副本>
 ```
 
-實測結果：**PASS → FAIL**，抓到跨層之 `§3` 截半名（規格所載「章：Five Immutable Principles 容器」vs MC 原文「Five Immutable Principles（五大不可違反原則）」）。**惟此時 gate 之 INFO 行自陳「已比對 4 筆」** —— 該 <!--lint:tr_rows_L2-->56<!--/lint--> 列之矩陣僅抽得 **4 筆**可比對之「代號＋標籤」對（`PA`／`§0`／`§1`／`§3`，皆 MC 側）；標題正規化**不等於**該矩陣已受實質檢查。
+實測結果：**PASS → FAIL**，抓到跨層之 `§3` 截半名（規格所載「章：Five Immutable Principles 容器」vs MC 原文「Five Immutable Principles（五大不可違反原則）」）。**惟此時 gate 之 INFO 行自陳「已比對 4 筆」** —— 該 <!--lint:tr_rows_L2-->59<!--/lint--> 列之矩陣僅抽得 **4 筆**可比對之「代號＋標籤」對（`PA`／`§0`／`§1`／`§3`，皆 MC 側）；標題正規化**不等於**該矩陣已受實質檢查。
 
 > ⚠ **前版此處作「56 列中僅 4 列受檢…其餘 52 列」，係本文件自身之母集混用（2026-07-17 四輪據實更正）**：`4` 為**比對筆數**、`56` 為**資料列數**，二者為不同量（一列可載多個代號、亦可一個都不載），`56 − 4 ＝ 52` 係跨量相減，所得之「52 列」不對應任何實測物。**此即本文件所記「58 與 32 分歧」之同一病灶，於其正上方復發。** `report` 之【Annex TR 資料列數 vs 實際比對筆數】表現已將二量分列並明載「不得相減」。
 
@@ -219,7 +219,7 @@ sed -i '415s/^# Annex TR/## Annex TR/; 421s/^## TR\.1/### TR.1/; 451s/^## TR\.2/
 >
 > **前版「55」之來源已查明**：`grep -c '✓'`（未限行首）＝ 55 —— 該法**把結語行「自檢：全通過 ✓」也算成一項測試**。即 54 ＋ 1 條橫幅 ＝ 55。**一個宣告「全部測試通過」的句子被計為一個通過的測試。** 此即「以 grep 計數」之根本不可靠處，故本輪將其移除。引用時請寫「頂層 <!--lint:selftest_top_items-->47<!--/lint--> 項／斷言總數 <!--lint:selftest_assertions-->333<!--/lint--> 項」之明確形式，勿寫裸數字。
 
-1. **`_ANNEX_TR_HEAD` 放寬為 `#{1,3}`**，區段界線改依「同級或更高級標題」而非硬編 `^## ` —— 現況隱藏了 L2 生效規格之 **<!--lint:tr_rows_L2-->56<!--/lint--> 列**矩陣（該列數自本輪起由 `report.annex_tr_rows` 導出並綁定，其錨點即取自 `compliance_lint` 之單一判準；比對筆數仍為 <!--lint:compared_L2-->4<!--/lint--> 筆）。
+1. **`_ANNEX_TR_HEAD` 放寬為 `#{1,3}`**，區段界線改依「同級或更高級標題」而非硬編 `^## ` —— 現況隱藏了 L2 生效規格之 **<!--lint:tr_rows_L2-->59<!--/lint--> 列**矩陣（該列數自本輪起由 `report.annex_tr_rows` 導出並綁定，其錨點即取自 `compliance_lint` 之單一判準；比對筆數仍為 <!--lint:compared_L2-->4<!--/lint--> 筆）。
 2. ~~**強制發聲**：Annex TR 未偵得／零表格列／代號不在標籤宇宙而未比對者，一律發 finding 並列出未受檢筆數與規格名。~~ ~~旗艦之 WM.44-LABEL 自身卻無〔發聲義務〕。~~ ✅ **部分已改**（二輪 `65a7dd6`：突變鎖 G3／G4；三輪：G6／G7）——三種情形均已發聲：Annex TR 未偵得（ONT h1）→ `❌ FAIL（error 1）`；真無 Annex TR（WM）→ `✅ PASS` ＋ INFO「**不適用**（非「已比對且通過」）」；代號脫檢（KS）→ WARNING「本次**未受檢**」。**「未受檢」≠「已比對且通過」** 之義務已落地。
    > **惟不得以「已改」掩蓋殘留**——尚未閉合者二項，接手者請勿讀為全數了結：
    > * ~~**②「標題在、表列零筆」仍零 finding 且 PASS**~~ ✅ **已閉（三輪）**：實證突變（保留 `## Annex TR` 標題、僅刪其下全部 `|` 表列）曾令 IDENTITY 由 ❌ FAIL(<!--lint:errors_L3-->0<!--/lint-->) 轉 ✅ **PASS(0)** 且零 finding——即「刪表列」比「修 <!--lint:errors_L3-->0<!--/lint--> 個標籤」省事，為現存最廉價之翻綠路徑。現改為 `checked` 為空即發 **ERROR**（零覆蓋、判定不具權威），並以 **G6 三鎖**（刪表列／改清單體例／改 HTML）鎖住。

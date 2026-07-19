@@ -481,8 +481,11 @@ Augur Enterprise AI Operating System
 | WM.39–WM.45 | Annex CS、ONT.62 | 承接（正式格式作成聲明） |
 | WM.46／WM.47／WM.48 | ONT.9／ONT.61／ONT.61 | 承接 |
 | WM.49–WM.53 | 不觸及（附理由） | 不觸及：Domain Profile 框架為 Layer 1 對其 Annex A 之治理；本層消費 Annex A 之產物，不制定 Profile 框架 |
-| Annex A（A.1–A.59） | Annex T、Annex T-Map（逐條型別化） | 細化（承接 D20；封印素材 [I] → Type） |
+| Annex A（A.0–A.59；A.0 地位/範圍傘蓋） | Annex T、Annex T-Map（逐條型別化）；A.0→依 WM.23 型別化所轄存在宣告 | 細化（承接 D20；封印素材 [I] → Type）；A.0 承接 |
 | Annex D（D1/D2/D20 目標 L2） | Annex DI（DI.1–DI.3） | 承接（defers-in） |
+| Annex D 非 L2 各列（D0 已由 DI.0 承接；D3–D28） | — | 不觸及：WM 對 L3–L7 之 DEFER 掛鉤，目標 Layer 非本層（D21/23/24/25/27 另有散列引述）〔RULING-2026-021 補列〕 |
+| Annex C（導言＋C.1–C.10） | — | 不觸及：WM 對 MC 之 Constitutional Compliance Statement，義務主體＝WM 自身；本層另以自身 Annex CS 履行同型〔RULING-2026-021 補列〕 |
+| Annex E／E1（收錄義務） | — | 不觸及：WM 自身謂詞收錄義務，義務主體＝WM 修訂者；本層以 Annex EO（EO.1）履行同型〔RULING-2026-021 補列〕 |
 
 ---
 
@@ -590,9 +593,9 @@ compliance-statement:
 * **§5 架構角色；§6 F 型態**：F1、F2、F3、F4、F5、F6；**§7；§8**：§8.1、§8.2、§8.3、§8.4、§8.5、§8.6。
 * **[I] 排除（非 [N]，依 `§WM.44` 不入枚舉義務）**：P1.Y、P2.Y、P3.Y、P4.Y、P5.Y（各原則之 WHY 說理段，`§0.3` 標 [I]）；機器骨架枚舉如將其計入 [N] 宇宙，屬 `mc_clauses` 骨架過計，非本規格 [N] 缺漏。
 
-上開 `AUGUR-MC v1.4` 全部 [N] 條款，與 `AUGUR-WM v1.0` 全部 [N] 條款（WM.1–WM.53、Annex A〔A.1–A.59〕、Annex D 目標含 Layer 2 者），均已對應至本規格至少一條 [N] 條款、明記 DEFER 掛鉤（Annex DO、Annex DI）、或明記「不觸及」及理由——**逐條對照見 Annex TR（TR.1 憲章側、TR.2 Layer 1 側）**。
+上開 `AUGUR-MC v1.4` 全部 [N] 條款，與 `AUGUR-WM v1.0` 全部 [N] 條款（WM.1–WM.53、Annex A〔A.0–A.59〕、**Annex C〔C.1–C.10〕、Annex E〔E1〕、Annex D〔D0–D28 全表〕**——2026-07-19 更正原自限於「A.1–A.59、Annex D 目標含 L2 者」之漏列），均已對應至本規格至少一條 [N] 條款、明記 DEFER 掛鉤（Annex DO、Annex DI）、或明記「不觸及」及理由——**逐條對照見 Annex TR（TR.1 憲章側、TR.2 Layer 1 側）**。
 
-**形式充分性狀態陳述（[N]）**：依前開逐條枚舉，`AUGUR-MC v1.4` 全部 [N] 條款與 `AUGUR-WM v1.0` 全部 [N] 條款均無「無對應且無明記」之缺漏；**形式充分性依 Annex TR 之逐條枚舉已成就**（`AUGUR-WM v1.0 §WM.44` 意義之形式要件滿足）。本狀態陳述為 Annex CS（[N]）之規範性判斷，係 `§WM.44` 所定生效**形式要件**之滿足陳述；Annex TR（[I]）為其逐條枚舉依據（[I]/[N] 分工見 Annex TR 引言）。
+**形式充分性狀態陳述（[N]）**：依前開逐條枚舉，`AUGUR-MC v1.4` 全部 [N] 條款與 `AUGUR-WM v1.0` 全部 [N] 條款均無「無對應且無明記」之缺漏；**形式充分性依 Annex TR 之逐條枚舉已成就**（`AUGUR-WM v1.0 §WM.44` 意義之形式要件滿足）。〔**2026-07-19 更正（RULING-2026-021）**：本『已成就』於 2026-07-18 三鏡＋窮舉查獲原**不實**——CS.10 曾將 WM 側宇宙自限、漏列 A.0／Annex C／Annex E-E1／Annex D 非 L2 各列（§WM.44 要求每一上層 [N] 條款均須明記處置，縱正解為承接／不觸及亦須有列）；三鏡曾將此 major 誤判『雙反駁出局』，係反駁官失察於形式要件。已於 TR.2 補列該 4 群。**⚠️ 誠實界限**：完備性之機械強制（`§8.3` matrix-coverage check）待決策四第二輪；在其建置前本狀態係手工維護，不得以單方宣稱視為終局。〕本狀態陳述為 Annex CS（[N]）之規範性判斷，係 `§WM.44` 所定生效**形式要件**之滿足陳述；Annex TR（[I]）為其逐條枚舉依據（[I]/[N] 分工見 Annex TR 引言）。
 
 明記「不觸及」之主要條款群及理由：
 * `AUGUR-MC v1.4` P2 全組、P4.E1–E8（除 E5）、P5 全組、§5、§6 F5–F6：其規範對象為 Knowledge 欄位／確立工作流／行動治理／架構角色，屬 Layer 4–6；本層僅型別化其主體與 referent，不代定機制。
