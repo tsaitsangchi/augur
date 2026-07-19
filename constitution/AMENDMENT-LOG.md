@@ -262,3 +262,12 @@
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **驗證**：七份 gate 全 PASS、selftest 全綠（版本落差鎖改合成落差）；L1 首審閉環
 * **【勘誤，2026-07-18，獨立核驗（第十一度定律）】**:本項原記「L1 223 處」——223 係批替腳本殘餘計數、非全量，實為 195 行／228 處（已更正如上）；L2–L7 各數與 495 之度量為行數。獨立核驗結論：批替零誤傷、七 gate 綠、102、mc-version 齊一——RULING-2026-018 施作經核驗成立
+
+## AL-2026-022
+
+* **日期**：2026-07-19
+* **事項**：Steward 裁決第 2026-019 號——**L2–L6 首次三鏡對抗審查 findings 四決策處置**：①（乙 patch）L3/L4 矩陣完備性補列 TR.Y（L3 15／L4 9 列）；②L5 撤回形式充分性認定＋§8.1 橋接（provisional·充任暫停、硬期限 2026-10-14、M2 保全）；③層間 v0.1-draft 引用全艦→v1.0（115 處）；④第二輪定向補審排程（首要＝§8.3 matrix-coverage 機器檢查）
+* **文件**：[RULING-2026-019-L2-L6-REVIEW-DISPOSITION.md](RULING-2026-019-L2-L6-REVIEW-DISPOSITION.md)＋五份 findings 冊 audits/*-THREE-MIRROR-REVIEW-2026-07-18.md
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：七份 gate 全 PASS、selftest 全綠、PA/五原則 byte 零改、M2 保全；本批獨立核驗待補
+* **意義**：八層首審全部完成（L0–L7 各受首次對抗審查）。定律至第 11 度，11/11 皆獨立審查捕獲

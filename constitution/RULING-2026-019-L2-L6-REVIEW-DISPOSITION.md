@@ -1,10 +1,11 @@
-# Augur Steward 裁決草案第 2026-019 號〔DRAFT——未經 Steward 簽核不生效力〕
+# Augur Steward 裁決第 2026-019 號
 
 **L2–L6 五規格首次三鏡對抗審查 findings 之處置——八層首審完成戰之結算**
 
 * **依據（擬）**：`AUGUR-MC v1.4 §8.1`（Steward 解釋權）、`§8.2`（違憲審查／生效記錄覆核）、`§8.6`（規格修訂）；findings 冊五份（audits/{ONTOLOGY,IDENTITY,KNOWLEDGE-SYSTEM,COGNITIVE-KERNEL,AGENT-RUNTIME}-THREE-MIRROR-REVIEW-2026-07-18.md）
-* **裁決人（擬）**：Constitution Steward（tsaitsangchi）——尚未作成
-* **性質**：幕僚彙整審查 findings **供 Steward 裁酌**；不代改任何規格、不代行 §8.1 解釋、不代作 §8.2 覆核。**本草案不生效力。**
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-19 書面核示四決策
+* **登錄**：Amendment Log AL-2026-022
+* **性質**：Steward 作成四決策；幕僚機械執行。所涉 L3/L4/L5 修正為 §8.6 patch 與 §8.1 解釋（L5 橋接），非原則級；未觸生產鑄造判準（ONT Annex T 之修正另案）。
 * **執行憑據**：工作流 wf_5335a68e-191（Opus 4.8 完跑 112/112 代理；三鏡 xhigh＋major 雙反駁＋完備性批評），與 L0/L1/L7 同規格。
 
 ---
@@ -45,17 +46,17 @@
 2. **151 誤標未清**：`GROUNDING-MAP.md:189` 自警「4 份生效規格（L3–L6）151 個誤標（MC 側 109／上層側 42）……[N]/[I] 標記不得逕信；Steward 裁決前應令 gate 重跑出證」——與既有完整性危機同源，本次三鏡多項 major 之根即此。
 3. **三鏡自身覆蓋缺口**：多鏡自陳未讀下游（KS/L6/L7）、未比對現實碼（core_gate、sync_attribute_versions.py）、未讀既有審計（L7-REREVIEW）。**本首審非終審**——completeness gaps 即第二輪工作清單。
 
-## 四、供 Steward 之處置選項（幕僚不代決）
+## 四、四決策之裁定與執行記錄（2026-07-19）
 
-**決策一：形式充分性缺口之層級認定。** WM.44 矩陣枚舉缺口，係——
-- (甲) **生效要件級**：形式充分性未成就→L3/L4/L5 之充任生效記錄應依 §8.2 覆核、暫回 provisional／draft 待補正；或
-- (乙) **patch 級**：矩陣枚舉為可機械補全之文本缺漏，補列後充任續效，缺口期間以 §8.1 解釋定其效力（比照 RULING-2026-006 provisional 先例）。
+**決策一＝乙（patch 續效）**：矩陣枚舉缺口認定為可機械補全之文本缺漏，補列後充任續效。**執行**：窮舉工作流（wf_ba742919-e04）＋獨立複核逐條定處置——L3 新增 Annex TR.Y 15 列、L4 9 列（MC §2.x 定義群、§0.1/§0.3、WM Annex C/E、ONT DI/DO/TM/CS/EO；義務主體為上層自身者判不觸及、本層使用之定義判承接）。矩陣覆蓋實測提升（compared_mc_L3 62→70）。**⚠️ 誠實界限**：三鏡查 11 條、窮舉查 45、複核官再補——手工維護之完備性每加一層審查即多找到缺漏，故**不再手工宣稱「缺 0」為終局**；完備性之機械強制（§8.3 linter matrix-coverage check）列為決策四首要。commit `ae5b4a3`。
 
-**決策二：L5 之地位。** L5 本即 provisional（§8.2 深度審查欠繳）、且存活 6 項（含上游 KS 全缺）——是否維持 provisional 充任、或撤回至 draft 待矩陣重作？
+**決策二＝撤形式充分性認定＋§8.1 橋接**：L5 存活 6 major（上游 KS 全份未進矩陣）。**執行**：L5【地位】保留原揭露作歷史軌、新增撤回聲明，降 provisional·充任暫停；§8.1 橋接令 L6/L7 於矩陣重作窗（硬期限 2026-10-14）內續引 AUGUR-L5 v1.0 為合法，保住 M2；MC §0.5 [I] 註記同步。commit `ad13f61`。
 
-**決策三：橫貫版本斷鏈。** 層間 `v0.1-draft` 引用是否一次修正（比照 RULING-2026-018 全艦作法，但需先確認 v1.0≠draft 之實質差異逐條相容）？
+**決策三＝比照 018 全艦批替**：層間 v0.1-draft 引用（IDENTITY 引 ONT-draft 62、KS 53＝115 處）→v1.0；以 018 紀律僅替帶前綴引用、保留「前版」歷史註記 12 處；目標條款經確認在 v1.0 存在。commit `d9293db`。
 
-**決策四：第二輪。** completeness gaps（下游未讀、現實碼未比對、151 誤標未清）是否發包第二輪定向補審？
+**決策四＝一~三定後發包第二輪（已排程）**：定向補審清單——(a)【首要】**§8.3 matrix-coverage 機器檢查**（linter 窮舉上層 [N] 條款 vs 各規格 Annex TR 列，使「缺 0」機械可稽核、根治手工維護不可靠）；(b) 151 誤標 gate 重跑出證（GROUNDING-MAP:189）；(c) 三鏡未覆之下游承接、現實碼（core_gate／sync_attribute_versions）比對；(d) L2 之 9 反駁出局 major 與 12 critic gaps 複盤；(e) L5 矩陣重作（含 KS 全列、WM D1-D6、as-of 落點）。
+
+**驗證**：七份 gate 全 PASS、selftest 全綠、report 綁定 sync、PA/五原則 byte 零改、M2 保全。本批獨立核驗隨後發包。
 
 ## 五、明示不執行（幕僚自律）
 
