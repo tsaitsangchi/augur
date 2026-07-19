@@ -288,3 +288,11 @@
 * **文件**：[RULING-2026-020-L6-DISPOSITION.md](RULING-2026-020-L6-DISPOSITION.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **驗證**：gate PASS、selftest 綠；L6 待 G5 蓋章
+
+## AL-2026-025
+
+* **日期**：2026-07-19
+* **事項**：Steward 裁決第 2026-022 號——**概念層 L1–4 交互檢查 4 cross-layer major 處置（整合完整）**：M1＝WM.28 hook 補 §P5.W4（最小權限之 WM 落點→L6）；M2/M3＝以 WM Annex D 權威表逐列重編 KS/ID 之 D 處置表（棄廢棄舊編號）；M4＝KS D19 改承接（L4 slice）＋CS.2 收斂揭露
+* **文件**：[RULING-2026-022-CONCEPT-TIER-CROSS-LAYER.md](RULING-2026-022-CONCEPT-TIER-CROSS-LAYER.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：WM/ID/KS 觸及後 gate PASS、selftest 綠、封印未破；ultracode 交互檢查 wf_7d822c3c＋重編 wf_e732832b（複核糾正 D19）
