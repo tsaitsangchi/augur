@@ -312,3 +312,12 @@
 * **文件**：[RULING-2026-024-T-L7-13.md](RULING-2026-024-T-L7-13.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **驗證**：不改任一 [N] 本文（釐定併用解釋）；L7 之 T-L7-13 三處狀態標記更新為「§8.1 已裁」；gate PASS、selftest 綠。L7 §8.2 七項之 (vii) 結清，餘六項
+
+## AL-2026-028
+
+* **日期**：2026-07-19
+* **事項**：Steward 裁決第 2026-025 號——**L7（AUGUR-Infrastructure）§8.2 實質審查條件通過、provisional 轉 v1.0**：七項必審裁定——(i)(ii)(v) 核定照收（H_max/Threshold/反自我交易）；(iii)(iv)(vi) 單節點/單人殘餘接受為 residual、分階段①→②③補正、復審 2026-10-14；(vii) §8.1 已裁（RULING-2026-024）。L7 自 provisional 轉 **v1.0 生效**
+* **文件**：[RULING-2026-025-L7-8.2-DISPOSITION.md](RULING-2026-025-L7-8.2-DISPOSITION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：L7 全檔 §8.2 狀態標記→條件通過（【地位】/L7.90(c)/TR.Z/尾註/生效要件）；MC §0.5 同步（[I]）；gate PASS、selftest 綠、PA/五原則 byte 零改
+* **里程碑**：**八層 L0–L7 全數蓋章（8/8）**。執行層收口完成。觸發 Phase 3b（執行層 ultracode 交互檢查）
