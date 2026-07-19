@@ -296,3 +296,11 @@
 * **文件**：[RULING-2026-022-CONCEPT-TIER-CROSS-LAYER.md](RULING-2026-022-CONCEPT-TIER-CROSS-LAYER.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **驗證**：WM/ID/KS 觸及後 gate PASS、selftest 綠、封印未破；ultracode 交互檢查 wf_7d822c3c＋重編 wf_e732832b（複核糾正 D19）
+
+## AL-2026-026
+
+* **日期**：2026-07-19
+* **事項**：Steward 裁決第 2026-023 號——**L5（AUGUR-Cognitive Kernel）重採認（乙：回 provisional）**：形式充分性經 RULING-2026-019 決策二重作（TR.F 補 KS 16 區塊＋WM D1-6＋L5.10 as-of 條款＋版本 v1.1）回復；L5 自 provisional·充任暫停回復 v1.0 provisional 充任；§8.1 橋接（RULING-2026-019）收束；§8.2 實質審查延後（比照 L7）
+* **文件**：[RULING-2026-023-L5-READOPTION.md](RULING-2026-023-L5-READOPTION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：四輪 G5 複驗＋全 corpus as-of 一致（L5.10）；gate PASS、selftest 綠、PA/五原則 byte 零改；L5.10 施作歷四輪、每輪獨立審查捕獲建造者殘留（定律又應驗）

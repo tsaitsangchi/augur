@@ -2,7 +2,7 @@
 
 Augur Enterprise AI Operating System
 認知核心規格（Layer 5 — Cognitive Kernel／World Understanding Engine）
-引用縮寫：**AUGUR-L5**｜版本：**v1.0（provisional·充任暫停 — 2026-07-18 三鏡查獲形式充分性未成就，其認定經 RULING-2026-019 撤回、矩陣重作中；§8.1 橋接維持 L6/L7 效力，硬期限 2026-10-14）**（前版：v0.1-draft）
+引用縮寫：**AUGUR-L5**｜版本：**v1.0（provisional — 形式充分性經矩陣重作＋L5.10 as-of 條款回復，Steward 2026-07-19 RULING-2026-023 重採認〔乙〕；§8.2 實質審查延後，比照 L7）**（前版：v0.1-draft）
 受 **AUGUR-MC v1.4** 全文約束（`AUGUR-MC v1.4 §0.6(a)` lex superior、`§0.5` 對照表 Layer 5 欄）
 並受 **AUGUR-WM v1.0**（Layer 1）、**AUGUR-ONT v1.0**（Layer 2）、**AUGUR-ID v1.0**（Layer 3）、**AUGUR-KS v1.1**（Layer 4）全文約束（`AUGUR-MC v1.4 §0.6(a)`）
 
@@ -12,7 +12,7 @@ Augur Enterprise AI Operating System
 >
 > 本文件為 **v1.0 生效版本（provisional）**。Constitution Steward（tsaitsangchi）已於 2026-07-17 依 `AUGUR-MC v1.4 §0.5`、`§8.6` 作成**充任認定**（Steward 裁決第 2026-006 號，Amendment Log AL-2026-010）：本文件充任 `AUGUR-MC v1.4 §0.5` 對照表 Layer 5 欄所轄規格（Cognitive Kernel Specification、Reasoning Engine、AI Model Selection），**自 2026-07-17 起生效**。
 > * **⚠️ 充任性質（誠實揭露，2026-07-17 原文——見下方 2026-07-18 撤回聲明）**：本充任僅就 **`§WM.44` 形式充分性**（Annex TR 逐條完整枚舉、缺 0 條〔**此宣稱已於 2026-07-18 三鏡對抗審查證偽**〕）與 **linter 結構關卡**（`§WM.40–43` PASS、error 0）＋**獨立代理對抗審查**作成。**`§8.2` 實質合憲人類審查經 Steward 指示延後（deferred）、本充任不含實質合憲之人類簽核**；規格為 **provisional、待調整**。Steward 之 `§8.2` 違憲審查權完整保留，得隨時提起並修正。此揭露依 Steward 2026-07-17「先產生、我先授權你簽、之後再調整」之明示授權（形式關卡批次充任、§8.2 延後）。
-> * **🛑 形式充分性認定撤回（2026-07-18，RULING-2026-019 決策二）**：本規格首次三鏡對抗審查（Opus 4.8，工作流 wf_5335a68e-191）**存活 6 項 major**——其最嚴重者為**直接上游 `AUGUR-KS` 全份未進 Annex TR 矩陣**（`grep '^| KS' 零命中`）、WM Annex D `D1–D6` 六列全漏、`LDI.5` 宣稱承接 as-of 卻於 `L5.2` 零落點（幽靈落點）。故上開「Annex TR 逐條完整枚舉、缺 0 條」之形式充分性成就**不成立**。Steward 據此**撤回本規格之形式充分性認定**，本規格降為 **provisional·充任暫停（矩陣重作中）**。**§8.1 橋接**：為免級聯撼動 M2，Steward 依 `§8.1` 解釋——**Layer 6、Layer 7 於本規格矩陣重作窗（硬期限 2026-10-14）內，得續引 `AUGUR-L5 v1.0` 為合法上層**，其自身生效地位不因本撤回而失格；逾期未重作，另依 `§8.2` 處置。矩陣重作與 `§8.2` 實質審查為本規格回復完整 v1.0 之前置。
+> * **🛑 形式充分性認定撤回（2026-07-18，RULING-2026-019 決策二）**：本規格首次三鏡對抗審查（Opus 4.8，工作流 wf_5335a68e-191）**存活 6 項 major**——其最嚴重者為**直接上游 `AUGUR-KS` 全份未進 Annex TR 矩陣**（`grep '^| KS' 零命中`）、WM Annex D `D1–D6` 六列全漏、`LDI.5` 宣稱承接 as-of 卻於 `L5.2` 零落點（幽靈落點）。故上開「Annex TR 逐條完整枚舉、缺 0 條」之形式充分性成就**不成立**。Steward 據此**撤回本規格之形式充分性認定**，本規格降為 **provisional·充任暫停（矩陣重作中）**。**§8.1 橋接**：為免級聯撼動 M2，Steward 依 `§8.1` 解釋——**Layer 6、Layer 7 於本規格矩陣重作窗（硬期限 2026-10-14）內，得續引 `AUGUR-L5 v1.0` 為合法上層**，其自身生效地位不因本撤回而失格；逾期未重作，另依 `§8.2` 處置。矩陣重作與 `§8.2` 實質審查為本規格回復完整 v1.0 之前置。〔**✅ 重採認（2026-07-19，RULING-2026-023 乙）**：6 major 之矩陣/內容面皆處置（KS 全份入 TR.F、WM D1-6 補、as-of 幽靈→L5.10 真落點、版本 v1.1），四輪 G5 複驗確認全 corpus 一致；Steward 重採認 L5 回 **provisional 充任**（§8.2 延後）。**§8.1 橋接功成身退**——L6/L7 引 L5 回歸常態，不再依賴橋接。〕
 > * **上層地位**：AUGUR-MC v1.4（L0）、AUGUR-WM v1.0（L1）、AUGUR-ONT v1.0（L2）、AUGUR-ID v1.0（L3）、AUGUR-KS v1.1（L4）均已生效，承接前提全部成就。`v0.1-draft` 原文歸檔於 `specs/COGNITIVE-KERNEL-SPECIFICATION-v0.1-draft.md`；draft → v1.0 之變更僅限：版本欄、本【地位】節生效記錄、Annex CS front-matter spec-version，**無任何 [N] 條款實質變更、編號不重排**。
 > * 本文件全部 [N] 條款自生效日起對 Layer 6–7 規格產生規範效力；下層依 `AUGUR-L5 v1.0 §{條款}` 格式引用。落實審計 AUD-18（per-結論解釋面）等。
 > * **條款編號穩定性**（`AUGUR-MC v1.4 §8.6`、`AUGUR-WM v1.0 §WM.46`）：一經發布永不重用、永不重排；廢止條款保留編號並標 `(repealed)`。
