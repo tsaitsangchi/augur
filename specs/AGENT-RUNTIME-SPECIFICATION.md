@@ -450,7 +450,7 @@ compliance-statement:
   principles: [PA, P1, P2, P3, P4, P5, EV-chain]
   waivers: []
   open-tensions: [T-L6-1, T-L6-2, T-L6-3, T-L6-4, T-L6-5, T-L6-6]
-  defers-in: [L5.LDO.2, L5.LDO.6, KS.KDO.2, MC.P5.E2, MC.P4.E7, MC.P5.W5, MC.role5, ID.IDO.7]
+  defers-in: [L5.LDO.2, L5.LDO.6, KS.KDO.2, MC.P5.E2, MC.P4.E7, MC.P5.W5, MC.role5, ID.IDO.7, WM.D13, WM.D15, WM.D16, WM.D17, WM.D22, WM.D24, WM.D28]
   defers-out: [LDO.1, LDO.2, LDO.3, LDO.4, LDO.5, LDO.6]
   date: 2026-07-17
   author: Layer 6 Agent Runtime 規格起草人（AUGUR-L6 起草子代理；產物原為 v0.1-draft 提案，業經 Steward 充任認定與 §8.2 實質審查，以 v1.0 生效；§8.2 residual 保留）
@@ -496,7 +496,7 @@ compliance-statement:
 
 ### CS.3 雙向 DEFER 承接表（`AUGUR-WM v1.0 §WM.43`）[N]
 
-* **(a) 承接上層／Layer 5 之掛鉤（defers-in）**：`AUGUR-L5 v1.0` LDO.6→L6.1/L6.5/L6.7/L6.19/L6.21（LDI.1）；`AUGUR-L5 v1.0` LDO.2＋`AUGUR-KS v1.0` KDO.2＋`AUGUR-MC v1.4 §P5.E2`→L6.10/L6.11/L6.12（LDI.2）；`§P4.E7`→L6.14（LDI.3）；`§P5.W5`＋`§8.3`→L6.16/L6.17（LDI.4）；`AUGUR-ID v1.0` IDO.7→L6.9(d)（LDI.7）；`AUGUR-KS v1.0` KS.80–KS.82/Annex CL→L6.11（LDI.5）；`AUGUR-KS v1.0` KS.31/KS.34/KS.35→L6.3/L6.12（LDI.6）；`AUGUR-MC v1.4 §5` 角色五→§3–§8。與 front-matter `defers-in` 欄及 Annex LDI 三向對表。
+* **(a) 承接上層／Layer 5 之掛鉤（defers-in）**：`AUGUR-L5 v1.0` LDO.6→L6.1/L6.5/L6.7/L6.19/L6.21（LDI.1）；`AUGUR-L5 v1.0` LDO.2＋`AUGUR-KS v1.0` KDO.2＋`AUGUR-MC v1.4 §P5.E2`→L6.10/L6.11/L6.12（LDI.2）；`§P4.E7`→L6.14（LDI.3）；`§P5.W5`＋`§8.3`→L6.16/L6.17（LDI.4）；`AUGUR-ID v1.0` IDO.7→L6.9(d)（LDI.7）；`AUGUR-KS v1.0` KS.80–KS.82/Annex CL→L6.11（LDI.5）；`AUGUR-KS v1.0` KS.31/KS.34/KS.35→L6.3/L6.12（LDI.6）；`AUGUR-MC v1.4 §5` 角色五→§3–§8；**`AUGUR-WM v1.0` Annex D 直達 Layer 6 之掛鉤（`§D13`→L6.19、`§D15`→L6.20、`§D16`→Annex TR.D、`§D17`→L6.9(d)、`§D22`→L6.11、`§D24`→L6.15、`§D28`→L6.21——正文早已承接，RULING-2026-020 M1 補齊 defers-in 宣告以符 WM D0）**。與 front-matter `defers-in` 欄及 Annex LDI 三向對表。
 * **(b) 下放下層之掛鉤（defers-out）**：LDO.1（否決信號物理傳輸／停止時延數值／kill-switch→L7）、LDO.2（Identity／授權鏈密碼學綁定／capability token→L7）、LDO.3（監督介面 UI／透明度載體→L7）、LDO.4（風險分級物理執法佈點→L7）、LDO.5（各 RT 級數值門檻登錄→L7/系統狀態）、LDO.6（特定框架／Planner／Orchestrator／Scheduler／LLM／受控介面實作→L7），與 front-matter `defers-out` 欄互為索引（見 Annex LDO）。
 
 ### CS.4 形式充分性（`AUGUR-WM v1.0 §WM.44`）[N]
