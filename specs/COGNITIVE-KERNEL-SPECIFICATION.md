@@ -433,7 +433,7 @@ Layer 5 為概念層與執行層之交界，具「所轄卻下放」之雙面性
 | KS §11 KS.100–KS.102 ＋ Annex L56（與 Layer 5／6 分界） | 承接：此為 L5 分界紀律之直接上游：L5.8 明引 KS.100（L4 專屬僅消費）/KS.101（L6 專屬）、LDI.6 承接 KS.100、L5.8 refines KS.102 Annex L56。L5 最核心之分界依據，卻於矩陣零列——最尖銳之矛盾 |
 | KS §12 KS.110–KS.111（Compliance Statement Format 承接與存續） | 承接：L5.90/L5.92/Annex CS 對應之上游存續義務；須列承接（格式承接＋存續升版），現缺 |
 | KS Annex DI KDI.0–KDI.18（KS 承接上層 defers-in 掛鉤） | 不觸及：KDI 為 KS 對其上層（MC/WM/ONT/ID）之承接掛鉤，非對 L5 之下放；理由：L5 經 L4 間接消費，非直接承接對象。惟仍須於矩陣具名列出『不觸及＋理由』方合 WM.44 |
-| KS Annex DO KDO.0–KDO.7（KS 下放下層 defers-out 掛鉤） | 承接：L5 全部 defers-in 之源頭：KDO.1→L5.3/L5.9(LDI.1)、KDO.3→L5.5(LDI.2/3)、KDO.4→L5.9(LDI.4)、KDO.6→L5.2(LDI.5)；KDO.2 轉下放 L6(LDO.2)、KDO.5(Registry/部署)→L4/L7、KDO.0/7 待列。此為 L5 承接骨幹卻於矩陣零列——與正文/LDI 表自相矛盾 |
+| KS Annex DO KDO.0–KDO.7（KS 下放下層 defers-out 掛鉤） | 承接：L5 全部 defers-in 之源頭：KDO.1→L5.3/L5.9(LDI.1)、KDO.3→L5.5(LDI.2/3)、KDO.4→L5.9(LDI.4)、KDO.6→L5.10(LDI.5)；KDO.2 轉下放 L6(LDO.2)、KDO.5(Registry/部署)→L4/L7、KDO.0/7 待列。此為 L5 承接骨幹卻於矩陣零列——與正文/LDI 表自相矛盾 |
 | KS Annex L3U（與 Layer 3 之分界表） | 不觸及：L3–L4 分界，非 L5 落點；理由：本層承 L4 之產物，不涉 L3–L4 分界。須具名列出方合完備性 |
 | KS Annex TR／CS／EO（KS 自身 WM.44 矩陣／合規聲明／評價性謂詞判準） | 不觸及：屬 KS 自身之合規 apparatus（其對 MC/WM/ONT/ID 之矩陣、CS front-matter、EO 謂詞表），非 L5 之推理落點；理由：各層自備 WM.39–45 機制，L5 不重複承接。須具名列出 |
 
