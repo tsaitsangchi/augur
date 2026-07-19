@@ -270,4 +270,5 @@
 * **文件**：[RULING-2026-019-L2-L6-REVIEW-DISPOSITION.md](RULING-2026-019-L2-L6-REVIEW-DISPOSITION.md)＋五份 findings 冊 audits/*-THREE-MIRROR-REVIEW-2026-07-18.md
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **驗證**：七份 gate 全 PASS、selftest 全綠、PA/五原則 byte 零改、M2 保全；本批獨立核驗待補
-* **意義**：八層首審全部完成（L0–L7 各受首次對抗審查）。定律至第 11 度，11/11 皆獨立審查捕獲
+* **處置完整性糾正（2026-07-19 獨立核驗，第 12 度定律）**：四決策遺漏 L6 之 2 存活 major（M1 defers-in 未宣告 7 掛鉤／M2 L6.21→L7 幽靈下放），carried RULING-2026-020 待裁；另修裁決 2 處草案語態、IDENTITY/KS 失效散文、count 115行/140處
+* **意義**：八層首審全部完成（L0–L7 各受首次對抗審查）。定律至第 12 度，12/12 皆獨立審查捕獲、建造者自查零攔截

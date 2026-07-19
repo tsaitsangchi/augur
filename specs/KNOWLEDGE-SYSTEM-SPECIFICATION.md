@@ -85,7 +85,7 @@ Augur Enterprise AI Operating System
 
 ### 0.5 引用格式與元規則 [N]
 
-* 引用格式：`AUGUR-MC v1.4 §{條款}`／`AUGUR-WM v1.0 §{條款}`／`AUGUR-ONT v1.0 §{條款}`／`AUGUR-ID v1.0 §{條款}`（Layer 2／Layer 3 現為 v0.1-draft，引用時註明其草案地位）。下層引用本規格採 `AUGUR-KS v{version} §{條款}`。
+* 引用格式：`AUGUR-MC v1.4 §{條款}`／`AUGUR-WM v1.0 §{條款}`／`AUGUR-ONT v1.0 §{條款}`／`AUGUR-ID v1.0 §{條款}`。下層引用本規格採 `AUGUR-KS v{version} §{條款}`。
 * 本規格每一 [N] 條款標注其**憲章／上層錨定**與**三態型態**：**refines**（細化上位條款）／**carries**（承接上位不變式並給予概念層結構位置）／**hooks**（DEFER 掛鉤，載明目標 Layer 與授權條款），與 `AUGUR-WM v1.0 §0.5`、`AUGUR-ID v1.0 §0.5` 三態明文對映一致；複合模式以「＋」連接。每一 [N] 條款並標注**義務主體**與**可判定判準**，使其可機器稽核（承接 `AUGUR-WM v1.0 §WM.34`）。
 * **不重定義元規則**：本規格**不得**重新定義 `AUGUR-MC v1.4 §2` 之術語（尤 `§2.6` Knowledge、`§2.5` Evidence、`§2.10` Confidence、`§2.2` Observation），亦**不得**重定義 `AUGUR-WM v1.0`／`AUGUR-ONT v1.0`／`AUGUR-ID v1.0` 之既有構件；本規格僅得就其明示下放者作**語義填充**（`AUGUR-MC v1.4 §2` 元規則、`AUGUR-WM v1.0 §WM.2`、`AUGUR-ID v1.0 §ID.0.5`）。
 * **概念層獨立性**（`AUGUR-MC v1.4 §0.6(b)`）：本規格屬概念層（Layer 4），**不得**引用 Layer 5–7 執行層構件（資料庫、向量庫、Agent Runtime、API、儲存引擎、序列化格式、統計庫、特定 AI model）作為任何定義之依據。本規格所稱「形式化」「語義」「代數」均為**概念層形式**（論域、序關係、傳播代數、狀態、事件語義之明文可判定性），其執行層落實一律下放（Annex DO）。

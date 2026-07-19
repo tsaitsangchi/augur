@@ -2,7 +2,7 @@
 
 **L2–L6 五規格首次三鏡對抗審查 findings 之處置——八層首審完成戰之結算**
 
-* **依據（擬）**：`AUGUR-MC v1.4 §8.1`（Steward 解釋權）、`§8.2`（違憲審查／生效記錄覆核）、`§8.6`（規格修訂）；findings 冊五份（audits/{ONTOLOGY,IDENTITY,KNOWLEDGE-SYSTEM,COGNITIVE-KERNEL,AGENT-RUNTIME}-THREE-MIRROR-REVIEW-2026-07-18.md）
+* **依據**：`AUGUR-MC v1.4 §8.1`（Steward 解釋權）、`§8.2`（違憲審查／生效記錄覆核）、`§8.6`（規格修訂）；findings 冊五份（audits/{ONTOLOGY,IDENTITY,KNOWLEDGE-SYSTEM,COGNITIVE-KERNEL,AGENT-RUNTIME}-THREE-MIRROR-REVIEW-2026-07-18.md）
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-19 書面核示四決策
 * **登錄**：Amendment Log AL-2026-022
 * **性質**：Steward 作成四決策；幕僚機械執行。所涉 L3/L4/L5 修正為 §8.6 patch 與 §8.1 解釋（L5 橋接），非原則級；未觸生產鑄造判準（ONT Annex T 之修正另案）。
@@ -52,9 +52,11 @@
 
 **決策二＝撤形式充分性認定＋§8.1 橋接**：L5 存活 6 major（上游 KS 全份未進矩陣）。**執行**：L5【地位】保留原揭露作歷史軌、新增撤回聲明，降 provisional·充任暫停；§8.1 橋接令 L6/L7 於矩陣重作窗（硬期限 2026-10-14）內續引 AUGUR-L5 v1.0 為合法，保住 M2；MC §0.5 [I] 註記同步。commit `ad13f61`。
 
-**決策三＝比照 018 全艦批替**：層間 v0.1-draft 引用（IDENTITY 引 ONT-draft 62、KS 53＝115 處）→v1.0；以 018 紀律僅替帶前綴引用、保留「前版」歷史註記 12 處；目標條款經確認在 v1.0 存在。commit `d9293db`。
+**決策三＝比照 018 全艦批替**：層間 v0.1-draft 引用（IDENTITY 62／KS 53＝115 行、draft-token 140 處）→v1.0；以 018 紀律僅替帶前綴引用、保留「前版」歷史註記 12 處；目標條款經確認在 v1.0 存在。commit `d9293db`。
 
 **決策四＝一~三定後發包第二輪（已排程）**：定向補審清單——(a)【首要】**§8.3 matrix-coverage 機器檢查**（linter 窮舉上層 [N] 條款 vs 各規格 Annex TR 列，使「缺 0」機械可稽核、根治手工維護不可靠）；(b) 151 誤標 gate 重跑出證（GROUNDING-MAP:189）；(c) 三鏡未覆之下游承接、現實碼（core_gate／sync_attribute_versions）比對；(d) L2 之 9 反駁出局 major 與 12 critic gaps 複盤；(e) L5 矩陣重作（含 KS 全列、WM D1-D6、as-of 落點）。
+
+**【處置完整性糾正，2026-07-19 獨立核驗（af8694）——第十二度定律】**：本裁決四決策**遺漏 L6（AGENT-RUNTIME）之 2 存活 major**——幕僚設計四決策時圍繞 L3/L4/L5 之矩陣主病灶，未納入 L6 之異型 findings，致 §一列其 major 而 §四零處置（沉默漏列）。此漏由獨立核驗查獲、建造者自查未攔。L6 兩 major：M1（CS defers-in／CS.3(a) 未宣告正文已承接之 7 條 WM.D 掛鉤〔D13/15/16/17/22/24/28〕，生效要件級）；M2（L6.21 增補款下放誠實輸出契約物理強制至 L7.43/44，但 L7 僅承接 F6 行動側、零命中產物閉集／展示分級——幽靈下放，refutes 0/2 最強存活）。二者及 L6 之不實形式充分性自證（TR.Z/CS.4）**均原封殘留於生效本**。**處置**：carried 至 **RULING-2026-020**，待 Steward 裁——M1 宜比照決策一（patch 補宣告 defers-in）；M2 須裁 L6.21 或 L7 何者修正。L6 之形式充分性認定於處置前，比照 L5 **暫予保留質疑**（不撤充任、但 TR.Z/CS.4「缺 0」自證不得視為終局）。
 
 **驗證**：七份 gate 全 PASS、selftest 全綠、report 綁定 sync、PA/五原則 byte 零改、M2 保全。本批獨立核驗隨後發包。
 
@@ -64,4 +66,4 @@
 - **不自行認定生效要件成敗**（§8.2 覆核為 Steward 專屬）。
 - **不碰 §8 self-entrenched 條款**（第九度教訓）。
 
-*本草案不生效力。俟 Steward 就決策一至四作成裁決後，幕僚方依裁決機械執行。*
+*本裁決生效。四決策自 2026-07-19 Steward 核示起具效力（登錄 AL-2026-022）；L6 之處置完整性糾正見 §四末。*
