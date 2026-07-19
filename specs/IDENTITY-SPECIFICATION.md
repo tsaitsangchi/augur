@@ -52,7 +52,7 @@ Augur Enterprise AI Operating System
 * 名稱：Augur Identity Specification（下層引用簡稱 **AUGUR-ID**）
 * 層級：Layer 3 — Identity System（`AUGUR-MC v1.4 §0.5` 對照表第 3 列）
 * 版本：v1.0（前版：v0.1-draft）
-* 上層規格（upper-specs）：`AUGUR-MC v1.4`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v0.1-draft`（Layer 2，草案）
+* 上層規格（upper-specs）：`AUGUR-MC v1.4`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v1.0`（Layer 2，草案）
 * 生效要件：`AUGUR-MC v1.4 §0.5` 對照表登錄（已具欄位）＋ Steward 充任認定（**已成就**，見【地位】）＋ 依 `AUGUR-WM v1.0 §WM.39` 之 Compliance Statement（Annex CS），並登錄 Amendment Log（`AUGUR-MC v1.4 §8.1`）——**已全部成就**（Steward 裁決第 2026-004 號，2026-07-17，AL-2026-008）。**生效日：2026-07-17**。實質充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序，與已成就之形式充分性分屬二事。
 
 ### 0.2 規範用語約定 [N]
@@ -68,13 +68,13 @@ Augur Enterprise AI Operating System
 
 ### 0.4 權威語言聲明 [N]
 
-本規格以**繁體中文版為權威版本**；規範性術語於正文中一律使用英文原詞（Reality、Observation、Representation、Identity、Evidence、Knowledge、Confidence、Action、Agent；及本層機制術語 identifier、identity claim、mint、adopt、merge、split、retire、relist、redirect、tombstone、de-identify、lineage、provisional、resolution、as-of），與 `AUGUR-MC v1.4 §0.4`、`AUGUR-WM v1.0 §0.4`、`AUGUR-ONT v0.1-draft §0.4` 保持術語同一性；不另立中文譯名為規範對象。
+本規格以**繁體中文版為權威版本**；規範性術語於正文中一律使用英文原詞（Reality、Observation、Representation、Identity、Evidence、Knowledge、Confidence、Action、Agent；及本層機制術語 identifier、identity claim、mint、adopt、merge、split、retire、relist、redirect、tombstone、de-identify、lineage、provisional、resolution、as-of），與 `AUGUR-MC v1.4 §0.4`、`AUGUR-WM v1.0 §0.4`、`AUGUR-ONT v1.0 §0.4` 保持術語同一性；不另立中文譯名為規範對象。
 
 ### 0.5 引用格式與元規則 [N]
 
-* 引用格式：`AUGUR-MC v1.4 §{條款}`／`AUGUR-WM v1.0 §{條款}`／`AUGUR-ONT v0.1-draft §{條款}`（Layer 2 現為 v0.1-draft，引用時註明其草案地位）。下層引用本規格採 `AUGUR-ID v{version} §{條款}`。
-* 本規格每一 [N] 條款標注其**憲章／上層錨定**與**三態型態**：**refines**（細化上位條款）／**carries**（承接上位不變式並給予個體層機制位置）／**hooks**（DEFER 掛鉤，載明目標 Layer 與授權條款），與 `AUGUR-WM v1.0 §0.5`、`AUGUR-ONT v0.1-draft §0.5` 三態明文對映一致；複合模式以「＋」連接。每一 [N] 條款並標注**義務主體**與**可判定判準**，使其可機器稽核（承接 `AUGUR-WM v1.0 §WM.34`）。
-* **不重定義元規則**：本規格**不得**重新定義 `AUGUR-MC v1.4 §2` 之術語（尤其 `§2.4` Identity＝identifier／identity claim 之區分），亦**不得**重定義 `AUGUR-WM v1.0`／`AUGUR-ONT v0.1-draft` 之既有構件；本規格僅得就其明示下放者作**機制化**（`AUGUR-MC v1.4 §2` 元規則、`AUGUR-WM v1.0 §WM.2`、`AUGUR-ONT v0.1-draft §ONT.2`）。
+* 引用格式：`AUGUR-MC v1.4 §{條款}`／`AUGUR-WM v1.0 §{條款}`／`AUGUR-ONT v1.0 §{條款}`（Layer 2 現為 v0.1-draft，引用時註明其草案地位）。下層引用本規格採 `AUGUR-ID v{version} §{條款}`。
+* 本規格每一 [N] 條款標注其**憲章／上層錨定**與**三態型態**：**refines**（細化上位條款）／**carries**（承接上位不變式並給予個體層機制位置）／**hooks**（DEFER 掛鉤，載明目標 Layer 與授權條款），與 `AUGUR-WM v1.0 §0.5`、`AUGUR-ONT v1.0 §0.5` 三態明文對映一致；複合模式以「＋」連接。每一 [N] 條款並標注**義務主體**與**可判定判準**，使其可機器稽核（承接 `AUGUR-WM v1.0 §WM.34`）。
+* **不重定義元規則**：本規格**不得**重新定義 `AUGUR-MC v1.4 §2` 之術語（尤其 `§2.4` Identity＝identifier／identity claim 之區分），亦**不得**重定義 `AUGUR-WM v1.0`／`AUGUR-ONT v1.0` 之既有構件；本規格僅得就其明示下放者作**機制化**（`AUGUR-MC v1.4 §2` 元規則、`AUGUR-WM v1.0 §WM.2`、`AUGUR-ONT v1.0 §ONT.2`）。
 * **概念層獨立性**（`AUGUR-MC v1.4 §0.6(b)`）：本規格屬概念層（Layer 3），**不得**引用 Layer 5–7 執行層構件（資料庫、Agent Runtime、API、儲存引擎、序列化格式）作為任何定義之依據。本規格所稱「機制」為**概念機制**（不變式、狀態、關係、事件語義），其執行層落實一律下放（Annex DO）。
 
 ---
@@ -83,11 +83,11 @@ Augur Enterprise AI Operating System
 
 ### 1.1 Layer 3 定位 [I]
 
-`AUGUR-WM v1.0` 宣告**世界有何物**（存在層，existence layer）；`AUGUR-ONT v0.1-draft` 宣告**其類屬與同一性判準之內容**（型別層，type layer，制定 formulate）。**AUGUR-ID 負責「個體的永久參照與其一生的機器機制」**（個體層，instance/identifier layer）——即 identifier 之**鑄造（mint）**、同一性判準之**採認（adopt）使生效於 resolution**、identity **lifecycle**（merge／split／retire／relist／轉指 redirect、tombstone、去識別化 de-identify、lineage）、**identity claim 一級介面**、**provisional identity 解析**、**身份屬性 as-of 時間繫結**。本規格承接 `AUGUR-ONT v0.1-draft` Annex L3「Layer 3 專屬」欄與 `AUGUR-WM v1.0` Annex D 目標含 Layer 3 之掛鉤。
+`AUGUR-WM v1.0` 宣告**世界有何物**（存在層，existence layer）；`AUGUR-ONT v1.0` 宣告**其類屬與同一性判準之內容**（型別層，type layer，制定 formulate）。**AUGUR-ID 負責「個體的永久參照與其一生的機器機制」**（個體層，instance/identifier layer）——即 identifier 之**鑄造（mint）**、同一性判準之**採認（adopt）使生效於 resolution**、identity **lifecycle**（merge／split／retire／relist／轉指 redirect、tombstone、去識別化 de-identify、lineage）、**identity claim 一級介面**、**provisional identity 解析**、**身份屬性 as-of 時間繫結**。本規格承接 `AUGUR-ONT v1.0` Annex L3「Layer 3 專屬」欄與 `AUGUR-WM v1.0` Annex D 目標含 Layer 3 之掛鉤。
 
 ### 1.2 條款 [N]
 
-> **ID.1（三層不僭越）[N｜carries｜`AUGUR-ONT v0.1-draft` Annex L3、`§ONT.3`、`§ONT.7`；`AUGUR-WM v1.0 §WM.3`、`§WM.23`]**
+> **ID.1（三層不僭越）[N｜carries｜`AUGUR-ONT v1.0` Annex L3、`§ONT.3`、`§ONT.7`；`AUGUR-WM v1.0 §WM.3`、`§WM.23`]**
 > 存在層宣告「有何物」、型別層產出「類型與判準的定義文本」、本層產出「個體的永久參照與其一生的機器機制」。本規格**不得**新宣告世界實體之存在（屬 Layer 1）、**不得**改寫或新制同一性判準之**內容**（屬 Layer 2 制定）；本層僅**採認**判準使其生效於 resolution、**鑄造** identifier、**運轉** lifecycle。
 > **義務主體**：本規格自身、本規格後續修訂者。**可判定判準**：本規格任一條款若對某世界概念作存在宣告、或陳述某 Type 之判準**內容文句**（而非引用 Layer 2 既制定之判準），即為上侵，違反本條。
 
@@ -101,7 +101,7 @@ Augur Enterprise AI Operating System
 
 ### 2.1 承接上層掛鉤（defers-in）[N]
 
-> **ID.3（承接盤點）[N｜carries｜`AUGUR-WM v1.0` Annex D D0；`AUGUR-ONT v0.1-draft` Annex DO DO.0]**
+> **ID.3（承接盤點）[N｜carries｜`AUGUR-WM v1.0` Annex D D0；`AUGUR-ONT v1.0` Annex DO DO.0]**
 > 本規格於 Annex CS 之 `defers-in` 欄承接下列上層掛鉤，逐一於正文對應：
 >
 > | 承接來源 | 事項 | 本規格落點 |
@@ -112,16 +112,16 @@ Augur Enterprise AI Operating System
 > | `AUGUR-WM v1.0 §D4`（`§WM.21(d)`、`§WM.35`） | provisional 解析時限與未解析存量稽核指標（含 unmapped 準用） | §7（ID.50–ID.53） |
 > | `AUGUR-WM v1.0 §D6`（`§A.54`） | 本域證券代碼身份假設之判準採認（改名／代碼重用／借殼） | Annex O（AO.1–AO.4） |
 > | `AUGUR-WM v1.0 §D17`（`§WM.38`；目標 L3/L6）**L3 slice** | 自然人身份之 identity 側去識別化／法規強制抹除機制與時變屬性 as-of 繫結 | ID.42、§8（ID.60）；**L6 slice**（法規對應表本體與授權）DEFER Layer 6（IDO.7） |
-> | `AUGUR-ONT v0.1-draft §DO.1` | 判準採認、resolution 演算／時限指標 | §4、§7 |
-> | `AUGUR-ONT v0.1-draft §DO.2` | identity claim 一級表介面、identifier 鑄造／結構／命名空間 | §3、§5 |
-> | `AUGUR-ONT v0.1-draft §DO.3` | lifecycle 事件表、merge／split／retire／relist、tombstone、去識別化、lineage | §6 |
-> | `AUGUR-ONT v0.1-draft §DO.4` | 標記存續／解析、provisional 解析、身份屬性 as-of 版本化 | §7、§8 |
+> | `AUGUR-ONT v1.0 §DO.1` | 判準採認、resolution 演算／時限指標 | §4、§7 |
+> | `AUGUR-ONT v1.0 §DO.2` | identity claim 一級表介面、identifier 鑄造／結構／命名空間 | §3、§5 |
+> | `AUGUR-ONT v1.0 §DO.3` | lifecycle 事件表、merge／split／retire／relist、tombstone、去識別化、lineage | §6 |
+> | `AUGUR-ONT v1.0 §DO.4` | 標記存續／解析、provisional 解析、身份屬性 as-of 版本化 | §7、§8 |
 >
 > **義務主體**：本規格自身。**可判定判準**：上表每列於正文有對應 ID 條款、且於 Annex CS `defers-in` 表雙向可解析者為合規；任一列無對應正文條款者，承接不完整。
 
 ### 2.2 非管轄聲明 [N]
 
-> **ID.4（不擴張管轄）[N｜carries｜`AUGUR-MC v1.4 §0.6(a)`、`§0.5`；`AUGUR-WM v1.0 §WM.3`；`AUGUR-ONT v0.1-draft §ONT.3`]**
+> **ID.4（不擴張管轄）[N｜carries｜`AUGUR-MC v1.4 §0.6(a)`、`§0.5`；`AUGUR-WM v1.0 §WM.3`；`AUGUR-ONT v1.0 §ONT.3`]**
 > 本規格為 Layer 3 唯一所轄規格，不自行擴張管轄；凡 `AUGUR-MC v1.4` 明定定義權屬 Layer 1／Layer 2／Layer 4–7 之事項，本規格**不得**代行定義。
 > **義務主體**：本規格自身。**可判定判準**：本規格任一條款之定義對象逾越 `AUGUR-MC v1.4 §0.5` 所定 Layer 3 職掌者，違反本條。
 
@@ -129,7 +129,7 @@ Augur Enterprise AI Operating System
 
 ## §3 Identifier 鑄造與結構（Minting & Structure）[N]
 
-> 本章行使 `AUGUR-WM v1.0 §D5`（承 `§WM.20`）與 `AUGUR-ONT v0.1-draft §DO.2` 下放之 identifier 設計權。承接審計 **AUD-04**（無系統鑄造之 Identity 層）。
+> 本章行使 `AUGUR-WM v1.0 §D5`（承 `§WM.20`）與 `AUGUR-ONT v1.0 §DO.2` 下放之 identifier 設計權。承接審計 **AUD-04**（無系統鑄造之 Identity 層）。
 
 ### 3.1 §WM.20 授權範圍之明示 [N]
 
@@ -139,15 +139,15 @@ Augur Enterprise AI Operating System
 
 ### 3.2 鑄造義務（mint-on-admission，落實 AUD-04）[N]
 
-> **ID.11（系統鑄造義務）[N｜carries｜`AUGUR-MC v1.4 §P3.E2`、`§P3.E1`；`AUGUR-WM v1.0 §WM.19`、`§WM.22`；`AUGUR-ONT v0.1-draft §ONT.22`]**
-> 凡 `AUGUR-WM v1.0` 存在宣告、`AUGUR-ONT v0.1-draft` Annex T 型別化之世界個體，於**首次意圖進入 Reasoning／Planning 或升級為 Knowledge 之前**，系統**必須**為其鑄造一枚**系統 identifier**（`AUGUR-MC v1.4 §2.4`：系統鑄造之永久參照，本身為系統內具 Identity 地位之一級物件）。外部來源識別碼（供應商證券代碼、series_id、ISIN、統一編號）為 Identity 之**指涉資訊**，**不得**逕充系統 identifier（承接 `AUGUR-ONT v0.1-draft §ONT.22`、`AUGUR-WM v1.0 §WM.20`；**AUD-04**）。
+> **ID.11（系統鑄造義務）[N｜carries｜`AUGUR-MC v1.4 §P3.E2`、`§P3.E1`；`AUGUR-WM v1.0 §WM.19`、`§WM.22`；`AUGUR-ONT v1.0 §ONT.22`]**
+> 凡 `AUGUR-WM v1.0` 存在宣告、`AUGUR-ONT v1.0` Annex T 型別化之世界個體，於**首次意圖進入 Reasoning／Planning 或升級為 Knowledge 之前**，系統**必須**為其鑄造一枚**系統 identifier**（`AUGUR-MC v1.4 §2.4`：系統鑄造之永久參照，本身為系統內具 Identity 地位之一級物件）。外部來源識別碼（供應商證券代碼、series_id、ISIN、統一編號）為 Identity 之**指涉資訊**，**不得**逕充系統 identifier（承接 `AUGUR-ONT v1.0 §ONT.22`、`AUGUR-WM v1.0 §WM.20`；**AUD-04**）。
 > **「未鑄造故無附著對象」抗辯之排除**（承接審計驗證裁註，AUD-05）：identifier 之鑄造義務為前提義務，**不得**以「lifecycle／lineage 尚無 identifier 可附著」為由免除；系統**必須**先鑄造，方使 lifecycle 有附著對象。
 > **義務主體**：Layer 4–7 之表徵與攝取構件、本規格（表達力保證）。**可判定判準**：任一升級為 Knowledge 之世界個體參照可解析至恰一系統 identifier 者為合規；以外部識別碼裸字串直充身份者違反本條。
 
 ### 3.3 命名空間結構（概念層）[N]
 
-> **ID.12（型別化命名空間隔離）[N｜refines｜`AUGUR-ONT v0.1-draft §ONT.31`、`§ONT.2`；`AUGUR-WM v1.0 §WM.20`]**
-> 系統 identifier **必須**繫結恰一 Type 之個體命名空間（`AUGUR-ONT v0.1-draft §ONT.31` 之概念層隔離）；不同頂層範疇與不同 Type 之個體命名空間**必須**互斥。**禁止型態**（承接 **AUD-04**）：(i) 將產業分類名（type 節點）或指數代號混入 Security 個股命名空間；(ii) 將 EconomicIndicator／MacroDimensionQuantity（series_id 空間）與 Security（stock_id 空間）視為同一命名空間。命名空間之**指稱結構**（例如以〔範疇︰Type︰個體序〕之概念三元組標記）由本規格定其**概念形式**；其**物理序列化與儲存編碼** DEFER Layer 7（`AUGUR-MC v1.4 §0.6(b)`，Annex DO IDO.5）。
+> **ID.12（型別化命名空間隔離）[N｜refines｜`AUGUR-ONT v1.0 §ONT.31`、`§ONT.2`；`AUGUR-WM v1.0 §WM.20`]**
+> 系統 identifier **必須**繫結恰一 Type 之個體命名空間（`AUGUR-ONT v1.0 §ONT.31` 之概念層隔離）；不同頂層範疇與不同 Type 之個體命名空間**必須**互斥。**禁止型態**（承接 **AUD-04**）：(i) 將產業分類名（type 節點）或指數代號混入 Security 個股命名空間；(ii) 將 EconomicIndicator／MacroDimensionQuantity（series_id 空間）與 Security（stock_id 空間）視為同一命名空間。命名空間之**指稱結構**（例如以〔範疇︰Type︰個體序〕之概念三元組標記）由本規格定其**概念形式**；其**物理序列化與儲存編碼** DEFER Layer 7（`AUGUR-MC v1.4 §0.6(b)`，Annex DO IDO.5）。
 > **義務主體**：本規格自身、Layer 4–7 消費者。**可判定判準**：任一系統 identifier 可解析至恰一 Type 之個體命名空間者為合規；同一 identifier 解析至二個以上 Type、或 type 節點被當 Instance 鑄造者違反本條。
 
 ### 3.4 identifier 永不刪除 [N]
@@ -164,17 +164,17 @@ Augur Enterprise AI Operating System
 
 ## §4 判準採認（Criterion Adoption）[N]
 
-> 本章接續 `AUGUR-WM v1.0 §WM.21(e)` 效力封印與 `AUGUR-ONT v0.1-draft §ONT.21` 之封印，行使 `§D2`（採認側）／`§DO.1` 下放之**採認**權。
+> 本章接續 `AUGUR-WM v1.0 §WM.21(e)` 效力封印與 `AUGUR-ONT v1.0 §ONT.21` 之封印，行使 `§D2`（採認側）／`§DO.1` 下放之**採認**權。
 
 ### 4.1 採認之定義性效果 [N]
 
-> **ID.20（採認行為）[N｜carries＋refines｜`AUGUR-MC v1.4 §P3.E3`；`AUGUR-WM v1.0 §WM.21(e)`、`§D2`；`AUGUR-ONT v0.1-draft §ONT.20`、`§ONT.21`、`§DO.1`]**
-> Layer 2 已為每一 Type **制定**（formulate）其 Identity Criterion（`AUGUR-ONT v0.1-draft §ONT.20`），惟其**用於 resolution 之操作效力**須經本層**採認**（adopt）方生效（`§ONT.21`）。採認為一**具名、附 Evidence、可追溯之治理行為**，其效果為：使被採認之判準對指定 Type 生效於 identity resolution，自採認生效時起，涉該 Type 之 Identity 引用**得**被判定為已解析。採認**不得**改寫判準內容（改寫屬 Layer 2 制定，違者上侵，違 ID.1）。
+> **ID.20（採認行為）[N｜carries＋refines｜`AUGUR-MC v1.4 §P3.E3`；`AUGUR-WM v1.0 §WM.21(e)`、`§D2`；`AUGUR-ONT v1.0 §ONT.20`、`§ONT.21`、`§DO.1`]**
+> Layer 2 已為每一 Type **制定**（formulate）其 Identity Criterion（`AUGUR-ONT v1.0 §ONT.20`），惟其**用於 resolution 之操作效力**須經本層**採認**（adopt）方生效（`§ONT.21`）。採認為一**具名、附 Evidence、可追溯之治理行為**，其效果為：使被採認之判準對指定 Type 生效於 identity resolution，自採認生效時起，涉該 Type 之 Identity 引用**得**被判定為已解析。採認**不得**改寫判準內容（改寫屬 Layer 2 制定，違者上侵，違 ID.1）。
 > **義務主體**：本規格自身、採認之作成者。**可判定判準**：每一採認紀錄具備〔目標 Type、被採認判準之 Layer 2 條款引用、生效時點、Evidence 引用、作成者〕五要素者為合規；缺任一要素之採認不生效力。
 
 ### 4.2 採認前之保守解釋 [N]
 
-> **ID.21（未採認即未解析）[N｜carries｜`AUGUR-WM v1.0 §WM.21(d)(e)`、`§WM.33`；`AUGUR-ONT v0.1-draft §ONT.21`；`AUGUR-MC v1.4 §P3.E1`]**
+> **ID.21（未採認即未解析）[N｜carries｜`AUGUR-WM v1.0 §WM.21(d)(e)`、`§WM.33`；`AUGUR-ONT v1.0 §ONT.21`；`AUGUR-MC v1.4 §P3.E1`]**
 > 於某 Type 之判準經本層採認前，涉該 Type 之 Identity 引用一律採保守解釋，**視為未解析**（provisional）；未解析之 Observation **不得**升級為 Knowledge（`AUGUR-MC v1.4 §P3.E1`）。
 > **義務主體**：Layer 3–7 消費者。**可判定判準**：存在採認紀錄前，將涉該 Type 之引用視為已解析而升級為 Knowledge 者違反本條。
 
@@ -184,25 +184,25 @@ Augur Enterprise AI Operating System
 > 採認本身為可被新 Evidence 推翻之 Knowledge（`§P4.E4`）；採認之撤回或修訂**不得刪除**原採認紀錄，僅得標記 superseded／retracted（`§P4.E3`），全歷史保留。採認撤回時，受其影響之既有 resolution 結果**必須**依 `AUGUR-MC v1.4 §P2.E5` fail-safe 重新評估（受影響範圍界定 DEFER Layer 4–6，`AUGUR-WM v1.0 §D15`）。
 > **義務主體**：本規格、採認之修訂者。**可判定判準**：採認鏈之任一版本可經 transaction-time 重建者為合規；靜默刪除原採認紀錄者違反本條。
 
-> **ID.23（resolution 演算與時限指標之下放）[N｜hooks｜`AUGUR-WM v1.0 §D4`；`AUGUR-ONT v0.1-draft §DO.1`；目標本層 §7 ＋ Layer 4 實作]**
+> **ID.23（resolution 演算與時限指標之下放）[N｜hooks｜`AUGUR-WM v1.0 §D4`；`AUGUR-ONT v1.0 §DO.1`；目標本層 §7 ＋ Layer 4 實作]**
 > 判準採認後之 **resolution 演算之具體實作**（相似度、比對、批次流程）與**未解析存量之量測落地** DEFER Layer 4（Annex DO IDO.4）；本規格於 §7 定其**概念指標與義務**，不定實作。
 > **義務主體**：本規格、Layer 4。**可判定判準**：§7 指標存在且可機械盤點者為合規。
 
 ### 4.4 世界關係之 Identity Resolution 承接 [N]
 
-> **ID.24（世界關係之身份解析）[N｜carries｜`AUGUR-ONT v0.1-draft §ONT.40`、T.50、T.51；`AUGUR-WM v1.0 §WM.21(e)`]**
-> 世界關係（`AUGUR-ONT v0.1-draft §ONT.40`：IssuanceRelation T.50、UnderlyingRelation T.51 等，其判準為〔關係型別 × 端點 Identity 有序組 × valid time〕）之個體為 **Instance**。其 Identity **依端點 Identity 已解析 ＋ 關係型別 ＋ valid time 派生**；`§ONT.40` 所定端點 Identity 之效力封印（同 `§ONT.21`），於各端點 Type 之判準經本層採認（ID.20）時解除，關係之判準採認**準用** ID.20。關係實例當升級為 Knowledge 時依 ID.11 鑄造系統 identifier、依 ID.12 繫結其**關係型別之個體命名空間**（與端點命名空間互斥）；其權威指稱得以端點有序組解析，**不得**以裸字串推定關係同一。
+> **ID.24（世界關係之身份解析）[N｜carries｜`AUGUR-ONT v1.0 §ONT.40`、T.50、T.51；`AUGUR-WM v1.0 §WM.21(e)`]**
+> 世界關係（`AUGUR-ONT v1.0 §ONT.40`：IssuanceRelation T.50、UnderlyingRelation T.51 等，其判準為〔關係型別 × 端點 Identity 有序組 × valid time〕）之個體為 **Instance**。其 Identity **依端點 Identity 已解析 ＋ 關係型別 ＋ valid time 派生**；`§ONT.40` 所定端點 Identity 之效力封印（同 `§ONT.21`），於各端點 Type 之判準經本層採認（ID.20）時解除，關係之判準採認**準用** ID.20。關係實例當升級為 Knowledge 時依 ID.11 鑄造系統 identifier、依 ID.12 繫結其**關係型別之個體命名空間**（與端點命名空間互斥）；其權威指稱得以端點有序組解析，**不得**以裸字串推定關係同一。
 > **義務主體**：本規格、Layer 4–7 消費者。**可判定判準**：任一世界關係實例可解析至〔關係型別 × 端點 Identity 有序組 × valid time〕且端點 Identity 均已解析者為合規；端點未解析而逕認關係同一、或以裸字串 join 推定關係者違反本條。
 
 ---
 
 ## §5 Identity Claim 一級介面（First-Class Interface）[N]
 
-> 本章行使 `AUGUR-WM v1.0 §WM.21(c)`、`§D3` 與 `AUGUR-ONT v0.1-draft §ONT.22`、`§DO.2` 下放之 identity claim 表介面權。承接審計 **AUD-06**（跨來源零繫結）。
+> 本章行使 `AUGUR-WM v1.0 §WM.21(c)`、`§D3` 與 `AUGUR-ONT v1.0 §ONT.22`、`§DO.2` 下放之 identity claim 表介面權。承接審計 **AUD-06**（跨來源零繫結）。
 
 ### 5.1 identity claim 之結構 [N]
 
-> **ID.30（一級介面四要件）[N｜carries｜`AUGUR-MC v1.4 §2.4`；`AUGUR-WM v1.0 §WM.21(c)`；`AUGUR-ONT v0.1-draft §ONT.22`]**
+> **ID.30（一級介面四要件）[N｜carries｜`AUGUR-MC v1.4 §2.4`；`AUGUR-WM v1.0 §WM.21(c)`；`AUGUR-ONT v1.0 §ONT.22`]**
 > identity claim（`AUGUR-MC v1.4 §2.4`：「兩個 identifier 指涉同一實體」之斷言，繫結於其所涉 identifier，本身為**受 P4 約束之 Knowledge**）為系統內一級物件。其結構**必須**含下列**身份側四要件**：
 > * **(a) identifier 對**：所斷言同一之**二系統 identifier**（`AUGUR-MC v1.4 §2.4`「兩個 identifier」、`AUGUR-WM v1.0 §WM.21(c)`「identifier 對」）。外部識別碼為指涉資訊、**非** identifier（`§ONT.22`、ID.11），**不得逕充 claim 端點**；外部識別碼所指涉之世界個體須先依 ID.11 鑄造系統 identifier，以**該系統 identifier**為 claim 端點，外部識別碼本身僅以**指涉資訊／provisional alias** 地位供 resolution 使用（AO.3），不逕為端點；
 > * **(b) 判準引用**：本斷言所據之 Identity Criterion（Layer 2 制定、經本層採認之條款引用，`§ONT.20`／ID.20）；
@@ -227,11 +227,11 @@ Augur Enterprise AI Operating System
 
 ## §6 Identity Lifecycle（生命週期機制）[N]
 
-> 本章行使 `AUGUR-WM v1.0 §WM.22`、`§D3` 與 `AUGUR-ONT v0.1-draft §DO.3` 下放之 lifecycle 機制權。落實 `AUGUR-MC v1.4 §P3.E2`、承接審計 **AUD-05**（lifecycle 缺席致 stock_id 重用縫合）。
+> 本章行使 `AUGUR-WM v1.0 §WM.22`、`§D3` 與 `AUGUR-ONT v1.0 §DO.3` 下放之 lifecycle 機制權。落實 `AUGUR-MC v1.4 §P3.E2`、承接審計 **AUD-05**（lifecycle 缺席致 stock_id 重用縫合）。
 
 ### 6.1 lifecycle 事件為 Knowledge [N]
 
-> **ID.40（生命週期事件之 Evidence 義務）[N｜carries｜`AUGUR-MC v1.4 §P3.E2`、`§P4.E2`、`§P4.E3`；`AUGUR-WM v1.0 §WM.22`；`AUGUR-ONT v0.1-draft §DO.3`]**
+> **ID.40（生命週期事件之 Evidence 義務）[N｜carries｜`AUGUR-MC v1.4 §P3.E2`、`§P4.E2`、`§P4.E3`；`AUGUR-WM v1.0 §WM.22`；`AUGUR-ONT v1.0 §DO.3`]**
 > Identity 之 **merge／split／retire／relist 與更正**，本身為**必須引用 Evidence 之 Knowledge**（`AUGUR-MC v1.4 §P3.E2`）。系統**必須**維持一**概念 lifecycle 事件序**，每一事件載：〔事件型別 ∈ {mint, merge, split, retire, relist, redirect（轉指）, correct, tombstone, de-identify, expire（到期失效）, settle（結算消滅）, convert（轉換）, redeem（贖回）}、所涉 identifier、生效時點（valid time）、系統可知時點（transaction time，`§P4.E2`）、Evidence 引用、作成者〕。**本枚舉為開放集**：Layer 2 已宣告具生命週期屬性之 Type（如 DerivativeContract T.3、ConvertibleBond T.4、Warrant T.5，見 ID.44）之終結事件型別得依其型別語義擴充；未列名之終結型別於 DynamicEntity 語境準用其對應終結事件。事件**只失效不刪除**（`§P4.E3`）。
 > 事件序之**欄位／索引物理實作** DEFER Layer 4／Layer 7（Annex DO IDO.3；`AUGUR-MC v1.4 §0.6(b)`）。
 > **義務主體**：本規格（事件語義）、Layer 4（實作）。**可判定判準**：任一 merge／split／retire／relist／redirect 事件缺 Evidence 引用者違反本條。
@@ -244,29 +244,29 @@ Augur Enterprise AI Operating System
 
 ### 6.3 tombstone 與去識別化 [N]
 
-> **ID.42（法規強制抹除之留痕與去識別化）[N｜carries｜`AUGUR-MC v1.4 §P3.E2`（法規抹除準用 `§P4.E3`）；`AUGUR-WM v1.0 §WM.38`、`§D17`（L3 slice）；`AUGUR-ONT v0.1-draft` T.23]**
+> **ID.42（法規強制抹除之留痕與去識別化）[N｜carries｜`AUGUR-MC v1.4 §P3.E2`（法規抹除準用 `§P4.E3`）；`AUGUR-WM v1.0 §WM.38`、`§D17`（L3 slice）；`AUGUR-ONT v1.0` T.23]**
 > 法規強制抹除**準用** `AUGUR-MC v1.4 §P4.E3` 例外：**得**移除 identifier 所繫結之可識別內容並**去識別化**，惟：(a) identifier 本身以**留痕形式（tombstone）存續**；(b) 抹除事件具**完整 provenance**（作成者、法源依據引用、生效時點）；(c) **identity lineage 保留**。tombstone **不得**用以規避 ID.13 永不刪除（tombstone 為存續之特例，非刪除）。
-> **D17 之 Layer 3 slice 承接**：涉自然人 Type（`AUGUR-ONT v0.1-draft` T.23 HumanDecisionMaker 等）之身份 identity 側去識別化／可識別內容抹除機制，為 `AUGUR-WM v1.0 §D17`（`§WM.38` 有界表徵）目標 L3 之機制載體，由本條承接（時變屬性之 as-of 繫結另見 §8 ID.60）。**具體法規對應表本體與其授權（L6 slice）DEFER Layer 6**（Annex DO IDO.7；`AUGUR-MC v1.4 §P1.E3`、`§WM.38`、`§D17`）；本條不代定法規對應內容。
+> **D17 之 Layer 3 slice 承接**：涉自然人 Type（`AUGUR-ONT v1.0` T.23 HumanDecisionMaker 等）之身份 identity 側去識別化／可識別內容抹除機制，為 `AUGUR-WM v1.0 §D17`（`§WM.38` 有界表徵）目標 L3 之機制載體，由本條承接（時變屬性之 as-of 繫結另見 §8 ID.60）。**具體法規對應表本體與其授權（L6 slice）DEFER Layer 6**（Annex DO IDO.7；`AUGUR-MC v1.4 §P1.E3`、`§WM.38`、`§D17`）；本條不代定法規對應內容。
 > **義務主體**：本規格、Layer 4–7 執行構件。**可判定判準**：去識別化後仍存在 identifier tombstone、抹除事件具 provenance、lineage 可重建者為合規；三者缺一者違反本條。
 
 ### 6.4 代碼重用／退市／改名（落實 AUD-05）[N]
 
-> **ID.43（存續邊界截斷）[N｜carries｜`AUGUR-WM v1.0 §WM.22`、`§A.25`；`AUGUR-ONT v0.1-draft` T.1、T.34]**
-> 下市（`AUGUR-ONT v0.1-draft` T.34 Delisting，parent Event）為 Security lifecycle **retire** 事件之 Evidence 來源（`§A.25`：下市改變來源可見性、不改變歷史真實性）。外部代碼被回收重用時（同一外部代碼於 retire 事件後再現於名冊），系統**必須**將其解析為**不同存續個體**（split／新鑄造 identifier），使前一個體之歷史**不得**縫合入後一個體之表徵。改名／合併同樣以 lifecycle 事件表徵，**不得**靜默覆寫。
+> **ID.43（存續邊界截斷）[N｜carries｜`AUGUR-WM v1.0 §WM.22`、`§A.25`；`AUGUR-ONT v1.0` T.1、T.34]**
+> 下市（`AUGUR-ONT v1.0` T.34 Delisting，parent Event）為 Security lifecycle **retire** 事件之 Evidence 來源（`§A.25`：下市改變來源可見性、不改變歷史真實性）。外部代碼被回收重用時（同一外部代碼於 retire 事件後再現於名冊），系統**必須**將其解析為**不同存續個體**（split／新鑄造 identifier），使前一個體之歷史**不得**縫合入後一個體之表徵。改名／合併同樣以 lifecycle 事件表徵，**不得**靜默覆寫。
 > **代碼重用偵測為可機械化紅旗**：同一外部代碼於 retire 事件後再現於名冊者，**必須**登錄為待解析事件（provisional，§7），不得逕行縫合。
-> **義務主體**：本規格、Layer 4 特徵／標籤構造構件。**可判定判準**：跨 retire/relist 邊界之同一外部代碼被解析為同一存續個體、致歷史縫合者違反本條（其上位判準依 `AUGUR-ONT v0.1-draft` T.1 制定，本層引用而不複述其判準文句）。
+> **義務主體**：本規格、Layer 4 特徵／標籤構造構件。**可判定判準**：跨 retire/relist 邊界之同一外部代碼被解析為同一存續個體、致歷史縫合者違反本條（其上位判準依 `AUGUR-ONT v1.0` T.1 制定，本層引用而不複述其判準文句）。
 
 ### 6.5 DynamicEntity 非下市之終結 lifecycle（承接 DO.3 之 T.3／T.4／T.5）[N]
 
-> **ID.44（具生命週期實體之終結表徵）[N｜carries｜`AUGUR-MC v1.4 §P3.E2`；`AUGUR-WM v1.0 §WM.22`；`AUGUR-ONT v0.1-draft §DO.3`、T.3、T.4、T.5]**
-> Layer 2 已宣告具生命週期屬性之 DynamicEntity（`AUGUR-ONT v0.1-draft` T.3 DerivativeContract 之上市→交易→**結算消滅**、T.5 Warrant 之**到期失效**、T.4 ConvertibleBond 之**轉換／贖回**）之終結，其型別語義**非**「下市 retire」；本層承接 `§DO.3` 就此類終結之機制：終結**必須**以 lifecycle 事件（settle／expire／convert／redeem，ID.40）表徵，其 identifier 依 ID.13 **永不刪除**、identity lineage 全程保留，**終結後不得靜默消滅其歷史**。ConvertibleBond 轉換至標的股（UnderlyingRelation T.51）**必須**以事件＋lineage 表徵，**不得**以覆寫承載。
+> **ID.44（具生命週期實體之終結表徵）[N｜carries｜`AUGUR-MC v1.4 §P3.E2`；`AUGUR-WM v1.0 §WM.22`；`AUGUR-ONT v1.0 §DO.3`、T.3、T.4、T.5]**
+> Layer 2 已宣告具生命週期屬性之 DynamicEntity（`AUGUR-ONT v1.0` T.3 DerivativeContract 之上市→交易→**結算消滅**、T.5 Warrant 之**到期失效**、T.4 ConvertibleBond 之**轉換／贖回**）之終結，其型別語義**非**「下市 retire」；本層承接 `§DO.3` 就此類終結之機制：終結**必須**以 lifecycle 事件（settle／expire／convert／redeem，ID.40）表徵，其 identifier 依 ID.13 **永不刪除**、identity lineage 全程保留，**終結後不得靜默消滅其歷史**。ConvertibleBond 轉換至標的股（UnderlyingRelation T.51）**必須**以事件＋lineage 表徵，**不得**以覆寫承載。
 > **義務主體**：本規格（事件語義）、Layer 4（實作）。**可判定判準**：任一 DynamicEntity 之結算消滅／到期失效／轉換／贖回缺對應 lifecycle 事件與 Evidence 引用（ID.40）、或終結致其 identifier 記錄消滅／lineage 斷鏈者違反本條。
 
 ---
 
 ## §7 Provisional Identity 解析（Resolution）[N]
 
-> 本章行使 `AUGUR-WM v1.0 §WM.21(d)`、`§WM.35`、`§D4` 與 `AUGUR-ONT v0.1-draft §DO.4`（provisional 側）下放之解析義務與稽核指標權。落實 `AUGUR-MC v1.4 §P3.E1`。
+> 本章行使 `AUGUR-WM v1.0 §WM.21(d)`、`§WM.35`、`§D4` 與 `AUGUR-ONT v1.0 §DO.4`（provisional 側）下放之解析義務與稽核指標權。落實 `AUGUR-MC v1.4 §P3.E1`。
 
 ### 7.1 解析義務 [N]
 
@@ -277,7 +277,7 @@ Augur Enterprise AI Operating System
 
 ### 7.2 可稽核指標 [N]
 
-> **ID.51（未解析存量之可稽核指標）[N｜hooks｜`AUGUR-WM v1.0 §D4`；`AUGUR-ONT v0.1-draft §DO.1`；目標本層定義＋Layer 4 量測]**
+> **ID.51（未解析存量之可稽核指標）[N｜hooks｜`AUGUR-WM v1.0 §D4`；`AUGUR-ONT v1.0 §DO.1`；目標本層定義＋Layer 4 量測]**
 > 本規格定下列**概念指標**（`AUGUR-WM v1.0 §D4` 要求之「解析時限或未解析存量之可稽核指標」，Layer 3 必須定）：
 > * **(a) 未解析存量（unresolved backlog）**：任一 as-of 時點，處於 provisional 狀態之 Observation 指涉集合之基數，**必須**可盤點；
 > * **(b) 解析時效（resolution latency）**：自 provisional 進入至解析（成功或登錄為顯式待決）之時間分佈，**必須**可量測；
@@ -291,7 +291,7 @@ Augur Enterprise AI Operating System
 > 暫無對應世界概念之通道資料（`§WM.35` unmapped 顯式存量）與疑似同一之顯式待決同一性存量（`§WM.15`）與本章 provisional 同構，一律列入解析義務；unmapped 或未登錄映射之通道資料**僅具 Observation 地位**，**不得**被消費為 Representation 或 Knowledge 之依據。
 > **義務主體**：Layer 3–7 消費者。**可判定判準**：unmapped 資料被升格消費者違反本條。
 
-> **ID.53（instance/type 標記之存續與解析）[N｜carries｜`AUGUR-ONT v0.1-draft §ONT.30`、`§DO.4`；`AUGUR-WM v1.0 §WM.21(b)`、`§WM.33`]**
+> **ID.53（instance/type 標記之存續與解析）[N｜carries｜`AUGUR-ONT v1.0 §ONT.30`、`§DO.4`；`AUGUR-WM v1.0 §WM.21(b)`、`§WM.33`]**
 > Layer 2 定義之 instance／type 繫結標記語義（`§ONT.30`），其**存續與解析落實**由本層承接：任一 Knowledge 元素之繫結對象**必須**攜帶可解析之 instance 或 type 標記，且該標記隨轉引存續。
 > **義務主體**：本規格、Layer 3–7 消費者。**可判定判準**：繫結對象未攜帶或不可解析 instance／type 標記者違反本條。
 
@@ -299,12 +299,12 @@ Augur Enterprise AI Operating System
 
 ## §8 身份屬性 as-of 時間繫結（Attribute Time-Binding）[N]
 
-> 本章承接 `AUGUR-ONT v0.1-draft §DO.4`（身份屬性 as-of 版本化）。落實審計 **AUD-07**（身份屬性無時間繫結）。**法源收斂**：本章之核心錨定為 `AUGUR-MC v1.4 §P4.E2`（雙時間性）於身份屬性之界面（承審計驗證裁註：AUD-07 法源收斂為 P4.E2 單軸，P3.E3 為誤引）；本章不引 `§P3.E3` 為義務錨。
+> 本章承接 `AUGUR-ONT v1.0 §DO.4`（身份屬性 as-of 版本化）。落實審計 **AUD-07**（身份屬性無時間繫結）。**法源收斂**：本章之核心錨定為 `AUGUR-MC v1.4 §P4.E2`（雙時間性）於身份屬性之界面（承審計驗證裁註：AUD-07 法源收斂為 P4.E2 單軸，P3.E3 為誤引）；本章不引 `§P3.E3` 為義務錨。
 
 ### 8.1 身份屬性為時變、須 as-of 繫結 [N]
 
-> **ID.60（身份屬性 as-of 繫結義務）[N｜carries｜`AUGUR-MC v1.4 §P4.E2`；`AUGUR-ONT v0.1-draft §DO.4`、T.24、T.42]**
-> Identity 之時變屬性（如產業分類、名稱、市場類別、股權分級）**必須**繫結 valid time 與 transaction time（`§P4.E2`）；其消費**必須 as-of**——以「今日的」屬性判定歷史狀態（如以今日 industry_category 判定歷史宇宙准入）為**禁止型態**（承接 **AUD-07**；`AUGUR-ONT v0.1-draft` T.24 明示之禁止型態）。任一過去時刻「系統當時認為此 Identity 之屬性為何」**必須**可重建。
+> **ID.60（身份屬性 as-of 繫結義務）[N｜carries｜`AUGUR-MC v1.4 §P4.E2`；`AUGUR-ONT v1.0 §DO.4`、T.24、T.42]**
+> Identity 之時變屬性（如產業分類、名稱、市場類別、股權分級）**必須**繫結 valid time 與 transaction time（`§P4.E2`）；其消費**必須 as-of**——以「今日的」屬性判定歷史狀態（如以今日 industry_category 判定歷史宇宙准入）為**禁止型態**（承接 **AUD-07**；`AUGUR-ONT v1.0` T.24 明示之禁止型態）。任一過去時刻「系統當時認為此 Identity 之屬性為何」**必須**可重建。
 > **義務主體**：本規格（繫結義務）、Layer 4 消費構件。**可判定判準**：對身份時變屬性之查詢含 as-of 時間界限、且該屬性具 valid/transaction time 版本者為合規；屬性以原地覆蓋（last-write-wins、無版本）承載、或消費無日期條件者違反本條。
 
 ### 8.2 與 Layer 4 as-of 引擎之界限 [N]
@@ -327,8 +327,8 @@ Augur Enterprise AI Operating System
 > * **來源信任分級表**（`§P4.E7`）。
 > **義務主體**：本規格自身。**可判定判準**：本規格對上開任一事項作可被 Layer 4 直接消費之實質定義者違反本條（下侵）。
 
-> **ID.71（分界表）[N｜carries｜`AUGUR-ONT v0.1-draft` Annex L3（同構）]**
-> 本層與 Layer 4 之逐項分界見 **Annex L4**（與 `AUGUR-ONT v0.1-draft` Annex L3 同構之精確分界表）。
+> **ID.71（分界表）[N｜carries｜`AUGUR-ONT v1.0` Annex L3（同構）]**
+> 本層與 Layer 4 之逐項分界見 **Annex L4**（與 `AUGUR-ONT v1.0` Annex L3 同構之精確分界表）。
 > **義務主體**：本規格。**可判定判準**：Annex L4「本層得為」欄與「Layer 4 專屬」欄無交集。
 
 ---
@@ -339,7 +339,7 @@ Augur Enterprise AI Operating System
 > 本規格之 Constitutional Compliance Statement 依 `AUGUR-WM v1.0 §WM.39–45` 正式格式作成（見 **Annex CS**），**非**暫行模板（本規格作成於 `AUGUR-WM v1.0` 生效日〔2026-07-16〕後，`§WM.45`）。無依該格式作成之聲明使本規格不生效力（`§WM.39`）。
 > **義務主體**：本規格自身、Steward。**可判定判準**：Annex CS 之 front-matter 欄位、七節論證、緊張關係節、雙向 DEFER 表俱全（`§WM.40–44`）。
 
-> **ID.81（存續與升版）[N｜carries｜`AUGUR-MC v1.4 §8.6`；`AUGUR-WM v1.0 §WM.46–47`；`AUGUR-ONT v0.1-draft §ONT.60`]**
+> **ID.81（存續與升版）[N｜carries｜`AUGUR-MC v1.4 §8.6`；`AUGUR-WM v1.0 §WM.46–47`；`AUGUR-ONT v1.0 §ONT.60`]**
 > 本規格條款編號依 `§0.3` 穩定；`AUGUR-MC` 或 `AUGUR-WM`／`AUGUR-ONT` major 升版時本規格進入重新認證期（`AUGUR-MC v1.4 §8.6`）。本規格全部「不得」（MUST NOT）義務不得豁免（`AUGUR-MC v1.4 §8.4`）。
 > **義務主體**：本規格、Steward。**可判定判準**：升版時 Annex CS 之 `mc-version`／`upper-specs` 欄同步；版本間 diff 檢查——任一既發布編號於後版消失或改指他文者違反本條。
 
@@ -347,23 +347,23 @@ Augur Enterprise AI Operating System
 
 ## Annex O [N] — OPEN-1 承接（stock_id 代碼重用／時間穩定性採認）
 
-> 承接 `AUGUR-WM v1.0 §A.54`（OPEN-1）、`§D6`，`AUGUR-ONT v0.1-draft` T.90（OPEN-1 Security 判準採認）、T.1／T.20、DO.1。
+> 承接 `AUGUR-WM v1.0 §A.54`（OPEN-1）、`§D6`，`AUGUR-ONT v1.0` T.90（OPEN-1 Security 判準採認）、T.1／T.20、DO.1。
 
 > **AO.1（承接聲明）[N]**
-> `AUGUR-WM v1.0 §A.54` 將本域證券代碼之時間穩定性（改名、代碼重用、借殼）登錄為**顯式未定義行為**，其保守預設（供應商證券代碼為**指涉資訊、非 identifier**；代碼重用／改名一律經 identity claim 表徵）為 [N] 效力，候選判準記載（「代碼相等 ∧ 存續期間重疊」）為 [I] 素材、經本層採認前不生效力。`AUGUR-ONT v0.1-draft` T.1 已**制定** Security↔Issuer 分離型別之同一性判準（其判準內容以 `AUGUR-ONT v0.1-draft` T.1 為準，本層**不複述**其文句，以免跨層漂移／上侵）。本層僅承接其**採認**，並記載被採認判準之 Layer 2 條款引用（`AUGUR-ONT v0.1-draft` T.1），不改寫其內容（改寫屬 Layer 2 制定，違者上侵、違 ID.1）。
-> **義務主體**：本規格、採認作成者。**可判定判準**：涉 Security／Issuer 判準之下層條款含對 `§AO.1`／`AUGUR-WM v1.0 §A.54`／`AUGUR-ONT v0.1-draft` T.90 之引用者為合規。
+> `AUGUR-WM v1.0 §A.54` 將本域證券代碼之時間穩定性（改名、代碼重用、借殼）登錄為**顯式未定義行為**，其保守預設（供應商證券代碼為**指涉資訊、非 identifier**；代碼重用／改名一律經 identity claim 表徵）為 [N] 效力，候選判準記載（「代碼相等 ∧ 存續期間重疊」）為 [I] 素材、經本層採認前不生效力。`AUGUR-ONT v1.0` T.1 已**制定** Security↔Issuer 分離型別之同一性判準（其判準內容以 `AUGUR-ONT v1.0` T.1 為準，本層**不複述**其文句，以免跨層漂移／上侵）。本層僅承接其**採認**，並記載被採認判準之 Layer 2 條款引用（`AUGUR-ONT v1.0` T.1），不改寫其內容（改寫屬 Layer 2 制定，違者上侵、違 ID.1）。
+> **義務主體**：本規格、採認作成者。**可判定判準**：涉 Security／Issuer 判準之下層條款含對 `§AO.1`／`AUGUR-WM v1.0 §A.54`／`AUGUR-ONT v1.0` T.90 之引用者為合規。
 
 > **AO.2（採認之治理前提）[N]**
 > OPEN-1 之正式判準採認**待 Steward／決策層拍板**（`AUGUR-WM v1.0 §D6`）。本規格提供採認機制（§4 ID.20），惟 Security／Issuer 判準之**實質採認生效**須經 Steward 依 `AUGUR-MC v1.4 §8.1` 之書面裁決（或決策層依治理程序）作成；於此拍板前，涉 Security／Issuer 之 Identity 引用依 `§WM.21(e)` 保守解釋為**未解析**。
 > **義務主體**：本規格、Steward／決策層。**可判定判準**：無採認紀錄時將 Security 引用視為已解析者違反本條。
 
 > **AO.3（採認後之 lifecycle 銜接）[N]**
-> OPEN-1 判準一經採認，代碼重用／借殼之處置即銜接 §6（ID.43 存續邊界截斷）：跨 retire/relist 邊界之同一外部代碼解析為不同存續個體，供應商證券代碼降格為 provisional alias（identity claim，`§WM.21(c)`），發行人（Issuer）同一性以其自身判準（`AUGUR-ONT v0.1-draft` T.20：法律實體同一；借殼／更名不改 Issuer identity，但得改其所發行 Security identity）解析。
+> OPEN-1 判準一經採認，代碼重用／借殼之處置即銜接 §6（ID.43 存續邊界截斷）：跨 retire/relist 邊界之同一外部代碼解析為不同存續個體，供應商證券代碼降格為 provisional alias（identity claim，`§WM.21(c)`），發行人（Issuer）同一性以其自身判準（`AUGUR-ONT v1.0` T.20：法律實體同一；借殼／更名不改 Issuer identity，但得改其所發行 Security identity）解析。
 > **義務主體**：本規格、Layer 4 消費者。**可判定判準**：採認後之 Security 歷史縫合（違 ID.43）者違反本條。
 
 > **AO.4（Issuer 判準採認之具名落點）[N]**
-> `AUGUR-ONT v0.1-draft §DO.1` 並列下放 Layer 3 之判準採認為 **T.1（Security 判準）與 T.20（Issuer 判準）**。Issuer（T.20：法律實體同一；借殼／更名不改 Issuer identity，但得改其所發行 Security identity，承接 `AUGUR-WM v1.0 §A.57`）之判準採認，由 §4 **ID.20 通用採認機制**承接，其採認記錄依 ID.20 五要素作成；交叉引用 `AUGUR-ONT v0.1-draft §DO.1` 之 T.20 列與 `AUGUR-WM v1.0 §A.57`。使 `§DO.1` 兩具名 Type（Security、Issuer）於本層各有可雙向解析之採認落點。
-> **義務主體**：本規格、採認作成者。**可判定判準**：涉 Issuer（T.20）判準之下層條款含對 `§AO.4`／`AUGUR-ONT v0.1-draft §DO.1`（T.20）／`§A.57` 之引用、且無採認紀錄時不得將 Issuer 引用視為已解析者為合規。
+> `AUGUR-ONT v1.0 §DO.1` 並列下放 Layer 3 之判準採認為 **T.1（Security 判準）與 T.20（Issuer 判準）**。Issuer（T.20：法律實體同一；借殼／更名不改 Issuer identity，但得改其所發行 Security identity，承接 `AUGUR-WM v1.0 §A.57`）之判準採認，由 §4 **ID.20 通用採認機制**承接，其採認記錄依 ID.20 五要素作成；交叉引用 `AUGUR-ONT v1.0 §DO.1` 之 T.20 列與 `AUGUR-WM v1.0 §A.57`。使 `§DO.1` 兩具名 Type（Security、Issuer）於本層各有可雙向解析之採認落點。
+> **義務主體**：本規格、採認作成者。**可判定判準**：涉 Issuer（T.20）判準之下層條款含對 `§AO.4`／`AUGUR-ONT v1.0 §DO.1`（T.20）／`§A.57` 之引用、且無採認紀錄時不得將 Issuer 引用視為已解析者為合規。
 
 ---
 
@@ -377,7 +377,7 @@ Augur Enterprise AI Operating System
 | **IDO.1** | ID.30(d)、ID.70 | identity claim 之 **Confidence 語義**（形式化定義、可比較、傳播、門檻） | L4 | `AUGUR-MC v1.4 §P4.E8` | AUD-03/06 |
 | **IDO.2** | ID.31、ID.40、ID.70 | identity claim 與 lifecycle 事件之 **Knowledge 五元組欄位設計** | L4 | `AUGUR-MC v1.4 §P4.E1` | AUD-06 |
 | **IDO.3** | ID.40 | lifecycle **事件表之物理欄位／索引實作**、tombstone 儲存落地 | L4／L7 | `AUGUR-MC v1.4 §0.6(b)`；`AUGUR-WM v1.0 §D3` | AUD-05 |
-| **IDO.4** | ID.23、ID.51 | **resolution 演算實作**、未解析存量指標之**量測落地與門檻值** | L4 | `AUGUR-WM v1.0 §D4`；`AUGUR-ONT v0.1-draft §DO.1` | AUD-04/06 |
+| **IDO.4** | ID.23、ID.51 | **resolution 演算實作**、未解析存量指標之**量測落地與門檻值** | L4 | `AUGUR-WM v1.0 §D4`；`AUGUR-ONT v1.0 §DO.1` | AUD-04/06 |
 | **IDO.5** | ID.12 | identifier 命名空間之**物理序列化與儲存編碼** | L7 | `AUGUR-MC v1.4 §0.6(b)`；`AUGUR-WM v1.0 §WM.20` | AUD-04 |
 | **IDO.6** | ID.61 | **as-of 重建引擎與能力等級**、雙時間查詢操作化 | L4 | `AUGUR-MC v1.4 §P4.E2`；`AUGUR-WM v1.0 §D8` | AUD-07/08 |
 | **IDO.7** | ID.42、CS.1-P1 | 自然人**法規對應表本體**與其授權（`AUGUR-WM v1.0 §D17` 之 L6 slice；本層僅承接其 L3 去識別化／抹除機制 slice，見 ID.42） | L6 | `AUGUR-MC v1.4 §P1.E3`；`AUGUR-WM v1.0 §WM.38`、`§D17` | — |
@@ -403,7 +403,7 @@ Augur Enterprise AI Operating System
 
 ## Annex TR [N] — WM.44 逐條對應矩陣（憲章＋WM＋ONT → 本規格）
 
-> **TR.0（矩陣之地位與生效要件性）[N]** 依 `AUGUR-WM v1.0 §WM.44`：`AUGUR-MC v1.4`、`AUGUR-WM v1.0`、`AUGUR-ONT v0.1-draft` 全部 [N] 條款均須對應至本規格至少一 [N] 條款、明記 DEFER 掛鉤、或明記「不觸及」及理由。**本矩陣已就三上層規格全部條款逐條完整枚舉**，分族陳列：**TR.A**（`AUGUR-MC v1.4` §P3 家族＋§2.4——**本層核心**）、**TR.B**（`AUGUR-MC v1.4` 其餘：PA／§1.2／§1.3／P1／P2／P4／P5 各 E／W 條款及 §0／§2／§4／§5／§6／§7／§8 逐條）、**TR.C**（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28 逐條）、**TR.D**（`AUGUR-ONT v0.1-draft` ONT.1–62＋Annex T T.0–T.91 逐條）。逐條完整枚舉已滿足 `§WM.44` 之形式充分性；**Steward 充任認定業經作成，本規格自 2026-07-17 起生效**（Steward 裁決第 2026-004 號、AL-2026-008；`§0.5`、`§8.3`），**餘無生效阻卻**；**實質**充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序。本規格為 Layer 3，其對應對象為三上層（Layer 0–2）；下層（Layer 4–7）之承接由各該規格於其自身 Annex TR 為之，不在本矩陣範圍。
+> **TR.0（矩陣之地位與生效要件性）[N]** 依 `AUGUR-WM v1.0 §WM.44`：`AUGUR-MC v1.4`、`AUGUR-WM v1.0`、`AUGUR-ONT v1.0` 全部 [N] 條款均須對應至本規格至少一 [N] 條款、明記 DEFER 掛鉤、或明記「不觸及」及理由。**本矩陣已就三上層規格全部條款逐條完整枚舉**，分族陳列：**TR.A**（`AUGUR-MC v1.4` §P3 家族＋§2.4——**本層核心**）、**TR.B**（`AUGUR-MC v1.4` 其餘：PA／§1.2／§1.3／P1／P2／P4／P5 各 E／W 條款及 §0／§2／§4／§5／§6／§7／§8 逐條）、**TR.C**（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28 逐條）、**TR.D**（`AUGUR-ONT v1.0` ONT.1–62＋Annex T T.0–T.91 逐條）。逐條完整枚舉已滿足 `§WM.44` 之形式充分性；**Steward 充任認定業經作成，本規格自 2026-07-17 起生效**（Steward 裁決第 2026-004 號、AL-2026-008；`§0.5`、`§8.3`），**餘無生效阻卻**；**實質**充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序。本規格為 Layer 3，其對應對象為三上層（Layer 0–2）；下層（Layer 4–7）之承接由各該規格於其自身 Annex TR 為之，不在本矩陣範圍。
 > **義務主體**：本規格、Steward。**可判定判準**：如 `§WM.44` 內建之對應完備性檢查——三上層每一 [N] 條款於本矩陣有落點列（承接／細化／DEFER／不觸及＋理由）者為完備。凡標「不觸及＋理由」之列，其理由為機器可判之處置。上層草案（`AUGUR-ONT`）升版或條款增修時本矩陣對應列**必須**同步維護（ID.81 diff 檢查）。
 
 ### TR.A — `AUGUR-MC v1.4` §P3 家族＋§2.4（**本層核心**，逐條）[N]
@@ -604,7 +604,7 @@ Augur Enterprise AI Operating System
 | D13（隔離稽核落地） | 不觸及＋理由：下放 Layer 5／7 | D28（其餘機制落地） | 不觸及＋理由：下放 Layer 5–7（依 `§WM` D28 所指層） |
 | D14（確立程序與候選斷言工作流） | ID.50（升級門檻）承接；工作流 DEFER Layer 4–5 | | |
 
-### TR.D — `AUGUR-ONT v0.1-draft`（全部 [N]，逐條）[N]
+### TR.D — `AUGUR-ONT v1.0`（全部 [N]，逐條）[N]
 
 **(1) 正文 ONT.1–ONT.62**
 
@@ -653,7 +653,7 @@ Augur Enterprise AI Operating System
 | T.50（IssuanceRelation） | ID.24（世界關係身份解析：端點有序組×valid time） |
 | T.51（UnderlyingRelation） | ID.24（世界關係身份解析）、ID.44（ConvertibleBond→標的股以事件＋lineage） |
 
-> **TR.Z（逐條完整枚舉之完成與殘餘生效阻卻）[N]** TR.A–TR.D 已就 `AUGUR-MC v1.4`（§P3 家族＋§2.4 核心，及 PA／§1.2／§1.3／P1／P2／P4／P5 與 §0／§2／§4／§5／§6／§7／§8 逐條）、`AUGUR-WM v1.0`（WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）、`AUGUR-ONT v0.1-draft`（ONT.1–62＋Annex T T.0–T.91）**全部條款逐條枚舉落點**（承接／細化／DEFER／不觸及＋理由），滿足 `§WM.44`「任一條款無對應且無明記者，聲明不完整」之形式充分性要件——**形式充分性（`§WM.44`）已成就**。**Steward 充任認定業經作成，本規格自 2026-07-17 起生效**（Steward 裁決第 2026-004 號、AL-2026-008；`§0.5`、`§8.3`），**殘餘生效阻卻已解消**；**實質**充分性之最終判斷仍屬 Steward 違憲審查程序（`§8.2`），非本規格單方可成就，充任不排除嗣後之違憲審查。上層草案（`AUGUR-ONT v0.1-draft`）於升版或條款增修時，本矩陣對應列**必須**同步維護（ID.81 diff 檢查）。
+> **TR.Z（逐條完整枚舉之完成與殘餘生效阻卻）[N]** TR.A–TR.D 已就 `AUGUR-MC v1.4`（§P3 家族＋§2.4 核心，及 PA／§1.2／§1.3／P1／P2／P4／P5 與 §0／§2／§4／§5／§6／§7／§8 逐條）、`AUGUR-WM v1.0`（WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）、`AUGUR-ONT v1.0`（ONT.1–62＋Annex T T.0–T.91）**全部條款逐條枚舉落點**（承接／細化／DEFER／不觸及＋理由），滿足 `§WM.44`「任一條款無對應且無明記者，聲明不完整」之形式充分性要件——**形式充分性（`§WM.44`）已成就**。**Steward 充任認定業經作成，本規格自 2026-07-17 起生效**（Steward 裁決第 2026-004 號、AL-2026-008；`§0.5`、`§8.3`），**殘餘生效阻卻已解消**；**實質**充分性之最終判斷仍屬 Steward 違憲審查程序（`§8.2`），非本規格單方可成就，充任不排除嗣後之違憲審查。上層草案（`AUGUR-ONT v1.0`）於升版或條款增修時，本矩陣對應列**必須**同步維護（ID.81 diff 檢查）。
 > **義務主體**：本規格、Steward。**可判定判準**：三上層全部 [N] 條款逐一於本矩陣有落點列者為完備（已成就）；上層條款增修而本矩陣未同步致某新條款無落點者，聲明重回不完整。
 
 ---
@@ -691,7 +691,7 @@ compliance-statement:
 > **CS.1-P3（Identity Before Knowledge）〔核心〕**〔承接＋細化〕引 `§P3.E1`、`§P3.E2`、`§P3.E3`、`§2.4`；**逐條見 Annex TR.A**（§P3 家族＋§2.4 為本層核心細化落點）。
 > * `§P3.E1`（引用與解析義務）→ ID.50–ID.53、ID.11（mint-on-admission）、ID.51（可稽核指標，承接 `AUGUR-WM v1.0 §D4`）；
 > * `§P3.E2`（Identity Lifecycle）→ ID.13（永不刪除）、ID.40–ID.43（merge/split/retire/relist/轉指全程 lineage、tombstone、去識別化），落實 **AUD-05**；
-> * `§P3.E3`（同一性判準掛鉤）→ ID.20–ID.23（採認，承接 `AUGUR-ONT v0.1-draft §ONT.21`／DO.1）、ID.53（instance/type 標記存續，承接 `§ONT.30`）；
+> * `§P3.E3`（同一性判準掛鉤）→ ID.20–ID.23（採認，承接 `AUGUR-ONT v1.0 §ONT.21`／DO.1）、ID.53（instance/type 標記存續，承接 `§ONT.30`）；
 > * `§2.4`（identifier／identity claim 區分）→ ID.14、ID.30–ID.32（identity claim 一級介面），落實 **AUD-06**。
 > 判準揭示：本節每一評價性用語（「已解析」「可追溯」「唯一權威」）均附可判定判準（ID.20／ID.41／ID.32）。
 
@@ -710,26 +710,26 @@ compliance-statement:
 | **T-ID-3** | AO.2、`§D6` | OPEN-1 Security 判準採認待 Steward／決策層拍板；本層提供採認機制但實質採認非本規格單方可為。 | 拍板前保守解釋為未解析（`§WM.21(e)`）；本規格備妥採認機制待拍板即生效。非豁免事項。 |
 | **T-ID-4** | ID.60、ID.61、IDO.6 | 身份屬性 as-of 繫結義務（本層）與 as-of 重建引擎（Layer 4，`§P4.E2`）分屬二層，重建能力等級尚未定義。 | 本層保證版本繫結存在；重建能力 DEFER Layer 4（HOOK-01 上呈素材）。非豁免事項。 |
 | **T-ID-5** | ID.31、IDO.2 | identity claim 為 Knowledge（`§2.4`）受 P4 約束，然其完整 Knowledge 五元組欄位設計屬 Layer 4。 | 本層定身份側四要件（ID.30），完整欄位下放 Layer 4；二者以 IDO.2 對接。非豁免事項。 |
-| **T-ID-6** | ID.42、§8、IDO.7、`§D17` | 自然人法規對應（`AUGUR-WM v1.0 §D17`）目標為 **L3/L6**，其 L3 機制 slice（去識別化／抹除、時變屬性 as-of）與 L6 法規對應表本體之分界待具體法域義務落地方確定。 | L3 slice 由 ID.42（＋ID.60）承接、繫結 `AUGUR-ONT v0.1-draft` T.23；L6 slice DEFER Layer 6（IDO.7）。分界待定但雙側均有具名落點，非承接漏列。非豁免事項。 |
+| **T-ID-6** | ID.42、§8、IDO.7、`§D17` | 自然人法規對應（`AUGUR-WM v1.0 §D17`）目標為 **L3/L6**，其 L3 機制 slice（去識別化／抹除、時變屬性 as-of）與 L6 法規對應表本體之分界待具體法域義務落地方確定。 | L3 slice 由 ID.42（＋ID.60）承接、繫結 `AUGUR-ONT v1.0` T.23；L6 slice DEFER Layer 6（IDO.7）。分界待定但雙側均有具名落點，非承接漏列。非豁免事項。 |
 
 豁免登記：`none`（waivers: []）。本規格無現行豁免；如有，依 `AUGUR-WM v1.0 §WM.33` 豁免狀態標記位置落實。
 
 ### CS.3 雙向 DEFER 承接表（`AUGUR-WM v1.0 §WM.43`）[N]
 
-* **(a) 承接上層之掛鉤（defers-in）**：`AUGUR-WM v1.0 §D2`(採認側)→ID.20；`§D3`→§5／§6；`§D4`→ID.51；`§D5`→§3；`§D6`→Annex O；`§D17`(L3 slice)→ID.42、§8（L6 slice DEFER Layer 6，IDO.7）；`AUGUR-ONT v0.1-draft §DO.1`→§4／§7；`§DO.2`→§3／§5；`§DO.3`→§6（含 ID.44 DynamicEntity 終結）；`§DO.4`→§7／§8。與 front-matter `defers-in` 欄雙向對表。
+* **(a) 承接上層之掛鉤（defers-in）**：`AUGUR-WM v1.0 §D2`(採認側)→ID.20；`§D3`→§5／§6；`§D4`→ID.51；`§D5`→§3；`§D6`→Annex O；`§D17`(L3 slice)→ID.42、§8（L6 slice DEFER Layer 6，IDO.7）；`AUGUR-ONT v1.0 §DO.1`→§4／§7；`§DO.2`→§3／§5；`§DO.3`→§6（含 ID.44 DynamicEntity 終結）；`§DO.4`→§7／§8。與 front-matter `defers-in` 欄雙向對表。
 * **(b) 下放下層之掛鉤（defers-out）**：IDO.1–IDO.8（見 Annex DO），與 front-matter `defers-out: [IDO.1, IDO.2, IDO.3, IDO.4, IDO.5, IDO.6, IDO.7, IDO.8]` 互為索引。
 
 ### CS.4 形式充分性（`AUGUR-WM v1.0 §WM.44`）[N]
 
-依 `§WM.44` 判準自查：`AUGUR-MC v1.4` **全部** [N] 條款、`AUGUR-WM v1.0` **全部** [N] 條款、`AUGUR-ONT v0.1-draft` **全部** [N] 條款，均須對應至本規格至少一 [N] 條款、或明記 DEFER 掛鉤、或明記「不觸及」及理由（P5 家族依 CS.1-P5 明記不適用）。**此自查之逐條完整枚舉見 Annex TR（TR.A–TR.D）**，本節為其總綱與「不觸及」主要條款群之理由歸納。明記「不觸及」之主要條款群及理由：
+依 `§WM.44` 判準自查：`AUGUR-MC v1.4` **全部** [N] 條款、`AUGUR-WM v1.0` **全部** [N] 條款、`AUGUR-ONT v1.0` **全部** [N] 條款，均須對應至本規格至少一 [N] 條款、或明記 DEFER 掛鉤、或明記「不觸及」及理由（P5 家族依 CS.1-P5 明記不適用）。**此自查之逐條完整枚舉見 Annex TR（TR.A–TR.D）**，本節為其總綱與「不觸及」主要條款群之理由歸納。明記「不觸及」之主要條款群及理由：
 
 * `AUGUR-MC v1.4` P5 全組、§5 架構角色、§6 F5–F6：其規範對象為行動治理／架構角色／智慧輸出可解釋性，屬 Layer 4–6；本層僅型別化行動主體之 identifier，不代定機制。
 * `AUGUR-WM v1.0` WM.24–29（canonical chain 承接於 CS.1-EV-chain；fail-safe／模態表達力屬 Layer 4–6）、WM.49–53（Domain Profile 框架，本層消費其產物而不制定）：本層 Identity 機制不使其不可表達（ID.13、ID.40、ID.41 為表達力承載）。
-* `AUGUR-ONT v0.1-draft` ONT.10–13、ONT.40–41、Annex T 之型別**定義**：屬 Layer 2 制定，本層僅**採認**（ID.20）與**機制化**（§3、§5、§6），不重述型別定義內容。ONT.40 世界關係之端點封印解除／派生解析由 ID.24 承接。
+* `AUGUR-ONT v1.0` ONT.10–13、ONT.40–41、Annex T 之型別**定義**：屬 Layer 2 制定，本層僅**採認**（ID.20）與**機制化**（§3、§5、§6），不重述型別定義內容。ONT.40 世界關係之端點封印解除／派生解析由 ID.24 承接。
 
-**明記對應／DEFER（非不觸及）之補正**：`AUGUR-WM v1.0 §WM.38`（自然人有界表徵）及其 Annex D 掛鉤 **D17**（自然人法規對應表，L3/L6）：其 **L3 slice** 對應至 ID.42（去識別化／法規強制抹除機制）＋§8（ID.60，時變屬性 as-of），其 **L6 slice** 明記 DEFER Layer 6（IDO.7）；故 WM.38/D17 於本自查為「對應＋DEFER」，非「不觸及」。`AUGUR-ONT v0.1-draft §DO.3` 之 T.3/T.4/T.5（DynamicEntity 終結生命週期）對應至 ID.44。
+**明記對應／DEFER（非不觸及）之補正**：`AUGUR-WM v1.0 §WM.38`（自然人有界表徵）及其 Annex D 掛鉤 **D17**（自然人法規對應表，L3/L6）：其 **L3 slice** 對應至 ID.42（去識別化／法規強制抹除機制）＋§8（ID.60，時變屬性 as-of），其 **L6 slice** 明記 DEFER Layer 6（IDO.7）；故 WM.38/D17 於本自查為「對應＋DEFER」，非「不觸及」。`AUGUR-ONT v1.0 §DO.3` 之 T.3/T.4/T.5（DynamicEntity 終結生命週期）對應至 ID.44。
 
-**逐條對應矩陣已完整枚舉、形式充分性已成就——Steward 充任認定業經作成，本規格自 2026-07-17 起生效**：`AUGUR-MC v1.4`／`AUGUR-WM v1.0`／`AUGUR-ONT v0.1-draft` 全部 [N] 條款 → 本規格落點之**逐條完整枚舉**（`§WM.44` 要求之機器可判完備對應矩陣）**已於 Annex TR（TR.0、TR.A–TR.D、TR.Z）完整作成**：TR.A（`AUGUR-MC v1.4` §P3 家族＋§2.4，本層核心）、TR.B（`AUGUR-MC v1.4` PA／§1.2／§1.3／P1／P2／P4／P5 及 §0／§2／§4／§5／§6／§7／§8）、TR.C（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）、TR.D（`AUGUR-ONT v0.1-draft` ONT.1–62＋Annex T T.0–T.91），每一上層 [N] 條款均有落點列（承接／細化／DEFER／不觸及＋理由）。依 `§WM.44`「任一條款無對應且無明記者，聲明不完整」之反面，**逐條完整枚舉已成就、形式充分性已成就**。**殘餘之生效阻卻業已解消**——Steward 充任認定已作成（Steward 裁決第 2026-004 號、AL-2026-008；`AUGUR-MC v1.4 §0.5`、`§8.3`），本規格生效要件全部成就。**實質充分性**仍由違憲審查程序（`AUGUR-MC v1.4 §8.2`）判斷，未因充任而終局確認；本規格不自我宣告已生效，其生效係基於 Steward 之裁決行為（`§8.1`）。
+**逐條對應矩陣已完整枚舉、形式充分性已成就——Steward 充任認定業經作成，本規格自 2026-07-17 起生效**：`AUGUR-MC v1.4`／`AUGUR-WM v1.0`／`AUGUR-ONT v1.0` 全部 [N] 條款 → 本規格落點之**逐條完整枚舉**（`§WM.44` 要求之機器可判完備對應矩陣）**已於 Annex TR（TR.0、TR.A–TR.D、TR.Z）完整作成**：TR.A（`AUGUR-MC v1.4` §P3 家族＋§2.4，本層核心）、TR.B（`AUGUR-MC v1.4` PA／§1.2／§1.3／P1／P2／P4／P5 及 §0／§2／§4／§5／§6／§7／§8）、TR.C（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）、TR.D（`AUGUR-ONT v1.0` ONT.1–62＋Annex T T.0–T.91），每一上層 [N] 條款均有落點列（承接／細化／DEFER／不觸及＋理由）。依 `§WM.44`「任一條款無對應且無明記者，聲明不完整」之反面，**逐條完整枚舉已成就、形式充分性已成就**。**殘餘之生效阻卻業已解消**——Steward 充任認定已作成（Steward 裁決第 2026-004 號、AL-2026-008；`AUGUR-MC v1.4 §0.5`、`§8.3`），本規格生效要件全部成就。**實質充分性**仍由違憲審查程序（`AUGUR-MC v1.4 §8.2`）判斷，未因充任而終局確認；本規格不自我宣告已生效，其生效係基於 Steward 之裁決行為（`§8.1`）。
 
 ---
 
