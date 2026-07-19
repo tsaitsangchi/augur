@@ -53,7 +53,7 @@ Augur Enterprise AI Operating System
 | 2 | Ontology | Ontology Specification（AUGUR-ONT v1.0，經 Steward 裁決第 2026-003 號充任認定） |
 | 3 | Identity System | Identity Specification（AUGUR-ID v1.0，經 Steward 裁決第 2026-004 號充任認定） |
 | 4 | Knowledge System | Knowledge Graph Specification（AUGUR-KS：v1.0 經 Steward 裁決第 2026-005 號充任，現行 v1.1／RULING-2026-016）、Data Intelligence Layer、原則精華（augur 領域治權文件；跨層條款之逐條 Layer 標注由其合規聲明載明） |
-| 5 | Cognitive Kernel | Cognitive Kernel Specification（AUGUR-L5 v1.0 provisional，經 Steward 裁決第 2026-006 號充任認定；§8.2 實質審查延後）、Reasoning Engine、AI Model Selection |
+| 5 | Cognitive Kernel | Cognitive Kernel Specification（AUGUR-L5 v1.0 **provisional·充任暫停**——RULING-2026-006 充任；2026-07-18 三鏡查獲形式充分性未成就、其認定經 RULING-2026-019 撤回、矩陣重作中；§8.1 橋接維持 L6/L7 效力〔硬期限 2026-10-14〕；§8.2 實質審查延後）、Reasoning Engine、AI Model Selection |
 | 6 | Agent Runtime | Agent Runtime Specification（AUGUR-L6：v1.0 經 Steward 裁決第 2026-007 號充任，現行 v1.2／RULING-2026-016）、Planner / Orchestrator、CLAUDE.md（augur 領域 Agent 協作規格） |
 | 7 | External Interface / Infrastructure | Infrastructure Specification（AUGUR-L7 v1.0 provisional，經 Steward 裁決第 2026-011 號充任認定；§8.2 深度審查列管至 2026-10-14）、External Interface Layer、Database Architecture、系統架構大憲章（augur 領域架構／維運承載文件；涉 Layer 4–6 之章節由其合規聲明逐節標注）、datasets 參考文件（datasets_zh.md 及 finmind-references） |
 
