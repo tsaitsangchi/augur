@@ -963,7 +963,7 @@ compliance-statement:
   defers-in: [MC.role1-6, MC.7+AppendixA, MC.P5.E2, MC.P4.E2, MC.P4.E3, MC.P3.E2, MC.0.5-gov-docs, WM.D18, WM.D19, WM.D23, WM.D25, ID.IDO.3, ID.IDO.5, KS.KDO.4, KS.KDO.5, KS.KDO.6, KS.KDO.7, KS.KS.33, KS.KS.41+42+45+46, L5.LDO.1, L5.LDO.3, L5.LDO.4, L5.LDO.5, L6.LDO.1, L6.LDO.2, L6.LDO.3, L6.LDO.4, L6.LDO.5, L6.LDO.6, L6.L6.16-last, L6.L6.15+L6.20, AUD-02, ENV-SPEC-5.5]
   defers-out: []
   date: 2026-07-17
-  author: Layer 7 Infrastructure 規格起草人（AUGUR-L7 起草子代理；產物業經 Steward 充任認定以 v1.0 生效〔RULING-2026-011／AL-2026-014；provisional：§8.2 七項必審列管〕）
+  author: Layer 7 Infrastructure 規格起草人（AUGUR-L7 起草子代理；產物業經 Steward 充任認定以 v1.0 生效〔RULING-2026-011／AL-2026-014 充任〕，§8.2 實質審查條件通過、provisional 轉 v1.0〔RULING-2026-025／AL-2026-028；附 (iii)(iv)(vi) residual 分階段補正、復審 2026-10-14〕）
   archive-path: specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md
 ```
 
