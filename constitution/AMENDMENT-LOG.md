@@ -304,3 +304,11 @@
 * **文件**：[RULING-2026-023-L5-READOPTION.md](RULING-2026-023-L5-READOPTION.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **驗證**：四輪 G5 複驗＋全 corpus as-of 一致（L5.10）；gate PASS、selftest 綠、PA/五原則 byte 零改；L5.10 施作歷四輪、每輪獨立審查捕獲建造者殘留（定律又應驗）
+
+## AL-2026-027
+
+* **日期**：2026-07-19
+* **事項**：Steward 裁決第 2026-024 號——**T-L7-13 之 §8.1 書面裁決（L7 §8.2 (vii)）**：L6.11 RT 級要件於 KS CL.0 線性閉集上之序異常，經 §8.1 解釋為「多軸解耦」（E 階/可重現驗證/獨立 Data Evidence 為不同要件軸，CL.0 僅 E 階軸；可重現驗證為跨 E 階獨立綁定）→ 取交集為 L6.11 之忠實承接（續 RULING-2026-011 主文三(a)）；致命 Conflict 分級判準登錄前保守預設維持
+* **文件**：[RULING-2026-024-T-L7-13.md](RULING-2026-024-T-L7-13.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：不改任一 [N] 本文（釐定併用解釋）；L7 之 T-L7-13 三處狀態標記更新為「§8.1 已裁」；gate PASS、selftest 綠。L7 §8.2 七項之 (vii) 結清，餘六項
