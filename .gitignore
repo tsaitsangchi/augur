@@ -30,3 +30,4 @@ reports/*.json
 .db_export/
 .webui_secret_key
 .refresh_pipeline.lock
+.env*
