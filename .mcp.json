@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "constitution": {
+      "command": "python3",
+      "args": ["-m", "tools.constitution_mcp"],
+      "env": {
+        "PYTHONPATH": "/home/giga/augur"
+      }
+    }
+  }
+}

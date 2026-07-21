@@ -9,6 +9,8 @@
 
 ## 〇、一句話結論
 
+**（2026-07-21 更新：constitution-mcp 已建置完成，實測八場景平均節省 97.2% context，見 §3.3。）**
+
 **本專案最大的 token 支出不是工具，是「整檔讀規格」與「workflow 扇出」**。最有效的 MCP 投資是一支**條款級查詢 server（constitution-mcp）**，讓模型以每次數百 token 的小工具呼叫取代數萬 token 的整檔讀取；「自動切換」則**不必自建** —— Claude Code 的專案級 `.mcp.json` 作用域＋工具 schema 延遲載入（ToolSearch）已原生提供。既有 `mcp/` 目錄是 **Multi-Channel Proxy（提示詞路由器）**，與 Model Context Protocol 同名異物，其自估效益（約 2k tokens／月）不足以構成優先投資，且其合規結果快取與本專案「綠燈假象」之治理教訓相衝。
 
 ---
@@ -21,7 +23,7 @@
 | 是什麼 | FastAPI 路由器：把 prompt 依分類分流至 Ollama 本地模型／Redis 快取／`claude` CLI | Anthropic 開放協定：向 Claude Code session 提供工具（tools）與資源（resources）的 server |
 | 服務對象 | **腳本／CI** 中的 `claude -p` 呼叫 | **互動式 Claude Code session** 本身 |
 | 省 token 機制 | 快取重複 prompt；廉價查詢改走本地小模型 | 模型改用小工具查詢，**不必將大檔讀入 context** |
-| 現況 | `mcp/`（router/classifier/cache/local_llm/claude_cli/logger，未追蹤）＋ `tools/constitution_lint/mcp_client.py` ＋ `reports/mcp_design_overview.md` | 尚未建置；`.mcp.json` 不存在 |
+| 現況 | **已改名 `augur_proxy/`**（router/classifier/cache/local_llm/claude_cli/logger）＋ `tools/constitution_lint/mcp_client.py` ＋ `reports/mcp_design_overview.md` | **已建置**：`tools/constitution_mcp/`（七工具）＋ 專案根 `.mcp.json` |
 
 兩者可並存，但解決的是不同問題。本報告聚焦後者；前者之評估見 §五。
 
@@ -69,7 +71,7 @@
 * 抽出每條之**原文標籤資料**（`code → {paren_name, full_forms, text, line}`）
 * 依 front-matter `upper-specs` 解析**上層規格條款標籤**（WM./ONT./ID./KS./L5./L6./L7.）
 
-MCP server 只是給這套能力加一層薄薄的協定外殼（官方 `mcp` Python SDK，stdio transport，約 100–150 行）。
+MCP server 只是給這套能力加一層薄薄的協定外殼。**實作未用官方 SDK**——建置時實測官方 `mcp` 套件並未安裝，且本 repo 治權工具鏈以「純 stdlib、無外部相依」為紀律（合憲判定之工具不應繫於會漂移的外部套件），故直接實作 line-delimited JSON-RPC 2.0 over stdio（協定層約 60 行）。副效益：`.mcp.json` 無須綁定 venv 路徑。
 
 ### 3.2 建議工具集（七支，全部唯讀）
 
@@ -90,21 +92,32 @@ MCP server 只是給這套能力加一層薄薄的協定外殼（官方 `mcp` Py
 3. **回傳附出處** —— 每筆回傳附 `file:line`，模型引用時可回溯，不製造「無 Source 之 Knowledge」（呼應 §P4.E1 精神，雖本工具屬 [I] 輔助非規範標的）。
 4. **失敗發聲** —— 解析失敗回 error，不靜默退回近似答案（承接 B9「靜默降級」教訓）。
 
-### 3.3 效益估算（誠實標註為估算）
+### 3.3 效益實測（2026-07-21 建置後回填）
 
-以本 session 型態的治理工作日（2–3 輪審查＋若干條款核對）概算：
+**本節數字由 `python3 -m tools.constitution_mcp.measure` 產出，非手數。**
+字元數為精確值；token 為估算區間（1 token ≈ 1.0–1.4 字元，CJK 技術文本）。
 
-| 場景 | 現況 | 有 constitution-mcp | 節省 |
-|---|---|---|---|
-| 條款核對 ×20 次/日 | ~160k | ~4k | **~156k/日** |
-| 新 session 開場摸底 | ~100–150k | ~10k（layer_status＋按需查詢） | **~90–140k/次** |
-| 對抗審查 judge 引用條款 | 每 judge 整檔讀 | judge 亦可經 ToolSearch 用 MCP 工具 | 視 workflow 設計，潛在 50%+ |
+| 場景 | MCP 回傳 | 取代之整檔讀取 | 字元節省 | 估算 token 節省 |
+|---|---|---|---|---|
+| 核對一條憲章條款（`P4.E1`） | 356 字元 | `META-CONSTITUTION.md` 30,444 | **98.8%** | 21,491–30,088 |
+| 核對一條規格條款（`WM.44`） | 461 字元 | `WORLD-MODEL-SPECIFICATION.md` 63,451 | **99.3%** | 44,992–62,990 |
+| 核對 L7 之一條（`L7.21`） | 3,483 字元 | `INFRASTRUCTURE-SPECIFICATION.md` 146,468 | **97.6%** | 102,132–142,985 |
+| 檢索「不可空」落點 | 1,402 字元 | `INFRASTRUCTURE-SPECIFICATION.md` 146,468 | **99.0%** | 103,618–145,066 |
+| 新 session 開場摸底 | 927 字元 | `HANDOFF.md` 20,449 | **95.5%** | 13,944–19,522 |
+| 查一份裁決主文 | 4,140 字元 | `RULING-2026-002` 4,144 | **0.1%** | 2–4 |
+| 查最近修訂登錄 | 2,505 字元 | `AMENDMENT-LOG.md` 30,168 | **91.7%** | 19,759–27,663 |
+| 跑一份規格 compliance lint | 601 字元 | `AGENT-RUNTIME-SPECIFICATION.md` 60,180 | **99.0%** | 42,556–59,579 |
+| **八場景合計** | **13,875** | **501,772** | **97.2%** | **348,497–487,897** |
 
-**注意**：整檔讀取不會歸零 —— 需要「逐列重建整張矩陣」這類全文工作時，讀全檔仍是對的。MCP 省的是**點查詢被迫變成整檔讀**的那部分，而那部分是日常的大宗。
+**誠實限定**（三項，不因數字漂亮而略去）：
+
+1. **本表為上界**。比較基準是「該場景若無工具則須整檔讀入之檔案」。實務上模型未必每次都整檔讀（可能改用 grep 分段讀）。惟本專案歷史紀錄顯示整檔讀入為常態，故量級具代表性。
+2. **短檔無節省**：`get_ruling` 對 4 KB 以下之裁決僅省 0.1%（回傳近乎全文）。此為正常——短檔本無壓縮空間。
+3. **整檔讀取不會歸零**：需要「逐列重建整張矩陣」這類全文工作時，讀全檔仍是正解。MCP 省的是**點查詢被迫變成整檔讀**的那部分，而那部分是日常的大宗。
 
 ### 3.4 註冊與「自動切換」
 
-專案根建 `.mcp.json`：
+專案根 `.mcp.json`（已建置；以 `PYTHONPATH` 而非 `cwd`，使其不依賴啟動目錄——已於 repo 外實測通過）：
 
 ```json
 {
@@ -112,7 +125,7 @@ MCP server 只是給這套能力加一層薄薄的協定外殼（官方 `mcp` Py
     "constitution": {
       "command": "python3",
       "args": ["-m", "tools.constitution_mcp"],
-      "cwd": "/home/giga/augur"
+      "env": { "PYTHONPATH": "/home/giga/augur" }
     }
   }
 }
@@ -125,15 +138,15 @@ MCP server 只是給這套能力加一層薄薄的協定外殼（官方 `mcp` Py
 
 若日後 code repo 也要專屬工具（如 DB schema 查詢、AUD 審計狀態），在 `/home/giga/augur-code-work/.mcp.json` 另註冊一支 —— 兩個 repo 各自載各自的，這就是專案級「切換」的全部。
 
-### 3.5 建置工作量
+### 3.5 建置工作量（事後對照：估計與實際相符）
 
 | 項 | 工時估 |
 |---|---|
-| server 骨架（官方 `mcp` SDK，stdio） | ~0.5 小時 |
+| server 骨架（**純 stdlib** JSON-RPC stdio，非官方 SDK） | ~0.5 小時 |
 | 七支工具（多為 `mc_clauses.py`／linter 之轉接） | ~1 小時 |
 | selftest（含「失敗發聲」突變鎖，比照 linter 慣例） | ~0.5 小時 |
 | `.mcp.json` ＋ README ＋ 實測 token 對比 | ~0.5 小時 |
-| **合計** | **~2.5 小時** |
+| **合計** | **~2.5 小時**（實際相符） |
 
 ---
 
@@ -152,10 +165,10 @@ MCP server 只是給這套能力加一層薄薄的協定外殼（官方 `mcp` Py
 | 效益 | 其設計文件自估**約 2k tokens／月（≈ $0.20）** —— 相對 §二之支出量級（單一 workflow 即 50 萬+），不構成優先投資 |
 | 風險一：合規快取 | `compliance` 類回應設 24h TTL 快取 —— 與本專案「綠燈假象」教訓正面相衝。**若保留此原型，合規類應改為永不快取** |
 | 風險二：本地小模型 | `quick` 類由 Ollama（qwen3:4b）回答憲章解釋 —— 4B 模型對 102 條條款之轉述風險，正是 WM.44-LABEL 所撲滅的「轉述冒充原文」病灶之新入口。若保留，其回答應強制附 `(local answer)` 標記且禁止進入任何治理文書 |
-| 風險三：目錄撞名 | `mcp/` 撞名官方 Python SDK 套件 `mcp` —— 建置 constitution-mcp 需 `import mcp` 時，本地目錄優先於 site-packages，**必炸**。建議改名 `augur_proxy/` |
+| 風險三：目錄撞名 | **已實證並處置**：建置時實測 `import mcp` 於專案目錄下確實吃到本地 `mcp/`（回 `/home/giga/augur/mcp/__init__.py`），且官方 SDK 其實**未安裝**（換目錄即 `ModuleNotFoundError`）。已於 2026-07-21 改名 `augur_proxy/`（`python -m augur_proxy.selftest` 通過），`import mcp` 已不再被劫持 |
 | 合理用途 | CI 中重複的報告生成類呼叫（非合規判定）可受益於快取；作為個人問答的本地分流亦無害 |
 
-**建議處置**：目錄改名 `augur_proxy/`；合規類永不快取；不列入 token 最佳化主線。
+**處置狀態**：目錄改名 `augur_proxy/` **已完成**（2026-07-21）；「合規類永不快取」與「本地模型回答禁入治理文書」二項**仍待辦**——該原型現為未追蹤檔，未進入任何治理流程，故非急迫。不列入 token 最佳化主線。
 
 ---
 
@@ -173,13 +186,15 @@ MCP server 只是給這套能力加一層薄薄的協定外殼（官方 `mcp` Py
 
 ## 七、建議執行順序
 
-| # | 動作 | 產出 |
+| # | 動作 | 狀態 |
 |---|---|---|
-| 1 | `mcp/` → `augur_proxy/` 改名（避 SDK 撞名） | 一次 `git mv` |
-| 2 | 建 `tools/constitution_mcp/`（七工具＋selftest） | ~2.5 小時 |
-| 3 | `.mcp.json` 註冊＋新 session 實測 token 對比 | 實測數據回填本報告 §3.3 |
-| 4 | （可選）code repo 側 `.mcp.json` 規劃 | 另案 |
-| 5 | （可選）workflow 模板改為 judge 優先用 MCP 工具查條款 | 扇出成本下降 |
+| 1 | `mcp/` → `augur_proxy/` 改名（避 SDK 撞名） | ✅ **完成** 2026-07-21（selftest 通過、撞名解除） |
+| 2 | 建 `tools/constitution_mcp/`（七工具＋selftest） | ✅ **完成**：純 stdlib JSON-RPC stdio server；selftest 涵蓋協定層＋四項紀律＋B3 迴歸；唯讀鎖經**突變測試**驗證（注入 `os.remove` 即紅） |
+| 3 | `.mcp.json` 註冊 | ✅ **完成**：專案根註冊，`PYTHONPATH` 使其不依賴 cwd；端到端 stdio 實測通過（initialize／tools/list 7 支／tools/call） |
+| 4 | 實測 token 對比並回填 §3.3 | ✅ **完成**：`measure.py` 產出，數字由程式導出非手數 |
+| 5 | 新 session 實地驗證（工具是否被模型自然採用） | ⏳ **待辦** —— 須開新 session 觀察 |
+| 6 | （可選）code repo 側 `.mcp.json` 規劃 | 另案 |
+| 7 | （可選）workflow 模板改為 judge 優先用 MCP 工具查條款 | 扇出成本下降 |
 
 ---
 
