@@ -165,6 +165,29 @@ ollama pull qwen3-coder-next                     # 拉建議主力（或 qwen3.6
 
 選定後把 `.cursor/mcp.json` 的 `OLLAMA_MODEL` 由 `qwen3:4b` 改為選定模型；`local_llm_mcp` 之來源標記會自動反映新模型名。
 
+**Ollama 開機常駐**（本機 2026-07-21 已套用；PID 1 為 systemd，但安裝腳本誤報「systemd not running」。以 `giga` 之 **user 服務 + linger** 常駐，可沿用 `/home/giga/.ollama` 已下載模型，免以 `ollama` 系統使用者重拉）：
+
+```bash
+sudo systemctl disable --now ollama 2>/dev/null || true   # 停用系統服務，避免搶 11434
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/ollama.service <<'EOF'
+[Unit]
+Description=Ollama (user service)
+After=network-online.target
+[Service]
+ExecStart=/usr/local/bin/ollama serve
+Environment=OLLAMA_HOST=127.0.0.1:11434
+Restart=always
+RestartSec=3
+[Install]
+WantedBy=default.target
+EOF
+systemctl --user daemon-reload && systemctl --user enable --now ollama
+sudo loginctl enable-linger giga                           # 開機（未登入）也自動起
+```
+
+開放區網（供他機/雲端）時把 `OLLAMA_HOST` 改為 `0.0.0.0:11434`，重跑 `systemctl --user daemon-reload && systemctl --user restart ollama`。
+
 ---
 
 *本文件存於* `reports/LOCAL-LLM-MCP-OPTIMIZATION-PLAN.md`*，為 [I] 資訊性計畫，不具規範力；實作選型須依 L7.30 登錄，token 數字除標「實測」者外均為估算。*
