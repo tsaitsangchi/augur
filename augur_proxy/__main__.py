@@ -17,7 +17,7 @@ def main() -> None:
             "uvicorn required. Install with: pip install -r requirements-mcp.txt"
         ) from exc
 
-    uvicorn.run("mcp.router:app", host=args.host, port=args.port, reload=False)
+    uvicorn.run("augur_proxy.router:app", host=args.host, port=args.port, reload=False)
 
 
 if __name__ == "__main__":
