@@ -4,5 +4,11 @@
 __pycache__/
 *.pyc
 
+logs/
+
 # 參考資料：augur code repo 之本機 clone（不提交——避免重複副本漂移、兩 repo 混合）
 ref_augur/
+
+# 工作目錄打包檔（zip 會含 .env 等 gitignored 敏感檔——aecb515 事件）
+*.zip
+.venv-mcp/
