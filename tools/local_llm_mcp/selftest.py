@@ -1,8 +1,8 @@
 """local-llm-mcp selftest —— 純 stdlib，stub 模式（無須 Ollama）即可跑。
 
 比照 constitution-mcp 之紀律：凡 README/計畫所宣稱之性質，皆有對應斷言。
-涵蓋：協定層、三工具功能面與錯誤面、四項治理紀律（來源標記、失敗發聲、
-路徑封閉、唯讀），其中「唯讀」以 AST 掃描實作層為權威判準。
+涵蓋：協定層、三工具功能面與錯誤面、五項治理紀律（來源標記、失敗發聲、
+路徑封閉、唯讀、治理語料排除），其中「唯讀」以 AST 掃描實作層為權威判準。
 """
 from __future__ import annotations
 
@@ -119,6 +119,26 @@ def _test_error_faces() -> None:
         _assert(r.get("isError"), "不存在檔案應 isError")
 
 
+def _test_governance_exclusion() -> None:
+    """治理語料排除：治理權威路徑拒絕並發聲；非治理路徑不被誤擋（路徑前綴判準）。"""
+    _REPO = pathlib.Path(tools.__file__).resolve().parents[2]
+
+    # 判準單元：正例（治理權威）
+    _assert(tools._is_governance_path(_REPO / "constitution/META-CONSTITUTION.md"), "MC 應判為治理")
+    _assert(tools._is_governance_path(_REPO / "constitution/RULING-2026-010-x.md"), "RULING 應判為治理")
+    _assert(tools._is_governance_path(_REPO / "specs/IDENTITY-SPECIFICATION.md"), "生效規格應判為治理")
+    # 判準單元：反例（非治理輔助）
+    _assert(not tools._is_governance_path(_REPO / "specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md"), "草案非治理")
+    _assert(not tools._is_governance_path(_REPO / "reports/LOCAL-LLM-MCP-OPTIMIZATION-PLAN.md"), "reports 非治理")
+    _assert(not tools._is_governance_path(_REPO / "README.md"), "README 非治理")
+
+    # 整合面：治理路徑經工具呼叫須 isError 並導向 constitution-mcp
+    with _env(LOCAL_LLM_MCP_STUB="1"):
+        r = server.call_tool("local_summarize", {"path": "constitution/META-CONSTITUTION.md"})
+    _assert(r.get("isError"), "治理路徑應 isError")
+    _assert("constitution-mcp" in r["content"][0]["text"], "錯誤訊息應導向 constitution-mcp")
+
+
 def _test_fail_loud() -> None:
     """失敗發聲：Ollama 不可達須拋錯（isError），不靜默回 stub。"""
     with _env(LOCAL_LLM_MCP_STUB=None, OLLAMA_URL="http://127.0.0.1:1"):
@@ -133,6 +153,7 @@ def run() -> int:
     _test_provenance_and_governance()
     _test_tools_stub()
     _test_error_faces()
+    _test_governance_exclusion()
     _test_fail_loud()
     print("local-llm-mcp selftest: OK")
     return 0

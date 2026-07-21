@@ -12,3 +12,6 @@ ref_augur/
 # 工作目錄打包檔（zip 會含 .env 等 gitignored 敏感檔——aecb515 事件）
 *.zip
 .venv-mcp/
+
+# project-memory-mcp 之語意索引（衍生物，各機以 `index` 由 repo 內容重建，不入 git）
+.project_memory/

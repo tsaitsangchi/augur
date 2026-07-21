@@ -1,10 +1,12 @@
 """local-llm-mcp 工具實作：本地小模型之「濃縮型」子任務（大進小出）。
 
-紀律（見 reports/LOCAL-LLM-MCP-OPTIMIZATION-PLAN.md §4.3）：
+紀律（見 reports/LOCAL-LLM-MCP-OPTIMIZATION-PLAN.md §4.3、§二之二）：
   1. 來源標記強制 —— 每筆輸出前置 `(local model: ...)` 與治理警告。
   2. 失敗發聲 —— Ollama 不可達/空回應一律拋 LocalLLMError，不靜默回 stub。
   3. 路徑封閉 —— 檔案輸入僅允許 repo 根以內之相對路徑。
   4. 唯讀 —— 不提供任何寫入工具；對 Ollama 僅為唯讀推論呼叫。
+  5. 治理語料排除 —— 對治理權威語料（constitution/、生效 specs/*-SPECIFICATION.md）
+     之路徑拒絕執行並發聲，導向 constitution-mcp（非治理輔助專用之硬邊界）。
 
 OLLAMA_URL / OLLAMA_MODEL 之預設與 augur_proxy.local_llm 一致（同一顆本地模型）。
 """
@@ -26,6 +28,29 @@ _GOVERNANCE_WARNING = (
 
 class LocalLLMError(Exception):
     """工具層錯誤——經協定層須帶 isError: true，不得偽裝成正常結果。"""
+
+
+def _is_governance_path(resolved: pathlib.Path) -> bool:
+    """治理權威語料判定（路徑前綴）。
+
+    範圍：constitution/ 全域（MC、RULING-*、AMENDMENT-LOG.md、adoption-drafts）；
+    specs/ 下之生效規格（檔名含 SPECIFICATION 且不含 -draft）。
+    草案（-draft）屬非治理輔助語料，不在此列。
+    """
+    try:
+        rel = resolved.relative_to(_REPO)
+    except ValueError:
+        return False
+    parts = rel.parts
+    if not parts:
+        return False
+    if parts[0] == "constitution":
+        return True
+    if parts[0] == "specs":
+        name = parts[-1]
+        if "SPECIFICATION" in name.upper() and "-draft" not in name.lower():
+            return True
+    return False
 
 
 def _ollama_url() -> str:
@@ -94,6 +119,11 @@ def _resolve_source(text, path) -> str:
     resolved = (_REPO / path).resolve()
     if not str(resolved).startswith(str(_REPO) + os.sep):
         raise LocalLLMError(f"路徑越界（僅允許 repo 內相對路徑）：{path}")
+    if _is_governance_path(resolved):
+        raise LocalLLMError(
+            f"治理權威語料不做 LLM 濃縮（{path}）："
+            "請經 constitution-mcp（get_clause／get_spec_clause）取精確原文。"
+        )
     if not resolved.is_file():
         raise LocalLLMError(f"檔案不存在：{path}")
     return resolved.read_text(encoding="utf-8", errors="replace")

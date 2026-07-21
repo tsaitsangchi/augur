@@ -11,6 +11,14 @@
         "OLLAMA_URL": "http://127.0.0.1:11434",
         "OLLAMA_MODEL": "qwen3:30b-a3b"
       }
+    },
+    "project-memory": {
+      "command": "python3",
+      "args": ["-m", "tools.project_memory_mcp"],
+      "env": {
+        "OLLAMA_URL": "http://127.0.0.1:11434",
+        "EMBED_MODEL": "nomic-embed-text"
+      }
     }
   }
 }
