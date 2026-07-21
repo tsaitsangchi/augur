@@ -15,10 +15,13 @@ _TEXT_EXT = {
     ".toml", ".cfg", ".ini", ".sh", ".sql",
 }
 
-# 排除之目錄（衍生物/相依/版控/敏感）
+# 排除之目錄（衍生物/相依/版控/敏感）。含 venv 各式命名與其 site-packages。
 _EXCLUDE_DIRS = {
     ".git", ".project_memory", "logs", "node_modules", "__pycache__",
-    ".venv", "venv", ".mypy_cache", ".pytest_cache", "ref_augur",
+    ".venv", "venv", ".venv-mcp",
+    "site-packages", "dist-packages",
+    ".mypy_cache", ".pytest_cache", ".tox", ".eggs",
+    ".idea", ".cache", ".claude", "ref_augur",
 }
 
 # 排除之檔名（敏感）

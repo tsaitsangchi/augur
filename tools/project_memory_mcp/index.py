@@ -9,6 +9,7 @@ import array
 import hashlib
 import os
 import sqlite3
+import sys
 import time
 from typing import Optional
 
@@ -52,14 +53,23 @@ def _file_sha(abspath: str) -> str:
 
 def _iter_files(root):
     for dirpath, dirnames, filenames in os.walk(root):
+        # 通用 venv 偵測：含 pyvenv.cfg 之目錄為虛擬環境根，整枝剪除（不論其命名）
+        if "pyvenv.cfg" in filenames:
+            dirnames[:] = []
+            continue
         dirnames[:] = [d for d in dirnames if d not in govern._EXCLUDE_DIRS]
         for name in filenames:
             yield os.path.join(dirpath, name)
 
 
-def build(root: Optional[str] = None, db: Optional[str] = None, batch: int = 32) -> dict:
-    """建/重建索引。回統計 dict。"""
+def build(root: Optional[str] = None, db: Optional[str] = None, batch: int = 32,
+          verbose: bool = False) -> dict:
+    """建/重建索引。回統計 dict。verbose=True 時印逐檔進度到 stderr。"""
     import pathlib
+
+    def _log(msg: str) -> None:
+        if verbose:
+            print(msg, file=sys.stderr, flush=True)
 
     root_path = pathlib.Path(root).resolve() if root else govern.REPO
     db_file = store.db_path(db)
@@ -94,6 +104,7 @@ def build(root: Optional[str] = None, db: Optional[str] = None, batch: int = 32)
             pending_text.clear()
             pending_meta.clear()
 
+        _log(f"[project-memory] 掃描 {root_path}（embed={embed.embed_model()}）…")
         for abspath in _iter_files(root_path):
             resolved = pathlib.Path(abspath).resolve()
             if not govern.should_index(resolved, root=root_path):
@@ -103,6 +114,7 @@ def build(root: Optional[str] = None, db: Optional[str] = None, batch: int = 32)
             except OSError:
                 continue
             rel = str(resolved.relative_to(root_path))
+            _log(f"[project-memory] ({n_files + 1}) 索引 {rel} …")
             fhash = _file_sha(abspath)
             mt = os.path.getmtime(abspath)
             pieces = chunk.chunk_text(text)
@@ -132,7 +144,7 @@ def build(root: Optional[str] = None, db: Optional[str] = None, batch: int = 32)
 
 
 def main(argv=None) -> int:
-    stats = build()
+    stats = build(verbose=True)
     print(
         f"project-memory index: {stats['files']} 檔 / {stats['chunks']} chunk "
         f"→ {stats['db']}（embed={stats['embed_model']}）"
