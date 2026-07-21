@@ -69,6 +69,8 @@ Augur 是一套企業級 AI 作業系統，其最高使命：
 |---|---|
 | [tools/constitution_lint/](tools/constitution_lint/) | **`§8.3` 機器稽核 gate**（compliance／audit／selftest；純 stdlib）。**綠燈不得作為充任依據** — 見其 README 之據實揭露節 |
 | [infrastructure/ENVIRONMENT-SPEC.md](infrastructure/ENVIRONMENT-SPEC.md) | 部署環境規格（GB10／ARM64 aarch64） |
+| [ops/machines/](ops/machines/) | **多機基礎資訊 [I]**（每台一檔 `<hostname>.md`，由 `ops/collect_machine_info.sh` 自動產生；同專案跨機環境區分；非規範力，規範以 ENVIRONMENT-SPEC 為準） |
+| [ops/gpu-verify/](ops/gpu-verify/) | **本機 GPU/CUDA 一鍵驗證工具 [I]**（`nvidia-smi`／nvcc 原生／PyTorch／NVRTC 四項；開發機健檢，非部署環境） |
 
 ## 五大不可違反原則
 

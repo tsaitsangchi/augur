@@ -15,3 +15,9 @@ ref_augur/
 
 # project-memory-mcp 之語意索引（衍生物，各機以 `index` 由 repo 內容重建，不入 git）
 .project_memory/
+
+# GPU 驗證工具（ops/gpu-verify/）之機器本機衍生物：
+#   .gpu-test-venv/ — 測試用 Python 環境（數 GB，各機由 gpu_verify.sh 自動重建）
+#   saxpy           — nvcc 由 saxpy.cu 編譯出的執行檔
+ops/gpu-verify/.gpu-test-venv/
+ops/gpu-verify/saxpy
