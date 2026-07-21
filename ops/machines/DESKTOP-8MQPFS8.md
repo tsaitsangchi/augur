@@ -40,5 +40,9 @@
 ## 手動註記
 
 <!-- NOTES:START -->
-（本區塊供手動註記，重跑腳本會保留。例如：此機專責之角色、特殊設定、已知問題。）
+- **角色**：開發／驗證 + 資料層（WSL2）；現行 `ENVIRONMENT-SPEC.md` 主要描述此機。
+- **對立機**：`aitopatom-b96e`（原生 Linux · aarch64 · GB10 · 有 ollama）——兩機設定不可混用。
+- **建議 OLLAMA_MODEL**（若裝 ollama）：`qwen3:4b`（4GB VRAM；已由 `tools/run_local_llm_mcp.sh` 依 hostname 預設）。
+- **有**：PostgreSQL 17.x online；**無**（2026-07-21 快照）：ollama。
+- **注意**：VRAM 4GB → 不可假定可跑 GB10 上之 30B 級模型。
 <!-- NOTES:END -->

@@ -127,15 +127,18 @@ def probe_augur_code() -> tuple[str, str]:
     if envp:
         candidates.append(envp)
     candidates += [
+        "/home/giga/augur-code-work",
+        "/home/giga/augur-archive/augur-code-latest",
         "/home/giga/augur/augur-code",
         os.path.expanduser("~/project/augur"),
         "/home/hugo/project/augur",
     ]
+    _MARKERS = ("src", "scripts", "core", "advisor", "venv", ".env",
+                "requirements.txt", "pyproject.toml", ".git")
     found = []
     for p in candidates:
         if p and os.path.isdir(p):
-            markers = [m for m in ("core", "advisor", "venv", ".env", "requirements.txt")
-                       if os.path.exists(os.path.join(p, m))]
+            markers = [m for m in _MARKERS if os.path.exists(os.path.join(p, m))]
             found.append(f"{p}（標記：{', '.join(markers) or '目錄存在但無常見標記'}）")
     if not found:
         return "ABSENT", "候選路徑皆不存在：" + ", ".join(c for c in candidates if c)
