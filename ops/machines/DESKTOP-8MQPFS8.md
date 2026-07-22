@@ -41,8 +41,9 @@
 
 <!-- NOTES:START -->
 - **角色**：開發／驗證 + 資料層（WSL2）；現行 `ENVIRONMENT-SPEC.md` 主要描述此機。
-- **對立機**：`aitopatom-b96e`（原生 Linux · aarch64 · GB10 · 有 ollama）——兩機設定不可混用。
-- **建議 OLLAMA_MODEL**（若裝 ollama）：`qwen3:4b`（4GB VRAM；已由 `tools/run_local_llm_mcp.sh` 依 hostname 預設）。
+- **對立機**：`aitopatom-b96e`（原生 Linux · aarch64 · GB10 · T1 全執行目標）——兩機設定不可混用。
+- **正典 remote（2026-07-22）**：`https://github.com/tsaitsangchi/augur.git`（monorepo `main`）。改指清單：`ops/machines/packs/DESKTOP-8MQPFS8/RETARGET-TO-PUBLIC-AUGUR.md`。
+- **建議 OLLAMA_MODEL**（若裝 ollama）：`qwen3:4b`（4GB VRAM；已由 tools 依 hostname 預設）。
 - **有**：PostgreSQL 17.x online；**無**（2026-07-21 快照）：ollama。
-- **注意**：VRAM 4GB → 不可假定可跑 GB10 上之 30B 級模型。
+- **注意**：VRAM 4GB → 不可假定可跑 GB10 上之 30B 級模型；`PROJECT_ROOT` 用此機路徑，勿抄 `/home/giga/augur`。
 <!-- NOTES:END -->

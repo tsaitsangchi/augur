@@ -116,5 +116,5 @@ python3 -m tools.local_llm_mcp selftest
 * GitHub：`tsaitsangchi/augur-constitution` → **`augur-constitution-archived`**（**archived／唯讀**）。
 * 說明欄已指向 public monorepo：`https://github.com/tsaitsangchi/augur`（PR #3）。
 * 本機舊樹：`/home/giga/_archived_augur-constitution_20260722/`（見同目錄 `OBSERVATION-STEP5.md`）。
-* **他機**：若仍追蹤舊 remote，改 clone／改 `origin` 至 public `augur`；勿再向 archived 倉 push。
-* **步 6**：觀察確認無死鏈後再刪遠端（本步不刪）。
+* **他機**：若仍追蹤舊 remote，改 clone／改 `origin` 至 public `augur`；勿再向 archived 倉 push。清單：[`../machines/packs/DESKTOP-8MQPFS8/RETARGET-TO-PUBLIC-AUGUR.md`](../machines/packs/DESKTOP-8MQPFS8/RETARGET-TO-PUBLIC-AUGUR.md)（須在 DESKTOP 本機執行；GB10 無直連代跑）。
+* **步 6**：DESKTOP 驗收貼回（見該檔 §C）後再刪遠端（本步不刪）。
