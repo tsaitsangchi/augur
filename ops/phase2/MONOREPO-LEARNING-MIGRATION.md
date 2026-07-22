@@ -64,7 +64,7 @@ MCP 仍在 **repo 根** 以 `python3 -m tools…` 啟動時：遷目錄後須改
 | **1** | 公開掃描：密鑰、dump、不當語料 | 無敏感物進 public 歷史 |
 | **2** | 在 `augur` 上開遷移分支：併入治權樹＋保留應用樹 | 單一分支目錄齊 |
 | **3** | 改路徑：`.env.example`／`install_services`／packs／probe；`PROJECT_ROOT=/home/giga/augur` | selftest／setup_check／路徑契約正確（✅ 2026-07-22 @ `migrate/monorepo-learning`） |
-| **4** | **本機收斂**：以 `/home/giga/augur` 為唯一工作樹 `git remote` → `augur`；停用對 `augur-code-work` 的寫入 | 只在一個根開發 |
+| **4** | **本機收斂**：以 `/home/giga/augur` 為唯一工作樹 `git remote` → `augur`；停用對 `augur-code-work` 的寫入 | 只在一個根開發（✅ 2026-07-22：`augur-code-work`→`/home/giga/augur`；舊 constitution 樹→`_archived_augur-constitution_20260722`） |
 | **5** | 觀察期：`augur-constitution` 改名 archived／read-only | 無他機死鏈 |
 | **6** | 刪 GitHub `augur-constitution`（可選再清本機 `_archived_augur-code-work`） | 確認無依賴 |
 
