@@ -1,7 +1,10 @@
 # 環境 / secrets
 .env
+.env*
 venv/
 .venv/
+.venv-mcp/
+.webui_secret_key
 
 # Python
 __pycache__/
@@ -16,7 +19,11 @@ dist/
 /data/
 /models/
 /models_artifacts/
+augur-data/
+*.dump
 *.log
+logs/
+.db_export/
 
 # 報告產出（JSON dump 等；.md 報告視情況 force-add）
 reports/*.json
@@ -24,9 +31,23 @@ reports/*.json
 # OS
 .DS_Store
 
-# Claude Code 本地狀態（不進 git；settings.json 共享設定如需可另 force-add）
+# Claude Code 本地狀態（不進 git）
 .claude/settings.local.json
 .claude/*.lock
-.db_export/
-.webui_secret_key
 .refresh_pipeline.lock
+
+# 合倉前獨立 code clone（過渡期；終態不再需要）
+ref_augur/
+
+# 工作目錄打包檔（zip 可能含 .env）
+*.zip
+
+# project-memory-mcp 語意索引（各機重建）
+.project_memory/
+
+# qdrant 本機初始化標記（衍生物）
+.qdrant-initialized
+
+# GPU 驗證本機衍生物
+ops/gpu-verify/.gpu-test-venv/
+ops/gpu-verify/saxpy

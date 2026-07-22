@@ -1,4 +1,18 @@
-# Augur
+# Augur（學習用 public monorepo）
+
+> 只用真實資料、誠實預測台股。本倉自 2026-07-22 起為 **應用 + 治權** 合一遠端（原 `augur` + `augur-constitution`）。
+
+| 區塊 | 路徑 |
+|---|---|
+| 應用 | `src/` · `scripts/` · `docs/` · `tests/` · `pyproject.toml` |
+| 治權／MCP | `constitution/` · `specs/` · `ops/` · `tools/` · `audits/` · `.cursor/mcp.json` |
+| 交接 | 應用 [`HANDOFF.md`](HANDOFF.md) · 治權 [`HANDOFF-governance.md`](HANDOFF-governance.md) |
+| 合倉計畫 | [`ops/phase2/MONOREPO-LEARNING-MIGRATION.md`](ops/phase2/MONOREPO-LEARNING-MIGRATION.md) |
+
+密鑰與資料庫 dump **永不進 git**（見 `.gitignore`：`.env`、`*.dump`）。
+
+---
+
 
 > 只用真實資料、誠實預測台股。
 
@@ -57,3 +71,9 @@ MIT — 見 [`LICENSE`](LICENSE)。
 ---
 
 最高紀律：**零 AI 幻像（#1）** — 每個值都能 trace 回真實 API；用假資料跑模型沒有意義。**只信真兆。**
+
+---
+
+## 治權入口（原 constitution README 摘要）
+
+完整治權導覽見合併前文件備份語境；現行生效狀態與文件索引以 [`constitution/`](constitution/) 與 [`specs/`](specs/) 為準。機器 lint：`python3 -m tools.constitution_lint report`（於 repo 根）。

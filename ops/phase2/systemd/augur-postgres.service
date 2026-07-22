@@ -1,0 +1,17 @@
+[Unit]
+Description=Augur userspace PostgreSQL (micromamba augur-pg)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+Environment=PATH=/home/giga/mamba/envs/augur-pg/bin:/usr/bin:/bin
+# Wait until LAN has an IPv4 (boot race: iface up after postgres otherwise only binds 127.0.0.1)
+ExecStartPre=/bin/bash -c 'for i in $(seq 1 30); do ip -4 addr show scope global | grep -q inet && exit 0; sleep 1; done; echo "WARN: no global IPv4 after 30s"; exit 0'
+ExecStart=/home/giga/mamba/envs/augur-pg/bin/pg_ctl -D /home/giga/augur-data/postgres -l /home/giga/augur-data/postgres.log -o "-p 5432" start
+ExecStop=/home/giga/mamba/envs/augur-pg/bin/pg_ctl -D /home/giga/augur-data/postgres stop -m fast
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

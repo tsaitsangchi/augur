@@ -1,0 +1,644 @@
+{
+ "per_finding": [
+  {
+   "id": "AUD-01",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "審計稱 grep 'FROM \"Taiwan' 命中「15+ 檔」——現行 HEAD 實測為 37 個 .py 檔，屬低估非誇大（方向宣稱仍成立且更強）",
+    "審計稱「generic_schema.py L1-17 docstring」——docstring 實際延伸至 L30，惟所有被引片段均落在 L1-17 內，定位無誤",
+    "描述段稱 3 個 VIEW「皆為知識覆蓋統計」——第三個 v_knowledge_harvest_progress 嚴格說是抓取進度統計而非覆蓋統計；證據段用語「3 個知識統計 view」則完全準確。三者均無語意/世界模型性質，不影響論旨",
+    "grep 'CREATE.*VIEW' 於 reports/ 下三份計畫 md 亦有字樣命中，但均非可執行 code；審計限定於程式碼的宣稱成立"
+   ],
+   "code_drift": "HEAD e23a102（2026-07-16 arena 開賽）新增之 arena 相關檔（scripts/run_arena_round.py、settle_arena_labels.py 等）進一步擴大 vendor 表名直綁面（FROM \\\"Taiwan 命中檔由審計時的 15+ 增至 37），漂移方向強化而非削弱 AUD-01；無任何新提交引入 world model/ontology/語意映射層，所有宣稱在現行 HEAD 依然成立。",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "critical",
+   "law_issues": [
+    "引用「§0.5（Layer 1/2 規格缺位）」屬脈絡定位而非可違反之義務條款：§0.5 為 Layer 對照表與拘束範圍宣告，並未課予「Layer 1/2 規格必須於特定期限存在」之義務，故「規格缺位」本身非 §0.5 之違反；本發現之違憲基礎應完全由 F1、P1.E1、P1.E2 承載（此瑕疵不影響 severity）。",
+    "補正方向稱「依 §8.3 過渡規則申請既存實作補正期」為引註錯位：§8.3 過渡規則 (b) 僅及既存「規格」之合規聲明補正期；既存「實作」之補正期依據為 §8.2 第四點（由 Steward 個案裁定、自違憲認定日起算、至遲下一 major 版生效日屆滿）。且依 §8.4，F1/P1.E1 為禁止性規定，禁止本身無豁免可言——補正期僅為違憲認定後之補救期程，非合法化事由（審計於 AUD-02 對此已正確表述，AUD-01 表述略鬆）。",
+    "嚴格而言 P1.E2 單獨僅為 MUST 義務（違反應為 major 級），本發現之 critical 分級由 F1（禁止性規定）與 P1.E1 末句「不得」（MUST NOT）獨立承載；審計未明示此內部分層，但因並列引用且主論證錨定 F1/P1.E1，不構成分級錯誤。"
+   ]
+  },
+  {
+   "id": "AUD-02",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "行號錯置一處：「不刪 DB 真值」實際在 reconcile.py:502（reconcile_fred docstring 內），審計標 :487，偏移 15 行、超出 ±5 容差；內容逐字存在、宣稱實質成立，僅錨點不準",
+    "微小引文壓縮：審計引 upsert SQL 為單一字串 'INSERT INTO … ON CONFLICT ({conflict}) DO UPDATE SET {sets}'，實際程式碼由兩段 f-string 組成（action=f\"DO UPDATE SET {sets}\" 於 267 行、無非鍵欄時退為 DO NOTHING），語義與審計刻畫完全一致、不影響發現",
+    "upsert 行號範圍 256-273 實為 256-272（±1，容差內，僅記錄）"
+   ],
+   "code_drift": "本地 clone 全史被壓縮為單一提交 e23a102（2026-07-16 18:12，全部檔案以 new file 形式入庫），無法以 git diff 對照 2026-07-15 審計基準——所有查證均以現行 HEAD 內容為準。查證結果顯示全部受審內容（upsert、_EXAMPLES_CAP、heal_by_date、attestation_result DDL、原則精華 #6/#7、憲章 P4.E2/E3/E5、附錄 C）與審計描述逐字吻合，無跡象顯示審計後有實質變更；唯一行號偏移（487→502）無法歸因或排除為增量變更所致。",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "critical",
+   "law_issues": [
+    "非致命縫隙（不影響裁決）：P4.E5/P4.E3 文義客體為 Evidence，而 §2.5 定義 Evidence 為角色關係（被引用以支持 Knowledge 之 Observation）；嚴格文義論者可主張未被引用之 raw 舊值僅為 Observation。此攻擊不成立——raw 層為全下游衍生之 SSOT，被覆寫舊值即既有 Knowledge 證據鏈依 P4.E6 遞迴終止之 EV.2 節點，屬角色意義下之 Evidence；且 §8.2 較嚴格解讀與 §8.3 保守解釋均指向涵蓋。建議補正報告時加引 P4.E6 與 §2.5 以封閉此論證縫隙。",
+    "報告內部一致性註記（方向不利於推翻 AUD-02）：AUD-08 之 prediction_values DELETE+INSERT 亦可構成 P4.E3『Knowledge 與 Evidence 不得刪除』之 MUST NOT 違反，卻僅列 major；依『同類行為應同級』與 §8.2 較嚴格解讀，一致化方向應為檢討上調 AUD-08 類發現，而非下調 AUD-02。",
+    "P4.E2 作為第三引用條款屬輔助性質正確，但其 as-of 重建機制 DEFER 至 Layer 4；報告未明言此 DEFER，惟因其僅引 P4.E2 之不變式部分（『任一過去時刻系統之認識狀態必須可追溯且可稽核（不變式）』且該條明文及於任何 Observation），不構成誤用。"
+   ]
+  },
+  {
+   "id": "AUD-03",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "validation_evidence 之 status CHECK 實為四值 ('green','amber','red','unverified')（migrate_validation_evidence_ddl.py:37），審計僅列 green/amber/red 三值——'unverified' 為預設未驗態，不影響「隱性類別型 confidence、無形式化定義」的論旨",
+    "審計位置欄寫「grep -ri confidence」而證據欄寫「grep -rn -i \"confidence\" ... --include=\"*.py\"」，指令表述略異；實測兩種跑法（.py 限定與全檔案）皆為零命中，結論不受影響"
+   ],
+   "code_drift": "無。本地 HEAD e23a102（2026-07-16）為基準日後唯一提交（docs/handoff 性質，arena 開賽紀錄）；confidence grep 於現行 HEAD 仍為零命中，migrate_deliberation_ddl.py/schema.py/framework.py 等被引位置行號與內容均與審計宣稱一致，AUD-03 各宣稱未因新提交失效。",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "critical",
+   "law_issues": [
+    "標題「全系統無 Confidence 概念」在法律定性上略為過廣：審計自身承認預測軸之校準機率（prediction_probability、Brier/ECE）實質上是 §2.10 意義下「可量化表述」的 Confidence 等價物，違憲核心應精確限定於知識/審議軸之 Knowledge 物件缺第五元與無 Layer 4 統一語義——發現正文已誠實揭露此點，僅標題措辭過廣，不影響結論。",
+    "P4.E8 第一句「必須於 Layer 4 以單一形式化定義」之義務對象主要是（尚不存在的）Layer 4 規格，其未滿足屬 §0.5 Layer 規格缺位之系統性缺口（與 AUD-01 共因），嚴格而言不宜單獨作為對程式碼的指控；但 P4.E8 第二句（沿推理鏈傳播、Action 允許等級受最低 Confidence 約束）為 §1.3 明文列舉之系統級 ENFORCE 義務，程式碼在零 Confidence 物件下確實無從滿足，且審計之補正方向已正確將修復路由至 Layer 4 規格，故此瑕疵不改變適用結論。",
+    "審計未明文指出 P4.E4「不得為隱含之 1.0」係禁止性規定（MUST NOT），此點可獨立支撐 critical 分級（報告rubric第二判準），屬論證強度上的遺漏而非誤用。",
+    "整份報告分級一致性存在一處張力：AUD-09 對 P4.E3（同為 MUST NOT）裁 major 並附減輕理由，顯示 rubric 對 MUST NOT 並非機械適用；惟 AUD-03 之 critical 錨定於 §8.4 明文列舉之不可豁免核心（P4.E1），不受該張力影響。"
+   ]
+  },
+  {
+   "id": "AUD-04",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [],
+   "code_drift": "本地 clone 為單一 squash commit e23a102（2026-07-16 18:12「arena 開賽」），git 史僅 1 個 commit，無法 diff 對比 2026-07-15 審計基準。但 AUD-04 引用之全部檔案位置（core_gate.py:9-13,74-79；sync.py:47-48；build_market_direction_features.py:52-54；knowledge/identity.py 全檔）在現行 HEAD 內容與行號均精確吻合，無任何行號偏移，判定新提交未影響本發現之任何宣稱。",
+   "law_application": "partially_correct",
+   "law_severity": "agree",
+   "law_final": "major",
+   "law_issues": [
+    "F4 被列為【憲章條款】但描述並未確立其構成要件：F4 禁止的是「無 Identity 繫結、無 Source 之 Knowledge」，而報告自身 P3 亮點區明載「量化 Knowledge 全數繫結識別碼（F4 大體滿足）」——AUD-04 確立的是身份繫結『有缺陷』（繫於未鑄造、受污染之外部字串），非『不存在』。若 F4（禁止性規定）真被違反，依報告第四節自訂判準應升 critical；列 F4 而裁 major 屬內部不一致，正確處理是將 F4 定位為風險視角而非受違條款。",
+    "最直接適用的 P3.E1（Knowledge 必須引用已解析之 Identity、未解析之 Observation 不得升級為 Knowledge、系統負有解析義務）未列入【憲章條款】，而 AUD-04 自己的補正方向段落即引用「P3.E1 provisional identity」為法律定位——條款清單漏列了本案的核心錨點。",
+    "P3.E2 引用屬部分錯錨：其操作性義務（mint 後永不刪除、轉指可追溯、merge/split/retire 為 Evidence-backed Knowledge）皆以已鑄造 identifier 為前提，系統從未鑄造任何 identifier 時 P3.E2 是落空（vacuous）而非被違反；「必須有系統鑄造身份」的義務來源是 P3.E1＋§2.4 定義（identifier＝系統鑄造之永久參照），且 lifecycle 缺席已由 AUD-05 以 P3.E2 單獨承載。",
+    "P1.E2 之括注「Identity 跨部署邊界可解析對齊」與事實不完全貼合：所述事實（FinMind stock_id 與 FRED series_id 零交集、無跨來源解析設施）是單一部署內的跨『來源』問題，直接對應 P1.E2 前半句「所有資料來源必須映射至共同世界模型／每一世界事實有唯一權威表徵」（AUD-06 已正確引用該面向）；引為「必須可跨部署邊界解析」之能力性義務未達成雖可辯護，但括注選錯了條款面向。",
+    "無 DEFER／過渡規則誤用：審計正確將機制（解析時限指標、轉指、同一性判準分類）歸 Layer 3 規格補正，未把 DEFER 當義務不存在——此點無誤，予以確認。"
+   ]
+  },
+  {
+   "id": "AUD-05",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "證據句「grep '下市|delist|merger|合併' 於 src/ 命中處全為對帳豁免與倖存偏差統計」措辭略過寬：實際命中另含 retrieval.py:360-361（檢索結果合併）與 feature_diagnostics.py:108（共線特徵合併）兩處無關語義之「合併」，及 panel.py 之 recency gate 註解 3 處（非對帳豁免亦非倖存統計）——但無一命中為 identifier 轉指/退役機制，核心論點不受影響",
+    "「valuation 十年線位置取 10 年史」之機制描述有細節出入：valuation.py 並非自行取 10 年原始價史，而是以裸 stock_id LIMIT 1 讀 FinMind 預算之 TaiwanStock10Year 十年線表——代碼重用之混史風險實質存在但傳導路徑經 FinMind 預算表；另「十年百分位特徵」實為 close/十年線−1 之位置比值、非百分位",
+    "「已入 raw 層」之 DB 落地狀態本機無法直接重現（查證機無 .env、無 PostgreSQL 角色）——僅能以 attestation cadence seed（只對已同步受對帳表有意義）與 dataset 文件間接佐證，未直接查表列數"
+   ],
+   "code_drift": "本地 clone 為單一 squash 提交 e23a102（2026-07-16 18:12，全樹以 new file 一次入庫），無 2026-07-15 基準之前置歷史可 diff，故無法逐提交排除漂移；惟內容查證顯示 AUD-05 所引全部證據（migrate_attestation_catalog_ddl.py:38、panel.py:39/:49-53/:141-146、valuation.py）於現行 HEAD 逐字存在且行號與審計所引一致，該提交主旨為 arena 開賽 docs/handoff，未見任何 identity lifecycle 機制新增——判定無影響 AUD-05 之程式漂移。",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "major",
+   "law_issues": [
+    "非致命瑕疵：發現未明文區分 P3.E2 內的 DEFER 部分（「轉指機制由 Layer 3 定義」「留痕與去識別化機制由 Layer 3 定義」）與憲章直接課予的不變式義務；所幸其條款引用括號（merge/split/retire 為 Evidence 支持之 Knowledge、identity lineage）恰好只援引非 DEFER 的義務文句，故結論不受影響，但明示 DEFER 邊界會使論證更防彈。",
+    "非致命瑕疵：P3.E2 之適用隱含以外部 stock_id 為系統事實上之 identifier（§2.1 定義 4 中 identifier 本指系統鑄造之永久參照，系統從未鑄造——此為 AUD-04 之標的）；「未鑄造故 P3.E2 無附著對象」的 purist 抗辯雖因 P3.D／P3.E1 與 §8.3 保守解釋而不成立（不鑄造不得成為豁免 lifecycle 義務之途徑），且即便改繫 P3.E1（未解析 identity 之 Observation 不得升級 Knowledge）仍為 [N] 義務違反、severity 不變，但發現若明文處理此抗辯並標注與 AUD-04 之 P3.E2 引用分工（AUD-04＝鑄造缺席、AUD-05＝lifecycle 缺席），會更嚴謹。"
+   ]
+  },
+  {
+   "id": "AUD-06",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "審計標題「唯一設計交會點（feature_values macro）目前為空」與所引 docstring「尚無任何生產特徵消費總經」在系統層面已不精確：scripts/build_market_direction_features.py:136,148-151 已經由 macro_vintage.as_of 消費 fred_series（VIXCLS/T10Y2Y/T10Y3M），自稱「首個真消費者」，並將 FRED 與 FinMind 衍生之市場特徵共置於 market_direction_feature 一表（帶 source_table 溯源欄）——即 macro_vintage.py 之 docstring 相對其自身程式碼庫已過時，且事實上存在第二個跨來源共置點。但此點不動搖 AUD-06 核心：feature_values 本身確為零 macro（審計之限定範圍宣稱屬實）；market_direction_feature 同為衍生訊號面板（panel_date/feature 字串鍵），非世界模型、無 identity 繫結，反而佐證「無共同世界模型、無同一性判準、零跨來源 identity claim」三項核心缺失。審計官對該 script 明知（AUD-04:152-157 親引其 52-54 行），故此為表述精度問題而非事實錯誤。"
+   ],
+   "code_drift": "本地 clone 為單一 squash commit e23a102（2026-07-16 18:12，docs/handoff＋arena 開賽），git 歷史不可回溯至 2026-07-15 審計基準，無法逐 commit diff。但 AUD-06 所引全部行號在現行 HEAD 逐一精確吻合（macro_vintage.py:13-14、macro.py:52、panel.py:40-47、framework.py:39-46），且 HEAD commit 內容為 handoff 文件與 arena 掛載，顯示 AUD-06 相關檔案自審計以來無實質變更；build_market_direction_features.py 之 VIXCLS 消費於審計基準即存在（同份審計 AUD-04 親引該檔），非審計後新增。無使宣稱失效之漂移。\n\n",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "major",
+   "law_issues": [
+    "內部微幅張力：描述段一面稱「P1.E2 現況成立僅因每類事實恰好單一來源供應（偶然滿足）」，一面又主張 FRED DEXTAUS 與 FinMind 匯率類 dataset 已是同一世界事實之兩個平行表徵——若後者為真（本裁決假定事實為真），則 P1.E2「每一世界事實有唯一權威表徵」現況已遭突破，「偶然滿足」之讓步實為高估現況合規度。此張力對違憲成立方向無影響（P1.E2 第一肢「所有資料來源必須映射至共同世界模型」無論如何已完全未履行），但措辭宜收斂。",
+    "P1.E2 與 AUD-01（CRITICAL）條款基礎重疊：共同世界模型之全面缺席已是 AUD-01 之核心。AUD-06 引 P1.E2 聚焦於跨來源繫結面向，屬可辯護之切分而非重複計罪，但報告宜明示兩發現對 P1.E2 之分工，避免同一條款之同一缺失被二度計數。",
+    "描述段提及「無 P4.E5 衝突保存之落點」但未將 P4.E5 列入【憲章條款】——此為正確之克制：P4.E5 含 MUST NOT（禁止 last-write-wins），若列為受違條款將依報告分級判準強制升 critical，而現況兩表徵並存（未被消滅）、亦無實際衝突值被靜默裁決之事實宣稱，P4.E5 構成要件未滿足，僅為前瞻性結構缺口。引用位置（描述而非條款欄）處理得當，特此確認而非指摘。",
+    "P3.E3 第二肢「Knowledge 必須明示繫結對象屬 instance 或 type」之適用以 principle_factor_map／feature_values 屬憲章意義下 Knowledge 為前提；feature_values 作為衍生訊號面板，其 Knowledge 定性（§2.6）可爭執，但即便剔除此肢，第一肢（每類 Identity 必須宣告同一性判準）之全面缺席已獨立支撐違憲成立，不影響結論。"
+   ]
+  },
+  {
+   "id": "AUD-07",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "P3.E3 條名出入：憲章正式條名為「同一性判準掛鉤」（META-CONSTITUTION-v1.1.md:261），審計寫「同一性判準與屬性繫結」——詮釋性改寫、非逐字條名；條文本文亦未明文「屬性」二字（講同一性判準宣告＋Knowledge 繫結 instance/type），審計以其與 P4.E2 交界立論尚屬合理但條名引用不精確。",
+    "「upsert 原地覆蓋、今日值 wins」對 industry_category 本欄之機制細節出入：依 repo 內 2026-06-29 DB introspection（reports/augur_full_column_walkthrough_20260629.md:861-866），TaiwanStockInfo live PK=(industry_category, stock_id, type)——industry_category 為鍵欄，產業變更時系統是「另立新列＋舊分類列殘留不刪」而非原地覆蓋（被原地覆寫者為非鍵欄 stock_name/date）。因消費查詢無日期條件，實際汙染模式為「任何曾出現過的分類皆命中」而非嚴格「僅今日分類」——此出入不推翻反而加重發現（新舊屬性混雜且同樣不可重建 as-of）。",
+    "TaiwanStockInfo 之 DB 實際 schema/PK 無法直連驗證（本機無 DB 憑證，psql 連線失敗），係以程式碼路徑＋repo 自身兩份 DB introspection 報告交叉佐證；另 2026-06-11 早期取樣目錄曾記 PK 含 date（per-stock 取樣工件），與 2026-06-29 live introspection（date 非 PK）不一致，本查證以較新之 live introspection 為準。"
+   ],
+   "code_drift": "本地 clone 為單一 squash commit e23a102（2026-07-16），git 無 2026-07-15 之前歷史可 diff，無法以版本差異驗證漂移；改以內容驗證：AUD-07 所引兩檔全部段落（core_gate.py:159-176 兩子查詢、generic_schema.py:256-272 upsert、:261 註解、build_universe_asof docstring 206-213）於現行 HEAD 逐字存在且行號與審計所引一致（±1 行內），無任何使宣稱失效之增量變更跡象。",
+   "law_application": "partially_correct",
+   "law_severity": "agree",
+   "law_final": "major",
+   "law_issues": [
+    "P3.E3 引用之括注「同一性判準與屬性繫結」誤轉述條款原文：P3.E3 之「繫結」係指「Knowledge 必須明示繫結對象屬個體（instance）或類型（type）」，與「實體屬性須時間繫結」無涉；P3.E3 全文未課予任何「身份屬性須有 valid time／消費須 as-of」之義務，該義務僅能由 P4.E2 導出。",
+    "審計之補正方向自承此點：「在 Layer 3 規格中明文：實體屬性（分類、名稱）屬 Identity 之時變屬性，其消費必須 as-of」——即該規範尚待下層新設，非 P3.E3 既有義務；且 P3.E3 之實際義務（同一性判準宣告缺席）已由 AUD-06 以同條款獨立究責，本發現重引未增加獨立義務基礎，全案實質僅立於 P4.E2。",
+    "審計未明示處理 P4.E2 尾句之 DEFER（「重建該狀態（as-of）之機制與能力等級由 Layer 4 定義」）——結論不受影響：DEFER 僅及重建機制之設計權，所違反者為非 DEFER 之不變式本身（「任一過去時刻系統之認識狀態必須可追溯且可稽核」）與「必須區分 valid time 與 transaction time」之 MUST；原地覆寫使過去狀態物理滅失，任何未來 Layer 4 機制皆無從補救，故 DEFER 不構成阻卻。惟嚴謹之條款適用論證應載明此點。"
+   ]
+  },
+  {
+   "id": "AUD-08",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "--rewrite-all 參數定義實際在 predict_asof.py:197-198，審計標 196-198（L196 為 --candidate 之 help 尾行）——偏移 1 行、內容一致，容差內",
+    "審計引文「ON CONFLICT DO UPDATE SET value=EXCLUDED.value」為縮寫轉述：實際 panel.py:168-169 為「ON CONFLICT (panel_date, stock_id, feature) DO UPDATE SET value = EXCLUDED.value」（省略衝突目標欄與空格），語意完全一致",
+    "非審計錯誤之附帶觀察：--rewrite-all help 文字自稱「四 horizon {20,40,60,120}」但 L204 迴圈實跑五個 (20,40,60,82,120)——審計逐字引文正確，此為程式 help 文字自身與迴圈不符"
+   ],
+   "code_drift": "無。審計基準（2026-07-15 main）後唯一新提交 e23a102（2026-07-16「arena 開賽」）僅改 HANDOFF.md，未觸及 predict_asof.py、migrate_prediction_ddl.py、panel.py、generic_schema.py、schema.py 任一受審檔案；AUD-08 全部宣稱於現行 HEAD 仍成立。",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "major",
+   "law_issues": [
+    "P2.E2 屬過度引用：發現標頭列 P2.E2，但描述段從未論證任何 Evidence 通道（§2.11）繞過——所述缺陷（無 transaction time、DELETE+INSERT 靜默重寫）之義務來源是 P4.E2 與 P4.E3，非 P2.E2 之通道義務；P2 面向應留在「發現視角」與計分卡，不應列為被違反條款。",
+    "P4.E3 權重不足：DELETE+INSERT 直接該當 P4.E3 禁止性規定「Knowledge 與 Evidence 不得刪除」（prediction_values 列依 §2.6 屬 Knowledge 級斷言、依 P4.W1 屬 Computational Evidence），而報告自訂判準明定「違反禁止性規定＝critical」——發現僅以括號「交叉 P4.E3」帶過，未做 AUD-09 式的降級論證（「內容原則上為確定性衍生物、非原始證據滅失」）。該論證在本案更弱：prediction_values 無 build_meta 對應物（無 run_id/git_sha/參數紀錄），「原則上可重算」僅勉強成立。major 結論靠報告內一致性（AUD-09 同類 DELETE 重建列 major、AUD-20 物理消滅能力列 minor）方能站穩，此推理鏈應明文寫出而非留白。",
+    "引用 F5 而未處理其升級效果：F5 條文自身標明「違反 P4.E1、P4.E6」，二者屬 §8.4 不可豁免核心，機械適用報告判準會導向 critical；發現應說明為何不觸發（合理答案：報告實務對 F5 缺口按程度分級——AUD-18 同引 F5 列 minor；且五元組系統性缺陷已由 AUD-03 獨立承載為 critical，此處不重複計價）。"
+   ]
+  },
+  {
+   "id": "AUD-09",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "行號偏移：DELETE FROM CORE_TABLE 實際在 core_gate.py:194（審計標 196，偏移 -2，容差內）；DELETE FROM ASOF_TABLE 實際在 core_gate.py:219（審計標 213，偏移 +6，略超 ±5 容差，但引文與註解逐字一致、函式歸屬正確，不影響宣稱實質）。catalog/__init__.py:312 行號完全吻合。"
+   ],
+   "code_drift": "現行 HEAD e23a102（2026-07-16「arena 開賽」）下 AUD-09 所指三處 DELETE、DDL、註解全部原樣存在，無新提交引入 superseded/版本化機制使發現失效；core_gate.py 兩處行號與審計所標有 -2/+6 之微幅偏移（可能為審計基準後之微量編輯或審計標位不精確），內容零變化，發現效力不受影響。",
+   "law_application": "correct",
+   "law_severity": "upgrade",
+   "law_final": "critical",
+   "law_issues": [
+    "severity 降級理由（「內容原則上為確定性衍生物、非原始證據滅失」）於報告第四節導言判準與 AUGUR-MC 均無依據：P4.E3 保護對象為「Knowledge 與 Evidence」，衍生 Knowledge 正是條文首列之保護客體，憲章無任何『衍生物折減』規則；且該理由之事實前提在同段自我否定——「raw 本身會被 heal 覆寫（AUD-02），重算保證因此不完整」、build_meta 僅存參數不存成員名單，舊認識狀態實際不可重建。",
+    "判準適用不一致：報告對 AUD-02 明文以禁止性規定 prong 定 critical（「P4.E5（禁止 last-write-wins，MUST NOT 依 §8.4 不得豁免）」，且並列引 P4.E3），而 AUD-09 違反同屬 P4、同為 MUST NOT（§0.2：「不得」＝絕對禁止，違反即違憲）且同為制度化常態路徑（每次 build/重探必刪）之 P4.E3「不得刪除」，卻降列 major——同一 prong 未同一適用。",
+    "全報告 P4.E3 刪除家族分級（AUD-02 critical／AUD-08 major（交叉 P4.E3）／AUD-09 major／AUD-20、21、22 minor）實際採未經宣告之『原始 vs 衍生＋緩解程度』實質影響尺度，與第四節導言明文判準（禁止性規定→critical）不符；應修正判準文字以明文化該尺度並經得起 §8.2 較嚴格解讀，或依現行判準重整全家族分級——現狀下應以明文判準為準。",
+    "輕微引用缺漏：描述之核心論證「系統上一版相信哪些股票屬核心宇宙…不可考」實質同時觸及 P4.E2 不變式（任一過去時刻系統之認識狀態必須可追溯且可稽核），卻未列 P4.E2 為引用條款；補列只會強化而非削弱該發現。"
+   ]
+  },
+  {
+   "id": "AUD-10",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "審計引文以「…」截斷 audit_selfheal.sh L24 後半（原文尚有「;縮窗後總量小、sustained 短,風險由範圍縮緩解)。」），截斷不影響語義，引文所涵蓋部分逐字吻合——非誤引，僅記錄以示完整",
+    "「driver 欄是唯一的 actor 雛形」係就三張 infra 留痕表與自動行動鏈範圍查證屬實（actor_identity/authorization_ref 全庫零命中、attestation_result 僅 2 個寫入點皆為對帳 verdict）；未對全 DB 每一張表窮舉「類 actor 欄」，但在本發現的宣稱範圍內無反例"
+   ],
+   "code_drift": "",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "major",
+   "law_issues": [
+    "F6 列於【憲章條款】但依發現自陳事實未該當：F6 禁止「無法回答誰發起、誰授權、憑什麼知識之 Action」，而審計自承「此鏈的人類授權確實存在」（hugo 具名具日期拍板於註解）、發起者可由腳本/systemd 單元重建——三問可由人類自持久成品回答。若認定 F6（禁止性規定）被違反，依報告第四節自訂判準必須列 critical；列 major 即隱含 F6 未被違反。應將 F6 標明為風險視角/潛在違反，而非並列被違反條款，否則條款清單與分級判準自相矛盾。",
+    "§8.3 第三點之機器稽核義務明文僅及「Action 之 Identity 歸因」（與引用鏈完整性），未明文及於 Authorization 之機器稽核。Authorization 欄缺失之違憲基礎應主要繫於 P5.E1 本文「可追溯至人類權威之授權鏈」之『可追溯』要件＋§8.2 較嚴格解讀/§8.3 保守解釋（存疑即不允許）——shell 註解非可查詢之授權記錄，難謂滿足可追溯授權鏈。審計結論正確但未寫明此推理鏈，屬論證缺口而非誤用。"
+   ]
+  },
+  {
+   "id": "AUD-11",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "行號微偏：audit_watchdog.sh 之 last_att grep 實際在 line 16（審計稱 :17）、setsid relaunch 實際在 line 38（審計稱 :39）；logage 行 :29 則完全準確。內容皆逐字一致，偏移在 ±5 行容忍內。審計位置段稱 audit_watchdog.sh:11-41，檔案實際共 40 行。",
+    "描述段「log 檔被清空或搬家即觸發無條件重啟」半準確：檔案缺失/搬家 case 完全成立（epoch logage 必然走 relaunch 分支，已重現）；但「清空」（truncate）會更新 mtime，selfheal 仍存活時 logage<2700 走健康分支不會立即 relaunch——須待 45 分靜默或 selfheal 死亡。證據段本身未含此宣稱，核心證據不受影響。"
+   ],
+   "code_drift": "本地 clone 為單一 commit 之壓平快照（e23a102，2026-07-16 18:12，全部檔案於此 commit 一次新增），無 2026-07-15 baseline 可 diff。現行 HEAD 內容與 AUD-11 全部逐字引文一致，無任何新提交使宣稱失效；audit_watchdog.sh 之 ±1 行偏移可能源於 baseline 差異或審計計行誤差，但內容完整無異動。",
+   "law_application": "partially_correct",
+   "law_severity": "agree",
+   "law_final": "major",
+   "law_issues": [
+    "引用 P4.E6 而列 major 存在未調和的內在張力：P4.E6 屬 §8.4 明定之不可豁免核心，依報告自訂判準（critical＝違反不可豁免核心）若認定其直接受違反即應列 critical。實質上 P4.E6 直接違反並未既遂——正典上游證據（attestation_result 表）仍存於 DB、尚無 Evidence 實際滅失（對照 AUD-02 舊值已滅失故列 critical），可變 log 檔屬消費路徑與耐久性風險暴露。報告應明示 P4.E3/P4.E6 僅為「延伸」類比之輔助引用而非既遂之構成要件該當，否則條款清單與分級互相矛盾。",
+    "F6 為禁止性規定（禁止…之 Action），依判準該當即 critical；但其構成要件為「無法回答誰發起、誰授權、憑什麼知識」，現況記錄尚存在（載體脆弱）且人類授權實質存在（hugo 拍板，見 AUD-10），F6 未現實該當、僅為 pattern 風險視角。與 AUD-10 之處理一致（引 F6 仍列 major），故無跨發現不一致，但報告未說明為何引 F6 不觸發 critical 判準。",
+    "「無 DB 留痕」本身非 P5.E1 構成要件——P5.E1 條文未規定留痕載體。可變家目錄純文字檔不合格的最強條文依據是 §8.3 元規則（Action 之 Identity 歸因必須可機器稽核）與 P2.E3（Action 之影響必須以 Observation 之姿回流、execution receipt 為合法 Observation），二者於 AUD-11 均未引用（§8.3 僅引於 AUD-10），論證有缺漏但不影響結論。",
+    "「延伸至行動記錄」之法律前提未明文論證但可補正成立：watchdog grep 之 attestation 行被引用為其 kill/relaunch 決策之依據，依 §2.5（Evidence 為角色關係）與 P4.D（義務及於 Decision），該記錄居 Evidence 角色，P4.E3 append-only 義務隨之附著；且 P4.E3 之 DEFER（留痕機制由 Layer 4 定義）僅下放機制、不消滅不變式——審計未誤用 DEFER，此點正確。"
+   ]
+  },
+  {
+   "id": "AUD-12",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "審計引文為節錄式：大憲章 L3 引文為該行精確前綴（省略後半「——回答『系統怎麼建…』」）；README L24 引文省略 markdown 連結語法並以「…」截斷——內容逐字吻合，均屬合理節錄非出入。",
+    "描述段「其中 #7 已證與 P4 核心條款牴觸（AUD-02）」為對另一發現之交叉引用，非 AUD-12 自身可獨立查證之證據宣稱，本次僅確認原則精華 #7（對帳/restatement 豁免）確實存在（原則精華 L55、L73），牴觸與否之裁定屬 AUD-02 之查證範圍。"
+   ],
+   "code_drift": "本地 clone 為單一 squash commit e23a102（2026-07-16 18:12，晚於審計基準 2026-07-15），無法取得 07-15 基準版做 diff；但 AUD-12 全部證據宣稱皆對現行 HEAD 內容親自重現成立（大憲章 L3、README L24、HANDOFF §4.7=L148/L152、零命中 grep、五檔零 Layer 登錄），故即使 07-15→07-16 有增量（HANDOFF「arena 開賽」更新），對本發現之效力零影響。",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "major",
+   "law_issues": [
+    "條款行之 §0.5 括註「先登錄方生效力」其構成要件為「新增規格」；五份治權檔為憲章生效時（2026-07-16）之既存規格，該失效規則不直接適用於其既存狀態，且 §0.5 對既存規格之登錄並無明文過渡規則。所幸描述段未據此主張五檔失效（僅主張「無一檔登錄所屬 Layer」之缺口），故屬引註不精確而非結論性誤用；既存規格之登錄義務實質依據應為 §0.5「每份規格恰屬一層」之 [N] 規範與「單一權威對照表」地位。",
+    "AUD-12 引 §8.3 而未如 AUD-13 交代過渡規則 (b)：既存規格於 Steward 裁定之補正期內推定有效。此推定不治癒位階歧義本身，但意謂本發現之危害是「規範位階歧義／從屬聲明缺席」而非「五檔現行失效」；宜交叉引用 AUD-13 以免讀者誤讀為立即失效。",
+    "「依 lex superior 牴觸部分無效」逐字符合 §0.6(a) 本文（「下層牴觸上層者，牴觸部分無效」），但 §0.6(a) 明定「後果依 §8.2」：§8.2 規定經「認定」違憲之條款自認定日起無效，且裁決作成前系爭規格推定有效（涉不可豁免核心者推定停用）。就原則精華 #7 之無效後果，省略了認定程序這一層——實體規則引用正確、程序時點表述過簡。",
+    "補正方向 (1) 建議「在 §0.5 Layer 對照表登錄五檔」，惟依 §0.5 末句與 §8.6，本表增列屬 minor 修訂、由 Steward 議決——登錄非文件作者可單方完成，宜註明程序歸屬（AUD-13 有請 Steward 辦理之對應表述，AUD-12 未明寫）。"
+   ]
+  },
+  {
+   "id": "AUD-13",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [],
+   "code_drift": "本地 clone 為 shallow（depth 1），僅見 HEAD e23a102（2026-07-16 18:12「arena 開賽」），無法逐 commit 對照 2026-07-15 基準；但全部宣稱皆以現行內容重跑驗證且全數成立——新提交（HANDOFF/handoff_memory 更新）未引入任何 Meta-Constitution/AUGUR-MC/Constitutional Compliance 字樣，零命中宣稱在現行 HEAD 下仍為零，無影響本發現之漂移。",
+   "law_application": "partially_correct",
+   "law_severity": "agree",
+   "law_final": "major",
+   "law_issues": [
+    "「§8.3 可判定性元規則」適用逾越構成要件：該元規則之觸發條件為「憲章之任何評價性謂詞……被下層引用時」，即下層引用憲章評價性謂詞時須附可判定判準；AUD-13 卻將其適用於治權檔自有謂詞（「系統完美後」「30 分鐘可讀」），此類謂詞非憲章謂詞之下層引用，不在條款文義射程內（元規則之「開放式」限定語附著於憲章謂詞清單，非附著於謂詞來源）。此為列名【憲章條款】之第二條款的誤用，惟屬附帶論點，不影響主檔違反認定與 severity。",
+    "違反範圍過度涵攝：【位置】將「reports/（全部計畫書）」納入 §8.3 義務主體，但 §8.3 義務主體為「每份 Layer 1–7 規格」（§0.5），計畫書是否屬憲章意義下之「規格」未經論證即被涵攝；補正方向 (3) 以「計畫完整性」條款嫁接屬合理政策建議，但作為違憲認定範圍則超出條款構成要件。",
+    "未援引可強化論證之 §8.4：§8.4 明定 §8 全部屬核心條款，Steward 僅得豁免其「履行時程與完備程度」、不得解除義務本身——此正是「補正期不消滅義務、僅緩和後果」的最強條文依據，發現未引用（非誤用，屬論證缺漏）。"
+   ]
+  },
+  {
+   "id": "AUD-14",
+   "code_verdict": "partially_confirmed",
+   "code_discrepancies": [
+    "核心副宣稱「除權息世界事件在系統中無表徵、只隱含於 vendor 還原因子回溯重算行為、只能從資料異動反推」字面不成立：庫中已 ingest TaiwanStockDividend（含除權/除息交易日與公告時點欄，且列於 attestation catalog RESTATING、sync.py 有 2026-06-28 同步實證）與 TaiwanStockDividendResult（除權除息結果表，datasets_zh.md 標最早日期出自 DB）——除權息事件有 source-shaped raw 表徵；僅弱版本成立（無一級世界概念 CorporateAction、事件表與價格表還原關係無宣告繫結）",
+    "位置引用 panel.py:5-9 實際內容在 L6-9（L5 為空行）——±1 行內、內容一致，僅記實際行號",
+    "「raw 有 28 萬列 close=0」無法於本機 DB 獨立重數（無憑證）；審計證據基礎為 docstring 引文、該引文逐字屬實，故不降級"
+   ],
+   "code_drift": "本地 clone 為單一 squash commit e23a102（2026-07-16，history depth=1），無法對 2026-07-15 main 基準做 diff；但 AUD-14 所引之全部內容（panel.py docstring、valuation.py f5、原則精華 #7 L54、reconcile/attestation restating 豁免）於現行 HEAD 逐字在位，僅 panel.py 行號 5-9→6-9 之微幅偏移，無跡象顯示審計後新提交使任何宣稱失效。",
+   "law_application": "partially_correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "P1.Y 被列為【憲章條款】依據，但依 §0.3「各原則之 WHY 段一律為 [I]：其功能為說理，不產生獨立義務；義務僅由 [N] 條款產生」——[I] 條款不得作為違憲認定之規範基礎，至多為解釋性支持；同一命題之規範性載體 F1（§6 [N]）或 P1.W1 [N] 才是正確錨點，卻未被引用（發現視角雖標 F1，條款欄未列）。",
+    "標題將 TaiwanStockPrice/TaiwanStockPriceAdj 稱為「同一世界現實的多個表級表徵」，但依 §2.2/§2.3 定義（及該發現自己的補正方向所承認：「兩個 Observation 通道」），此二表屬 Observation 儲存而非憲章意義下之 Representation；同一世界事實有多個 Observation 完全合法，P1.E2 之「唯一權威表徵」語義繫於權威 Representation——違憲點僅在缺映射宣告，非二表並存本身，標題措辭有過廣之嫌（描述段實質論證則正確定位於缺宣告）。",
+    "「除權息世界事件無表徵」一支無任何條款課予『每一世界事件皆須有表徵』之積極義務；其僅能從 P1.E2 映射義務衍生（完整映射 Adj 表之回溯重算語義必然浮現 CorporateAction），較precise之規範錨點為未引用之 P1.W1 [N]（必須優先描述 Reality 而非適配資料來源）。",
+    "未明示本發現與 AUD-01 之從屬關係對 severity 之作用：AUD-01（CRITICAL）已就 P1.E2/F1 之系統性缺世界模型定罪，AUD-14 為其實例級顯像，補正方向亦明文取道 AUD-01——此從屬邏輯是 minor 分級成立的關鍵前提，宜在條款適用論證中言明，以回應「P1.E2 為 [N] MUST、依報告判準應列 major」之表面論證。"
+   ]
+  },
+  {
+   "id": "AUD-15",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "行號微偏：generic_schema.py 引文實際在第 17 行（審計標 18）；catalog/__init__.py docstring 實際為第 1-16 行（審計標 1-17，第 17 行為 import）——內容均逐字成立，±1 行內",
+    "「審計問題四」編號無定義來源：全審計報告與憲章 grep 僅 AUD-15:283 一處出現，無審計問題清單可溯；語意為 F1 禁令之合理改寫，不構成事實錯誤但引用不可追溯",
+    "「catalog 記錄的元資料全部是擷取語意」措辭略絕對化：table_name_zh/column_name_zh（策展中文名）與 category（功能分類）為描述性語意欄、非純抓取參數——惟均非實體/事件/狀態之世界概念映射，核心宣稱（無 entity_type/world_concept/maps_to 類欄）不受影響，且審計亮點 P1 第 7 項已自行揭露此點、內部一致"
+   ],
+   "code_drift": "本地 clone 為 shallow（git rev-list --count HEAD＝1，僅 e23a102 2026-07-16「arena 開賽」），無法 diff 2026-07-15 審計基準；但以內容為準逐字重現：catalog/__init__.py docstring、兩表 DDL、generic_schema.py:17 引文於現行 HEAD 全部成立，且 e23a102 為 docs/handoff 性質提交——AUD-15 相關程式碼無實質漂移。",
+   "law_application": "partially_correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "遺漏 P1.E2：AUD-15 所指具體缺口（catalog 無 entity_type/world_concept/maps_to 欄、落地未綁定本體整合）之直接規範依據是 P1.E2「所有資料來源必須映射至共同世界模型」（MUST 級 [N] 義務），其補正方向正是在落地點操作化 P1.E2 之映射義務，條款欄卻未引用；P1.E1 僅承載「資料來源不得成為最高抽象」之禁令面，非映射義務之出處（對照 AUD-01/AUD-06/AUD-14 均正確引用 P1.E2）。",
+    "分級判準表面矛盾未闡明：AUD-15 所引兩條款均為禁止性規範（P1.E1 之「不得」、F1 之「禁止」），依報告第四節自訂判準（critical＝違反禁止性規定）機械適用應列 critical；minor 之成立唯賴隱含的不重複計數原則——F1/P1.E1 禁令違反本體已由 AUD-01 以 CRITICAL 承載（同引 F1、P1.E1、同一 generic_schema.py 證據）、P1.E2 映射義務違反已由 AUD-06 以 MAJOR 承載——報告未明文此推理，形成條款引用與分級間的未解釋落差。",
+    "條款欄未區分「被違反條款」與「審計透鏡」：F1 之引用附註「審計問題四：資料來源新增時是否需重構世界觀」且標題自稱「F1 方向之負向棘輪」，顯示 F1 在此係作為審計視角與方向性描述，非主張本項獨立該當 F1 構成要件；此體例混用易使讀者誤依條款欄逕行分級。"
+   ]
+  },
+  {
+   "id": "AUD-16",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "審計之 deliberation_claim 欄位枚舉漏列 semantic_bound boolean（migrate_deliberation_ddl.py:141-143 ALTER 加入；DDL 註記 B1 於 2026-07-11 拍板、backfill script 存在，應早於 2026-07-15 審計基準）——該欄為「錨可自 claim_text 重導出」之布林旗標、非 identity/referent 繫結，不動搖發現實質，但「親查 DDL」之欄位清單不完整（審計者疑僅查 :46-77 之 CREATE TABLE、未及同檔後段 ALTER）",
+    "「verdict 之 evidence 非空 CHECK」措辭略過強：實際為 CHECK (verdict='undecidable' OR evidence IS NOT NULL)（:75）——條件性 NOT NULL 而非非空字串約束（空字串可通過；對照 anchor 欄有 btrim 非空 CHECK 而 evidence 無）",
+    "provenance 鍵除 model/lens/fast_path 外實際亦記 redline/lint（ledger.py:44,53），審計列舉不完整但與「無 resolved identity」核心宣稱不矛盾"
+   ],
+   "code_drift": "本地 clone 僅單一壓縮提交 e23a102（2026-07-16 18:12），無法以 git diff 對照 2026-07-15 基準；全部宣稱以現行 HEAD 內容重驗均成立，故即使 07-16 提交（arena 開賽，主要為 handoff/cron/ledger 落列）有觸及相關檔，亦未使任何 AUD-16 宣稱失效。semantic_bound 欄經 DDL 內注記（P0-B1，2026-07-11 拍板）與 reports/augur_deliberation_completion_plan_20260711.md 佐證應在審計基準前已存在，屬審計枚舉遺漏而非審計後 drift。另註：DDL :130-136 已將 pytest 加入 assigned_verifier CHECK、verifiers.py ORACLES 為 5 oracle（含 pytest），與審計描述之 4 oracle 通道圖無衝突（AUD-16 未宣稱 oracle 數量）。",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "標題與描述以「P2.E1 標準鏈缺兩節點」統括兩缺口，但 Confidence 並非 EV.2–EV.6 標準鏈之節點（該鏈為 Observation→Representation→Identity→Evidence→Knowledge）；缺口 (b) 之義務基礎實為 P4.E1 五元組第五元及 P4.E8（AUD-03 並援引 P4.E4「Confidence 不得為隱含之 1.0」）。內文括號已自行更正錨定至 P4.E1，條款清單亦交叉引用 P4.E1/P4.E8，故屬標題層級之壓縮性誤植，不影響實體論證。",
+    "遺漏可引之 §2.11（Evidence 通道定義）：其明文要求候選斷言「經此通道取得 Identity 繫結與 Evidence 支持後，方得確立為權威 Representation 或 Knowledge」——此為缺口 (a) 最直接之條文依據，遺漏屬論證強度之損失而非誤用（該條反而強化發現）。",
+    "條款段未明文揭示 P3.E1/P3.E2 之機制級 DEFER 脈絡：identifier 鑄造、轉指機制、解析時限與未解析存量指標均「由 Layer 3 定義（DEFER）」而 Layer 3 規格缺位（AUD-04 之系統性根因）。DEFER 不消滅不變式義務，但意謂 FK 繫結至系統鑄造 identifier 之完備履行形式現階段受阻於上游缺位——此正是支持 minor（缺口）而非 major（違反）之關鍵法律理由；補正方向已實質反映（「AUD-04 之 entity registry 就緒後遷移 FK 繫結」），惟宜於條款段明文化。",
+    "minor 分級以「(b) 併入 AUD-03」為前提方能成立：P4.E1 屬 §8.4 不可豁免核心，依報告自身判準單獨成案即為 critical 級標的；AUD-03（critical）已明文點名 deliberation_claim.status（「oracle confirmed 事實上隱含 1.0」），故併入處理正當地避免對同一系統性缺陷重複計分，但此依存關係應視為 AUD-16 分級之附條件基礎。"
+   ]
+  },
+  {
+   "id": "AUD-17",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "微小措辭出入（不影響結論）：審計稱 knowledge 之 item_source_gate 為「BEFORE INSERT trigger」，實際 DDL 為 BEFORE INSERT OR UPDATE ON knowledge_item_text（migrate_local_admission_ddl.py:108-109）——實際約束更強，屬超集非誤述",
+    "補充觀察（非矛盾）：backfill_semantic_bound.py:37 存在第三處 UPDATE deliberation_claim，但只寫 semantic_bound 欄不觸 status；審計以 'SET status' 為 grep 鍵故未涵蓋，其「status 寫點僅兩處」宣稱仍精確成立"
+   ],
+   "code_drift": "本地 clone 為單一 squash 提交 e23a102（2026-07-16），無法與 2026-07-15 審計基準做 git diff；但 AUD-17 所引全部行號（verifiers.py:182/195、migrate_deliberation_ddl.py:59-60）於現行 HEAD 逐字零偏移命中，e23a102 之 arena 開賽變更（arena gate/candidate 諸表）已被審計「其餘為……arena/gate 等他表」措辭涵蓋——無影響 AUD-17 之漂移。",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "P2.E2 為行為性禁止規範（不得），本身不課予「必須以 DB trigger 實作」之機制義務；AUD-17 之規範重量實際繫於 §8.3 交叉引用，單引 P2.E2 而無 §8.3 則無法成立本發現。審計已正確附掛該交叉，此點僅屬論證結構之提醒。",
+    "§8.3 文義要求核心不變式「可機器稽核」（auditable），非「機器強制」（enforced）：憲章明文僅陳述不變式、機制下放 Layer 定義（P4.E1「欄位設計屬 Layer 4」、v1.1 修訂揭露「機制一律下放 Layer 3/4」）。補正方向「加 BEFORE UPDATE trigger…升為機器稽核之不變式」將 enforcement 與 auditability 混同——已實作之稽核查詢/selftest 亦可滿足 §8.3，trigger 僅為其中一種（且是超出文義的較強）手段。此瑕疵影響補正措辭、不影響發現成立：現況 enforcement 與 implemented machine audit 兩者皆缺，依 §8.3 保守解釋（存疑即不允許）與 §8.2 較嚴格解讀，缺口仍存在。",
+    "構成要件論證（confirmed claim 何以屬憲章意義下之權威 Knowledge）未在 AUD-17 內自足陳述，隱含承接 AUD-16 之 §2.1 自反性條款論證；宜補引 §2.1 與 P2.W2（候選斷言經 Evidence 通道確立方成權威）使要件鏈自足。"
+   ]
+  },
+  {
+   "id": "AUD-18",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "審計標 payload.py:14-21，StockPick dataclass 實為 :14-20（±1 行，內容一致，不影響結論）",
+    "審計標 migrate_prediction_ddl.py:47-60，prediction_values DDL 實起於 :46（CREATE 條目標籤行），in_portfolio/weight ALTER 在 :55-58（±1 行內，內容一致）"
+   ],
+   "code_drift": "無。本地 HEAD e23a102（2026-07-16，git 歷史為單一 squash commit，無法 diff 審計基準），但所有被引檔案之行號與內容均與審計宣稱精確吻合（ranker.py:8 逐字、payload/DDL/advise 皆對位），無新增 attribution 機制之跡象——AUD-18 於現行 HEAD 仍然成立。",
+   "law_application": "partially_correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "F5（§6）之「為什麼」由其括注（違反 P4.E1、P4.E6）定義為證據鏈可答性，而非模型可解釋性；審計將 F5 擴張解讀為要求 per-pick 特徵貢獻分解（係數×標準化特徵值／SHAP），此為 MC 全文未課予之義務——P4.E1 五元組與 P4.E6 四要件（斷言主體含版本、產生活動含輸入參數、上游依據、遞迴終止於 Observation）均不含「內部歸因分解」要件，補正方向屬工程最佳實務而非憲章要求。",
+    "交叉引用 P4.E6 與審計自認之事實矛盾：報告自陳「方法層溯源完整」（score→model_id→registry(feats_hash/git_sha/train_span)→artifact 凍結特徵集→ledgers），即 P4.E6 全部構成要件已滿足；且凍結特徵集係逐檔特徵向量，個股級之證據性「為什麼」（該檔特徵值經該版模型計算得分居前）實際可答，標題「答不到『為什麼是這一檔』」過度陳述。",
+    "引用條款與分級之內部緊張未處理：F5 為 §6 禁止性規定、P4.E1/P4.E6 為 §8.4 不可豁免核心，依報告第四節自訂判準若真該當違反即應列 critical（對照 AUD-01 以 F1 命中列 CRITICAL）；列 minor 唯有在「F5 構成要件未該當、僅解釋粒度有缺口」之定性下方能自洽，但描述段未作此構成要件分析，逕以違反語氣引用 F5。",
+    "未辨明 pick 之憲章定性：StockPick 為 §1.3 模態內容（Prediction/建議），F5 明文涵蓋 recommendation 故條款選擇正確，但模型輸出屬 P4.W1 Computational Evidence，其溯源義務即 P4.E6 之機械要件——審計未區分「溯源義務（已滿足）」與「歸因解釋（憲章未課予）」兩個不同層次。"
+   ]
+  },
+  {
+   "id": "AUD-19",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "審計證據句「grep '通用常識' 於 src/augur/advisor/prompt.py 僅 Mode B 附檔規則一處」字面不可重現：精確詞 '通用常識' 於 prompt.py 為 0 命中；'常識' 恰 1 命中於 prompt.py:251 之 Mode B ATTACHED_SYSTEM_PROMPT（「絕不憑記憶或常識補」，且為禁止性規則、非來源標記指示）。應係審計以 '常識' 檢索而報告轉寫為全詞；方向上此出入強化而非削弱發現——「以下為通用常識、非出自 augur 語料」之標記文字全庫（src/+scripts/）唯一出處即 scripts/advisor_distill_teacher.py:35 的 teacher prompt，serve 側（advise.py/prompt.py/oai_compat.py）確無任何機械強制或 prompt 指示之正面標記。",
+    "審計引 teacher 條文時內層引號作『』，原檔為「」（中文巢狀引號轉寫慣例），內容逐字一致，不視為實質出入。"
+   ],
+   "code_drift": "本地 clone 為 depth-1 單 commit（e23a102，2026-07-16 18:12，git rev-list --count HEAD=1），無法 diff 2026-07-15 審計基準。就內容驗證：AUD-19 引用之全部行號（advise.py:186/199-211、oai_compat.py:68-74、advisor_distill_teacher.py:35）於現行 HEAD 零偏移吻合，無漂移跡象影響本發現。prompt.py '通用常識' 0 vs 1 之差異理論上不能排除基準後變更，但 Mode B :251 之 '常識' 命中位置與審計描述精確吻合，強烈指向審計檢索詞轉寫不精確而非 code drift。",
+   "law_application": "partially_correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "主引條款 P2.E2 構成要件不合：P2.E2 禁止 model output 未經 Evidence 通道「成為權威 World Representation 或 Knowledge」（§2.3、§2.6 定義），但白名單放行路之 chat 回覆從未進入世界表徵或知識庫——審計自身於 AUD-22 認定 chat「隔離於預測管線與知識庫之外、不是任何 Knowledge 的 Evidence 上游」，且 guard 已擋數字/引文，無任何斷言取得權威地位；P2.E2 之構成要件未該當。",
+    "內部不一致：P2.E2 為「不得」（MUST NOT）禁止性規定，依報告第四節自訂判準，違反禁止性規定應列 critical；審計引 P2.E2 卻列 minor，顯示其實際論證是「精神」而非「文義」適用——正確做法是不以 P2.E2 為主引條款。",
+    "標題引 P2.E2 而描述段論證引「P2.E4/P4.E7 之精神」，條款引用前後不一；真正貼合之條款為 P4.E7 之「AI 生成／合成內容永久攜帶 synthetic 標記，不因轉引而消失」（[N] 義務），卻僅被列為交叉引用。",
+    "所要求之具體標記（「非出自 augur 語料」之語料 vs 模型參數知識來源區分）非憲章文義所課：P4.E7 課的是 synthetic 標記不變式，而機械尾註 [augur-guard]（pass/issues/citations 計數）已是機械附加之部分標記，缺口在一般用戶可讀性——用戶面呈現形式非憲章規範事項（屬下層設計空間）。",
+    "「標記不應依賴生成者自律、須機械強制」係自「永久攜帶…不因轉引而消失」之合理推論而非明文：§8.3 之可機器稽核義務為列舉式（Knowledge→Evidence→Observation 引用鏈完整性、Action 之 Identity 歸因），不含 synthetic 標記。",
+    "無使行為合法化之例外：P4.E7 之 DEFER 僅及「來源信任分級表由 Layer 4 定義」，synthetic 標記本身為不變式，故發現不應被推翻——但因 P4.E7 之反洗白核心（轉引入證據鏈）已被 admission gate DB CHECK、distill S5、bridge 確定性裁決資格等結構性擋住，行為僅屬缺口而非違反。"
+   ]
+  },
+  {
+   "id": "AUD-20",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "work 級 UPDATE 行號宣稱「:106-108」實為 :105,:107,:108（:106 是 rowcount 賦值行）——差 1 行、內容完全一致，屬容忍範圍內偏移",
+    "「work 本體保留並標 review_flag=true＋note」中之 note：--fix 路徑僅寫 review_flag=true（:108），note 欄之「公版原典、Project Gutenberg(自動遍歷)」(AUTO_NOTE, :26) 是入庫時既有的 provenance 標記、非 --fix 當下寫入的 tombstone 註記——work 列確實同時帶 flag 與 note，但 note 非刪除行為之留痕，措辭略寬"
+   ],
+   "code_drift": "無。本地 clone 為 shallow 單提交（HEAD e23a102，2026-07-16），無法直接 diff 2026-07-15 基準；但審計所引三檔全部 11 處 CASCADE 行號、DELETE 區塊行號、逐字引文於現行 HEAD 完全命中零偏移，可推定該三檔（framework.py、migrate_deliberation_ddl.py、audit_work_attribution.py）在審計後未有影響本發現之變更。",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "描述中「在 DDL 層面可一鍵消失，違反『mint 永不刪除』不變式」措辭略有過度：P3.E2 不變式所禁者為刪除事件本身，未曾行使之 CASCADE 僅屬對不變式之執行缺口（§8.3 要求核心不變式可機器稽核，故列為不合規發現仍屬正當）——標題「可被物理消滅」之能力式措辭與 minor 分級已正確反映此點，惟內文一句有輕微超載。",
+    "「作品繫錯作者正是一個 identity claim 錯誤」對 §2.4 有輕微擴張：identity claim 之定義為「兩個 identifier 指涉同一實體」之共指斷言，作品—作者誤配屬兩個相異實體間之繫屬關係錯誤，非共指斷言錯誤；惟「更正須為引用 Evidence 之 Knowledge 並保留 lineage」之義務可獨立由 P3.E2 更正句與 P4.E3/P4.E5 導出，結論不受影響。",
+    "未被引用過之 chunk 是否已屬 §2.5 意義下之 Evidence（角色關係定義：『被引用以支持某項 Knowledge』）可辯——審計逕稱「Evidence 級物件」未論證引用事實；惟 §8.2 較嚴格解讀規則（對系統許可較少、義務較重）支持審計之歸類，且 chunk 明文供 citation 溯源、居於 Evidence 管線之內。",
+    "若已出檔之 advisor 回覆曾引用被刪 chunk，刪除將使證據鏈遞迴斷裂，可另涉 P4.E6（不可豁免核心）；審計未引 P4.E6——此為保守之遺漏而非誤用（回覆是否以列參照方式繫結 chunk 屬未查明之事實），但值得於補正時一併驗證。",
+    "DEFER 處理正確：P3.E2 之留痕/轉指機制 DEFER 至 Layer 3、P4.E3 之 tombstone 機制 DEFER 至 Layer 4，審計僅課不變式義務、未因下層規格缺位而免除之，亦正確認定法規強制抹除例外不涵蓋防污染清理。"
+   ]
+  },
+  {
+   "id": "AUD-21",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [],
+   "code_drift": "無實質 drift：本地 clone 僅含單一 commit e23a102（2026-07-16 18:12，全檔初始匯入），framework.py 與 curation.py 現行內容於審計所引行號（291/302）逐字重現，AUD-21 全部宣稱對現行 HEAD 仍完整成立。",
+   "law_application": "correct",
+   "law_severity": "upgrade",
+   "law_final": "major",
+   "law_issues": [
+    "憲章條款欄將 P4.E4 與 P4.E3 並列，但描述自承 P4.E4 已被滿足（「此處確實可改（符合可謬性）」）——「相關對照條款」與「受違反條款」未區分標注，可能使報告之條款違反統計失真；宜標注 P4.E4（符合，僅作對照）",
+    "minor 分級之論證依據（seed 對齊路徑、頻率低、大師假說另有文獻 source 錨定）皆為影響面/發生率之緩解因素，不屬第四節導言判準之任何構成要件；就 P4.E3 該當義務本身，兩欄位為零履行（無 superseded 標記、無歷史、無失效 Evidence 留痕），不該當「部分符合但有缺口」之 minor 定義",
+    "發現未處理 P4.E3 首句「不得刪除」依 §0.2 屬禁止性規定（MUST NOT）、而報告判準明定「critical＝違反……禁止性規定」之表面張力——本裁決認定原地修訂應定性為違反積極 supersession 義務（僅得標記、失效需 Evidence、全歷史保留）而非物件刪除、故不觸發 critical（並有 AUD-09 對 Knowledge 字面 DELETE 僅列 major 之先例佐證），但發現內欠缺此區辨論證",
+    "與 AUD-09【MAJOR】為同類行為（Knowledge 級斷言之前值無 superseded 標記即滅失、於常規程式路徑發生、無任何例外事由）卻異級，違反報告分級一致性精神；AUD-21 之留痕程度（零）甚至劣於 AUD-09（尚有 build_meta append 部分參數留痕）"
+   ]
+  },
+  {
+   "id": "AUD-22",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "無實質出入。惟一詮釋性註記（非事實錯誤）：P4.E3 本文管轄對象為「Knowledge 與 Evidence」，chat 訊息之適用繫於審計自行將其定性為「對用戶-系統互動 Reality 之 Observation」；審計已誠實揭露 chat 表非任何 Knowledge 之 Evidence 上游並據此降為 minor，定性合理且未誇大。"
+   ],
+   "code_drift": "無。本地 HEAD e23a102（2026-07-16 18:12）下 chat_history.py:86 行號與內容均與審計基準完全一致，審計後新提交未觸及 chat_history.py、chat DDL 或其呼叫端；另查得 chat_session.user_id REFERENCES app_user ON DELETE CASCADE 與 chat_message ON DELETE CASCADE——刪 user 或刪 session 均連鎖硬刪且同樣無留痕，此為審計未列之額外佐證，只強化不削弱該發現。",
+   "law_application": "partially_correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "構成要件錯位：P4.E3 規範對象限於「Knowledge 與 Evidence」，審計將 chat 訊息定性為對 Reality 之 Observation（§2.1 自反性條款＋§2.2 下可成立），但裸 Observation 不在 P4.E3 文義射程內；§2.5 定義 Evidence 為「被引用以支持某項 Knowledge 之 Observation（角色關係）」，而審計自己的緩解段承認 chat 表「不是任何 Knowledge 的 Evidence 上游」——此自認直接否定其援引 P4.E3 所需的 Evidence 角色定性，論證自相矛盾。",
+    "潛在證據論證無條款錨定：「advisor 回答含系統背書內容，事後追查誤導性回答時需要它」訴諸未來可能的證據價值，惟 §2.5 以實際引用角色定義 Evidence（角色關係，非階段先後），憲章無任何條款保護「潛在 Evidence」；此為超出文本之目的性擴張，若要成立應另尋錨點（如 P4.E2 認識狀態可追溯，惟審計未引且 chat 表是否構成系統「認識狀態」亦存疑——§5 角色一之 append-only 性質繫於 World State System of Record，chat 表依審計事實已隔離其外）。",
+    "「P4.E3 唯一允許的內容移除是法規強制抹除」之表述以待證結論為前提（petitio principii）：該例外結構僅於刪除對象屬 Knowledge/Evidence 時才需援用；對非 Knowledge/非 Evidence 之表徵內容，憲章並無一般性刪除禁令，根本無需例外即屬合法。",
+    "漏引 P1.E3（Bounded Representation：合規義務與功能衝突時合規優先）作為用戶隱私刪除之正面合法化依據，僅以「準法規事由」一語帶過；另 P3.E2「法規強制抹除準用 P4.E3 例外、identifier 以 tombstone 存續」顯示憲章留痕範式之適用對象（identifier/Knowledge/Evidence），恰反證裸 chat 內容不在其列。",
+    "DEFER 處理無誤（非缺陷，特此確認）：審計正確將「抹除事件自身必須留痕並具完整 provenance」當作不變式義務、未因 Layer 4 規格缺位而免除，僅將留痕機制與事由分類指向 Layer 4 補正——符合「機制 DEFER 至下層≠義務不存在」之解釋紀律。"
+   ]
+  },
+  {
+   "id": "AUD-23",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "「（且只在註解中）」措辭過強：0.7 放量之一次性常設授權除 audit_selfheal.sh:23-24 註解外，亦記錄於 HANDOFF.md L82/L85（hugo 2026-07-14 拍板留痕），selfheal 註解自身即引「留痕 HANDOFF §4」。兩處皆為散文、非機械化授權表，故審計核心論點不倒，但字面宣稱不精確",
+    "「grep 全庫無…風險分級」若按字面理解不成立——「風險分級」一詞在 docs/系統架構大憲章_v1.45.0.md L276/L367 出現 2 次；惟該兩處指規劃審查 fan-out 手段分級、非行動風險分級對照表，審計宣稱之實質（無 P5.E2 意義之對照表）成立。risk tier 英文則確為 0 命中",
+    "「migrate --apply 須 pg_dump 快照」在 migrate_source_governance.py 為機械強制（無 --snapshot 拒跑），在 migrate_local_admission_ddl.py 僅為 docstring 前置慣例——強制程度不一（此差異反而佐證審計「散落慣例、無單一權威家」之主論點）"
+   ],
+   "code_drift": "本地 clone 為單一壓縮提交（root commit e23a102，2026-07-16 18:12，無父提交），git 無法對 2026-07-15 基準做差異比對。以內容查證：AUD-23 全部證據在現行 HEAD 逐字重現、行號零偏移；e23a102 新增之「review_observation_only tier」屬 arena 預測宣稱展示層級（evaluate_direction_gate.py:201 display_tier），非行動風險分級表，不影響「全庫無行動風險分級表」之宣稱。無實質 drift。",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "AUD-23 斷言「系統無實體世界 Action，故缺位預設規則未被實質違反」但未明示其承重區分：「實體世界 Action」（P5.E2 缺位預設與 P5.W3 第二句之觸發範疇）為「Reality 變更之 Action」（§2.9 擬制、§2.1 自反性條款）之真子集。同報告 AUD-10 將同一行動鏈定性為「可造成 Reality 變更」，形成表面張力，會招致反面解讀（§2.9 擬制＋§8.3 保守解釋 → 放量重抓須逐案人核 → major）。窄讀其實正確（§2.1 將「對外行為」另列為 Reality 變更而非實體世界變更；P5.Y 以物理不可逆性為規範理由；Appendix C 第 10 點明示缺位預設規則之範圍即「實體世界 Action」），但報告應將此區分明文化以免遭推翻。",
+    "「放量僅憑註解中的常設授權」與「退場判準（撞 403 退回 0.9）無機械化」兩項訴求在 AUD-23 所引之 P5.E2/P5.W3 中無直接構成要件掛鉤——其法律歸宿是 P5.E1（Authorization 要素）與 §8.3（Action 之 Identity 歸因必須可機器稽核、可判定性元規則），而該行為已在 AUD-10 以同一證據（audit_selfheal.sh:23-24）列為 MAJOR。AUD-23 未重複起訴是對的，但缺一句交叉引用標明分工，現狀讀來像是以未引用之條款支撐訴求。",
+    "P5.W3 之引用未指明缺口繫於哪一句：第一句（權限與不可逆性成反比之一般比例原則——散落慣例已部分履行）與第二句（最高等級要求，僅限「不可逆或高影響之實體世界 Action」——本案未觸發）。引用本身妥適（P5.W3 之認定依據即 P5.E2 所轄分級表，表缺位使其認定基礎落空），惟精確度可再提升。"
+   ]
+  },
+  {
+   "id": "AUD-24",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "證據引文(2)省略原文「填其他帳號→」四字且未標刪節號（原文 L11：「(2) DB 群組使用者——填其他帳號→`identity.authenticate`…」）——語意不變，屬引文精確度微疵",
+    "證據引文(1)之刪節號遮蔽了「env 後門亦支援 pbkdf2$ 雜湊（〔本機取捨…〕或 `pbkdf2$...` 雜湊;）」——被省略段落不影響歸責論點（問題在共享憑證非明文/雜湊形式），但讀者僅看引文可能誤以為 env 路徑只支援明文",
+    "位置行號 8-13 與實際核心內容 9-12 有 1-2 行偏移（±5 內，內容一致）"
+   ],
+   "code_drift": "本地 clone 為單一 squash commit（e23a102，2026-07-16 18:12，git rev-list --count HEAD = 1，全檔為 new file），無 2026-07-15 基準可作 git diff 對照；但 AUD-24 所涉全部檔案（serve_admin_console.py、acquire_topic.py、identity.py、manage_rbac_user.py、META-CONSTITUTION.md）現行內容與審計引文逐字一致，未觀察到任何使宣稱失效之增量變更。",
+   "law_application": "correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "引用不完備（非誤用）：發現以「app_user 中已解析之個人 Identity」為判準，其明文規範根據為 P3.E1（所有 Action 必須引用已解析之 Identity）——該條之 DEFER 僅及解析時限與機制（Layer 3），引用義務本身為憲章不變式——但 AUD-24 未列引 P3.E1，僅引 P5.W1/P5.E1 亦可支撐結論，惟論證強度受損",
+    "漏引 §8.3 可判定性元規則第三點（「Action 之 Identity 歸因——必須可機器稽核」為核心不變式）：同類發現 AUD-10 有引此條，AUD-24 漏引使「共享環境憑證無法機器稽核區分實際操作者」之核心論證失去最直接的條文錨點",
+    "Action 定性未明示涵攝依據：外部抓取請求（acquire_topic）之 Action 定性依賴 §2.9 客觀判準（經受控介面對外發出、足以造成 Reality 變更之操作一律視為 Action，不以意圖為斷）與 §2.1（改變對外行為仍屬 Reality 變更），發現未引 §2.9/§2.1，惟與 AUD-10 對 FinMind 放量請求之既定定性一致，涵攝結論正確",
+    "F6/F3 僅列於「發現視角」而未列為違反條款——此處理正確且重要：現況可回答「誰發起」（單人系統事實上唯一解析至 hugo），F6 禁止性規定構成要件不該當，故不觸發 rubric 之 critical（MUST NOT）分支；若誤將 F6 列為違反條款反而會造成分級矛盾"
+   ]
+  },
+  {
+   "id": "AUD-25",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "不分大小寫 grep 'steward' 在 augur-code 有 1 處命中：reports/augur_architecture_theory_20260615.md:45 之「stewardship」（Data Lineage 業界通用詞、非 Steward 職位登錄）——審計「grep 全 repo 無 Steward」以區分大小寫或以「Steward 職位/登錄」語義理解則完全成立，屬措辭精度小瑕疵、不影響發現實質。"
+   ],
+   "code_drift": "本地 clone 為單一 commit（e23a102，2026-07-16「arena 開賽」，全庫唯一根 commit），無法以 git diff 對照 2026-07-15 審計基準；但 AUD-25 所引之全部治權檔內容（大憲章 v1.45.0 第六部/修訂歷程、原則精華 v1.9.0 升版哲學/演進記錄、CLAUDE.md v1.28）於現行 HEAD 逐項驗證成立，無任何跡象顯示新提交使宣稱失效。",
+   "law_application": "partially_correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "(i) §8.1 之登錄機制被忽略：§8.1「首任 Steward」條款為自動執行——AL-2026-001 已具名登錄 tsaitsangchi 為首任 Steward，治理附則第 1 條並已明文承接（皆存於 constitution/ 目錄）。§8.1 僅課「必須存在唯一人類憲章權威」之存在義務，並未課予受審計之領域文件（docs/）具名載明 Steward 之義務，故「無 Steward 登錄」不構成受審文件對 §8.1 之義務缺口，至多為治權整合待辦。",
+    "(i) 法律定性過度：將 hugo 之親核拍板、親簽、TTY approve 定性為「行使 Steward 全部權力」，混淆一般規格治理行為與 §8.1 列舉之三項權力（條文最終解釋權、規格違憲審查權、修憲裁決權）——所述行為無一該當此三權之構成要件。",
+    "(i) Entrenchment 引用失準：§8.1 Entrenchment 之原則級門檻適用於 Steward 制度之設立、權力與罷免規則之「變更」；登錄授權代理或附則登載屬附則事項（依 §8.1 末句及治理附則第 1–2 條為 minor 門檻），與審計自身補正方向一致，但與其援引原則級門檻之論述相互緊張。",
+    "(ii) §8.5(a) 逾越構成要件範圍：該條規範「修憲」提案（修訂 META-CONSTITUTION 本身），領域大憲章之修訂依審計自身 AUD-12/路線圖定性屬 Layer 4–7 規格修訂，不落入 §8.5(a) 構成要件；憲章並無任何條款要求下層規格修訂附「原則失效之書面 Evidence」。審計雖以「精神相近」自我緩和，仍將其列為適用條款，屬條款外推。",
+    "(iii) §8.6 版本語義僅拘束憲章自身：下層唯一被課之義務為引用格式（AUGUR-MC v{version} §{條款}）。「微修不改版號」不構成對 §8.6 之違反；其實質關切（同一版號對應多個文本狀態致歷史文本不可精確引用）之正確憲章錨點應為 P4 證據可追溯性（或 §8.3 可判定性），惟未被引用。",
+    "(iv) 「無對 Layer 0 之牴觸檢查」在所引三條款（§8.1、§8.5(a)、§8.6）中均無依據：實體面錨點為 §0.6 lex superior（牴觸部分無效，屬結果規範而非程序步驟義務）、程序面錨點為 §8.3 合規聲明（含緊張關係揭露），而 §8.3 缺件已另立 AUD-13（major），此處無獨立之程序步驟義務可資違反。",
+    "減輕事由未載明：依 §8.3 過渡規則(b)，憲章生效時（2026-07-16，即審計當日）之既存規格享補正期並於期內推定有效，本發現各項均屬過渡整合事項而非現行違反——此點支持 minor 並排除升級。"
+   ]
+  },
+  {
+   "id": "AUD-26",
+   "code_verdict": "confirmed",
+   "code_discrepancies": [
+    "「該句已被全庫 docstring 廣泛引用」不可按字面重現：中文措辭「唯一真相」於全部 .py 檔為 0 命中（grep -rn '唯一真相' --include='*.py' src/ scripts/），全庫僅 3 份 md 含該詞（大憲章本身 L26/L28/L361 ＋ reports/augur_construction_understanding_20260710.md、20260713.md，共 6 命中）。實際廣泛存在的是 SSOT 縮寫（=single source of truth，同一「真相」措辭之英文形，196 命中/120 py 檔；CLAUDE.md 11 處）與「憲章 v1.26.0(資料住 PG)」式條號引用——故若補正僅改中文條名，docstring 側需隨改之面積遠小於「全庫廣泛引用」字面暗示；但若視 SSOT 展開語即同一措辭問題，則影響面宣稱成立。",
+    "逐字引文第二段「外部 API（FinMind／FRED／OpenAlex…）為原始擷取源、非資料家」實際位於大憲章 L30，超出審計所稱 L26-28 範圍 2 行（標題 L26、主句 L28、該 bullet L30）；文字本身逐字一致（原文為粗體），屬容忍內行號出入。",
+    "審計引文以「……」省略處，原文 L28 為「——市場 raw、feature_values、universe、模型輸出、知識層…全部住 PostgreSQL」再接 L30 bullet；省略未扭曲語意。"
+   ],
+   "code_drift": "本地 clone 為單一 squash commit e23a102（2026-07-16，全樹一次落地），無 2026-07-15 前 git 歷史可 diff，故無法以版本歷史直接比對審計基準；但 AUD-26 所涉三份治權檔之檔名版本與審計所引完全一致（系統架構大憲章_v1.45.0.md、原則精華_v1.9.0.md、系統核心思想_v1.8.0.md），且所有逐字引文於現行 HEAD 均逐字成立、行號僅 0-2 行差——無任何跡象顯示新提交影響本發現。",
+   "law_application": "partially_correct",
+   "law_severity": "agree",
+   "law_final": "minor",
+   "law_issues": [
+    "P2.E4 本文不含「用語紀律」：其為行為禁令（禁止 Representation 被視為 Reality 本身），操作性要件為「任何 Representation 元素必須保留其 Observation 來源與不確定性」。依 AUD-26 自陳且假定為真之事實（同條明文「外部 API 為原始擷取源、非資料家」、英文括注 single system of record、實質「完全符合 §5 角色一」），該要件已滿足，P2.E4 構成要件未該當——標題「牴觸 P2.E4」屬條款過度延伸。",
+    "系爭句為治權文件之總綱陳述，非憲章意義下之 Representation 元素（§2.3：對 Reality 之結構化描述）；P2.E4 之規範對象是表徵元素之處理方式，非文件措辭。措辭層級之類別錯置應錨定 §2.1＋§2 末定義元規則（「下層文件不得重新定義本章術語，僅得細化」）＋§0.4（規範性術語一律使用英文原詞）；審計引 §2.1 與 §5 角色一正確，但漏引最貼合之 §2 定義元規則。",
+    "標題與分級內在矛盾：P2.E4 屬 §3 [N] ENFORCE 之禁止性規定（§0.2「禁止/不得」＝MUST NOT；§8.4 明定禁止性規定不得豁免、且 §3 全部 [N] 條款為核心條款），若如標題所稱真正「牴觸 P2.E4」，依報告第四節自訂判準（critical＝違反禁止性規定）應列 critical（同 AUD-02 之 P4.E5 處理）。minor 之所以正確，正因構成要件實未該當——分級對、標題之條款定性錯。",
+    "AUD-26 本體未註明 §8.3(b) 過渡規則（大憲章為 MC 生效前既存文件，補正期內推定有效），單項閱讀時「牴觸」措辭缺此緩和語境；惟報告於 AUD-13 與治權整合路線圖已整體適用過渡規則並列為 patch 級補正，故非實質遺漏。",
+    "「真相＝Reality」之等同為解釋步驟而非條文直接文義：MC 全文未使用「真相」一詞（PA 用「真實世界」）。該解釋依 §0.4（繁中為權威版本）與 §2.1 屬合理，但審計未標明此為解釋推論。"
+   ]
+  }
+ ],
+ "gate": {
+  "dispositions": [
+   {
+    "id": "AUD-01",
+    "disposition": "CONFIRMED",
+    "final_severity": "critical",
+    "note": "兩官全數確認（code 逐字重現且命中面擴大至 37 檔、law 裁 F1/P1.E1 適用正確）；僅需修辭級補正：§0.5 改標脈絡定位而非義務條款、補正期依據由 §8.3 更正為 §8.2 第四點。"
+   },
+   {
+    "id": "AUD-02",
+    "disposition": "CONFIRMED",
+    "final_severity": "critical",
+    "note": "P4.E5 禁止 last-write-wins 之 MUST NOT 該當閉合，治權條文（原則精華 #7）明文立法化屬加重；補正報告時修 reconcile.py:487→502 行錨、補引 P4.E6/§2.5 封閉 Evidence 定義縫隙。"
+   },
+   {
+    "id": "AUD-03",
+    "disposition": "CONFIRMED",
+    "final_severity": "critical",
+    "note": "零命中 grep 親自重現、P4.E1 不可豁免核心該當；標題「全系統無 Confidence」宜限縮至知識/審議軸（預測軸校準機率為部分等價物），並補列 validation_evidence 第四值 unverified。"
+   },
+   {
+    "id": "AUD-04",
+    "disposition": "CONFIRMED",
+    "final_severity": "major",
+    "note": "code 行號零偏移全數確認、law 同意 major；條款欄需修——移除 F4（報告自認大體滿足、列入即與分級判準矛盾）、補列 P3.E1 為核心錨點、P3.E2 之 lifecycle 面讓位 AUD-05。"
+   },
+   {
+    "id": "AUD-05",
+    "disposition": "CONFIRMED",
+    "final_severity": "major",
+    "note": "兩官皆確認：TaiwanStockDelisting 僅一處 cadence 豁免消費、身份 lifecycle 機制全缺，P3.E2 不變式義務不因 Layer 3 缺位消滅；建議明文處理「未鑄造故無附著對象」抗辯並標注與 AUD-04 分工。"
+   },
+   {
+    "id": "AUD-06",
+    "disposition": "CONFIRMED",
+    "final_severity": "major",
+    "note": "兩官皆確認；表述精度修正：macro_vintage docstring 已過時（build_market_direction_features 已消費 fred_series），feature_values 零 macro 限定宣稱仍真；宜標明與 AUD-01 對 P1.E2 之分工。"
+   },
+   {
+    "id": "AUD-07",
+    "disposition": "CONFIRMED",
+    "final_severity": "major",
+    "note": "code 確認且查得 industry_category 在 live PK 內致新舊分類殘留並存（加重非削弱）；law 裁 P3.E3 為誤引，法源應收斂為 P4.E2 單軸並明文處理其 Layer 4 DEFER 不阻卻之理由。"
+   },
+   {
+    "id": "AUD-08",
+    "disposition": "NEEDS_HUMAN",
+    "final_severity": "n/a",
+    "note": "兩官原均裁 major，但其 major 之關鍵錨定（「AUD-09 同類 DELETE 重建列 major」之先例）已被 AUD-09 法官依明文判準升 critical 所推翻；本項同類且事實更重（無 run_id/git_sha/參數留痕、已呈現出單、風控 DD 熔斷回讀），critical vs major 之擇定即 P4.E3 家族判準決策，依 §8.2 屬 Steward 權限。"
+   },
+   {
+    "id": "AUD-09",
+    "disposition": "CONFIRMED_REVISED",
+    "final_severity": "critical",
+    "note": "code 全數重現（三處 DELETE 逐字、superseded 全庫零命中）；law 依報告第四節明文判準升級——P4.E3「不得刪除」為 MUST NOT、降級理由（確定性衍生物）無條文依據且事實前提被同段自我否定（raw 遭 heal 覆寫、build_meta 不存成員名單）；惟 Steward 若議決將「原始 vs 衍生＋緩解」尺度明文化入判準，本項應回 major——此擇一需 Steward 裁定。"
+   },
+   {
+    "id": "AUD-10",
+    "disposition": "CONFIRMED",
+    "final_severity": "major",
+    "note": "兩官確認 P5.E1 六元組缺欄與 §8.3 機器稽核不變式違反；F6 應改標風險視角（人類授權實質存在、「無法回答」要件未該當），Authorization 論證鏈補引「可追溯至人類權威之授權鏈」要件。"
+   },
+   {
+    "id": "AUD-11",
+    "disposition": "CONFIRMED",
+    "final_severity": "major",
+    "note": "code 含 Bash 重現 fail-open epoch 分支；law 裁 partially_correct 但 severity 同意——P4.E6/F6 應標為未既遂之輔助類比（否則按判準須 critical），最強條文組合應改為 P5.E1＋§8.3＋P2.E3；「清空」措辭需修為條件性。"
+   },
+   {
+    "id": "AUD-12",
+    "disposition": "CONFIRMED",
+    "final_severity": "major",
+    "note": "兩官皆確認雙重最高權威歧義與零從屬聲明；引註精修：§0.5「先登錄方生效力」構成要件限新增規格、§0.6(a) 無效後果應載明 §8.2 認定程序、登錄屬 Steward 議決事項。"
+   },
+   {
+    "id": "AUD-13",
+    "disposition": "CONFIRMED",
+    "final_severity": "major",
+    "note": "零命中以更嚴格參數重跑仍成立、§8.3 義務現存未履行且補正期僅緩後果不豁義務；需刪「可判定性元規則」對治權檔自有謂詞之誤用、reports/ 計畫書之涵攝範圍需另行論證。"
+   },
+   {
+    "id": "AUD-14",
+    "disposition": "DOWNGRADED_EVIDENCE",
+    "final_severity": "minor",
+    "note": "core 之 P1.E2 論點成立，但子宣稱「除權息世界事件在系統中無表徵、只能從資料異動反推」字面被推翻——TaiwanStockDividend 與 TaiwanStockDividendResult 兩事件 raw 表已入庫；須改寫為弱版本（無 CorporateAction 一級概念、事件表與兩價格表還原關係零宣告繫結——多表徵問題實際更廣），並刪 P1.Y [I] 引用、補 P1.W1；severity 維持 minor。"
+   },
+   {
+    "id": "AUD-15",
+    "disposition": "CONFIRMED",
+    "final_severity": "minor",
+    "note": "四項核心證據親自重現；條款欄需補 P1.E2 為直接依據、F1/P1.E1 標明為 AUD-01 已承載之審計視角（禁止性條款列名而裁 minor 之表面矛盾須以不重複計數原則明文化解）。"
+   },
+   {
+    "id": "AUD-16",
+    "disposition": "CONFIRMED",
+    "final_severity": "minor",
+    "note": "行號零偏移確認；標題將 Confidence 誤計為 P2.E1 鏈節點應更正錨定至 P4.E1/P4.E8、補引 §2.11；欄位枚舉補 semantic_bound；(b) 併入 AUD-03 之依存關係應明文為分級前提。"
+   },
+   {
+    "id": "AUD-17",
+    "disposition": "CONFIRMED",
+    "final_severity": "minor",
+    "note": "兩官全數確認且互證：行為面合規（status 寫點僅 verifiers 兩處）、缺口為 DB 級機器化保證，「部分符合但有缺口」精確命中 minor；補正措辭宜區分 auditable 與 enforced。"
+   },
+   {
+    "id": "AUD-18",
+    "disposition": "CONFIRMED",
+    "final_severity": "minor",
+    "note": "事實全數重現，但 law 認定 F5/P4.E6 構成要件未該當（方法層溯源鏈完整、凍結特徵集使個股級證據性答覆實際可答、歸因分解為憲章未課義務）——發現應改寫為「解釋粒度未操作化之缺口」而非違反語氣，severity 恰為 minor。"
+   },
+   {
+    "id": "AUD-19",
+    "disposition": "CONFIRMED",
+    "final_severity": "minor",
+    "note": "核心落差（teacher 已認定正確標記行為、serve 側無機械強制）成立；主引條款應改 P4.E7（P2.E2 構成要件不合且屬 MUST NOT、列名即強制 critical 而自相矛盾）；證據段 grep 檢索詞「通用常識」應更正為「常識」（實 0 vs 1 命中）。"
+   },
+   {
+    "id": "AUD-20",
+    "disposition": "CONFIRMED",
+    "final_severity": "minor",
+    "note": "11 處 CASCADE 行號全中、兩官皆確認 minor（能力缺口＋有 tombstone 緩解之工具路徑）；惟其分級繫於未明文之家族尺度，受 AUD-08/09 之 Steward 判準決策連動——已行使之 --fix chunk DELETE 屆時需一併覆核。"
+   },
+   {
+    "id": "AUD-21",
+    "disposition": "CONFIRMED_REVISED",
+    "final_severity": "major",
+    "note": "code 逐字確認、law 升級 minor→major：P4.E3 supersede 義務三要件（superseded 標記/歷史/失效 Evidence）零履行、非「部分符合」，三項緩解（seed 低頻、文獻錨定）皆屬影響面因素而非判準構成要件，與 AUD-09 同類應同級；AUD-20/22 判決書內引用「AUD-21=minor」之先例需同步更正。"
+   },
+   {
+    "id": "AUD-22",
+    "disposition": "CONFIRMED",
+    "final_severity": "minor",
+    "note": "事實零偏移重現；law 認定 P4.E3 構成要件實未該當（chat 非 Knowledge/Evidence、審計自認非 Evidence 上游），發現應重定性為防護性治理缺口並補引 P1.E3 為隱私刪除之合法化基礎——minor 為可辯護之最高級。"
+   },
+   {
+    "id": "AUD-23",
+    "disposition": "CONFIRMED",
+    "final_severity": "minor",
+    "note": "11/12 查核成立，唯一 false 為描述段修辭「只在註解中」（HANDOFF.md 亦有散文留痕，實質論點不倒）需修正；「實體世界 Action」窄讀區分應明文化以防反面解讀升級，並補交叉引用 AUD-10/11 標明條款分工。"
+   },
+   {
+    "id": "AUD-24",
+    "disposition": "CONFIRMED",
+    "final_severity": "minor",
+    "note": "env 後門歸責缺陷在程式碼層完整確證（_owner_uid=None、audit 僅記 ok env）、緩解屬實；建議補引 P3.E1 與 §8.3 第三點強化論證、引文(2)補標刪節號。"
+   },
+   {
+    "id": "AUD-25",
+    "disposition": "CONFIRMED",
+    "final_severity": "minor",
+    "note": "四項缺口事實全數重現，但 §8.1 論證需重寫——AL-2026-001 已於 constitution repo 具名登錄首任 Steward，缺口應改述為「領域治權檔未承接 Steward 角色」且 hugo 行為不該當 Steward 三權；§8.5(a)/§8.6 對領域文件之外推應撤回，實質關切改錨 §0.6/§8.3/P4 可追溯性。"
+   },
+   {
+    "id": "AUD-26",
+    "disposition": "CONFIRMED",
+    "final_severity": "minor",
+    "note": "三處指涉不一之對照事實成立；主錨應由 P2.E4 改為 §2.1＋§2 定義元規則（P2.E4 為 MUST NOT、若真牴觸依判準須 critical 而與 minor 自相矛盾，實質資料流已合規）；「全庫 docstring 廣泛引用」僅於將 SSOT 縮寫視為同一措辭時成立，需限定表述。"
+   }
+  ],
+  "stats": {
+   "critical": 4,
+   "major": 9,
+   "minor": 12,
+   "refuted": 0,
+   "needs_human": 1
+  },
+  "consistency_issues": [
+   "P4.E3 刪除/覆寫家族異級為本次驗證最大跨發現矛盾：AUD-02(critical)/AUD-08(major)/AUD-09(major→critical)/AUD-20(minor)/AUD-21(minor→major)/AUD-22(minor)。五位 law 官對「禁止性規定 MUST NOT→critical」判準是否機械適用於衍生 Knowledge 之 DELETE 持相反立場——AUD-09 官依報告第四節明文判準（已核原文 L110）主張 critical 並自承將連動全家族；AUD-08/20/22 官則採判準未載之「原始 vs 衍生＋緩解程度」實質尺度。報告須擇一：(A) 修正判準文字將該尺度明文化（則 AUD-09 回 major、AUD-08 維持 major）；(B) 依判準字面重整（AUD-08 升 critical、AUD-20 已行使之 --fix DELETE 覆核）。此擇一屬 Steward §8.2 權限，故 AUD-08 列 NEEDS_HUMAN、AUD-09 之 critical 附 Steward 覆核條件。",
+   "AUD-21 升 major 後，AUD-20 與 AUD-22 判決書內引用之梯度先例（「AUD-21 列 minor」）已過時，該兩項結論不受影響但引註需同步更正。",
+   "系統性體例缺陷（非個別錯誤）：多項發現將禁止性規定或不可豁免核心條款（F4@AUD-04、F6@AUD-10/11/24、F5+P4.E6@AUD-18、P2.E2@AUD-19、P2.E4@AUD-26、F1/P1.E1@AUD-15）列於【憲章條款】欄卻裁 major/minor——按報告自訂判準列名即應觸發 critical，形成條款清單與分級之表面自相矛盾。應建立「受違條款」與「風險視角/對照條款」之區分標注體例。",
+   "重複計數檢核結果：無實質重複計罪——F1/P1.E1 系統性違反由 AUD-01 單獨承載（AUD-14/15 為實例級 minor）、P1.E2 分工可辯護但需明文（AUD-01 世界模型缺席/AUD-06 跨來源/AUD-14 表級表徵/AUD-15 吸收機制）、P4.E1 Confidence 由 AUD-03 承載（AUD-16(b) 正確併入）、raw 層覆寫由 AUD-02 承載（AUD-07/08 各取 P4.E2 時態軸）、同一 selfheal 鏈之四項發現（AUD-10/11/23/24）各有獨立構成要件。",
+   "統計更正：原 3 critical / 10 major / 13 minor → 驗證後 4 critical / 9 major / 12 minor ＋ 1 NEEDS_HUMAN（AUD-08）；其中 1 項 DOWNGRADED_EVIDENCE（AUD-14，改寫後仍 minor）、0 項 REFUTED。若 Steward 採選項 (B)，critical 將達 5-6 項。",
+   "AUD-14 之「除權息世界事件無表徵」為全部 26 項中唯一被實質推翻之事實子宣稱（TaiwanStockDividend/TaiwanStockDividendResult 已入庫）；其餘 25 項核心事實 100% 重現、行號偏移全部在容差內（最大 +15 行一處，內容逐字在位），顯示原審計事實查證品質極高、偏差方向一致偏保守（如 15+ 檔實為 37 檔）。"
+  ],
+  "overall_assessment": "總體結論「精神高度合憲、結構顯著缺層」在雙重對抗驗證後不僅成立且被強化。「結構顯著缺層」半句獲全面事實加固：26 項發現無一 REFUTED，World Model/Identity/Confidence/雙時間性四大結構層缺席之診斷全數重現，且多處證據比原審計更強（vendor 表名直綁 15+ 檔實為 37 檔、industry_category 殘留列使歷史污染更重、原則精華 #7 自身留存要求與實作之落差反向強化 AUD-02）；三項 critical（AUD-01/02/03）之事實鏈與條款適用經對抗檢驗完整閉合。「精神高度合憲」半句同樣經受住檢驗：law 官在多項 minor 發現中認定所引條款構成要件實未該當（AUD-18/22/26 近於無違反、僅為防護性缺口），即實際違憲面比報告標題語氣更窄；且正確範式（trigger 級不變式、TTY approve、provenance、fail-closed）在庫內普遍存在之亮點描述全部屬實。需修正處有三：(1) 嚴重度重心微幅上移（AUD-09 升 critical、AUD-21 升 major、AUD-08 待 Steward 裁定），P4.E3 刪除家族之分級須由 Steward 依 §8.2 擇一定調——這是報告在正式採認前唯一的實質未決點；(2) 條款引用體例需系統性整修（「受違條款」與「風險視角」混列致與自訂判準表面矛盾）；(3) AUD-14 一處事實子宣稱需改寫為弱版本。三者均不動搖總體結論，但在 Steward 完成家族判準裁定與體例整修前，本報告應以「驗證後草案」而非終局違憲認定文書地位流通。"
+ }
+}

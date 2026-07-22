@@ -1,0 +1,15 @@
+[Unit]
+Description=augur admin console (:8500)
+After=network-online.target augur-postgres.service
+Wants=augur-postgres.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/giga/augur
+EnvironmentFile=/home/giga/augur/.env
+ExecStart=/home/giga/augur/venv/bin/python /home/giga/augur/scripts/serve_admin_console.py --serve
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

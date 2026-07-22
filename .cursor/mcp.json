@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "constitution": {
+      "command": "/usr/bin/python3",
+      "args": ["-m", "tools.constitution_mcp"],
+      "cwd": "/home/giga/augur"
+    },
+    "local-llm": {
+      "command": "/usr/bin/python3",
+      "args": ["-m", "tools.local_llm_mcp"],
+      "cwd": "/home/giga/augur",
+      "env": {
+        "OLLAMA_URL": "http://127.0.0.1:11434"
+      }
+    },
+    "project-memory": {
+      "command": "/usr/bin/python3",
+      "args": ["-m", "tools.project_memory_mcp"],
+      "cwd": "/home/giga/augur",
+      "env": {
+        "OLLAMA_URL": "http://127.0.0.1:11434",
+        "EMBED_MODEL": "nomic-embed-text"
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+[Unit]
+Description=augur chat UI (:8090)
+After=augur-advisor.service
+Wants=augur-advisor.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/giga/augur
+EnvironmentFile=/home/giga/augur/.env
+ExecStart=/home/giga/augur/venv/bin/python /home/giga/augur/scripts/serve_chat_ui.py --port 8090 --advisor http://127.0.0.1:8399
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
