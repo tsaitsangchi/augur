@@ -8,8 +8,12 @@
 | 需求 | 用哪支 |
 |---|---|
 | 某條款/規格之**精確原文** | `constitution-mcp`（零幻覺） |
-| 跨所有非治理檔案找「跟 X 有關的段落」 | **本 `project-memory-mcp`**（[I] 語意檢索） |
-| 濃縮我手上這份特定檔案 | `local-llm-mcp` |
+| 只要片段＋`path:line` 出處 | **本 `recall`（hybrid）** |
+| 跨檔探問要**短結論** | `local-llm` → `local_research`（勿整檔灌 context） |
+| 已知多 path 合併摘要 | `local_map_reduce` |
+| 濃縮單一已知檔／長文 | `local_summarize`／`local_extract` |
+
+專案 rule：`.cursor/rules/local-mcp-routing.mdc`（alwaysApply）。
 
 ## 硬邊界：非治理輔助專用
 
@@ -48,6 +52,7 @@ python3 -m tools.project_memory_mcp selftest       # stub 嵌入，無須 Ollama
 | `OLLAMA_URL` | `http://127.0.0.1:11434` | 嵌入服務端點 |
 | `EMBED_MODEL` | `nomic-embed-text` | 嵌入模型 |
 | `MEMORY_DB` | `.project_memory/index.db` | 索引 DB 路徑 |
+| `MEMORY_SNIPPET_CHARS` | `500`（上限 800） | recall 每段正文截斷長度 |
 | `PROJECT_MEMORY_MCP_STUB` | （空） | `1` 啟用確定性 stub 嵌入（測試用） |
 
 索引 DB 為衍生物、不入 git；換機時 `git clone` → `ollama pull nomic-embed-text` →

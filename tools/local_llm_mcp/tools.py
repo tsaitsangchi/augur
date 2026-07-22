@@ -273,8 +273,8 @@ def local_research(
     for h in accumulated:
         loc = f"{h['path']}:{h['start_line']}-{h['end_line']}"
         body = (h.get("summary") or h.get("text") or "").strip()
-        if len(body) > 1200:
-            body = body[:1200] + " …"
+        if len(body) > 800:
+            body = body[:800] + " …"
         blocks.append(f"【{loc}】\n{body}")
     corpus = "\n\n".join(blocks)
     prompt = (

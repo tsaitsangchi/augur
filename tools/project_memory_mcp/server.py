@@ -12,16 +12,16 @@ import traceback
 from . import recall
 
 PROTOCOL_VERSION = "2024-11-05"
-SERVER_INFO = {"name": "project-memory", "version": "0.1.0"}
+SERVER_INFO = {"name": "project-memory", "version": "0.2.0"}
 
 TOOLS = [
     {
         "name": "recall",
         "description": (
-            "在全 repo 非治理輔助語料的索引中，找出與 query 最相關的 top-k 片段"
-            "（預設 hybrid＝語意+FTS5 RRF；附 path:line 出處，省 Cursor context）。"
-            "結果為 [I] 輔助；治理條款精確原文請經 constitution-mcp。"
-            "索引不存在、缺 FTS、或嵌入服務不可達時回錯誤，不靜默回空。"
+            "優先用於：只要相關片段＋path:line 出處、尚未要濃縮結論時。"
+            "勿與 local_research 搶活（跨檔要短答請用 local_research）。"
+            "預設 hybrid＝語意+FTS5 RRF；結果為 [I]。治理精確原文請經 constitution-mcp。"
+            "缺索引／缺 FTS／嵌入不可達 → isError，不靜默回空。"
         ),
         "inputSchema": {
             "type": "object",
@@ -40,8 +40,9 @@ TOOLS = [
     {
         "name": "memory_status",
         "description": (
-            "回索引現況：檔數、chunk 數、嵌入模型、建立時間、FTS 狀態，並列出來源檔已變更/刪除者"
-            "（陳舊發聲）。索引不存在時回錯誤。"
+            "優先用於：懷疑索引陳舊或缺 FTS 時先查現況。"
+            "回檔數／chunk／embed／built_at／FTS，並列出過時或已刪來源。"
+            "索引不存在 → isError。"
         ),
         "inputSchema": {"type": "object", "properties": {}},
     },

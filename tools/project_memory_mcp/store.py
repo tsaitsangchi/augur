@@ -50,6 +50,28 @@ def _decode_vec(blob: bytes) -> List[float]:
     return a.tolist()
 
 
+# 行程內 load_all 快取（多跳 research／連續 recall 免重解碼 ~9k 向量）
+_load_all_cache: Dict[tuple, List[dict]] = {}
+_cache_stats = {"hits": 0, "misses": 0}
+
+
+def clear_cache() -> None:
+    """清空 load_all 快取（selftest／重建索引後可呼叫）。"""
+    _load_all_cache.clear()
+    _cache_stats["hits"] = 0
+    _cache_stats["misses"] = 0
+
+
+def cache_stats() -> Dict[str, int]:
+    return dict(_cache_stats)
+
+
+def _db_fingerprint(path: str) -> tuple:
+    abspath = os.path.abspath(path)
+    st = os.stat(abspath)
+    return (abspath, int(getattr(st, "st_mtime_ns", int(st.st_mtime * 1e9))), int(st.st_size))
+
+
 def has_fts(path: str) -> bool:
     """索引是否含 FTS5 表（中期強化後必備；舊索引需重建）。"""
     conn = _connect(path)
@@ -71,7 +93,14 @@ def require_fts(path: str) -> None:
 
 
 def load_all(path: str) -> List[dict]:
-    """載入全部 chunk（含解碼向量）。規模數千列，暴力載入即可。"""
+    """載入全部 chunk（含解碼向量）。行程內依 (abspath,mtime,size) 快取。"""
+    key = _db_fingerprint(path)
+    cached = _load_all_cache.get(key)
+    if cached is not None:
+        _cache_stats["hits"] += 1
+        return cached
+
+    _cache_stats["misses"] += 1
     conn = _connect(path)
     try:
         rows = conn.execute(
@@ -92,6 +121,11 @@ def load_all(path: str) -> List[dict]:
                 "vector": _decode_vec(r["vector"]),
             }
         )
+    _load_all_cache[key] = out
+    # 同 abspath 舊 fingerprint 清掉，避免重建後殘留多份
+    stale_keys = [k for k in _load_all_cache if k[0] == key[0] and k != key]
+    for k in stale_keys:
+        del _load_all_cache[k]
     return out
 
 

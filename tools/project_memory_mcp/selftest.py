@@ -168,6 +168,24 @@ def _test_end_to_end_stub() -> None:
             _assert(hits[0]["score_kind"] == "rrf", "hybrid score_kind 應為 rrf")
             hyb = recall.recall("unique marker sentence zzz", k=3, db=dbp)
             _assert("mode=hybrid" in hyb and "rrf=" in hyb, f"預設 hybrid 格式：\n{hyb}")
+            _assert("[I]" in hyb, "瘦身後仍須保留 [I]")
+
+            # load_all 行程內快取：連續兩次 semantic hits → 第二次 hit
+            store.clear_cache()
+            _ = recall.recall_hits("unique marker sentence zzz", k=2, db=dbp, mode="semantic")
+            miss1 = store.cache_stats()["misses"]
+            hit0 = store.cache_stats()["hits"]
+            _ = recall.recall_hits("unique marker sentence zzz", k=2, db=dbp, mode="semantic")
+            _assert(store.cache_stats()["misses"] == miss1, "第二次不應再 miss")
+            _assert(store.cache_stats()["hits"] == hit0 + 1, "第二次應 cache hit")
+
+            # mtime 變更後失效：touch DB 檔
+            import time
+            os.utime(dbp, None)
+            time.sleep(0.01)
+            os.utime(dbp, (time.time() + 1, time.time() + 1))
+            _ = recall.recall_hits("unique marker sentence zzz", k=1, db=dbp, mode="semantic")
+            _assert(store.cache_stats()["misses"] == miss1 + 1, "mtime 變後應 miss")
 
             # scope 過濾
             scoped = recall.recall("quick brown fox", k=5, scope="notes", db=dbp, mode="semantic")

@@ -15,10 +15,7 @@ from typing import Dict, List, Optional, Tuple
 
 from . import embed, govern, store
 
-_II_NOTE = (
-    "⚠ 語意檢索結果為 [I] 輔助；精確原文請經 constitution-mcp（治理條款）或讀原檔，"
-    "不得原文貼入任何 [N] 治理文書。"
-)
+_II_NOTE = "⚠ [I] 輔助片段；治理原文請經 constitution-mcp。"
 
 _VALID_MODES = ("hybrid", "semantic", "keyword")
 _RRF_K = 60
@@ -229,11 +226,22 @@ def recall_hits(
     return hits
 
 
+def _snippet_chars() -> int:
+    raw = os.getenv("MEMORY_SNIPPET_CHARS")
+    if raw is None or not str(raw).strip():
+        return 500
+    try:
+        return max(100, min(int(raw), 800))
+    except (TypeError, ValueError):
+        return 500
+
+
 def _format_hits(hits: List[dict], mode: str, scope: Optional[str]) -> str:
     if not hits:
-        return f"{_II_NOTE}\n\n（查無相關片段；mode={mode} scope={scope!r}）"
+        return f"{_II_NOTE}\n（查無相關片段；mode={mode} scope={scope!r}）"
 
-    lines: List[str] = [_II_NOTE, f"（mode={mode}）", ""]
+    limit = _snippet_chars()
+    lines: List[str] = [f"{_II_NOTE} mode={mode}", ""]
     for h in hits:
         loc = f"{h['path']}:{h['start_line']}-{h['end_line']}"
         kind = h.get("score_kind", "?")
@@ -242,8 +250,8 @@ def _format_hits(hits: List[dict], mode: str, scope: Optional[str]) -> str:
         if kind == "rrf" and "sem" in h and h["sem"] >= 0:
             extra = f"｜sem={h['sem']:.3f}"
         body = (h.get("summary") or h.get("text") or "").strip()
-        if len(body) > 800:
-            body = body[:800] + " …"
+        if len(body) > limit:
+            body = body[:limit] + " …"
         lines.append(f"【{loc}｜{kind}={score:.4f}{extra}】\n{body}\n")
     return "\n".join(lines)
 

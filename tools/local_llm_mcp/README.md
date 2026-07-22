@@ -25,6 +25,18 @@ python3 -m tools.local_llm_mcp selftest     # 自測（stub 模式，無須 Olla
 
 `text` 與 `path` 二選一；`path` 僅允許 **repo 根以內**之相對路徑。
 
+## 與中期工具分工
+
+| 需求 | 用 |
+|---|---|
+| 跨檔／不知路徑要短結論 | **`local_research`** |
+| 已知多 path（≤12）合併 | **`local_map_reduce`** |
+| 單檔／已有 text | `local_summarize`／`local_extract` |
+| 只要片段出處 | project-memory `recall` |
+| 治理精確原文 | constitution-mcp |
+
+專案 rule：`.cursor/rules/local-mcp-routing.mdc`（alwaysApply）。
+
 ## 環境變數
 
 | 變數 | 預設 | 用途 |

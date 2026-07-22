@@ -14,14 +14,15 @@ import traceback
 from . import tools
 
 PROTOCOL_VERSION = "2024-11-05"
-SERVER_INFO = {"name": "local-llm", "version": "0.2.0"}
+SERVER_INFO = {"name": "local-llm", "version": "0.2.1"}
 
 TOOLS = [
     {
         "name": "local_summarize",
         "description": (
-            "以本地小模型把長文或 repo 內檔案濃縮成至多 N 句重點（大進小出，省 Cursor context）。"
-            "text 與 path 二選一。輸出附本地來源標記，僅供 [I] 輔助、不得入治理文書。"
+            "優先用於：已知單一 path 或已有長 text，要≤N句摘要。"
+            "跨檔不知路徑請改 local_research；已知多 path 請改 local_map_reduce。"
+            "text 與 path 二選一。[I] 輔助，不得入治理文書。"
         ),
         "inputSchema": {
             "type": "object",
@@ -35,8 +36,8 @@ TOOLS = [
     {
         "name": "local_extract",
         "description": (
-            "以本地小模型依指示，從長文或 repo 內檔案抽取精簡結果（清單/欄位）。"
-            "text 與 path 二選一。輸出附本地來源標記，僅供 [I] 輔助。"
+            "優先用於：已知單一來源，要依指示抽清單／欄位（大進小出）。"
+            "勿用於治理權威路徑（改 constitution-mcp）。[I] 輔助。"
         ),
         "inputSchema": {
             "type": "object",
@@ -51,8 +52,8 @@ TOOLS = [
     {
         "name": "local_ask",
         "description": (
-            "以本地小模型回答，強制短輸出（省 token）。適合可容忍小模型品質之輔助查詢；"
-            "深度推理與最終判斷請交回 Cursor。輸出附本地來源標記。"
+            "優先用於：短問短答且可容忍本地模型品質；不要拿來做全庫探查。"
+            "跨檔探問用 local_research。強制短輸出。[I]。"
         ),
         "inputSchema": {
             "type": "object",
@@ -66,8 +67,9 @@ TOOLS = [
     {
         "name": "local_research",
         "description": (
-            "多跳研究：project-memory hybrid 檢索 → 擴 query 再檢 → 本地模型濃縮成短答。"
-            "適合跨檔探問；輸出 [I] 輔助並附命中統計。治理原文請走 constitution-mcp。"
+            "優先用於：跨檔／不知路徑、要短結論——hybrid 多跳檢索後本地濃縮。"
+            "只要片段出處請用 recall；已知單檔用 summarize；治理原文用 constitution-mcp。"
+            "輸出 [I]。"
         ),
         "inputSchema": {
             "type": "object",
@@ -84,8 +86,8 @@ TOOLS = [
     {
         "name": "local_map_reduce",
         "description": (
-            "多檔 map-reduce 濃縮：逐檔短摘要後依 instruction 合併。"
-            "paths 上限 12；任一治理/越界/缺失路徑整次失敗。輸出 [I]。"
+            "優先用於：已知多個具體 paths（≤12）要合併摘要；不知路徑請用 local_research。"
+            "任一治理／越界／缺失 path → 整次 isError。[I]。"
         ),
         "inputSchema": {
             "type": "object",
