@@ -7,11 +7,13 @@
 
 ## 此機角色
 
-**治理 + 本地推論／語意記憶**（非現行資料層主機）。
+**全執行節點（T1，2026-07-22 Steward 選定）**：治理 + 本地推論／語意記憶 + **目標**本機 PostgreSQL／qdrant／應用真跑。
 
-| 就緒 | 缺口 |
+| 已就緒 | T1 待補 |
 |---|---|
-| ollama、GB10 GPU、三支 MCP、應用碼（`augur-code-work`） | PostgreSQL、qdrant、augur DB 還原 |
+| ollama、GB10 GPU、三支 MCP、應用碼（`augur-code-work`） | PostgreSQL、qdrant、augur DB 還原、應用接線煙霧 |
+
+**執行手冊**：[`../../phase2/T1-GB10-FULLSTACK-RUNBOOK.md`](../../phase2/T1-GB10-FULLSTACK-RUNBOOK.md)（從第 0 步取證開始）。
 
 ## 檔案
 
