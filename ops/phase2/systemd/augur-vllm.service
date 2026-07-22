@@ -10,11 +10,14 @@ WorkingDirectory=/home/giga/augur
 # 獨立 venv——勿改成主專案 venv
 Environment=PATH=/home/giga/augur-venvs/vllm/bin:/usr/bin
 # 依實機可載模型覆寫；served-model-name 須與 MCP LLM_MODEL 對齊
+# 煙霧已驗證小模：Qwen/Qwen3-0.6B / qwen3-0.6b / max-model-len 4096
+# 大模請加 --gpu-memory-utilization（預設 KV 會吃滿 unified memory）
 ExecStart=/home/giga/augur-venvs/vllm/bin/vllm serve Qwen/Qwen3-30B-A3B-Instruct \
   --host 127.0.0.1 \
   --port 8000 \
   --served-model-name qwen3-30b-a3b-instruct \
-  --max-model-len 32768
+  --max-model-len 32768 \
+  --gpu-memory-utilization 0.35
 Restart=on-failure
 RestartSec=10
 
