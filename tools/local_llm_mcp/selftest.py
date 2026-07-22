@@ -83,6 +83,16 @@ def _test_no_write_tool() -> None:
                         raise AssertionError(f"{py.name} 出現寫入 open(mode={mode!r})")
 
 
+def _test_host_default_model() -> None:
+    """兩機模型預設：依 hostname（可被 OLLAMA_MODEL 覆寫）。"""
+    with _env(OLLAMA_MODEL=None):
+        # 不強制本機 hostname；只斷言「有預設且非空」，以及顯式 env 優先
+        m = tools._ollama_model()
+        _assert(isinstance(m, str) and len(m) > 0, "預設模型應非空")
+    with _env(OLLAMA_MODEL="explicit-test-model"):
+        _assert(tools._ollama_model() == "explicit-test-model", "OLLAMA_MODEL 應覆寫 hostname 預設")
+
+
 def _test_provenance_and_governance() -> None:
     with _env(LOCAL_LLM_MCP_STUB="1"):
         out = tools.local_ask("測試", max_words=50)
@@ -150,6 +160,7 @@ def _test_fail_loud() -> None:
 def run() -> int:
     _test_protocol()
     _test_no_write_tool()
+    _test_host_default_model()
     _test_provenance_and_governance()
     _test_tools_stub()
     _test_error_faces()

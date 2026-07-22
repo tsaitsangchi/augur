@@ -12,16 +12,16 @@
 | **模型／服務各機自立** | `OLLAMA_MODEL`、PostgreSQL、qdrant 依該機硬體與角色決定，**不可假定兩機相同** |
 | **規範 vs 營運** | 規範性登錄以 `infrastructure/ENVIRONMENT-SPEC.md`（L7.50）為準；本目錄為 **[I] 營運快照**，不取代該規格 |
 
-> 2026-07-22 實測：遠端曾把 `PYTHONPATH=/home/giga/augur/augur-constitution` 寫進共享 MCP 設定——該路徑**僅在某一佈局存在**，在 `aitopatom-b96e`（repo 根＝`/home/giga/augur`）上不存在，導致 MCP 無法啟動。已改為 `tools/run_*.sh` 可攜啟動（依 hostname 選模型）。
+> 2026-07-22 實測：遠端曾把 `PYTHONPATH=/home/giga/augur/augur-constitution` 寫進共享 MCP 設定——該路徑**僅在某一佈局存在**，在 `aitopatom-b96e`（repo 根＝`/home/giga/augur`）上不存在，導致 MCP 無法啟動。已改為可攜 `python3 -m`；模型依 hostname 在 Python 內選取。**此機專用營運包**見 [`packs/aitopatom-b96e/`](packs/aitopatom-b96e/)。
 
 ---
 
 ## 機器清單（兩台）
 
-| 主機名 | 角色（營運） | 平台 / 架構 | GPU | 記憶體 | 關鍵服務 | 檔案 |
-|---|---|---|---|---|---|---|
-| **`aitopatom-b96e`** | **治理 + 本地推論／語意記憶**（GB10 強算力節點） | 原生 Linux · **aarch64** | **NVIDIA GB10** | **122 GiB** | ollama ✅；PG ❌；qdrant ❌；應用碼 ✅（`augur-code-work`） | [aitopatom-b96e.md](aitopatom-b96e.md) |
-| **`DESKTOP-8MQPFS8`** | **開發／驗證 + 資料層**（WSL2 開發機） | **WSL2** · **x86_64** | GTX 1650 4GB | ~16 GiB | PG ✅ 17.x；ollama ❌（2026-07-21）；應用活服務曾在 hugo 路徑 | [DESKTOP-8MQPFS8.md](DESKTOP-8MQPFS8.md) |
+| 主機名 | 角色（營運） | 平台 / 架構 | GPU | 記憶體 | 關鍵服務 | 快照 | **設定包** |
+|---|---|---|---|---|---|---|---|
+| **`aitopatom-b96e`** | **治理 + 本地推論／語意記憶** | 原生 Linux · **aarch64** | **GB10** | **122 GiB** | ollama ✅；PG ❌；qdrant ❌ | [aitopatom-b96e.md](aitopatom-b96e.md) | **[packs/aitopatom-b96e/](packs/aitopatom-b96e/)** |
+| **`DESKTOP-8MQPFS8`** | **開發／驗證 + 資料層** | **WSL2** · **x86_64** | GTX 1650 4GB | ~16 GiB | PG ✅；ollama ❌（當時） | [DESKTOP-8MQPFS8.md](DESKTOP-8MQPFS8.md) | [packs/DESKTOP-8MQPFS8/](packs/DESKTOP-8MQPFS8/)（stub） |
 
 ### 角色分工（據實，非願望）
 
@@ -79,15 +79,17 @@ Sandbox 內量測會出現 GPU 被擋、systemd/PostgreSQL 誤判等假象——
 
 ## MCP 跨機啟動（可攜）
 
-共享設定（`.cursor/mcp.json` / `.mcp.json`）改為呼叫：
+共享設定（`.cursor/mcp.json` / `.mcp.json`）使用 **`python3 -m tools.*`**（Cursor 以 repo 根為 cwd；**不寫死絕對 PYTHONPATH**）。
 
-| Server | 啟動腳本 | 行為 |
+| Server | 啟動 | 本機差異如何處理 |
 |---|---|---|
-| constitution | `tools/run_constitution_mcp.sh` | `PYTHONPATH=repo 根`（相對推導，無絕對路徑） |
-| local-llm | `tools/run_local_llm_mcp.sh` | 同上 + **依 hostname 選預設模型** |
-| project-memory | `tools/run_project_memory_mcp.sh` | 同上 + `EMBED_MODEL=nomic-embed-text` |
+| constitution | `python3 -m tools.constitution_mcp` | 無 |
+| local-llm | `python3 -m tools.local_llm_mcp` | **`tools.py` 依 hostname 選預設模型**（GB10→`qwen3:30b-a3b`；WSL2→`qwen3:4b`）；可被環境變數 `OLLAMA_MODEL` 覆寫 |
+| project-memory | `python3 -m tools.project_memory_mcp` | `EMBED_MODEL=nomic-embed-text` |
 
-覆寫方式（任一機）：啟動前設環境變數，例如 `OLLAMA_MODEL=...`。
+> 曾試過 `bash tools/run_*.sh`：部分 Cursor 啟動環境 cwd 不穩導致**三支 MCP 全未掛載**（2026-07-22 實測）。故改回 `python3 -m`，機器差異改由 Python 內判定。`tools/run_*.sh` 仍保留供終端手動啟動。
+
+覆寫方式（任一機）：啟動 Cursor 前設 `OLLAMA_MODEL=...`，或在 MCP 設定 UI 加 env。
 
 ---
 

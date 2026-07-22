@@ -57,8 +57,23 @@ def _ollama_url() -> str:
     return os.getenv("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
 
 
+def _default_model_for_host() -> str:
+    """兩機硬體不同：依 hostname 選預設模型（可被 OLLAMA_MODEL 覆寫）。
+
+    aitopatom-b96e（GB10）→ qwen3:30b-a3b；DESKTOP-8MQPFS8（GTX1650）→ qwen3:4b。
+    見 ops/machines/README.md。
+    """
+    import socket
+    host = socket.gethostname()
+    if host == "aitopatom-b96e":
+        return "qwen3:30b-a3b"
+    if host == "DESKTOP-8MQPFS8":
+        return "qwen3:4b"
+    return "qwen3:4b"
+
+
 def _ollama_model() -> str:
-    return os.getenv("OLLAMA_MODEL", "qwen3:4b")
+    return os.getenv("OLLAMA_MODEL") or _default_model_for_host()
 
 
 def _stub_enabled() -> bool:

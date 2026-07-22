@@ -4,11 +4,12 @@
 * **產生機**：GB10 `aitopatom-b96e`（giga）｜**用途**：換另一台電腦接續本專案時，先讀本檔取得會期脈絡。
 * **正典入口仍為**：`HANDOFF.md`（治理總覽）、`LAYER-SEALING-SCHEDULE.md`（蓋章/階段排程）。本檔只補「本會期新增之輔助層與 Phase 2 探測」。
 * **兩機區分（必讀）**：本專案在**兩台不同軟硬體**並行——詳 [`ops/machines/README.md`](../ops/machines/README.md)。接續前先確認自己在哪一台（`hostname`），勿套用他機路徑／模型／服務假設。
+* **此機專用設定包（GB10）**：[`ops/machines/packs/aitopatom-b96e/`](../ops/machines/packs/aitopatom-b96e/)——先跑 `./ops/machines/packs/aitopatom-b96e/setup_check.sh`（錯誤主機會拒絕）。
 
-| 主機 | 角色 | 架構 | 關鍵差異 |
-|---|---|---|---|
-| `aitopatom-b96e` | 治理 + 本地推論／記憶 | aarch64 · GB10 · 122GiB | ollama ✅ · PG ❌ |
-| `DESKTOP-8MQPFS8` | 開發／驗證 + 資料層 | x86_64 · WSL2 · GTX1650 | PG ✅ · ollama ❌（當時） |
+| 主機 | 角色 | 架構 | 關鍵差異 | 設定包 |
+|---|---|---|---|---|
+| `aitopatom-b96e` | 治理 + 本地推論／記憶 | aarch64 · GB10 · 122GiB | ollama ✅ · PG ❌ | [packs/aitopatom-b96e](../ops/machines/packs/aitopatom-b96e/) |
+| `DESKTOP-8MQPFS8` | 開發／驗證 + 資料層 | x86_64 · WSL2 · GTX1650 | PG ✅ · ollama ❌（當時） | [packs/DESKTOP-8MQPFS8](../ops/machines/packs/DESKTOP-8MQPFS8/) |
 
 ---
 

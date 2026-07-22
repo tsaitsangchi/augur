@@ -1,16 +1,23 @@
 {
   "mcpServers": {
     "constitution": {
-      "command": "bash",
-      "args": ["tools/run_constitution_mcp.sh"]
+      "command": "python3",
+      "args": ["-m", "tools.constitution_mcp"]
     },
     "local-llm": {
-      "command": "bash",
-      "args": ["tools/run_local_llm_mcp.sh"]
+      "command": "python3",
+      "args": ["-m", "tools.local_llm_mcp"],
+      "env": {
+        "OLLAMA_URL": "http://127.0.0.1:11434"
+      }
     },
     "project-memory": {
-      "command": "bash",
-      "args": ["tools/run_project_memory_mcp.sh"]
+      "command": "python3",
+      "args": ["-m", "tools.project_memory_mcp"],
+      "env": {
+        "OLLAMA_URL": "http://127.0.0.1:11434",
+        "EMBED_MODEL": "nomic-embed-text"
+      }
     }
   }
 }
