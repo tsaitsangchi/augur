@@ -45,6 +45,9 @@ ref_augur/
 # project-memory-mcp 語意索引（各機重建）
 .project_memory/
 
+# qdrant 本機初始化標記（衍生物）
+.qdrant-initialized
+
 # GPU 驗證本機衍生物
 ops/gpu-verify/.gpu-test-venv/
 ops/gpu-verify/saxpy

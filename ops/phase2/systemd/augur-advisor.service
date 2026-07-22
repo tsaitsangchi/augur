@@ -1,0 +1,17 @@
+[Unit]
+Description=augur advisor shell (:8399, model=qwen3:30b-a3b)
+After=network-online.target ollama.service augur-postgres.service
+Wants=ollama.service augur-postgres.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/giga/augur
+Environment=OLLAMA_BASE_URL=http://127.0.0.1:11434
+Environment=OLLAMA_MODEL=qwen3:30b-a3b
+EnvironmentFile=/home/giga/augur/.env
+ExecStart=/home/giga/augur/venv/bin/python /home/giga/augur/scripts/serve_advisor_openai.py --serve --model qwen3:30b-a3b --timeout 900 --port 8399
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

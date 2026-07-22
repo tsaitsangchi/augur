@@ -11,13 +11,15 @@
 
 | 已就緒 | T1 待補 |
 |---|---|
-| ollama、GB10 GPU、三支 MCP、monorepo、**PG :5432**＋**DB 54 GB**、**qdrant :6333**（native `~/qdrant`＋`qdrant_userspace.sh`）、`venv`、**advisor 結構煙霧 PASS**（`--no-llm`）；`--with-llm` FAIL 已記（picks 段缺） | LLM 全鏈 picks 渲染、`entity_registry` 空表來源 |
+| ollama、GB10 GPU、三支 MCP、monorepo、**PG :5432**＋**DB 54 GB**、**qdrant :6333**、**UI 開機自啟**（`install_services_gb10.sh`：advisor `:8399`／chat `:8090`／admin `:8500`／probability `:8600`，模型 **`qwen3:30b-a3b`**）、`venv`、advisor 結構煙霧 PASS | LLM picks 段缺、`entity_registry` 空（可本機 backfill） |
 
 **執行手冊**：[`../../phase2/T1-GB10-FULLSTACK-RUNBOOK.md`](../../phase2/T1-GB10-FULLSTACK-RUNBOOK.md)（從第 0 步取證開始）。
 
 ## 開機常駐
 
-`systemctl --user` units（linger 已開）：`augur-postgres.service`、`augur-qdrant.service`。範本：[`../../phase2/systemd/`](../../phase2/systemd/)。安裝後：`systemctl --user enable --now augur-postgres.service augur-qdrant.service`。手動備援仍用 `ops/phase2/pg_userspace.sh`／`qdrant_userspace.sh`。
+- **Infra**：`augur-postgres`、`augur-qdrant`、`ollama`（linger 已開）。範本：[`../../phase2/systemd/`](../../phase2/systemd/)。
+- **UI（GB10 安全腳本）**：`bash ops/phase2/install_services_gb10.sh` —— 只裝 advisor／chat／admin／probability，模型 **`qwen3:30b-a3b`**，**不**覆寫 qdrant／ollama。狀態：`--status`；停 UI：`--stop`。
+- **勿**跑根目錄 `install_services.sh`（舊路徑／會衝突）。
 
 ## 檔案
 
