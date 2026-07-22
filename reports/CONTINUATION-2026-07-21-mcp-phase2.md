@@ -23,7 +23,7 @@
 3. **project-memory-mcp 實作要點**：純 stdlib、**讀寫分離**（server 唯讀、`index.py` 為唯一寫入端、AST 掃描鎖）、治理排除、失敗發聲、陳舊發聲、通用 venv 偵測（`pyvenv.cfg`）。實測索引 **104 檔 / 1759 chunk**（`.venv-mcp` 等雜訊已排除）。
 4. **Phase 2 可運作探測**：`ops/phase2/operability_probe.py`（純 stdlib、唯讀、探測而非自陳）＋證據紀錄 `ops/phase2/OPERABILITY-PROBE-2026-07-21.md`。
 
-**git 座標**（`origin/main`，`github.com/tsaitsangchi/augur-constitution`）：
+**git 座標**（史料：當時 `augur-constitution`；現正典＝[tsaitsangchi/augur](https://github.com/tsaitsangchi/augur) monorepo）：
 * commit `9e1577f`：project-memory-mcp + 治理邊界。
 * commit `d754938`：索引範圍收斂 + 進度輸出。
 * Phase 2 探測工具與證據：**本次隨本檔一併提交**。
@@ -55,7 +55,7 @@
 
 ## 四、換另一台電腦接續：逐步清單
 
-1. **取碼**：`git clone https://github.com/tsaitsangchi/augur-constitution.git` → `cd` 進去 → `git fetch --tags`。
+1. **取碼**：`git clone https://github.com/tsaitsangchi/augur.git` → `cd` 進去 → `git fetch --tags`（治權+應用同倉）。
 2. **讀脈絡**：本檔 → `HANDOFF.md` → `LAYER-SEALING-SCHEDULE.md`。
 3. **本地推論**（若要用 local-llm / project-memory）：
    * 裝 ollama（注意目標機架構；GB10 為 aarch64）。
