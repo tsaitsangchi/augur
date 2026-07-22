@@ -11,7 +11,7 @@
 
 | 已就緒 | T1 待補 |
 |---|---|
-| ollama、GB10 GPU、三支 MCP、應用碼（`augur-code-work`） | PostgreSQL、qdrant、augur DB 還原、應用接線煙霧 |
+| ollama、GB10 GPU、三支 MCP、monorepo（`tools/`+`src/`） | PostgreSQL、qdrant、augur DB 還原、應用接線煙霧 |
 
 **執行手冊**：[`../../phase2/T1-GB10-FULLSTACK-RUNBOOK.md`](../../phase2/T1-GB10-FULLSTACK-RUNBOOK.md)（從第 0 步取證開始）。
 
@@ -26,9 +26,9 @@
 ## 使用
 
 ```bash
-cd /home/giga/augur          # 此機 repo 根（勿用他機路徑）
+# 終態根＝/home/giga/augur；過渡期若在 migrate 分支工作樹亦可
+cd "${AUGUR_ROOT:-/home/giga/augur}"
 ./ops/machines/packs/aitopatom-b96e/setup_check.sh
-# 可選：載入建議 env
 set -a && source ops/machines/packs/aitopatom-b96e/recommended.env && set +a
 ```
 

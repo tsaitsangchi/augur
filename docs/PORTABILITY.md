@@ -34,6 +34,11 @@
 ### 1. `.env`（環境變數）
 
 ```bash
+# 專案根（終態唯一工作樹）
+PROJECT_ROOT=/home/giga/augur
+# 過渡期若尚未收斂，可暫設為實際 clone 路徑，例如：
+# PROJECT_ROOT=/home/giga/augur-code-work
+
 # DB（psycopg2）——預設 localhost/5432/augur/augur
 DB_HOST=localhost
 DB_PORT=5432
@@ -41,13 +46,11 @@ DB_NAME=augur
 DB_USER=augur
 DB_PASSWORD=<新機器之密碼>
 
-# Ollama LLM 端點與模型——預設 localhost:11434 / qwen3:8b
+# Ollama LLM 端點與模型——預設 localhost:11434
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=<依新機器 GPU 選型，見下>
 ```
 > 對應：`core/config.py:42-46`、`advisor/ollama.py:24-25`。
-
-### 2. DB 內調校 config（依硬體重設）
 
 | config | 現機值(4GB GPU) | 換機器時 | 位置 |
 |---|---|---|---|

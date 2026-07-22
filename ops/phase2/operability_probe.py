@@ -11,7 +11,7 @@
 
 用法：
   python3 ops/phase2/operability_probe.py
-  AUGUR_CODE=/path/to/augur-code python3 ops/phase2/operability_probe.py   # 指定應用碼位置
+  AUGUR_ROOT=/path/to/augur python3 ops/phase2/operability_probe.py   # 指定 monorepo／應用根
 
 輸出：人可讀證據表；退出碼恆 0（探測工具不因「服務不在」而視為自身失敗）。
 """
@@ -123,18 +123,32 @@ def probe_mem_disk() -> tuple[str, str]:
 
 def probe_augur_code() -> tuple[str, str]:
     candidates = []
-    envp = os.getenv("AUGUR_CODE")
-    if envp:
-        candidates.append(envp)
+    for key in ("AUGUR_ROOT", "PROJECT_ROOT", "AUGUR_CODE"):
+        envp = os.getenv(key)
+        if envp:
+            candidates.append(envp)
+    # 本腳本位於 ops/phase2/ → monorepo 根為上兩層（合倉後應用碼即此根）
+    here = os.path.abspath(os.path.dirname(__file__))
+    monorepo_root = os.path.abspath(os.path.join(here, "..", ".."))
+    candidates.append(monorepo_root)
     candidates += [
-        "/home/giga/augur-code-work",
+        "/home/giga/augur",
+        "/home/giga/augur-code-work",  # 過渡
         "/home/giga/augur-archive/augur-code-latest",
         "/home/giga/augur/augur-code",
         os.path.expanduser("~/project/augur"),
         "/home/hugo/project/augur",
     ]
+    # 去重且保序
+    seen: set[str] = set()
+    uniq = []
+    for p in candidates:
+        if p and p not in seen:
+            seen.add(p)
+            uniq.append(p)
+    candidates = uniq
     _MARKERS = ("src", "scripts", "core", "advisor", "venv", ".env",
-                "requirements.txt", "pyproject.toml", ".git")
+                "requirements.txt", "pyproject.toml", ".git", "tools", "constitution")
     found = []
     for p in candidates:
         if p and os.path.isdir(p):

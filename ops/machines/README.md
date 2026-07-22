@@ -97,17 +97,17 @@ Sandbox 內量測會出現 GPU 被擋、systemd/PostgreSQL 誤判等假象——
 
 以下為**與機器無關**的專案需求（各機皆適用）。
 
-### augur-code（應用碼；本機路徑可能不同）
-- 套件：`pyproject.toml`（`name=augur`，requires-python ≥ 3.10）
+### public `augur` monorepo（應用 + 治權；終態唯一碼根）
+- 套件：`pyproject.toml`（`name=augur`，requires-python ≥ 3.10）＋ MCP／lint：`tools/`
 - 核心相依：`psycopg2-binary`、`pandas`、`polars`、`numpy`、`scikit-learn`、`xgboost`、`lightgbm`、`catboost`、`jieba`、`shap`
-- 各機需備：本機 `venv` + `.env`（**已 gitignore，勿提交**）
-- **GB10 現址**：`/home/giga/augur-code-work`（另有 archive／ref；正典副本待 Steward 認定）
-
-### augur-constitution（本 repo）
+- 各機需備：本機 `venv` + `.env`（**已 gitignore，勿提交**）；`PROJECT_ROOT`／`AUGUR_ROOT`＝本機 clone 根
+- **GB10 終態路徑**：`/home/giga/augur`（過渡：`augur-code-work` 上 `migrate/monorepo-learning` 直至步 4 收斂）
 - 三支 MCP：`constitution` / `local-llm` / `project-memory`（見上表可攜啟動）
 - 憲章 lint：`python3 -m tools.constitution_lint report`（於 **repo 根**執行；純 stdlib）
 - 語意索引：各機自建 `.project_memory/`（gitignore；`python3 -m tools.project_memory_mcp index`）
 
+### 歷史：獨立 `augur-constitution`（觀察期後廢止）
+- 內容已併入 public `augur` 之 `constitution/`／`specs/`／`ops/`／`tools/`；勿再以雙 remote 為正典。
 ---
 
 ## 與治理規格之關係

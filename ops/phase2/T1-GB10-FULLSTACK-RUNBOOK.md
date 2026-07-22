@@ -2,8 +2,9 @@
 
 * **性質**：[I] 營運手冊，不創設 [N] 義務；不取代 ENVIRONMENT-SPEC／L7.50（正式登錄仍待 Steward）。
 * **裁決**：2026-07-22 Steward 選 **T1**——PostgreSQL + qdrant + 應用 + ollama 皆落本機。
-* **正典應用碼（暫定，待書面確認）**：`/home/giga/augur-code-work`
-* **憲章／工具 repo**：`/home/giga/augur`
+* **正典碼根（終態）**：`/home/giga/augur`（public monorepo：應用 + 治權）
+* **過渡工作樹**：合倉收斂前可能暫在 `/home/giga/augur-code-work`（分支 `migrate/monorepo-learning`）
+* **路徑契約**：`.env` 的 `PROJECT_ROOT`／packs 的 `AUGUR_ROOT` 皆指向碼根；**勿**再假設 hugo 的 `$HOME/project/augur`
 * **架構約束**：全部套件／映像必須支援 **aarch64**。
 
 ---
@@ -27,11 +28,14 @@ hostname; uname -m; free -h | head -2; df -h / | tail -1
 docker --version
 groups | tr ' ' '\n' | grep -E 'docker|sudo' || true
 
-# 0.2 正典應用樹
-ls -la /home/giga/augur-code-work | head -30
-test -f /home/giga/augur-code-work/.env && echo "HAS_.env" || echo "NO_.env"
-test -d /home/giga/augur-code-work/.git && (cd /home/giga/augur-code-work && git remote -v && git branch -v | head -5)
-ls /home/giga/augur-code-work/pyproject.toml /home/giga/augur-code-work/requirements*.txt 2>/dev/null
+# 0.2 正典碼根（終態 /home/giga/augur；過渡可為 augur-code-work）
+ROOT="${AUGUR_ROOT:-/home/giga/augur}"
+[[ -d "$ROOT/src/augur" ]] || ROOT=/home/giga/augur-code-work
+ls -la "$ROOT" | head -30
+test -f "$ROOT/.env" && echo "HAS_.env" || echo "NO_.env"
+test -d "$ROOT/.git" && (cd "$ROOT" && git remote -v && git branch -v | head -5)
+ls "$ROOT/pyproject.toml" "$ROOT/requirements"*.txt 2>/dev/null
+test -d "$ROOT/tools/constitution_mcp" && echo "HAS_tools_mcp" || echo "NO_tools_mcp"
 
 # 0.3 本機是否已有 dump／備份（可能沒有——資料可能仍在 WSL2）
 find /home/giga -maxdepth 4 -type f \( -name '*.dump' -o -name '*augur*.sql*' -o -name '*.backup' \) 2>/dev/null | head -40
@@ -151,17 +155,20 @@ PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -U augur -d augur_sandbox \
 
 ---
 
-## 第 4 步｜應用接線（`augur-code-work`）
+## 第 4 步｜應用接線（碼根＝`PROJECT_ROOT`／`AUGUR_ROOT`）
 
 ```bash
-cd /home/giga/augur-code-work
+ROOT="${PROJECT_ROOT:-${AUGUR_ROOT:-/home/giga/augur}}"
+[[ -d "$ROOT/src/augur" ]] || ROOT=/home/giga/augur-code-work
+cd "$ROOT"
 
 # 4.1 .env（本機建立；gitignore）
 # 至少需要（鍵名以該專案實際為準——先 grep 再填）：
+#   PROJECT_ROOT=$ROOT
 #   DATABASE_URL=postgresql://augur:密碼@127.0.0.1:5432/augur
 #   QDRANT_URL=http://127.0.0.1:6333
 #   OLLAMA_URL=http://127.0.0.1:11434
-grep -E 'DATABASE|POSTGRES|QDRANT|OLLAMA|5432|6333' \
+grep -E 'DATABASE|POSTGRES|QDRANT|OLLAMA|5432|6333|PROJECT_ROOT' \
   .env.example .env.sample README* 2>/dev/null | head -40
 # 或：
 grep -RIn --include='*.py' --include='*.toml' --include='*.md' \

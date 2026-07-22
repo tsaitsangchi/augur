@@ -3,8 +3,8 @@
 ## 每次
 
 - [ ] `hostname` 顯示 `aitopatom-b96e`（否則停，改用對立機設定包）
-- [ ] `cd /home/giga/augur && git pull --ff-only && git fetch --tags`
-- [ ] `./ops/machines/packs/aitopatom-b96e/setup_check.sh` 全綠
+- [ ] `cd "${AUGUR_ROOT:-/home/giga/augur}" && git pull --ff-only && git fetch --tags`（過渡期可能是 `augur-code-work` 上的 migrate 分支）
+- [ ] `./ops/machines/packs/aitopatom-b96e/setup_check.sh` 通過（須見 monorepo：`tools/`+`src/`）
 - [ ] Cursor MCP 頁：`constitution` / `local-llm` / `project-memory` 皆 ready
 - [ ] `local_ask` 來源標記含 **`qwen3:30b-a3b`**（不是 4b）
 
@@ -15,11 +15,12 @@
 
 ## 勿在此機假設
 
-- [ ] 不要假設 PostgreSQL / qdrant 已起（目前 ABSENT）
-- [ ] 不要使用路徑 `/home/giga/augur/augur-constitution`（此機不存在）
+- [ ] 不要假設 PostgreSQL / qdrant 已起（T1 待補）
+- [ ] 不要使用路徑 `/home/giga/augur/augur-constitution`（已廢）
 - [ ] 不要套用 WSL2／GTX1650／15GiB 的模型或套件假設（架構為 **aarch64**）
+- [ ] 新腳本請用 `AUGUR_ROOT`／`PROJECT_ROOT`（＝`/home/giga/augur`），勿再假設雙目錄
 
 ## 密鑰（本機、不進 git）
 
-- [ ] `.env` 若需要已另行備置（gitignore）
+- [ ] `.env` 若需要已另行備置（gitignore）；`PROJECT_ROOT=/home/giga/augur`
 - [ ] 勿把 token 寫進本設定包
