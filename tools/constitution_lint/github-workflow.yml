@@ -1,0 +1,88 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# ⚠ 未接線（INERT）——**本檔不會被執行**
+#
+# GitHub Actions 僅執行 `.github/workflows/` 下之檔案；本檔位於 `tools/constitution_lint/`，
+# 故**不論 push 或 pull_request 皆不觸發**。下方 `on: push / pull_request` 係接線後之預定
+# 組態，**非現行事實**——本檔自身之形狀與生效中之 workflow 完全相同，單獨開啟本檔（或經
+# IDE 之 Actions 外掛）極易誤讀為 CI 已在每次 main push 上運作。實情：無任何 CI 執行本 linter。
+#
+# 啟用方式：見 `tools/constitution_lint/README.md`（接線一節）。
+#
+# ⚠ 接線前置（不得逕行複製至 .github/）：現行生效規格於 WM.44-LABEL 尚有未結之 error，
+# 照原樣接線將立即全紅（阻斷全部 push／PR）。應先經 Steward 裁決「先更正規格、或先核發
+# §8.4 期限豁免」——見 HANDOFF.md 待裁 #22。
+#
+# 【實測數量】
+#   產生指令（於 repo 根 /home/giga/augur/augur-constitution 執行）：
+#     python3 -m tools.constitution_lint report
+#   下列數字**由該指令導出並以 `--sync` 寫入**，非手抄；下列 lint 標記之值與 report 輸出
+#   不一致時，selftest 即 FAIL（`_binding_and_consistency`）。
+#
+#   （前版此處之產生指令為 `for f in specs/*-SPECIFICATION*.md; do … compliance "$f"; done`：
+#    該 glob 併入 specs/*-v0.1-draft.md **歸檔本**，實得 13 份/352，與其下表之七份/200 不符
+#    ——「修好」的 glob 自己是假的。受檢 corpus 之定義自本輪起寫在**程式**裡
+#    〔`report.corpus_files`：六份生效本＋尚無生效本之 draft；歸檔本除外〕，不再靠註解描述
+#    一個要靠人正確重打的 glob。）
+#
+#   結果：受檢規格 <!--lint:corpus_total-->7<!--/lint--> 份
+#         （生效本 <!--lint:corpus_effective-->7<!--/lint--> ＋ draft <!--lint:corpus_draft-->0<!--/lint-->）
+#         <!--lint:corpus_fail-->0<!--/lint--> FAIL / <!--lint:corpus_pass-->7<!--/lint--> PASS；
+#         error 合計 <!--lint:total_errors-->0<!--/lint--> 筆
+#         （全部為 WM.44-LABEL，非 LABEL error 為 <!--lint:non_label_errors-->0<!--/lint-->）
+#     L1 WORLD-MODEL          error  <!--lint:errors_L1-->0<!--/lint-->  ✅ PASS（唯一通過者）
+#     L2 ONTOLOGY             error  <!--lint:errors_L2-->0<!--/lint-->  ❌ FAIL（Annex TR 標題為 h1 致零覆蓋，強制發聲）
+#     L3 IDENTITY             error <!--lint:errors_L3-->0<!--/lint-->  ❌ FAIL
+#     L4 KNOWLEDGE-SYSTEM     error <!--lint:errors_L4-->0<!--/lint-->  ❌ FAIL
+#     L5 COGNITIVE-KERNEL     error <!--lint:errors_L5-->0<!--/lint-->  ❌ FAIL
+#     L6 AGENT-RUNTIME        error <!--lint:errors_L6-->0<!--/lint-->  ❌ FAIL
+#     L7 INFRASTRUCTURE(draft) error <!--lint:errors_L7-->0<!--/lint--> ❌ FAIL（draft，非生效規格）
+#   → 接線後將有 <!--lint:corpus_fail-->0<!--/lint--> 份規格擋下全部 push／PR。
+#     **其中 <!--lint:corpus_fail_effective-->0<!--/lint--> 份為已生效規格**（其餘為 L7 draft；
+#     二數不得混用——draft 之紅不動搖任何已生效規格之地位）。
+#
+# ⚠ 上列數字繫於**產生它們的那一次 gate**，非「現行」之 gate（「現行／工作區／HEAD」等
+#   相對詞不得寫進文件——HEAD 會移動，寫下它的那一刻起該詞即開始腐爛；本 repo 已三度栽於此）。
+#   數字所繫之 commit **不由本註解宣稱**，而由 `report` 輸出末尾之 `git HEAD` 行據實印出
+#   （工作區不乾淨時印 `<sha>+dirty`，明示該輸出無法僅由該 SHA 重現）。
+#   gate 一經再動（判準、母集、發聲義務），計數必變；**惟自本輪起無須人工重抄**：
+#   跑 `python3 -m tools.constitution_lint report --sync` 即更新，且忘記更新者由 selftest
+#   擋下（不一致即 FAIL）。此橫幅之前身即因轉抄未實測之數字而失準：其自附之「產生指令」
+#   `for f in specs/*-SPECIFICATION*.md; …` 實得 13 份/352，照辦者永遠得不到它下面那張表。
+# ══════════════════════════════════════════════════════════════════════════════
+
+name: constitution-lint
+
+# Augur §8.3 機器稽核 CI（骨架）——依《憲章展開總綱》§5.4、AUGUR-MC v1.3 §8.3。
+# compliance_lint 管規格生效（本 repo）；audit_lint 管 code 合憲（於 augur code repo 之 CI 接線，後續階段）。
+# 治權自動化止於「判定與阻擋」——本 CI 只報 finding／擋 error，決不改內容或自動 apply（P5.W2）。
+#
+# 骨架階段策略：selftest 與規格 compliance-lint **接線後**將設為必過（error 阻斷）；
+# warning/info 不阻斷。（現況：本檔未接線，且 compliance-lint 對生效規格尚未通過——
+# 「必過」為接線後之預定組態，非對現狀之陳述。selftest 現為全綠。）
+# linter 設為 merge-gate（強制）留待總綱階段 9（見 CONSTITUTIONAL-ROLLOUT-PLAN.md §六）。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 紅綠自檢（WM v1.0 綠 / 壞樣本紅）
+        run: python -m tools.constitution_lint --selftest
+      - name: compliance-lint 全規格（error 阻斷、warning 不阻斷）
+        shell: bash
+        run: |
+          # 受檢 corpus 之定義**只有一處**：`report.corpus_files`（六份生效本＋尚無生效本之
+          # draft；歸檔本除外）。前版此處為 `find specs -name '*.md'`，列舉 13 份（含 6 份
+          # 歸檔 draft），與本檔橫幅之七份/200 **不符**——CI 實際所檢與文件所載分家，正是
+          # 本工具要撲滅之病。改由 `report --files` 列舉，二者自此不可能再分家。
+          mapfile -t specs < <(python -m tools.constitution_lint report --files)
+          test "${#specs[@]}" -gt 0 || { echo "corpus 為空——report --files 異常"; exit 1; }
+          python -m tools.constitution_lint compliance "${specs[@]}"

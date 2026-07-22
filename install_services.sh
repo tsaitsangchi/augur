@@ -16,10 +16,13 @@
 #   bash install_services.sh --status     # 只印現況,不動
 #   bash install_services.sh --uninstall  # 停用+移除所有 augur-* unit(保留 .env/資料)
 set -u
-ROOT="$HOME/project/augur"
+# 路徑契約：PROJECT_ROOT／AUGUR_ROOT 優先；否則＝本腳本所在 repo 根（勿寫死 hugo 路徑）
+ROOT="${PROJECT_ROOT:-${AUGUR_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}}"
 UD="$HOME/.config/systemd/user"
 VENV="$ROOT/venv/bin/python"
-OLLAMA_BIN="$HOME/ollama/bin/ollama"
+OLLAMA_BIN="${OLLAMA_BIN:-$HOME/ollama/bin/ollama}"
+# qdrant 二進位：可覆寫；預設仍嘗試舊 ttai 路徑（各機可改用 docker／自備 binary）
+QDRANT_BIN="${QDRANT_BIN:-$HOME/project/ttai/.qdrant_server/qdrant}"
 UC() { systemctl --user "$@"; }
 
 if [ "${1:-}" = "--status" ]; then
@@ -69,7 +72,7 @@ svc augur-qdrant "augur Qdrant serving 索引 (:6333)" \
 Environment=QDRANT__SERVICE__HTTP_PORT=6333
 Environment=QDRANT__SERVICE__GRPC_PORT=6334
 Environment=QDRANT__TELEMETRY_DISABLED=true" \
-  "$HOME/project/ttai/.qdrant_server/qdrant"
+  "$QDRANT_BIN"
 # 1) ollama(最底層,無服務依賴;OLLAMA_MODELS 與 start_chat.sh 一致=~/ollama/models,非預設 ~/.ollama)
 svc augur-ollama "augur Ollama 模型後端 (:11434)" \
   "" "Environment=OLLAMA_MODELS=%h/ollama/models" \
