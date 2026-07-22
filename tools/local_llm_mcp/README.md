@@ -47,11 +47,14 @@ python3 -m tools.local_llm_mcp selftest     # 自測（stub 模式，無須 Olla
 | `OPENAI_API_KEY` | `EMPTY` | Bearer；vLLM 常不校验 |
 | `OLLAMA_MODEL`／`LLM_MODEL` | GB10→`qwen3-coder-next`；DESKTOP→`qwen3:4b` | 模型名（`LLM_MODEL` 優先） |
 | `OLLAMA_NUM_CTX` | GB10→`32768`；其他→`8192` | 僅 Ollama `options.num_ctx` |
-| `OPENAI_MAX_TOKENS` | `1024` | openai 路徑 max_tokens |
+| `OPENAI_MAX_TOKENS` | profile 內建或 1024 | openai 通用上限；可被下列分檔覆寫 |
+| `OPENAI_MAX_TOKENS_ASK` 等 | ask256／summarize512／extract512／research768／map384／reduce768 | per-tool max_tokens |
 | `OLLAMA_TEMPERATURE` | _(空)_ | 可選；兩後端皆可傳 |
 | `LOCAL_LLM_MCP_STUB` | _(空)_ | 設 `1` 走 stub，供無後端之自測 |
 
-**預設 mcp.json 仍用 Ollama。** 切 vLLM 見 `ops/phase2/VLLM-GB10.md`（煙霧通過前勿改預設）。
+openai 路徑會送 `chat_template_kwargs.enable_thinking=false`，並剝離回覆中的 `<think>…</think>`（剝後空→isError）。
+
+**倉庫 mcp.json 預設仍為 Ollama。** 改預設見 `reports/local_llm_vllm_default_plan_20260722.md`；運維／階梯見 `reports/local_llm_vllm_optimization_plan_20260722.md` 與 `ops/phase2/VLLM-GB10.md`。
 
 ## 紀律（selftest 逐項鎖）
 

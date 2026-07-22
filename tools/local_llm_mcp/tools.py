@@ -15,8 +15,32 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import re
 import urllib.error
 import urllib.request
+
+# Qwen3 等模型可能把推理鏈包在 <think>…</think>；濃縮任務應剝離以免佔 max_tokens。
+_THINK_BLOCK = re.compile(r"<think>[\s\S]*?</think>", re.IGNORECASE)
+_THINK_OPEN = re.compile(r"<think>[\s\S]*", re.IGNORECASE)
+
+_OPENAI_MAX_DEFAULTS = {
+    "ask": 256,
+    "summarize": 512,
+    "extract": 512,
+    "research": 768,
+    "map": 384,
+    "reduce": 768,
+    "default": 1024,
+}
+_OPENAI_MAX_ENV = {
+    "ask": "OPENAI_MAX_TOKENS_ASK",
+    "summarize": "OPENAI_MAX_TOKENS_SUMMARIZE",
+    "extract": "OPENAI_MAX_TOKENS_EXTRACT",
+    "research": "OPENAI_MAX_TOKENS_RESEARCH",
+    "map": "OPENAI_MAX_TOKENS_MAP",
+    "reduce": "OPENAI_MAX_TOKENS_REDUCE",
+    "default": "OPENAI_MAX_TOKENS",
+}
 
 _REPO = pathlib.Path(__file__).resolve().parents[2]
 
@@ -136,6 +160,28 @@ def _temperature() -> float | None:
         return None
 
 
+def _openai_max_tokens(profile: str = "default") -> int:
+    """依工具 profile 取 max_tokens；profile env > OPENAI_MAX_TOKENS > 內建預設。"""
+    key = _OPENAI_MAX_ENV.get(profile, "OPENAI_MAX_TOKENS")
+    raw = os.getenv(key)
+    if (raw is None or not str(raw).strip()) and profile != "default":
+        raw = os.getenv("OPENAI_MAX_TOKENS")
+    if raw is not None and str(raw).strip():
+        try:
+            return max(16, min(int(raw), 8192))
+        except (TypeError, ValueError):
+            pass
+    return _OPENAI_MAX_DEFAULTS.get(profile, 1024)
+
+
+def _strip_think(text: str) -> str:
+    """剝離完整／未閉合之 <think> 區塊；剝後空則由呼叫端 fail-loud。"""
+    out = _THINK_BLOCK.sub("", text)
+    if "<think>" in out.lower():
+        out = _THINK_OPEN.sub("", out)
+    return out.strip()
+
+
 def _generate_ollama(prompt: str, timeout: int) -> str:
     url = _ollama_url() + "/api/generate"
     options = {"num_ctx": _num_ctx()}
@@ -176,19 +222,17 @@ def _generate_ollama(prompt: str, timeout: int) -> str:
     return text
 
 
-def _generate_openai(prompt: str, timeout: int) -> str:
+def _generate_openai(prompt: str, timeout: int, profile: str = "default") -> str:
     """vLLM 等 OpenAI 相容：POST /v1/chat/completions。"""
     url = _openai_base_url() + "/chat/completions"
-    # 粗估：濃縮任務短輸出；可用 OPENAI_MAX_TOKENS 覆寫
-    try:
-        max_tokens = max(16, min(int(os.getenv("OPENAI_MAX_TOKENS", "1024")), 8192))
-    except (TypeError, ValueError):
-        max_tokens = 1024
-    payload = {
+    max_tokens = _openai_max_tokens(profile)
+    payload: dict = {
         "model": _llm_model(),
         "messages": [{"role": "user", "content": prompt}],
         "stream": False,
         "max_tokens": max_tokens,
+        # Qwen3：關閉 thinking，避免佔滿短 max_tokens（後端若不識此鍵通常忽略）
+        "chat_template_kwargs": {"enable_thinking": False},
     }
     t = _temperature()
     if t is not None:
@@ -222,17 +266,18 @@ def _generate_openai(prompt: str, timeout: int) -> str:
         text = (data["choices"][0]["message"]["content"] or "").strip()
     except (KeyError, IndexError, TypeError) as exc:
         raise LocalLLMError(f"OpenAI 相容回應缺 choices/message/content：{exc}") from exc
+    text = _strip_think(text)
     if not text:
-        raise LocalLLMError("OpenAI 相容回應為空")
+        raise LocalLLMError("OpenAI 相容回應為空（或僅含 think 區塊）")
     return text
 
 
-def _generate(prompt: str, timeout: int = 180) -> str:
+def _generate(prompt: str, timeout: int = 180, profile: str = "default") -> str:
     """依 LLM_BACKEND 送一趟推論。失敗發聲，不靜默降級。"""
     if _stub_enabled():
         return "STUB:" + prompt[:200].replace("\n", " ")
     if _llm_backend() == "openai":
-        return _generate_openai(prompt, timeout=timeout)
+        return _generate_openai(prompt, timeout=timeout, profile=profile)
     return _generate_ollama(prompt, timeout=timeout)
 
 
@@ -280,7 +325,7 @@ def local_summarize(text=None, path=None, max_sentences=5) -> str:
         f"請用繁體中文，最多 {n} 句，精簡摘要以下內容的重點，只輸出摘要本身，"
         f"不要前言或結語：\n\n{src}"
     )
-    return _decorate(_generate(prompt))
+    return _decorate(_generate(prompt, profile="summarize"))
 
 
 def local_extract(instruction, text=None, path=None) -> str:
@@ -292,7 +337,7 @@ def local_extract(instruction, text=None, path=None) -> str:
         "依下列指示從內容中抽取資訊，只輸出抽取結果、不要多餘說明：\n"
         f"指示：{instruction}\n\n內容：\n{src}"
     )
-    return _decorate(_generate(prompt))
+    return _decorate(_generate(prompt, profile="extract"))
 
 
 def local_ask(prompt, max_words=200) -> str:
@@ -304,7 +349,7 @@ def local_ask(prompt, max_words=200) -> str:
     except (TypeError, ValueError):
         raise LocalLLMError("max_words 須為整數")
     wrapped = f"請用繁體中文於 {w} 字以內回答，力求精簡：\n\n{prompt}"
-    return _decorate(_generate(wrapped))
+    return _decorate(_generate(wrapped, profile="ask"))
 
 
 def local_research(
@@ -376,7 +421,7 @@ def local_research(
         f"必須點名相關 path；不要臆造片段中沒有的事實。\n"
         f"問題：{query}\n\n片段：\n{corpus}"
     )
-    body = _generate(prompt, timeout=300)
+    body = _generate(prompt, timeout=300, profile="research")
     header = f"[local_research hops={hops} k={k} hits={len(accumulated)}]"
     return _decorate(f"{header}\n{body}")
 
@@ -409,7 +454,7 @@ def local_map_reduce(paths, instruction: str, max_sentences: int = 8) -> str:
             f"請用繁體中文最多 3 句摘要下列檔案重點，只輸出摘要：\n"
             f"檔案：{p}\n\n{src}"
         )
-        summary = _generate(map_prompt, timeout=300)
+        summary = _generate(map_prompt, timeout=300, profile="map")
         map_parts.append(f"### {p}\n{summary}")
 
     joined = "\n\n".join(map_parts)
@@ -417,6 +462,6 @@ def local_map_reduce(paths, instruction: str, max_sentences: int = 8) -> str:
         f"依下列指示，把多檔 map 摘要合併成繁體中文最多 {n} 句，只輸出結果：\n"
         f"指示：{instruction}\n\n各檔摘要：\n{joined}"
     )
-    reduced = _generate(reduce_prompt, timeout=300)
+    reduced = _generate(reduce_prompt, timeout=300, profile="reduce")
     header = f"[local_map_reduce files={len(paths)}]"
     return _decorate(f"{header}\n{reduced}")

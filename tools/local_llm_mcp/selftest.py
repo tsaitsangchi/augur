@@ -139,6 +139,26 @@ def _test_dual_backend_stub() -> None:
         _assert("STUB:" in out2, "openai stub 不應碰網")
 
 
+def _test_openai_client_helpers() -> None:
+    """P2：think 剝離、per-profile max_tokens。"""
+    _assert(tools._strip_think("hello") == "hello", "無 think 應原樣")
+    _assert(
+        tools._strip_think("<think>secret</think>\npong") == "pong",
+        "完整 think 應剝離",
+    )
+    _assert(
+        tools._strip_think("<think>\nincomplete only") == "",
+        "未閉合 think 剝後可空",
+    )
+    with _env(OPENAI_MAX_TOKENS=None, OPENAI_MAX_TOKENS_ASK=None):
+        _assert(tools._openai_max_tokens("ask") == 256, "ask 預設 256")
+        _assert(tools._openai_max_tokens("summarize") == 512, "summarize 預設 512")
+    with _env(OPENAI_MAX_TOKENS_ASK="128"):
+        _assert(tools._openai_max_tokens("ask") == 128, "ASK env 覆寫")
+    with _env(OPENAI_MAX_TOKENS="900", OPENAI_MAX_TOKENS_ASK=None):
+        _assert(tools._openai_max_tokens("ask") == 900, "通用 OPENAI_MAX_TOKENS 回退")
+
+
 def _test_provenance_and_governance() -> None:
     with _env(LOCAL_LLM_MCP_STUB="1", LLM_BACKEND="ollama"):
         out = tools.local_ask("測試", max_words=50)
@@ -277,6 +297,7 @@ def run() -> int:
     _test_no_write_tool()
     _test_host_default_model()
     _test_dual_backend_stub()
+    _test_openai_client_helpers()
     _test_provenance_and_governance()
     _test_tools_stub()
     _test_map_reduce_and_research_stub()

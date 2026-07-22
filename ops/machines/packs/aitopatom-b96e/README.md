@@ -38,4 +38,4 @@ cd "${AUGUR_ROOT:-/home/giga/augur}"
 set -a && source ops/machines/packs/aitopatom-b96e/recommended.env && set +a
 ```
 
-MCP：共享 `.cursor/mcp.json` 已可攜；**local-llm** 預設／釘死 **`qwen3-coder-next`**（`OLLAMA_NUM_CTX=32768`；可被 env 覆寫）。產品 UI 仍用 **`qwen3:30b-a3b`**。
+MCP：共享 `.cursor/mcp.json` 已可攜；**local-llm** 現行預設 **Ollama `qwen3-coder-next`**。改預設 vLLM 見 [`reports/local_llm_vllm_default_plan_20260722.md`](../../../reports/local_llm_vllm_default_plan_20260722.md)（待拍板）。**project-memory** embed 仍 **`nomic-embed-text`＠Ollama**。產品 UI 仍用 **`qwen3:30b-a3b`**。
