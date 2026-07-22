@@ -40,7 +40,7 @@ else
 fi
 
 TAGS="$(curl -sf http://127.0.0.1:11434/api/tags || true)"
-for m in "qwen3:30b-a3b" "nomic-embed-text"; do
+for m in "qwen3-coder-next" "qwen3:30b-a3b" "nomic-embed-text"; do
   if echo "$TAGS" | grep -q "$m"; then
     ok "模型已 pull：$m"
   else
@@ -49,7 +49,7 @@ for m in "qwen3:30b-a3b" "nomic-embed-text"; do
 done
 
 DEF="$(cd "$REPO" && python3 -c 'from tools.local_llm_mcp.tools import _ollama_model; print(_ollama_model())')"
-[[ "$DEF" == "qwen3:30b-a3b" ]] || fail "本機預設模型應為 qwen3:30b-a3b，實際=$DEF"
+[[ "$DEF" == "qwen3-coder-next" ]] || fail "本機預設模型應為 qwen3-coder-next，實際=$DEF"
 ok "local_llm 預設模型=$DEF"
 
 IDX="$REPO/.project_memory/index.db"

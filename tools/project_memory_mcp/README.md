@@ -20,8 +20,8 @@
 
 ## 工具（MCP 唯讀）
 
-* `recall {query, k=5, scope?}` → top-k 片段（附 `path:line`、`sim`、[I] 標記）。
-* `memory_status {}` → 檔數/chunk 數/嵌入模型/建立時間 ＋ 陳舊發聲（變更/刪除檔清單）。
+* `recall {query, k=5, scope?, mode=hybrid}` → top-k 片段（`hybrid`＝語意+FTS5 RRF；亦可 `semantic`／`keyword`；附 `path:line`、[I] 標記）。
+* `memory_status {}` → 檔數/chunk 數/嵌入模型/建立時間/FTS 狀態 ＋ 陳舊發聲。
 
 ## 建索引（CLI，寫入端；不經 MCP）
 

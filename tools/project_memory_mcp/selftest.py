@@ -149,25 +149,64 @@ def _test_end_to_end_stub() -> None:
             stats = index.build(root=str(root), db=dbp)
             _assert(stats["files"] == 2, f"應索引 2 檔（.env 排除），得 {stats['files']}")
             _assert(stats["chunks"] >= 3, f"chunk 數應 >=3，得 {stats['chunks']}")
+            _assert(store.has_fts(dbp), "新建索引應含 FTS5")
 
-            # recall：以與某 chunk 完全相同之字串查詢 → stub 向量相同 → cosine≈1、居首
-            out = recall.recall("unique marker sentence zzz", k=3, db=dbp)
+            # semantic：以與某 chunk 完全相同之字串查詢 → stub 向量相同 → cosine≈1、居首
+            out = recall.recall("unique marker sentence zzz", k=3, db=dbp, mode="semantic")
             _assert("exact.md" in out, "recall 應命中 exact.md")
             _assert("[I]" in out, "recall 結果應標 [I]")
-            _assert("sim=1.000" in out, f"完全相同查詢應 sim=1.000：\n{out}")
+            _assert("sem=1.000" in out, f"完全相同查詢應 sem=1.000：\n{out}")
+
+            # keyword：精確 token 應靠 FTS 命中
+            kw = recall.recall("zzz", k=3, db=dbp, mode="keyword")
+            _assert("exact.md" in kw, f"keyword 應命中 exact.md：\n{kw}")
+            _assert("kw=" in kw, f"keyword 模式應標 kw=：\n{kw}")
+
+            # hybrid 預設 + 結構化 API
+            hits = recall.recall_hits("unique marker sentence zzz", k=3, db=dbp, mode="hybrid")
+            _assert(hits and hits[0]["path"] == "exact.md", f"hybrid hits 應以 exact.md 居首：{hits}")
+            _assert(hits[0]["score_kind"] == "rrf", "hybrid score_kind 應為 rrf")
+            hyb = recall.recall("unique marker sentence zzz", k=3, db=dbp)
+            _assert("mode=hybrid" in hyb and "rrf=" in hyb, f"預設 hybrid 格式：\n{hyb}")
 
             # scope 過濾
-            scoped = recall.recall("quick brown fox", k=5, scope="notes", db=dbp)
+            scoped = recall.recall("quick brown fox", k=5, scope="notes", db=dbp, mode="semantic")
             _assert("exact.md" not in scoped, "scope=notes 應排除 exact.md")
 
             # memory_status：新鮮
             st = recall.memory_status(db=dbp, root=str(root))
             _assert("chunk 數：" in st and "新鮮" in st, f"應報新鮮：\n{st}")
+            _assert("fts：yes" in st, f"應報 fts：yes：\n{st}")
 
             # 陳舊發聲：改動來源檔後應偵測
             (root / "exact.md").write_text("changed content now", encoding="utf-8")
             st2 = recall.memory_status(db=dbp, root=str(root))
             _assert("過時" in st2 and "exact.md" in st2, f"應偵測 exact.md 過時：\n{st2}")
+
+
+def _test_fail_loud_missing_fts() -> None:
+    """缺 FTS 的舊索引：hybrid/keyword 須 fail-loud，不靜默退回 semantic。"""
+    import sqlite3
+
+    with tempfile.TemporaryDirectory() as d:
+        dbp = str(pathlib.Path(d) / "legacy.db")
+        conn = sqlite3.connect(dbp)
+        conn.executescript(
+            """
+            CREATE TABLE chunks (
+                id INTEGER PRIMARY KEY, path TEXT, start_line INTEGER, end_line INTEGER,
+                hash TEXT, text TEXT, summary TEXT, vector BLOB, dim INTEGER, model TEXT, mtime REAL
+            );
+            CREATE TABLE files (path TEXT PRIMARY KEY, hash TEXT, mtime REAL, chunk_count INTEGER);
+            CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+            """
+        )
+        conn.close()
+        try:
+            recall.recall("x", db=dbp, mode="hybrid")
+            raise AssertionError("缺 FTS 之 hybrid 應拋 RecallError")
+        except recall.RecallError as exc:
+            _assert("FTS5" in str(exc) or "chunks_fts" in str(exc), f"錯誤應點名 FTS：{exc}")
 
 
 def _test_fail_loud_missing_index() -> None:
@@ -193,6 +232,7 @@ def run() -> int:
     _test_read_write_separation()
     _test_end_to_end_stub()
     _test_fail_loud_missing_index()
+    _test_fail_loud_missing_fts()
     print("project-memory-mcp selftest: OK")
     return 0
 

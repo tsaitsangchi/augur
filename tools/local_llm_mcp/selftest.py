@@ -52,7 +52,14 @@ def _test_protocol() -> None:
 
     listed = server.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
     names = [t["name"] for t in listed["result"]["tools"]]
-    _assert(names == ["local_summarize", "local_extract", "local_ask"], f"工具清單不符：{names}")
+    expect = [
+        "local_summarize",
+        "local_extract",
+        "local_ask",
+        "local_research",
+        "local_map_reduce",
+    ]
+    _assert(names == expect, f"工具清單不符：{names}")
     _assert(all(n.startswith("local_") for n in names), "工具名前綴")
 
     _assert(server.handle({"method": "notifications/initialized"}) is None, "通知不回應")
@@ -65,7 +72,10 @@ def _test_no_write_tool() -> None:
     for name in server._DISPATCH:
         _assert(name.startswith("local_"), f"非唯讀語義之工具名：{name}")
 
+    skip = {"selftest.py"}  # 測試夾具可寫暫存；不屬實作層
     for py in _PKG.glob("*.py"):
+        if py.name in skip:
+            continue
         tree = ast.parse(py.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
@@ -91,6 +101,90 @@ def _test_host_default_model() -> None:
         _assert(isinstance(m, str) and len(m) > 0, "預設模型應非空")
     with _env(OLLAMA_MODEL="explicit-test-model"):
         _assert(tools._ollama_model() == "explicit-test-model", "OLLAMA_MODEL 應覆寫 hostname 預設")
+    with _env(OLLAMA_NUM_CTX="4096"):
+        _assert(tools._num_ctx() == 4096, "OLLAMA_NUM_CTX 應覆寫")
+    with _env(OLLAMA_NUM_CTX=None):
+        ctx = tools._num_ctx()
+        _assert(isinstance(ctx, int) and ctx >= 2048, f"預設 num_ctx 應合理：{ctx}")
+
+
+def _test_provenance_and_governance() -> None:
+    with _env(LOCAL_LLM_MCP_STUB="1"):
+        out = tools.local_ask("測試", max_words=50)
+    _assert("(local model:" in out, "缺來源標記")
+    _assert("[N] 治理文書" in out, "缺治理警告")
+    _assert("STUB:" in out, "stub 內容")
+
+
+def _test_tools_stub() -> None:
+    with _env(LOCAL_LLM_MCP_STUB="1"):
+        s = tools.local_summarize(text="很長的一段內容。" * 20, max_sentences=3)
+        _assert("(local model:" in s, "summarize 來源標記")
+
+        r = server.call_tool("local_summarize", {"path": "README.md", "max_sentences": 2})
+        _assert(not r.get("isError"), "以 repo 內檔案摘要應成功")
+
+        e = server.call_tool("local_extract", {"instruction": "列出重點", "text": "abc"})
+        _assert(not e.get("isError"), "extract 應成功")
+
+
+def _test_map_reduce_and_research_stub() -> None:
+    """map-reduce／research：stub 下功能面 + 治理拒絕。"""
+    import tempfile
+    from tools.project_memory_mcp import index as mem_index
+
+    with _env(LOCAL_LLM_MCP_STUB="1"):
+        mr = server.call_tool(
+            "local_map_reduce",
+            {
+                "paths": ["README.md", "tools/local_llm_mcp/README.md"],
+                "instruction": "各一句總結",
+                "max_sentences": 4,
+            },
+        )
+        _assert(not mr.get("isError"), f"map_reduce 應成功：{mr}")
+        text = mr["content"][0]["text"]
+        _assert("(local model:" in text and "local_map_reduce" in text, f"map_reduce 標記：\n{text}")
+
+        bad = server.call_tool(
+            "local_map_reduce",
+            {
+                "paths": ["constitution/META-CONSTITUTION.md", "README.md"],
+                "instruction": "x",
+            },
+        )
+        _assert(bad.get("isError"), "含治理 path 之 map_reduce 應 isError")
+        _assert("constitution-mcp" in bad["content"][0]["text"], "應導向 constitution-mcp")
+
+    # 臨時 root 建索引：path 為相對名；governance 以 REPO/rel 判定，一般非治理。
+    with tempfile.TemporaryDirectory() as d:
+        root = pathlib.Path(d)
+        (root / "notes.md").write_text(
+            "# Research\nentity registry backfill lifecycle retire\n",
+            encoding="utf-8",
+        )
+        dbp = str(root / "idx.db")
+        with _env(
+            LOCAL_LLM_MCP_STUB="1",
+            PROJECT_MEMORY_MCP_STUB="1",
+            MEMORY_DB=dbp,
+        ):
+            mem_index.build(root=str(root), db=dbp)
+            out = tools.local_research(
+                "entity registry backfill", k=3, hops=2, max_sentences=5
+            )
+            _assert("(local model:" in out, "research 來源標記")
+            _assert("local_research" in out, "research 標頭")
+            _assert(
+                "STUB:" in out or "查無相關" in out or "notes.md" in out,
+                f"research 內容：\n{out}",
+            )
+
+            r = server.call_tool(
+                "local_research",
+                {"query": "entity registry", "k": 2, "hops": 1},
+            )
+            _assert(not r.get("isError"), f"local_research server 應成功：{r}")
 
 
 def _test_provenance_and_governance() -> None:
@@ -163,6 +257,7 @@ def run() -> int:
     _test_host_default_model()
     _test_provenance_and_governance()
     _test_tools_stub()
+    _test_map_reduce_and_research_stub()
     _test_error_faces()
     _test_governance_exclusion()
     _test_fail_loud()

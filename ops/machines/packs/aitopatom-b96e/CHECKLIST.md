@@ -6,7 +6,7 @@
 - [ ] `cd "${AUGUR_ROOT:-/home/giga/augur}" && git pull --ff-only && git fetch --tags`（過渡期可能是 `augur-code-work` 上的 migrate 分支）
 - [ ] `./ops/machines/packs/aitopatom-b96e/setup_check.sh` 通過（須見 monorepo：`tools/`+`src/`）
 - [ ] Cursor MCP 頁：`constitution` / `local-llm` / `project-memory` 皆 ready（改過 `.cursor/mcp.json` 後須**完整重啟 Cursor**才會掛上）
-- [ ] `local_ask` 來源標記含 **`qwen3:30b-a3b`**（不是 4b）
+- [ ] `local_ask` 來源標記含 **`qwen3-coder-next`**（不是 4b）
 
 ## 改過大量檔案後
 

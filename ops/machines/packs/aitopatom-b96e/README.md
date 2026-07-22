@@ -38,4 +38,4 @@ cd "${AUGUR_ROOT:-/home/giga/augur}"
 set -a && source ops/machines/packs/aitopatom-b96e/recommended.env && set +a
 ```
 
-MCP：共享 `.cursor/mcp.json` 已可攜；模型由 `tools/local_llm_mcp/tools.py` **依 hostname 預設 `qwen3:30b-a3b`**（可被 `OLLAMA_MODEL` 覆寫）。
+MCP：共享 `.cursor/mcp.json` 已可攜；**local-llm** 預設／釘死 **`qwen3-coder-next`**（`OLLAMA_NUM_CTX=32768`；可被 env 覆寫）。產品 UI 仍用 **`qwen3:30b-a3b`**。

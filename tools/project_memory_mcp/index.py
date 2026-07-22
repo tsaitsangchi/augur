@@ -40,6 +40,12 @@ CREATE TABLE IF NOT EXISTS meta (
     value TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_chunks_path ON chunks(path);
+CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
+    path,
+    text,
+    content='chunks',
+    content_rowid='id'
+);
 """
 
 
@@ -95,10 +101,15 @@ def build(root: Optional[str] = None, db: Optional[str] = None, batch: int = 32,
             vectors = embed.embed(pending_text)
             for (rel, s, e, chash, text, mt), vec in zip(pending_meta, vectors):
                 blob = array.array("f", vec).tobytes()
-                conn.execute(
+                cur = conn.execute(
                     "INSERT INTO chunks(path,start_line,end_line,hash,text,summary,vector,dim,model,mtime)"
                     " VALUES(?,?,?,?,?,?,?,?,?,?)",
                     (rel, s, e, chash, text, None, blob, len(vec), embed.embed_model(), mt),
+                )
+                # FTS5 external-content：須手動同步 rowid／path／text
+                conn.execute(
+                    "INSERT INTO chunks_fts(rowid, path, text) VALUES (?,?,?)",
+                    (cur.lastrowid, rel, text),
                 )
                 n_chunks += 1
             pending_text.clear()
@@ -135,6 +146,10 @@ def build(root: Optional[str] = None, db: Optional[str] = None, batch: int = 32,
         conn.execute(
             "INSERT OR REPLACE INTO meta(key,value) VALUES('built_at',?)",
             (time.strftime("%Y-%m-%dT%H:%M:%S%z"),),
+        )
+        conn.execute(
+            "INSERT OR REPLACE INTO meta(key,value) VALUES('search_schema',?)",
+            ("fts5-v1",),
         )
         conn.commit()
     finally:

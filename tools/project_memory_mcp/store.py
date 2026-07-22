@@ -10,12 +10,16 @@ from __future__ import annotations
 import array
 import math
 import os
+import re
 import sqlite3
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 from . import govern
 
 DEFAULT_DB = str(govern.REPO / ".project_memory" / "index.db")
+
+# FTS5 查詢用：英數／底線／CJK 連續字元
+_FTS_TOKEN = re.compile(r"[A-Za-z0-9_\u4e00-\u9fff]+")
 
 
 class MemoryStoreError(Exception):
@@ -46,6 +50,26 @@ def _decode_vec(blob: bytes) -> List[float]:
     return a.tolist()
 
 
+def has_fts(path: str) -> bool:
+    """索引是否含 FTS5 表（中期強化後必備；舊索引需重建）。"""
+    conn = _connect(path)
+    try:
+        row = conn.execute(
+            "SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name='chunks_fts'"
+        ).fetchone()
+        return row is not None
+    finally:
+        conn.close()
+
+
+def require_fts(path: str) -> None:
+    if not has_fts(path):
+        raise MemoryStoreError(
+            f"索引缺 FTS5（chunks_fts @ {path}）：請重建 "
+            "`python3 -m tools.project_memory_mcp index`（不靜默退回純語意）。"
+        )
+
+
 def load_all(path: str) -> List[dict]:
     """載入全部 chunk（含解碼向量）。規模數千列，暴力載入即可。"""
     conn = _connect(path)
@@ -71,12 +95,100 @@ def load_all(path: str) -> List[dict]:
     return out
 
 
+def load_by_ids(path: str, ids: List[int]) -> Dict[int, dict]:
+    """依 id 批次載入 chunk（含向量）。"""
+    if not ids:
+        return {}
+    conn = _connect(path)
+    try:
+        # 僅允許整數 id，防注入
+        clean = [int(i) for i in ids]
+        placeholders = ",".join("?" * len(clean))
+        rows = conn.execute(
+            f"SELECT id, path, start_line, end_line, text, summary, vector FROM chunks "
+            f"WHERE id IN ({placeholders})",
+            clean,
+        ).fetchall()
+    finally:
+        conn.close()
+    out: Dict[int, dict] = {}
+    for r in rows:
+        out[int(r["id"])] = {
+            "id": r["id"],
+            "path": r["path"],
+            "start_line": r["start_line"],
+            "end_line": r["end_line"],
+            "text": r["text"],
+            "summary": r["summary"],
+            "vector": _decode_vec(r["vector"]),
+        }
+    return out
+
+
+def fts_query_from_text(query: str) -> Optional[str]:
+    """把自然語言轉成安全的 FTS5 MATCH 字串（token OR）；無可用 token 回 None。"""
+    if not isinstance(query, str) or not query.strip():
+        return None
+    tokens: List[str] = []
+    for raw in _FTS_TOKEN.findall(query):
+        t = raw.strip()
+        if len(t) < 2:
+            continue
+        # 雙引號包住，並去掉內部雙引號，避免 MATCH 語法注入
+        safe = t.replace('"', "")
+        if len(safe) < 2:
+            continue
+        tokens.append(f'"{safe}"')
+        if len(tokens) >= 12:
+            break
+    if not tokens:
+        return None
+    return " OR ".join(tokens)
+
+
+def fts_search(path: str, query: str, limit: int = 30) -> List[Tuple[int, float]]:
+    """FTS5 關鍵字搜尋。回 [(chunk_id, bm25_rank_score)]，分數愈高愈相關。
+
+    SQLite bm25() 愈小愈好；此處轉成 -bm25 以便與「愈高愈好」一致。
+    """
+    require_fts(path)
+    match = fts_query_from_text(query)
+    if not match:
+        return []
+    try:
+        lim = max(1, min(int(limit), 200))
+    except (TypeError, ValueError):
+        lim = 30
+
+    conn = _connect(path)
+    try:
+        rows = conn.execute(
+            "SELECT rowid AS id, bm25(chunks_fts) AS rank "
+            "FROM chunks_fts WHERE chunks_fts MATCH ? "
+            "ORDER BY rank LIMIT ?",
+            (match, lim),
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        raise MemoryStoreError(f"FTS5 查詢失敗：{exc}") from exc
+    finally:
+        conn.close()
+
+    out: List[Tuple[int, float]] = []
+    for r in rows:
+        # bm25 愈小愈好 → 取負值當「相關分」
+        out.append((int(r["id"]), float(-r["rank"])))
+    return out
+
+
 def counts(path: str) -> Dict[str, object]:
     conn = _connect(path)
     try:
         n_chunks = conn.execute("SELECT COUNT(*) AS c FROM chunks").fetchone()["c"]
         n_files = conn.execute("SELECT COUNT(*) AS c FROM files").fetchone()["c"]
         meta = {row["key"]: row["value"] for row in conn.execute("SELECT key, value FROM meta")}
+        has = conn.execute(
+            "SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name='chunks_fts'"
+        ).fetchone()
     finally:
         conn.close()
     return {
@@ -84,6 +196,8 @@ def counts(path: str) -> Dict[str, object]:
         "chunks": n_chunks,
         "embed_model": meta.get("embed_model", "?"),
         "built_at": meta.get("built_at", "?"),
+        "search_schema": meta.get("search_schema", "legacy" if not has else "fts5?"),
+        "has_fts": bool(has),
     }
 
 

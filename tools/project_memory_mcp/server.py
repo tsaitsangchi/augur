@@ -18,9 +18,10 @@ TOOLS = [
     {
         "name": "recall",
         "description": (
-            "在全 repo 非治理輔助語料的語意索引中，找出與 query 最相關的 top-k 片段"
-            "（附 path:line 出處，省 Cursor context）。結果為 [I] 輔助；治理條款精確原文請經 "
-            "constitution-mcp。索引不存在或嵌入服務不可達時回錯誤，不靜默回空。"
+            "在全 repo 非治理輔助語料的索引中，找出與 query 最相關的 top-k 片段"
+            "（預設 hybrid＝語意+FTS5 RRF；附 path:line 出處，省 Cursor context）。"
+            "結果為 [I] 輔助；治理條款精確原文請經 constitution-mcp。"
+            "索引不存在、缺 FTS、或嵌入服務不可達時回錯誤，不靜默回空。"
         ),
         "inputSchema": {
             "type": "object",
@@ -28,6 +29,10 @@ TOOLS = [
                 "query": {"type": "string", "description": "自然語言查詢"},
                 "k": {"type": "integer", "description": "回傳片段數（預設 5，上限 20）"},
                 "scope": {"type": "string", "description": "可選：限定相對路徑前綴，如 reports/"},
+                "mode": {
+                    "type": "string",
+                    "description": "hybrid（預設）｜semantic｜keyword",
+                },
             },
             "required": ["query"],
         },
@@ -35,7 +40,7 @@ TOOLS = [
     {
         "name": "memory_status",
         "description": (
-            "回索引現況：檔數、chunk 數、嵌入模型、建立時間，並列出來源檔已變更/刪除者"
+            "回索引現況：檔數、chunk 數、嵌入模型、建立時間、FTS 狀態，並列出來源檔已變更/刪除者"
             "（陳舊發聲）。索引不存在時回錯誤。"
         ),
         "inputSchema": {"type": "object", "properties": {}},
@@ -44,7 +49,10 @@ TOOLS = [
 
 _DISPATCH = {
     "recall": lambda a: recall.recall(
-        a["query"], k=a.get("k", 5), scope=a.get("scope")
+        a["query"],
+        k=a.get("k", 5),
+        scope=a.get("scope"),
+        mode=a.get("mode", "hybrid"),
     ),
     "memory_status": lambda a: recall.memory_status(),
 }

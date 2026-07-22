@@ -49,5 +49,5 @@ Cortex-A725（n/a 核 / 20 緒） |
 - **服務（2026-07-22）**：ollama ✅；qdrant ✅（native `~/qdrant` v1.18.3 :6333）；PostgreSQL ✅（micromamba `augur-pg` userspace :5432，pgvector 0.8.1；資料目錄 `/home/giga/augur-data/postgres`）。**開機常駐**：`systemctl --user` `augur-postgres`／`augur-qdrant`（linger；範本 `ops/phase2/systemd/`）；手動 fallback：`pg_userspace.sh`／`qdrant_userspace.sh`。docker 需 sudo 密碼→未用容器 PG。
 - **應用**：`venv/` 已 `pip install -e .`；`import augur` OK；庫已還原（見 smoke 紀錄）。
 - **dump／還原**：見 `ops/phase2/SMOKE-aitopatom-b96e-20260722.md`。
-- **建議 OLLAMA_MODEL**：`qwen3:30b-a3b`。
+- **建議 OLLAMA_MODEL（MCP）**：`qwen3-coder-next`（`OLLAMA_NUM_CTX=32768`）。產品 UI 另用 `qwen3:30b-a3b`。
 <!-- NOTES:END -->

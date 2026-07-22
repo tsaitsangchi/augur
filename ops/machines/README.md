@@ -54,7 +54,7 @@
 | PostgreSQL | **未安裝** | **17.10** online |
 | ollama | **0.32.1**（qwen3:30b-a3b 等） | （未安裝） |
 | docker | 29.2.1 | （未安裝） |
-| 建議 `OLLAMA_MODEL` | **`qwen3:30b-a3b`** | **`qwen3:4b`**（若日後裝 ollama） |
+| 建議 `OLLAMA_MODEL`（MCP） | **`qwen3-coder-next`**（UI 另用 `qwen3:30b-a3b`） | **`qwen3:4b`**（若日後裝 ollama） |
 | repo 根（此使用者） | `/home/giga/augur` | 依該機 clone 路徑（勿寫死進共享設定） |
 
 > **架構不同 → 二進位不可共用**：torch wheel、`nvcc -arch`、部分 PostgreSQL 擴充、原生 CUDA 測試產物，必須各機依自身架構安裝／編譯。
@@ -84,7 +84,7 @@ Sandbox 內量測會出現 GPU 被擋、systemd/PostgreSQL 誤判等假象——
 | Server | 啟動 | 本機差異如何處理 |
 |---|---|---|
 | constitution | `python3 -m tools.constitution_mcp` | 無 |
-| local-llm | `python3 -m tools.local_llm_mcp` | **`tools.py` 依 hostname 選預設模型**（GB10→`qwen3:30b-a3b`；WSL2→`qwen3:4b`）；可被環境變數 `OLLAMA_MODEL` 覆寫 |
+| local-llm | `python3 -m tools.local_llm_mcp` | **`tools.py` 依 hostname 選預設模型**（GB10→`qwen3-coder-next`；WSL2→`qwen3:4b`）；可被 `OLLAMA_MODEL` 覆寫；GB10 建議 `OLLAMA_NUM_CTX=32768` |
 | project-memory | `python3 -m tools.project_memory_mcp` | `EMBED_MODEL=nomic-embed-text` |
 
 > 曾試過 `bash tools/run_*.sh`：部分 Cursor 啟動環境 cwd 不穩導致**三支 MCP 全未掛載**（2026-07-22 實測）。故改回 `python3 -m`，機器差異改由 Python 內判定。`tools/run_*.sh` 仍保留供終端手動啟動。

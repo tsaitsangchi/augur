@@ -14,7 +14,7 @@ import traceback
 from . import tools
 
 PROTOCOL_VERSION = "2024-11-05"
-SERVER_INFO = {"name": "local-llm", "version": "0.1.0"}
+SERVER_INFO = {"name": "local-llm", "version": "0.2.0"}
 
 TOOLS = [
     {
@@ -63,6 +63,44 @@ TOOLS = [
             "required": ["prompt"],
         },
     },
+    {
+        "name": "local_research",
+        "description": (
+            "多跳研究：project-memory hybrid 檢索 → 擴 query 再檢 → 本地模型濃縮成短答。"
+            "適合跨檔探問；輸出 [I] 輔助並附命中統計。治理原文請走 constitution-mcp。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "研究問題"},
+                "k": {"type": "integer", "description": "每跳取回片段數（預設 5，上限 20）"},
+                "hops": {"type": "integer", "description": "跳數（預設 2，上限 3）"},
+                "scope": {"type": "string", "description": "可選路徑前綴，如 ops/"},
+                "max_sentences": {"type": "integer", "description": "濃縮句數上限（預設 8）"},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "local_map_reduce",
+        "description": (
+            "多檔 map-reduce 濃縮：逐檔短摘要後依 instruction 合併。"
+            "paths 上限 12；任一治理/越界/缺失路徑整次失敗。輸出 [I]。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "paths": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "repo 內相對路徑陣列（上限 12）",
+                },
+                "instruction": {"type": "string", "description": "合併指示"},
+                "max_sentences": {"type": "integer", "description": "合併輸出句數上限（預設 8）"},
+            },
+            "required": ["paths", "instruction"],
+        },
+    },
 ]
 
 _DISPATCH = {
@@ -73,6 +111,16 @@ _DISPATCH = {
         a["instruction"], text=a.get("text"), path=a.get("path")
     ),
     "local_ask": lambda a: tools.local_ask(a["prompt"], max_words=a.get("max_words", 200)),
+    "local_research": lambda a: tools.local_research(
+        a["query"],
+        k=a.get("k", 5),
+        hops=a.get("hops", 2),
+        scope=a.get("scope"),
+        max_sentences=a.get("max_sentences", 8),
+    ),
+    "local_map_reduce": lambda a: tools.local_map_reduce(
+        a["paths"], a["instruction"], max_sentences=a.get("max_sentences", 8)
+    ),
 }
 
 
