@@ -66,7 +66,7 @@ MCP 仍在 **repo 根** 以 `python3 -m tools…` 啟動時：遷目錄後須改
 | **3** | 改路徑：`.env.example`／`install_services`／packs／probe；`PROJECT_ROOT=/home/giga/augur` | selftest／setup_check／路徑契約正確（✅ 2026-07-22 @ `migrate/monorepo-learning`） |
 | **4** | **本機收斂**：以 `/home/giga/augur` 為唯一工作樹 `git remote` → `augur`；停用對 `augur-code-work` 的寫入 | 只在一個根開發（✅ 2026-07-22：`augur-code-work`→`/home/giga/augur`；舊 constitution 樹→`_archived_augur-constitution_20260722`） |
 | **5** | 觀察期：`augur-constitution` 改名 archived／read-only | 無他機死鏈（✅ 2026-07-22：rename→`augur-constitution-archived`＋GitHub archive 唯讀；舊 URL redirect；正典＝public `augur`） |
-| **6** | 刪 GitHub `augur-constitution`（可選再清本機 `_archived_augur-code-work`） | 確認無依賴 |
+| **6** | 刪 GitHub `augur-constitution`（可選再清本機 `_archived_augur-code-work`） | 確認無依賴（✅ 2026-07-22：遠端已不存在；DESKTOP=`PC002-S1800` 已改指） |
 
 **禁止：** 先刪 remote 再搬內容。
 
@@ -118,3 +118,13 @@ python3 -m tools.local_llm_mcp selftest
 * 本機舊樹：`/home/giga/_archived_augur-constitution_20260722/`（見同目錄 `OBSERVATION-STEP5.md`）。
 * **他機**：若仍追蹤舊 remote，改 clone／改 `origin` 至 public `augur`；勿再向 archived 倉 push。清單：[`../machines/packs/DESKTOP-8MQPFS8/RETARGET-TO-PUBLIC-AUGUR.md`](../machines/packs/DESKTOP-8MQPFS8/RETARGET-TO-PUBLIC-AUGUR.md)（須在 DESKTOP 本機執行；GB10 無直連代跑）。
 * **步 6**：DESKTOP 驗收貼回（見該檔 §C）後再刪遠端（本步不刪）。
+
+
+---
+
+## 8. 步 6 刪遠端紀錄（2026-07-22）
+
+* GitHub 已無 `tsaitsangchi/augur-constitution`／`augur-constitution-archived`（API 404；刪倉完成）。
+* 正典唯一遠端：`https://github.com/tsaitsangchi/augur`（`main` monorepo）。
+* 他機驗收：`PC002-S1800`（文件舊名 DESKTOP-8MQPFS8）`/home/hugo/project/augur` → `MONOREPO_OK`。
+* 本機可選清檔（**未自動刪**）：`/home/giga/_archived_augur-constitution_20260722`、`/home/giga/augur-constitution`、`/home/giga/augur-archive/augur-constitution-*`。
