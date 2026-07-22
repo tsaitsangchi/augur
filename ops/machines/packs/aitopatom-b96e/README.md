@@ -11,7 +11,7 @@
 
 | 已就緒 | T1 待補 |
 |---|---|
-| ollama、GB10 GPU、三支 MCP、monorepo（`tools/`+`src/`） | PostgreSQL、qdrant、augur DB 還原、應用接線煙霧 |
+| ollama、GB10 GPU、三支 MCP、monorepo（`tools/`+`src/`）、**qdrant :6333**、**PostgreSQL :5432**（userspace＋pgvector）、`venv`＋`import augur` | **DB dump 還原**（庫空 0 表）、應用／advisor 煙霧（有資料後） |
 
 **執行手冊**：[`../../phase2/T1-GB10-FULLSTACK-RUNBOOK.md`](../../phase2/T1-GB10-FULLSTACK-RUNBOOK.md)（從第 0 步取證開始）。
 

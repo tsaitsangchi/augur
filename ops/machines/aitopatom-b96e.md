@@ -42,12 +42,12 @@ Cortex-A725（n/a 核 / 20 緒） |
 ## 手動註記
 
 <!-- NOTES:START -->
-- **角色**：**T1 全執行節點目標**（治理 + 本地推論／語意記憶 + 本機 PG／qdrant／應用）；對立機 `DESKTOP-8MQPFS8` 設定不可混用。
-- **此機專用設定包**：`ops/machines/packs/aitopatom-b96e/`（`setup_check.sh`／`recommended.env`／CHECKLIST）。
-- **repo 根（終態）**：`/home/giga/augur`＝public monorepo（應用+治權）；勿使用 `/home/giga/augur/augur-constitution`。
-- **過渡**：合倉完成前工作樹可能暫在 `/home/giga/augur-code-work`（`migrate/monorepo-learning`）。
-- **建議 OLLAMA_MODEL**：`qwen3:30b-a3b`（`tools/local_llm_mcp/tools.py` 依 hostname 預設；可被 env 覆寫）。
-- **路徑契約**：`PROJECT_ROOT`／`AUGUR_ROOT`＝repo 根；`install_services.sh` 不再寫死 `$HOME/project/augur`。
-- **缺口**：PostgreSQL、qdrant 未起 → 全棧「真跑」未就緒（見 T1 手冊）。
-- **探測**：`python3 ops/phase2/operability_probe.py`
+- **角色**：**T1 進行中**——治理 + 本地推論 + **本機 PG／qdrant／應用碼**；資料還原待 DESKTOP dump。
+- **對立機**：`PC002-S1800`（文件舊名 DESKTOP-8MQPFS8；WSL2 · x86_64 · 有 PG 活庫／dump 來源）。
+- **此機專用設定包**：`ops/machines/packs/aitopatom-b96e/`。
+- **repo 根**：`/home/giga/augur`＝public monorepo。
+- **服務（2026-07-22）**：ollama ✅；qdrant ✅（native `~/qdrant` :6333）；PostgreSQL ✅（micromamba `augur-pg` userspace :5432，pgvector 0.8.1；資料目錄 `/home/giga/augur-data/postgres`；啟動腳本 `ops/phase2/pg_userspace.sh`）。docker 需 sudo 密碼→未用容器 PG。
+- **應用**：`venv/` 已 `pip install -e .`；`import augur` OK；庫空（0 public tables）——**缺 dump**。
+- **dump**：請自 DESKTOP `pg_dump -Fc` → `/home/giga/db_dumps/` → `import_database.sh --migrate`（見 `ops/phase2/SMOKE-aitopatom-b96e-20260722.md`）。
+- **建議 OLLAMA_MODEL**：`qwen3:30b-a3b`。
 <!-- NOTES:END -->
