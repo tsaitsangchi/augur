@@ -1,0 +1,15 @@
+[Unit]
+Description=Augur userspace PostgreSQL (micromamba augur-pg)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+Environment=PATH=/home/giga/mamba/envs/augur-pg/bin:/usr/bin:/bin
+ExecStart=/home/giga/mamba/envs/augur-pg/bin/pg_ctl -D /home/giga/augur-data/postgres -l /home/giga/augur-data/postgres.log -o "-p 5432" start
+ExecStop=/home/giga/mamba/envs/augur-pg/bin/pg_ctl -D /home/giga/augur-data/postgres stop -m fast
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

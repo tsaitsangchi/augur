@@ -1,0 +1,14 @@
+[Unit]
+Description=Augur userspace qdrant
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/giga/qdrant
+ExecStart=/home/giga/qdrant/qdrant --config-path /home/giga/qdrant/config.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

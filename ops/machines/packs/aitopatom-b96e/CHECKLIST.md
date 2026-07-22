@@ -13,9 +13,15 @@
 - [ ] `python3 -m tools.project_memory_mcp index`
 - [ ] `python3 -m tools.project_memory_mcp memory_status` → 新鮮
 
+## PostgreSQL / qdrant（開機常駐）
+
+- [ ] `systemctl --user status augur-postgres.service augur-qdrant.service --no-pager`（應 **active**；unit 範本在 `ops/phase2/systemd/`）
+- [ ] 手動備援：`bash ops/phase2/pg_userspace.sh status`／`bash ops/phase2/qdrant_userspace.sh status`
+- [ ] 驗證：`ss -ltn | grep -E '5432|6333'`；`pg_isready -h 127.0.0.1 -p 5432`；`curl -sf http://127.0.0.1:6333/`
+- [ ] LAN DBeaver：Host=`10.10.130.46` Port=`5432` DB=`augur`；`pg_hba` 含 `10.10.112.0/24`（與 `10.10.130.0/24`、`10.10.114.0/24`）
+
 ## 勿在此機假設
 
-- [ ] 不要假設 PostgreSQL / qdrant 已起（T1 待補）
 - [ ] 不要使用路徑 `/home/giga/augur/augur-constitution`（已廢）
 - [ ] 不要套用 WSL2／GTX1650／15GiB 的模型或套件假設（架構為 **aarch64**）
 - [ ] 新腳本請用 `AUGUR_ROOT`／`PROJECT_ROOT`（＝`/home/giga/augur`），勿再假設雙目錄

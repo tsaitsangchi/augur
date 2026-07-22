@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Prefer systemd --user unit augur-postgres.service for linger boot; this script is manual fallback.
 # T1：userspace PostgreSQL 17（micromamba）啟動／停止——免 sudo docker。
 set -euo pipefail
 export MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-/home/giga/mamba}"

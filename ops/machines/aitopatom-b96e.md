@@ -46,8 +46,8 @@ Cortex-A725（n/a 核 / 20 緒） |
 - **對立機**：`PC002-S1800`（文件舊名 DESKTOP-8MQPFS8；WSL2 · x86_64 · 有 PG 活庫／dump 來源）。
 - **此機專用設定包**：`ops/machines/packs/aitopatom-b96e/`。
 - **repo 根**：`/home/giga/augur`＝public monorepo。
-- **服務（2026-07-22）**：ollama ✅；qdrant ✅（native `~/qdrant` :6333）；PostgreSQL ✅（micromamba `augur-pg` userspace :5432，pgvector 0.8.1；資料目錄 `/home/giga/augur-data/postgres`；啟動腳本 `ops/phase2/pg_userspace.sh`）。docker 需 sudo 密碼→未用容器 PG。
-- **應用**：`venv/` 已 `pip install -e .`；`import augur` OK；庫空（0 public tables）——**缺 dump**。
-- **dump**：請自 DESKTOP `pg_dump -Fc` → `/home/giga/db_dumps/` → `import_database.sh --migrate`（見 `ops/phase2/SMOKE-aitopatom-b96e-20260722.md`）。
+- **服務（2026-07-22）**：ollama ✅；qdrant ✅（native `~/qdrant` v1.18.3 :6333）；PostgreSQL ✅（micromamba `augur-pg` userspace :5432，pgvector 0.8.1；資料目錄 `/home/giga/augur-data/postgres`）。**開機常駐**：`systemctl --user` `augur-postgres`／`augur-qdrant`（linger；範本 `ops/phase2/systemd/`）；手動 fallback：`pg_userspace.sh`／`qdrant_userspace.sh`。docker 需 sudo 密碼→未用容器 PG。
+- **應用**：`venv/` 已 `pip install -e .`；`import augur` OK；庫已還原（見 smoke 紀錄）。
+- **dump／還原**：見 `ops/phase2/SMOKE-aitopatom-b96e-20260722.md`。
 - **建議 OLLAMA_MODEL**：`qwen3:30b-a3b`。
 <!-- NOTES:END -->
