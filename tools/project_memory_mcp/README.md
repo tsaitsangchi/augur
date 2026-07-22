@@ -30,11 +30,15 @@
 ## 建索引（CLI，寫入端；不經 MCP）
 
 ```bash
-ollama pull nomic-embed-text          # 前置：嵌入模型（唯一需 pull）
-python3 -m tools.project_memory_mcp index          # 建/重建索引 → .project_memory/index.db
+ollama pull nomic-embed-text          # 前置：嵌入模型
+python3 -m tools.project_memory_mcp index          # 預設增量（SHA256）；無 DB 則全量
+python3 -m tools.project_memory_mcp index --full   # 刪 DB 後全量重建
 python3 -m tools.project_memory_mcp memory_status  # 看現況
 python3 -m tools.project_memory_mcp selftest       # stub 嵌入，無須 Ollama
 ```
+
+增量：檔案 hash 未變則 skip；新增／變更重切塊＋嵌入並同步 FTS；磁碟已刪路徑會 purge。
+`embed_model` 與索引 meta 不一致時強制全量（不靜默混嵌）。
 
 ## 設計紀律（皆有 selftest 斷言）
 
@@ -56,4 +60,4 @@ python3 -m tools.project_memory_mcp selftest       # stub 嵌入，無須 Ollama
 | `PROJECT_MEMORY_MCP_STUB` | （空） | `1` 啟用確定性 stub 嵌入（測試用） |
 
 索引 DB 為衍生物、不入 git；換機時 `git clone` → `ollama pull nomic-embed-text` →
-`index` 重建即得同一份記憶。
+`index`（或首次全量）即得同一份記憶。日常改檔後再跑 `index` 即可增量更新。

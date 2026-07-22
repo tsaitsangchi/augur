@@ -20,7 +20,7 @@ import urllib.request
 
 _REPO = pathlib.Path(__file__).resolve().parents[2]
 
-_PROVENANCE = "(local model: {model} @ {host})"
+_PROVENANCE = "(local model: {model} @ {backend}:{host})"
 _GOVERNANCE_WARNING = (
     "⚠ 本輸出為本地小模型生成，屬 [I] 輔助，不得原文貼入任何 [N] 治理文書。"
 )
@@ -53,15 +53,30 @@ def _is_governance_path(resolved: pathlib.Path) -> bool:
     return False
 
 
+def _llm_backend() -> str:
+    """ollama（預設）｜openai（vLLM 等 OpenAI 相容）。"""
+    raw = (os.getenv("LLM_BACKEND") or "ollama").strip().lower()
+    if raw in ("openai", "vllm"):
+        return "openai"
+    return "ollama"
+
+
 def _ollama_url() -> str:
     return os.getenv("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
 
 
+def _openai_base_url() -> str:
+    return os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:8000/v1").rstrip("/")
+
+
+def _openai_api_key() -> str:
+    return os.getenv("OPENAI_API_KEY", "EMPTY")
+
+
 def _default_model_for_host() -> str:
-    """兩機硬體不同：依 hostname 選預設模型（可被 OLLAMA_MODEL 覆寫）。
+    """兩機硬體不同：依 hostname 選預設模型（可被 OLLAMA_MODEL／LLM_MODEL 覆寫）。
 
     aitopatom-b96e（GB10）→ qwen3-coder-next；DESKTOP-8MQPFS8（GTX1650）→ qwen3:4b。
-    見 ops/machines/README.md。
     """
     import socket
     host = socket.gethostname()
@@ -72,8 +87,20 @@ def _default_model_for_host() -> str:
     return "qwen3:4b"
 
 
+def _llm_model() -> str:
+    """推論模型名：LLM_MODEL > OLLAMA_MODEL > hostname 預設。"""
+    return os.getenv("LLM_MODEL") or os.getenv("OLLAMA_MODEL") or _default_model_for_host()
+
+
 def _ollama_model() -> str:
-    return os.getenv("OLLAMA_MODEL") or _default_model_for_host()
+    """相容舊名：同 _llm_model。"""
+    return _llm_model()
+
+
+def _endpoint_label() -> str:
+    if _llm_backend() == "openai":
+        return _openai_base_url()
+    return _ollama_url()
 
 
 def _default_num_ctx() -> int:
@@ -99,22 +126,25 @@ def _stub_enabled() -> bool:
     return os.getenv("LOCAL_LLM_MCP_STUB", "").lower() in ("1", "true", "yes")
 
 
-def _generate(prompt: str, timeout: int = 180) -> str:
-    """對 Ollama 送一趟推論。失敗發聲（拋 LocalLLMError），不靜默降級。"""
-    if _stub_enabled():
-        return "STUB:" + prompt[:200].replace("\n", " ")
+def _temperature() -> float | None:
+    temp = os.getenv("OLLAMA_TEMPERATURE")
+    if temp is None or not str(temp).strip():
+        return None
+    try:
+        return float(temp)
+    except (TypeError, ValueError):
+        return None
 
+
+def _generate_ollama(prompt: str, timeout: int) -> str:
     url = _ollama_url() + "/api/generate"
     options = {"num_ctx": _num_ctx()}
-    temp = os.getenv("OLLAMA_TEMPERATURE")
-    if temp is not None and str(temp).strip():
-        try:
-            options["temperature"] = float(temp)
-        except (TypeError, ValueError):
-            pass
+    t = _temperature()
+    if t is not None:
+        options["temperature"] = t
     body = json.dumps(
         {
-            "model": _ollama_model(),
+            "model": _llm_model(),
             "prompt": prompt,
             "stream": False,
             "options": options,
@@ -126,14 +156,14 @@ def _generate(prompt: str, timeout: int = 180) -> str:
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode())
-    except urllib.error.HTTPError as exc:  # 可達但回錯（如 404 模型不存在）——須與「不可達」區分
+    except urllib.error.HTTPError as exc:
         detail = ""
         try:
             detail = exc.read().decode(errors="replace")[:200]
         except Exception:
             pass
         raise LocalLLMError(
-            f"Ollama 回 HTTP {exc.code}（模型是否已 pull？OLLAMA_MODEL={_ollama_model()}）：{detail}"
+            f"Ollama 回 HTTP {exc.code}（模型是否已 pull？model={_llm_model()}）：{detail}"
         ) from exc
     except (urllib.error.URLError, OSError, TimeoutError) as exc:
         raise LocalLLMError(f"Ollama 不可達（{_ollama_url()}）：{exc}") from exc
@@ -146,8 +176,72 @@ def _generate(prompt: str, timeout: int = 180) -> str:
     return text
 
 
+def _generate_openai(prompt: str, timeout: int) -> str:
+    """vLLM 等 OpenAI 相容：POST /v1/chat/completions。"""
+    url = _openai_base_url() + "/chat/completions"
+    # 粗估：濃縮任務短輸出；可用 OPENAI_MAX_TOKENS 覆寫
+    try:
+        max_tokens = max(16, min(int(os.getenv("OPENAI_MAX_TOKENS", "1024")), 8192))
+    except (TypeError, ValueError):
+        max_tokens = 1024
+    payload = {
+        "model": _llm_model(),
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": False,
+        "max_tokens": max_tokens,
+    }
+    t = _temperature()
+    if t is not None:
+        payload["temperature"] = t
+    body = json.dumps(payload).encode()
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {_openai_api_key()}",
+    }
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        try:
+            detail = exc.read().decode(errors="replace")[:200]
+        except Exception:
+            pass
+        raise LocalLLMError(
+            f"OpenAI 相容後端回 HTTP {exc.code}（{_openai_base_url()} model={_llm_model()}）：{detail}"
+        ) from exc
+    except (urllib.error.URLError, OSError, TimeoutError) as exc:
+        raise LocalLLMError(
+            f"OpenAI 相容後端不可達（{_openai_base_url()}）：{exc}"
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise LocalLLMError(f"OpenAI 相容回應非 JSON：{exc}") from exc
+
+    try:
+        text = (data["choices"][0]["message"]["content"] or "").strip()
+    except (KeyError, IndexError, TypeError) as exc:
+        raise LocalLLMError(f"OpenAI 相容回應缺 choices/message/content：{exc}") from exc
+    if not text:
+        raise LocalLLMError("OpenAI 相容回應為空")
+    return text
+
+
+def _generate(prompt: str, timeout: int = 180) -> str:
+    """依 LLM_BACKEND 送一趟推論。失敗發聲，不靜默降級。"""
+    if _stub_enabled():
+        return "STUB:" + prompt[:200].replace("\n", " ")
+    if _llm_backend() == "openai":
+        return _generate_openai(prompt, timeout=timeout)
+    return _generate_ollama(prompt, timeout=timeout)
+
+
 def _decorate(text: str) -> str:
-    prov = _PROVENANCE.format(model=_ollama_model(), host=_ollama_url())
+    prov = _PROVENANCE.format(
+        model=_llm_model(),
+        backend=_llm_backend(),
+        host=_endpoint_label(),
+    )
     return f"{prov}\n{_GOVERNANCE_WARNING}\n\n{text}"
 
 

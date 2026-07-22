@@ -1,8 +1,8 @@
 # local-llm-mcp
 
-把本地模型（Ollama）當 Cursor 的**「濃縮型」工具**——將「輸入大、輸出小」的粗重子任務丟給本地 qwen3，只把短結果回給 Cursor agent，藉此降低 Cursor 的 context/token。設計見 [../../reports/LOCAL-LLM-MCP-OPTIMIZATION-PLAN.md](../../reports/LOCAL-LLM-MCP-OPTIMIZATION-PLAN.md)。
+把本地模型當 Cursor 的**「濃縮型」工具**——將「輸入大、輸出小」的粗重子任務丟給本機推論後端，只把短結果回給 Cursor agent，藉此降低 Cursor 的 context/token。設計見 [../../reports/LOCAL-LLM-MCP-OPTIMIZATION-PLAN.md](../../reports/LOCAL-LLM-MCP-OPTIMIZATION-PLAN.md)。
 
-**純 stdlib、stdio JSON-RPC 2.0**（體例同 `tools/constitution_mcp`）。唯一副作用為對 Ollama 之唯讀推論呼叫。
+**純 stdlib、stdio JSON-RPC 2.0**（體例同 `tools/constitution_mcp`）。唯一副作用為對本機後端之唯讀推論呼叫（預設 Ollama `/api/generate`；可選 OpenAI 相容 `/v1/chat/completions` 供 vLLM）。
 
 ## 使用
 
@@ -41,16 +41,22 @@ python3 -m tools.local_llm_mcp selftest     # 自測（stub 模式，無須 Olla
 
 | 變數 | 預設 | 用途 |
 |---|---|---|
-| `OLLAMA_URL` | `http://127.0.0.1:11434` | 本地 LLM 端點 |
-| `OLLAMA_MODEL` | GB10→`qwen3-coder-next`；DESKTOP→`qwen3:4b` | 模型名（可覆寫） |
-| `OLLAMA_NUM_CTX` | GB10→`32768`；其他→`8192` | Ollama `options.num_ctx` |
-| `OLLAMA_TEMPERATURE` | _(空)_ | 可選；設了才傳入 options |
-| `LOCAL_LLM_MCP_STUB` | _(空)_ | 設 `1` 走 stub，供無 Ollama 之自測 |
+| `LLM_BACKEND` | `ollama` | `ollama` 或 `openai`／`vllm`（OpenAI 相容，供 vLLM） |
+| `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama 端點（backend=ollama） |
+| `OPENAI_BASE_URL` | `http://127.0.0.1:8000/v1` | vLLM 等 OpenAI 相容根（backend=openai） |
+| `OPENAI_API_KEY` | `EMPTY` | Bearer；vLLM 常不校验 |
+| `OLLAMA_MODEL`／`LLM_MODEL` | GB10→`qwen3-coder-next`；DESKTOP→`qwen3:4b` | 模型名（`LLM_MODEL` 優先） |
+| `OLLAMA_NUM_CTX` | GB10→`32768`；其他→`8192` | 僅 Ollama `options.num_ctx` |
+| `OPENAI_MAX_TOKENS` | `1024` | openai 路徑 max_tokens |
+| `OLLAMA_TEMPERATURE` | _(空)_ | 可選；兩後端皆可傳 |
+| `LOCAL_LLM_MCP_STUB` | _(空)_ | 設 `1` 走 stub，供無後端之自測 |
+
+**預設 mcp.json 仍用 Ollama。** 切 vLLM 見 `ops/phase2/VLLM-GB10.md`（煙霧通過前勿改預設）。
 
 ## 紀律（selftest 逐項鎖）
 
 1. **來源標記強制** —— 每筆輸出前置 `(local model: …)` 與「不得入 [N] 治理文書」警告。
-2. **失敗發聲** —— Ollama 不可達/空回應一律 `isError`，不靜默回 stub。
+2. **失敗發聲** —— 後端不可達/空回應一律 `isError`，不靜默回 stub（兩後端皆測）。
 3. **路徑封閉** —— 檔案輸入僅限 repo 內相對路徑（防目錄穿越）。
 4. **唯讀** —— 不提供寫入工具；以 **AST 掃描實作層**為權威判準。
 5. **治理語料排除** —— `constitution/`、生效 `specs/*-SPECIFICATION.md` 拒絕並導向 constitution-mcp。

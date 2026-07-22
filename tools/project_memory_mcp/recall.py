@@ -301,5 +301,8 @@ def memory_status(db: Optional[str] = None, root: Optional[str] = None) -> str:
         if missing:
             lines.append("來源已刪除（仍殘於索引）：")
             lines.extend(f"  - {p}" for p in missing[:50])
-        lines.append("請執行 `python3 -m tools.project_memory_mcp index` 重建。")
+        lines.append(
+            "請執行 `python3 -m tools.project_memory_mcp index`（增量）；"
+            "必要時 `index --full` 全量重建。"
+        )
     return "\n".join(lines)

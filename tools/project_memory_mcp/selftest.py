@@ -147,6 +147,7 @@ def _test_end_to_end_stub() -> None:
 
         with _env(PROJECT_MEMORY_MCP_STUB="1", MEMORY_DB=dbp):
             stats = index.build(root=str(root), db=dbp)
+            _assert(stats["mode"] == "full", f"首次無 DB 應全量，得 {stats['mode']}")
             _assert(stats["files"] == 2, f"應索引 2 檔（.env 排除），得 {stats['files']}")
             _assert(stats["chunks"] >= 3, f"chunk 數應 >=3，得 {stats['chunks']}")
             _assert(store.has_fts(dbp), "新建索引應含 FTS5")
@@ -202,6 +203,48 @@ def _test_end_to_end_stub() -> None:
             _assert("過時" in st2 and "exact.md" in st2, f"應偵測 exact.md 過時：\n{st2}")
 
 
+def _test_incremental_stub() -> None:
+    """增量：改檔 updated、刪檔 removed、--full 仍可用。"""
+    from . import index
+
+    with tempfile.TemporaryDirectory() as d:
+        root = pathlib.Path(d)
+        (root / "keep.md").write_text("alpha keep content stable", encoding="utf-8")
+        (root / "edit.md").write_text("beta original wording", encoding="utf-8")
+        (root / "gone.md").write_text("gamma will be deleted", encoding="utf-8")
+        dbp = str(root / "idx.db")
+
+        with _env(PROJECT_MEMORY_MCP_STUB="1", MEMORY_DB=dbp):
+            s0 = index.build(root=str(root), db=dbp)
+            _assert(s0["mode"] == "full" and s0["files"] == 3, f"首次全量 3 檔：{s0}")
+
+            # 無變更 → 全 skip
+            s1 = index.build(root=str(root), db=dbp)
+            _assert(s1["mode"] == "incremental", f"應增量：{s1}")
+            _assert(s1["skipped"] == 3 and s1["updated"] == 0 and s1["added"] == 0, f"全 skip：{s1}")
+
+            # 改一檔
+            (root / "edit.md").write_text(
+                "beta revised uniquephrase999 wording", encoding="utf-8"
+            )
+            s2 = index.build(root=str(root), db=dbp)
+            _assert(s2["updated"] == 1 and s2["skipped"] == 2, f"更新一檔：{s2}")
+            out = recall.recall("uniquephrase999", k=3, db=dbp, mode="keyword")
+            _assert("edit.md" in out, f"增量後 keyword 應命中新內容：\n{out}")
+
+            # 刪一檔
+            (root / "gone.md").unlink()
+            s3 = index.build(root=str(root), db=dbp)
+            _assert(s3["removed"] == 1 and s3["files"] == 2, f"刪檔：{s3}")
+            gone = recall.recall("gamma will be deleted", k=5, db=dbp, mode="keyword")
+            _assert("gone.md" not in gone, f"刪後不應命中 gone.md：\n{gone}")
+
+            # full 重建
+            s4 = index.build(root=str(root), db=dbp, full=True)
+            _assert(s4["mode"] == "full" and s4["files"] == 2, f"full：{s4}")
+            _assert(store.has_fts(dbp), "full 後仍有 FTS")
+
+
 def _test_fail_loud_missing_fts() -> None:
     """缺 FTS 的舊索引：hybrid/keyword 須 fail-loud，不靜默退回 semantic。"""
     import sqlite3
@@ -249,6 +292,7 @@ def run() -> int:
     _test_should_index_denylist()
     _test_read_write_separation()
     _test_end_to_end_stub()
+    _test_incremental_stub()
     _test_fail_loud_missing_index()
     _test_fail_loud_missing_fts()
     print("project-memory-mcp selftest: OK")

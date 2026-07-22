@@ -94,24 +94,56 @@ def _test_no_write_tool() -> None:
 
 
 def _test_host_default_model() -> None:
-    """兩機模型預設：依 hostname（可被 OLLAMA_MODEL 覆寫）。"""
-    with _env(OLLAMA_MODEL=None):
-        # 不強制本機 hostname；只斷言「有預設且非空」，以及顯式 env 優先
+    """兩機模型預設：依 hostname（可被 LLM_MODEL／OLLAMA_MODEL 覆寫）。"""
+    with _env(OLLAMA_MODEL=None, LLM_MODEL=None):
         m = tools._ollama_model()
         _assert(isinstance(m, str) and len(m) > 0, "預設模型應非空")
-    with _env(OLLAMA_MODEL="explicit-test-model"):
+    with _env(OLLAMA_MODEL="explicit-test-model", LLM_MODEL=None):
         _assert(tools._ollama_model() == "explicit-test-model", "OLLAMA_MODEL 應覆寫 hostname 預設")
+    with _env(OLLAMA_MODEL="ollama-fallback", LLM_MODEL="llm-wins"):
+        _assert(tools._llm_model() == "llm-wins", "LLM_MODEL 應優先於 OLLAMA_MODEL")
     with _env(OLLAMA_NUM_CTX="4096"):
         _assert(tools._num_ctx() == 4096, "OLLAMA_NUM_CTX 應覆寫")
     with _env(OLLAMA_NUM_CTX=None):
         ctx = tools._num_ctx()
         _assert(isinstance(ctx, int) and ctx >= 2048, f"預設 num_ctx 應合理：{ctx}")
+    with _env(LLM_BACKEND=None):
+        _assert(tools._llm_backend() == "ollama", "LLM_BACKEND 預設 ollama")
+    with _env(LLM_BACKEND="vllm"):
+        _assert(tools._llm_backend() == "openai", "vllm 別名應正規化為 openai")
+
+
+def _test_dual_backend_stub() -> None:
+    """stub 下兩後端皆不碰網；provenance 含 backend:host。"""
+    with _env(
+        LOCAL_LLM_MCP_STUB="1",
+        LLM_BACKEND="ollama",
+        OLLAMA_URL="http://127.0.0.1:11434",
+        LLM_MODEL="stub-ollama-model",
+    ):
+        out = tools.local_ask("測試 ollama", max_words=50)
+        _assert("(local model: stub-ollama-model @ ollama:http://127.0.0.1:11434)" in out, f"ollama provenance：\n{out}")
+        _assert("STUB:" in out, "ollama stub 不應碰網")
+
+    with _env(
+        LOCAL_LLM_MCP_STUB="1",
+        LLM_BACKEND="openai",
+        OPENAI_BASE_URL="http://127.0.0.1:8000/v1",
+        LLM_MODEL="stub-openai-model",
+    ):
+        out2 = tools.local_ask("測試 openai", max_words=50)
+        _assert(
+            "(local model: stub-openai-model @ openai:http://127.0.0.1:8000/v1)" in out2,
+            f"openai provenance：\n{out2}",
+        )
+        _assert("STUB:" in out2, "openai stub 不應碰網")
 
 
 def _test_provenance_and_governance() -> None:
-    with _env(LOCAL_LLM_MCP_STUB="1"):
+    with _env(LOCAL_LLM_MCP_STUB="1", LLM_BACKEND="ollama"):
         out = tools.local_ask("測試", max_words=50)
     _assert("(local model:" in out, "缺來源標記")
+    _assert(" @ ollama:" in out, "provenance 缺 backend:host")
     _assert("[N] 治理文書" in out, "缺治理警告")
     _assert("STUB:" in out, "stub 內容")
 
@@ -187,26 +219,6 @@ def _test_map_reduce_and_research_stub() -> None:
             _assert(not r.get("isError"), f"local_research server 應成功：{r}")
 
 
-def _test_provenance_and_governance() -> None:
-    with _env(LOCAL_LLM_MCP_STUB="1"):
-        out = tools.local_ask("測試", max_words=50)
-    _assert("(local model:" in out, "缺來源標記")
-    _assert("[N] 治理文書" in out, "缺治理警告")
-    _assert("STUB:" in out, "stub 內容")
-
-
-def _test_tools_stub() -> None:
-    with _env(LOCAL_LLM_MCP_STUB="1"):
-        s = tools.local_summarize(text="很長的一段內容。" * 20, max_sentences=3)
-        _assert("(local model:" in s, "summarize 來源標記")
-
-        r = server.call_tool("local_summarize", {"path": "README.md", "max_sentences": 2})
-        _assert(not r.get("isError"), "以 repo 內檔案摘要應成功")
-
-        e = server.call_tool("local_extract", {"instruction": "列出重點", "text": "abc"})
-        _assert(not e.get("isError"), "extract 應成功")
-
-
 def _test_error_faces() -> None:
     with _env(LOCAL_LLM_MCP_STUB="1"):
         # 路徑封閉：越界
@@ -244,17 +256,27 @@ def _test_governance_exclusion() -> None:
 
 
 def _test_fail_loud() -> None:
-    """失敗發聲：Ollama 不可達須拋錯（isError），不靜默回 stub。"""
-    with _env(LOCAL_LLM_MCP_STUB=None, OLLAMA_URL="http://127.0.0.1:1"):
+    """失敗發聲：Ollama／openai 不可達須拋錯（isError），不靜默回 stub。"""
+    with _env(LOCAL_LLM_MCP_STUB=None, LLM_BACKEND="ollama", OLLAMA_URL="http://127.0.0.1:1"):
         r = server.call_tool("local_ask", {"prompt": "hi", "max_words": 10})
     _assert(r.get("isError"), "Ollama 不可達應 isError")
     _assert("不可達" in r["content"][0]["text"], "錯誤訊息應指明不可達")
+
+    with _env(
+        LOCAL_LLM_MCP_STUB=None,
+        LLM_BACKEND="openai",
+        OPENAI_BASE_URL="http://127.0.0.1:1/v1",
+    ):
+        r2 = server.call_tool("local_ask", {"prompt": "hi", "max_words": 10})
+    _assert(r2.get("isError"), "openai 死埠應 isError")
+    _assert("不可達" in r2["content"][0]["text"], "openai 錯誤應指明不可達")
 
 
 def run() -> int:
     _test_protocol()
     _test_no_write_tool()
     _test_host_default_model()
+    _test_dual_backend_stub()
     _test_provenance_and_governance()
     _test_tools_stub()
     _test_map_reduce_and_research_stub()

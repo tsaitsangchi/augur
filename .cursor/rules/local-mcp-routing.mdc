@@ -16,7 +16,7 @@ alwaysApply: true
 | 已知多個路徑要合併摘要 | `local_map_reduce`（paths≤12） |
 | 已知單一 path／貼上長文 | `local_summarize`／`local_extract` |
 | 只要片段＋`path:line` 出處 | `project-memory` → `recall`（預設 hybrid） |
-| 索引是否新鮮／有 FTS | `memory_status`；缺 FTS 或過舊 → 提示重建 `python3 -m tools.project_memory_mcp index` |
+| 索引是否新鮮／有 FTS | `memory_status`；缺 FTS 或過舊 → `python3 -m tools.project_memory_mcp index`（增量；必要時 `--full`） |
 
 ## 硬邊界
 

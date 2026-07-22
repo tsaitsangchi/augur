@@ -7,10 +7,11 @@
 - [ ] `./ops/machines/packs/aitopatom-b96e/setup_check.sh` 通過（須見 monorepo：`tools/`+`src/`）
 - [ ] Cursor MCP 頁：`constitution` / `local-llm` / `project-memory` 皆 ready（改過 `.cursor/mcp.json` 後須**完整重啟 Cursor**才會掛上）
 - [ ] `local_ask` 來源標記含 **`qwen3-coder-next`**（不是 4b）
+- [ ] （可選／雲端）`bash ops/phase2/cloud_mcp_preflight.sh`；見 `ops/phase2/CLOUD-AGENT-MCP-PREFLIGHT.md`
 
 ## 改過大量檔案後
 
-- [ ] `python3 -m tools.project_memory_mcp index`
+- [ ] `python3 -m tools.project_memory_mcp index`（增量；必要時 `--full`）
 - [ ] `python3 -m tools.project_memory_mcp memory_status` → 新鮮
 
 ## PostgreSQL / qdrant / UI（開機常駐）
