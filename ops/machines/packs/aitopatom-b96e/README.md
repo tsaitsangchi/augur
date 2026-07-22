@@ -11,7 +11,7 @@
 
 | 已就緒 | T1 待補 |
 |---|---|
-| ollama、GB10 GPU、三支 MCP、monorepo、**PG :5432**＋**DB 54 GB**、**qdrant :6333**、**UI 開機自啟**（`install_services_gb10.sh`：advisor `:8399`／chat `:8090`／admin `:8500`／probability `:8600`，模型 **`qwen3:30b-a3b`**）、`venv`、advisor 結構煙霧 PASS | LLM picks 段缺、`entity_registry` 空（可本機 backfill） |
+| ollama、GB10 GPU、三支 MCP、monorepo、**PG :5432**＋**DB 54 GB**、**qdrant :6333**、**UI 開機自啟**（`install_services_gb10.sh`，模型 **`qwen3:30b-a3b`**）、`venv`、advisor 結構煙霧 PASS、**entity_registry=3,491**（P5 序 backfill 2026-07-22） | LLM picks 段缺；remediation identity 補件尚未併 main |
 
 **執行手冊**：[`../../phase2/T1-GB10-FULLSTACK-RUNBOOK.md`](../../phase2/T1-GB10-FULLSTACK-RUNBOOK.md)（從第 0 步取證開始）。
 
