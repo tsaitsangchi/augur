@@ -1,0 +1,23 @@
+[Unit]
+Description=augur optional vLLM OpenAI server (:8000)
+Documentation=file:///home/giga/augur/ops/phase2/VLLM-GB10.md
+After=network-online.target
+# 預設不 Want/Require Ollama；embed 仍由 Ollama 獨立服務提供
+
+[Service]
+Type=simple
+WorkingDirectory=/home/giga/augur
+# 獨立 venv——勿改成主專案 venv
+Environment=PATH=/home/giga/augur-venvs/vllm/bin:/usr/bin
+# 依實機可載模型覆寫；served-model-name 須與 MCP LLM_MODEL 對齊
+ExecStart=/home/giga/augur-venvs/vllm/bin/vllm serve Qwen/Qwen3-30B-A3B-Instruct \
+  --host 127.0.0.1 \
+  --port 8000 \
+  --served-model-name qwen3-30b-a3b-instruct \
+  --max-model-len 32768
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+# 注意：範本僅供手動 systemctl --user start；預設不要 enable
