@@ -65,7 +65,7 @@ MCP 仍在 **repo 根** 以 `python3 -m tools…` 啟動時：遷目錄後須改
 | **2** | 在 `augur` 上開遷移分支：併入治權樹＋保留應用樹 | 單一分支目錄齊 |
 | **3** | 改路徑：`.env.example`／`install_services`／packs／probe；`PROJECT_ROOT=/home/giga/augur` | selftest／setup_check／路徑契約正確（✅ 2026-07-22 @ `migrate/monorepo-learning`） |
 | **4** | **本機收斂**：以 `/home/giga/augur` 為唯一工作樹 `git remote` → `augur`；停用對 `augur-code-work` 的寫入 | 只在一個根開發（✅ 2026-07-22：`augur-code-work`→`/home/giga/augur`；舊 constitution 樹→`_archived_augur-constitution_20260722`） |
-| **5** | 觀察期：`augur-constitution` 改名 archived／read-only | 無他機死鏈 |
+| **5** | 觀察期：`augur-constitution` 改名 archived／read-only | 無他機死鏈（✅ 2026-07-22：rename→`augur-constitution-archived`＋GitHub archive 唯讀；舊 URL redirect；正典＝public `augur`） |
 | **6** | 刪 GitHub `augur-constitution`（可選再清本機 `_archived_augur-code-work`） | 確認無依賴 |
 
 **禁止：** 先刪 remote 再搬內容。
@@ -107,3 +107,14 @@ python3 -m tools.local_llm_mcp selftest
 ---
 
 *文件：`ops/phase2/MONOREPO-LEARNING-MIGRATION.md`｜2026-07-22*
+
+
+---
+
+## 7. 步 5 觀察期紀錄（2026-07-22）
+
+* GitHub：`tsaitsangchi/augur-constitution` → **`augur-constitution-archived`**（**archived／唯讀**）。
+* 說明欄已指向 public monorepo：`https://github.com/tsaitsangchi/augur`（PR #3）。
+* 本機舊樹：`/home/giga/_archived_augur-constitution_20260722/`（見同目錄 `OBSERVATION-STEP5.md`）。
+* **他機**：若仍追蹤舊 remote，改 clone／改 `origin` 至 public `augur`；勿再向 archived 倉 push。
+* **步 6**：觀察確認無死鏈後再刪遠端（本步不刪）。
