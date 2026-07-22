@@ -1,3 +1,5 @@
+> **Monorepo 註（2026-07-22）**：本倉已合併治權樹。治權交接見 [`HANDOFF-governance.md`](HANDOFF-governance.md)；遷移清單見 [`ops/phase2/MONOREPO-LEARNING-MIGRATION.md`](ops/phase2/MONOREPO-LEARNING-MIGRATION.md)。
+
 # HANDOFF — augur 跨機接續指南
 
 > **這份文件是什麼**：augur 會在**另一台電腦接續開發**。這是「新機 clone 後第一份該讀的文件」——
