@@ -1,21 +1,48 @@
-# 設定包：`DESKTOP-8MQPFS8`（精簡 stub）
+# 設定包：`DESKTOP-8MQPFS8`
 
-* **主機**：僅適用 **`DESKTOP-8MQPFS8`**（WSL2 · x86_64 · GTX 1650）。
-* **角色**：開發／驗證 + 資料層。
-* **對立機／完整包**：[`../aitopatom-b96e/`](../aitopatom-b96e/)（GB10 全執行 T1 目標）。
-* **正典 remote（2026-07-22）**：public monorepo [`tsaitsangchi/augur`](https://github.com/tsaitsangchi/augur)（`main`）。**勿**再追蹤 `augur-constitution`。
+* **主機**：僅適用 **`DESKTOP-8MQPFS8`**（WSL2 · x86_64 · GTX 1650 4GB）。
+* **角色**：開發／驗證 + 資料層（PostgreSQL）；本地小模型 MCP。
+* **對立機**：[`../aitopatom-b96e/`](../aitopatom-b96e/)（GB10 · 大模型／122GiB）。
+* **正典 remote**：public monorepo [`tsaitsangchi/augur`](https://github.com/tsaitsangchi/augur)（`main`）。**勿**再追蹤 `augur-constitution`。
 
-## 建議差異（相對 GB10）
+## 本機路徑（2026-07-22 實測）
 
-| 項目 | 此機 |
+| 項目 | 值 |
 |---|---|
-| `OLLAMA_MODEL` 預設 | `qwen3:4b`（VRAM 4GB；由 `tools.py` 依 hostname） |
-| PostgreSQL | 預期 **有**（17.x） |
-| ollama | 2026-07-21 快照：**未安裝** |
-| repo 路徑 | **勿寫死**；以該機 clone 為準；`PROJECT_ROOT`＝此機路徑 |
+| 正典 clone | **`/home/giga/augur/augur-code`** |
+| 歷史 constitution 樹 | `/home/giga/augur/augur-constitution`（⛔ superseded；見該樹 `DEPRECATED.md`） |
+| Cursor workspace 根 | `/home/giga/augur` → MCP 用上層 `.cursor/mcp.json`，**cwd 釘死 augur-code** |
+
+## 硬體對齊的 MCP／模型
+
+| 項目 | 此機 | 勿用（GB10） |
+|---|---|---|
+| `OLLAMA_MODEL` | **`qwen3:4b`**（~2.5GB；VRAM 4GB 上限） | `qwen3-coder-next`、`qwen3:30b-a3b` |
+| `OLLAMA_NUM_CTX` | **`8192`**（hostname 預設） | `32768`（GB10） |
+| `EMBED_MODEL` | `nomic-embed-text` | — |
+| ollama | **0.32.1** active（2026-07-22） | — |
+| PostgreSQL | **17.10** online | GB10 未裝 |
+
+共享 repo 設定不寫死模型：`tools.local_llm_mcp` 依 hostname=`DESKTOP-8MQPFS8` 自動選 `qwen3:4b`。工作區 MCP 額外顯式覆寫，避免誤載 GB10 預設。
+
+## 環境基準與最佳化計畫
+
+| 文件 | 用途 |
+|---|---|
+| [`ENV-BASELINE-20260722.md`](ENV-BASELINE-20260722.md) | 硬體／服務鎖定快照 |
+| [`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md) | 分階段系統最佳化計畫（現行） |
 
 ## 觀察期：改指 public augur
 
-在此機執行：[`RETARGET-TO-PUBLIC-AUGUR.md`](RETARGET-TO-PUBLIC-AUGUR.md)（改 `origin` 或重 clone；通過驗收後 GB10 方可步 6 刪 archived 倉）。
+若尚未改 remote：[`RETARGET-TO-PUBLIC-AUGUR.md`](RETARGET-TO-PUBLIC-AUGUR.md)。
 
-完整一鍵檢查腳本可依 `aitopatom-b96e/setup_check.sh` 為此機複製並改 `EXPECTED_HOST`／服務斷言後補齊。
+## 驗收速查
+
+```bash
+hostname   # DESKTOP-8MQPFS8
+cd /home/giga/augur/augur-code
+git remote -v   # 僅 origin → tsaitsangchi/augur.git
+test -d src/augur && test -d constitution && test -d tools/constitution_mcp && echo MONOREPO_OK
+ollama list     # 應有 qwen3:4b；建議另有 nomic-embed-text
+curl -s http://127.0.0.1:11434/api/version
+```

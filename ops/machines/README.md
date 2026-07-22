@@ -21,7 +21,7 @@
 | 主機名 | 角色（營運） | 平台 / 架構 | GPU | 記憶體 | 關鍵服務 | 快照 | **設定包** |
 |---|---|---|---|---|---|---|---|
 | **`aitopatom-b96e`** | **治理 + 本地推論／語意記憶** | 原生 Linux · **aarch64** | **GB10** | **122 GiB** | ollama ✅；PG ❌；qdrant ❌ | [aitopatom-b96e.md](aitopatom-b96e.md) | **[packs/aitopatom-b96e/](packs/aitopatom-b96e/)** |
-| **`DESKTOP-8MQPFS8`** | **開發／驗證 + 資料層** | **WSL2** · **x86_64** | GTX 1650 4GB | ~16 GiB | PG ✅；ollama ❌（當時） | [DESKTOP-8MQPFS8.md](DESKTOP-8MQPFS8.md) | [packs/DESKTOP-8MQPFS8/](packs/DESKTOP-8MQPFS8/)（stub） |
+| **`DESKTOP-8MQPFS8`** | **開發／驗證 + 資料層** | **WSL2** · **x86_64** | GTX 1650 4GB | ~16 GiB | PG ✅；ollama ✅（`qwen3:4b`） | [DESKTOP-8MQPFS8.md](DESKTOP-8MQPFS8.md) | [packs/DESKTOP-8MQPFS8/](packs/DESKTOP-8MQPFS8/) |
 
 ### 角色分工（據實，非願望）
 
@@ -32,12 +32,12 @@
 │                              │                                     │                              │
 │  ✅ constitution / local-llm  │                                     │  ✅ PostgreSQL + pgvector     │
 │     / project-memory MCP     │                                     │  ✅ 開發／驗證／資料層         │
-│  ✅ ollama（30b-a3b 等）      │                                     │  ⚠ 小 VRAM → 大模型不可行     │
-│  ❌ PG / qdrant 未起          │                                     │  ❌ 無 ollama（當時快照）      │
+│  ✅ ollama（30b-a3b 等）      │                                     │  ✅ ollama（qwen3:4b）         │
+│  ❌ PG / qdrant 未起          │                                     │  ⚠ VRAM 4GB → 僅小模型       │
 └─────────────────────────────┘                                     └──────────────────────────────┘
 ```
 
-**「真跑」全棧（advisor／審議引擎／entity_registry）** 需要：**應用碼 + PG +（可選）qdrant + 模型**。目前任一台都尚未單獨滿足全部；缺口與待決見 `ops/phase2/OPERABILITY-PROBE-2026-07-21.md`。
+**「真跑」全棧（advisor／審議引擎／entity_registry）** 需要：**應用碼 + PG +（可選）qdrant + 模型**。目前 DESKTOP 具備 PG + 小模型 MCP；GB10 具備大模型 MCP、尚無 PG。缺口與待決見 `ops/phase2/OPERABILITY-PROBE-2026-07-21.md`。
 
 ---
 
@@ -52,10 +52,10 @@
 | GPU / driver | **GB10** · 580.159.03 · CC 12.1 | GTX 1650 · 560.94 · 4GB · CC 7.5 |
 | CUDA `nvcc` | **13.0** | 12.0 |
 | PostgreSQL | **未安裝** | **17.10** online |
-| ollama | **0.32.1**（qwen3:30b-a3b 等） | （未安裝） |
+| ollama | **0.32.1**（qwen3:30b-a3b 等） | **0.32.1**（`qwen3:4b` + `nomic-embed-text`） |
 | docker | 29.2.1 | （未安裝） |
-| 建議 `OLLAMA_MODEL`（MCP） | **`qwen3-coder-next`**（UI 另用 `qwen3:30b-a3b`） | **`qwen3:4b`**（若日後裝 ollama） |
-| repo 根（此使用者） | `/home/giga/augur` | 依該機 clone 路徑（勿寫死進共享設定） |
+| 建議 `OLLAMA_MODEL`（MCP） | **`qwen3-coder-next`**（UI 另用 `qwen3:30b-a3b`） | **`qwen3:4b`**（已裝；VRAM 4GB） |
+| repo 根（此使用者） | `/home/giga/augur` | **`/home/giga/augur/augur-code`**（正典）；歷史 constitution → `_archived_augur-constitution_20260722` |
 
 > **架構不同 → 二進位不可共用**：torch wheel、`nvcc -arch`、部分 PostgreSQL 擴充、原生 CUDA 測試產物，必須各機依自身架構安裝／編譯。
 
