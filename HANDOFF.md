@@ -53,7 +53,9 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 ```
 工作目錄隨機器變（WSL2 `/home/<user>/project/augur`；程式一律寫真實工作目錄 CLAUDE #13）。
 
-**日常同步（非新機首clone）**：跑 `bash sync_from_github.sh`——只做安全 fast-forward + 按需 `pip install -e .` + import smoke test；工作樹不乾淨或與遠端分岔一律停手印訊息、不自動 merge/reset,交人（或 Claude）判斷。全本地、零 Claude usage（CLAUDE #28 本地優先之落地工具）。
+**日常同步（非新機首 clone）**：跑 `bash sync_from_github.sh`——只做安全 fast-forward + 按需 `pip install -e .` + import smoke test；工作樹不乾淨或與遠端分岔一律停手印訊息、不自動 merge/reset,交人（或 Claude）判斷。全本地、零 Claude usage（CLAUDE #28 本地優先之落地工具）。
+
+**封存 push（commit＋push＋tag）**：跑 `bash scripts/archive_push.sh [--slug SLUG]`——`.env` 之 `GITHUB_TOKEN` 經 GIT_ASKPASS；禁止 stage 秘密/ dump/大型檔；`--dry-run` 預覽、`--retag` 才 force 重打 tag。對稱於 `sync_from_github.sh`。
 
 **讀取專案接續狀態（零 Claude usage）**：跑 `python3 read_handoff.py`——一次讀出本 HANDOFF + Claude memory（`~/.claude/projects/<mangled>/memory/`,機器本地不隨 git,缺失則 graceful 降級只印 HANDOFF）全內文。`--list` 快速一覽、`--out FILE` 寫檔、`--memory-only`/`--handoff-only` 篩段;可 `python3 read_handoff.py | ollama run qwen3:8b "…"` 直接餵本地 AI（人/本地 AI 不必開 Claude session 即讀全狀態 = 實質省 token）。
 
