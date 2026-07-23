@@ -182,7 +182,7 @@ sed -i '415s/^# Annex TR/## Annex TR/; 421s/^## TR\.1/### TR.1/; 451s/^## TR\.2/
   工作區為 **`/home/giga/augur/augur-code`**（前版所記 `/home/giga/augur-code-work` **不存在**）；該工作區現位於 `remediation/impl-2026-07-17`，**非** PR #2 之分支 —— 承接 PR #2 須先自 origin 取回 `remediation/aud-02-consolidated`。
 * **#21 審計基準重新對齊**：code repo 已前進 —— **`origin/main` HEAD ＝ `0b04ecc`（2026-07-17 17:37）**；治權檔升版（原則精華 **v1.9.1**、系統架構大憲章 **v1.46.0**）落在 **`4951aee`**（tag `archive-20260718-alpha-p0-repair`），該 commit 為 `origin/main` 之祖先、其後尚有 **7** 個 commit。**本機 `main` ＝ `493fd73`（tag `augur-mc-v1.3-compliance-seal`），落後 `origin/main` 12 個 commit，且 `4951aee` 並非本機 `main` 之祖先。** AUD-01…26 之基準已漂移（審計錨定於 `e23a102`）。
   > **前版此處記 HEAD ＝ `4951aee`，為漂移之錨**：本文件 commit 於 17:23（`59d1eb3`），早於 `0b04ecc`（17:37）之存在，故當時不可知 —— **但這正是不該把移動中的 HEAD 寫進文件的理由**。**改錨定 tag**（如 `augur-mc-v1.3-compliance-seal` → `493fd73`、`archive-20260718-alpha-p0-repair` → `4951aee`），tag 不移動。此類 finding 反覆出現，根因即在於「HEAD 被寫下來」。
-* **五份治權文件之合規聲明**補正期限 **2026-10-14**（RULING-2026-002 主文二）。
+* **五份治權文件之合規聲明**（RULING-2026-002 主文二）：**P2 已履行**（2026-07-23）——存檔 `docs/compliance/CS-*.md`（§11／WM.39–45；mc-version＝v1.6）。**不**因此假關 039／025／029 等其他 **2026-10-14** 日曆項；#7↔P4.E5 緊張仍開放（P3）。
 * 階段 3（production apply）阻於缺 production PG 位置＋P5；階段 4（基建部署）阻於 docker 權限。
 
 ---

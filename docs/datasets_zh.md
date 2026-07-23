@@ -1,6 +1,6 @@
 # augur 資料源欄位中文總表（FinMind + FRED）— 2026-06-15
 
-> **憲章從屬（AUGUR-MC v1.3）**：本文件為 Augur 資料來源參考文件，受 **AUGUR-MC v1.3** 約束（Layer 0 lex superior，§0.6）。依 Steward 裁決第 2026-002 號（AL-2026-006）登錄為 **Layer 7（External Interface / Infrastructure）**（含 finmind-references）。下層引用格式：`AUGUR-MC v1.3 §{條款}`／`AUGUR-WM v1.0 §{條款}`。憲章與規格存於 [tsaitsangchi/augur](https://github.com/tsaitsangchi/augur) 之 `constitution/`／`specs/`（原獨立倉已併入）。合規聲明補正期至 2026-10-14。
+> **憲章從屬（AUGUR-MC v1.6）**：本文件為 Augur 資料來源參考文件，受 **AUGUR-MC v1.6** 約束（Layer 0 lex superior，§0.6）。依 Steward 裁決第 2026-002 號（AL-2026-006）登錄為 **Layer 7（External Interface / Infrastructure）**（含 finmind-references）。下層引用格式：`AUGUR-MC v1.6 §{條款}`／`AUGUR-WM v1.0 §{條款}`。憲章與規格存於 [tsaitsangchi/augur](https://github.com/tsaitsangchi/augur) 之 `constitution/`／`specs/`（原獨立倉已併入）。**合規聲明**（本列＋finmind-references 共用）：`docs/compliance/CS-datasets_zh.md`（§11／WM.39–45；RULING-2026-002 主文二本列補正已履行）。
 
 **目的**：augur 要抓的全部 dataset，**逐表逐欄**附中文名 + 來源 + 推定型別。供建模/查表/schema 註解之單一參考。**83 FinMind dataset + FRED，共 ~650 真實欄位**（已含 datasets.md 未列、實證補入的 8 表）。
 
