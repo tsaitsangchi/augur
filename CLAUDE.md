@@ -1,4 +1,4 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.29
+# CLAUDE.md — Augur AI 協作工具規則 v1.30
 
 > **憲章從屬（AUGUR-MC v1.4）**：本文件為 Augur 領域治權文件，受 **AUGUR-MC v1.4** 約束（Layer 0 lex superior，§0.6）。依 Steward 裁決第 2026-002 號（AL-2026-006）登錄為 **Layer 6（Agent Runtime）**；**「執行指令矩陣」個別可驗證義務**之上層依據＝Steward 裁決第 2026-026 號（AL-2026-029；§8.1 解釋落點 §8.3／§0.5 L6）。下層引用格式：`AUGUR-MC v1.4 §{條款}`／`AUGUR-WM v1.0 §{條款}`。憲章與規格存於 [tsaitsangchi/augur](https://github.com/tsaitsangchi/augur) 之 `constitution/`／`specs/`（原獨立倉已併入）。合規聲明補正期至 2026-10-14。
 
@@ -51,6 +51,8 @@
     - **每支**：🎯 白話 docstring（這支在做什麼，給人看的）+ 一行「守原則 #X #Y」。
     - **CLI 入口程式**（sync / builder / trainer / validator）：再加**執行指令矩陣**（各用法實例，見 #29）。
     - **library 模組**（`src/augur/`）：白話 docstring **＋執行指令矩陣（自測 CLI 形式）**——每支具 `if __name__=="__main__"`：`python -m augur.<pkg>.<mod>` 印用途＋公開入口（唯讀）、`--selftest` 跑純紅綠自測（**免 DB 免 API、零 usage**；把模組核心不變式固化成回歸鎖 #15，IO-bound 模組退為 import-smoke＋結構斷言）。**（v1.28 入憲 2026-07-14 hugo 拍板；2026-07-23 升格元憲章 §8.1 解釋／RULING-2026-026：原「library 不需指令矩陣」廢止——每支程式一律可個別驗證、矩陣＝自測 CLI；先例＝`audit/reconcile.py`、`knowledge/admission.py`。）**
+    - **範圍擴及非 `src/augur` 之可執行模組（v1.30 入憲 2026-07-23，RULING-2026-026 執行層落地全量盤點補齊後同案收斂）**：同一義務適用於 `tools/`（`constitution_lint`／`constitution_mcp`／`local_llm_mcp`／`project_memory_mcp` 等 MCP 工具套件之內部模組）、`ops/`（如 `gpu-verify` 硬體診斷腳本）、`augur_proxy/` 等**任何具 `if __name__=="__main__"` 之可執行 Python 入口**——不因目錄不在 `src/augur/` 或 `scripts/` 而豁免。硬體/外部服務依賴之模組（無 GPU、Ollama 未起等）以 graceful SKIP（非 FAIL、非裸 traceback）示之，仍須具矩陣。
+    - **新增即須具矩陣（v1.30，向前生效義務）**：**新增**任何可執行 Python 入口（`scripts/` 新檔、新 `library` 模組具 `__main__`、`tools/` 新工具模組）於**首次提交當下**即須含執行指令矩陣（含無參數安全預設／用途說明＋ `--selftest` 或等價零外部依賴自測路徑）；**缺矩陣者不得宣稱「已個別驗證」或作為合規稽核通過之依據**（RULING-2026-026 §一原文）。稽核：`scripts/check_cmd_matrix.py`（全 repo 掃描缺漏，見 #29 稽核腳本說明）。
     - **不** per-file 複述憲章 § / 治權宣言（憲章 + 原則精華為 SSOT #12；標頭只引原則 #，不改寫）。
     - **不**寫 in-file 全修訂歷程 → 交給 git（演變史進 git，不入檔；對齊「憲法只記現行法律」）。
     - 標頭目標：讓人/AI 30 秒看懂這支做什麼、守哪些原則。
@@ -70,7 +72,7 @@
       - 內容納入範圍仍受治權判準約束（**憲章「知識層多域擴充準則」**:能抓≠該抓、新領域入庫=決策層人拍板、多域知識素養層零量化價值不進預測管線、domain 欄隔離因子鏈純度）。
       - **抓取端到端至可檢索終態（v1.20,用戶 directive 2026-07-07:harvest 止於 metadata＝半套）**:任何知識抓取一律走完整管線至其 **license 允許的終態**——acquire→staging→promote（metadata）→ **fetch_fulltext〔受憲章「全文准入三軌」gate:公版/CC/owned_local 才抓全文〕→ build_sentences → embed** → 可被 advisor 檢索作答。**「harvest 完成」定義＝到達該內容 license 允許之最終可答狀態,非止於 item 標題**;非授權全文者止於 metadata + 誠實 `fulltext_blocked` 旗標（license 阻擋、非漏做）,**不得只抓 metadata 就宣稱完成、不得謊稱可答**。機制:harvest 觸發後自動接 fetch_fulltext→build_sentences→embed（資料驅動、license-gated、resume-safe、#25 首輪最小、本地零 usage #28）。素養層不變式不變（零量化價值、不進預測管線）。
     - **(c) 通用可重用**：同型 script 合併為單一參數化工具（如 acquire+promote 兩支引擎取代九支 hardcode/JSON seed 批次檔）,設計為未來不同情境重覆使用、擴充靠 DB 資料列與參數。
-    - **(d) 指令矩陣 + 實測**：標頭 docstring 寫「**執行指令矩陣**」（各用法實例指令），且**須實測可執行**（#7；安全驗證分級：唯讀類實跑、放量類 import 級 + 最小單位 #25，不為驗證而觸 API 放量）。
+    - **(d) 指令矩陣 + 實測**：標頭 docstring 寫「**執行指令矩陣**」（各用法實例指令），且**須實測可執行**（#7；安全驗證分級：唯讀類實跑、放量類 import 級 + 最小單位 #25，不為驗證而觸 API 放量）。**新增 script 於首次提交當下即須含矩陣**（#18 同義務、v1.30 明示）；本地稽核：`python3 scripts/check_cmd_matrix.py`（掃 `scripts/` 全量＋非 `src/augur` 之 `__main__` 模組，缺矩陣則 exit≠0，供 CI／pre-commit 掛勾，零 Claude usage #28）。
     - **效益**：用戶可自行執行零 usage（#28 本地優先）、新增資料不需 AI 改碼、script 數量收斂可維護。
 
 ## 四、Long-Running 工作流程

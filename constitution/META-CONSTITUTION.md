@@ -693,4 +693,4 @@ Layer 7 External Interface / Infrastructure
 
 ## Appendix G — 自 v1.4 生效後之 §8.1 解釋／§0.5 editorial（不升版）[I]
 
-**RULING-2026-026／AL-2026-029（2026-07-23）**：§8.1 解釋——Agent 協作產物之個別可驗證性（可執行 Python 入口必須載 canonical「**執行指令矩陣**」；細則 `CLAUDE.md` #18／#29）；§0.5 Layer 6 列 editorial 同步。**§8 [N] 本文未動、MC 版本維持 v1.4、102 母集不變**。裁決全文見 `constitution/RULING-2026-026-CMD-MATRIX.md`。
+**RULING-2026-026／AL-2026-029（2026-07-23）**：§8.1 解釋——Agent 協作產物之個別可驗證性（可執行 Python 入口必須載 canonical「**執行指令矩陣**」；**義務及於裁決後嗣後新增之入口，非一次性盤點**；細則 `CLAUDE.md` #18／#29）；§0.5 Layer 6 列 editorial 同步。**§8 [N] 本文未動、MC 版本維持 v1.4、102 母集不變**。執行層落地（全量盤點 320 支可執行入口、實補 25 支＋新增稽核腳本 `scripts/check_cmd_matrix.py`）詳裁決全文 `constitution/RULING-2026-026-CMD-MATRIX.md` §三。
