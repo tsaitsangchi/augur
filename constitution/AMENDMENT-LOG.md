@@ -354,7 +354,8 @@
 * **事項**：Steward 裁決第 2026-030 號——**L1（AUGUR-WM v1.0）單層 ultracode findings 一攬子處置**：§8.1 解釋二項（A.38 部位定性甲案；Annex D 範圍型目標承接規則）＋§8.3 過渡規則 (b) **補正期裁定作成**（WM.35／WM.36 到期日＝2026-10-14，自翌日 WM.36 直綁消費禁令無條件適用）＋minor／patch 簿記／editorial（KS FM 補 D14/D15/D19/D23；L5 FM 補 D12/D13/D22/D28＋TR 旗標收束；L6 TR 析出 D19/D23/D25；C.8 T-5／A.54／ID T-ID-3 同步 RULING-2026-014；Annex F 歸類；WM.40 archive-path 括注；D0 slice 登錄義務＋linter 議程；A.16 D25 範圍統一）。**分級登錄**：一攬子簽核未另圈定 → 採較嚴 **major**（F-L1-4、F-L1-6）；**處置不變**。**WM [N] 義務句本文零改、版本維持 v1.0、MC／PA 零觸**
 * **文件**：[RULING-2026-030-L1-WM-ULTRACODE-DISPOSITION.md](RULING-2026-030-L1-WM-ULTRACODE-DISPOSITION.md)；findings `audits/L1-WM-ULTRACODE-20260723.md`
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
-* **驗證**：`python3 -m tools.constitution_lint report` 幕僚自查 PASS（2026-07-23）；施作留痕依 RULING-2026-028 第 3 點——**commit 前待獨立對抗核驗**（見裁決第九節清單）
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 獨立對抗核驗親跑）；RULING-2026-030 第九節八項全 ✅（2026-07-23；核驗者＝Cursor 獨立核驗 agent；非施作者）
+* **定案**：Steward 2026-07-23 **接受 030**
 
 ## AL-2026-031
 
