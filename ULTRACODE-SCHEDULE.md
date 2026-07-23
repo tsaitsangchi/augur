@@ -39,7 +39,7 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 | **L3** ID v1.0 | IDENTITY-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 033；**獨立核驗通過**） | `audits/L3-ID-ULTRACODE-20260723.md`（**零 major；2 medium＋5 minor 存活**——**RULING-2026-033 定案、AL-2026-037**；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
 | **L4** KS v1.1 | KNOWLEDGE-SYSTEM-SPECIFICATION.md | 7 | ✅ 定案（2026-07-23；Steward 接受 034；**獨立核驗通過**） | `audits/L4-KS-ULTRACODE-20260723.md`（**零 major；medium×3＋minor×5 存活**——**RULING-2026-034 定案、AL-2026-038**；T-KS-6 維持 open-tension；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
 | **L5** CK v1.0 | COGNITIVE-KERNEL-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 035；**獨立核驗通過**） | `audits/L5-CK-ULTRACODE-20260723.md`（**零 major；medium×2＋minor×4 存活**——**RULING-2026-035 定案、AL-2026-039**；029 PRV／ASF 程序性閉合（未翻 major）；F-IX-4／6 仍另案；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
-| **L6** AR v1.2 | AGENT-RUNTIME-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 036；**獨立核驗待辦**） | `audits/L6-AR-ULTRACODE-20260723.md`（**零 major；medium×2＋minor×4 存活**——**RULING-2026-036 定案、AL-2026-040**；020／016／007 已癒合项覆核 PASS；T-L6-5 維持 007 residual；蓋章不動搖；lint PASS 施作者親跑） |
+| **L6** AR v1.2 | AGENT-RUNTIME-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 036；**獨立核驗通過**） | `audits/L6-AR-ULTRACODE-20260723.md`（**零 major；medium×2＋minor×4 存活**——**RULING-2026-036 定案、AL-2026-040**；020／016／007 已癒合项覆核 PASS；T-L6-5 維持 007 residual；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
 | **L7** Infra v1.0 | INFRASTRUCTURE-SPECIFICATION.md | 6 | ⏳ 排定 | — |
 
 ### L1 延後三項最佳化拍板（Steward 授權 2026-07-23）
