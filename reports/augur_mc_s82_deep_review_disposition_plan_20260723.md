@@ -49,11 +49,17 @@ L5 **無** L7.90(d) 式之編號必審清單（L5.90 僅管合規聲明格式）
 
 ## 5. 建議處置路徑（二擇一，需 Steward 拍板）
 
-- **甲：現在就審**——幕僚即開 `constitution/adoption-drafts/L5-8.2-REVIEW-PACKAGE-2026-XX-XX.md`（逐項整理 §2 清單之系爭、現文、選項、幕僚建議，全 [I]）→ Steward 逐項核示 → 開 RULING-2026-028（候選號）收口 → L5 轉 v1.0（或條件通過附 residual）。早收口、消除 provisional 不對稱。
+- **甲：現在就審**——幕僚即開 `constitution/adoption-drafts/L5-8.2-REVIEW-PACKAGE-2026-XX-XX.md`（逐項整理 §2 清單之系爭、現文、選項、幕僚建議，全 [I]）→ Steward 逐項核示 → 開 RULING-2026-029（候選號，原擬 028、因撞 GOV-1/GOV-3 改編）收口 → L5 轉 v1.0（或條件通過附 residual）。早收口、消除 provisional 不對稱。
 - **乙（幕僚傾向）：待 L5 單層 ultracode 後併審**——七層單層 ultracode 計畫（`reports/augur_l1_l7_per_layer_ultracode_plan_20260723.md`，草案待拍板）L5 排順位 5，其 `PRV`（provisional 實質後果）／`ASF`（L5.10 全域一致性）二維**正好命中 §2 清單**；先攻擊後審，findings 直接餵審查包，一次到位且仍遠早於 10-14 期限。避免「先裁通過、ultracode 再翻 major、又要重開 §8.2」之折返（L7 先例：裁後調整另依 §8.2 辦）。
-- **兩案共同**：RULING-2026-028 正文**等 Steward 拍板「開裁決」才落檔**（本輪不寫，防未授權入憲）；審查包與裁決全程不動 §8 [N]。
+- **兩案共同**：RULING-2026-029（原擬 028，編號撞車後改編）正文**等 Steward 拍板「開裁決」才落檔**（本輪不寫，防未授權入憲）；審查包與裁決全程不動 §8 [N]。
 
 **最小下一步**：Steward 拍板 (i) 甲或乙；(ii) 若甲，授權幕僚開 L5 審查包（[I]）。零其他前置。
+
+> **✅ 已拍板（2026-07-23）：甲——現在就審。** 幕僚已備審查包 `audits/L5-8.2-REVIEW-PACKAGE-20260723.md`（八項必審：006 保留段六條款＋CS.2 六緊張〔尤 T-L5-6〕＋023 乙 L5.10；建議核示＝通過 6／條件通過 2／保留 0）＋ RULING-2026-029 草稿 `constitution/RULING-2026-029-L5-8.2-DISPOSITION.md`（**待 Steward 簽核／未生效、未登錄 AL**）。路徑採用戶指示 `audits/`（非本計畫原建議之 `adoption-drafts/`）。待 Steward 逐項核示或一攬子採納。
+>
+> **⚠️ 編號更正（2026-07-23，緊急）**：本計畫原擬候選號 RULING-2026-028 與用戶另拍板之 GOV-1/GOV-3 推薦組合（**RULING-2026-028 歸 GOV**）撞車；L5 §8.2 本案**改編 RULING-2026-029**（候選 AL 同步由 AL-2026-031 改為 **AL-2026-032**，避讓 GOV 側大機率佔用之 AL-2026-031）。舊檔名 `RULING-2026-028-L5-8.2-DISPOSITION.md` 已移除，內容原樣搬遷至 `RULING-2026-029-L5-8.2-DISPOSITION.md`；本檔與 `audits/L5-8.2-REVIEW-PACKAGE-20260723.md`、`LAYER-SEALING-SCHEDULE.md` 內所有 028 自指引用已同步改為 029。GOV 側 RULING-2026-028（若已/將產出）不受本次變更影響。
+>
+> **✅ 已收口（2026-07-23 同日）**：Steward 指示「L5 簽核請對 029」＝授權以 **RULING-2026-029** 收口並**一攬子採納八項建議核示（通過 6／條件通過 2）**——裁決已簽核生效、登錄 **AL-2026-032**（AL-2026-031 留 GOV 之 028）。施作：L5 規格 provisional 轉 v1.0（【地位】/§0.1/TR.Z/Annex CS/尾註最小 editorial，RULING §四明文授權）、T-L5-6 待裁標記→已裁（實測二處全更新）、MC §0.5 同步、schedule 不對稱解消、審查包簽核欄留痕。附條件（ultracode PRV／ASF 複核、F-IX-4／F-IX-6 簿記另案）復審 2026-10-14。**本計畫就此結案。**
 
 ## 6. 與 seal/push、七層 ultracode 之衝突查核
 

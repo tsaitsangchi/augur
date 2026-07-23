@@ -508,7 +508,7 @@ compliance-statement:
   defers-out: [DO.1, DO.2, DO.3, DO.4]
   date: 2026-07-17
   author: Layer 2 Ontology 規格撰稿官（依 Constitution Steward 委辦之 Layer 2 起草程序）
-  archive-path: specs/ONTOLOGY-SPECIFICATION-v0.1-draft.md
+  archive-path: specs/ONTOLOGY-SPECIFICATION.md
 ```
 
 ## CS.1 PA（Prime Axiom）

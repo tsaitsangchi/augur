@@ -1,4 +1,4 @@
-# 《Augur Meta-Constitution v1.4》
+# 《Augur Meta-Constitution v1.5》
 
 Augur Enterprise AI Operating System
 元憲章（Meta Layer）正式定稿
@@ -12,12 +12,13 @@ Augur Enterprise AI Operating System
 
 * 名稱：Augur Meta-Constitution
 * 層級：Layer 0 — Meta Constitution
-* 版本：v1.4（前版：v1.3）
-* 生效日：2026-07-16
+* 版本：v1.5（前版：v1.4）
+* 生效日：2026-07-23
 * 批准記錄：本次修訂依 **v1.0 §7（修訂當時之有效程序）** 辦理；§8 治理章屬**初始採行（initial adoption）**，自本版生效起，後續修訂改依 §8.5。登錄於 Amendment Log（AL-2026-001），修訂理由書隨卷存檔；理由書載明新增 P5 符合 v1.0 §7 實質判準之論證（見 Appendix C 第 12 點）。
 * 自 v1.0 之變更摘要見 Appendix C。v1.1 → v1.2 為定稿階段之缺陷修復與一致性修正（無新原則、無原則級實質變更，依 §8.6 定為 minor），依 §8.5 辦理並登錄 Amendment Log（AL-2026-002）；修訂記錄見 Appendix D。
 * v1.2 → v1.3：§0.5 Layer 對照表增列五份 augur 領域治權文件之定位登錄（依 §8.6，Layer 對照表之增列屬 minor、由 Steward 議決），與 Layer 1 規格充任認定（Steward 裁決第 2026-002 號）同案辦理，登錄 Amendment Log（AL-2026-006）；變更摘要見 Appendix E。除 §0.5 對照表增列（及 §0.1 版本欄、Appendix E [I] 隨附）外，無其他條文變更、無原則級變更。
 * v1.3 → v1.4：MC 首次三鏡對抗審查（2026-07-18）findings 之處置（RULING-2026-017／AL-2026-020，minor）——§0.5 L2–L7 充任註記補登＋跨層治權檔例外句（§8.6 明定之 minor）、§0.2／§2.6 之 [I] 補述、治理附則第 3 條繼任人恆存（annex minor）；**八項 §8.1 解釋**記於裁決（不改 MC 本文）。**§8／構成性依據之 [N] 本文一律不動**（§8 self-entrenchment＝原則級，非 minor 可為；2026-07-18 獨立核驗糾正越權）。**無原則級變更、無 PA 變更、五原則本文零改**；摘要見 Appendix F。
+* v1.4 → v1.5：原則級修訂（Steward 正式議決 PROPOSAL-2026-001，AL-2026-035，2026-07-23）——§8.1 增設「**解釋之界線**」段（GOV-1 根治；RULING-2026-028 第 1 點過渡自我拘束由 [N] 本文吸收日落）。**§8 其餘 [N] 本文不動**；102 母集不變（子項受保護不另計數）；PA 與五原則本文零改。摘要見 Appendix H。
 
 ### 0.2 規範用語約定
 
@@ -53,7 +54,7 @@ Augur Enterprise AI Operating System
 | 2 | Ontology | Ontology Specification（AUGUR-ONT v1.0，經 Steward 裁決第 2026-003 號充任認定） |
 | 3 | Identity System | Identity Specification（AUGUR-ID v1.0，經 Steward 裁決第 2026-004 號充任認定） |
 | 4 | Knowledge System | Knowledge Graph Specification（AUGUR-KS：v1.0 經 Steward 裁決第 2026-005 號充任，現行 v1.1／RULING-2026-016）、Data Intelligence Layer、原則精華（augur 領域治權文件；跨層條款之逐條 Layer 標注由其合規聲明載明） |
-| 5 | Cognitive Kernel | Cognitive Kernel Specification（AUGUR-L5 v1.0 **provisional**——RULING-2026-006 充任；2026-07-18 RULING-2026-019 撤回形式充分性、2026-07-19 RULING-2026-023 重採認〔乙〕回復（矩陣重作＋L5.10 as-of）；§8.1 橋接收束；§8.2 實質審查延後）、Reasoning Engine、AI Model Selection |
+| 5 | Cognitive Kernel | Cognitive Kernel Specification（AUGUR-L5 v1.0——RULING-2026-006 充任〔provisional〕；2026-07-18 RULING-2026-019 撤回形式充分性、2026-07-19 RULING-2026-023 重採認〔乙〕回復（矩陣重作＋L5.10 as-of）；§8.2 深度審查 2026-07-23 條件通過 RULING-2026-029——ultracode PRV／ASF 複核為條件、復審 2026-10-14，provisional 已解除）、Reasoning Engine、AI Model Selection |
 | 6 | Agent Runtime | Agent Runtime Specification（AUGUR-L6：v1.0 經 Steward 裁決第 2026-007 號充任，現行 v1.2／RULING-2026-016）、Planner / Orchestrator、CLAUDE.md（augur 領域 Agent 協作規格；**可執行 Python 入口須載「執行指令矩陣」**—RULING-2026-026／§8.1 解釋；細則 CLAUDE.md #18/#29） |
 | 7 | External Interface / Infrastructure | Infrastructure Specification（AUGUR-L7 v1.0，經 Steward 裁決第 2026-011 號充任；§8.2 深度審查 2026-07-19 條件通過 RULING-2026-025——(iii)(iv)(vi) residual 分階段①、復審 2026-10-14）、External Interface Layer、Database Architecture、系統架構大憲章（augur 領域架構／維運承載文件；涉 Layer 4–6 之章節由其合規聲明逐節標注）、datasets 參考文件（datasets_zh.md 及 finmind-references） |
 
@@ -484,6 +485,8 @@ Augur 不依賴：特定 AI model、特定 database、特定 programming languag
 
 **Agent（§2.8 意義下之自主程序）不得參與修憲與解釋**；此禁止不及於作為決策者之 Human（Agentive Entity）。解釋裁決必須書面化、附理由、公開存檔，並對後續案件具拘束力（解釋先例）。
 
+**解釋之界線**：解釋不得限縮或擴張任何 [N] 條款之義務範圍；§8.5(d) 對 PA 解釋文字之特別規定，從其規定。凡解釋之效果該當下列任一者，視為修訂、應依 §8.5 之程序辦理——(a) 課予新類型之義務；(b) 使先前於現行門檻下不可能之修訂類型成為可能；(c) 移除或削弱既有制衡（含公示、獨立核驗、人類介入點）。屬解釋抑或修訂有疑義時，採「屬修訂」之保守解讀。解釋先例之推翻必須明示、附理由、並逐點回應原先例。
+
 **設立與繼任**：
 
 * **首任 Steward**：本憲章 v1.1 生效時，由 Amendment Log（AL-2026-001）具名登錄之批准人擔任首任 Steward。
@@ -694,3 +697,14 @@ Layer 7 External Interface / Infrastructure
 ## Appendix G — 自 v1.4 生效後之 §8.1 解釋／§0.5 editorial（不升版）[I]
 
 **RULING-2026-026／AL-2026-029（2026-07-23）**：§8.1 解釋——Agent 協作產物之個別可驗證性（可執行 Python 入口必須載 canonical「**執行指令矩陣**」；**義務及於裁決後嗣後新增之入口，非一次性盤點**；細則 `CLAUDE.md` #18／#29）；§0.5 Layer 6 列 editorial 同步。**§8 [N] 本文未動、MC 版本維持 v1.4、102 母集不變**。執行層落地（全量盤點 320 支可執行入口、實補 25 支＋新增稽核腳本 `scripts/check_cmd_matrix.py`）詳裁決全文 `constitution/RULING-2026-026-CMD-MATRIX.md` §三。
+
+---
+
+## Appendix H — 自 v1.4 之變更摘要（v1.5）[I]
+
+本輪為 **原則級修訂**（Steward 正式議決 PROPOSAL-2026-001，AL-2026-035，2026-07-23；依 §8.5(b) 二要件：失效 Evidence＋實質判準）。修訂理由書＝`constitution/amendments/PROPOSAL-2026-001-GOV1-GOV4-S8.md`（範圍僅 GOV-1／修訂一）。**PA 與五原則本文零改**；102 母集不變。
+
+**MC [N] 本文變更（§8.1 純增訂）**：
+1. §8.1：新增「**解釋之界線**」段——反擴張標準一般化＋「效果等同修訂者依 §8.5 辦理」三款判準（課新義務類型／解鎖／移除制衡）＋疑義保守解讀＋先例推翻要件。RULING-2026-028 第 1 點〔解釋界線·過渡〕於本版生效日由 [N] 本文吸收日落。
+
+**全下層衝擊**：L1–L7 生效規格零衝擊（均未引用 §8.1 解釋界線之內容）；既有解釋先例（RULING-2026-001 至 028）無不利溯及。

@@ -964,7 +964,7 @@ compliance-statement:
   defers-out: []
   date: 2026-07-17
   author: Layer 7 Infrastructure 規格起草人（AUGUR-L7 起草子代理；產物業經 Steward 充任認定以 v1.0 生效〔RULING-2026-011／AL-2026-014 充任〕，§8.2 實質審查條件通過、provisional 轉 v1.0〔RULING-2026-025／AL-2026-028；附 (iii)(iv)(vi) residual 分階段補正、復審 2026-10-14〕）
-  archive-path: specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md
+  archive-path: specs/INFRASTRUCTURE-SPECIFICATION.md
 ```
 
 > **`defers-out: []` 之顯式空集為本層之末層宣告**（L7.1、L7.70(a)、LDO.0）：非「缺載」，而係**規範性斷言**——本層之下無層可承接，故無任何下放掛鉤。非空者即為末層落空（違憲）。

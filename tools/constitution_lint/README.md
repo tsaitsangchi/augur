@@ -263,7 +263,7 @@ ERROR**（`_check_wm40_closed_set_authority`）：閉集失準時，`_check_wm40
 ## 檔案
 
 - `model.py` — Finding/Severity/LintResult
-- `mc_clauses.py` — 憲章 [N] 條款枚舉（WM.44 用，**<!--lint:mc_universe-->102<!--/lint--> 條**）＋**原文標籤資料**
+- `mc_clauses.py` — 憲章 102 條條款宇宙枚舉（97 [N]＋5 [I] WHY；WM.44 用，**<!--lint:mc_universe-->102<!--/lint--> 條**）＋**原文標籤資料**
   （`enumerate_clause_labels`：code → {paren_name, full_forms, halves, text, line, source}；
   `enumerate_spec_clause_labels`：上層規格同構之標籤抽取，WM.44-LABEL 用）
 - `compliance_lint.py` — 規格生效檢查器

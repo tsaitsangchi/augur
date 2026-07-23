@@ -337,3 +337,48 @@
 * **文件**：[RULING-2026-027-L5-L7-INTERACTION-DISPOSITION.md](RULING-2026-027-L5-L7-INTERACTION-DISPOSITION.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **驗證**：`python3 -m tools.constitution_lint report` 施作前後 error 0／warning 0 逐檔一致（L1–L7 PASS）；2 存活 major 判定要件（KDI.0 三向、L5 編號地圖一致性）經補正消除；不動任一 [N] 義務句本文
+
+## AL-2026-032
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-029 號——**L5（AUGUR-Cognitive Kernel）§8.2 實質審查條件通過、provisional 轉 v1.0**：八項必審裁定（2026-07-23 一攬子採納審查包建議核示）——(i) L5.1 合法推理定義／(ii) L5.2 雙合法終點／(iii) L5.3 meet 上限傳播／(iv) L5.4 Hypothesis 可謬／(vi) L5.7 model 非世界權威**核定照收**；(vii) CS.2 六緊張**核定＋T-L5-6 定性追認**（「推論產生歸 L5、結果 claim 之信度／欄位歸 L4」——RULING-2026-006「一併裁定」項至此裁定）；(v) L5.6 per-結論解釋、(viii) L5.10 as-of 推理消費**條件通過**（條件＝L5 單層 ultracode PRV／ASF 複核於 2026-10-14 前執行、翻 major 另依 §8.2 辦；F-IX-4／F-IX-6 簿記另案 minor）。L5 自 provisional 轉 **v1.0 生效**；復審期限 2026-10-14（與 L7 residual 同日併結）
+* **編號註記**：本案跳號登錄——**AL-2026-031 保留予 RULING-2026-028**（GOV-1/GOV-3 之 §8.1 解釋止血裁決，另一路徑作業中、由該案自行登錄）；本案裁決號原候選 028 同因避讓改編 029
+* **文件**：[RULING-2026-029-L5-8.2-DISPOSITION.md](RULING-2026-029-L5-8.2-DISPOSITION.md)；審查包 audits/L5-8.2-REVIEW-PACKAGE-20260723.md
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：L5 全檔 §8.2 狀態標記→條件通過（【地位】/§0.1/TR.Z/Annex CS 地位提示/尾註）；T-L5-6「待裁」三處→已裁（追認）；MC §0.5 同步（[I]）；gate PASS、PA/五原則 byte 零改
+* **里程碑**：**八層 §8.2 全數結清**（L5 條件通過＋L7 條件通過＋餘六層已結）——「8/8 ≠ §8.2 一致結清」不對稱解消
+
+## AL-2026-033
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-030 號——**L1（AUGUR-WM v1.0）單層 ultracode findings 一攬子處置**：§8.1 解釋二項（A.38 部位定性甲案；Annex D 範圍型目標承接規則）＋§8.3 過渡規則 (b) **補正期裁定作成**（WM.35／WM.36 到期日＝2026-10-14，自翌日 WM.36 直綁消費禁令無條件適用）＋minor／patch 簿記／editorial（KS FM 補 D14/D15/D19/D23；L5 FM 補 D12/D13/D22/D28＋TR 旗標收束；L6 TR 析出 D19/D23/D25；C.8 T-5／A.54／ID T-ID-3 同步 RULING-2026-014；Annex F 歸類；WM.40 archive-path 括注；D0 slice 登錄義務＋linter 議程；A.16 D25 範圍統一）。**分級登錄**：一攬子簽核未另圈定 → 採較嚴 **major**（F-L1-4、F-L1-6）；**處置不變**。**WM [N] 義務句本文零改、版本維持 v1.0、MC／PA 零觸**
+* **文件**：[RULING-2026-030-L1-WM-ULTRACODE-DISPOSITION.md](RULING-2026-030-L1-WM-ULTRACODE-DISPOSITION.md)；findings `audits/L1-WM-ULTRACODE-20260723.md`
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
+* **驗證**：`python3 -m tools.constitution_lint report` 幕僚自查 PASS（2026-07-23）；施作留痕依 RULING-2026-028 第 3 點——**commit 前待獨立對抗核驗**（見裁決第九節清單）
+
+## AL-2026-031
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-028 號——**治理元層二缺口（GOV-1／GOV-3）之過渡處置（§8.1 解釋二項）**：第 1 點〔解釋界線·過渡〕＝§8.5(d) 反擴張標準準用於一切 §8.1 解釋，效果該當「課新義務類型／解鎖／移除制衡」者視為修訂、依 §8.5 辦理，疑義採「屬修訂」保守解讀，先例推翻須明示＋附理由＋逐點回應；第 2 點〔參與判準〕＝「參與」＝實質判斷之作成、繕打／機械施作／依核示落地＝非參與，以行為態樣繫屬繞開 §2.8 射程浮動；第 3 點〔施作留痕＋獨立核驗常態化〕＝RULING-2026-017 §四慣行升格裁決義務。**§8 [N] 本文未動、非原則級修訂、102 母集不變、PA 零觸**；第 1 點載明效力上限（無法自我封口）＋日落句（原則級修訂生效日由 [N] 吸收）。同步：GOV-1 原則級修訂提案（順帶收 GOV-4 公示期錨定、落點 §8.1）入 14 日公示（2026-07-23 起算、期滿 2026-08-06），見 `amendments/PROPOSAL-2026-001-GOV1-GOV4-S8.md`
+* **文件**：[RULING-2026-028-GOV-INTERPRETATION-BOUNDS.md](RULING-2026-028-GOV-INTERPRETATION-BOUNDS.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 書面核示「採推薦組合」
+* **驗證**：不改任一 [N] 本文；gate PASS、selftest 綠、PA/五原則 byte 零改；編號避讓＝L5 §8.2 收口草稿同日改編 RULING-2026-029（候選 AL-2026-032）
+
+## AL-2026-034
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-031 號——**甲案：廢止治理附則第 2 條第 1 款強制公示要件＋確認 PROPOSAL-2026-001 撤回 GOV-4**（治理附則 minor 修訂）：Steward 為單一自然人（Sole Steward）期間，原則級修訂**不強制公示期**、Steward 書面裁決（附理由、公開存檔）議決即生效；公示改為任意（若舉行，異議逐項回應義務照舊）；憲章 §8.5(b) 二要件照常適用。GOV-4 **反向閉合**——不錨 [N]、廢止附則強制公示，findings 留檔不滅、不再列開放待辦。PROPOSAL-2026-001 自此不受 14 日公示（原期滿 2026-08-06）約束，待 Steward 依 §8.5(b) 正式議決即可生效（本裁決不構成該議決）。**MC [N] 本文零改、版本維持 v1.4、102 母集不變、PA 零觸**；誠實揭露＝本路徑即 GOV-4 所指棘輪結構之 Steward 明示正面行使（非規避）
+* **編號註記**：本案跳號登錄——**AL-2026-033 保留予 RULING-2026-030**（L1 WM ultracode 處置草案，待 Steward 簽核、由該案自行登錄）；本案裁決號同因避讓編 031
+* **程序依據**：治理附則第 2 條第 2 款（minor）＋附則位階句「本附則之修訂依 minor 門檻」；Steward 書面指示 2026-07-23「甲：拿掉錨定／廢止公示」
+* **文件**：[RULING-2026-031-ANNEX-NOTICE-REPEAL.md](RULING-2026-031-ANNEX-NOTICE-REPEAL.md)；選項矩陣 `reports/augur_steward_no_public_notice_directive_20260723.md`
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：lint 前後逐檔一致；PA／五原則 byte 零改；施作留痕依 RULING-2026-028 第 3 點，commit 前經獨立對抗核驗
+
+## AL-2026-035
+
+* **日期**：2026-07-23
+* **事項**：Steward **正式議決通過**原則級修訂提案 PROPOSAL-2026-001（範圍僅 GOV-1／修訂一）——**AUGUR-MC v1.4→v1.5（原則級）**：§8.1 增設「**解釋之界線**」段（反擴張標準一般化＋效果等同修訂之三款判準＋疑義保守解讀＋先例推翻要件；GOV-1 根治）。依 §8.5(b) 二要件（失效 Evidence：`audits/MC-ULTRACODE-L0-20260723.md` GOV-1 卷＋RULING-017 M1／RULING-026 實例；實質判準：更完整實現 Accountability 於治理權力自身）。**RULING-2026-028 第 1 點〔解釋界線·過渡〕於生效日由 [N] 本文吸收日落**；第 2、3 點持續有效。102 母集不變；PA／五原則本文零改；L1–L7 規格零衝擊
+* **程序依據**：§8.5(b) 原則級門檻（二要件）；治理附則第 2 條第 1 款（議決即生效、不強制公示——RULING-2026-031）
+* **文件**：[PROPOSAL-2026-001-GOV1-GOV4-S8.md](amendments/PROPOSAL-2026-001-GOV1-GOV4-S8.md)（修訂理由書）
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 正式議決通過
+* **驗證**：`python3 -m tools.constitution_lint report` 施作前後 PASS；PA／五原則 byte 零改；施作留痕依 RULING-2026-028 第 3 點——**commit 前待獨立對抗核驗**（非施作者本身）

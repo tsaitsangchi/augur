@@ -378,7 +378,7 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 | `AUGUR-WM v1.0` WM.38（自然人之有界表徵） | **承接**（RULING-2026-016 析出）：L6.9(d)（法規對應表四欄登錄）、L6.10／L6.13（涉自然人 I3⇒RT-4 行動強制） |
 | `AUGUR-WM v1.0` WM.39–WM.47（合規聲明格式／編號穩定／升版） | L6.90、L6.91、§0.3、Annex CS、Annex TR—承接／落實 |
 | `AUGUR-WM v1.0` WM.48–WM.53（存在層治理雜項／文件約定規範地位） | WM.53 → L6.92—承接；WM.48–52 不觸及＋理由：屬存在層治理 |
-| `AUGUR-WM v1.0` Annex A（A.0–A.59）／Annex D（D0–D28，除 D13、D15、D16、D17、D22、D24、D28 外）／HOOK-01/02/03 | 不觸及＋理由：領域素材與 L2–L4 下放掛鉤，非行動治理落點；經 L4/L5 工作流入徵。〔**六列旗標已全數逐列裁決**（RULING-2026-016；查證 12 代理、反駁全數失敗）：D16 純文件補正、D13／D15／D17／D22／D28 實質承接補正——各見下列承接列〕 |
+| `AUGUR-WM v1.0` Annex A（A.0–A.59）／Annex D（D0–D28，除 D13、D15、D16、D17、D19、D22、D23、D24、D25、D28 外）／HOOK-01/02/03 | 不觸及＋理由：領域素材與 L2–L4 下放掛鉤，非行動治理落點；經 L4/L5 工作流入徵。〔**六列旗標已全數逐列裁決**（RULING-2026-016；查證 12 代理、反駁全數失敗）：D16 純文件補正、D13／D15／D17／D22／D28 實質承接補正——各見下列承接列〕 |
 | `AUGUR-WM v1.0` **D24**（存取控制 RBAC；授權資料不入預測特徵之隔離強制） | **承接**（2026-07-18 RULING-2026-013 補正）：RBAC 面＝L6.15（最小權限與 Plan 範圍化）＋L6.6（委派範圍／失效／可撤銷）；隔離強制面＝L6.15 增補款（授權受限資料之用途邊界）；物理面細化下放 L7.16／L7.33(b)／L7.49 |
 | `AUGUR-WM v1.0` **D13**（Goal、Constraint、Capability、Plan 之定義；目標 L5–L6，`AUGUR-MC v1.4 §P3.E1`、WM.21(d) 兜底） | **承接**（2026-07-18 RULING-2026-016 補正）：定義面＝L6.19 增補款（Planning 側四物件概念語義——Plan 繫結 Goal／Constraint／Capability 與已授權 Action 集合，連 L6.6(d)／L6.8／L6.15／L6.20；Goal 為模態內容承 `AUGUR-WM v1.0 §WM.17`；Constraint 承 L6.6(a) scope／風險級上限；Capability＝L6.15 權限語義）；引用紀律面（P3.E1 兜底）＝L6.19 增補款（引用未解析 Identity 之 Planning 物件不得通過 EV.9 Gate，連 L6.2／L6.7）；Reasoning 側兜底屬 L5（`AUGUR-L5 v1.0` L5.1／L5.6、CS.1-P3）；欄位／serialization 與 capability token 物理面下放 L7（LDO.2、LDO.6） |
 | `AUGUR-WM v1.0` **D15**（fail-safe 判定主體／程序、污染追蹤、觀測建議模式邊界） | **承接**（RULING-2026-013 主文三逐列查證補正）：污染追蹤面＝L6.20（受影響範圍＝自錯誤 Representation／Evidence 沿 Evidence 溯源鏈與 Identity 依賴之遞迴傳遞閉包，Annex EO「熔斷之受影響範圍」；表達力承 `AUGUR-KS v1.1` KS.70／KS.34）；觀測建議模式邊界面＝L6.20（degrade／halt 釘定：RT-4／不可逆一律 halt；degrade 期間不得延長自動執行鏈〔L6.17(iii)〕、不得降低核准層級〔L6.17(i)〕；否決通道恆常可用 L6.8）；判定主體／程序面＝L6.20 增補款（判定＝KS.51 Supersede Relation／KS.62 裁決之確立，作成者已解析 Identity 攜失效理由 Evidence；熔斷機械觸發不得裁量攔阻；修復判定同為需 Evidence 之行為且恢復不豁免 RT 級約束；爭議→Steward `§8.1`）；失效與 Supersede 形式表達力屬 L4（KS.51／KS.36／KS.62；KS.102 界分），本層消費不重定義 |
@@ -386,6 +386,9 @@ Agent Runtime 規格（Layer 6 — Agent Runtime／World Action Layer）
 | `AUGUR-WM v1.0` **D17**（自然人法規對應表；目標 L3/L6，`§WM.38`、`§P1.E3`） | **承接**（RULING-2026-016 補正）：**L6 slice**（法規對應表本體與其授權，承 `AUGUR-ID v1.0` IDO.7）＝L6.9(d) 增補款（自然人法規對應表：四欄登錄義務、登錄項為系統狀態、未登錄即不允許之保守預設、合規優先且忠實表徵不減損、I 軸敏感標記可解析至表）；行動風險面＝L6.9(b)／L6.10／L6.13 既載（涉自然人敏感 Identity ⇒ I3 ⇒ RT-4 ⇒ 事前雙人類獨立核准）；**L3 slice** 由 `AUGUR-ID v1.0` ID.42（去識別化／法規強制抹除）＋ID.60（as-of 繫結）既承；部署面細化下放 L7.33（語料隔離之機器強制、egress 預設拒絕） |
 | `AUGUR-WM v1.0` **D22**（核心宇宙完整性 gate、流動性分位地板、產業條件豁免機制） | **承接**（RULING-2026-013 主文三旗標之逐列補正）：判準結構面＝L4（`AUGUR-KS v1.1` KS.80 增補款〔成員資格為資料品質之函數、三機制結構〕＋KS.81(f)〔產業條件豁免之完備性語義〕）；計算面＝L5（成員資格衍生為 inference，`AUGUR-L5 v1.0` L5.10／L5.3 既有紀律）；治理面＝L6.11 增補款（gate 門檻值與流動性分位值之採認變更核准、產業豁免之授予存續審查——人類核准留痕，數值登錄下放 L7 系統狀態） |
 | `AUGUR-WM v1.0` **D28**（誠實輸出契約本體：產物閉集、硬綁揭露五項、展示分級、fail-closed 閘） | **承接**（2026-07-18 RULING-2026-016 補正）：契約本體＝L6.21 增補款（受控介面放行前四驗證：產物閉集／硬綁揭露五項／展示分級／fail-closed 閘）；分級狀態消費 `AUGUR-L5 v1.0` L5.4／L5.5（GATE 成就與模態標記——D28 之 L5 面，既載）；表達力承 `AUGUR-WM v1.0 §A.50`（WM.12／WM.17／WM.33）；物理面下放 L7——揭露載體 L7.43、介面 fail-closed L7.44、產物表 trigger 級機械強制與閉集枚舉登錄 |
+| `AUGUR-WM v1.0` **D19**（L4–L7 治權文件「唯一真相來源」措辭收斂） | **承接（空集揭露）**（RULING-2026-030／AL-2026-033）：全文檢索「唯一真相來源」零筆，無收斂事項 |
+| `AUGUR-WM v1.0` **D23**（L4–L7 資料供應商防護與額度紀律） | **不觸及＋理由**：通道防護屬觀測擷取與部署面（L4 Evidence 完整性已由 `AUGUR-KS v1.1` 承接；L7 物理面已承 front-matter `WM.D23`）；L6 行動治理層不觸供應商通道 |
+| `AUGUR-WM v1.0` **D25**（L5–L7 語料隔離機器強制） | **不觸及＋理由**：語料隔離機器強制之部署面＝L7.33（L6.9(d) 既載語料隔離部署下放）；本層不另定機制 slice |
 | `AUGUR-ONT v1.0` ONT.1–ONT.62（型別層本體／Type 判準／schema／型別演化） | 不觸及＋理由：型別層本體，本層消費既定 Type 不重定義；ONT.60–62 合規存續 → L6.90/L6.92 承接 |
 | `AUGUR-ONT v1.0` Annex T／DO.0–DO.4 | 不觸及＋理由：型別素材與 L2 下放掛鉤，目標 L3–L4 已承接 |
 | `AUGUR-ID v1.0` ID.1–ID.53（個體層本體／identifier／lifecycle／已解析與 provisional 狀態） | L6.2（消費已解析 Identity）、L6.5（人類決策者 Human）、L6.14（lineage 獨立性）—承接（消費）；其餘個體層機制不觸及＋理由：屬 L3 |
@@ -454,7 +457,7 @@ compliance-statement:
   defers-out: [LDO.1, LDO.2, LDO.3, LDO.4, LDO.5, LDO.6]
   date: 2026-07-17
   author: Layer 6 Agent Runtime 規格起草人（AUGUR-L6 起草子代理；產物原為 v0.1-draft 提案，業經 Steward 充任認定與 §8.2 實質審查，以 v1.0 生效；§8.2 residual 保留）
-  archive-path: specs/AGENT-RUNTIME-SPECIFICATION-v0.1-draft.md
+  archive-path: specs/AGENT-RUNTIME-SPECIFICATION.md
 ```
 
 ### CS.1 逐原則論證本文（七節，順序固定）[N]

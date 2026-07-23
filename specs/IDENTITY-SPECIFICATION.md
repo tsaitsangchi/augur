@@ -715,7 +715,7 @@ compliance-statement:
   defers-out: [IDO.1, IDO.2, IDO.3, IDO.4, IDO.5, IDO.6, IDO.7, IDO.8]
   date: 2026-07-17
   author: Layer 3 Identity 規格撰稿官（依 Constitution Steward 委辦之 Layer 3 起草程序）
-  archive-path: specs/IDENTITY-SPECIFICATION-v0.1-draft.md
+  archive-path: specs/IDENTITY-SPECIFICATION.md
 ```
 
 ### CS.1 逐原則論證本文（七節，順序固定）[N]
@@ -745,7 +745,7 @@ compliance-statement:
 |---|---|---|---|
 | **T-ID-1** | ID.30(d)、IDO.1 | identity claim 需 Confidence 槽位，但其語義 DEFER Layer 4（`§P4.E8`）尚未定義。 | 本層僅設槽位並要求 Layer 4 承接；語義未定前，涉 claim 之升級消費採保守解釋（`§P4.E7` 最弱環節約束）。非豁免事項。 |
 | **T-ID-2** | ID.12、IDO.5 | identifier 結構設計權（`§WM.20`／D5）與概念層獨立性（`§0.6(b)`）之張力：命名空間須有結構，然物理編碼屬 Layer 7。 | 本層僅定**概念命名空間**（referent 空間隔離＋跨部署對齊契約）；物理序列化下放 Layer 7（IDO.5）。非豁免事項。 |
-| **T-ID-3** | AO.2、`§D6` | OPEN-1 Security 判準採認待 Steward／決策層拍板；本層提供採認機制但實質採認非本規格單方可為。 | 拍板前保守解釋為未解析（`§WM.21(e)`）；本規格備妥採認機制待拍板即生效。非豁免事項。 |
+| **T-ID-3** | AO.2、`§D6` | OPEN-1 Security 判準採認待 Steward／決策層拍板；本層提供採認機制但實質採認非本規格單方可為。 | **〔部分解消〕RULING-2026-014 已採認 Security／Index／FredSeries 操作化判準；改名／借殼殘留面續依保守預設（RULING-2026-030／AL-2026-033）**。涉 Security 類 Identity 之引用依 014 已採認判準解析。非豁免事項。 |
 | **T-ID-4** | ID.60、ID.61、IDO.6 | 身份屬性 as-of 繫結義務（本層）與 as-of 重建引擎（Layer 4，`§P4.E2`）分屬二層，重建能力等級尚未定義。 | 本層保證版本繫結存在；重建能力 DEFER Layer 4（HOOK-01 上呈素材）。非豁免事項。 |
 | **T-ID-5** | ID.31、IDO.2 | identity claim 為 Knowledge（`§2.4`）受 P4 約束，然其完整 Knowledge 五元組欄位設計屬 Layer 4。 | 本層定身份側四要件（ID.30），完整欄位下放 Layer 4；二者以 IDO.2 對接。非豁免事項。 |
 | **T-ID-6** | ID.42、§8、IDO.7、`§D17` | 自然人法規對應（`AUGUR-WM v1.0 §D17`）目標為 **L3/L6**，其 L3 機制 slice（去識別化／抹除、時變屬性 as-of）與 L6 法規對應表本體之分界待具體法域義務落地方確定。 | L3 slice 由 ID.42（＋ID.60）承接、繫結 `AUGUR-ONT v1.0` T.23；L6 slice DEFER Layer 6（IDO.7）。分界待定但雙側均有具名落點，非承接漏列。非豁免事項。 |

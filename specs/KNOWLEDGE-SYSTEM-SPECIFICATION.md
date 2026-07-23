@@ -608,6 +608,10 @@ Augur Enterprise AI Operating System
 | **KDI.16**（ONT 散列） | KS.20 | Attribute schema 欄位設計、Confidence 不設於 L2 | `AUGUR-ONT v1.0 §ONT.2`、`§DO`（D9 散列） |
 | **KDI.17**（WM-D12，L4 面向） | KS.84（＋§8 KS.32、§9 KS.81(d)） | GATE 統計治理之 **Layer 4 Evidence 機制設計**（多重比較調整、判準凍結、二次證偽封鎖之概念層約束；HOOK-03「統計嚴謹化屬 Layer 4 Evidence 機制設計權」） | `AUGUR-WM v1.0 §D12`／HOOK-03、`§A.19`、`§A.52` |
 | **KDI.18**（WM-D22，L4 面向） | KS.80 增補款、KS.81(f) | 核心宇宙完整性 gate／流動性分位地板／產業條件豁免之 **Layer 4 概念層承接**（數值治理 DEFER L6、計算面 DEFER L5；RULING-2026-016） | `AUGUR-WM v1.0 §D22`／`§P4.W1` |
+| **KDI.19**（WM-D14，L4 面向） | §3、KDO.3 | 確立程序與候選斷言工作流之 **L4 slice**（五元組欄位→§3）；候選工作流演算面 DEFER L5（KDO.3） | `AUGUR-WM v1.0 §D14`／`§P2.W2` |
+| **KDI.20**（WM-D15，L4 面向） | KS.102 | fail-safe 判定主體／程序、污染追蹤、觀測建議模式邊界之 **L4 界分**（判定主體 DEFER L4–L6） | `AUGUR-WM v1.0 §D15`／`§P2.E5` |
+| **KDI.21**（WM-D19，L4 slice） | CS.2 揭露（`:857`） | 治權文件「唯一真相來源」措辭收斂之 **L4 slice**（全文檢索零筆＝空集揭露承接） | `AUGUR-WM v1.0 §D19`／`§WM.9(c)` |
+| **KDI.22**（WM-D23，L4 面向） | KS.44 | 資料供應商防護與額度紀律之 **L4 通道紀律 slice**（限流／額度／防護實作 DEFER L5–L7） | `AUGUR-WM v1.0 §D23`／`§A.13` |
 
 ## Annex DO [N] — 下放下層 DEFER 掛鉤（defers-out）
 
@@ -820,7 +824,7 @@ Augur Enterprise AI Operating System
 | A.28（持股結構狀態） | KS.45（point-in-time）—承接 | A.58（MarketTrade／DailyBar） | 不觸及＋理由：領域實例 |
 | A.29（UniverseMembership） | KS.45、KS.55—承接 | A.59（涉自然人通道之域內宣告） | 承 Layer 3 `§ID.42`—承接 |
 
-**(3) WM Annex D（D0–D28；下放掛鉤）**——D7–D12/D18/D21/D26/D27 為本規格 defers-in（Annex DI）；餘為下放他層之掛鉤，本層不觸及＋理由（非 Layer 4 承接對象）。
+**(3) WM Annex D（D0–D28；下放掛鉤）**——D7–D12/D14/D15/D18/D19/D21/D22/D23/D26/D27 為本規格 defers-in（Annex DI）；餘為下放他層之掛鉤，本層不觸及＋理由（非 Layer 4 承接對象）。
 
 | D | WM 權威主題（目標 Layer） | 本層處置＋理由 |
 |---|---|---|
@@ -982,12 +986,12 @@ compliance-statement:
   principles: [PA, P1, P2, P3, P4, P5, EV-chain]
   waivers: []
   open-tensions: [T-KS-1, T-KS-2, T-KS-3, T-KS-4, T-KS-5, T-KS-6]
-  defers-in: [WM.D7, WM.D8, WM.D9, WM.D10, WM.D11, WM.D12, WM.D18, WM.D21, WM.D22, WM.D26, WM.D27,
+  defers-in: [WM.D7, WM.D8, WM.D9, WM.D10, WM.D11, WM.D12, WM.D14, WM.D15, WM.D18, WM.D19, WM.D21, WM.D22, WM.D23, WM.D26, WM.D27,
               ONT.散列(Attr/D9), ID.IDO.1, ID.IDO.2, ID.IDO.3, ID.IDO.4, ID.IDO.6, ID.IDO.8]
   defers-out: [KDO.1, KDO.2, KDO.3, KDO.4, KDO.5, KDO.6, KDO.7]
   date: 2026-07-17
   author: Layer 4 Knowledge System 規格撰稿官（依 Constitution Steward 委辦之 Layer 4 起草程序）
-  archive-path: specs/KNOWLEDGE-SYSTEM-SPECIFICATION-v0.1-draft.md
+  archive-path: specs/KNOWLEDGE-SYSTEM-SPECIFICATION.md
 ```
 
 ### CS.1 逐原則論證本文（七節，順序固定）[N]
@@ -1021,7 +1025,7 @@ compliance-statement:
 
 ### CS.3 雙向 DEFER 承接表（`AUGUR-WM v1.0 §WM.43`）[N]
 
-* **(a) 承接上層之掛鉤（defers-in）**：`AUGUR-WM v1.0 §D7`→§3；`§D8`→§5；`§D9`→§4；`§D10`→§6／§8；`§D22`→KS.80 增補款／KS.81(f)（KDI.18，RULING-2026-016）；`§D11`→§9；`§D12`（HOOK-03，L4 面向）→KS.84（＋§8/§9）；`§D18`→KS.25/KS.62（L7 機制 slice 對稱下放 KDO.5）；`§D21`→KS.78；`§D26`→KS.54；`§D27`→KS.45；`AUGUR-ONT v1.0 §ONT.2`／散列→KS.20/§4；`AUGUR-ID v1.0` IDO.1→§4/§10、IDO.2→§3/§10、IDO.3→KS.26、IDO.4→KS.83（＋轉 L5 KDO.1／L5/L7 KDO.4）、IDO.6→§5、IDO.8→KS.25/KS.62。與 front-matter `defers-in` 欄及 Annex DI 三向對表。
+* **(a) 承接上層之掛鉤（defers-in）**：`AUGUR-WM v1.0 §D7`→§3；`§D8`→§5；`§D9`→§4；`§D10`→§6／§8；`§D12`（HOOK-03，L4 面向）→KS.84；`§D14`→§3（KDI.19）；`§D15`→KS.102（KDI.20）；`§D18`→KS.25/KS.62（L7 機制 slice 對稱下放 KDO.5）；`§D19`→CS.2 揭露（KDI.21，空集）；`§D21`→KS.78；`§D22`→KS.80 增補款／KS.81(f)（KDI.18，RULING-2026-016）；`§D23`→KS.44（KDI.22）；`§D26`→KS.54；`§D27`→KS.45；`AUGUR-ONT v1.0 §ONT.2`／散列→KS.20/§4；`AUGUR-ID v1.0` IDO.1→§4/§10、IDO.2→§3/§10、IDO.3→KS.26、IDO.4→KS.83（＋轉 L5 KDO.1／L5/L7 KDO.4）、IDO.6→§5、IDO.8→KS.25/KS.62。與 front-matter `defers-in` 欄及 Annex DI 三向對表。
 * **(b) 下放下層之掛鉤（defers-out）**：KDO.1、KDO.2、KDO.3（HOOK-02/03 之 L5 面向）、KDO.4、KDO.5（`§D18` 之 L7 機制 slice）、KDO.6、KDO.7（見 Annex DO），與 front-matter `defers-out` 欄互為索引。原 KDO.HOOK02 已改編為 KDO.3、目標收斂為純 L5。
 
 ### CS.4 形式充分性（`AUGUR-WM v1.0 §WM.44`）[N]
