@@ -290,7 +290,7 @@ Augur Enterprise AI Operating System
 
 > **T.5 Warrant（權證）[N]** — **parent** DynamicEntity（具生命週期之金融工具，體例同 T.3／T.4；兼具 AbstractEntity/FinancialInstrument 面向，以屬性表徵，非第二 parent）。**判準**：同一 iff〔發行券商 Identity × 權證發行序 × 標的〕；具至標的股之 UnderlyingRelation（T.51）。**instance/type**：具體權證為 Instance；權證類別為 type。〔對映 `§A.8`〕
 
-> **T.6 ForeignSecurity（外國證券／指數）[N]** — **parent** AbstractEntity。**判準**：同一 iff〔外部識別體系（如 ISIN／exchange ticker）之 identity claim（ONT.22）〕；識別空間異於本域個股（`AUGUR-WM v1.0 §A.9`）。**instance/type**：具體外股／外指為 Instance；市場／工具類為 type。〔對映 `§A.9`〕
+> **T.6 ForeignSecurity（外國證券／指數）[N]** — **parent** AbstractEntity。**判準**：同一 iff〔外部識別碼體系（如 ISIN／exchange ticker）× 代碼值 × 有效期間〕；跨體系同一以 identity claim（ONT.22）表達（`AUGUR-WM v1.0 §WM.21(c)`）；判準採認 DEFER Layer 3（DO.1）。識別空間異於本域個股（`§A.9`）。**instance/type**：具體外股／外指為 Instance；市場／工具類為 type。〔對映 `§A.9`〕
 
 ## T-② Entity → AgentiveEntity / AbstractEntity（主體與結構實體）
 
@@ -314,7 +314,7 @@ Augur Enterprise AI Operating System
 
 > **T.27 KnowledgeCorpus（知識語料族）[N]** — **parent** AbstractEntity 族（學派／原則／思想家／著作／文本塊）。**判準**：同一 iff〔文獻來源可溯源之作品／作者識別〕。**隔離宣告**：素養語料不進預測管線（型別層標記隔離；機器強制 DEFER Layer 5–7，`AUGUR-WM v1.0 §D25`）。**instance/type**：具體著作／思想家為 Instance；學派／原則類為 type。〔對映 `§A.16`〕
 
-> **T.28 SelfReflexiveType（Model／CoreUniverse／GATE／Augur 自身）[N]** — **parent** AgentiveEntity（有行為之系統內主體，`AUGUR-WM v1.0 §WM.26` 自反性之型別落地；GATE 預註冊實驗兼具 DynamicEntity 之生命週期／審批狀態面向，以屬性表徵，非第二 parent）。**判準**：Model／CoreUniverse 同一 iff〔系統內部實體識別〕；GATE（預註冊實驗）為具生命週期與審批狀態之 DynamicEntity，同一 iff〔實驗預註冊識別 × 判準凍結序〕。**instance/type**：具體模型／宇宙／實驗為 Instance；模型家族／實驗類為 type。**外部識別碼繫結**（如 ISIN 於 T.42）為 identity claim（ONT.22）。〔對映 `§A.14`、`§A.19`、`§A.20`〕
+> **T.28 SelfReflexiveType（Model／CoreUniverse／GATE／Augur 自身）[N]** — **parent** AgentiveEntity（有行為之系統內主體，`AUGUR-WM v1.0 §WM.26` 自反性之型別落地）。**判準**：Model／CoreUniverse 同一 iff〔系統內部實體識別〕；GATE（預註冊實驗）同一 iff〔實驗預註冊識別 × 判準凍結序〕——GATE 兼具 DynamicEntity 之生命週期／審批狀態面向，**以屬性表徵，非第二 parent**（偏離 `§A.19`「一級 Dynamic Entity」之 Layer 2 重分類，見 Annex CS OT-5）。**instance/type**：具體模型／宇宙／實驗為 Instance；模型家族／實驗類為 type。**外部識別碼繫結**（如 ISIN 於 T.42）為 identity claim（ONT.22）。〔對映 `§A.14`、`§A.19`、`§A.20`〕
 
 > **T.29 Catalog（元資料目錄）[N]** — **parent** AbstractEntity（內部）。**判準**：同一 iff〔資料集／欄位元資料識別〕。**instance/type**：具體目錄項為 Instance；目錄類為 type。〔對映 `§A.17`〕
 
@@ -480,8 +480,15 @@ Augur Enterprise AI Operating System
 | WM.38 | T.23、T.42（有界表徵之 Type 標注） | 承接（法規 DEFER `§D17`） |
 | WM.39–WM.45 | Annex CS、ONT.62 | 承接（正式格式作成聲明） |
 | WM.46／WM.47／WM.48 | ONT.9／ONT.61／ONT.61 | 承接 |
-| WM.49–WM.53 | 不觸及（附理由） | 不觸及：Domain Profile 框架為 Layer 1 對其 Annex A 之治理；本層消費 Annex A 之產物，不制定 Profile 框架 |
-| Annex A（A.0–A.59；A.0 地位/範圍傘蓋） | Annex T、Annex T-Map（逐條型別化）；A.0→依 WM.23 型別化所轄存在宣告 | 細化（承接 D20；封印素材 [I] → Type）；A.0 承接 |
+| WM.49–WM.52 | 不觸及（附理由） | 不觸及：Domain Profile 框架為 Layer 1 對其 Annex A 之治理；本層消費 Annex A 之產物，不制定 Profile 框架 |
+| WM.53 | 【地位】節（`:19`） | 承接（【地位】節準用 `§WM.53`）〔RULING-2026-032 析出改標〕 |
+| Annex A ①部（A.0–A.30、A.57、A.58；A.0 地位/範圍傘蓋） | Annex T、Annex T-Map（逐條型別化）；A.0→依 WM.23 型別化所轄存在宣告 | 細化（承接 D20；封印素材 [I] → Type）；A.0 承接 |
+| Annex A A.31–A.32 | ONT.20–21 | 不觸及（附理由）：封印素材 [I]，非 D20 型別化對象〔RULING-2026-032 析出〕 |
+| Annex A A.33 | ONT.22（DI 節已承接 [N]） | 承接（跨來源同一性判準宣告）〔RULING-2026-032 析出〕 |
+| Annex A A.34–A.44 | — | 不觸及（附理由）：時間／通道宣告，非本層 Type 體系對象〔RULING-2026-032 析出〕 |
+| Annex A A.45–A.53 | — | 不觸及（附理由）：⑤部評價性謂詞，非本層 Type 體系對象〔RULING-2026-032 析出〕 |
+| Annex A A.54 | T.90 | 承接（OPEN-1 候選判準；採認 DEFER Layer 3）〔RULING-2026-032 析出〕 |
+| Annex A A.55–A.56、A.59 | — | 不觸及（附理由）：非①部型別化對象，依條款異質處置〔RULING-2026-032 析出〕 |
 | Annex D（D1/D2/D20 目標 L2） | Annex DI（DI.1–DI.3） | 承接（defers-in） |
 | Annex D 非 L2 各列（D0 已由 DI.0 承接；D3–D28） | — | 不觸及：WM 對 L3–L7 之 DEFER 掛鉤，目標 Layer 非本層（D21/23/24/25/27 另有散列引述）〔RULING-2026-021 補列〕 |
 | Annex C（導言＋C.1–C.10） | — | 不觸及：WM 對 MC 之 Constitutional Compliance Statement，義務主體＝WM 自身；本層另以自身 Annex CS 履行同型〔RULING-2026-021 補列〕 |
@@ -503,7 +510,7 @@ compliance-statement:
   statement-format: AUGUR-WM v1.0 §WM.39–45
   principles: [PA, P1, P2, P3, P4, P5, EV-chain]
   waivers: []
-  open-tensions: [OT-1, OT-2, OT-3, OT-4]
+  open-tensions: [OT-1, OT-2, OT-3, OT-4, OT-5]
   defers-in: [D1, D2, D20]
   defers-out: [DO.1, DO.2, DO.3, DO.4]
   date: 2026-07-17
@@ -571,6 +578,7 @@ compliance-statement:
 | **OT-2** | ONT.21、T.0 vs `AUGUR-WM v1.0 §WM.21(e)`、`§D2` | 同一性判準之「制定（L2）／採認（L3）」二分（D2 標為 L2/L3）於 `§WM.21(e)` 封印下之效力邊界：本層判準在 Layer 3 採認前不生 resolution 效力。 | 如實揭露；涉該類 Identity 引用保守解釋為未解析；採認 DEFER Layer 3（DO.1、`§D6`）。非豁免事項。 |
 | **OT-3** | T.1、T.20、T.90 vs `AUGUR-WM v1.0 §A.54`（OPEN-1） | `§A.54` OPEN-1（stock_id 代碼重用／借殼）之實體層型別化已由本層完成（Security↔Issuer 分離，T.1/T.20），但正式判準採認 DEFER Layer 3（DO.1、`§D6`），待 Steward／決策層拍板。 | 保守預設 [N]（供應商代碼為指涉資訊、非 identifier）＋候選記載 [I] 封印；下層消費須顯式引用 T.90。非豁免事項。 |
 | **OT-4** | ONT.10 vs `AUGUR-MC v1.4 §P3.W2`、`AUGUR-WM v1.0 §WM.36` | `§P3.W2` 於 Dynamic Entity 例示列有「Event、Process、State」（字面上 Event/State 為 Dynamic Entity 之子例）；本層依 `§WM.36` 歸類閉集（實體／事件／狀態／關係／量並列）行使 `§WM.23` Layer 2 完整分類權，將 **DynamicEntity 重解為「具生命週期之實體」**（T.3/T.4/T.5），並將 **Event／State 另立為與 Entity 並列之頂層範疇**（ONT.10）。二切面（五頂層範疇承接 `§WM.36` Registry 歸類閉集；Entity 四分承接 `§P3.W2`）為不同分類切面，非字面矛盾。 | **非牴觸**，係依 `§WM.23`／`§WM.36` 行使 Layer 2 分類權；Event／State 之個體仍具 Identity（非刪減四類 Entity 或五頂層範疇，合 ONT.11）；依 `§WM.42` 如實揭露。非豁免事項。 |
+| **OT-5** | T.28 vs `AUGUR-WM v1.0 §A.19`、`§A.14` | `§A.19` [N] 明文 GATE 為「具生命週期與審批狀態之**一級 Dynamic Entity**」（無 `§A.1` 式自限句）；`§A.14` 將 CoreUniverse 列於 Model 脈絡。本層 T.28 將 GATE／CoreUniverse／Model／Augur 自身歸 **AgentiveEntity** parent；GATE 之 DynamicEntity 生命週期／審批狀態面向**以屬性表徵，非第二 parent**（比照 OT-1 體例：偏離 Annex A 定性須揭露）。CoreUniverse 歸 Agentive 之論證依 `§WM.26` 自反性（可被觀測與表徵），非「有行為之系統內主體」之強論證——如實揭露。 | **非牴觸**，係行使 Layer 2 分類權（`§WM.23`）；重分類不改任何個體 Identity（ONT.60）。非豁免事項。〔RULING-2026-032 增列〕 |
 
 豁免登記：`none`（waivers: []）。豁免期間 Knowledge 標記義務之落實方式：本規格無現行豁免；如有，依 `AUGUR-WM v1.0 §WM.33` 豁免狀態標記位置落實。
 
