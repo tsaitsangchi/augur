@@ -10,6 +10,10 @@
 
 OLLAMA_URL / OLLAMA_MODEL 之預設與 augur_proxy.local_llm 一致。
 MCP 濃縮路徑另鎖：think=false、per-profile num_predict、短 keep_alive（與主 UI 8b 分載）。
+
+執行指令矩陣（本檔為 library，CLI/MCP 消費見 `server.py`；完整回歸鎖見同套件 `selftest.py`）：
+  python -m tools.local_llm_mcp.tools              # 印用途（唯讀、免外部依賴）
+  python -m tools.local_llm_mcp.tools --selftest    # LOCAL_LLM_MCP_STUB=1 走 stub 路徑紅綠自測（零外部依賴）
 """
 from __future__ import annotations
 
@@ -510,3 +514,36 @@ def local_map_reduce(paths, instruction: str, max_sentences: int = 8) -> str:
     reduced = _generate(reduce_prompt, timeout=300, profile="reduce")
     header = f"[local_map_reduce files={len(paths)}]"
     return _decorate(f"{header}\n{reduced}")
+
+
+def _selftest() -> int:
+    prev = os.environ.get("LOCAL_LLM_MCP_STUB")
+    os.environ["LOCAL_LLM_MCP_STUB"] = "1"
+    try:
+        out = local_ask("selftest ping")
+        ok = "(local model:" in out and "[I] 輔助" in out and "STUB:" in out
+        try:
+            local_ask("")
+            ok = False  # 空 prompt 應丟 LocalLLMError
+        except LocalLLMError:
+            pass
+        try:
+            _resolve_source(None, "constitution/META-CONSTITUTION.md")
+            ok = False  # 治理路徑應被拒
+        except LocalLLMError:
+            pass
+    finally:
+        if prev is None:
+            os.environ.pop("LOCAL_LLM_MCP_STUB", None)
+        else:
+            os.environ["LOCAL_LLM_MCP_STUB"] = prev
+    print("local_llm_mcp.tools selftest:" + (" OK" if ok else " FAIL") + "（stub 路徑，不連 Ollama）")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

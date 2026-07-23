@@ -329,3 +329,11 @@
 * **文件**：[RULING-2026-026-CMD-MATRIX.md](RULING-2026-026-CMD-MATRIX.md)
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **執行**：repo 可執行入口 docstring 補齊「執行指令矩陣」；CLAUDE.md 從屬改引 AUGUR-MC v1.4
+
+## AL-2026-030
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-027 號——**執行層 L5–7 交互檢查 2 cross-layer major 處置（簿記／編號地圖）**：M-IX-1＝KS Annex CS front-matter `defers-in` 補列 `WM.D22`（KDI.0 三向可解析補正，KDI.18/KS.80/KS.81(f)/CS.3(a) 義務句本文未動）；M-IX-2＝L5 編號穩定性（§0.3、文末總計）改為「L5.10 已啟用（as-of 推理消費）；L5.11–L5.89 保留」，使編號地圖與已生效 L5.10 [N] 條款一致
+* **文件**：[RULING-2026-027-L5-L7-INTERACTION-DISPOSITION.md](RULING-2026-027-L5-L7-INTERACTION-DISPOSITION.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：`python3 -m tools.constitution_lint report` 施作前後 error 0／warning 0 逐檔一致（L1–L7 PASS）；2 存活 major 判定要件（KDI.0 三向、L5 編號地圖一致性）經補正消除；不動任一 [N] 義務句本文

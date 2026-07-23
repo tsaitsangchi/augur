@@ -2,6 +2,11 @@
 
 刻意不暴露為 MCP 工具、且不被 server.py 匯入：agent 無法經 MCP 觸發寫入。
 預設增量（檔案 SHA256）；`--full` 刪 DB 全量重建。
+
+執行指令矩陣（實際常駐用法見 `python -m tools.project_memory_mcp index`）：
+  python tools/project_memory_mcp/index.py              # 對 repo 根建索引（預設增量）
+  python tools/project_memory_mcp/index.py --full        # 全量重建
+  python tools/project_memory_mcp/index.py --selftest    # 對合成暫存目錄建索引＋查詢紅綠自測（stub 嵌入、零外部依賴）
 """
 from __future__ import annotations
 
@@ -409,3 +414,33 @@ def main(argv=None) -> int:
         f" → {stats['db']}（embed={stats['embed_model']}）"
     )
     return 0
+
+
+def _selftest() -> int:
+    import tempfile
+
+    prev = os.environ.get("PROJECT_MEMORY_MCP_STUB")
+    os.environ["PROJECT_MEMORY_MCP_STUB"] = "1"
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td) / "root"
+            root.mkdir()
+            (root / "a.md").write_text("# 標題\n關於 augur 的一些說明文字。\n", encoding="utf-8")
+            db_file = str(pathlib.Path(td) / "index.db")
+            stats = build(root=str(root), db=db_file, verbose=False, full=True)
+            ok = stats["mode"] == "full" and stats["files"] == 1 and stats["chunks"] >= 1
+            stats2 = build(root=str(root), db=db_file, verbose=False, full=False)
+            ok = ok and stats2["mode"] == "incremental" and stats2["skipped"] == 1
+    finally:
+        if prev is None:
+            os.environ.pop("PROJECT_MEMORY_MCP_STUB", None)
+        else:
+            os.environ["PROJECT_MEMORY_MCP_STUB"] = prev
+    print("index selftest:" + (" OK" if ok else " FAIL") + "（stub 嵌入，合成暫存目錄，不動真實索引）")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    sys.exit(main())

@@ -44,7 +44,7 @@ Augur Enterprise AI Operating System
 | Annex CS [N] | Constitutional Compliance Statement | CS.1–CS.4 | `WM.39–45` |
 | Annex EO [N] | 自創評價性謂詞判準彙整 | EO.1 | `§8.3` 可判定性元規則 |
 
-編號穩定性：正文採 **L5.{n}**（**L5.1–L5.9** 為核心推理引擎條款；**L5.10–L5.89** 為十位制保留區塊，空號為保留、非跳號；**L5.90–L5.99** 為文件治理與合規存續條款）；Annex 各前綴 **LDI.{n}／LDO.{n}／L46.{n}／TR.{n}／CS.{n}／EO.{n}**；一經發布永不重用、永不重排（`AUGUR-MC v1.4 §8.6`、`AUGUR-WM v1.0 §WM.46`）。
+編號穩定性：正文採 **L5.{n}**（**L5.1–L5.9** 為核心推理引擎條款；**L5.10** 已啟用（as-of 推理消費，RULING-2026-019 決策二重作／RULING-2026-023〔乙〕重採認）；**L5.11–L5.89** 為十位制保留區塊，空號為保留、非跳號；**L5.90–L5.99** 為文件治理與合規存續條款）；Annex 各前綴 **LDI.{n}／LDO.{n}／L46.{n}／TR.{n}／CS.{n}／EO.{n}**；一經發布永不重用、永不重排（`AUGUR-MC v1.4 §8.6`、`AUGUR-WM v1.0 §WM.46`）。
 
 ---
 
@@ -65,7 +65,7 @@ Augur Enterprise AI Operating System
 ### 0.3 條文效力標注與編號穩定性 [N]
 
 * 每章標題標注 **[N]（Normative，規範性）** 或 **[I]（Informative，資訊性）**。[N] 與 [I] 內容不一致時，依 `AUGUR-MC v1.4 §8.2` 以 Normative 為準；章標題標注為該章預設，子節另有標注者以子節為準。
-* 正文條款編號採 **L5.{n}**：**L5.1–L5.9** 為核心推理引擎條款；**L5.10–L5.89** 為十位制保留區塊（空號為保留、非跳號，保留號之啟用亦永不重用、永不重排）；**L5.90–L5.99** 為文件治理與合規存續條款。Annex 條款前綴：Annex LDI（承接掛鉤）採 **LDI.{n}**、Annex LDO（下放掛鉤）採 **LDO.{n}**、Annex L46（分界表）採 **L46.{n}**、Annex TR（追溯矩陣）採 **TR.{n}**、Annex CS（合規聲明）採 **CS.{n}**、Annex EO（謂詞判準）採 **EO.{n}**。
+* 正文條款編號採 **L5.{n}**：**L5.1–L5.9** 為核心推理引擎條款；**L5.10** 已啟用（as-of 推理消費——推理之時間邊界與 anti-leakage，§8）；**L5.11–L5.89** 為十位制保留區塊（空號為保留、非跳號，保留號之啟用亦永不重用、永不重排）；**L5.90–L5.99** 為文件治理與合規存續條款。Annex 條款前綴：Annex LDI（承接掛鉤）採 **LDI.{n}**、Annex LDO（下放掛鉤）採 **LDO.{n}**、Annex L46（分界表）採 **L46.{n}**、Annex TR（追溯矩陣）採 **TR.{n}**、Annex CS（合規聲明）採 **CS.{n}**、Annex EO（謂詞判準）採 **EO.{n}**。
 * 條款編號一經發布**永不重用、永不重排**；廢止條款保留編號並標注 **(repealed)**（`AUGUR-MC v1.4 §8.6`、`AUGUR-WM v1.0 §WM.46`）。
 * **附屬表列 [N] 內容之義務承載規則**：附屬於某治理條款（如 LDI.0、LDO.0、L46.0、TR.0、CS.1 各節、EO.1）之表列 [N] 內容，其義務主體與可判定判準由該治理（父）條款統一承載，不另逐列重複標注（此為體例落實，非豁免）。
 
@@ -535,6 +535,6 @@ compliance-statement:
 
 ---
 
-*本規格計：正文條款 L5.1–L5.9（核心推理引擎）＋L5.90–L5.92（文件治理；L5.10–L5.89 為十位制保留區塊）、Annex LDI（LDI.0–LDI.7）、Annex LDO（LDO.0–LDO.6）、Annex L46（L46.0）、Annex TR（TR.0、TR.A–TR.E、TR.Z）、Annex CS 合規聲明（CS.1–CS.4）、Annex EO（EO.1）。全文以繁體中文為權威文本（§0.4）。本文件為 **v1.0（provisional）生效版本**：Constitution Steward（人類 tsaitsangchi）已依 `AUGUR-MC v1.4 §8.1` 作成充任認定，自 2026-07-17 起生效（Steward 裁決第 2026-006 號、AL-2026-010；【地位】、L5.90）。**`§8.2` 實質合憲人類審查經 Steward 指示延後，本規格為 provisional、待調整；Steward `§8.2` 違憲審查權完整保留**。本規格之生效及其登錄均為 Steward 之裁決行為，非本子代理所得宣稱或代行。*
+*本規格計：正文條款 L5.1–L5.9（核心推理引擎）＋L5.10（as-of 推理消費，已啟用）＋L5.90–L5.92（文件治理；L5.11–L5.89 為十位制保留區塊）、Annex LDI（LDI.0–LDI.7）、Annex LDO（LDO.0–LDO.6）、Annex L46（L46.0）、Annex TR（TR.0、TR.A–TR.E、TR.Z）、Annex CS 合規聲明（CS.1–CS.4）、Annex EO（EO.1）。全文以繁體中文為權威文本（§0.4）。本文件為 **v1.0（provisional）生效版本**：Constitution Steward（人類 tsaitsangchi）已依 `AUGUR-MC v1.4 §8.1` 作成充任認定，自 2026-07-17 起生效（Steward 裁決第 2026-006 號、AL-2026-010；【地位】、L5.90）。**`§8.2` 實質合憲人類審查經 Steward 指示延後，本規格為 provisional、待調整；Steward `§8.2` 違憲審查權完整保留**。本規格之生效及其登錄均為 Steward 之裁決行為，非本子代理所得宣稱或代行。*
 
 **核心產物索引 [I]**：合法推理＝§3（L5.1 候選斷言經 Evidence 通道／L5.2 雙合法終點引用鏈 DAG）；Confidence 傳播＝§4（L5.3 承接 KDO.1，硬守 KS.34 meet 上限）；Hypothesis 地位與升級紀律＝§5（L5.4 未證可謬須標記／L5.5 承接 KDO.3，GATE 可證偽＋OOS）；Explanation 義務＝§6（L5.6 per-結論四要素、補正 AUD-18）；AI Model 為工具非世界權威＝§7（L5.7 F2 防線、synthetic／TR-C 天花板）；分界紀律與 resolution 定性＝§8（L5.8 不上侵 L4／不下侵 L6、L5.9 T-KS-6 解消）；DEFER 表＝Annex LDI／LDO；WM.44 矩陣＝Annex TR。

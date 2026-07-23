@@ -469,6 +469,13 @@ def run(quiet: bool = False):
             not ido_unresolved)
         chk("  └ G12：KS 仍 PASS（error 0；IDO 受檢後標籤不符不得靜默）",
             rks.passed and not rks.errors)
+        ks_labels = mc_clauses.enumerate_spec_clause_labels(
+            _ks_spec.read_text(encoding="utf-8"), "AUGUR-KS v1.1")
+        kdi_codes = [f"KDI.{n}" for n in range(19)]  # KDI.0–KDI.18
+        chk("G12b：KS 枚舉含 KDI.0–KDI.18（表列＋標題；權威非 AUGUR-KDI）",
+            all(c in ks_labels for c in kdi_codes))
+        chk("  └ G12b：KDI.18 正文取自 Annex DI 承接事項欄（非空）",
+            bool(ks_labels.get("KDI.18", {}).get("text")))
 
     # ── G13（桶 A／P2）：A.*／T.*／DI／DO／EO 可受檢（權威歸 WM／ONT）──────────────
     #    前版：TR 寫 `A.0`／`T.1`／`§DI.3` 被判「不合任何已知條款編號形態」；其實 A＝WM

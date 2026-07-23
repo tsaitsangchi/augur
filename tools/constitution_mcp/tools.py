@@ -8,6 +8,10 @@
    之害（linter 三輪 error 0 而實質錯誤並存）；於合規判定前置 TTL 快取即自造第四輪。
 3. **回傳附出處**——每筆附 `file:line`，俾模型引用時可回溯。
 4. **失敗發聲**——解析失敗回明確錯誤，不靜默退回近似答案（承接 B9「靜默降級」教訓）。
+
+執行指令矩陣（本檔為 library，CLI/MCP 消費見 `server.py`；完整回歸鎖見同套件 `selftest.py`）：
+  python -m tools.constitution_mcp.tools              # 印用途（唯讀、免外部依賴）
+  python -m tools.constitution_mcp.tools --selftest    # 對真實憲章/規格跑 get_clause 等唯讀紅綠自測
 """
 from __future__ import annotations
 
@@ -273,3 +277,32 @@ def list_amendments(limit: int = 10) -> str:
         lines = [ln.strip() for ln in body.splitlines() if ln.strip().startswith("*")]
         out.append(f"## {code}\n" + "\n".join(lines[:5]))
     return "\n\n".join(out)
+
+
+def _selftest() -> int:
+    if not os.path.isfile(MC_PATH):
+        print("constitution_mcp.tools selftest: SKIP（非 repo 內執行，找不到 META-CONSTITUTION.md）")
+        return 0
+    ok = True
+    try:
+        ok = ok and "PA" in get_clause("PA")
+        ok = ok and "檢索" in search_clauses("Confidence")
+        ok = ok and "八層治權現況" in layer_status()
+    except ToolError as exc:
+        ok = False
+        print(f"  ✗ ToolError：{exc}")
+    try:
+        get_clause("__no_such_code__")
+        ok = False  # 應丟 ToolError，不丟即為缺陷
+    except ToolError:
+        pass
+    print("constitution_mcp.tools selftest:" + (" OK" if ok else " FAIL"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

@@ -13,6 +13,10 @@ item 為 §0.3 明文承認之項次體例，§2/§5 同體例者一併納入，
 （§0.6(a)、§8.5(b)(i)）是否亦屬「項次」，§0.3 未舉例、體例亦異（括號字母 vs 點號數字），其認定
 屬條文解釋（§8.1 Steward 專屬）——linter 不得自行造法，故**明示不納入**並於 README 據實揭露，
 而非靜默省略。
+
+執行指令矩陣：
+  python -m tools.constitution_lint.mc_clauses              # 印用途（唯讀、免外部依賴）
+  python -m tools.constitution_lint.mc_clauses --selftest    # 對真實 META-CONSTITUTION.md 枚舉條款紅綠自測（唯讀）
 """
 from __future__ import annotations
 
@@ -90,9 +94,9 @@ CODE_ALT = r"(?:PA|P[1-5]\.(?:D|Y|W\d+|E\d+)|EV\.\d+|F[1-6]|§\d+(?:\.\d+)?)"
 # **上層規格**條款代號之字面（B5：過半矩陣零檢查之修正）。前版 `_CODE_LABEL` 僅以 CODE_ALT
 # 為錨，故 Annex TR.D/E/F/G 之 WM./ONT./ID./KS./L5./L6. 等標籤**完全不檢**——所報「已比對 71 筆」
 # 全為 MC 側。`AUGUR-XX` 之 XX 恰為該規格之條款代號前綴，故此表同時充作 upper-specs 解析之依據。
-# 長前綴在前：`IDO`/`DI`/`DO` 不得被較短前綴誤切；`A`/`T`＝WM Annex A／ONT Annex T。
+# 長前綴在前：`IDO`/`KDI`/`KDO`/`DI`/`DO` 不得被較短前綴誤切；`A`/`T`＝WM Annex A／ONT Annex T。
 SPEC_PREFIXES = [
-    "WM", "ONT", "IDO", "DI", "DO", "EO", "ID", "KDO", "KS", "LDO",
+    "WM", "ONT", "IDO", "KDI", "KDO", "DI", "DO", "EO", "ID", "KS", "LDO",
     "L5", "L6", "L7", "A", "T",
 ]
 SPEC_CODE_ALT = r"(?:" + "|".join(SPEC_PREFIXES) + r")\.\d+"
@@ -401,16 +405,16 @@ def enumerate_clause_labels(mc_text: str, source: str = "MC") -> dict:
 _SPEC_CLAUSE = re.compile(r"^\s*>?\s*(?:[*-]\s+)?\*\*(" + SPEC_CODE_ALT + r")\s*(.*?)\*\*")
 _SPEC_ANY_H = re.compile(r"^\s*>?\s*#{1,4}\s")
 
-# Annex 掛鉤表列（IDO／DI／DO）：標題體例只抽出 *.0；其餘在 `| **X.n** | … |`。
+# Annex 掛鉤表列（IDO／KDI／KDO／DI／DO）：標題體例只抽出 *.0；其餘在 `| **X.n** | … |`。
 # 表列無 `（括號名）` 標題體例 → `paren_name=None`，TR 濃縮走正文支撐判準。
 _ANNEX_HOOK_TABLE_ROW = re.compile(
-    r"^\|\s*\*\*((?:IDO|DI|DO)\.\d+)\*\*\s*\|(.+)$",
+    r"^\|\s*\*\*((?:IDO|KDI|KDO|DI|DO)\.\d+)\*\*[^\n|]*\|(.+)$",
     re.M,
 )
 
 
 def _enumerate_annex_hook_table_labels(text: str, source: str) -> dict:
-    """自 Annex 掛鉤表列抽出 IDO/DI/DO.n → 標籤條目（僅補標題體例未覆蓋者）。"""
+    """自 Annex 掛鉤表列抽出 IDO/KDI/KDO/DI/DO.n → 標籤條目（僅補標題體例未覆蓋者）。"""
     out = {}
     for m in _ANNEX_HOOK_TABLE_ROW.finditer(text):
         code = m.group(1)
@@ -483,3 +487,24 @@ def load(mc_path) -> tuple:
     with open(mc_path, encoding="utf-8") as f:
         text = f.read()
     return enumerate_clauses(text), current_mc_version(text)
+
+
+def _selftest() -> int:
+    import pathlib
+
+    mc_path = pathlib.Path(__file__).resolve().parents[2] / "constitution" / "META-CONSTITUTION.md"
+    if not mc_path.exists():
+        print("mc_clauses selftest: SKIP（非 repo 內執行，找不到 META-CONSTITUTION.md）")
+        return 0
+    clauses, version = load(str(mc_path))
+    ok = bool(version) and "PA" in clauses and "§2.5" in clauses and "F1" in clauses
+    print("mc_clauses selftest:" + (" OK" if ok else " FAIL") + f" version={version} n_clauses={len(clauses)}")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

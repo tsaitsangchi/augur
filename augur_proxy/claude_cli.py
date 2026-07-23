@@ -1,4 +1,9 @@
-"""Claude backend — CLI subprocess when available, otherwise stub."""
+"""Claude backend — CLI subprocess when available, otherwise stub.
+
+執行指令矩陣：
+  python -m augur_proxy.claude_cli              # 印用途（唯讀、免外部服務）
+  python -m augur_proxy.claude_cli --selftest    # 強制 MCP_CLAUDE_STUB=1 走 stub 自測（零外部依賴）
+"""
 from __future__ import annotations
 
 import os
@@ -46,3 +51,26 @@ def _stub_response(prompt: str) -> str:
         "(claude stub) Claude CLI unavailable — set MCP_CLAUDE_STUB=0 and install "
         f"`claude` CLI for live calls. Preview: {preview}"
     )
+
+
+def _selftest() -> int:
+    prev = os.environ.get("MCP_CLAUDE_STUB")
+    os.environ["MCP_CLAUDE_STUB"] = "1"
+    try:
+        response, tokens = ask("hello world")
+        ok = response.startswith("(claude stub)") and tokens == 0
+    finally:
+        if prev is None:
+            os.environ.pop("MCP_CLAUDE_STUB", None)
+        else:
+            os.environ["MCP_CLAUDE_STUB"] = prev
+    print("claude_cli selftest:" + (" OK" if ok else " FAIL") + " (stub path only, 不呼叫 claude CLI)")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

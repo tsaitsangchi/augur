@@ -45,7 +45,7 @@ Augur Enterprise AI Operating System
 | Annex CM [N] | Confidence 統一語義映射表（官方映射；解 AUD-03） | CM.0–CM.2 | `§P4.E8` |
 | Annex EV [N] | Evidence 分類法與來源信任分級表 | EV.0–EV.3 | `§P4.E6`、`§P4.E7` |
 | Annex CL [N] | 完備性等級表 | CL.0–CL.1 | `§P5.E2` |
-| Annex DI [N] | 承接上層 DEFER 掛鉤（defers-in） | KDI.0–KDI.17 | `WM` D7–D12/D18/D21/D26/D27；`ID` IDO.1–8 |
+| Annex DI [N] | 承接上層 DEFER 掛鉤（defers-in） | KDI.0–KDI.18 | `WM` D7–D12/D18/D21/D22/D26/D27；`ID` IDO.1–8 |
 | Annex DO [N] | 下放下層 DEFER 掛鉤（defers-out） | KDO.0–KDO.7 | → L5／L6／L7 |
 | Annex L3U [N] | 與 Layer 3 之分界表（承接側） | L3U.0 | 與 `ID` Annex L4 同構 |
 | Annex L56 [N] | 與 Layer 5／6 之分界表 | L56.0 | reasoning／risk tier |
@@ -607,6 +607,7 @@ Augur Enterprise AI Operating System
 | **KDI.15**（ID-IDO.8） | KS.25、KS.62 | 唯一權威 Representation 實際指定 | `AUGUR-ID v1.0` IDO.8／`§WM.37` |
 | **KDI.16**（ONT 散列） | KS.20 | Attribute schema 欄位設計、Confidence 不設於 L2 | `AUGUR-ONT v1.0 §ONT.2`、`§DO`（D9 散列） |
 | **KDI.17**（WM-D12，L4 面向） | KS.84（＋§8 KS.32、§9 KS.81(d)） | GATE 統計治理之 **Layer 4 Evidence 機制設計**（多重比較調整、判準凍結、二次證偽封鎖之概念層約束；HOOK-03「統計嚴謹化屬 Layer 4 Evidence 機制設計權」） | `AUGUR-WM v1.0 §D12`／HOOK-03、`§A.19`、`§A.52` |
+| **KDI.18**（WM-D22，L4 面向） | KS.80 增補款、KS.81(f) | 核心宇宙完整性 gate／流動性分位地板／產業條件豁免之 **Layer 4 概念層承接**（數值治理 DEFER L6、計算面 DEFER L5；RULING-2026-016） | `AUGUR-WM v1.0 §D22`／`§P4.W1` |
 
 ## Annex DO [N] — 下放下層 DEFER 掛鉤（defers-out）
 
@@ -981,7 +982,7 @@ compliance-statement:
   principles: [PA, P1, P2, P3, P4, P5, EV-chain]
   waivers: []
   open-tensions: [T-KS-1, T-KS-2, T-KS-3, T-KS-4, T-KS-5, T-KS-6]
-  defers-in: [WM.D7, WM.D8, WM.D9, WM.D10, WM.D11, WM.D12, WM.D18, WM.D21, WM.D26, WM.D27,
+  defers-in: [WM.D7, WM.D8, WM.D9, WM.D10, WM.D11, WM.D12, WM.D18, WM.D21, WM.D22, WM.D26, WM.D27,
               ONT.散列(Attr/D9), ID.IDO.1, ID.IDO.2, ID.IDO.3, ID.IDO.4, ID.IDO.6, ID.IDO.8]
   defers-out: [KDO.1, KDO.2, KDO.3, KDO.4, KDO.5, KDO.6, KDO.7]
   date: 2026-07-17

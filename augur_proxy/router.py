@@ -1,4 +1,9 @@
-"""FastAPI router — cache-first, then auto-switch local vs Claude."""
+"""FastAPI router — cache-first, then auto-switch local vs Claude.
+
+執行指令矩陣（本檔為 library，實際啟動走 `python -m augur_proxy`；此處僅供結構自檢）：
+  python -m augur_proxy.router              # 印路由清單（唯讀、免啟動 server）
+  python -m augur_proxy.router --selftest    # 驗證 app 路由已註冊（需 fastapi/pydantic 已安裝、免網路）
+"""
 from __future__ import annotations
 
 from typing import Literal, Optional
@@ -117,3 +122,24 @@ def invoke(body: InvokeRequest) -> InvokeResponse:
 def flush_cache() -> dict:
     removed = cache.flush()
     return {"flushed": removed}
+
+
+def _route_paths() -> list[str]:
+    return sorted(r.path for r in app.routes if hasattr(r, "path"))
+
+
+def _selftest() -> int:
+    expected = {"/health", "/invoke", "/cache/flush"}
+    got = set(_route_paths())
+    ok = expected.issubset(got)
+    print("router selftest:" + (" OK" if ok else " FAIL") + f" routes={sorted(got)}")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)
+    print("routes:", _route_paths())

@@ -4,6 +4,10 @@
 index.py（不被 server 匯入）。selftest 以 AST/文本掃描斷言本模組無寫入 SQL。
 
 向量以 float32 bytes 存於 BLOB；此處解碼為 list[float]。
+
+執行指令矩陣：
+  python -m tools.project_memory_mcp.store              # 印用途（唯讀、免外部依賴）
+  python -m tools.project_memory_mcp.store --selftest    # 對合成暫存索引跑 load_all/fts_search/cosine 紅綠自測
 """
 from __future__ import annotations
 
@@ -254,3 +258,37 @@ def cosine(a: List[float], b: List[float]) -> float:
     if na == 0 or nb == 0:
         return -1.0
     return dot / (na * nb)
+
+
+def _selftest() -> int:
+    """唯讀自測——本模組讀寫分離之「讀」端不得含任何寫入呼叫（見套件 selftest.py
+    `_test_read_write_separation` 之 AST 掃描），故僅對既存索引（若有）唯讀驗證，
+    不合成暫存索引（合成/建索引之紅綠鎖見 `index.py --selftest`）。"""
+    ok = cosine([1.0, 0.0], [1.0, 0.0]) > 0.99 and cosine([], [1.0]) == -1.0
+    ok = ok and fts_query_from_text("") is None
+    ok = ok and fts_query_from_text('hello "world"') is not None
+    try:
+        _connect("/no/such/index.db")
+        ok = False  # 應丟 MemoryStoreError
+    except MemoryStoreError:
+        pass
+
+    path = db_path()
+    if os.path.exists(path):
+        c = counts(path)
+        ok = ok and c["chunks"] >= 0
+        if has_fts(path):
+            ok = ok and isinstance(fts_search(path, "augur", limit=3), list)
+        note = f"（對既存索引 {path} 唯讀複驗）"
+    else:
+        note = "（無既存索引，僅測純函式；端到端建索引鎖見 index.py --selftest）"
+    print("store selftest:" + (" OK" if ok else " FAIL") + note)
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

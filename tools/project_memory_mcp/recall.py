@@ -4,6 +4,11 @@
 治理防線（縱深）：即便索引誤含治理片段，recall 於回傳前再過濾一次。
 
 中期強化：hybrid（語意 + FTS5 RRF）、結構化 recall_hits() 供 local_research。
+
+執行指令矩陣（本檔為 library，MCP 消費見 `server.py`；CLI 查現況見
+`python -m tools.project_memory_mcp memory_status`）：
+  python -m tools.project_memory_mcp.recall              # 印用途（唯讀、免外部依賴）
+  python -m tools.project_memory_mcp.recall --selftest    # 對合成暫存索引跑 recall_hits 三模式紅綠自測
 """
 from __future__ import annotations
 
@@ -306,3 +311,40 @@ def memory_status(db: Optional[str] = None, root: Optional[str] = None) -> str:
             "必要時 `index --full` 全量重建。"
         )
     return "\n".join(lines)
+
+
+def _selftest() -> int:
+    """唯讀自測——本模組讀寫分離之「讀」端不得含任何寫入呼叫（見套件 selftest.py
+    `_test_read_write_separation` 之 AST 掃描），故僅對既存索引（若有）唯讀驗證，
+    不合成暫存索引（端到端建索引＋recall 之紅綠鎖見套件 `selftest.py`）。"""
+    ok = expand_query_from_hits("query", []) == "query"
+    try:
+        recall_hits("", db="/no/such.db")
+        ok = False  # 空 query 應丟 RecallError
+    except RecallError:
+        pass
+    try:
+        recall_hits("x", db="/no/such.db", mode="bogus")
+        ok = False  # 非法 mode 應丟 RecallError
+    except RecallError:
+        pass
+
+    path = store.db_path()
+    if os.path.exists(path):
+        for m in _VALID_MODES:
+            hits = recall_hits("augur", k=3, mode=m)
+            ok = ok and isinstance(hits, list)
+        ok = ok and "chunk" in memory_status()
+        note = f"（對既存索引 {path} 唯讀複驗）"
+    else:
+        note = "（無既存索引，僅測純函式；端到端鎖見套件 `selftest.py`）"
+    print("recall selftest:" + (" OK" if ok else " FAIL") + note)
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

@@ -11,6 +11,10 @@
 
 政策（總綱 §5.4）：`--policy greenfield`＝新 code 於 merge 當下必綠（finding 即 error）；
    `--policy legacy`（預設）＝既有系統以補正期追蹤（finding 為 warning，附 AUD 對應）。
+
+執行指令矩陣（本檔為 library，CLI 消費見 `python -m tools.constitution_lint audit`）：
+  python -m tools.constitution_lint.audit_lint              # 印用途（唯讀、免外部依賴）
+  python -m tools.constitution_lint.audit_lint --selftest    # 合成 code 目錄紅綠自測（零外部依賴）
 """
 from __future__ import annotations
 
@@ -118,3 +122,28 @@ def lint_code(code_root: str, policy: str = "legacy") -> LintResult:
     for rid, desc in _STUB_RULES:
         res.add(rid, Severity.INFO, f"[骨架未實作] {desc}", "總綱 §5.4")
     return res
+
+
+def _selftest() -> int:
+    import tempfile
+
+    ok = not lint_code(str(pathlib.Path(tempfile.mkdtemp()) / "no_such_dir"), "legacy").passed
+    with tempfile.TemporaryDirectory() as td:
+        root = pathlib.Path(td)
+        (root / "a.py").write_text("confidence = 0.9\n", encoding="utf-8")
+        r = lint_code(td, "legacy")
+        ok = ok and any(f.rule == "AUD-03" and f.severity is Severity.INFO for f in r.findings)
+        (root / "empty.py").write_text("x = 1\n", encoding="utf-8")
+        # confidence 命中已由 a.py 涵蓋，故此檔不改變 hits==0 之判定路徑，僅驗證多檔掃描不炸
+        r2 = lint_code(td, "legacy")
+        ok = ok and r2.passed  # legacy 政策下僅 warning/info，不阻斷
+    print("audit_lint selftest:" + (" OK" if ok else " FAIL"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

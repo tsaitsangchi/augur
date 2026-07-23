@@ -82,8 +82,10 @@
   (1) P5.W4 最小權限於 WM 全篇無承接（核心 [N] 無家）；(2) ID/KS 之 WM Annex D 處置表用廢棄舊編號、兩層互斥；(3) KS 誤標 9 列 D 編號；(4) KS 誤認 D19 為 RBAC、斷鏈。
 * **處置**：→ **RULING-2026-022**（cross-layer patch）待作成。**「單層完整」成立、「整合完整」差此 4 條**。
 
-## 3b. 執行層 L5–7 交互檢查 — ⏳ 排定（L5–7 全蓋章後執行）
-* **前置**（3/3 須齊，現況 2026-07-19）：L6 G5 蓋章 **✅已成**；L5 重採認 **✅已成**（RULING-2026-023 乙，2026-07-19）；L7 §8.2 **✅條件通過**（RULING-2026-025，2026-07-19）——三者完成後方執行（比照概念層先全蓋章再交互檢查）。
-* **接縫**：L4→L5（KS→Cognitive，KDO 落點）、L5→L6（LDO→Agent Runtime）、L6→L7（L6 defers-out→Infra 承接，含 M2 收窄後之物理強制歸屬）、**L7→物理/本機**（Bearer Registry↔ENVIRONMENT-SPEC↔實機）。
-* **執行層特有維度**：(1) **物理性守門**（§0.6(b) 概念層不得引執行層；反向執行層物理綁定是否洩入規範本文）；(2) **可移機隔離縫**（機器特定性是否真隔離於 L7 綁定＋config，實機驗 PORTABILITY.md 之縫）；(3) **可運作 spec↔實機**（L5 模型/L6 advisor/L7 部署之規格描述 vs 本機實跑：ollama/qdrant/advisor/GPU）。
-* **狀態以本檔更新**；比照 3a 之 5 接縫＋維度＋雙反駁＋批評規格。
+## 3b. 執行層 L5–7 交互檢查 — ✅ 已執行（2026-07-23；全棧含 L0 投影＋L4↔L5）
+* **前置**（3/3 齊，2026-07-19）：L6 G5 蓋章 **✅**；L5 重採認 **✅**（RULING-2026-023 乙）；L7 §8.2 **✅條件通過**（RULING-2026-025）。
+* **接縫**：L0 投影抽樣、L4→L5（KDO／LDI）、L5→L6（LDO）、L6→L7（defers-out／LDI）、**L7→物理**（OPEN↔`operability_probe`）；橫貫 X1–X4（§0.6(b)／DEFER 雙向／幽靈落點／WM.44 誠實界限）。
+* **結果**：見 [`audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md`](audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md)——**2 存活 cross-layer major**（(1) KS KDI.18／§D22 缺 front-matter `defers-in`；(2) L5.10 已准入但編號地圖仍稱保留空號）＋ 4 medium；主鏈 LDO／風險分級／L6.15 非幽靈；本機 probe **1/7** 與 OPEN-00…05 一致。3a／RULING-2026-022 四 major 抽查仍立。
+* **處置**：major → Steward 另開交互 RULING（建議候選 2026-027）；本輪**未**改 [N]。lint 基線 PASS 7／error 0（骨架≠語意完備）。
+* **✅ M-IX-1／M-IX-2 已修（2026-07-23，RULING-2026-027／AL-2026-030）**：KS front-matter `defers-in` 補列 `WM.D22`；L5 編號地圖（§0.3、文末總計）改為「L5.10 已啟用；L5.11–L5.89 保留」。lint 施作後 PASS 7／error 0／warning 0 逐檔不變；4 medium（F-IX-3…6）未處置，留待另案。
+* **計畫**：[`reports/augur_l0_l7_interaction_ultracode_plan_20260723.md`](reports/augur_l0_l7_interaction_ultracode_plan_20260723.md)。

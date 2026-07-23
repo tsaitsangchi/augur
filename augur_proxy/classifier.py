@@ -1,4 +1,9 @@
-"""Rule-based request classifier for MCP routing."""
+"""Rule-based request classifier for MCP routing.
+
+執行指令矩陣：
+  python -m augur_proxy.classifier              # 印用途（唯讀、免外部服務）
+  python -m augur_proxy.classifier --selftest    # 規則分類紅綠自測（零外部依賴）
+"""
 from __future__ import annotations
 
 import re
@@ -31,3 +36,23 @@ def classify(prompt: str) -> RequestType:
 
 def backend_for(req_type: RequestType) -> str:
     return BACKEND_MAP[req_type]
+
+
+def _selftest() -> int:
+    ok = (
+        classify("explain L2 MD-X") == "quick"
+        and classify("check WM.44 compliance") == "compliance"
+        and classify("audit ruling §8.2") == "audit"
+        and backend_for("compliance") == "claude"
+        and backend_for("quick") == "local"
+    )
+    print("classifier selftest:" + (" OK" if ok else " FAIL"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

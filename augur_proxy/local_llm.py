@@ -1,4 +1,9 @@
-"""Local LLM backend via Ollama. Falls back to stub when Ollama is unavailable."""
+"""Local LLM backend via Ollama. Falls back to stub when Ollama is unavailable.
+
+執行指令矩陣：
+  python -m augur_proxy.local_llm              # 印用途（唯讀、免外部服務）
+  python -m augur_proxy.local_llm --selftest    # 純 stub fallback 自測（不連 Ollama、零外部依賴）
+"""
 from __future__ import annotations
 
 import json
@@ -40,3 +45,18 @@ def _ask_ollama(prompt: str) -> str:
 def _stub_response(prompt: str) -> str:
     preview = prompt[:120].replace("\n", " ")
     return f"(local stub) Ollama unavailable — echo preview: {preview}"
+
+
+def _selftest() -> int:
+    resp = _stub_response("hello world")
+    ok = resp.startswith("(local stub)") and "hello world" in resp
+    print("local_llm selftest:" + (" OK" if ok else " FAIL") + " (stub path only, 不連 Ollama)")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

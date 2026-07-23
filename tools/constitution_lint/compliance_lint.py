@@ -12,6 +12,11 @@
 - **WM.40 閉集權威**：閉集無法自 WM 原文解析而退回工具內硬編碼副本者，無條件 error（判定不具權威）。
 
 **minor 版落差接受**（總綱 §5.4）：mc-version 低於現行且同 major（如引 v1.2 而現行 v1.3）→ info，不誤紅。
+
+執行指令矩陣（本檔為 library，CLI 消費見 `python -m tools.constitution_lint compliance <spec.md>`；
+完整回歸鎖見同套件 `selftest.py`，本自測僅輕量 smoke）：
+  python -m tools.constitution_lint.compliance_lint              # 印用途（唯讀、免外部依賴）
+  python -m tools.constitution_lint.compliance_lint --selftest    # 對真實 WM 規格跑 lint_spec 唯讀紅綠自測
 """
 from __future__ import annotations
 
@@ -784,9 +789,10 @@ _MC_CODE_FULL = re.compile(r"^" + mc_clauses.CODE_ALT + r"$")
 _SPEC_CODE_FULL = re.compile(r"^(" + "|".join(mc_clauses.SPEC_PREFIXES) + r")\.\d+$")
 
 # Annex 掛鉤／剖面前綴 → 承載規格前綴（非獨立 `AUGUR-IDO`／`AUGUR-A` 檔）。
-# A.*＝WM Annex A；T.*＝ONT Annex T；DI/DO/EO＝ONT Annex；IDO＝ID Annex DO。
+# A.*＝WM Annex A；T.*＝ONT Annex T；DI/DO/EO＝ONT Annex；IDO＝ID Annex DO；
+# KDI／KDO＝KS Annex DI／DO。
 _PREFIX_HOME = {
-    "IDO": "ID", "KDO": "KS", "LDO": "L5",
+    "IDO": "ID", "KDI": "KS", "KDO": "KS", "LDO": "L5",
     "A": "WM", "T": "ONT", "DI": "ONT", "DO": "ONT", "EO": "ONT",
 }
 
@@ -1164,3 +1170,27 @@ def lint_spec(spec_path: str, mc_path: str = "constitution/META-CONSTITUTION.md"
     _check_wm44_label(res, text, mc_path, spec_path, fields)
     _check_status_consistency(res, text, fields)
     return res
+
+
+def _selftest() -> int:
+    repo = pathlib.Path(__file__).resolve().parents[2]
+    mc_path = repo / "constitution" / "META-CONSTITUTION.md"
+    wm_path = repo / "specs" / "WORLD-MODEL-SPECIFICATION.md"
+    if not mc_path.exists() or not wm_path.exists():
+        print("compliance_lint selftest: SKIP（非 repo 內執行，找不到憲章／WM 規格）")
+        return 0
+    r = lint_spec(str(wm_path), str(mc_path))
+    ok = r.passed and not r.errors
+    r_missing = lint_spec(str(mc_path))  # META-CONSTITUTION.md 本身無 compliance-statement front-matter
+    ok = ok and not r_missing.passed and any(f.rule == "WM.39" for f in r_missing.errors)
+    print("compliance_lint selftest:" + (" OK" if ok else " FAIL")
+          + "（完整回歸鎖見 `python -m tools.constitution_lint --selftest`）")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

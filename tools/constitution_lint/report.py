@@ -13,6 +13,10 @@
 **與 compliance 之自我一致性**：本模組不自行實作任何判準，逐檔數字一律取自
 `compliance_lint.lint_spec`——與 `python -m tools.constitution_lint compliance <file>` 為同一
 函式、同一參數。selftest 另有斷言逐檔複驗二者相等（見 `selftest._binding_and_consistency`）。
+
+執行指令矩陣（本檔為 library，CLI 消費見 `python -m tools.constitution_lint report`）：
+  python -m tools.constitution_lint.report              # 印用途（唯讀、免外部依賴）
+  python -m tools.constitution_lint.report --selftest    # corpus_files/build 對真實 specs/ 唯讀紅綠自測
 """
 from __future__ import annotations
 
@@ -508,3 +512,26 @@ def sync(data: dict, repo=None) -> list:
         if new_text != text:
             p.write_text(new_text, encoding="utf-8")
     return changes
+
+
+def _selftest() -> int:
+    files = corpus_files()
+    if not files:
+        print("report selftest: SKIP（非 repo 內執行，specs/ 找不到 corpus）")
+        return 0
+    data = build()
+    ok = (
+        len(data["per_file"]) == len(files)
+        and data["values"]["total_errors"] >= 0
+        and "GEN_COMMAND" not in data  # GEN_COMMAND 為模組常數、非 build() 輸出鍵
+    )
+    print("report selftest:" + (" OK" if ok else " FAIL") + f" corpus={len(files)} 份")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

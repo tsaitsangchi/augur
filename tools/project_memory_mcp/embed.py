@@ -2,6 +2,10 @@
 
 失敗發聲：嵌入服務不可達/回應異常一律拋 EmbedError，不靜默回零向量。
 stub 模式（PROJECT_MEMORY_MCP_STUB=1）以確定性雜湊產生向量，供 selftest 無 Ollama 亦可跑。
+
+執行指令矩陣：
+  python -m tools.project_memory_mcp.embed              # 印用途（唯讀、免外部服務）
+  python -m tools.project_memory_mcp.embed --selftest    # PROJECT_MEMORY_MCP_STUB=1 走 stub 向量紅綠自測
 """
 from __future__ import annotations
 
@@ -85,3 +89,29 @@ def embed(texts: List[str]) -> List[List[float]]:
 
 def embed_one(text: str) -> List[float]:
     return embed([text])[0]
+
+
+def _selftest() -> int:
+    prev = os.environ.get("PROJECT_MEMORY_MCP_STUB")
+    os.environ["PROJECT_MEMORY_MCP_STUB"] = "1"
+    try:
+        v1 = embed_one("hello")
+        v2 = embed_one("hello")
+        v3 = embed_one("world")
+        ok = len(v1) == _STUB_DIM and v1 == v2 and v1 != v3
+        ok = ok and embed([]) == []
+    finally:
+        if prev is None:
+            os.environ.pop("PROJECT_MEMORY_MCP_STUB", None)
+        else:
+            os.environ["PROJECT_MEMORY_MCP_STUB"] = prev
+    print("embed selftest:" + (" OK" if ok else " FAIL") + "（stub 向量，不連 Ollama）")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

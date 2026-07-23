@@ -2,6 +2,10 @@
 
 比照 tools/local_llm_mcp/server.py 之體例。僅暴露 recall／memory_status 兩支
 唯讀工具；建索引為 CLI（index.py），不經 MCP。本模組**不匯入 index**（讀寫分離）。
+
+執行指令矩陣（實際啟動走 `python -m tools.project_memory_mcp`；完整回歸鎖見同套件 `selftest.py`）：
+  python -m tools.project_memory_mcp.server              # 印用途（唯讀、免外部依賴）
+  python -m tools.project_memory_mcp.server --selftest    # 記憶體內 stdio 協定往返紅綠自測（零外部依賴）
 """
 from __future__ import annotations
 
@@ -127,3 +131,28 @@ def serve(stdin=None, stdout=None) -> int:
             stdout.write(json.dumps(resp, ensure_ascii=False) + "\n")
             stdout.flush()
     return 0
+
+
+def _selftest() -> int:
+    import io
+
+    inp = io.StringIO(json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}) + "\n")
+    out = io.StringIO()
+    serve(inp, out)
+    resp = json.loads(out.getvalue().splitlines()[0])
+    ok = resp.get("result", {}).get("protocolVersion") == PROTOCOL_VERSION
+
+    inp2 = io.StringIO(json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}) + "\n")
+    out2 = io.StringIO()
+    serve(inp2, out2)
+    resp2 = json.loads(out2.getvalue().splitlines()[0])
+    ok = ok and len(resp2.get("result", {}).get("tools", [])) == len(TOOLS)
+    print("project_memory_mcp.server selftest:" + (" OK" if ok else " FAIL")
+          + "（完整回歸鎖見 `python -m tools.project_memory_mcp selftest`）")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

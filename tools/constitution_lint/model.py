@@ -1,4 +1,9 @@
-"""共用資料模型：Finding / Severity / LintResult。"""
+"""共用資料模型：Finding / Severity / LintResult。
+
+執行指令矩陣：
+  python -m tools.constitution_lint.model              # 印用途（唯讀、免外部依賴）
+  python -m tools.constitution_lint.model --selftest    # Finding/LintResult 建構+report 紅綠自測（零外部依賴）
+"""
 from __future__ import annotations
 
 import enum
@@ -74,3 +79,22 @@ class LintResult:
         verdict = "✅ PASS" if self.passed else "❌ FAIL"
         lines.append(f"  → {verdict}（error {n_e} / warning {n_w} / info {len(self.findings) - n_e - n_w}）")
         return "\n".join(lines)
+
+
+def _selftest() -> int:
+    r = LintResult(target="selftest")
+    ok = r.passed and "無發現" in r.report()
+    r.add("T.01", Severity.ERROR, "測試錯誤")
+    ok = ok and not r.passed and len(r.errors) == 1 and len(r.warnings) == 0
+    r.add("T.02", Severity.WARNING, "測試警告")
+    ok = ok and len(r.warnings) == 1 and "FAIL" in r.report()
+    print("constitution_lint.model selftest:" + (" OK" if ok else " FAIL"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

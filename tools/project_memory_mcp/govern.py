@@ -2,6 +2,10 @@
 
 本模組為唯讀邏輯（純判斷，無副作用），server 與 index 共用同一判準，
 確保「index 不寫入者」與「recall 不回傳者」出自同一定義（避免兩套判準漂移）。
+
+執行指令矩陣：
+  python -m tools.project_memory_mcp.govern              # 印用途（唯讀、免外部依賴）
+  python -m tools.project_memory_mcp.govern --selftest    # 治理/排除判準紅綠自測（唯讀、免 DB）
 """
 from __future__ import annotations
 
@@ -88,3 +92,23 @@ def should_index(resolved: pathlib.Path, root: pathlib.Path | None = None) -> bo
     if resolved.suffix.lower() not in _TEXT_EXT:
         return False
     return True
+
+
+def _selftest() -> int:
+    ok = is_governance_path(REPO / "constitution" / "META-CONSTITUTION.md")
+    ok = ok and not is_governance_path(REPO / "README.md")
+    ok = ok and is_excluded(REPO / ".env")
+    ok = ok and is_excluded(REPO / "node_modules" / "x.js")
+    ok = ok and not is_excluded(REPO / "README.md")
+    ok = ok and should_index(REPO / "README.md")
+    ok = ok and not should_index(REPO / "constitution" / "META-CONSTITUTION.md")
+    print("govern selftest:" + (" OK" if ok else " FAIL"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)

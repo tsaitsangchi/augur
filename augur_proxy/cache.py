@@ -1,4 +1,9 @@
-"""Prompt cache with per-type TTL. In-memory by default; Redis optional via REDIS_URL."""
+"""Prompt cache with per-type TTL. In-memory by default; Redis optional via REDIS_URL.
+
+執行指令矩陣：
+  python -m augur_proxy.cache              # 印用途（唯讀、免外部服務）
+  python -m augur_proxy.cache --selftest   # get/set/flush 純記憶體紅綠自測（零外部依賴）
+"""
 from __future__ import annotations
 
 import hashlib
@@ -77,3 +82,21 @@ def flush() -> int:
             client.delete(*keys)
             count = max(count, len(keys))
     return count
+
+
+def _selftest() -> int:
+    flush()
+    set("hello", "quick", "world")
+    ok = get("hello", "quick") == "world" and get("hello", "audit") is None
+    flush()
+    ok = ok and get("hello", "quick") is None
+    print("cache selftest:" + (" OK" if ok else " FAIL"))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv:
+        sys.exit(_selftest())
+    print(__doc__)
