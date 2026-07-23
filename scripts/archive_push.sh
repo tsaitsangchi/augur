@@ -34,7 +34,9 @@ usage() {
 }
 
 cleanup() {
-  [ -n "$ASKPASS_SCRIPT" ] && [ -f "$ASKPASS_SCRIPT" ] && rm -f "$ASKPASS_SCRIPT"
+  if [ -n "$ASKPASS_SCRIPT" ] && [ -f "$ASKPASS_SCRIPT" ]; then
+    rm -f "$ASKPASS_SCRIPT"
+  fi
 }
 trap cleanup EXIT
 
@@ -100,7 +102,8 @@ export GITHUB_TOKEN
 
 apply_git_identity() {
   local line
-  while IFS= read -r line; do
+  while IFS= read -r line || [ -n "${line:-}" ]; do
+    [ -z "$line" ] && continue
     case "$line" in
       git\ config\ --global\ *)
         if [ "$DRY_RUN" -eq 0 ]; then
@@ -159,7 +162,8 @@ is_forbidden_path() {
 }
 
 collect_changed_paths() {
-  git status --porcelain | while IFS= read -r line; do
+  git status --porcelain | while IFS= read -r line || [ -n "${line:-}" ]; do
+    [ -z "$line" ] && continue
     local path="${line#?? }"
     path="${path#\"}"; path="${path%\"}"
     path="${path%% -> *}"
@@ -169,7 +173,7 @@ collect_changed_paths() {
 
 scan_forbidden_in_changes() {
   local p forbidden=0 warned=0
-  while IFS= read -r p; do
+  while IFS= read -r p || [ -n "${p:-}" ]; do
     [ -z "$p" ] && continue
     if is_forbidden_path "$p"; then
       if [ "$warned" -eq 0 ]; then
@@ -186,7 +190,7 @@ scan_forbidden_in_changes() {
 stage_safe_changes() {
   local p staged=0
   scan_forbidden_in_changes || true
-  while IFS= read -r p; do
+  while IFS= read -r p || [ -n "${p:-}" ]; do
     [ -z "$p" ] && continue
     if is_forbidden_path "$p"; then
       continue
@@ -301,3 +305,5 @@ if [ "$DRY_RUN" -eq 1 ]; then
   echo "  mode   : dry-run（未改 remote）"
 fi
 echo "════════════════════════════════════════════"
+
+exit 0
