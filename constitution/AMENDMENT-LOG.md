@@ -391,4 +391,4 @@
 * **文件**：[RULING-2026-032-L2-ONT-ULTRACODE-DISPOSITION.md](RULING-2026-032-L2-ONT-ULTRACODE-DISPOSITION.md)；findings `audits/L2-ONT-ULTRACODE-20260723.md`
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
 * **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 獨立核驗親跑）；RULING-2026-032 第七節八項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 a8a425f5）
-* **定案**：Steward 2026-07-23 **接受 032**（獨立核驗通過後定案）
+* **定案**：Steward 2026-07-23 **接受 032**
