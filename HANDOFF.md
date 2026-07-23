@@ -23,6 +23,8 @@
 
 ## 1. 先讀這些（治權 SSOT + 建構理解 + 路線圖,勿憑記憶)
 
+> **統一入口**：[`constitution/GOVERNANCE-MAP.md`](constitution/GOVERNANCE-MAP.md)（[I] 治權地圖；L0／specs／docs／CLAUDE；docs 不上收 L0）
+
 | 檔 | 是什麼 |
 |---|---|
 | `docs/系統核心思想_v1.8.0.md` | **靈魂**：預測**相對強弱**＋預言機軸(絕對方向機率,唯過 direction_gate;v1.6.0;v1.8.0 三度堅持刪「不是預測絕對漲跌幅」句,E[r] 升格幅度級得逐股(GATE/econ 同源/揭露硬綁不動))（非絕對漲跌機率）、成功=經濟價值非 IC、系統建議人決策、禁 AI 占卜大師 |

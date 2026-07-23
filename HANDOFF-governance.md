@@ -1,4 +1,6 @@
 > **Monorepo 註（2026-07-22）**：應用跨機交接仍以根目錄 [`HANDOFF.md`](HANDOFF.md) 為準；本檔為原 `augur-constitution` 倉交接文件。
+>
+> **治權地圖（統一入口）**：[constitution/GOVERNANCE-MAP.md](constitution/GOVERNANCE-MAP.md)（案 D；[I]；docs 不上收 L0）。
 
 # Augur 憲章 Repo — 交接文件
 

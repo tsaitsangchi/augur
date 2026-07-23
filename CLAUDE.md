@@ -1,6 +1,8 @@
 # CLAUDE.md — Augur AI 協作工具規則 v1.31
 
 > **憲章從屬（AUGUR-MC v1.6）**：本文件為 Augur 領域治權文件，受 **AUGUR-MC v1.6** 約束（Layer 0 lex superior，§0.6）。依 Steward 裁決第 2026-002 號（AL-2026-006）登錄為 **Layer 6（Agent Runtime）**；**「執行指令矩陣」個別可驗證義務**之上層依據＝Steward 裁決第 2026-026 號（AL-2026-029；§8.1 解釋落點 §8.3／§0.5 L6）。下層引用格式：`AUGUR-MC v1.6 §{條款}`／`AUGUR-WM v1.0 §{條款}`。憲章與規格存於 [tsaitsangchi/augur](https://github.com/tsaitsangchi/augur) 之 `constitution/`／`specs/`（原獨立倉已併入）。合規聲明補正期至 2026-10-14。
+>
+> **治權地圖（統一入口）**：[`constitution/GOVERNANCE-MAP.md`](constitution/GOVERNANCE-MAP.md)——分層讀序與義務落點；本檔仍為 L6 工具規則，**非** L0。
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
 **位階**：系統 doctrine 以 `docs/系統核心思想_v1.8.0.md` + `docs/原則精華_v1.9.1.md` + 憲章為準；

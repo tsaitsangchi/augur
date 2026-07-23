@@ -31,6 +31,8 @@ Augur 從 FinMind / FRED 抓進可溯源的日級資料，算成 source-pure 特
 
 ## 先讀這幾份（治權檔）
 
+> **統一入口**：[治權地圖](constitution/GOVERNANCE-MAP.md)（[I]；L0／L1–L7／docs／CLAUDE 位階與讀序；**docs 不因入口上收為 L0**）
+
 | 文件 | 角色 |
 |---|---|
 | [`docs/系統核心思想_v1.8.0.md`](docs/系統核心思想_v1.8.0.md) | **靈魂**：系統是什麼、為什麼、什麼絕不能違反 |
