@@ -168,7 +168,7 @@ severity：major／**medium**／minor／info。
 3. **medium 同案順修**（用戶已預授）：F-L3-1＋F-L3-2 必含；F-L3-3–7 併入同一 RULING §patch 清單
 4. **Issuer 裁量項**：F-L3-1 處置時請 Steward **明示** T.20 Issuer 是否隨 014 追認或另開採認——本 ultracode 不代裁
 5. **獨立核驗**：依 RULING-2026-028 第 3 點，處置施作後交獨立 agent 八項核驗＋lint 親跑
-6. **Amendment Log**：`AL-2026-0XX` 登錄 ultracode 處置
+6. **Amendment Log**：`AL-2026-037` 登錄 ultracode 處置
 
 ### 正面確認（強化蓋章之證據）
 
@@ -184,10 +184,12 @@ severity：major／**medium**／minor／info。
 
 **否——不動搖**。零 major；2 medium 均為**可判定性／文件同步**缺陷（非採認機制骨架、非 lifecycle 語義、非 as-of 法源錯位）；5 minor 為 [I] 矩陣／§0.1 殘留／判準 enumerate 缺口。**動搖程度定級：僅需 patch／minor 同案處置**（非重採認、非 §8.2 補審）。
 
-### 建議 Steward 拍板句（供父代理轉呈）
+### Steward 簽核（2026-07-23）
 
-> 「接受 L3 ultracode 呈核（零 major、medium×2＋minor×5）；授權同案 RULING 順修 F-L3-1（AO.2／T-ID-3 同步，Issuer 是否另採認請於該案明示）＋F-L3-2（ID.50 已解析合取式／CS.1-P2 对齐）及 minor×5；蓋章不動搖；處置後依 028 第 3 點獨立核驗。」
+* **拍板**：接受 L3 ultracode 呈核（零 major、medium×2＋minor×5）；同案 **RULING-2026-033** 順修 F-L3-1（AO.2／T-ID-3 同步，**Issuer T.20 不另採認**）＋F-L3-2（**乙案**——ID.50 已解析／CS.1-P2 對齊）及 minor×5；蓋章不動搖。
+* **F-L3-2 採案**：**乙案**（刪第二 conjunct；已解析＝採認生效且非 ID.21 provisional）。
+* **定案**：Steward 2026-07-23 **接受 033**（`constitution/RULING-2026-033-L3-ID-ULTRACODE-DISPOSITION.md`；**AL-2026-037**；獨立對抗核驗**待另輪**）。
 
 ---
 
-*本報告為 [I] 審查素材，全程零規格修改。攻擊官／反駁官／批評官：ultracode-L3 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照。*
+*本報告為 [I] 審查素材，全程零規格修改（審計交付物除外）。攻擊官／反駁官／批評官：ultracode-L3 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照。**L3 定案**：`constitution/RULING-2026-033-L3-ID-ULTRACODE-DISPOSITION.md`（2026-07-23 Steward **接受 033**；**AL-2026-037**；機械簡核 PASS、獨立核驗待另輪）。*

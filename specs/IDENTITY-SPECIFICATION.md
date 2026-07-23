@@ -52,7 +52,7 @@ Augur Enterprise AI Operating System
 * 名稱：Augur Identity Specification（下層引用簡稱 **AUGUR-ID**）
 * 層級：Layer 3 — Identity System（`AUGUR-MC v1.4 §0.5` 對照表第 3 列）
 * 版本：v1.0（前版：v0.1-draft）
-* 上層規格（upper-specs）：`AUGUR-MC v1.4`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v1.0`（Layer 2，草案）
+* 上層規格（upper-specs）：`AUGUR-MC v1.4`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v1.0`（Layer 2）
 * 生效要件：`AUGUR-MC v1.4 §0.5` 對照表登錄（已具欄位）＋ Steward 充任認定（**已成就**，見【地位】）＋ 依 `AUGUR-WM v1.0 §WM.39` 之 Compliance Statement（Annex CS），並登錄 Amendment Log（`AUGUR-MC v1.4 §8.1`）——**已全部成就**（Steward 裁決第 2026-004 號，2026-07-17，AL-2026-008）。**生效日：2026-07-17**。實質充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序，與已成就之形式充分性分屬二事。
 
 ### 0.2 規範用語約定 [N]
@@ -234,7 +234,7 @@ Augur Enterprise AI Operating System
 > **ID.40（生命週期事件之 Evidence 義務）[N｜carries｜`AUGUR-MC v1.4 §P3.E2`、`§P4.E2`、`§P4.E3`；`AUGUR-WM v1.0 §WM.22`；`AUGUR-ONT v1.0 §DO.3`]**
 > Identity 之 **merge／split／retire／relist 與更正**，本身為**必須引用 Evidence 之 Knowledge**（`AUGUR-MC v1.4 §P3.E2`）。系統**必須**維持一**概念 lifecycle 事件序**，每一事件載：〔事件型別 ∈ {mint, merge, split, retire, relist, redirect（轉指）, correct, tombstone, de-identify, expire（到期失效）, settle（結算消滅）, convert（轉換）, redeem（贖回）}、所涉 identifier、生效時點（valid time）、系統可知時點（transaction time，`§P4.E2`）、Evidence 引用、作成者〕。**本枚舉為開放集**：Layer 2 已宣告具生命週期屬性之 Type（如 DerivativeContract T.3、ConvertibleBond T.4、Warrant T.5，見 ID.44）之終結事件型別得依其型別語義擴充；未列名之終結型別於 DynamicEntity 語境準用其對應終結事件。事件**只失效不刪除**（`§P4.E3`）。
 > 事件序之**欄位／索引物理實作** DEFER Layer 4／Layer 7（Annex DO IDO.3；`AUGUR-MC v1.4 §0.6(b)`）。
-> **義務主體**：本規格（事件語義）、Layer 4（實作）。**可判定判準**：任一 merge／split／retire／relist／redirect 事件缺 Evidence 引用者違反本條。
+> **義務主體**：本規格（事件語義）、Layer 4（實作）。**可判定判準**：任一 ID.40 所列 lifecycle 事件型別（本條 schema 枚舉閉集）缺 Evidence 引用者違反本條。
 
 ### 6.2 轉指與 lineage 不變式 [N]
 
@@ -272,8 +272,8 @@ Augur Enterprise AI Operating System
 
 > **ID.50（解析義務與升級禁止）[N｜carries｜`AUGUR-MC v1.4 §P3.E1`；`AUGUR-WM v1.0 §WM.21(d)`]**
 > 未解析之 Observation **得**進入系統、**不得**升級為 Knowledge；系統**負解析義務**（`AUGUR-MC v1.4 §P3.E1`）。凡意圖進入 Reasoning／Planning 之結構化物件（無論 Goal／Constraint／Capability／Plan 於 Layer 5–6 如何定義）均落入**已解析 Identity 引用義務**（`§WM.21(d)` 兜底）。
-> **「已解析」之本層自足定義**：於本層，某 Identity 引用為**已解析** iff〔涉該 Type 之判準採認已生效（ID.20）**∧** 該引用之 provisional 狀態旗標已依 ID.51(a) 清除〕；此為「解析成功」於 Layer 3 之機器可判定代理。resolution 演算本身（相似度／比對）仍 DEFER Layer 4（ID.23、IDO.4），其成敗於個體層落地由 Layer 4 承接。
-> **義務主體**：Layer 3–7 消費者。**可判定判準**：任一升級為 Knowledge 之元素其 Identity 為已解析（採認已生效〔ID.20〕∧ provisional 狀態已清除〔ID.51(a)〕）者為合規；provisional 元素被升級者違反本條。
+> **「已解析」之本層自足定義**：於本層，某 Identity 引用為**已解析** iff〔涉該 Type 之判準採認已生效（ID.20）**且** 該引用**非** ID.21 所定之 provisional（未解析）態〕；此為「解析成功」於 Layer 3 之機器可判定代理。resolution 演算本身（相似度／比對）仍 DEFER Layer 4（ID.23、IDO.4），其成敗於個體層落地由 Layer 4 承接。
+> **義務主體**：Layer 3–7 消費者。**可判定判準**：任一升級為 Knowledge 之元素其 Identity 為已解析（採認已生效〔ID.20〕且非 ID.21 provisional 態）者為合規；provisional 元素被升級者違反本條。
 
 ### 7.2 可稽核指標 [N]
 
@@ -354,8 +354,8 @@ Augur Enterprise AI Operating System
 > **義務主體**：本規格、採認作成者。**可判定判準**：涉 Security／Issuer 判準之下層條款含對 `§AO.1`／`AUGUR-WM v1.0 §A.54`／`AUGUR-ONT v1.0` T.90 之引用者為合規。
 
 > **AO.2（採認之治理前提）[N]**
-> OPEN-1 之正式判準採認**待 Steward／決策層拍板**（`AUGUR-WM v1.0 §D6`）。本規格提供採認機制（§4 ID.20），惟 Security／Issuer 判準之**實質採認生效**須經 Steward 依 `AUGUR-MC v1.4 §8.1` 之書面裁決（或決策層依治理程序）作成；於此拍板前，涉 Security／Issuer 之 Identity 引用依 `§WM.21(e)` 保守解釋為**未解析**。
-> **義務主體**：本規格、Steward／決策層。**可判定判準**：無採認紀錄時將 Security 引用視為已解析者違反本條。
+> OPEN-1 之正式判準採認**待 Steward／決策層拍板**（`AUGUR-WM v1.0 §D6`）。**〔部分解消〕RULING-2026-014（2026-07-18）已依 ID.20 追認 T.1 Security（代碼重用依 ID.43 分裂、未退役期間唯一指涉）、T.2 Index、FredSeries 之操作化判準；改名／借殼殘留面續依保守預設（RULING-2026-030／AL-2026-033）**——涉 Security 類 Identity 之引用依 014 已採認判準解析。**Issuer（T.20）判準仍待採認**（RULING-2026-014 未含 T.20；與 AO.4 分轨一致）。本規格提供採認機制（§4 ID.20），惟尚待採認 Type 之**實質採認生效**須經 Steward 依 `AUGUR-MC v1.4 §8.1` 之書面裁決（或決策層依治理程序）作成；於該 Type 採認前，涉該 Type 之 Identity 引用依 `§WM.21(e)` 保守解釋為**未解析**（provisional）。
+> **義務主體**：本規格、Steward／決策層。**可判定判準**：無**該 Type** 採認紀錄時將涉該 Type 之引用視為已解析者違反本條。
 
 > **AO.3（採認後之 lifecycle 銜接）[N]**
 > OPEN-1 判準一經採認，代碼重用／借殼之處置即銜接 §6（ID.43 存續邊界截斷）：跨 retire/relist 邊界之同一外部代碼解析為不同存續個體，供應商證券代碼降格為 provisional alias（identity claim，`§WM.21(c)`），發行人（Issuer）同一性以其自身判準（`AUGUR-ONT v1.0` T.20：法律實體同一；借殼／更名不改 Issuer identity，但得改其所發行 Security identity）解析。
@@ -459,15 +459,15 @@ Augur Enterprise AI Operating System
 | P4.W1（Augur 不接受：無 Source 之 Knowledge、不可重現之結果、無 Evidence 之推論） | ID.30(c)、ID.11 | 承接 |
 | P4.Y（WHY [I]） | §1.1（[I]） | 承接（資訊性） |
 | P5（Accountability Before Action 標題） | CS.1-P5 | 部分不適用＋理由 |
-| P5.D（定義） | 不觸及＋理由：Action 定義屬 Layer 6；本層僅型別化行動主體之 identifier（CS.1-P5） | 不觸及＋理由 |
-| P5.E1（Action 六元組與問責） | 不觸及＋理由：Action 六元組與行動治理屬 Layer 6，本層不定義；惟採認（ID.20）／lifecycle（ID.40）／去識別化（ID.42）之作成者記錄與 P5 精神相容 | 不觸及＋理由（治理記錄相容） |
-| P5.E2（風險分級表、完備性等級、Confidence 門檻） | 不觸及＋理由：風險分級／門檻屬 Layer 4–6；本層不定義 | 不觸及＋理由 |
-| P5.W1（任何 Action 必須可歸責於單一 Identity） | 不觸及＋理由：問責治理屬 Layer 6 | 不觸及＋理由 |
-| P5.W2（人類權威閘） | 不觸及＋理由：人類權威閘資格判準屬 Layer 6；本層去識別化／採認之作成者具名與其精神相容 | 不觸及＋理由 |
-| P5.W3（不可逆／高影響需最高完備性） | 不觸及＋理由：完備性等級與綁定屬 Layer 4–6 | 不觸及＋理由 |
-| P5.W4（Agent 僅持有完成當前經授權 Plan 所需之最小權限） | 不觸及＋理由：監督否決度量屬 Layer 6 | 不觸及＋理由 |
-| P5.W5（系統不得規劃、執行或學習任何降低人類監督與否決能力之行為） | 不觸及＋理由：風險預設屬 Layer 6；本層不削弱 | 不觸及＋理由 |
-| P5.Y（WHY [I]） | 不觸及＋理由：屬 Layer 6 行動治理，資訊性 | 不觸及＋理由 |
+| P5.D（定義） | CS.1-P5 | 不觸及＋理由：Action 定義屬 Layer 6；本層僅型別化行動主體之 identifier |
+| P5.E1（Action 六元組與問責） | CS.1-P5 | 不觸及＋理由：Action 六元組與行動治理屬 Layer 6，本層不定義；惟採認（ID.20）／lifecycle（ID.40）／去識別化（ID.42）之作成者記錄與 P5 精神相容 |
+| P5.E2（風險分級表、完備性等級、Confidence 門檻） | CS.1-P5 | 不觸及＋理由：風險分級／門檻屬 Layer 4–6；本層不定義 |
+| P5.W1（任何 Action 必須可歸責於單一 Identity） | CS.1-P5 | 不觸及＋理由：問責治理屬 Layer 6 |
+| P5.W2（人類權威閘） | CS.1-P5 | 不觸及＋理由：人類權威閘資格判準屬 Layer 6；本層去識別化／採認之作成者具名與其精神相容 |
+| P5.W3（不可逆／高影響需最高完備性） | CS.1-P5 | 不觸及＋理由：完備性等級與綁定屬 Layer 4–6 |
+| P5.W4（Agent 僅持有完成當前經授權 Plan 所需之最小權限） | CS.1-P5 | 不觸及＋理由：監督否決度量屬 Layer 6 |
+| P5.W5（系統不得規劃、執行或學習任何降低人類監督與否決能力之行為） | CS.1-P5 | 不觸及＋理由：風險預設屬 Layer 6；本層不削弱 |
+| P5.Y（WHY [I]） | CS.1-P5 | 不觸及＋理由：屬 Layer 6 行動治理，資訊性 |
 | §0.2（規範用語約定：必須／不得／應／得四級效力用語） | §0.2（沿用不重定義，全文一致）、【地位】末句（效力準用 `AUGUR-WM v1.0 §WM.53`） | 承接 |
 | §0.4（權威語言聲明） | §0.4 | 承接 |
 | §0.5（適用範圍：Layer 對照表） | §0.1、§0.5、【地位】（Layer 3 欄登錄） | 承接 |
@@ -592,11 +592,11 @@ Augur Enterprise AI Operating System
 | **D1** | Identity 實體類型完整分類體系（L2） | 不觸及：實體類型完整分類體系目標 L2（ONT 制定型別）；概念上游，本層消費不代定。 |
 | **D2** | 每類 Identity 同一性判準之制定與採認；instance/type 分類（L2/L3） | 承接：同一性判準之採認側 L3 slice 由 ID.20–24 承接（核心）；制定側 L2 屬 ONT。 |
 | **D3** | identity claim 一級表介面、轉指機制、tombstone、去識別化（L3） | 承接：目標正屬 L3；由 §5（ID.30–32）／§6（ID.40–44）承接（核心）。 |
-| **D4** | provisional identity 解析時限與未解析存量稽核指標（含 WM.3（L3） | 承接：解析時限與存量指標目標 L3，ID.51 承接（核心）；量測落地下放 L4（IDO.4）。 |
+| **D4** | provisional identity 解析時限與未解析存量稽核指標（含 WM.35 unmapped 存量準用） | 承接：解析時限與存量指標目標 L3，ID.51 承接（核心）；量測落地下放 L4（IDO.4）。 |
 | **D5** | identifier 之鑄造、結構與命名空間設計（L3） | 承接：鑄造／結構／命名空間設計目標 L3，§3（ID.10–14）承接（核心）。 |
-| **D6** | 本域證券代碼身份假設之判準採認（改名／代碼重用／借殼；Steward／決策層拍板後承（L3） | 承接：證券代碼身份假設判準之採認目標 L3，Annex O（AO.1–4）承接（核心）。 |
+| **D6** | 本域證券代碼身份假設之判準採認（改名／代碼重用／借殼；Steward／決策層拍板後承接） | 承接：證券代碼身份假設判準之採認目標 L3，Annex O（AO.1–4）承接（核心）。 |
 | **D7** | Knowledge 五元組欄位設計（L4） | 不觸及：五元組欄位設計目標 L4；本層僅設槽（ID.31）、下放 IDO.2，欄位不代定。 |
-| **D8** | as-of 重建機制與能力等級（vintage、發布日 gate、embargo、p（L4） | 不觸及：重建引擎與能力等級目標 L4；本層定繫結存在（ID.60）、下放 IDO.6。 |
+| **D8** | as-of 重建機制與能力等級（vintage、發布日 gate、embargo、purged 口徑——HOOK-01 上呈素材） | 不觸及：重建引擎與能力等級目標 L4；本層定繫結存在（ID.60）、下放 IDO.6。 |
 | **D9** | Confidence 形式化語義、傳播、比較（L4） | 不觸及：Confidence 形式化語義目標 L4；本層僅設槽（ID.30(d)）、下放 IDO.1。 |
 | **D10** | Evidence 三分類法維護、supersede/tombstone、來源信任分級（L4） | 不觸及：Evidence 三分類法與信任分級目標 L4；identity 側 tombstone 另循 D3 承接。 |
 | **D11** | Evidence 完備性等級（L4） | 不觸及：完備性等級目標 L4，非本層事務，下放執行層。 |
@@ -679,7 +679,7 @@ Augur Enterprise AI Operating System
 | MC §2.2（Observation 定義） | ID.50、ID.11 | 承接（本層使用不重定義） |
 | MC §2.3（Representation 定義） | ID.32 | 承接（唯一權威表徵為 ID.32 結構前提，不重定義） |
 | MC §2.7（Intelligence 定義） | — | 不觸及（Intelligence 機制屬 Layer 4–6，本層為概念層 Identity 規格） |
-| MC §2.8（Agent 定義） | P5.D／P5.E1、ID.11 | 承接（Agent 為 Identity 之一種，本層型別化其 identifier；行為面界分 L6） |
+| MC §2.8（Agent 定義） | ID.11、CS.1-P5（Agent identifier） | 承接（Agent 為 Identity 之一種，本層型別化其 identifier；行為面界分 L6） |
 | MC §2.9（Action 定義） | P5.D | 不觸及（Action 六元組與行動治理屬 Layer 6） |
 | MC §0.1（名稱、層級與版本） | 本層 §0.1、【地位】 | 承接（本層履行相同體例） |
 | MC §0.3（條文效力標注） | 本層 §0.3、ID.81 | 承接（同 §0.2 體例，本層採 [N]/[I] 標注與編號穩定） |
@@ -724,7 +724,7 @@ compliance-statement:
 
 > **CS.1-P1（Reality First）**〔細化〕引 `§P1.E1`、`§P1.E2`、`§P1.E3`。identifier 之跨部署可解析與對齊（ID.10）為 `§P1.E2` 之落地；外部識別碼降格為指涉資訊（ID.11）落實「資料來源不得成為最高抽象」（`§P1.E1`）。P1.E3（自然人 Bounded Representation）：身份屬性 as-of 繫結（§8）於自然人屬性之消費受法域義務約束——涉自然人表徵之域內宣告承接 `AUGUR-WM v1.0 §A.59`、`§WM.38`。**D17（自然人法規對應，目標 L3/L6）之分承**：其 **L3 slice**（自然人 identity 側去識別化／法規強制抹除機制、時變屬性 as-of 繫結）由本層 **ID.42** 及 §8（ID.60）承接；其 **L6 slice**（法規對應表本體與授權）DEFER Layer 6（IDO.7）。判準揭示：跨部署對齊可判定性依 ID.10；D17 之 L3 slice 於 ID.42 具具名落點，非整項下推。
 
-> **CS.1-P2（Representation Before Intelligence）**〔承接〕引 `§P2.E1`、`§P2.W2`、`§P2.E5`。provisional 不得升級為 Knowledge（ID.50）落實候選斷言經 Evidence 通道方確立；採認前保守解釋為未解析（ID.21）落實權威順序；採認撤回之 fail-safe 重評估（ID.22）承接 `§P2.E5`。判準揭示：「已解析」以採認紀錄存在（ID.20）操作化。
+> **CS.1-P2（Representation Before Intelligence）**〔承接〕引 `§P2.E1`、`§P2.W2`、`§P2.E5`。provisional 不得升級為 Knowledge（ID.50）落實候選斷言經 Evidence 通道方確立；採認前保守解釋為未解析（ID.21）落實權威順序；採認撤回之 fail-safe 重評估（ID.22）承接 `§P2.E5`。判準揭示：「已解析」＝該 Type 判準採認已生效（ID.20）且該引用非 ID.21 provisional 態（ID.50）；採認前保守解釋為未解析。
 
 > **CS.1-P3（Identity Before Knowledge）〔核心〕**〔承接＋細化〕引 `§P3.E1`、`§P3.E2`、`§P3.E3`、`§2.4`；**逐條見 Annex TR.A**（§P3 家族＋§2.4 為本層核心細化落點）。
 > * `§P3.E1`（引用與解析義務）→ ID.50–ID.53、ID.11（mint-on-admission）、ID.51（可稽核指標，承接 `AUGUR-WM v1.0 §D4`）；
@@ -745,7 +745,7 @@ compliance-statement:
 |---|---|---|---|
 | **T-ID-1** | ID.30(d)、IDO.1 | identity claim 需 Confidence 槽位，但其語義 DEFER Layer 4（`§P4.E8`）尚未定義。 | 本層僅設槽位並要求 Layer 4 承接；語義未定前，涉 claim 之升級消費採保守解釋（`§P4.E7` 最弱環節約束）。非豁免事項。 |
 | **T-ID-2** | ID.12、IDO.5 | identifier 結構設計權（`§WM.20`／D5）與概念層獨立性（`§0.6(b)`）之張力：命名空間須有結構，然物理編碼屬 Layer 7。 | 本層僅定**概念命名空間**（referent 空間隔離＋跨部署對齊契約）；物理序列化下放 Layer 7（IDO.5）。非豁免事項。 |
-| **T-ID-3** | AO.2、`§D6` | OPEN-1 Security 判準採認待 Steward／決策層拍板；本層提供採認機制但實質採認非本規格單方可為。 | **〔部分解消〕RULING-2026-014 已採認 Security／Index／FredSeries 操作化判準；改名／借殼殘留面續依保守預設（RULING-2026-030／AL-2026-033）**。涉 Security 類 Identity 之引用依 014 已採認判準解析。非豁免事項。 |
+| **T-ID-3** | AO.2、`§D6` | OPEN-1 Security 判準採認待 Steward／決策層拍板；本層提供採認機制但實質採認非本規格單方可為。 | **〔部分解消〕RULING-2026-014 已採認 Security／Index／FredSeries 操作化判準；改名／借殼殘留面續依保守預設（RULING-2026-030／AL-2026-033）**。涉 Security 類 Identity 之引用依 014 已採認判準解析。**Issuer（T.20）仍待採認**（RULING-2026-033）。非豁免事項。 |
 | **T-ID-4** | ID.60、ID.61、IDO.6 | 身份屬性 as-of 繫結義務（本層）與 as-of 重建引擎（Layer 4，`§P4.E2`）分屬二層，重建能力等級尚未定義。 | 本層保證版本繫結存在；重建能力 DEFER Layer 4（HOOK-01 上呈素材）。非豁免事項。 |
 | **T-ID-5** | ID.31、IDO.2 | identity claim 為 Knowledge（`§2.4`）受 P4 約束，然其完整 Knowledge 五元組欄位設計屬 Layer 4。 | 本層定身份側四要件（ID.30），完整欄位下放 Layer 4；二者以 IDO.2 對接。非豁免事項。 |
 | **T-ID-6** | ID.42、§8、IDO.7、`§D17` | 自然人法規對應（`AUGUR-WM v1.0 §D17`）目標為 **L3/L6**，其 L3 機制 slice（去識別化／抹除、時變屬性 as-of）與 L6 法規對應表本體之分界待具體法域義務落地方確定。 | L3 slice 由 ID.42（＋ID.60）承接、繫結 `AUGUR-ONT v1.0` T.23；L6 slice DEFER Layer 6（IDO.7）。分界待定但雙側均有具名落點，非承接漏列。非豁免事項。 |
