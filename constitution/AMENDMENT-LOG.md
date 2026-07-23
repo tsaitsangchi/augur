@@ -399,5 +399,5 @@
 * **事項**：Steward 裁決第 2026-033 號——**L3（AUGUR-ID v1.0）單層 ultracode findings 一攬子處置**：F-L3-1（AO.2／T-ID-3 部分解消同步、Issuer T.20 不另採認、per-Type 判準）＋F-L3-2 **乙案**（ID.50 刪第二 conjunct、已解析＝採認生效且非 ID.21 provisional、CS.1-P2 對齊）＋F-L3-3–7（ID.40 判準擴覆、§0.1 刪草案、TR.Y §2.8、TR.B P5 理由欄、TR.C D4/D6/D8 補全）。**分級登錄**：F-L3-1／2＝medium；F-L3-3–7＝minor；**零 major**。**蓋章不動搖**。**ID 版本維持 v1.0、MC／PA 零觸**
 * **文件**：[RULING-2026-033-L3-ID-ULTRACODE-DISPOSITION.md](RULING-2026-033-L3-ID-ULTRACODE-DISPOSITION.md)；findings `audits/L3-ID-ULTRACODE-20260723.md`
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
-* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 施作者親跑）；RULING-2026-033 第十一節十項機械簡核 PASS、**獨立對抗核驗待另輪**
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 獨立核驗親跑）；RULING-2026-033 第十一節十項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 ab53539）
 * **定案**：Steward 2026-07-23 **接受 033**

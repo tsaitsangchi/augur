@@ -188,8 +188,8 @@ severity：major／**medium**／minor／info。
 
 * **拍板**：接受 L3 ultracode 呈核（零 major、medium×2＋minor×5）；同案 **RULING-2026-033** 順修 F-L3-1（AO.2／T-ID-3 同步，**Issuer T.20 不另採認**）＋F-L3-2（**乙案**——ID.50 已解析／CS.1-P2 對齊）及 minor×5；蓋章不動搖。
 * **F-L3-2 採案**：**乙案**（刪第二 conjunct；已解析＝採認生效且非 ID.21 provisional）。
-* **定案**：Steward 2026-07-23 **接受 033**（`constitution/RULING-2026-033-L3-ID-ULTRACODE-DISPOSITION.md`；**AL-2026-037**；獨立對抗核驗**待另輪**）。
+* **定案**：Steward 2026-07-23 **接受 033**（`constitution/RULING-2026-033-L3-ID-ULTRACODE-DISPOSITION.md`；**AL-2026-037**；**獨立對抗核驗 PASS** 2026-07-23）。
 
 ---
 
-*本報告為 [I] 審查素材，全程零規格修改（審計交付物除外）。攻擊官／反駁官／批評官：ultracode-L3 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照。**L3 定案**：`constitution/RULING-2026-033-L3-ID-ULTRACODE-DISPOSITION.md`（2026-07-23 Steward **接受 033**；**AL-2026-037**；機械簡核 PASS、獨立核驗待另輪）。*
+*本報告為 [I] 審查素材，全程零規格修改（審計交付物除外）。攻擊官／反駁官／批評官：ultracode-L3 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照。**L3 定案**：`constitution/RULING-2026-033-L3-ID-ULTRACODE-DISPOSITION.md`（2026-07-23 Steward **接受 033**；**AL-2026-037**；獨立對抗核驗 PASS 2026-07-23）。*

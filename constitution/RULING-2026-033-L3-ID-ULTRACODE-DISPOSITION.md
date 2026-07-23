@@ -69,22 +69,24 @@
 | `ULTRACODE-SCHEDULE.md` | L3 列閉環 |
 | `audits/L3-ID-ULTRACODE-20260723.md` | 呈核段更新 |
 
-## 十一、待獨立核驗（RULING-2026-028 第 3 點 (b)）
+## 十一、獨立對抗核驗（RULING-2026-028 第 3 點 (b)）
 
-> **誠實揭露**：下列項次為 commit 前**須經非施作者**確認之核驗清單。本輪施作者已完成**機械簡核**（原文 grep／diff 限域／lint 親跑）；**獨立對抗核驗另輪**。
+> **誠實揭露**：下列項次為 commit 前**須經非施作者**確認之核驗清單。**獨立對抗核驗已完成**（2026-07-23；核驗者＝Cursor 獨立核驗 agent；方法＝逐項檔案原文／`git show ab53539`／親跑 lint；非施作者 ab53539）。
 
-| # | 核驗項 | 範圍 | 機械簡核 | 獨立核驗 |
-|---|---|---|---|---|
-| 1 | **AO.2 部分解消**：014 Security／Index／FredSeries 已註記；Issuer T.20 明示待採認；per-Type 判準 | AO.2、T-ID-3 | ✅ 簡核 PASS | ⏳ 待獨立 agent |
-| 2 | **ID.50 乙案**：無 ID.51(a) 假引；已解析＝ID.20 且非 ID.21 provisional | ID.50、CS.1-P2 | ✅ 簡核 PASS | ⏳ 待獨立 agent |
-| 3 | **ID.40 擴覆**：判準覆 `:235` 枚舉閉集 | ID.40 | ✅ 簡核 PASS | ⏳ 待獨立 agent |
-| 4 | **§0.1 草案刪除**：`:55` 無「草案」 | §0.1 | ✅ 簡核 PASS | ⏳ 待獨立 agent |
-| 5 | **TR.Y §2.8**：無 P5.D 誤植 | TR.Y | ✅ 簡核 PASS | ⏳ 待獨立 agent |
-| 6 | **TR.B P5 理由欄**：模式欄含完整理由正文 | TR.B P5 | ✅ 簡核 PASS | ⏳ 待獨立 agent |
-| 7 | **TR.C D4/D6/D8**：括號閉合、字串完整 | TR.C | ✅ 簡核 PASS | ⏳ 待獨立 agent |
-| 8 | **[N] 零逾越**：diff 限本裁決核示之 patch；無義務擴張 | ID 全 diff | ✅ 簡核 PASS | ⏳ 待獨立 agent |
-| 9 | **lint 基線**：`python3 -m tools.constitution_lint report` error 0／warning 0 | 全 corpus | ✅ 簡核 PASS（7／7） | ⏳ 待獨立 agent |
-| 10 | **PA／五原則 byte 零改** | `constitution/` 五原則檔 | ✅ 簡核 PASS | ⏳ 待獨立 agent |
+| # | 核驗項 | 範圍 | 狀態 |
+|---|---|---|---|
+| 1 | **AO.2 部分解消**：014 Security／Index／FredSeries 已註記；Issuer T.20 明示待採認；per-Type 判準 | AO.2、T-ID-3 | ✅ 獨立核驗 PASS（2026-07-23；`:356-358` 部分解消＋Issuer 待採認；T-ID-3 `:748` 同步） |
+| 2 | **ID.50 乙案**：無 ID.51(a) 假引；已解析＝ID.20 且非 ID.21 provisional | ID.50、CS.1-P2 | ✅ 獨立核驗 PASS（2026-07-23；`:275-276` 無 ID.51(a)；CS.1-P2 `:727` 一致） |
+| 3 | **ID.40 擴覆**：判準覆 `:235` 枚舉閉集 | ID.40 | ✅ 獨立核驗 PASS（2026-07-23；`:237` 覆 schema 枚舉閉集） |
+| 4 | **§0.1 草案刪除**：`:55` 無「草案」 | §0.1 | ✅ 獨立核驗 PASS（2026-07-23；`:55` upper-specs 無「草案」） |
+| 5 | **TR.Y §2.8**：無 P5.D 誤植 | TR.Y | ✅ 獨立核驗 PASS（2026-07-23；`:682` 改 ID.11、CS.1-P5） |
+| 6 | **TR.B P5 理由欄**：模式欄含完整理由正文 | TR.B P5 | ✅ 獨立核驗 PASS（2026-07-23；`:462-470` 理由在模式欄、落點欄 CS.1-P5） |
+| 7 | **TR.C D4/D6/D8**：括號閉合、字串完整 | TR.C | ✅ 獨立核驗 PASS（2026-07-23；`:595-599` D4 unmapped、D6 承接、D8 purged 口徑） |
+| 8 | **[N] 零逾越**：diff 限本裁決核示之 patch；無義務擴張 | ID 全 diff | ✅ 獨立核驗 PASS（2026-07-23；ab53539 限 5 檔、ID +26/-20，僅 F-L3-1～7 授權範圍） |
+| 9 | **lint 基線**：`python3 -m tools.constitution_lint report` error 0／warning 0 | 全 corpus | ✅ 獨立核驗 PASS（2026-07-23；PASS 7／7 親跑） |
+| 10 | **PA／五原則 byte 零改** | `constitution/` 五原則檔 | ✅ 獨立核驗 PASS（2026-07-23；ab53539 MC／PA 檔零 diff） |
+
+**誠實揭露**：上列十項均經獨立 agent 逐項原文／diff／lint 覆核，與施作者機械簡核結論一致；零殘留阻塞項。
 
 **Steward 2026-07-23：**接受 033**（定案）**
 
@@ -95,4 +97,4 @@
 > - [x] **逐項改核**：全照收（無逐項改核）
 > - [ ] 修改意見：（無）
 
-*本裁決定案（2026-07-23；Steward **接受 033**）。L3 ultracode 處置閉環；蓋章不動搖。第十一節獨立對抗核驗**待另輪**（機械簡核已完成）。*
+*本裁決定案（2026-07-23；Steward **接受 033**）。L3 ultracode 處置閉環；蓋章不動搖。第十一節獨立對抗核驗已完成（2026-07-23；十項全 ✅）。*
