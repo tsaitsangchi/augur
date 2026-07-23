@@ -196,6 +196,10 @@ severity：major／**medium**／minor／info。
 
 > **接受 L5 ultracode 呈核（零 major、medium×2＋minor×4）；同案 RULING-2026-035 顺修 F-L5-1（EO.1 收 L5.10 谓词）＋F-L5-6（L5.6(iii) Computational 路径可判定性）及 minor×4；029 附条件 PRV／ASF 程序性闭合（未翻 major）；F-IX-4／F-IX-6 仍另案 minor；盖章不動搖。**
 
+### Steward 定案（2026-07-23）
+
+**Steward 接受 L5 ultracode 呈核、同案 035**——`constitution/RULING-2026-035-L5-CK-ULTRACODE-DISPOSITION.md` 生效；Amendment Log **AL-2026-039**；CK 規格 F-L5-1～6 同案落地；029 PRV／ASF **程序性閉合**（未翻 major）；F-IX-4／F-IX-6 仍另案 minor；蓋章不動搖。**獨立對抗核驗待另輪**（RULING-035 第十一節十二項）。
+
 ---
 
-*本报告为 [I] 审查素材；全程零规格修改（审计交付物除外）。攻击官／反驳官／批评官：ultracode-L5 代理（单代理分节），2026-07-23；lint PASS 7/7 亲跑对照。*
+*本報告為 [I] 審查素材；ultracode 呈核段已閉環（2026-07-23）。攻擊官／反駁官／批評官：ultracode-L5 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照（施作後複核）。**L5 定案**：`constitution/RULING-2026-035-L5-CK-ULTRACODE-DISPOSITION.md`（2026-07-23 Steward **接受 035**；**AL-2026-039**；獨立對抗核驗待另輪）。*

@@ -410,3 +410,12 @@
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
 * **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 獨立核驗親跑）；RULING-2026-034 第十二節十二項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 3793c37）
 * **定案**：Steward 2026-07-23 **接受 034**
+
+## AL-2026-039
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-035 號——**L5（AUGUR-CK v1.0）單層 ultracode findings 一攬子處置**：F-L5-1（EO.1 收 L5.10 三翼 as-of 謂詞）＋F-L5-6（L5.6(iii) Computational 路徑最低滿足）＋F-L5-2–5（LDI.6／TR.B／CS.3 enumeration、L5.90／CS.2 DRAFT 殘留、TR.F 歷史語）。**分級登錄**：F-L5-1／6＝medium；F-L5-2–5＝minor；**零 major**。**029 PRV／ASF 程序性閉合**（未翻 major、不重開 §8.2）。**F-IX-4／F-IX-6 仍另案 minor**。**蓋章不動搖**。**CK 版本維持 v1.0、MC／PA 零觸**
+* **文件**：[RULING-2026-035-L5-CK-ULTRACODE-DISPOSITION.md](RULING-2026-035-L5-CK-ULTRACODE-DISPOSITION.md)；findings `audits/L5-CK-ULTRACODE-20260723.md`
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 施作者親跑）；RULING-2026-035 第十一節十二項**待獨立對抗核驗**（另輪）
+* **定案**：Steward 2026-07-23 **接受 L5 ultracode 呈核、同案 035**
