@@ -68,7 +68,7 @@ CREATE INDEX IF NOT EXISTS ix_supersede_pk_gin     ON raw_supersede_log USING GI
   * 理由：最小侵入、不改既有寫序；`reconcile.heal_by_date` 直呼 sync、無對帳 run 時 `run_id` 恆 NULL，`reason` 仍留痕（P4.E6 遞迴溯源鏈以 reason＋old_row/new_row 承載，不因無 run_id 而斷）。
   * 不採 (a) 前置 pending run，故 `attestation_result` 寫序完全不動、無 append-only 例外之新增。
 
-**另注**：`docs/原則精華_v1.9.0.md #7`（correction＝覆蓋為當前值）須改為「新版本入庫、舊版標 superseded」以與本補正一致——屬 Layer 4 治權檔（原則精華）變更，依 CLAUDE #19/#26 須用戶拍板，code 不得先行（見步 12 治理收尾）。
+**另注**：`docs/原則精華_v1.10.0.md #7`（correction＝新版本入庫、舊版標 superseded）**已於 2026-07-23 入憲**（RULING-2026-041／AL-2026-045；承 RULING-2026-012 方向採認）。**code 仍不得先行**——本卷宗施工／migration／selftest 另開，見檢查清單 §四。
 
 ## 四、實作檢查清單（審查/施工用）
 

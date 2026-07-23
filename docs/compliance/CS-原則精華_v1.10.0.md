@@ -1,27 +1,27 @@
-# Constitutional Compliance Statement — 原則精華 v1.9.1
+# Constitutional Compliance Statement — 原則精華 v1.10.0
 
 * **性質**：領域治權檔之 Constitutional Compliance Statement（[N] 聲明；**不上收** docs 進 META）
-* **依據**：`AUGUR-MC v1.6 §8.3`；`AUGUR-WM v1.0 §WM.39–45`；RULING-2026-002 主文二（補正期至 **2026-10-14**）；§0.5（跨層條款由本聲明逐條標注）
+* **依據**：`AUGUR-MC v1.6 §8.3`；`AUGUR-WM v1.0 §WM.39–45`；RULING-2026-002 主文二（補正期至 **2026-10-14**）；§0.5（跨層條款由本聲明逐條標注）；**RULING-2026-041**（P3／#7↔P4.E5）
 * **登錄 Layer**：4（Knowledge System 領域治權）
-* **正文 SSOT**：`docs/原則精華_v1.9.1.md`
-* **誠實界限**：履行本檔補正義務；**不**假關 039 殘留；**#7↔P4.E5 緊張保持開放**（P3 另案）。
+* **正文 SSOT**：`docs/原則精華_v1.10.0.md`
+* **誠實界限**：履行本檔補正義務；**不**假關 039 殘留；**T-PRIN-7-P4E5 規範緊張已閉**（RULING-2026-041）；AUD-02 **code** 操作閉合仍 defer（非豁免 P4.E5）。
 
 ```
 compliance-statement:
   spec: Augur Domain Principles（原則精華）
-  spec-version: v1.9.1
+  spec-version: v1.10.0
   layer: 4
   mc-version: AUGUR-MC v1.6
   upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0]
   statement-format: AUGUR-WM v1.0 §WM.39–45
   principles: [PA, P1, P2, P3, P4, P5, EV-chain]
   waivers: []
-  open-tensions: [T-PRIN-7-P4E5]
+  open-tensions: []
   defers-in: []
   defers-out: [D-PRIN-1, D-PRIN-2]
   date: 2026-07-23
-  author: Steward 授權執行層（P2）
-  archive-path: docs/compliance/CS-原則精華_v1.9.1.md
+  author: Steward 授權執行層（P3／RULING-2026-041）
+  archive-path: docs/compliance/CS-原則精華_v1.10.0.md
 ```
 
 ## CS.1 逐原則論證（七節）[N]
@@ -38,8 +38,8 @@ compliance-statement:
 > **CS.1-P3**〔不適用〕
 > Identity 型別／解析屬 AUGUR-ID。理由：本檔不定義 Identity。
 
-> **CS.1-P4**〔細化＋緊張〕
-> 引 `§P4.E1`–`§P4.E8`、`§P4.W1`。#1／#7／#8／#15 對映 Evidence／對帳／anti-leakage／誠實回報。**已知緊張**：#7 correction＝覆蓋當前值 vs `§P4.E5` 禁 last-write-wins（見 CS.2）。判準揭示：對帳 attestation 四類可機器盤點；anti-leakage 須 purged 口徑。
+> **CS.1-P4**〔細化〕
+> 引 `§P4.E1`–`§P4.E8`、`§P4.W1`。#1／#7／#8／#15 對映 Evidence／對帳／anti-leakage／誠實回報。**#7（v1.10.0）**：live＝當前 API ＋舊觀測 append-only superseded（對齊 `§P4.E3`／`§P4.E5`；RULING-2026-041）。判準揭示：對帳 attestation 四類可機器盤點；anti-leakage 須 purged 口徑；supersede 機器落點＝AUD-02（code 受閘）。
 
 > **CS.1-P5**〔細化〕
 > 引 `§P5.W2`、`§P5.W4`。#20 自驅動×實證＋人決策；#16 clean-room。判準揭示：治權判準變更／破壞性操作須人確認。
@@ -51,9 +51,9 @@ compliance-statement:
 
 | T-id | 所涉條款 | 描述 | 緩解／狀態 |
 |---|---|---|---|
-| **T-PRIN-7-P4E5** | 原則精華 #7；`AUGUR-MC v1.6 §P4.E5` | #7 定案資料 correction＝重跑 sync 覆蓋為當前 API 值；與 P4.E5 禁 last-write-wins／須 supersede 語意緊張 | **開放**。補正方案見 `audits/` AUD-02、`docs/remediation/AUD-02-raw-supersede-log.md`；**須 Steward 拍板（計畫 P3）**；code 不先行。非豁免。 |
+| ~~T-PRIN-7-P4E5~~ | 原則精華 #7；`§P4.E5` | （史料）舊 #7 覆蓋語意 vs 禁 LWW | **已閉（2026-07-23）**。RULING-2026-041：#7→supersede；**非豁免**。操作／code＝D-PRIN-2。 |
 
-豁免登記：`none`（waivers: []）。
+豁免登記：`none`（waivers: []）。`open-tensions: []`。
 
 ## CS.3 雙向 DEFER 表 [N]
 
@@ -62,7 +62,7 @@ compliance-statement:
   | d-id | 事項 | 目標 | 說明 |
   |---|---|---|---|
   | D-PRIN-1 | Knowledge／Evidence 形式型別 | Layer 4 `AUGUR-KS` | 正式規格為權威 |
-  | D-PRIN-2 | #7↔P4.E5 條文改寫或豁免 | Steward／P3 | 緊張處置另案 |
+  | D-PRIN-2 | AUD-02 `raw_supersede_log` **code**／migration 操作閉合 | remediation／Phase 7 窗 | 規範已對齊（041）；**非** P4.E5 豁免；至遲併 **2026-10-14** 補正／Phase 7 節奏（RULING-012）；**不**假關 039 其他項 |
 
 ## CS.4 形式充分性＋跨層標注 [N]
 
@@ -80,7 +80,7 @@ MC [N] 機器落點以 `specs/` 為權威；本檔觸及者見 CS.1；其餘＝*
 | #4 | 日為最小單位 | L7 | |
 | #5 | 型別紀律 | L7 | |
 | #6 | 冪等＋續傳 | L7 | |
-| #7 | DB↔API 對帳 | L4＋L7 | **T-PRIN-7-P4E5** |
+| #7 | DB↔API 對帳 | L4＋L7 | supersede（041）；AUD-02 code＝D-PRIN-2 |
 | #8 | Anti-Leakage | L4＋L5 | 三基石★ |
 | #9 | 思想≠特定值 | L4＋L5 | |
 | #10 | 核心股質>量 | L4＋L5 | |

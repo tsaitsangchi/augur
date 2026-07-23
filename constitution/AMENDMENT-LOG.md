@@ -466,3 +466,11 @@
 * **文件**：[RULING-2026-040-MC-V1.6-MINIMAL.md](RULING-2026-040-MC-V1.6-MINIMAL.md)；升版說明 `audits/MC-V1.6-MINIMAL-20260723.md`
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 書面授權落地
 * **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（施作親跑）；RULING-2026-040 第七節十項 **待獨立對抗核驗**（非施作者）
+
+## AL-2026-045
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-041 號——**P3：原則精華 #7↔P4.E5 緊張處置**。採 (a) #7 改條（correction＝live 當前 API＋舊版 append-only superseded）；原則精華 **v1.9.1→v1.10.0**；CS 關閉 T-PRIN-7-P4E5；D-PRIN-2 改掛 AUD-02 **code** 操作閉合（非豁免）。**MC／PA／五原則 [N] 零觸**；**code 不先行**；**不上收** docs；**禁止假關** 039 其他 10-14 項。
+* **程序依據**：§0.6；§P4.E3／E5；RULING-2026-012 2(d) 方向採認；Sole Steward「開 P3」
+* **文件**：[RULING-2026-041-PRIN7-P4E5-DISPOSITION.md](RULING-2026-041-PRIN7-P4E5-DISPOSITION.md)；`docs/原則精華_v1.10.0.md`；`docs/compliance/CS-原則精華_v1.10.0.md`；`audits/P3-PRIN7-P4E5-20260723.md`
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23

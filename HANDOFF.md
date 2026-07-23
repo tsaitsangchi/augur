@@ -28,7 +28,7 @@
 | 檔 | 是什麼 |
 |---|---|
 | `docs/系統核心思想_v1.8.0.md` | **靈魂**：預測**相對強弱**＋預言機軸(絕對方向機率,唯過 direction_gate;v1.6.0;v1.8.0 三度堅持刪「不是預測絕對漲跌幅」句,E[r] 升格幅度級得逐股(GATE/econ 同源/揭露硬綁不動))（非絕對漲跌機率）、成功=經濟價值非 IC、系統建議人決策、禁 AI 占卜大師 |
-| `docs/原則精華_v1.9.1.md` | **20 條不可違反法律** + 資料完整性判準（**FREEZE 已解凍→live 增量維運**;live 准入=arena 前置 G1-G5 機制 v1.9.1/2026-07-16） |
+| `docs/原則精華_v1.10.0.md` | **20 條不可違反法律** + 資料完整性判準（**FREEZE 已解凍→live 增量維運**;live 准入=arena 前置 G1-G5 機制；**#7 supersede／RULING-2026-041**） |
 | `docs/系統架構大憲章_v1.46.0.md` | **憲法**：三敵×管線、12-PHASE、升版規則、**第六部計畫先行/計畫完整性 v1.39.0**、修訂歷程 |
 | `CLAUDE.md`（版本見檔頭） | AI 協作工具規則（Read-before-Edit、clean-room #16、plan-first #20、一支一支檢視 #19、常駐服務改碼須重啟實測 #7、最小 usage #28、DB 備份慣例 #30） |
 | `reports/augur_construction_understanding_20260710.md` | **⭐建構作法完整理解 v3（code-verified 16 子系統、supersede 20260709 版）**：兩半系統框架、逐層 how-built、跨系統 meta-pattern、治權→code 接線——**接手必讀「這專案怎麼建的」** |
@@ -189,7 +189,7 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 | 要什麼 | 去哪 |
 |---|---|
 | 規則/工具紀律 | `CLAUDE.md`（版本見檔頭；#31＝接續慣例） |
-| 判準/憲法 | `docs/系統架構大憲章_v1.46.0.md`＋`docs/原則精華_v1.9.1.md`＋`docs/系統核心思想_v1.8.0.md` |
+| 判準/憲法 | `docs/系統架構大憲章_v1.46.0.md`＋`docs/原則精華_v1.10.0.md`＋`docs/系統核心思想_v1.8.0.md` |
 | 這專案怎麼建的 | `reports/augur_construction_understanding_20260710.md`（v3 code-verified） |
 | 擂台規格 | `reports/augur_direction_live_arena_plan_20260711.md` |
 | arena 前置 G1-G5 gate（現行開賽機制+Phase 0 決策紀錄） | `reports/arena_g1g5_admission_gate_plan_20260716.md` |
