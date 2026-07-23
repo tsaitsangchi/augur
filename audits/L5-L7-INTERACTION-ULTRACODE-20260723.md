@@ -221,6 +221,6 @@ venv/bin/python -m pytest tests/test_l7_knowledge_not_null.py -q
 
 ## 12. Steward 定案（2026-07-23）
 
-**Steward 接受本 Phase 3b 專項覆核、同案 RULING-2026-038／AL-2026-042**——F-IX-3…6 一攬子閉合（CS.3 措辭；LDO.3→`L7（L6 僅監督 UI）`；L7 誠實界限；LDO.4→純 L7）；020 M2 **維持 honest deferred**；025／029 復審日 **仍 2026-10-14**；L5–L7 蓋章不動搖。獨立對抗核驗＝待非施作者（RULING-038 §九）。
+**Steward 接受本 Phase 3b 專項覆核、同案 RULING-2026-038／AL-2026-042**——F-IX-3…6 一攬子閉合（CS.3 措辭；LDO.3→`L7（L6 僅監督 UI）`；L7 誠實界限；LDO.4→純 L7）；020 M2 **維持 honest deferred**；025／029 復審日 **仍 2026-10-14**；L5–L7 蓋章不動搖。**獨立對抗核驗 PASS**（2026-07-23；RULING-038 §九 十項全 ✅；非施作者 b68d96f；`audits/RULING-2026-038-INDEPENDENT-VERIFY-20260723.md`）。
 
 *本報告為 [I] 審查素材；3b 呈核＋038 處置閉環（2026-07-23）。*

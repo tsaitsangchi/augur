@@ -74,4 +74,4 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 
 ## 收束
 
-各層產出之呈核報告若含 **major**，即為後續 RULING 之材料；若某層之發現動搖其蓋章地位，報告須明載動搖程度（需重採認／需 §8.2 補審／僅需 patch）。**Phase 3b 執行層 L5–7 交互檢查**——✅ 全棧首跑（2026-07-23，`audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md`；027 閉 M-IX-1／2）＋✅ **L5–L7 專項覆核**（同日，`audits/L5-L7-INTERACTION-ULTRACODE-20260723.md`）＋✅ **Steward 接受 3b ＋ RULING-2026-038／AL-2026-042**（F-IX-3…6 閉；020 M2 維持 deferred；025／029 復審仍 2026-10-14）——詳 `LAYER-SEALING-SCHEDULE.md` §3b。**單層 ultracode 與跨層交互檢查為互補而非替代**。
+各層產出之呈核報告若含 **major**，即為後續 RULING 之材料；若某層之發現動搖其蓋章地位，報告須明載動搖程度（需重採認／需 §8.2 補審／僅需 patch）。**Phase 3b 執行層 L5–7 交互檢查**——✅ 全棧首跑（2026-07-23，`audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md`；027 閉 M-IX-1／2）＋✅ **L5–L7 專項覆核**（同日，`audits/L5-L7-INTERACTION-ULTRACODE-20260723.md`）＋✅ **Steward 接受 3b ＋ RULING-2026-038／AL-2026-042**（F-IX-3…6 閉；020 M2 維持 deferred；025／029 復審仍 2026-10-14）＋✅ **038 獨立核驗 PASS**（2026-07-23；§九 十項全 ✅；`audits/RULING-2026-038-INDEPENDENT-VERIFY-20260723.md`）——詳 `LAYER-SEALING-SCHEDULE.md` §3b。**單層 ultracode 與跨層交互檢查為互補而非替代**。
