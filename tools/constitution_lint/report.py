@@ -25,7 +25,7 @@ import pathlib
 import re
 import subprocess
 
-from . import compliance_lint, mc_clauses
+from . import annex_d_range_lint, compliance_lint, mc_clauses
 
 _HERE = pathlib.Path(__file__).resolve().parent
 _REPO = _HERE.parents[1]
@@ -284,6 +284,20 @@ def build(selftest=None, specs_dir=None, mc_path=None) -> dict:
         v[f"wm44_uncited_{layer}"] = rec["wm44_uncited"]
         v[f"wm40_extension_{layer}"] = rec["wm40_extension"]
         v[f"tr_rows_{layer}"] = rec["tr_rows"]
+
+    # ── DFR-4：Annex D 範圍型列 × 各層 FM/TR 對表（corpus 級）────────────────────────
+    dfr4 = annex_d_range_lint.check_corpus(files)
+    v["annex_d_range_gaps"] = len(dfr4)
+    by_layer_file = {r["file"]: r for r in per_file}
+    for f in dfr4:
+        tot["error"] += 1
+        kinds[f.kind or "annex_d_range_gap"] = kinds.get(f.kind or "annex_d_range_gap", 0) + 1
+        loc = f.location.split("（")[0] if f.location else ""
+        for rec in per_file:
+            if loc and rec["file"] == loc:
+                rec["error"] += 1
+                rec["passed"] = False
+                break
 
     v["corpus_total"] = len(files)
     v["corpus_effective"] = sum(1 for r in per_file if not r["is_draft"])

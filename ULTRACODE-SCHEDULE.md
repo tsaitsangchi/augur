@@ -42,6 +42,16 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 | **L6** AR v1.2 | AGENT-RUNTIME-SPECIFICATION.md | 6 | ⏳ 排定 | — |
 | **L7** Infra v1.0 | INFRASTRUCTURE-SPECIFICATION.md | 6 | ⏳ 排定 | — |
 
+### L1 延後三項最佳化拍板（Steward 授權 2026-07-23）
+
+030 定案後殘留三項已全數拍板；**L1 無未拍板延後項**。
+
+| 項 | 原 findings | 拍板 | 狀態 |
+|---|---|---|---|
+| **F-L1-2** | Annex C [N] 節缺義務主體／判準 | **DEFER** 至下次 `AUGUR-WM` 規格升版（併 F-L1-3 同議程）；030 §五(c) 留另案 → 本拍板確認延後、不現寫 [N] | ✅ 已拍板延後 |
+| **F-L1-3** | WM.52 未涵蓋 Annex C/D/E 升版等級 | **DEFER** 至下次 WM 升版（與 F-L1-2 併案）；不另開 RULING | ✅ 已拍板延後 |
+| **DFR-4 linter** | 範圍列×目標層 FM 對表機器檢查 | **現行落地**：`tools/constitution_lint/annex_d_range_lint.py`（corpus 級；`report` 聚合）；D0 義務句已有、030 §五(g) 議程項 → 已實作 | ✅ 已落地 |
+
 **執行方式**：參數化工作流 `ultracode-layer`，以 `args={layer:"Lx"}` 逐層調用（同一支腳本、同一套方法，避免七份腳本各自漂移）。L0 另有專屬腳本 `ultracode-L0-meta-constitution`（因 L0 為憲章本體、維度性質不同）。
 
 ## 各層攻擊維度設計（登錄以備查）

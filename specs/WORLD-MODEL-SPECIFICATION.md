@@ -873,7 +873,7 @@ compliance-statement:
 # Annex D [N] — DEFER 掛鉤總表
 
 > **D0（承接義務）[N]** 本表每列為**規範性掛鉤條款**：Layer 1 明示不定義該事項，授權（並要求）目標 Layer 定義之；目標 Layer 規格作成時必須於其 Compliance Statement 之 defers-in 欄承接對應列。
-> **義務主體**：目標 Layer 規格作者。**可判定判準**：目標 Layer 規格之 WM.43 承接表含對應 D{n} 列。**可判定判準（範圍型目標列）**：目標 Layer 為範圍者，範圍內每一 Layer 之規格必須於其 Compliance Statement `defers-in` 欄與承接表承接該列之本層 slice，或於其 Traceability Matrix 對該列明記不觸及＋據實理由（RULING-2026-030 §二／AL-2026-033）。**範圍型列之各層 slice 分工必須登錄**於承接表或 Annex D 切片欄，以資 slice 聯集完備性盤點（RULING-2026-030 §五(g)；linter 範圍列×目標層 FM 對表機器檢查列入議程、未實作）。
+> **義務主體**：目標 Layer 規格作者。**可判定判準**：目標 Layer 規格之 WM.43 承接表含對應 D{n} 列。**可判定判準（範圍型目標列）**：目標 Layer 為範圍者，範圍內每一 Layer 之規格必須於其 Compliance Statement `defers-in` 欄與承接表承接該列之本層 slice，或於其 Traceability Matrix 對該列明記不觸及＋據實理由（RULING-2026-030 §二／AL-2026-033）。**範圍型列之各層 slice 分工必須登錄**於承接表或 Annex D 切片欄，以資 slice 聯集完備性盤點（RULING-2026-030 §五(g)）；**機器檢查**＝`tools/constitution_lint/annex_d_range_lint.py`（`report` 聚合；Steward 授權最佳化拍板 2026-07-23 落地）。
 
 | # | DEFER 事項 | 目標 Layer | WM 掛鉤 | 憲章依據 |
 |---|---|---|---|---|

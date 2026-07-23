@@ -42,11 +42,11 @@
 
 * (a) **F-L1-5**：Annex F 第 1 條歸類欄「世界事實（日級成交）」→「事件／狀態（日級成交）」。
 * (b) **F-L1-6／CSV-1（補正期裁定作成）**：釘定「`§WM.35`／`§WM.36` 所引 `AUGUR-MC v1.4 §8.3` 過渡規則 (b) 之補正期到期日＝**2026-10-14**」（與 RULING-2026-002 主文二、RULING-2026-012 Phase 7 期限同日；自翌日起 WM.36 消費禁令無條件適用）。**不併**增訂 WM.36 裁定缺位預設句（Steward 2026-07-23 一攬子簽核）。
-* (c) **F-L1-2／F-L1-3**：**留另案或 WM 下次升版**。
+* (c) **F-L1-2／F-L1-3**：**正式 DEFER 至下次 WORLD-MODEL 規格升版**（Steward 授權最佳化拍板 2026-07-23；併入 WM 升版議程 OPEN，不現寫 [N] 義務、不另開 RULING）。
 * (d) **CSV-2（C.8 現況同步）**：C.8 T-5 加部分解消註記（RULING-2026-014）；A.54 [I] 面加採認現況引註；ID T-ID-3 同步。「改名／借殼」殘留面**維持保守預設**（未另認定全數覆蓋）。
 * (e) **FMT-1**：WM.40 `archive-path` 欄括注釘定語義（＝**本聲明所在之生效本**）；六份下層 front-matter 隨改。
 * (f) **REG-1**：WM.36 第 5 欄加「（含 A.35 第三項〔跨市場軸對映宣告〕，如適用）」。
-* (g) **DFR-4**：D0 增範圍型列 slice 分工登錄義務一句＋linter 議程登錄（範圍列×目標層 FM 對表機器檢查；**未實作**，列入議程）。
+* (g) **DFR-4**：D0 增範圍型列 slice 分工登錄義務一句＋**linter 已落地**（`tools/constitution_lint/annex_d_range_lint.py`：範圍列×目標層 FM/TR 對表機器檢查；Steward 授權最佳化拍板 2026-07-23）。
 
 ## 六、明示不為
 
@@ -75,7 +75,8 @@
 | `constitution/RULING-2026-030-…` | 本檔生效＋簽核 |
 | `constitution/AMENDMENT-LOG.md` | AL-2026-033 |
 | `ULTRACODE-SCHEDULE.md` | L1 列閉環 |
-| `audits/L1-WM-ULTRACODE-20260723.md` | 呈核段更新 |
+| `audits/L1-WM-ULTRACODE-20260723.md` | 呈核段更新＋延後三項最佳化拍板留痕 |
+| `tools/constitution_lint/annex_d_range_lint.py` | DFR-4 範圍列×目標層 FM/TR 對表（corpus 級） |
 
 **WM.35／WM.36 補正期裁定（第五(b)）**：自本裁決生效日起，`§WM.35`／`§WM.36` 所繫 `AUGUR-MC v1.4 §8.3` 過渡規則 (b) 補正期到期日＝**2026-10-14**；自 **2026-10-15** 起 WM.36 直綁消費禁令無條件適用。
 
