@@ -48,8 +48,8 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 
 | 項 | 原 findings | 拍板 | 狀態 |
 |---|---|---|---|
-| **F-L1-2** | Annex C [N] 節缺義務主體／判準 | **DEFER** 至下次 `AUGUR-WM` 規格升版（併 F-L1-3 同議程）；030 §五(c) 留另案 → 本拍板確認延後、不現寫 [N] | ✅ 已拍板延後 |
-| **F-L1-3** | WM.52 未涵蓋 Annex C/D/E 升版等級 | **DEFER** 至下次 WM 升版（與 F-L1-2 併案）；不另開 RULING | ✅ 已拍板延後 |
+| **F-L1-2** | Annex C [N] 節缺義務主體／判準 | **DEFER** 至下次 `AUGUR-WM` 規格升版（併 F-L1-3 同議程）；030 §五(c) 留另案 → 本拍板確認延後、不現寫 [N]；**039 再確認**（觸發＝WM 升版開工） | ✅ 已拍板延後 |
+| **F-L1-3** | WM.52 未涵蓋 Annex C/D/E 升版等級 | **DEFER** 至下次 WM 升版（與 F-L1-2 併案）；不另開 RULING；**039 再確認** | ✅ 已拍板延後 |
 | **DFR-4 linter** | 範圍列×目標層 FM 對表機器檢查 | **現行落地**：`tools/constitution_lint/annex_d_range_lint.py`（corpus 級；`report` 聚合）；D0 義務句已有、030 §五(g) 議程項 → 已實作 | ✅ 已落地 |
 
 **執行方式**：參數化工作流 `ultracode-layer`，以 `args={layer:"Lx"}` 逐層調用（同一支腳本、同一套方法，避免七份腳本各自漂移）。L0 另有專屬腳本 `ultracode-L0-meta-constitution`（因 L0 為憲章本體、維度性質不同）。
@@ -75,3 +75,44 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 ## 收束
 
 各層產出之呈核報告若含 **major**，即為後續 RULING 之材料；若某層之發現動搖其蓋章地位，報告須明載動搖程度（需重採認／需 §8.2 補審／僅需 patch）。**Phase 3b 執行層 L5–7 交互檢查**——✅ 全棧首跑（2026-07-23，`audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md`；027 閉 M-IX-1／2）＋✅ **L5–L7 專項覆核**（同日，`audits/L5-L7-INTERACTION-ULTRACODE-20260723.md`）＋✅ **Steward 接受 3b ＋ RULING-2026-038／AL-2026-042**（F-IX-3…6 閉；020 M2 維持 deferred；025／029 復審仍 2026-10-14）＋✅ **038 獨立核驗 PASS**（2026-07-23；§九 十項全 ✅；`audits/RULING-2026-038-INDEPENDENT-VERIFY-20260723.md`）——詳 `LAYER-SEALING-SCHEDULE.md` §3b。**單層 ultracode 與跨層交互檢查為互補而非替代**。
+
+---
+
+## Residual omnibus（RULING-2026-039／AL-2026-043；2026-07-23）
+
+* **計畫**：`reports/augur_l0_l7_residual_omnibus_disposition_plan_20260723.md`
+* **狀態**：✅ **全部殘留已拍板**（可閉則閉；open-tension／日曆＝明示再確認；**禁止假關** OT-5／T-KS-6／T-L6-5／025／020 M2／無 Evidence 10-14）
+* **同案**：AL-2026-041 補登（037 漏列）；L1–L6 CS `mc-version`→v1.5
+
+| 殘留 | 類 | 拍板 |
+|---|---|---|
+| XRF-1 | A | 操作閉（工具層）；歷史裁決幽靈措辭不改本文 |
+| GOV-3 B | B | 觀察觸發維持 |
+| F-L1-2／3 | C | DEFER 下次 WM 升版 |
+| WM.35／36 | D | 到期 **2026-10-14** |
+| 改名／借殼 | E | 保守預設維持 |
+| OT-5 | B | open-tension 維持（禁假關） |
+| T.6 | A | 已閉（032） |
+| Issuer T.20 | E | 不另採認 |
+| ID.61 | A／C | 概念閉（KS §5）；KDO.6 實作 DEFER |
+| T-KS-6 | B | open-tension 維持（禁假關） |
+| KDO.1 | A | 概念閉（L5.3） |
+| KDO.4 | C／D | DEFER；觸發＝實作或 10-14 |
+| attribution→L7 | B／C | DEFER L7 維持 |
+| 029 日曆 | D | **2026-10-14**（禁假關） |
+| T-L6-5 | B | 007 residual 維持（禁假關） |
+| 025 (iii)(iv)(vi) | D | 分階段①至 **2026-10-14**（禁假關） |
+| L7.16 全棧 | B／C | 局部已掛；全矩陣 DEFER |
+| L7.21(f) | A | 已閉（037） |
+| 020 M2 | B／C | honest deferred（禁假關） |
+| 10-14 併結 | D | checklist 維持（禁提早結清） |
+
+### 2026-10-14 併結 checklist（到期前不得勾「結清」）
+
+- [ ] WM.35／36 直綁消費禁令生效盤點
+- [ ] 025 (iii)(iv)(vi) ②③ 觸發／達成或明示續延
+- [ ] 029 L5 PRV／ASF 日曆復審
+- [ ] L7.16 全棧 owner≠app 矩陣進度
+- [ ] KDO.4／LDO.4 量測落地狀態
+- [ ] 020 M2 仍 deferred 或另案承接
+- [ ] GOV-3 B 有無新越權 Evidence

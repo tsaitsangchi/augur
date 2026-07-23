@@ -991,7 +991,7 @@ compliance-statement:
   spec: Augur Knowledge System Specification
   spec-version: v1.1
   layer: 4
-  mc-version: AUGUR-MC v1.4
+  mc-version: AUGUR-MC v1.5
   upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0]
   statement-format: AUGUR-WM v1.0 §WM.39–45
   principles: [PA, P1, P2, P3, P4, P5, EV-chain]

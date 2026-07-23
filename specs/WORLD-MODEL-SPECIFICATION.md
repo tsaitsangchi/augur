@@ -781,7 +781,7 @@ compliance-statement:
   spec: Augur World Model Specification
   spec-version: v1.0
   layer: 1
-  mc-version: AUGUR-MC v1.4
+  mc-version: AUGUR-MC v1.5
   upper-specs: []
   statement-format: interim-template   # constitution/COMPLIANCE-STATEMENT-INTERIM-TEMPLATE.md，RULING-2026-002 主文三追認
   principles: [PA, P1, P2, P3, P4, P5, EV-chain]

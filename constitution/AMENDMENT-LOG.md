@@ -429,6 +429,16 @@
 * **驗證**：`python3 -m tools.constitution_lint compliance specs/AGENT-RUNTIME-SPECIFICATION.md` error 0／warning 0（2026-07-23 獨立核驗親跑）；RULING-2026-036 第十一節十一項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 6ce22ae；L7 lint error 1 本案範圍外）
 * **定案**：Steward 2026-07-23 **接受 L6 ultracode 呈核、同案 036**
 
+## AL-2026-041
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-037 號——**L7（AUGUR-INF v1.0）單層 ultracode findings 一攬子處置**：F-L7-1（upper-specs→AUGUR-L6 v1.2＋lint 歸零）＋F-L7-2（L7.21(f) 四欄可執行回歸）＋F-L7-3–8（L7.16 局部測試／領域基線／mc-version／OPEN 快照／CS.4／020 M2 追蹤）。**分級登錄**：F-L7-1／2＝medium；F-L7-3–8＝minor；**零 major**。**025 residual 維持分階段①至 2026-10-14**。**蓋章不動搖**。**INF 版本維持 v1.0、MC／PA 零觸**
+* **文件**：[RULING-2026-037-L7-INF-ULTRACODE-DISPOSITION.md](RULING-2026-037-L7-INF-ULTRACODE-DISPOSITION.md)；findings `audits/L7-INF-ULTRACODE-20260723.md`
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7；RULING-2026-037 第十二節十一項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 4411e2f）
+* **定案**：Steward 2026-07-23 **接受 L7 ultracode 呈核、同案 037**
+* **簿記註記**：本列原於 037 定案時宣稱登錄、漏寫入本簿——**RULING-2026-039／AL-2026-043 同案機械補登**（不重新裁決）
+
 ## AL-2026-042
 
 * **日期**：2026-07-23
@@ -437,3 +447,12 @@
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核（Sole Steward 拍板「接受 Phase 3b ＋ RULING-2026-038」）
 * **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 施作親跑）；RULING-2026-038 第九節十項 **待獨立對抗核驗**（非施作者）
 * **定案**：Steward 2026-07-23 **接受 Phase 3b、同案 038**
+
+## AL-2026-043
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-039 號——**L0–L7 殘留 omnibus 一攬子拍板**：(A) XRF-1 操作閉／T.6／L7.21(f)／KDO.1 概念閉／L1–L6 `mc-version`→v1.5／AL-041 補登；(B) GOV-3 B／OT-5／T-KS-6／T-L6-5／attribution→L7 明示再確認＝已拍板維持（**禁止假關**）；(C) F-L1-2／3、KDO.4、ID.61 實作、L7.16 全棧、020 M2 寫死觸發；(D) WM.35／36、025、029、10-14 併結維持＋checklist（**無 Evidence 不提早結清**）；(E) 改名／借殼保守、Issuer T.20 不另採認。**零 major**。**蓋章不動搖**。**MC／PA 零觸、各層版本號不升**
+* **文件**：[RULING-2026-039-L0-L7-RESIDUAL-OMNIBUS.md](RULING-2026-039-L0-L7-RESIDUAL-OMNIBUS.md)；計畫 `reports/augur_l0_l7_residual_omnibus_disposition_plan_20260723.md`
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核（Sole Steward 授權「全部拍板直接落地」）
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 施作親跑）；RULING-2026-039 第十四節十項 **待獨立對抗核驗**（非施作者）
+* **定案**：Steward 2026-07-23 **接受 residual omnibus、同案 039**
