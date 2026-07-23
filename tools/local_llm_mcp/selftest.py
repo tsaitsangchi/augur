@@ -140,7 +140,7 @@ def _test_dual_backend_stub() -> None:
 
 
 def _test_openai_client_helpers() -> None:
-    """P2：think 剝離、per-profile max_tokens。"""
+    """P2：think 剝離、per-profile max_tokens／num_predict、keep_alive。"""
     _assert(tools._strip_think("hello") == "hello", "無 think 應原樣")
     _assert(
         tools._strip_think("<think>secret</think>\npong") == "pong",
@@ -157,6 +157,16 @@ def _test_openai_client_helpers() -> None:
         _assert(tools._openai_max_tokens("ask") == 128, "ASK env 覆寫")
     with _env(OPENAI_MAX_TOKENS="900", OPENAI_MAX_TOKENS_ASK=None):
         _assert(tools._openai_max_tokens("ask") == 900, "通用 OPENAI_MAX_TOKENS 回退")
+    with _env(OLLAMA_NUM_PREDICT=None, OLLAMA_NUM_PREDICT_ASK=None):
+        _assert(tools._ollama_num_predict("ask") == 256, "ollama ask num_predict 預設 256")
+        _assert(tools._ollama_num_predict("map") == 384, "ollama map 預設 384")
+    with _env(OLLAMA_NUM_PREDICT_ASK="64"):
+        _assert(tools._ollama_num_predict("ask") == 64, "OLLAMA_NUM_PREDICT_ASK 覆寫")
+    with _env(OLLAMA_KEEP_ALIVE="10s"):
+        _assert(tools._keep_alive() == "10s", "OLLAMA_KEEP_ALIVE 覆寫")
+    with _env(OLLAMA_KEEP_ALIVE=None):
+        ka = tools._keep_alive()
+        _assert(isinstance(ka, str) and len(ka) > 0, f"keep_alive 預設應非空：{ka}")
 
 
 def _test_provenance_and_governance() -> None:

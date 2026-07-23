@@ -8,7 +8,11 @@
       "command": "python3",
       "args": ["-m", "tools.local_llm_mcp"],
       "env": {
-        "OLLAMA_URL": "http://127.0.0.1:11434"
+        "OLLAMA_URL": "http://127.0.0.1:11434",
+        "LLM_MODEL": "qwen3:4b",
+        "OLLAMA_NUM_CTX": "4096",
+        "OLLAMA_TEMPERATURE": "0",
+        "OLLAMA_KEEP_ALIVE": "30s"
       }
     },
     "project-memory": {

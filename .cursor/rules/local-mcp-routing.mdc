@@ -23,3 +23,4 @@ alwaysApply: true
 - 本地 LLM／語意檢索輸出一律 **[I] 輔助**，**不得**貼入任何 [N] 治理文書。
 - 治理權威路徑（`constitution/`、生效 `specs/*-SPECIFICATION.md`）不做 LLM 濃縮；改走 constitution-mcp。
 - 深度推理與最終判斷留在 Cursor；本地工具只做大進小出。
+- **模型分工（PC002／WSL 資料層）**：MCP `local-llm`＝`qwen3:4b`；主 UI／advisor＝`qwen3:8b`。勿把 8b 寫進 MCP `LLM_MODEL`。

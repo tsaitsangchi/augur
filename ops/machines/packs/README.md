@@ -18,4 +18,5 @@
 | 主機 | 角色 | 路徑 |
 |---|---|---|
 | `aitopatom-b96e` | 治理 + 本地推論／語意記憶（GB10） | [aitopatom-b96e/](aitopatom-b96e/) |
-| `DESKTOP-8MQPFS8` | 開發／驗證 + 資料層（WSL2） | [DESKTOP-8MQPFS8/](DESKTOP-8MQPFS8/)（精簡 stub） |
+| `DESKTOP-8MQPFS8` | 開發／驗證 + 資料層（WSL2 · GTX 1650） | [DESKTOP-8MQPFS8/](DESKTOP-8MQPFS8/)（精簡 stub） |
+| `PC002-S1800` | 開發／驗證 + 資料層（WSL2 · i5-10500 · 無獨顯） | [PC002-S1800/](PC002-S1800/) |

@@ -8,7 +8,8 @@
   5. 治理語料排除 —— 對治理權威語料（constitution/、生效 specs/*-SPECIFICATION.md）
      之路徑拒絕執行並發聲，導向 constitution-mcp（非治理輔助專用之硬邊界）。
 
-OLLAMA_URL / OLLAMA_MODEL 之預設與 augur_proxy.local_llm 一致（同一顆本地模型）。
+OLLAMA_URL / OLLAMA_MODEL 之預設與 augur_proxy.local_llm 一致。
+MCP 濃縮路徑另鎖：think=false、per-profile num_predict、短 keep_alive（與主 UI 8b 分載）。
 """
 from __future__ import annotations
 
@@ -23,7 +24,8 @@ import urllib.request
 _THINK_BLOCK = re.compile(r"<think>[\s\S]*?</think>", re.IGNORECASE)
 _THINK_OPEN = re.compile(r"<think>[\s\S]*", re.IGNORECASE)
 
-_OPENAI_MAX_DEFAULTS = {
+# 兩後端共用「大進小出」輸出上限（openai=max_tokens；ollama=num_predict）
+_OUT_MAX_DEFAULTS = {
     "ask": 256,
     "summarize": 512,
     "extract": 512,
@@ -40,6 +42,15 @@ _OPENAI_MAX_ENV = {
     "map": "OPENAI_MAX_TOKENS_MAP",
     "reduce": "OPENAI_MAX_TOKENS_REDUCE",
     "default": "OPENAI_MAX_TOKENS",
+}
+_OLLAMA_PREDICT_ENV = {
+    "ask": "OLLAMA_NUM_PREDICT_ASK",
+    "summarize": "OLLAMA_NUM_PREDICT_SUMMARIZE",
+    "extract": "OLLAMA_NUM_PREDICT_EXTRACT",
+    "research": "OLLAMA_NUM_PREDICT_RESEARCH",
+    "map": "OLLAMA_NUM_PREDICT_MAP",
+    "reduce": "OLLAMA_NUM_PREDICT_REDUCE",
+    "default": "OLLAMA_NUM_PREDICT",
 }
 
 _REPO = pathlib.Path(__file__).resolve().parents[2]
@@ -98,15 +109,16 @@ def _openai_api_key() -> str:
 
 
 def _default_model_for_host() -> str:
-    """兩機硬體不同：依 hostname 選預設模型（可被 OLLAMA_MODEL／LLM_MODEL 覆寫）。
+    """各機硬體不同：依 hostname 選預設模型（可被 OLLAMA_MODEL／LLM_MODEL 覆寫）。
 
-    aitopatom-b96e（GB10）→ qwen3-coder-next；DESKTOP-8MQPFS8（GTX1650）→ qwen3:4b。
+    aitopatom-b96e（GB10）→ qwen3-coder-next；
+    DESKTOP-8MQPFS8／PC002-S1800（WSL2 資料層）→ qwen3:4b。
     """
     import socket
     host = socket.gethostname()
     if host == "aitopatom-b96e":
         return "qwen3-coder-next"
-    if host == "DESKTOP-8MQPFS8":
+    if host in ("DESKTOP-8MQPFS8", "PC002-S1800"):
         return "qwen3:4b"
     return "qwen3:4b"
 
@@ -128,11 +140,17 @@ def _endpoint_label() -> str:
 
 
 def _default_num_ctx() -> int:
-    """GB10 統一記憶體可容較大 KV；他機保守預設。可被 OLLAMA_NUM_CTX 覆寫。"""
+    """依主機 RAM 選保守 KV；可被 OLLAMA_NUM_CTX 覆寫。
+
+    GB10 大統一記憶體 → 32768；DESKTOP（較大 WSL）→ 8192；
+    PC002-S1800（WSL 12GiB + 全棧）→ 4096。
+    """
     import socket
     host = socket.gethostname()
     if host == "aitopatom-b96e":
         return 32768
+    if host == "PC002-S1800":
+        return 4096
     return 8192
 
 
@@ -144,6 +162,17 @@ def _num_ctx() -> int:
         return max(2048, min(int(raw), 131072))
     except (TypeError, ValueError):
         return _default_num_ctx()
+
+
+def _keep_alive() -> str:
+    """Ollama keep_alive：WSL 資料層短卸載，讓主 UI 8b 可載入；GB10 可長駐。"""
+    raw = os.getenv("OLLAMA_KEEP_ALIVE")
+    if raw is not None and str(raw).strip():
+        return str(raw).strip()
+    import socket
+    if socket.gethostname() == "aitopatom-b96e":
+        return "30m"
+    return "30s"
 
 
 def _stub_enabled() -> bool:
@@ -160,18 +189,28 @@ def _temperature() -> float | None:
         return None
 
 
-def _openai_max_tokens(profile: str = "default") -> int:
-    """依工具 profile 取 max_tokens；profile env > OPENAI_MAX_TOKENS > 內建預設。"""
-    key = _OPENAI_MAX_ENV.get(profile, "OPENAI_MAX_TOKENS")
+def _out_max_tokens(profile: str, env_map: dict[str, str], generic_key: str) -> int:
+    """profile env > 通用 env > 內建預設。"""
+    key = env_map.get(profile, generic_key)
     raw = os.getenv(key)
     if (raw is None or not str(raw).strip()) and profile != "default":
-        raw = os.getenv("OPENAI_MAX_TOKENS")
+        raw = os.getenv(generic_key)
     if raw is not None and str(raw).strip():
         try:
             return max(16, min(int(raw), 8192))
         except (TypeError, ValueError):
             pass
-    return _OPENAI_MAX_DEFAULTS.get(profile, 1024)
+    return _OUT_MAX_DEFAULTS.get(profile, 1024)
+
+
+def _openai_max_tokens(profile: str = "default") -> int:
+    """依工具 profile 取 max_tokens；profile env > OPENAI_MAX_TOKENS > 內建預設。"""
+    return _out_max_tokens(profile, _OPENAI_MAX_ENV, "OPENAI_MAX_TOKENS")
+
+
+def _ollama_num_predict(profile: str = "default") -> int:
+    """依工具 profile 取 num_predict（濃縮輸出硬上限）。"""
+    return _out_max_tokens(profile, _OLLAMA_PREDICT_ENV, "OLLAMA_NUM_PREDICT")
 
 
 def _strip_think(text: str) -> str:
@@ -182,9 +221,12 @@ def _strip_think(text: str) -> str:
     return out.strip()
 
 
-def _generate_ollama(prompt: str, timeout: int) -> str:
+def _generate_ollama(prompt: str, timeout: int, profile: str = "default") -> str:
     url = _ollama_url() + "/api/generate"
-    options = {"num_ctx": _num_ctx()}
+    options = {
+        "num_ctx": _num_ctx(),
+        "num_predict": _ollama_num_predict(profile),
+    }
     t = _temperature()
     if t is not None:
         options["temperature"] = t
@@ -193,6 +235,9 @@ def _generate_ollama(prompt: str, timeout: int) -> str:
             "model": _llm_model(),
             "prompt": prompt,
             "stream": False,
+            # qwen3：關 thinking，避免思考段佔滿短 num_predict（與 advisor/openai 路徑對齊）
+            "think": False,
+            "keep_alive": _keep_alive(),
             "options": options,
         }
     ).encode()
@@ -216,9 +261,9 @@ def _generate_ollama(prompt: str, timeout: int) -> str:
     except json.JSONDecodeError as exc:
         raise LocalLLMError(f"Ollama 回應非 JSON：{exc}") from exc
 
-    text = (data.get("response") or "").strip()
+    text = _strip_think((data.get("response") or "").strip())
     if not text:
-        raise LocalLLMError("Ollama 回應為空")
+        raise LocalLLMError("Ollama 回應為空（或僅含 think 區塊）")
     return text
 
 
@@ -278,7 +323,7 @@ def _generate(prompt: str, timeout: int = 180, profile: str = "default") -> str:
         return "STUB:" + prompt[:200].replace("\n", " ")
     if _llm_backend() == "openai":
         return _generate_openai(prompt, timeout=timeout, profile=profile)
-    return _generate_ollama(prompt, timeout=timeout)
+    return _generate_ollama(prompt, timeout=timeout, profile=profile)
 
 
 def _decorate(text: str) -> str:

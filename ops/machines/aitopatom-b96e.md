@@ -43,7 +43,7 @@ Cortex-A725（n/a 核 / 20 緒） |
 
 <!-- NOTES:START -->
 - **角色**：**T1 進行中**——治理 + 本地推論 + **本機 PG／qdrant／應用碼**；資料還原待 DESKTOP dump。
-- **對立機**：`PC002-S1800`（文件舊名 DESKTOP-8MQPFS8；WSL2 · x86_64 · 有 PG 活庫／dump 來源）。
+- **對立資料層機**：`PC002-S1800`（WSL2 · i5-10500 · 無獨顯 · 有 PG 活庫）與 `DESKTOP-8MQPFS8`（WSL2 · Ryzen · GTX1650）——**兩台不同實體機，勿混為一名**。
 - **此機專用設定包**：`ops/machines/packs/aitopatom-b96e/`。
 - **repo 根**：`/home/giga/augur`＝public monorepo。
 - **服務（2026-07-22）**：ollama ✅；qdrant ✅（native `~/qdrant` v1.18.3 :6333）；PostgreSQL ✅（micromamba `augur-pg` userspace :5432，pgvector 0.8.1；資料目錄 `/home/giga/augur-data/postgres`）。**開機常駐**：`systemctl --user` `augur-postgres`／`augur-qdrant`（linger；範本 `ops/phase2/systemd/`）；手動 fallback：`pg_userspace.sh`／`qdrant_userspace.sh`。docker 需 sudo 密碼→未用容器 PG。

@@ -1,63 +1,68 @@
 # 機器基礎資訊（ops/machines/）
 
-同一 Augur 專案在**兩台不同軟硬體機器**上並行建立／運行時，各機環境資訊在此**按主機名分檔**，互不覆蓋、不可混用設定。
+同一 Augur 專案在**多台不同軟硬體機器**上並行建立／運行時，各機環境資訊在此**按主機名分檔**，互不覆蓋、不可混用設定。
 
-## 鐵律：兩機必須區分
+## 鐵律：各機必須區分
 
 | 規則 | 說明 |
 |---|---|
 | **識別鍵＝hostname** | 每台一個檔 `ops/machines/<hostname>.md`，互不覆蓋 |
 | **共享 vs 本機** | 憲章／規格／工具碼經 GitHub 同步；`.env`、venv、索引 DB、機器特定路徑**不進 git** |
 | **禁止硬編碼他機路徑** | MCP／腳本不得寫死 `/home/.../augur-constitution` 等僅存在於某一台的絕對路徑 |
-| **模型／服務各機自立** | `OLLAMA_MODEL`、PostgreSQL、qdrant 依該機硬體與角色決定，**不可假定兩機相同** |
+| **模型／服務各機自立** | `OLLAMA_MODEL`、PostgreSQL、qdrant 依該機硬體與角色決定，**不可假定各機相同** |
 | **規範 vs 營運** | 規範性登錄以 `infrastructure/ENVIRONMENT-SPEC.md`（L7.50）為準；本目錄為 **[I] 營運快照**，不取代該規格 |
 
 > 2026-07-22 實測：遠端曾把 `PYTHONPATH=/home/giga/augur/augur-constitution` 寫進共享 MCP 設定——該路徑**僅在某一佈局存在**，在 `aitopatom-b96e`（repo 根＝`/home/giga/augur`）上不存在，導致 MCP 無法啟動。已改為可攜 `python3 -m`；模型依 hostname 在 Python 內選取。**此機專用營運包**見 [`packs/aitopatom-b96e/`](packs/aitopatom-b96e/)。
 
 ---
 
-## 機器清單（兩台）
+## 機器清單（三台）
 
-| 主機名 | 角色（營運） | 平台 / 架構 | GPU | 記憶體 | 關鍵服務 | 快照 | **設定包** |
+| 主機名 | 角色（營運） | 平台 / 架構 | GPU | 記憶體（WSL／系統） | 關鍵服務 | 快照 | **設定包** |
 |---|---|---|---|---|---|---|---|
-| **`aitopatom-b96e`** | **治理 + 本地推論／語意記憶** | 原生 Linux · **aarch64** | **GB10** | **122 GiB** | ollama ✅；PG ❌；qdrant ❌ | [aitopatom-b96e.md](aitopatom-b96e.md) | **[packs/aitopatom-b96e/](packs/aitopatom-b96e/)** |
-| **`DESKTOP-8MQPFS8`** | **開發／驗證 + 資料層** | **WSL2** · **x86_64** | GTX 1650 4GB | ~16 GiB | PG ✅；ollama ✅（`qwen3:4b`） | [DESKTOP-8MQPFS8.md](DESKTOP-8MQPFS8.md) | [packs/DESKTOP-8MQPFS8/](packs/DESKTOP-8MQPFS8/) |
+| **`aitopatom-b96e`** | **治理 + 本地推論／語意記憶** | 原生 Linux · **aarch64** | **GB10** | **122 GiB** | ollama ✅；PG／qdrant 見該機 NOTES | [aitopatom-b96e.md](aitopatom-b96e.md) | **[packs/aitopatom-b96e/](packs/aitopatom-b96e/)** |
+| **`DESKTOP-8MQPFS8`** | **開發／驗證 + 資料層** | **WSL2** · **x86_64** | GTX 1650 4GB | WSL ~24 GiB（主機 ~32 GiB） | PG ✅；ollama ✅（`qwen3:4b`） | [DESKTOP-8MQPFS8.md](DESKTOP-8MQPFS8.md) | [packs/DESKTOP-8MQPFS8/](packs/DESKTOP-8MQPFS8/) |
+| **`PC002-S1800`** | **開發／驗證 + 資料層** | **WSL2** · **x86_64** | **Intel UHD 630（無獨顯）** | WSL **12 GiB** + swap **64 GiB**（主機 15.9 GiB） | PG ✅；qdrant ✅；ollama ✅（`qwen3:4b`／`8b`） | [PC002-S1800.md](PC002-S1800.md) | [packs/PC002-S1800/](packs/PC002-S1800/) |
+
+> **`PC002-S1800` ≠ `DESKTOP-8MQPFS8`**：兩者皆為 WSL2 開發向，但是**不同實體機**（i5-10500／UHD630／15.9 GiB vs Ryzen 3600／GTX1650／~32 GiB）。
 
 ### 角色分工（據實，非願望）
 
 ```
-┌─────────────────────────────┐     GitHub（共享碼／憲章／規格）     ┌──────────────────────────────┐
-│  aitopatom-b96e（GB10）      │◄──────────────────────────────────►│  DESKTOP-8MQPFS8（WSL2）       │
-│  aarch64 · 122GiB · GB10     │                                     │  x86_64 · 16GiB · GTX1650     │
-│                              │                                     │                              │
-│  ✅ constitution / local-llm  │                                     │  ✅ PostgreSQL + pgvector     │
-│     / project-memory MCP     │                                     │  ✅ 開發／驗證／資料層         │
-│  ✅ ollama（30b-a3b 等）      │                                     │  ✅ ollama（qwen3:4b）         │
-│  ❌ PG / qdrant 未起          │                                     │  ⚠ VRAM 4GB → 僅小模型       │
-└─────────────────────────────┘                                     └──────────────────────────────┘
+┌─────────────────────────────┐     GitHub（共享碼／憲章／規格）
+│  aitopatom-b96e（GB10）      │◄────────────┬──────────────────────────────┐
+│  aarch64 · 122GiB · GB10     │             │                              │
+│  ✅ 大模型 MCP／治權          │             ▼                              ▼
+│  （PG／qdrant 見該機 NOTES）  │   ┌──────────────────┐   ┌──────────────────────────┐
+└─────────────────────────────┘   │ DESKTOP-8MQPFS8   │   │ PC002-S1800（本機）       │
+                                  │ WSL2 · GTX1650    │   │ WSL2 · i5-10500 · UHD630 │
+                                  │ ✅ PG + 小模型     │   │ ✅ PG+qdrant+全棧 UI      │
+                                  │ ⚠ VRAM 4GB        │   │ ⚠ 無 NVIDIA；RAM 緊       │
+                                  └──────────────────┘   └──────────────────────────┘
 ```
 
-**「真跑」全棧（advisor／審議引擎／entity_registry）** 需要：**應用碼 + PG +（可選）qdrant + 模型**。目前 DESKTOP 具備 PG + 小模型 MCP；GB10 具備大模型 MCP、尚無 PG。缺口與待決見 `ops/phase2/OPERABILITY-PROBE-2026-07-21.md`。
+**「真跑」全棧（advisor／審議引擎／entity_registry）** 需要：**應用碼 + PG +（可選）qdrant + 模型**。`PC002-S1800`／`DESKTOP-8MQPFS8` 具備資料層＋小模型；GB10 具備大模型 MCP。缺口與待決見 `ops/phase2/OPERABILITY-PROBE-2026-07-21.md`。
 
 ---
 
 ## 跨機比較（重點軸；詳見各機檔）
 
-| 軸 | `aitopatom-b96e`（2026-07-22） | `DESKTOP-8MQPFS8`（2026-07-21） |
-|---|---|---|
-| OS / 核心 | Ubuntu 24.04.4 · `6.17.0-1026-nvidia` | Ubuntu 24.04.4 · `6.18-WSL2` |
-| 架構 | **aarch64** | **x86_64** |
-| CPU | Cortex-X925+A725（20 緒） | Ryzen 5 3600（6C/12T） |
-| 記憶體 | **121.6 GiB** | 15.6 GiB |
-| GPU / driver | **GB10** · 580.159.03 · CC 12.1 | GTX 1650 · 560.94 · 4GB · CC 7.5 |
-| CUDA `nvcc` | **13.0** | 12.0 |
-| PostgreSQL | **未安裝** | **17.10** online |
-| ollama | **0.32.1**（qwen3:30b-a3b 等） | **0.32.1**（`qwen3:4b` + `nomic-embed-text`） |
-| docker | 29.2.1 | （未安裝） |
-| 建議 `OLLAMA_MODEL`（MCP） | **`qwen3-coder-next`**（UI 另用 `qwen3:30b-a3b`） | **`qwen3:4b`**（已裝；VRAM 4GB） |
-| repo 根（此使用者） | `/home/giga/augur` | **`/home/giga/augur/augur-code`**（正典）；歷史 constitution → `_archived_augur-constitution_20260722` |
+| 軸 | `aitopatom-b96e`（2026-07-22） | `DESKTOP-8MQPFS8`（2026-07-21） | `PC002-S1800`（2026-07-23） |
+|---|---|---|---|
+| OS / 核心 | Ubuntu 24.04.4 · `6.17.0-1026-nvidia` | Ubuntu 24.04.4 · `6.18-WSL2` | Ubuntu 24.04.4 · `6.6.87.2-WSL2` |
+| 架構 | **aarch64** | **x86_64** | **x86_64** |
+| CPU | Cortex-X925+A725（20 緒） | Ryzen 5 3600（6C/12T） | **i5-10500（6C/12T）** |
+| 記憶體 | **121.6 GiB** | WSL ~23.5 GiB（主機 ~32） | WSL **11.7 GiB** + swap **64**（主機 **15.9**） |
+| GPU / driver | **GB10** · 580.159.03 · CC 12.1 | GTX 1650 · 560.94 · 4GB · CC 7.5 | **Intel UHD 630**（無 NVIDIA） |
+| CUDA `nvcc` | **13.0** | 12.0 | **未安裝** |
+| PostgreSQL | 見該機 NOTES | **17.10** online | **17.9** online（DB ≈56 GB） |
+| ollama | **0.32.1**（qwen3:30b-a3b 等） | **0.32.1**（`qwen3:4b` + embed） | **0.31.1**（`qwen3:4b`／`8b`） |
+| docker | 29.2.1 | （未安裝） | （未安裝） |
+| 建議 `OLLAMA_MODEL`（MCP） | **`qwen3-coder-next`**（須覆寫倉庫 mcp 的 `LLM_MODEL`） | **`qwen3:4b`**（VRAM 4GB） | **`qwen3:4b`**（mcp.json 已釘；主 UI 用 8b） |
+| repo 根（此使用者） | `/home/giga/augur` | **`/home/giga/augur/augur-code`** | **`/home/hugo/project/augur`** |
+| Windows 機型 | n/a | （見該機 NOTES） | **ASUS EXPERTCENTER D700TA_M700TA** |
 
-> **架構不同 → 二進位不可共用**：torch wheel、`nvcc -arch`、部分 PostgreSQL 擴充、原生 CUDA 測試產物，必須各機依自身架構安裝／編譯。
+> **架構不同 → 二進位不可共用**：torch wheel、`nvcc -arch`、部分 PostgreSQL 擴充、原生 CUDA 測試產物，必須各機依自身架構安裝／編譯。`PC002-S1800` 無 CUDA，勿搬 DESKTOP／GB10 的 NVIDIA 假設。
 
 ---
 
@@ -84,7 +89,7 @@ Sandbox 內量測會出現 GPU 被擋、systemd/PostgreSQL 誤判等假象——
 | Server | 啟動 | 本機差異如何處理 |
 |---|---|---|
 | constitution | `python3 -m tools.constitution_mcp` | 無 |
-| local-llm | `python3 -m tools.local_llm_mcp` | **`tools.py` 依 hostname 選預設模型**（GB10→`qwen3-coder-next`；WSL2→`qwen3:4b`）；可被 `OLLAMA_MODEL` 覆寫；GB10 建議 `OLLAMA_NUM_CTX=32768` |
+| local-llm | `python3 -m tools.local_llm_mcp` | 倉庫 mcp 釘 **`LLM_MODEL=qwen3:4b`**（ctx=4096、temp=0、keep_alive=30s）；**GB10 須覆寫 `LLM_MODEL=qwen3-coder-next`**；hostname 程式預設仍作後備 |
 | project-memory | `python3 -m tools.project_memory_mcp` | `EMBED_MODEL=nomic-embed-text` |
 
 > 曾試過 `bash tools/run_*.sh`：部分 Cursor 啟動環境 cwd 不穩導致**三支 MCP 全未掛載**（2026-07-22 實測）。故改回 `python3 -m`，機器差異改由 Python 內判定。`tools/run_*.sh` 仍保留供終端手動啟動。
@@ -116,8 +121,8 @@ Sandbox 內量測會出現 GPU 被擋、systemd/PostgreSQL 誤判等假象——
 
 **已知**：現行 `ENVIRONMENT-SPEC.md`（2026-07-18）主要描述 **DESKTOP-8MQPFS8（WSL2）**，且曾將 GB10 標為不可達——與 `aitopatom-b96e` 2026-07-21/22 實測不符。訂正屬 Steward §8.6／L7.50 事項；證據見 `ops/phase2/OPERABILITY-PROBE-2026-07-21.md`。
 
-| 項目 | ENVIRONMENT-SPEC（2026-07-18） | DESKTOP-8MQPFS8（2026-07-21） | aitopatom-b96e（2026-07-22） |
-|---|---|---|---|
-| 平台 | WSL2 / x86_64 / GTX1650 | 相符（PG 17.10 等小幅前進） | **不同機：原生 aarch64 / GB10** |
-| PostgreSQL | 17.9 | **17.10** | **未安裝** |
-| ollama | 有（該機敘述） | （未安裝） | **0.32.1** |
+| 項目 | ENVIRONMENT-SPEC（2026-07-18） | DESKTOP-8MQPFS8（2026-07-21） | PC002-S1800（2026-07-23） | aitopatom-b96e（2026-07-22） |
+|---|---|---|---|---|
+| 平台 | WSL2 / x86_64 / GTX1650 | 相符（PG 17.10 等小幅前進） | **另一台 WSL2：i5-10500 / UHD630** | **不同機：原生 aarch64 / GB10** |
+| PostgreSQL | 17.9 | **17.10** | **17.9** online | 見該機 NOTES |
+| ollama | 有（該機敘述） | 見該機 NOTES | **0.31.1**（4b／8b） | **0.32.1** |
