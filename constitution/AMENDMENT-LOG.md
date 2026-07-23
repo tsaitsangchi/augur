@@ -456,3 +456,13 @@
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核（Sole Steward 授權「全部拍板直接落地」）
 * **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7；RULING-2026-039 第十四節十項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 31491ad）
 * **定案**：Steward 2026-07-23 **接受 residual omnibus、同案 039**
+
+## AL-2026-044
+
+* **日期**：2026-07-23
+* **修訂**：v1.5 → **v1.6**（minor／patch）
+* **事項**：Steward 裁決第 2026-040 號——**AUGUR-MC 最小優化**：§0.3 增 [I] 母集誠實註（102＝97 [N]＋5 [I] WHY；XRF-1 文本自足）；§0.1 版本升 v1.6；Appendix I；L1–L7 CS `mc-version`→v1.6。**§0.3／§8／構成性依據 [N] 本文零改**；102 計數不變；PA／五原則零改。**GOV-3 B 維持觀察**（不升 [N]）。**禁止假關**六項沿用 039。Sole Steward 新拍板覆蓋前裁「10-14 前不開 v1.6」。
+* **程序依據**：§8.6（Informative／patch＝minor）；§8.1 解釋之界線（本裁不課新義務類型）；計畫 `reports/augur_mc_post_ultracode_optimization_plan_20260723.md` 路徑 C 最輕量分支
+* **文件**：[RULING-2026-040-MC-V1.6-MINIMAL.md](RULING-2026-040-MC-V1.6-MINIMAL.md)；升版說明 `audits/MC-V1.6-MINIMAL-20260723.md`
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 書面授權落地
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（施作親跑）；RULING-2026-040 第七節十項 **待獨立對抗核驗**（非施作者）

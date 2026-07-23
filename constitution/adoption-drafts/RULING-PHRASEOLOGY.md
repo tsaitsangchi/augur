@@ -1,8 +1,8 @@
 # 新裁決用語範本 — 102 條款宇宙引用 [I]
 
 * **性質**：**[I] 慣例說明**（不創設義務；不登錄 AL）
-* **權威落點**：`AUGUR-WM v1.0 §WM.44`；`RULING-2026-017` §0.3；`RULING-2026-039` §一（XRF-1）
-* **計畫依據**：`reports/augur_mc_post_ultracode_optimization_plan_20260723.md` §二 #2（路徑 A）
+* **權威落點**：`AUGUR-MC v1.6 §0.3` [I] 母集誠實註；`AUGUR-WM v1.0 §WM.44`；`RULING-2026-017` §0.3；`RULING-2026-039` §一（XRF-1）；`RULING-2026-040`
+* **計畫依據**：`reports/augur_mc_post_ultracode_optimization_plan_20260723.md` §二 #2（路徑 A）＋ #3（v1.6 [I]）
 * **硬禁**：不改 `RULING-2026-017`／`026` 歷史本文；不改 MC [N]／母集計數
 
 ---

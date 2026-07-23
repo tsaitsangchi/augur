@@ -41,16 +41,16 @@ def run(quiet: bool = False):
     if wm.exists():
         r = compliance_lint.lint_spec(str(wm), _MC)
         chk("AUGUR-WM v1.0 自檢綠（零 error）", r.passed)
-        # 2026-07-23 全艦 CS mc-version→v1.5（RULING-2026-039）後 WM 已對齊現行、無真實落差；
+        # 2026-07-23 全艦 CS mc-version→v1.6（RULING-2026-040）後 WM 已對齊現行、無真實落差；
         # 「minor 版落差不誤紅」之鎖改以**合成落差**驗（暫存本降一個 minor），不依賴 WM 之真實版差。
         with tempfile.TemporaryDirectory() as td:
             drift = pathlib.Path(td) / "wm_drift.md"
             body = wm.read_text(encoding="utf-8")
-            mutated = re.sub(r"(mc-version:\s*AUGUR-MC v)1\.5", r"\g<1>1.4", body, count=1)
-            assert mutated != body, "mc-version 突變前提已變（非 v1.5）——本鎖須重寫"
+            mutated = re.sub(r"(mc-version:\s*AUGUR-MC v)1\.6", r"\g<1>1.5", body, count=1)
+            assert mutated != body, "mc-version 突變前提已變（非 v1.6）——本鎖須重寫"
             drift.write_text(mutated, encoding="utf-8")
             dr = compliance_lint.lint_spec(str(drift), _MC)
-            chk("  └ 合成 minor 版落差（v1.4<現行 v1.5）判為 info、非 error 且仍 passed",
+            chk("  └ 合成 minor 版落差（v1.5<現行 v1.6）判為 info、非 error 且仍 passed",
                 dr.passed and any(f.rule == "WM.45" and f.severity.value == "info" for f in dr.findings))
     else:
         say("  ⚠ 找不到 AUGUR-WM，跳過該項（非 repo 內執行）")

@@ -954,7 +954,7 @@ compliance-statement:
   spec: Augur Infrastructure Specification
   spec-version: v1.0
   layer: 7
-  mc-version: AUGUR-MC v1.5
+  mc-version: AUGUR-MC v1.6
   upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0, AUGUR-KS v1.1, AUGUR-L5 v1.0, AUGUR-L6 v1.2]
   statement-format: AUGUR-WM v1.0 §WM.39–45
   principles: [PA, P1, P2, P3, P4, P5, EV-chain]

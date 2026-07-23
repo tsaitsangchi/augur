@@ -143,3 +143,19 @@ L0–L7 ultracode 與 028–039 一攬子已把治理元層 **major 缺口根治
 * **執行留痕**：`audits/MC-TOOL-HYGIENE-20260723.md`
 * **新裁決用語範本**：`constitution/adoption-drafts/RULING-PHRASEOLOGY.md`
 * **本輪未動**：`constitution/AUGUR-MC*`／META [N]；規格 [N] 原則條文；RULING-017／026 歷史本文；AL（無新 [N] 義務）。
+
+---
+
+## Steward 新拍板＋MC v1.6 最小優化落地（2026-07-23）
+
+* **覆蓋**：Sole Steward **授權開 MC v1.6 最小優化**——覆蓋上節「10-14 前不開 v1.6」限縮。
+* **採路徑**：計畫 §四 **C 最輕量分支**（§二 #3）＋歧義採更小集合。
+* **實際納入**：
+  1. §0.1 版本 **v1.5→v1.6**
+  2. §0.3 **[I] 母集誠實註**（102＝97 [N]＋5 [I] WHY）——**不改** §0.3 [N] 四 bullet、不改計數
+  3. Appendix I；RULING-2026-040；AL-2026-044
+  4. 已定案程序澄清入 Appendix I [I]（028 第 2–3 點持續；GOV-3 B **維持觀察**）
+  5. L1–L7 CS `mc-version`→v1.6；CLAUDE／lint 引用掃齊
+* **刻意排除**：GOV-3 B 升 [N]；DEF-2；原則級／§8 [N]／PA；017／026 歷史改字；假關 OT-5／T-KS-6／T-L6-5／025／020 M2／無 Evidence 10-14
+* **升版說明**：`audits/MC-V1.6-MINIMAL-20260723.md`
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7；獨立核驗＝RULING-040 §七（待非施作者）

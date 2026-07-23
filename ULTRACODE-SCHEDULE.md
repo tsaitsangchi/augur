@@ -33,7 +33,7 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 
 | 層 | 規格 | 維度數 | 狀態 | 產出 |
 |---|---|---|---|---|
-| **L0** MC v1.5 | META-CONSTITUTION.md | 8 | ✅ 呈核畢 | `audits/MC-ULTRACODE-L0-20260723.md`（原 2 major：**GOV-1 已閉合**——原則級修訂 PROPOSAL-2026-001 正式議決通過（2026-07-23）、**AL-2026-035**、MC v1.4→**v1.5**（§8.1「解釋之界線」[N] 落地）；RULING-2026-028 第 1 點過渡自我拘束已日落吸收；**GOV-3 已閉合**——RULING-2026-028 第 2 點判準生效（2026-07-23）；**GOV-4 已反向閉合**——Steward 拍板甲案（2026-07-23）：**RULING-2026-031、AL-2026-034**；findings 留檔不滅、不列 open） |
+| **L0** MC v1.6 | META-CONSTITUTION.md | 8 | ✅ 呈核畢 | `audits/MC-ULTRACODE-L0-20260723.md`（原 2 major：**GOV-1 已閉合**——原則級修訂 PROPOSAL-2026-001 正式議決通過（2026-07-23）、**AL-2026-035**、MC v1.4→**v1.5**（§8.1「解釋之界線」[N] 落地）；RULING-2026-028 第 1 點過渡自我拘束已日落吸收；**GOV-3 已閉合**——RULING-2026-028 第 2 點判準生效（2026-07-23）；**GOV-4 已反向閉合**——Steward 拍板甲案（2026-07-23）：**RULING-2026-031、AL-2026-034**；findings 留檔不滅、不列 open）。**2026-07-23 另**：MC v1.5→**v1.6** minor（RULING-040／AL-044；§0.3 [I] 母集誠實註；GOV-3 B 維持觀察）——`audits/MC-V1.6-MINIMAL-20260723.md` |
 | **L1** WM v1.0 | WORLD-MODEL-SPECIFICATION.md | 7 | ✅ 定案（2026-07-23；Steward 接受 030） | `audits/L1-WM-ULTRACODE-20260723.md`（**合併權威版：分級登錄 major×2〔F-L1-4、F-L1-6——一攬子簽核未另圈定、採較嚴 major〕＋medium 3＋minor 5＋過目 1**——**RULING-2026-030 定案、AL-2026-033**；蓋章不動搖） |
 | **L2** ONT v1.0 | ONTOLOGY-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 032；**獨立核驗通過**） | `audits/L2-ONT-ULTRACODE-20260723.md`（**零 major；1 medium＋3 minor 存活**——**RULING-2026-032 定案、AL-2026-036**；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
 | **L3** ID v1.0 | IDENTITY-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 033；**獨立核驗通過**） | `audits/L3-ID-ULTRACODE-20260723.md`（**零 major；2 medium＋5 minor 存活**——**RULING-2026-033 定案、AL-2026-037**；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
