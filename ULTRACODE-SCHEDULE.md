@@ -40,7 +40,7 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 | **L4** KS v1.1 | KNOWLEDGE-SYSTEM-SPECIFICATION.md | 7 | ✅ 定案（2026-07-23；Steward 接受 034；**獨立核驗通過**） | `audits/L4-KS-ULTRACODE-20260723.md`（**零 major；medium×3＋minor×5 存活**——**RULING-2026-034 定案、AL-2026-038**；T-KS-6 維持 open-tension；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
 | **L5** CK v1.0 | COGNITIVE-KERNEL-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 035；**獨立核驗通過**） | `audits/L5-CK-ULTRACODE-20260723.md`（**零 major；medium×2＋minor×4 存活**——**RULING-2026-035 定案、AL-2026-039**；029 PRV／ASF 程序性閉合（未翻 major）；F-IX-4／6 仍另案；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
 | **L6** AR v1.2 | AGENT-RUNTIME-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 036；**獨立核驗通過**） | `audits/L6-AR-ULTRACODE-20260723.md`（**零 major；medium×2＋minor×4 存活**——**RULING-2026-036 定案、AL-2026-040**；020／016／007 已癒合项覆核 PASS；T-L6-5 維持 007 residual；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
-| **L7** Infra v1.0 | INFRASTRUCTURE-SPECIFICATION.md | 6 | ✅ 呈核畢 | `audits/L7-INF-ULTRACODE-20260723.md`（**零 major；medium×2＋minor×6 存活**——lint error 1／warning 22 親跑〔upper_spec_unresolved／L6 v1.0 stale，不假装干净〕；025 residual 维持；待 Steward RULING-2026-037／AL-2026-041） |
+| **L7** Infra v1.0 | INFRASTRUCTURE-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 037；**獨立核驗待另輪**） | `audits/L7-INF-ULTRACODE-20260723.md`（**零 major；medium×2＋minor×6 存活**——**RULING-2026-037 定案、AL-2026-041**；025 residual 维持分階段①至 2026-10-14；lint PASS 7/7 親跑；028 §3 核驗清單待獨立 agent） |
 
 ### L1 延後三項最佳化拍板（Steward 授權 2026-07-23）
 
