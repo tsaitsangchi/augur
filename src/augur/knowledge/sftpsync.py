@@ -9,7 +9,7 @@
 守 #6(增量冪等、未變不重抓)· #5(不碰憑證;path 圍欄防惡意 server tar-slip)· #18(領域名詞)· #28(本地零 usage)·
    #24(不高併發;單連線循序)。
 
-自測(本檔=library #18;免 DB 免 API 可個別驗證):
+執行指令矩陣(本檔=library #18;免 DB 免 API 可個別驗證):
   python -m augur.knowledge.sftpsync              # 印用途+公開入口(唯讀)
   python -m augur.knowledge.sftpsync --selftest   # 純紅綠自測(零 IO)
 """

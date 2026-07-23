@@ -17,7 +17,7 @@ infra log 表用**運維型別**（BIGSERIAL / TIMESTAMP / TEXT）——#5 的 V
 
 守 #2（schema 以 DB 為準 / 不另立白名單）· 核心橫切基礎（infra 表 DDL + DB-derived schema 單一引用源，#12）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.core.schema              # 印用途+公開入口（唯讀）
   python -m augur.core.schema --selftest   # 純紅綠自測（零 IO）
 """

@@ -15,7 +15,7 @@
 
 守 #17（節流/退避/重試韌性：主動限速三層防護）· #3（dataset 動態列舉、無 hardcoded 清單）· #2（欄名/大小寫照 API）· #1（回 API 原值，不捏造）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.ingestion.finmind              # 印用途+公開入口（唯讀）
   python -m augur.ingestion.finmind --selftest   # 純紅綠自測（零 IO：dataset enum 解析 / retry 狀態集 / 常數）
 """

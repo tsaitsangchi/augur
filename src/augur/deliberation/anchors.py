@@ -10,7 +10,7 @@
 
 守 #12(L1-L5 單一住所=本檔;deliberate/benchmark 皆 import 此)· #15(確定性、不臆造)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.deliberation.anchors              # 印用途+公開入口（唯讀）
   python -m augur.deliberation.anchors --selftest   # 純紅綠自測（零 IO）
 """

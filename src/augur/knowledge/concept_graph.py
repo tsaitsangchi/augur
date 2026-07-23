@@ -8,7 +8,7 @@
 守 #1（關聯＝既有 computed stat、非 AI 生成）· #15（coverage 誠實、junk/缺口不掩蓋）·
    隔離不變式（素養層、住 augur.knowledge＝import_isolation 前綴自動覆蓋、零量化價值不進預測管線）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.knowledge.concept_graph              # 印用途+公開入口（唯讀）
   python -m augur.knowledge.concept_graph --selftest   # 純紅綠自測（零 IO）
 """

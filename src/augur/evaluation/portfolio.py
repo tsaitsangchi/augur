@@ -10,7 +10,7 @@ purged walk-forward 預測,每 panel 依預測排序組投組(long top 分位、
 口徑 reuse baseline 之 walk-forward / as-of(#12);log→simple 報酬正確複利;holding=h 須與 panel 間距對齊(季度⇄h≈60)。
 守 #8 · #12 · #14 · #15(gross/net 雙報、換手揭露、對比基準)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.evaluation.portfolio              # 印用途+公開入口（唯讀）
   python -m augur.evaluation.portfolio --selftest   # 純紅綠自測（零 IO）
 """

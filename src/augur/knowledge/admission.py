@@ -15,7 +15,7 @@
    #5（不碰憑證，僅判值）· #19（SOURCE_TYPE_WHITELIST↔DB/CLI choices 三側同步）· #29b（源定義住 DB）·
    隔離不變式（本模組住 augur.knowledge、不置 core、預測 7pkg 零 import）。
 
-自測(本檔=library；CLI 消費見 scripts/acquire_local_files.py、acquire_remote_files.py)：
+執行指令矩陣(本檔=library；CLI 消費見 scripts/acquire_local_files.py、acquire_remote_files.py)：
   python -m augur.knowledge.admission              # 印白名單（唯讀、免 DB）
   python -m augur.knowledge.admission --check      # 對 live DB 跑四件閘紅綠自測（唯讀、需 .env）
   PYTHONPATH=src python src/augur/knowledge/admission.py --check   # 未 pip install -e 時

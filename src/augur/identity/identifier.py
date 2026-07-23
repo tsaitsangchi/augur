@@ -18,7 +18,7 @@ DDL 單一權威=scripts/migrate_identity_ddl.py;種子=scripts/seed_entity_type
    follow-up Phase 5:於攝取准入點強制 resolve-or-mint(外部碼→entity_alias→augur_id)+ 稽核閘偵測
    「未繫 augur_id 之 Knowledge 升級」;接線前於合規聲明揭露本狀態(承接 §緊張關係揭露)。
 
-自測(本檔=library #18;免 DB 免 API 可個別驗證):
+執行指令矩陣(本檔=library #18;免 DB 免 API 可個別驗證):
   python -m augur.identity.identifier              # 印用途+公開入口(唯讀)
   python -m augur.identity.identifier --selftest   # 純紅綠自測(零 IO)
 """

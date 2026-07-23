@@ -20,7 +20,7 @@
 
 守 #8（vintage＝anti-leakage PIT）· #17（節流/退避/重試）· #2（欄名照 API + series_id 主鍵）· #1（"." → NULL）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.ingestion.fred              # 印用途+公開入口（唯讀）
   python -m augur.ingestion.fred --selftest   # 純紅綠自測（零 IO）
 """

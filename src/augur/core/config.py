@@ -9,7 +9,7 @@
 
 守 #12（單一引用源/SSOT：設定·密鑰集中於此，他模組不各自讀 .env）；密鑰只從 `.env`、不入 git（§一.5）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.core.config              # 印用途+公開入口（唯讀）
   python -m augur.core.config --selftest   # 純紅綠自測（零 IO）
 """

@@ -10,7 +10,7 @@
 
 守 #8(per-period 正確口徑) · #12(DSR 計算單一住所、reuse metrics.deflated_sharpe) · #15(誠實、非年化)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.evaluation.deflation              # 印用途+公開入口（唯讀）
   python -m augur.evaluation.deflation --selftest   # 純紅綠自測（零 IO）
 """

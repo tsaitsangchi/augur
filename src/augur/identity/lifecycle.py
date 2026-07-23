@@ -13,7 +13,7 @@ DDL 單一權威=scripts/migrate_identity_ddl.py(identity_lifecycle_event append
 承接 T.34 下市→retire、T.3/T.4/T.5 之 settle/expire/convert/redeem 終結(ID.44 DynamicEntity)。
 守 ID.40(Evidence 義務)· ID.41(轉指/lineage 不變式)· ID.42(tombstone/去識別化)· ID.43(代碼重用)· #18。
 
-自測(本檔=library #18;免 DB 免 API 可個別驗證):
+執行指令矩陣(本檔=library #18;免 DB 免 API 可個別驗證):
   python -m augur.identity.lifecycle              # 印用途+公開入口(唯讀)
   python -m augur.identity.lifecycle --selftest   # 純紅綠自測(零 IO)
 """

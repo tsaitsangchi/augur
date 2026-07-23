@@ -13,7 +13,7 @@ augur 自身過四道漏斗 + 經濟價值 #14 實證回填（「驗證活下來
 
 用法：PYTHONPATH=src python scripts/build_philosophy_framework.py   （建表 + 落地首批策展）
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.philosophy.framework              # 印用途+公開入口（唯讀）
   python -m augur.philosophy.framework --selftest   # 純紅綠自測（零 IO）
 """

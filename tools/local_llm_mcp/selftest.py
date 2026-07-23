@@ -3,6 +3,10 @@
 比照 constitution-mcp 之紀律：凡 README/計畫所宣稱之性質，皆有對應斷言。
 涵蓋：協定層、三工具功能面與錯誤面、五項治理紀律（來源標記、失敗發聲、
 路徑封閉、唯讀、治理語料排除），其中「唯讀」以 AST 掃描實作層為權威判準。
+
+執行指令矩陣：
+  python -m tools.local_llm_mcp --selftest
+  python -m tools.local_llm_mcp.selftest
 """
 from __future__ import annotations
 

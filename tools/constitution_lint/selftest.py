@@ -5,6 +5,10 @@
 下 grep——「55 項」之誤即出自 `grep -c '✓'` 把結語橫幅算成一項測試。
 
 `run()` 回 `(ok, records)`，`records` ＝ [(name, passed)]：**項數自此有唯一機器來源**。
+
+執行指令矩陣：
+  python -m tools.constitution_lint --selftest   # 權威入口（經 __main__ 呼叫本模組 run）
+  python -c "from tools.constitution_lint.selftest import run; raise SystemExit(0 if run()[0] else 1)"
 """
 from __future__ import annotations
 
@@ -439,6 +443,79 @@ def run(quiet: bool = False):
                         if (_REPO / "specs" / f"{spec}-SPECIFICATION.md").exists()
                         for f in compliance_lint.lint_spec(
                             str(_REPO / "specs" / f"{spec}-SPECIFICATION.md"), _MC).findings))
+
+    # ── G12（桶 B／P1）：IDO.* 權威歸 AUGUR-ID；表列 IDO.1–8 須入標籤宇宙 ───────────
+    #    前版：`SPEC_PREFIXES` 含 IDO → 未受檢訊息寫「AUGUR-IDO 未見於 upper-specs」；
+    #    且 `enumerate_spec_clause_labels` 只抽 IDO.0（標題），表列 IDO.1–8 永不入宇宙。
+    _id_spec = _REPO / "specs" / "IDENTITY-SPECIFICATION.md"
+    _ks_spec = _REPO / "specs" / "KNOWLEDGE-SYSTEM-SPECIFICATION.md"
+    if _id_spec.exists():
+        id_labels = mc_clauses.enumerate_spec_clause_labels(
+            _id_spec.read_text(encoding="utf-8"), "AUGUR-ID v1.0")
+        ido_codes = [f"IDO.{n}" for n in range(9)]
+        chk("G12：ID 規格枚舉含 IDO.0–IDO.8（表列＋標題）",
+            all(c in id_labels for c in ido_codes))
+        chk("  └ G12：IDO.1 正文取自 Annex DO 下放事項欄（非空）",
+            bool(id_labels.get("IDO.1", {}).get("text")))
+    if _ks_spec.exists() and _id_spec.exists():
+        rks = compliance_lint.lint_spec(str(_ks_spec), _MC)
+        ido_unresolved = [
+            f for f in rks.warnings
+            if f.rule == "WM.44-LABEL" and re.search(r"\bIDO\.\d", f.message)
+            and ("AUGUR-IDO" in f.message
+                 or ("未見於本規格" in f.message and "front-matter" in f.message))
+        ]
+        chk("G12：KS 對 IDO.* 不再出現「AUGUR-IDO 未見於 upper-specs」類警告",
+            not ido_unresolved)
+        chk("  └ G12：KS 仍 PASS（error 0；IDO 受檢後標籤不符不得靜默）",
+            rks.passed and not rks.errors)
+
+    # ── G13（桶 A／P2）：A.*／T.*／DI／DO／EO 可受檢（權威歸 WM／ONT）──────────────
+    #    前版：TR 寫 `A.0`／`T.1`／`§DI.3` 被判「不合任何已知條款編號形態」；其實 A＝WM
+    #    Annex A、T／DI／DO／EO＝ONT Annex，非獨立規格。
+    _wm_spec = _REPO / "specs" / "WORLD-MODEL-SPECIFICATION.md"
+    _ont_spec = _REPO / "specs" / "ONTOLOGY-SPECIFICATION.md"
+    if _wm_spec.exists():
+        wm_labels = mc_clauses.enumerate_spec_clause_labels(
+            _wm_spec.read_text(encoding="utf-8"), "AUGUR-WM v1.0")
+        chk("G13：WM 枚舉含 A.0 與 A.59（Annex A）",
+            "A.0" in wm_labels and "A.59" in wm_labels)
+    if _ont_spec.exists():
+        ont_labels = mc_clauses.enumerate_spec_clause_labels(
+            _ont_spec.read_text(encoding="utf-8"), "AUGUR-ONT v1.0")
+        chk("G13：ONT 枚舉含 T.1、DI.3、DO.4、EO.1",
+            all(c in ont_labels for c in ("T.1", "DI.3", "DO.4", "EO.1")))
+    if _id_spec.exists():
+        rid = compliance_lint.lint_spec(str(_id_spec), _MC)
+        morph_unresolved = [
+            f for f in rid.warnings
+            if f.rule == "WM.44-LABEL" and "不合任何已知條款編號形態" in f.message
+            and re.search(r"`(?:§)?(?:A|T|DI|DO|EO)\.\d", f.message)
+        ]
+        chk("G13：L3 對 A.*／T.*／DI／DO／EO 不再「不合已知形態」未受檢",
+            not morph_unresolved)
+        chk("  └ G13：L3 仍 PASS（error 0）", rid.passed and not rid.errors)
+
+    # ── G14（桶 C／P3）：WM.44 骨架覆蓋——statement region 內 102 條均具名 ─────────
+    #    根因：Annex TR 若在 front-matter 之前，其字面不計入 `_check_wm44`；L7 先例＝
+    #    CS.4「MC [N] 條款覆蓋清單」。缺清單 → warning；補齊 → meta wm44_uncited=0。
+    _p3_specs = [
+        ("L1", _REPO / "specs" / "WORLD-MODEL-SPECIFICATION.md"),
+        ("L2", _REPO / "specs" / "ONTOLOGY-SPECIFICATION.md"),
+        ("L3", _REPO / "specs" / "IDENTITY-SPECIFICATION.md"),
+        ("L4", _REPO / "specs" / "KNOWLEDGE-SYSTEM-SPECIFICATION.md"),
+        ("L5", _REPO / "specs" / "COGNITIVE-KERNEL-SPECIFICATION.md"),
+        ("L6", _REPO / "specs" / "AGENT-RUNTIME-SPECIFICATION.md"),
+        ("L7", _REPO / "specs" / "INFRASTRUCTURE-SPECIFICATION.md"),
+    ]
+    for _lab, _sp in _p3_specs:
+        if not _sp.exists():
+            continue
+        _rp = compliance_lint.lint_spec(str(_sp), _MC)
+        chk(f"G14：{_lab} wm44_uncited=0（骨架覆蓋完備）",
+            _rp.meta.get("wm44_uncited") == 0)
+        chk(f"  └ G14：{_lab} 仍 PASS（error 0）",
+            _rp.passed and not _rp.errors)
 
     # ── G10 突變鎖（2026-07-17 三輪補）：【地位】節之生效宣稱 vs `spec-version` ──────────
     #    `608adc2` 以人手替五份文件補正 §0.1／【地位】矛盾（36 行純替換），**未加任何鎖**。

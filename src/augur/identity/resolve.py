@@ -23,7 +23,7 @@ code_system 正名常數住本檔(#12 單一引用源):CODE_SYSTEM_FINMIND_STOCK
 守 ID.11(升級 Knowledge 前系統鑄造)· ID.43(代碼重用紅旗→provisional 不縫合)· 裁①(advisory lock 並發防護)·
    #3(最小邊界:不動 ingest.py,接線屬 Phase 2 後段另呈)· #18(library 可個別 --selftest)。
 
-自測(本檔=library #18;免 DB 免 API 可個別驗證):
+執行指令矩陣(本檔=library #18;免 DB 免 API 可個別驗證):
   python -m augur.identity.resolve              # 印用途+公開入口(唯讀)
   python -m augur.identity.resolve --selftest   # 純紅綠自測(零 IO)
 """

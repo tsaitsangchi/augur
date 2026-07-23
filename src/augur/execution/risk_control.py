@@ -13,7 +13,7 @@
    #12(DD 算法複用 drawdown_series、選股複用 build_long_portfolio、不另造)· #27(閾值操作值住 DB 可調)·
    #29(閾值資料驅動住 DB)· 隔離不變式(唯讀 risk_policy、不進預測管線)· 靈魂(建議非自動駕駛)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.execution.risk_control              # 印用途+公開入口（唯讀）
   python -m augur.execution.risk_control --selftest   # 純紅綠自測（零 IO）
 """

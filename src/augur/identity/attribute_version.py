@@ -10,7 +10,7 @@ DDL 單一權威=scripts/migrate_identity_ddl.py(entity_attribute_version append
    transaction_time 預設 clock_timestamp() 使同交易多次 put 不撞複合 PK)。
 守 ID.60(as-of 繫結義務)· ID.61(繫結存在 vs 重建引擎分界)· #18。
 
-自測(本檔=library #18;免 DB 免 API 可個別驗證):
+執行指令矩陣(本檔=library #18;免 DB 免 API 可個別驗證):
   python -m augur.identity.attribute_version              # 印用途+公開入口(唯讀)
   python -m augur.identity.attribute_version --selftest   # 純紅綠自測(零 IO)
 """

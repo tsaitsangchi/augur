@@ -1,4 +1,9 @@
-"""Selftest for Augur MCP P0 — no external deps except stdlib for core tests."""
+"""Selftest for Augur MCP P0 — no external deps except stdlib for core tests.
+
+執行指令矩陣：
+  python -m augur_proxy.selftest         # 純 stdlib 紅綠自測（零外部服務）
+  python augur_proxy/selftest.py         # 同等（cwd＝repo 根）
+"""
 from __future__ import annotations
 
 import sys

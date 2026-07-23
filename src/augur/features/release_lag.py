@@ -22,7 +22,7 @@
 改為季中/月頻消費金融股財報**(會顯現此漏)。
 守 #8(anti-leakage:公開可得日 PIT gate、取代錯誤 date≤panel)· #9(10/45/90 為法律事實、非知識字典閾值)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.features.release_lag              # 印用途+公開入口（唯讀）
   python -m augur.features.release_lag --selftest   # 純紅綠自測（零 IO）
 """

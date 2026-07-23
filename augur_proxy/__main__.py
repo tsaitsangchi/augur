@@ -1,4 +1,10 @@
-"""Run MCP router: python -m augur_proxy [--port PORT]"""
+"""Run MCP router.
+
+執行指令矩陣：
+  python -m augur_proxy                  # 預設 127.0.0.1:8000
+  python -m augur_proxy --port 8001      # 指定埠
+  python -m augur_proxy --host 0.0.0.0 --port 8000
+"""
 from __future__ import annotations
 
 import argparse

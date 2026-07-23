@@ -9,7 +9,7 @@
    開知識→預測旁路、破 #1 命門(test_philosophy_isolation 正向 assert 釘死)。
 守 #5(fail-closed 授權)· #1(隔離、resolver 不成知識→預測旁路)· 憲章 v1.28.0(RBAC 準則 iii resolver 語意)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.knowledge.access              # 印用途+公開入口（唯讀）
   python -m augur.knowledge.access --selftest   # 純紅綠自測（零 IO）
 """

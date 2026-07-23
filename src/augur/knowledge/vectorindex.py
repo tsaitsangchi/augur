@@ -8,7 +8,7 @@
 守 #12(單一抽象住所)· #15(pk 枚舉自驗 len==row_count,Lite query_iterator 重複回列實證棄用
    2026-07-04)· #18(領域名詞)· 紅線③ · e2e 計畫 §3-S6/§6(SOP-B 可拋棄性)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.knowledge.vectorindex              # 印用途+公開入口（唯讀）
   python -m augur.knowledge.vectorindex --selftest   # 純紅綠自測（零 IO）
 """

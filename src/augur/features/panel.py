@@ -18,7 +18,7 @@ anti-leakage（#8）：面板日 t 之特徵只用價量 ≤ t（純後向 rolli
 
 守 #1（算不出即缺列、不存無源值）· #9（無 hardcoded 特定值）· #8（as-of ≤t 後向）· #5（NUMERIC 型別）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.features.panel              # 印用途+公開入口（唯讀）
   python -m augur.features.panel --selftest   # 純紅綠自測（零 IO；紅綠鎖 source-pure 缺列/as-of 末列/YoY）
 """

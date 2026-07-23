@@ -8,7 +8,9 @@
    素養/顧問層只能單向依賴預測輸出、反向零依賴。
 守原則 #1(零幻像)· #8(anti-leakage)· 憲章 philosophy 邊界(v1.17.0/v1.19.0)· 學習計畫 P0(d) 隔離骨架。
 
-用法:PYTHONPATH=src python tests/test_philosophy_isolation.py  或  pytest tests/test_philosophy_isolation.py
+執行指令矩陣：
+  PYTHONPATH=src python tests/test_philosophy_isolation.py
+  pytest tests/test_philosophy_isolation.py
 """
 import pathlib
 

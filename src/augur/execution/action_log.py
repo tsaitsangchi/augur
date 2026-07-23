@@ -9,7 +9,7 @@
 DDL 單一權威=scripts/migrate_automation_action_ddl.py(authorization_grant + automation_action_log)。
 守 P5.E1(Action 六元組)· P4.E3/E6(留痕/provenance 延伸至行動記錄)· #12(單一寫入源)· #18。
 
-自測(本檔=library #18;免 DB 免 API 可個別驗證):
+執行指令矩陣(本檔=library #18;免 DB 免 API 可個別驗證):
   python -m augur.execution.action_log              # 印用途+公開入口(唯讀)
   python -m augur.execution.action_log --selftest   # 純紅綠自測(零 IO)
 """

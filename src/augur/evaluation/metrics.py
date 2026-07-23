@@ -12,7 +12,7 @@ embargo 後折）；本層只算指標、不選樣本（樣本選擇＝walkforwa
 #14 經濟價值（top-N 報酬/MaxDD/Calmar）非本層——本層只到「排序預測力」；經濟價值需 portfolio 構造另計。
 守 #12（SSOT：rank IC/彙總公式唯一住此）· #15（誠實：raw/purged 雙口徑）· #11（IC 顯著性走 Eff-t、禁裸用 iid effective_t）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.evaluation.metrics              # 印用途+公開入口（唯讀）
   python -m augur.evaluation.metrics --selftest   # 純紅綠自測（零 IO）
 """

@@ -8,7 +8,7 @@
    host key 首次以 AutoAdd 信任（連自有主機之務實取捨，MITM 風險見 docstring）。入庫仍過 license DB CHECK。
 守 #1（逐字入庫、可溯源）· #5（金鑰不外洩/大小上限）· #18（sftpbrowse=領域名詞）· #28（本地觸發零 Claude usage）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.knowledge.sftpbrowse              # 印用途+公開入口（唯讀）
   python -m augur.knowledge.sftpbrowse --selftest   # 純紅綠自測（零 IO）
 """

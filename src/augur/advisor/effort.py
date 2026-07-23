@@ -10,7 +10,7 @@
 守 #12(advise 仍唯一諮詢編排出口;config 讀取走 engine_config)· #15(LLM 意見零證據力;誠實 fallback)·
    #26(escalated=進人裁佇列)· #29b(檔位參數/詞表住 DB)。SSOT=augur_frontend_tiers_ultracode_backbone_plan_20260711.md §2/§3。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.advisor.effort              # 印用途+公開入口（唯讀）
   python -m augur.advisor.effort --selftest   # 純紅綠自測（零 IO）
 """

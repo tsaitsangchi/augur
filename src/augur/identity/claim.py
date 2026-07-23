@@ -10,7 +10,7 @@
 DDL 單一權威=scripts/migrate_identity_ddl.py(identity_claim append-only 硬化)。
 守 ID.30(四要件)· ID.31(claim 為 Knowledge)· ID.32(唯一權威表徵之結構前提)· #18。
 
-自測(本檔=library #18;免 DB 免 API 可個別驗證):
+執行指令矩陣(本檔=library #18;免 DB 免 API 可個別驗證):
   python -m augur.identity.claim              # 印用途+公開入口(唯讀)
   python -m augur.identity.claim --selftest   # 純紅綠自測(零 IO)
 """

@@ -17,7 +17,7 @@ staging 機制性隔離 core_gate/canonical_features 完整度 gate,非僅紀律
 
 守 #1 · #8 · #9（rank/z/demean/percentile 皆 cutoff-free、無硬編閾值）· 母原則③相對化 · #12（驗證用 evaluation SSOT helper）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.audit.feature_candidate              # 印用途+公開入口（唯讀）
   python -m augur.audit.feature_candidate --selftest   # 純紅綠自測（零 IO）
 """

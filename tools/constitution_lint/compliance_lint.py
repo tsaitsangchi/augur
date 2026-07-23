@@ -783,6 +783,13 @@ def _range_clause(codes, labels):
 _MC_CODE_FULL = re.compile(r"^" + mc_clauses.CODE_ALT + r"$")
 _SPEC_CODE_FULL = re.compile(r"^(" + "|".join(mc_clauses.SPEC_PREFIXES) + r")\.\d+$")
 
+# Annex 掛鉤／剖面前綴 → 承載規格前綴（非獨立 `AUGUR-IDO`／`AUGUR-A` 檔）。
+# A.*＝WM Annex A；T.*＝ONT Annex T；DI/DO/EO＝ONT Annex；IDO＝ID Annex DO。
+_PREFIX_HOME = {
+    "IDO": "ID", "KDO": "KS", "LDO": "L5",
+    "A": "WM", "T": "ONT", "DI": "ONT", "DO": "ONT", "EO": "ONT",
+}
+
 
 def _report_unresolved_code(res, code, label, universe, sources, loc):
     """代號無法解析至任何受檢條款時之**發聲**（取代前版之靜默 `continue`）。
@@ -806,10 +813,24 @@ def _report_unresolved_code(res, code, label, universe, sources, loc):
         return
     if _SPEC_CODE_FULL.match(first):
         pre = _SPEC_CODE_FULL.match(first).group(1)
+        home = _PREFIX_HOME.get(pre, pre)
+        home_src = next((s for s in sources if s.startswith(f"AUGUR-{home} ")), None)
+        if pre != home and home_src:
+            res.add("WM.44-LABEL", Severity.WARNING,
+                    f"{base}——代號前綴 `{pre}` 為 `AUGUR-{home}` Annex 掛鉤前綴"
+                    f"（非獨立規格 `AUGUR-{pre}`）；已載入 {home_src}，惟代號 `{code}` "
+                    f"未見於其已枚舉條款，故無原文標籤可比對（本次已解析："
+                    f"{sources or '（無）'}）",
+                    "AUGUR-WM v1.0 §WM.44 / AUGUR-MC v1.3 §8.2", loc)
+            return
+        expect = f"AUGUR-{home}" if pre != home else f"AUGUR-{pre}"
+        hint = (f"（`{pre}.*` 權威歸 {expect}，非獨立 `AUGUR-{pre}`）"
+                if pre != home else "")
         res.add("WM.44-LABEL", Severity.WARNING,
-                f"{base}——代號前綴 `{pre}` 屬已知規格前綴，惟 `AUGUR-{pre}` 未見於本規格"
-                f"front-matter `upper-specs` 之可解析清單（本次已解析：{sources or '（無）'}），"
-                f"故其原文標籤無權威來源可比對（同 `upper-specs` 無法解析之情形）",
+                f"{base}——代號前綴 `{pre}` 屬已知規格前綴，惟 {expect} 未見於本規格"
+                f"front-matter `upper-specs` 之可解析清單{hint}（本次已解析："
+                f"{sources or '（無）'}），故其原文標籤無權威來源可比對"
+                f"（同 `upper-specs` 無法解析之情形）",
                 "AUGUR-WM v1.0 §WM.44 / AUGUR-MC v1.3 §8.2", loc)
         return
     res.add("WM.44-LABEL", Severity.WARNING, base + "——代號不合任何已知條款編號形態",

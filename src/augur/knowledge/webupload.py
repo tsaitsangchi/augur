@@ -6,7 +6,7 @@
    一處實作、admin 與 chat 共用——安全敏感的 multipart 解析不重複兩份(改一漏一之維護坑)。
 守 #1(逐字、不改寫)· #5(path traversal/大小防護)· #18(webupload=領域名詞,免 admin/chat 各寫一份)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.knowledge.webupload              # 印用途+公開入口（唯讀）
   python -m augur.knowledge.webupload --selftest   # 純紅綠自測（零 IO）
 """

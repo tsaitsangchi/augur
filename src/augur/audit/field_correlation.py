@@ -12,7 +12,7 @@
 
 守 #1（真值、缺即 NaN 不補）· #5（NUMERIC）· #6（upsert 冪等）· #15（n_obs 揭露、相關無定義即不寫、不靜默）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.audit.field_correlation              # 印用途+公開入口（唯讀）
   python -m augur.audit.field_correlation --selftest   # 純紅綠自測（零 IO）
 """

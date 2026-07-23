@@ -4,7 +4,7 @@
 
 > **這份文件是什麼**：augur 會在**另一台電腦接續開發**。這是「新機 clone 後第一份該讀的文件」——
 > 告訴你**從哪接、怎麼跑起來、哪些不在 git、進度到哪、紅線是什麼**。
-> 快照時點：**2026-07-17**（`main` HEAD = `548f850`、最新 tag 見 `git tag -l 'archive-2026071*'`;HEAD 之後會前進,以 `git log` 為準）。
+> 快照時點：**2026-07-23**（最新封存 tag＝`archive-20260723-lint-p1p3-cmd-matrix`；HEAD 以 `git log -1`／該 tag 為準）。
 
 ---
 
@@ -79,12 +79,23 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 
 ## 4. 現況 STATE（取代式：每次封存點整段重寫；歷史＝`git log -p HANDOFF.md`）
 
-> 更新於 **2026-07-16**（arena admission gate 全落地日）、git HEAD `1ac820c`（tag `archive-20260716-arena-admission-pass`）、最新 tag 見 `git tag -l 'archive-*'`。
+> 更新於 **2026-07-23**（lint P1–P3＋執行指令矩陣入憲封存）、tag `archive-20260723-lint-p1p3-cmd-matrix`；最新 tag 見 `git tag -l 'archive-*'`。
 > **紀律：本區每個宣稱都可能過期——待辦一律先跑附帶的驗證指令實查（#15），勿直接信。**
 
-### 4.1 一句話現況（2026-07-17；取代前版；git HEAD 見 `git log`、最新 tag `git tag -l 'archive-2026071*'`）
+### 4.1 一句話現況（2026-07-23；取代前版）
 
-**今日（07-17）大進度日——八個封存點**：治權批次→TSFM benchmark→A4 入賽→alpha 計畫→Phase 1 執行→錨修復鏈。逐塊：
+**本封存點**：治權 lint 清冊 P1–P3 落地＋可執行 Python「執行指令矩陣」升格元憲章（§8.1 解釋／RULING-2026-026／AL-2026-029）。
+
+* **P1（桶 B）**：`IDO.*` 權威歸 `AUGUR-ID`；表列 IDO.1–8 入枚舉；selftest G12。
+* **P2（桶 A）**：`A`／`T`／`DI`／`DO`／`EO` 可受檢（權威 WM／ONT）；L3 TR 標籤對齊；selftest G13。
+* **P3（桶 C）**：L1–L6 CS／C.10「MC [N] 條款覆蓋清單」→ 全層 `wm44_uncited=0`；selftest G14；`report --sync`。
+* **驗收（實跑）**：corpus **PASS 7／error 0**；L3／L4 warning **0**；L5 剩 1（既有 `KDI.18` 形態未受檢）。計畫書＝`reports/augur_l3_l4_lint_warning_remediation_plan_20260723.md`。
+* **執行指令矩陣**：可執行入口 docstring 補齊 canonical「執行指令矩陣」；CLAUDE.md 從屬改引 **AUGUR-MC v1.4**；MC §0.5 L6／Appendix G 留痕（§8 [N] 本文未動、102 母集不變）。
+* **機器**：本機 PC002-S1800（WSL2）；MCP `qwen3:4b` 釘死見前 commit `ac0fa35`。
+
+**仍有效之上一錨（07-17～07-22，細節見 git／舊 STATE）**：arena 8 隊 live；alpha Phase 1 落定；monorepo 治權合併；GB10／DESKTOP 環境基準。歷史 STATE 全文＝`git log -p HANDOFF.md`。
+
+### 4.1b 上一大進度日摘要（2026-07-17；保留索引，細節以 git 為準）
 
 **① arena 8 隊 live（A4 波次 07-17 加入）**：07-16 開賽（gate `arena_adm_5305655ad1cd` evaluated_pass ∧ 閘一 approved；cron 三行 22:30/23:10/月初）。**07-17 加 A4 兩隊**（Chronos-2 `chronos2_market_5` + Moirai-2.0 `moirai2_small_5`；dgate_a4 K=2/α=0.025/21 門全序列揭露；hugo TTY approve×2——**憲章 v1.42.0 TTY 閘實證擋 AI 代跑**）。**8 隊全員 live**（4 本地+4 TSFM）；chronos/timesfm 套件已補（uni2ts 降級 numpy/torch、四關驗綠）。review_observation_only tier、確立唯門二（≥60 clusters）。license 白名單擴 cc-by-nc-4.0（Moirai NC、**商業化前須清算**）。
 

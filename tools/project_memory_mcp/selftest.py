@@ -4,6 +4,10 @@
 涵蓋：協定層、切塊、治理排除判準、should_index denylist、讀寫分離（AST/文本掃描：
 唯讀模組無寫入 SQL/檔案寫入、寫入僅在 index.py）、端到端建索引→recall→memory_status、
 陳舊發聲、失敗發聲（索引不存在）。
+
+執行指令矩陣：
+  python -m tools.project_memory_mcp --selftest
+  python -m tools.project_memory_mcp.selftest
 """
 from __future__ import annotations
 

@@ -9,7 +9,7 @@
 
 守 憲章 v1.41.0(審批唯人/三層閘)· #12(norm_doi/狀態機單一住所)· #15(前置=近 30 日 probe 200 證據)。
 
-自測(本檔=library #18；免 DB 免 API 可個別驗證):
+執行指令矩陣(本檔=library #18；免 DB 免 API 可個別驗證):
   python -m augur.knowledge.curation              # 印用途+公開入口(唯讀)
   python -m augur.knowledge.curation --selftest   # 純紅綠自測(零 IO)
 """

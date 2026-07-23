@@ -22,7 +22,7 @@
 
 守 #3（動態列舉、無 hardcoded 清單）· #4（intraday 不收）· #6（冪等 + DB-driven 斷點續傳）· #1/#2（忠實落地）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.ingestion.sync              # 印用途+公開入口（唯讀）
   python -m augur.ingestion.sync --selftest   # 純紅綠自測（零 IO）
 """

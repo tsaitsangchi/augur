@@ -8,7 +8,7 @@
 
 守 #15(dry 判定只認 oracle 確定性發現、不認 escalated 湊數)· #12(完整性枚舉走 information_schema 實查)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.deliberation.critic              # 印用途+公開入口（唯讀）
   python -m augur.deliberation.critic --selftest   # 純紅綠自測（零 IO）
 """

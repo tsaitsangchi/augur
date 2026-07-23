@@ -1,5 +1,6 @@
 """project-memory-mcp 進入點。
 
+  執行指令矩陣：
   python3 -m tools.project_memory_mcp             # 起 stdio server（供 .cursor/mcp.json）
   python3 -m tools.project_memory_mcp index       # 增量索引（無 DB／缺 FTS／embed 變更則全量）
   python3 -m tools.project_memory_mcp index --full  # 刪 DB 全量重建

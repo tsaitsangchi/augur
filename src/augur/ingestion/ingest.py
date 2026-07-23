@@ -13,7 +13,7 @@
 
 守 #4（intraday 守門拒絕入庫）· #3/#1（忠實落地任意**日頻** API 表，不挑不補）· #6（交易冪等，逐 dataset 各自 commit/rollback）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.ingestion.ingest              # 印用途+公開入口（唯讀）
   python -m augur.ingestion.ingest --selftest   # 純紅綠自測（零 IO）
 """

@@ -9,7 +9,7 @@
 守 #1(只轉發 LLM 原輸出、零改寫——剝 <think> 為機械規則非潤飾)· #15(失敗明說不佯稱)·
    #18(ollama=領域名詞)· 計畫 §6 SOP-C(換 LLM=改設定一行,本檔可整支替換)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.advisor.ollama              # 印用途+公開入口（唯讀）
   python -m augur.advisor.ollama --selftest   # 純紅綠自測（零 IO）
 """

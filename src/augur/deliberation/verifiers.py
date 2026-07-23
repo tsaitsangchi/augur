@@ -18,7 +18,7 @@
 守 #15(工具實證、LLM 意見零證據力)· #5(唯讀白名單沙箱)· #6(裁決冪等可重跑)· #12(封閉集
    單一住所=本檔+DDL CHECK 同錨)。SSOT=本地審議引擎計畫 v1 + 前身 augur_deliberation_orchestrator_plan_20260709.md。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.deliberation.verifiers              # 印用途+公開入口（唯讀）
   python -m augur.deliberation.verifiers --selftest   # 純紅綠自測（零 IO）
 """

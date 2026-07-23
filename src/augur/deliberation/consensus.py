@@ -10,7 +10,7 @@
 
 守 #15(oracle 反證優先於任何多數;consensus 不寫 confirmed)· #12(去重鍵=verifier+anchor)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.deliberation.consensus              # 印用途+公開入口（唯讀）
   python -m augur.deliberation.consensus --selftest   # 純紅綠自測（零 IO）
 """

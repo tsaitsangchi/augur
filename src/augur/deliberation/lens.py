@@ -6,7 +6,7 @@
 
 守 #29b(lens 住 DB)· #12(CONTRACT 單一住所)。前置=migrate_deliberation_ddl.py --run(deliberation_lens seed)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.deliberation.lens              # 印用途+公開入口（唯讀）
   python -m augur.deliberation.lens --selftest   # 純紅綠自測（零 IO）
 """

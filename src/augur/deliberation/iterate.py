@@ -9,7 +9,7 @@
 
 守 #15(裁決全出 oracle、panel/迭代零 confirmed 權)· #10(逐轉移落帳可溯)· #12(裁決管線全複用)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.deliberation.iterate              # 印用途+公開入口（唯讀）
   python -m augur.deliberation.iterate --selftest   # 純紅綠自測（零 IO）
 """

@@ -5,7 +5,7 @@
    horizon artifact」載回。resume:已訓折/模型可查、重跑冪等 upsert(#6)。
 守 #15(git_sha/feats_hash 凍結可重現)· #6(resume 冪等)· 隔離不變式(非預測輸入表)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.models.registry              # 印用途+公開入口（唯讀）
   python -m augur.models.registry --selftest   # 純紅綠自測（零 IO）
 """

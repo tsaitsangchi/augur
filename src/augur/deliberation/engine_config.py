@@ -6,7 +6,7 @@
 
 守 #29b(config 住 DB)· #12(config 讀取單一住所)· #15(缺列 fail-safe 全關)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.deliberation.engine_config              # 印用途+公開入口（唯讀）
   python -m augur.deliberation.engine_config --selftest   # 純紅綠自測（零 IO）
 """

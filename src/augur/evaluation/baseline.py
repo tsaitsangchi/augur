@@ -13,7 +13,7 @@ MVP 先單 seed、M-2 再 ≥3 seed（本檔 `seeds` 參數預留）。
 
 守 #8（label 層 t+1 + walkforward purge）· #12（SSOT helper）· #14（排序 IC、非 AUC）· #15（基準階梯逐階誠實、raw IC 雙口徑待 M-2）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.evaluation.baseline              # 印用途+公開入口（唯讀）
   python -m augur.evaluation.baseline --selftest   # 純紅綠自測（零 IO）
 """

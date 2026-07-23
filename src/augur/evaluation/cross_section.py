@@ -9,7 +9,7 @@
 守 #8（橫斷面 z 只用該 panel 當下宇宙、不跨日、不洩漏未來）· #11/#14（過四道漏斗+提拔關卡+經濟價值）·
    #12（口徑與 verify 同源）· #18（領域名詞、eval 層派生變換）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.evaluation.cross_section              # 印用途+公開入口（唯讀）
   python -m augur.evaluation.cross_section --selftest   # 純紅綠自測（零 IO）
 """

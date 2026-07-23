@@ -11,7 +11,7 @@
 守 #1(只回逐字原文、不生成不改寫)· #28(本地嵌入、零 LLM API)·
    憲章 v1.17.0(檢索層對預測表零寫入、與預測管線物理隔離)· #18。
 
-自測(本檔=library #18;免 DB 免 API 可個別驗證):
+執行指令矩陣(本檔=library #18;免 DB 免 API 可個別驗證):
   python -m augur.philosophy.retrieval              # 印用途+公開入口(唯讀)
   python -m augur.philosophy.retrieval --selftest   # 純紅綠自測(零 IO)
 """

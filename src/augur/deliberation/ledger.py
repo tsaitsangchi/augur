@@ -6,7 +6,7 @@
 
 守 #10(逐 claim 落庫可追溯)· #12(帳本 CRUD 單一住所)· #15(claim_text 為真實 LLM 輸出、anchor 為確定性正規化後)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.deliberation.ledger              # 印用途+公開入口（唯讀）
   python -m augur.deliberation.ledger --selftest   # 純紅綠自測（零 IO）
 """

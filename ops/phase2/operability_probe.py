@@ -9,7 +9,7 @@
   * 失敗即據實記 ABSENT/PARTIAL，不美化、不靜默。
   * 唯讀：不寫入任何服務、不改任何檔（只讀 /proc、只對服務發唯讀請求）。
 
-用法：
+執行指令矩陣：
   python3 ops/phase2/operability_probe.py
   AUGUR_ROOT=/path/to/augur python3 ops/phase2/operability_probe.py   # 指定 monorepo／應用根
 

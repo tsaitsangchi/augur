@@ -13,7 +13,7 @@
    現況誠實:尚無任何生產特徵消費總經(feature_values 零 macro 特徵)——本模組是「接線前先建好門」,
    非既有洩漏之修補;未來 macro 特徵一律經此門、不得對 fred_series 寫 raw SQL。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.features.macro_vintage              # 印用途+公開入口（唯讀）
   python -m augur.features.macro_vintage --selftest   # 純紅綠自測（零 IO）
 """

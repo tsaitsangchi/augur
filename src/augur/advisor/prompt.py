@@ -2,7 +2,7 @@
 
 守 #1(數字/引文不編)· #15(誠實)· 憲章 v1.17.0(哲學不凌駕數據);審查修正 C-1/C-3 已內化為硬約束。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.advisor.prompt              # 印用途+公開入口（唯讀）
   python -m augur.advisor.prompt --selftest   # 純紅綠自測（零 IO）
 """

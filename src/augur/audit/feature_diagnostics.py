@@ -12,7 +12,7 @@
 
 守 #11（五鏡合判）· #12（label/metric/walkforward/baseline 單一 helper）· #8（purged/as-of）· #15（誠實揭露、不單指標）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.audit.feature_diagnostics              # 印用途+公開入口（唯讀）
   python -m augur.audit.feature_diagnostics --selftest   # 純紅綠自測（零 IO）
 """

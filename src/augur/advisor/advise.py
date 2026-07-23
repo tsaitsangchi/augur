@@ -9,7 +9,7 @@
    llm_fn 為抽象界面(可接 Claude API 或本地 LLM 或 mock),advisor 本身不綁特定 LLM。
 守 憲章 v1.17.0(顧問對預測/哲學表皆唯讀、零寫回)· #1/#8/#15(經 guard 落地)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.advisor.advise              # 印用途+公開入口（唯讀）
   python -m augur.advisor.advise --selftest   # 純紅綠自測（零 IO）
 """

@@ -7,7 +7,7 @@
 
 守 #15(裁決全出 oracle)· #28(唯本機 qwen、零 Claude)· #12(propose/verify 編排單一住所)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.deliberation.engine              # 印用途+公開入口（唯讀）
   python -m augur.deliberation.engine --selftest   # 純紅綠自測（零 IO）
 """

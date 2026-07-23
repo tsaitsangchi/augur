@@ -653,17 +653,17 @@ Augur Enterprise AI Operating System
 
 | T 條款 | ID 落點（採認／機制化，不重定義型別） |
 |---|---|
-| T.1（Security 判準） | AO.1（Security 判準採認落點，承 ID.20） |
-| T.20（Issuer 判準） | AO.4（Issuer 判準採認落點，承 ID.20） |
-| T.90（Security，代碼重用 OPEN-1） | Annex O（AO.1–AO.4）＋ID.43（存續邊界截斷） |
-| T.3（DerivativeContract 生命週期） | ID.44（settle 結算消滅終結表徵） |
-| T.4（ConvertibleBond 生命週期） | ID.44（convert／redeem 終結表徵） |
-| T.5（Warrant 生命週期） | ID.44（expire 到期失效終結表徵） |
+| T.1（Security） | AO.1（Security 判準採認落點，承 ID.20） |
+| T.20（Issuer） | AO.4（Issuer 判準採認落點，承 ID.20） |
+| T.90（OPEN-1：Security 判準採認） | Annex O（AO.1–AO.4）＋ID.43（存續邊界截斷） |
+| T.3（DerivativeContract） | ID.44（settle 結算消滅終結表徵） |
+| T.4（ConvertibleBond） | ID.44（convert／redeem 終結表徵） |
+| T.5（Warrant） | ID.44（expire 到期失效終結表徵） |
 | T.23（HumanDecisionMaker） | ID.42（自然人 identity 側去識別化／法規強制抹除） |
-| T.24（IndustryClassification／身份屬性 as-of 化） | ID.60（時變屬性 as-of 繫結；今日屬性判歷史為禁止型態） |
-| T.34（生命週期屬性宣告／Delisting） | ID.43（retire）、ID.44（DynamicEntity 終結） |
-| T.42（ISIN identity claim） | ID.30（外部識別碼降格為 provisional alias，claim 端點須系統 identifier） |
-| T.43（instance/type 標記；point-in-time；as-of 化） | ID.53（標記存續）、ID.60（as-of 繫結） |
+| T.24（IndustryClassification） | ID.60（時變屬性 as-of 繫結；今日屬性判歷史為禁止型態） |
+| T.34（Delisting） | ID.43（retire）、ID.44（DynamicEntity 終結） |
+| T.42（HoldingStructureState） | ID.30（外部識別碼降格為 provisional alias，claim 端點須系統 identifier） |
+| T.43（UniverseMembership） | ID.53（標記存續）、ID.60（as-of 繫結） |
 | T.50（IssuanceRelation） | ID.24（世界關係身份解析：端點有序組×valid time） |
 | T.51（UnderlyingRelation） | ID.24（世界關係身份解析）、ID.44（ConvertibleBond→標的股以事件＋lineage） |
 
@@ -766,6 +766,8 @@ compliance-statement:
 * `AUGUR-ONT v1.0` ONT.10–13、ONT.40–41、Annex T 之型別**定義**：屬 Layer 2 制定，本層僅**採認**（ID.20）與**機制化**（§3、§5、§6），不重述型別定義內容。ONT.40 世界關係之端點封印解除／派生解析由 ID.24 承接。
 
 **明記對應／DEFER（非不觸及）之補正**：`AUGUR-WM v1.0 §WM.38`（自然人有界表徵）及其 Annex D 掛鉤 **D17**（自然人法規對應表，L3/L6）：其 **L3 slice** 對應至 ID.42（去識別化／法規強制抹除機制）＋§8（ID.60，時變屬性 as-of），其 **L6 slice** 明記 DEFER Layer 6（IDO.7）；故 WM.38/D17 於本自查為「對應＋DEFER」，非「不觸及」。`AUGUR-ONT v1.0 §DO.3` 之 T.3/T.4/T.5（DynamicEntity 終結生命週期）對應至 ID.44。
+
+**MC [N] 條款覆蓋清單（`§WM.44` 骨架自查，逐一具名以資機器盤點；落點見 Annex TR（TR.A–TR.D／TR.Z））[N]**：`PA`；`EV.1`、`EV.2`、`EV.3`、`EV.4`、`EV.5`、`EV.6`、`EV.7`、`EV.8`、`EV.9`、`EV.10`、`EV.11`、`EV.12`；`F1`、`F2`、`F3`、`F4`、`F5`、`F6`；`P1.D`、`P1.E1`、`P1.E2`、`P1.E3`、`P1.W1`；`P2.D`、`P2.E1`、`P2.E2`、`P2.E3`、`P2.E4`、`P2.E5`、`P2.W1`、`P2.W2`；`P3.D`、`P3.E1`、`P3.E2`、`P3.E3`、`P3.W1`、`P3.W2`；`P4.D`、`P4.E1`、`P4.E2`、`P4.E3`、`P4.E4`、`P4.E5`、`P4.E6`、`P4.E7`、`P4.E8`、`P4.W1`；`P5.D`、`P5.E1`、`P5.E2`、`P5.W1`、`P5.W2`、`P5.W3`、`P5.W4`、`P5.W5`；`§0`、`§0.1`、`§0.2`、`§0.3`、`§0.4`、`§0.5`、`§0.6`、`§1`、`§1.1`、`§1.2`、`§1.3`、`§2`、`§2.1`、`§2.2`、`§2.3`、`§2.4`、`§2.5`、`§2.6`、`§2.7`、`§2.8`、`§2.9`、`§2.10`、`§2.11`、`§3`、`§4`、`§5`、`§5.1`、`§5.2`、`§5.3`、`§5.4`、`§5.5`、`§5.6`、`§6`、`§7`、`§8`、`§8.1`、`§8.2`、`§8.3`、`§8.4`、`§8.5`、`§8.6`。各 `Pn.Y`（`P1.Y`、`P2.Y`、`P3.Y`、`P4.Y`、`P5.Y`）為 [I] 說理條款，本層以「不觸及＋理由：屬各原則之風險說理，非規範義務落點」統一處置（落點／不觸及理由見 Annex TR（TR.A–TR.D／TR.Z）），為骨架覆蓋完備計於此具名。**誠實界限**：本清單＝機器盤點之字面具名；語意承接仍以 Annex TR 為權威，不因本清單宣稱新建語意矩陣或完成「決策四第二輪」嚴格強制。
 
 **逐條對應矩陣已完整枚舉、形式充分性已成就——Steward 充任認定業經作成，本規格自 2026-07-17 起生效**：`AUGUR-MC v1.4`／`AUGUR-WM v1.0`／`AUGUR-ONT v1.0` 全部 [N] 條款 → 本規格落點之**逐條完整枚舉**（`§WM.44` 要求之機器可判完備對應矩陣）**已於 Annex TR（TR.0、TR.A–TR.D、TR.Z）完整作成**：TR.A（`AUGUR-MC v1.4` §P3 家族＋§2.4，本層核心）、TR.B（`AUGUR-MC v1.4` PA／§1.2／§1.3／P1／P2／P4／P5 及 §0／§2／§4／§5／§6／§7／§8）、TR.C（`AUGUR-WM v1.0` WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）、TR.D（`AUGUR-ONT v1.0` ONT.1–62＋Annex T T.0–T.91），每一上層 [N] 條款均有落點列（承接／細化／DEFER／不觸及＋理由）。依 `§WM.44`「任一條款無對應且無明記者，聲明不完整」之反面，**逐條完整枚舉已成就、形式充分性已成就**。**殘餘之生效阻卻業已解消**——Steward 充任認定已作成（Steward 裁決第 2026-004 號、AL-2026-008；`AUGUR-MC v1.4 §0.5`、`§8.3`），本規格生效要件全部成就。**實質充分性**仍由違憲審查程序（`AUGUR-MC v1.4 §8.2`）判斷，未因充任而終局確認；本規格不自我宣告已生效，其生效係基於 Steward 之裁決行為（`§8.1`）。
 

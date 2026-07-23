@@ -30,7 +30,7 @@
 
 守 #1(算不出即缺列、不存無源值)· #8(籌碼 as-of ≤t)· #5(numeric)· F2 roadmap F2b。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.features.chip              # 印用途+公開入口（唯讀）
   python -m augur.features.chip --selftest   # 純紅綠自測（零 IO）
 """

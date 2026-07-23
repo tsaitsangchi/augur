@@ -54,7 +54,7 @@ Augur Enterprise AI Operating System
 | 3 | Identity System | Identity Specification（AUGUR-ID v1.0，經 Steward 裁決第 2026-004 號充任認定） |
 | 4 | Knowledge System | Knowledge Graph Specification（AUGUR-KS：v1.0 經 Steward 裁決第 2026-005 號充任，現行 v1.1／RULING-2026-016）、Data Intelligence Layer、原則精華（augur 領域治權文件；跨層條款之逐條 Layer 標注由其合規聲明載明） |
 | 5 | Cognitive Kernel | Cognitive Kernel Specification（AUGUR-L5 v1.0 **provisional**——RULING-2026-006 充任；2026-07-18 RULING-2026-019 撤回形式充分性、2026-07-19 RULING-2026-023 重採認〔乙〕回復（矩陣重作＋L5.10 as-of）；§8.1 橋接收束；§8.2 實質審查延後）、Reasoning Engine、AI Model Selection |
-| 6 | Agent Runtime | Agent Runtime Specification（AUGUR-L6：v1.0 經 Steward 裁決第 2026-007 號充任，現行 v1.2／RULING-2026-016）、Planner / Orchestrator、CLAUDE.md（augur 領域 Agent 協作規格） |
+| 6 | Agent Runtime | Agent Runtime Specification（AUGUR-L6：v1.0 經 Steward 裁決第 2026-007 號充任，現行 v1.2／RULING-2026-016）、Planner / Orchestrator、CLAUDE.md（augur 領域 Agent 協作規格；**可執行 Python 入口須載「執行指令矩陣」**—RULING-2026-026／§8.1 解釋；細則 CLAUDE.md #18/#29） |
 | 7 | External Interface / Infrastructure | Infrastructure Specification（AUGUR-L7 v1.0，經 Steward 裁決第 2026-011 號充任；§8.2 深度審查 2026-07-19 條件通過 RULING-2026-025——(iii)(iv)(vi) residual 分階段①、復審 2026-10-14）、External Interface Layer、Database Architecture、系統架構大憲章（augur 領域架構／維運承載文件；涉 Layer 4–6 之章節由其合規聲明逐節標注）、datasets 參考文件（datasets_zh.md 及 finmind-references） |
 
 任何後續技術規格、資料模型、程式實作、AI Agent 行為，均不得違反本憲章。
@@ -688,3 +688,9 @@ Layer 7 External Interface / Infrastructure
 **明示不以 minor 為之（§8 self-entrenchment；2026-07-18 獨立核驗糾正越權）**：§8.6／§0.3 之 [N] 本文與治理附則之條款級別對映**不在本批執行**——§8.4 列 §8 為核心、§8.5(b) 定 §8 自身及構成性依據（§0.2-0.3、§2）之修訂一律原則級，非 minor 可為。此類事項改由 §8.1 解釋處理，或俟 Steward 依 §8.5 原則級程序（14 日公示）另辦。
 
 **§8.1 解釋（八項，效力自裁決、不改 MC 本文）**：**M1 修訂自鎖**——§8 維持原則級門檻不降，§8.5(b)(ii) 判準對治理／定義條款讀為「更完整**實現**五原則之治理落實」，**解鎖而不降門檻**（不以自舉 minor 動作規避 self-entrenchment）；M2 共享憑證↔行動者專屬綁定（P5.W1）；§8.1 拓撲——單一 Steward 期間雙人獨立核准由 Steward＋附則指定之獨立確認者滿足；§8.3 稽核工具輸出保真；§0.3 母集（字母子項屬項次受編號穩定性保護、但不入 102；§5.{n} 屬 102）；F1/F3 權威順序；P3.E1 provisional 二義；P1.E3 主責 Layer 6。〔P5.W4「最小權限」經審查認定已由 §8.3「存疑即不允許」兜底、**無須另立判準**——原稿誤列為解釋項，於此更正；治理附則第 3 條繼任人恆存義務屬 annex minor（附則自身授權範圍內），另行。〕
+
+---
+
+## Appendix G — 自 v1.4 生效後之 §8.1 解釋／§0.5 editorial（不升版）[I]
+
+**RULING-2026-026／AL-2026-029（2026-07-23）**：§8.1 解釋——Agent 協作產物之個別可驗證性（可執行 Python 入口必須載 canonical「**執行指令矩陣**」；細則 `CLAUDE.md` #18／#29）；§0.5 Layer 6 列 editorial 同步。**§8 [N] 本文未動、MC 版本維持 v1.4、102 母集不變**。裁決全文見 `constitution/RULING-2026-026-CMD-MATRIX.md`。

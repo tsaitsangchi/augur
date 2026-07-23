@@ -1,5 +1,6 @@
 """constitution_lint CLI。
 
+執行指令矩陣：
   python -m tools.constitution_lint compliance <spec.md> [<spec2.md> …]   # 規格生效 lint
   python -m tools.constitution_lint audit <code-dir> [--policy legacy|greenfield]  # code 合憲 lint
   python -m tools.constitution_lint report [--json|--sync|--files]        # 全 corpus 權威數字

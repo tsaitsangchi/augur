@@ -16,7 +16,7 @@ source-pure(#1):算不出(窗不足/零區間)→ 缺列。型別 #5。
 
 守 #1 · #8 · #9(data-driven 相位、無固定週期) · #5 · 康波設計六軸之 C2/C4(存活軸)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.features.phase              # 印用途+公開入口（唯讀）
   python -m augur.features.phase --selftest   # 純紅綠自測（零 IO）
 """

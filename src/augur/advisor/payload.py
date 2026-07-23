@@ -4,7 +4,7 @@
    所有數字帶 source_ref、trace 回真實模型輸出(#1);validation 帶誠實標籤(#15)。
 守 #1(數字 trace 真實模型)· #15(validation 誠實標籤)· 憲章 v1.17.0(顧問對此唯讀、零寫回)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.advisor.payload              # 印用途+公開入口（唯讀）
   python -m augur.advisor.payload --selftest   # 純紅綠自測（零 IO）
 """

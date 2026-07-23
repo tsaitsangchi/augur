@@ -14,7 +14,7 @@
 
 守 #6（冪等+斷點：交易 commit-or-rollback，重跑安全）· 核心橫切基礎（DB 連線/交易單一入口）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.core.db              # 印用途+公開入口（唯讀）
   python -m augur.core.db --selftest   # 純紅綠自測（零 IO）
 """

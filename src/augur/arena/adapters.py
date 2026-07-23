@@ -10,7 +10,7 @@
 
 守 #8(輸入序列由呼叫端裁切至 as-of,adapter 不碰時間軸)· #28(本地)· 憲章(輸出僅供 ledger,不進 UI)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.arena.adapters              # 印用途+公開入口（唯讀）
   python -m augur.arena.adapters --selftest   # 純紅綠自測（零 IO）
 """

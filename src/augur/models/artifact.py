@@ -5,7 +5,7 @@
    feats_hash = 特徵集口徑鎖:predict 若當下 canonical 特徵集與 artifact 凍結時不符即拒載(防漂移)。
 守 #6(冪等 resume)· #15(feats/as_of 凍結入 artifact、可重現)· 隔離不變式。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.models.artifact              # 印用途+公開入口（唯讀）
   python -m augur.models.artifact --selftest   # 純紅綠自測（零 IO）
 """

@@ -1,5 +1,6 @@
 """實測 constitution-mcp 之 context 節省（供 reports/MCP-SERVER-OPTIMIZATION-REPORT.md §3.3 回填）。
 
+  執行指令矩陣：
   python3 -m tools.constitution_mcp.measure
 
 **度量單位為字元數（精確）**；token 數為估算，故一律標示區間並註明換算基礎，

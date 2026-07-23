@@ -16,7 +16,7 @@ augur 用哪些 FRED 總經數列當情境輸入，是 **feature 設計的決策
 
 守 #8（anti-leakage：Tier B vintage 取當下可見版）· #4（總經日級真兆值得抓）· #15（每檔 live 證實）· #1/#2（忠實落地 FRED）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.features.macro              # 印用途+公開入口（唯讀）
   python -m augur.features.macro --selftest   # 純紅綠自測（零 IO）
 """

@@ -12,7 +12,7 @@
    前台檔位(F1):body.model 承載 tier(augur-{4b,8b}-{fast,think,ultra});config 旗標關=行為逐位元同現行。
 守 #1/#8/#15(經 advise+guard 落地)· #18(oai_compat=領域名詞)· 計畫 §3-S7 N8/§6(UI 軸:殼=穩定契約)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.advisor.oai_compat              # 印用途+公開入口（唯讀）
   python -m augur.advisor.oai_compat --selftest   # 純紅綠自測（零 IO）
 """

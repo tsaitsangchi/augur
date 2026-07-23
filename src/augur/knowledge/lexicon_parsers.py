@@ -15,7 +15,7 @@
   - commentary 注文以「行」為界(跨行長注只取注記行本身);同行多對經注僅首段經文可靠。
   - Webster 詞頭=行首全大寫行,Gutenberg 前言若殘留大寫行會成假詞條(定義空者入 failed)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.knowledge.lexicon_parsers              # 印用途+公開入口（唯讀）
   python -m augur.knowledge.lexicon_parsers --selftest   # 純紅綠自測（零 IO）
 """

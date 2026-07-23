@@ -9,7 +9,7 @@
    禁 inline 複本(#12)。
 守 #1(license 硬擋、零 AI 入庫鏈)· #12(單一住所)· 計畫 §3-S3/S5 N1・§8 P4。
 
-自測(本檔=library #18;免 DB 免 API 可個別驗證):
+執行指令矩陣(本檔=library #18;免 DB 免 API 可個別驗證):
   python -m augur.knowledge.corpus              # 印用途+公開入口(唯讀)
   python -m augur.knowledge.corpus --selftest   # 純紅綠自測(零 IO)
 """

@@ -9,7 +9,7 @@
    隔離不變式(住 augur.advisor＝FORBIDDEN 前綴、預測 7 package 零 import;test_philosophy_isolation 正向釘死)·
    憲章 v1.29 RBAC owner 收窄 · 計畫 §7.1(三鏡對抗審查定稿)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.advisor.chat_history              # 印用途+公開入口（唯讀）
   python -m augur.advisor.chat_history --selftest   # 純紅綠自測（零 IO）
 """

@@ -8,7 +8,7 @@
    SHAP/可解釋明訂不在此層(留 audit,防膨脹侵入預測 SSOT)。
 守 #12(與 baseline 同組態、複用鐵律)· 隔離不變式(零 import 知識/哲學/顧問)· #15(random_state 固定可重現)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.models.ranker              # 印用途+公開入口（唯讀）
   python -m augur.models.ranker --selftest   # 純紅綠自測（零 IO）
 """

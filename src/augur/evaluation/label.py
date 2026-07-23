@@ -13,7 +13,7 @@ walkforward 層負責（本層只造 label、不切分）。
 #12 SSOT：label 構造唯一住此、所有 validator import（跨模型/週期可比）。
 守 #8（anti-leakage：t+1 進場 + 還原價）· #1（source-pure：算不出即缺列）· #12（SSOT：label 構造唯一住此）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.evaluation.label              # 印用途+公開入口（唯讀）
   python -m augur.evaluation.label --selftest   # 純紅綠自測（零 IO）
 """

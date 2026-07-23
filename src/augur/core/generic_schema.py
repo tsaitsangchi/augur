@@ -24,7 +24,7 @@
 
 守 #5（型別紀律）· #3（純通用 auto-schema）· #2（schema 照 API / 查 DB）· #6（冪等 + 主鍵穩定）· #1（不捏造）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.core.generic_schema              # 印用途+公開入口（唯讀）
   python -m augur.core.generic_schema --selftest   # 純紅綠自測（零 IO；AUD-02 _supersessions 鎖需共用
                                                    #  reconcile._norm，未裝 psycopg2 時誠實 skip、其餘全綠）

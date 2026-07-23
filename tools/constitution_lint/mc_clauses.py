@@ -90,7 +90,11 @@ CODE_ALT = r"(?:PA|P[1-5]\.(?:D|Y|W\d+|E\d+)|EV\.\d+|F[1-6]|§\d+(?:\.\d+)?)"
 # **上層規格**條款代號之字面（B5：過半矩陣零檢查之修正）。前版 `_CODE_LABEL` 僅以 CODE_ALT
 # 為錨，故 Annex TR.D/E/F/G 之 WM./ONT./ID./KS./L5./L6. 等標籤**完全不檢**——所報「已比對 71 筆」
 # 全為 MC 側。`AUGUR-XX` 之 XX 恰為該規格之條款代號前綴，故此表同時充作 upper-specs 解析之依據。
-SPEC_PREFIXES = ["WM", "ONT", "IDO", "ID", "KDO", "KS", "LDO", "L5", "L6", "L7"]
+# 長前綴在前：`IDO`/`DI`/`DO` 不得被較短前綴誤切；`A`/`T`＝WM Annex A／ONT Annex T。
+SPEC_PREFIXES = [
+    "WM", "ONT", "IDO", "DI", "DO", "EO", "ID", "KDO", "KS", "LDO",
+    "L5", "L6", "L7", "A", "T",
+]
 SPEC_CODE_ALT = r"(?:" + "|".join(SPEC_PREFIXES) + r")\.\d+"
 # 任一條款代號（憲章側 ∪ 規格側）。規格側置前：`ID.1` 不得被 `§\d+` 等分支搶走。
 ANY_CODE_ALT = (r"(?:" + SPEC_CODE_ALT +
@@ -397,6 +401,34 @@ def enumerate_clause_labels(mc_text: str, source: str = "MC") -> dict:
 _SPEC_CLAUSE = re.compile(r"^\s*>?\s*(?:[*-]\s+)?\*\*(" + SPEC_CODE_ALT + r")\s*(.*?)\*\*")
 _SPEC_ANY_H = re.compile(r"^\s*>?\s*#{1,4}\s")
 
+# Annex 掛鉤表列（IDO／DI／DO）：標題體例只抽出 *.0；其餘在 `| **X.n** | … |`。
+# 表列無 `（括號名）` 標題體例 → `paren_name=None`，TR 濃縮走正文支撐判準。
+_ANNEX_HOOK_TABLE_ROW = re.compile(
+    r"^\|\s*\*\*((?:IDO|DI|DO)\.\d+)\*\*\s*\|(.+)$",
+    re.M,
+)
+
+
+def _enumerate_annex_hook_table_labels(text: str, source: str) -> dict:
+    """自 Annex 掛鉤表列抽出 IDO/DI/DO.n → 標籤條目（僅補標題體例未覆蓋者）。"""
+    out = {}
+    for m in _ANNEX_HOOK_TABLE_ROW.finditer(text):
+        code = m.group(1)
+        cells = [c.strip() for c in m.group(2).split("|")]
+        cells = [c for c in cells if c and not re.match(r"^-+$", c)]
+        matter = _clean_label(" ".join(cells).replace("**", ""))
+        line = text[:m.start()].count("\n") + 1
+        text_body = f"{matter}\n{m.group(0)}"
+        out[code] = {
+            "paren_name": None,
+            "full_forms": [],
+            "halves": [],
+            "text": text_body,
+            "line": line,
+            "source": source,
+        }
+    return out
+
 
 def enumerate_spec_clause_labels(text: str, source: str) -> dict:
     """回 code → {…}（同 `enumerate_clause_labels` 之結構）：上層規格之 [N] 條款原文標籤。"""
@@ -428,6 +460,10 @@ def enumerate_spec_clause_labels(text: str, source: str) -> dict:
             "line": i + 1,
             "source": source,
         }
+    # 表列掛鉤：標題已有者不覆寫；其餘併入宇宙。
+    for code, d in _enumerate_annex_hook_table_labels(text, source).items():
+        if code not in out:
+            out[code] = d
     return out
 
 

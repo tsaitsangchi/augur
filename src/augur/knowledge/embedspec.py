@@ -8,7 +8,7 @@
 守 #12(單一住所)· #15(slug 確定性:同輸入必同輸出、無隨機)· #18(領域名詞)·
    e2e 計畫 §3-S6/§6(model_tag 含 '/' 為 Milvus 非法字元→縮寫映射函數單一住所=本檔)。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.knowledge.embedspec              # 印用途+公開入口（唯讀）
   python -m augur.knowledge.embedspec --selftest   # 純紅綠自測（零 IO）
 """

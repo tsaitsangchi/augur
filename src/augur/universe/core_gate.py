@@ -20,7 +20,7 @@ canonical 特徵集**由資料判定**（取面板內最大特徵集，反硬編
 
 守 #1（只收 source-pure 完整股）· #10（質>量，可少、不評分不排名）· #5（型別）。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.universe.core_gate              # 印用途+公開入口（唯讀）
   python -m augur.universe.core_gate --selftest   # 純紅綠自測（零 IO）
 """

@@ -16,7 +16,7 @@ source-pure(#1):算不出(已公告歷史 <8 季 / Revenue≤0 / 當季毛利陳
 
 守 #1 · #8(發布日 gate)· #9(自身相位、無硬編)· #5 · 康波 C3 存活軸 · 母原則③相對化。
 
-自測（本檔=library #18；免 DB 免 API 可個別驗證）：
+執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.features.margin_cycle              # 印用途+公開入口（唯讀）
   python -m augur.features.margin_cycle --selftest   # 純紅綠自測（零 IO：假 cursor 驅動 pctile 邏輯）
 """

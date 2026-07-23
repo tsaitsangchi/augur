@@ -2,6 +2,10 @@
 
 比照 tools/constitution_lint 之慣例：凡宣稱之性質皆須有**可執行**斷言。
 特別鎖住四項設計紀律——唯讀、不快取、附出處、失敗發聲。
+
+執行指令矩陣：
+  python -m tools.constitution_mcp --selftest
+  python -c "from tools.constitution_mcp.selftest import run; raise SystemExit(run())"
 """
 from __future__ import annotations
 

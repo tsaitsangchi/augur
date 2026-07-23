@@ -321,3 +321,11 @@
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **驗證**：L7 全檔 §8.2 狀態標記→條件通過（【地位】/L7.90(c)/TR.Z/尾註/生效要件）；MC §0.5 同步（[I]）；gate PASS、selftest 綠、PA/五原則 byte 零改
 * **里程碑**：**八層 L0–L7 全數蓋章（8/8）**。執行層收口完成。觸發 Phase 3b（執行層 ultracode 交互檢查）
+
+## AL-2026-029
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-026 號——**Agent 協作產物之個別可驗證性（執行指令矩陣）**：§8.1 解釋將 `§8.3` ENFORCE／機器可稽核於 Layer 6 落點讀為——可執行 Python 入口 docstring 必須載 canonical「執行指令矩陣」；細則 CLAUDE.md #18/#29。MC §0.5 Layer 6 列 editorial 同步引用本裁決。**§8 [N] 本文未動、MC 版本維持 v1.4、102 母集不變**
+* **文件**：[RULING-2026-026-CMD-MATRIX.md](RULING-2026-026-CMD-MATRIX.md)
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **執行**：repo 可執行入口 docstring 補齊「執行指令矩陣」；CLAUDE.md 從屬改引 AUGUR-MC v1.4
