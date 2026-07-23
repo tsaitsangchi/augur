@@ -249,7 +249,7 @@ Augur Enterprise AI Operating System
 | **DO.3** | T.1、T.3、T.4、T.5、T.34（生命週期屬性宣告） | 生命週期**事件表**與 **merge/split/retire/relist 機制、tombstone、去識別化、identity lineage** | Layer 3 | `AUGUR-MC v1.4 §P3.E2`；`AUGUR-WM v1.0 §WM.22`、`§D3` | AUD-05 |
 | **DO.4** | ONT.30、T.24、T.42、T.43（instance/type 標記；point-in-time 狀態；身份屬性 as-of 化） | 標記之**存續／解析落實**、provisional 狀態解析；**身份屬性 as-of 版本化**（時間繫結） | Layer 3 | `AUGUR-MC v1.4 §P3.E1`；`AUGUR-WM v1.0 §D4` | AUD-07 |
 
-**下放非本層之領域機制（引用 `AUGUR-WM v1.0 Annex D`，本層僅承接其不變式之型別側）**：屬性 schema 之具名欄位集合與欄位設計（Layer 4；本層僅於 T.0 宣告各 Type 之 Attribute schema 概念槽之存在性，承接 D20 屬性面向）、維度白名單取得機制（`§D21`，Layer 4；見 ONT.41／T.61）、Confidence 語義（`§D9`，Layer 4；本層不設 Knowledge 欄位）、語料隔離之機器強制（`§D25`，Layer 5–6；見 T.27）、風險分級（`§D16`，Layer 6）。
+**下放非本層之領域機制（引用 `AUGUR-WM v1.0 Annex D`，本層僅承接其不變式之型別側）**：屬性 schema 之具名欄位集合與欄位設計（Layer 4；本層僅於 T.0 宣告各 Type 之 Attribute schema 概念槽之存在性，承接 D20 屬性面向）、維度白名單取得機制（`§D21`，Layer 4；見 ONT.41／T.61）、Confidence 語義（`§D9`，Layer 4；本層不設 Knowledge 欄位）、語料隔離之機器強制（`§D25`，Layer 5–7；見 T.27）、風險分級（`§D16`，Layer 6）。
 
 ---
 
@@ -312,7 +312,7 @@ Augur Enterprise AI Operating System
 
 > **T.26 TradingCalendar（交易日曆）[N]** — **parent** AbstractEntity。**判準**：同一 iff〔市場 Identity〕，每市場一日曆；日曆日↔交易日為一級 CalendarTradingDayRelation（T.52）。**instance/type**：具體市場日曆為 Instance；日曆類型為 type。〔對映 `§A.4`〕
 
-> **T.27 KnowledgeCorpus（知識語料族）[N]** — **parent** AbstractEntity 族（學派／原則／思想家／著作／文本塊）。**判準**：同一 iff〔文獻來源可溯源之作品／作者識別〕。**隔離宣告**：素養語料不進預測管線（型別層標記隔離；機器強制 DEFER Layer 5–6，`AUGUR-WM v1.0 §D25`）。**instance/type**：具體著作／思想家為 Instance；學派／原則類為 type。〔對映 `§A.16`〕
+> **T.27 KnowledgeCorpus（知識語料族）[N]** — **parent** AbstractEntity 族（學派／原則／思想家／著作／文本塊）。**判準**：同一 iff〔文獻來源可溯源之作品／作者識別〕。**隔離宣告**：素養語料不進預測管線（型別層標記隔離；機器強制 DEFER Layer 5–7，`AUGUR-WM v1.0 §D25`）。**instance/type**：具體著作／思想家為 Instance；學派／原則類為 type。〔對映 `§A.16`〕
 
 > **T.28 SelfReflexiveType（Model／CoreUniverse／GATE／Augur 自身）[N]** — **parent** AgentiveEntity（有行為之系統內主體，`AUGUR-WM v1.0 §WM.26` 自反性之型別落地；GATE 預註冊實驗兼具 DynamicEntity 之生命週期／審批狀態面向，以屬性表徵，非第二 parent）。**判準**：Model／CoreUniverse 同一 iff〔系統內部實體識別〕；GATE（預註冊實驗）為具生命週期與審批狀態之 DynamicEntity，同一 iff〔實驗預註冊識別 × 判準凍結序〕。**instance/type**：具體模型／宇宙／實驗為 Instance；模型家族／實驗類為 type。**外部識別碼繫結**（如 ISIN 於 T.42）為 identity claim（ONT.22）。〔對映 `§A.14`、`§A.19`、`§A.20`〕
 
