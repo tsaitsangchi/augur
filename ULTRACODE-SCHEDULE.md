@@ -37,7 +37,7 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 | **L1** WM v1.0 | WORLD-MODEL-SPECIFICATION.md | 7 | ✅ 定案（2026-07-23；Steward 接受 030） | `audits/L1-WM-ULTRACODE-20260723.md`（**合併權威版：分級登錄 major×2〔F-L1-4、F-L1-6——一攬子簽核未另圈定、採較嚴 major〕＋medium 3＋minor 5＋過目 1**——**RULING-2026-030 定案、AL-2026-033**；蓋章不動搖） |
 | **L2** ONT v1.0 | ONTOLOGY-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 032；**獨立核驗通過**） | `audits/L2-ONT-ULTRACODE-20260723.md`（**零 major；1 medium＋3 minor 存活**——**RULING-2026-032 定案、AL-2026-036**；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
 | **L3** ID v1.0 | IDENTITY-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 033；**獨立核驗通過**） | `audits/L3-ID-ULTRACODE-20260723.md`（**零 major；2 medium＋5 minor 存活**——**RULING-2026-033 定案、AL-2026-037**；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
-| **L4** KS v1.1 | KNOWLEDGE-SYSTEM-SPECIFICATION.md | 7 | ✅ 呈核畢 | `audits/L4-KS-ULTRACODE-20260723.md`（**零 major；medium×3＋minor×5 存活**——待 Steward RULING 同案順修；KDI.18／027 M-IX-1 覆核 PASS；蓋章不動搖） |
+| **L4** KS v1.1 | KNOWLEDGE-SYSTEM-SPECIFICATION.md | 7 | ✅ 定案（2026-07-23；Steward 接受 034） | `audits/L4-KS-ULTRACODE-20260723.md`（**零 major；medium×3＋minor×5 存活**——**RULING-2026-034 定案、AL-2026-038**；T-KS-6 維持 open-tension；蓋章不動搖；獨立核驗留待另輪） |
 | **L5** CK v1.0 provisional | COGNITIVE-KERNEL-SPECIFICATION.md | 6 | ⏳ 排定 | — |
 | **L6** AR v1.2 | AGENT-RUNTIME-SPECIFICATION.md | 6 | ⏳ 排定 | — |
 | **L7** Infra v1.0 | INFRASTRUCTURE-SPECIFICATION.md | 6 | ⏳ 排定 | — |

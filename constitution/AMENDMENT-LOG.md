@@ -401,3 +401,12 @@
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
 * **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 獨立核驗親跑）；RULING-2026-033 第十一節十項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 ab53539）
 * **定案**：Steward 2026-07-23 **接受 033**
+
+## AL-2026-038
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-034 號——**L4（AUGUR-KS v1.1）單層 ultracode findings 一攬子處置**：F-L4-1（KS.23 同步 ID.50 033 乙案）＋F-L4-2 **甲案**（KS.34 推理規則 Confidence 缺省 STRONG＋EO.1）＋F-L4-3（KS.83(i) ID.51 納入語義具體化）＋F-L4-4–8（EV.2 序記法、KS.9 表補列、TR.C D4/D6/D8、TR.Y inline、KS.51 原子序）。**分級登錄**：F-L4-1／2／3＝medium；F-L4-4–8＝minor；**零 major**。**T-KS-6 維持 open-tension**。**蓋章不動搖**。**KS 版本維持 v1.1、MC／PA 零觸**
+* **文件**：[RULING-2026-034-L4-KS-ULTRACODE-DISPOSITION.md](RULING-2026-034-L4-KS-ULTRACODE-DISPOSITION.md)；findings `audits/L4-KS-ULTRACODE-20260723.md`
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 施作者親跑）；RULING-2026-034 第十二節十二項**待獨立核驗**（另輪）
+* **定案**：Steward 2026-07-23 **接受 034**

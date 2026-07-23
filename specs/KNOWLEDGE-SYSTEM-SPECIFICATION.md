@@ -65,7 +65,7 @@ Augur Enterprise AI Operating System
 * 層級：Layer 4 — Knowledge System（`AUGUR-MC v1.4 §0.5` 對照表第 4 列）
 * 版本：v1.1（前版：v1.0／v0.1-draft；RULING-2026-016 minor 升）
 * 上層規格（upper-specs）：`AUGUR-MC v1.4`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v1.0`（Layer 2）、`AUGUR-ID v1.0`（Layer 3）
-* 生效要件：`AUGUR-MC v1.4 §0.5` 對照表登錄（已具欄位）＋ 依 `AUGUR-WM v1.0 §WM.39` 之 Compliance Statement（Annex CS）含 `§WM.44` 逐條矩陣（**已完整枚舉、形式充分性已成就**，見 Annex TR、【地位】）＋ Steward 充任認定（**已成就**，見【地位】）＋ 登錄 Amendment Log（`AUGUR-MC v1.4 §8.1`）——**已全部成就**（Steward 裁決第 2026-005 號，2026-07-17，AL-2026-009）。**生效日：2026-07-17**。實質充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序，與已成就之形式充分性分屬二事。
+* 生效要件：`AUGUR-MC v1.4 §0.5` 對照表登錄（已具欄位）＋ 依 `AUGUR-WM v1.0 §WM.39` 之 Compliance Statement（Annex CS）含 `§WM.44` 逐條矩陣（**已完整枚舉、形式充分性已成就**〔**連同 Annex TR.Y 讀**：「缺 0 條」宣稱經 2026-07-18 更正、手工維護〕，見 Annex TR、【地位】）＋ Steward 充任認定（**已成就**，見【地位】）＋ 登錄 Amendment Log（`AUGUR-MC v1.4 §8.1`）——**已全部成就**（Steward 裁決第 2026-005 號，2026-07-17，AL-2026-009）。**生效日：2026-07-17**。實質充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序，與已成就之形式充分性分屬二事。
 
 ### 0.2 規範用語約定 [N]
 
@@ -151,9 +151,15 @@ Augur Enterprise AI Operating System
 > | `AUGUR-WM v1.0 §D9`（`§WM.12`、`§WM.18` 僅槽位） | **Confidence 形式化語義、傳播、比較** | §4（KS.30–KS.39） |
 > | `AUGUR-WM v1.0 §D10`（`§WM.32`、`§WM.33`） | Evidence 三分類法維護、supersede／tombstone、來源信任分級表 | §6、§8 |
 > | `AUGUR-WM v1.0 §D11`（`§WM.28` 引述） | Evidence 完備性等級 | §9（KS.80–KS.83） |
+> | `AUGUR-WM v1.0 §D12`（HOOK-03，L4 面向） | GATE 統計治理之 Layer 4 Evidence 機制 | KS.84（KDI.17） |
+> | `AUGUR-WM v1.0 §D14`（L4 面向） | 確立程序與候選斷言工作流之 L4 slice | §3（KDI.19）＋KDO.3 |
+> | `AUGUR-WM v1.0 §D15`（L4 面向） | fail-safe 判定主體／程序之 L4 界分 | KS.102（KDI.20） |
 > | `AUGUR-WM v1.0 §D18`（`§WM.14`、`§WM.36`；L4 面向） | Registry 登錄結構（L4 面向）、唯一權威表徵落點 | KS.25、KS.62 |
+> | `AUGUR-WM v1.0 §D19`（L4 slice） | 治權文件措辭收斂（空集揭露） | CS.2（KDI.21） |
 > | `AUGUR-WM v1.0 §D21`（`§A.10`；`§ONT.41` 散列） | 維度白名單取得機制（Evidence 完整性之通道紀律） | KS.78 |
 > | `AUGUR-WM v1.0 §D26`（`§A.22`、`§A.30`） | 重編與同步缺陷之區分、對帳差異分類與處置 | KS.54 |
+> | `AUGUR-WM v1.0 §D22`（L4 面向） | 核心宇宙 gate／流動性地板／產業豁免 | KS.80 增補款、KS.81(f)（KDI.18） |
+> | `AUGUR-WM v1.0 §D23`（L4 面向） | 資料供應商防護與額度紀律之 L4 slice | KS.44（KDI.22） |
 > | `AUGUR-WM v1.0 §D27`（`§A.29`） | point-in-time 成員資格快照機制 | KS.45 |
 > | `AUGUR-ONT v1.0 §ONT.2`、`§DO` 散列（Attribute schema、D9 Confidence 不設於 L2） | 屬性 schema 具名欄位集合與欄位設計 | KS.20、§4 |
 > | `AUGUR-ID v1.0` IDO.1 | identity claim 之 **Confidence 語義**（形式化、可比較、傳播、門檻） | §4、§10（KS.90） |
@@ -163,7 +169,7 @@ Augur Enterprise AI Operating System
 > | `AUGUR-ID v1.0` IDO.6 | **as-of 重建引擎與能力等級**、雙時間查詢操作化 | §5（KS.40–KS.46） |
 > | `AUGUR-ID v1.0` IDO.8 | 唯一權威 Representation 之實際指定與落點 | KS.25、KS.62 |
 >
-> **義務主體**：本規格自身。**可判定判準**：上表每列於正文有對應 KS 條款、且於 Annex CS `defers-in` 表雙向可解析者為合規；任一列無對應正文條款者，承接不完整。
+> **義務主體**：本規格自身。**可判定判準**：上表每列於正文有對應 KS 條款、且於 Annex CS `defers-in` 表及 Annex DI（KDI.0）雙向可解析者為合規；**完整承接以 KDI.0 為準、本表為摘要**；任一列無對應正文條款者，承接不完整。
 
 ### 2.2 非管轄聲明 [N]
 
@@ -205,7 +211,7 @@ Augur Enterprise AI Operating System
 > **義務主體**：Layer 5–7 承載構件。**可判定判準**：任一 Knowledge 具二時間軸之獨立槽位者合規；以單一時間值同時充當二軸者違反本條。
 
 > **KS.23（Identity 槽——承接 Layer 3）[N｜carries｜`AUGUR-MC v1.4 §P3.E1`；`AUGUR-ID v1.0 §ID.50`、`§ID.53`]**
-> Identity 槽必為**已解析** Identity（Layer 3 意義：涉該 Type 判準採認已生效 ∧ provisional 旗標已清除，`AUGUR-ID v1.0 §ID.50`）；未解析者不得升級為 Knowledge（`§P3.E1`）。繫結對象攜可解析之 instance／type 標記（承 `§ONT.30`、`§ID.53`）。本層不重定義解析，僅要求槽值為已解析。
+> Identity 槽必為**已解析** Identity（Layer 3 意義：涉該 Type 之判準採認已生效（ID.20）**且** 該引用**非** ID.21 所定 provisional（未解析）態，`AUGUR-ID v1.0 §ID.50`）；未解析者不得升級為 Knowledge（`§P3.E1`）。繫結對象攜可解析之 instance／type 標記（承 `§ONT.30`、`§ID.53`）。本層不重定義解析，僅要求槽值為已解析。
 > **義務主體**：Layer 5–7 消費者、一切產生 Knowledge 之模組。**可判定判準**：任一 Knowledge 之 Identity 槽為已解析 Identity 且攜可解析 instance／type 標記者合規；繫結 provisional Identity 者違反本條。
 
 > **KS.24（Evidence 槽）[N｜carries｜`AUGUR-MC v1.4 §P4.E1`、`§P4.E6`；`AUGUR-WM v1.0 §WM.27`（`§6 F5`）]**
@@ -254,6 +260,8 @@ Augur Enterprise AI Operating System
 > ```
 > Conf(結論) ⊑ ⊓{ Conf(前提_i) } ⊓ Conf(推理規則)
 > ```
+>
+> **推理規則 Confidence**：沿推理鏈應用之每一推理規則**必須**具可解析之 Confidence 值；未明示賦值時**缺省**為 `STRONG`，且**必須**攜 Grading Method（KS.32）——使 meet 第二項於 L4 可機械計算。
 >
 > 此為 `§P4.E7` NoLaundering（「結論之 Confidence 上限受證據鏈最弱環節約束」）之格代數落實。**具體聚合語義**（如多獨立證據之增強）DEFER Layer 5（KDO.1），惟其結果**不得逾越**本上限。
 > **義務主體**：本規格、Layer 5 規格作者、一切傳播 Confidence 之構件。**可判定判準**：存在任一結論 Conf 嚴格大於其鏈上任一環節 Conf（⋢ 上限）者違反本條，可機器稽核（承 `§WM.34(a)` 引用鏈遍歷）。
@@ -374,8 +382,8 @@ Augur Enterprise AI Operating System
 > **義務主體**：本規格、Layer 5–7 承載構件。**可判定判準**：存在任一使 Knowledge／Evidence 記錄物理消滅之操作路徑者違反本條（法規抹除留痕例外依 KS.53）。
 
 > **KS.51（Supersede Relation 之形式化——解 AUD-02）[N｜refines｜`AUGUR-MC v1.4 §P4.E3`、`§P4.E5`；承接 AUD-02 raw_supersede]**
-> 定義 **Supersede Relation**（失效關係，一級物件，表徵一 Knowledge／Evidence 對另一者之失效關係，為 `§P4.E3` 之細化構件），其結構：〔superseding 引用、superseded 引用、失效類型 ∈ {superseded, retracted, invalidated}、失效理由 Evidence、transaction time、作成者 Identity〕。**value_mismatch／heal 覆寫之語義**：來源歷史值被改寫時，**必須**於覆寫前快照舊值並建立 Supersede Relation，舊值以 superseded 存續、不滅失；主路徑 upsert 不動，但矛盾證據共存（§7）。此直接形式化 AUD-02「原則精華 #6/#7 制度化 LWW」之補正。〔範式例示 [I]：heal 前快照舊列（`raw_supersede_log`）為本機制之既有實例；此提及通過 KS.4 刪名測試——刪去具名後，「覆寫前快照舊值＋建立 Supersede Relation」之規範內涵不變。〕
-> **義務主體**：本規格、Layer 5–7 承載構件。**可判定判準**：任一歷史值變動存在對應 Supersede Relation 且舊值可 as-of 重建者合規；舊值遭覆寫且不可重建者違反本條（`§P4.E5` MUST NOT，不可時限豁免）。
+> 定義 **Supersede Relation**（失效關係，一級物件，表徵一 Knowledge／Evidence 對另一者之失效關係，為 `§P4.E3` 之細化構件），其結構：〔superseding 引用、superseded 引用、失效類型 ∈ {superseded, retracted, invalidated}、失效理由 Evidence、transaction time、作成者 Identity〕。**value_mismatch／heal 覆寫之語義**：來源歷史值被改寫時，**必須**於覆寫前快照舊值並建立 Supersede Relation，舊值以 superseded 存續、不滅失；**快照必須先於 upsert 完成**；快照失敗則**禁止** upsert。主路徑 upsert 不動，但矛盾證據共存（§7）。此直接形式化 AUD-02「原則精華 #6/#7 制度化 LWW」之補正。〔範式例示 [I]：heal 前快照舊列（`raw_supersede_log`）為本機制之既有實例；此提及通過 KS.4 刪名測試——刪去具名後，「覆寫前快照舊值＋建立 Supersede Relation」之規範內涵不變。〕
+> **義務主體**：本規格、Layer 5–7 承載構件。**可判定判準**：任一歷史值變動存在對應 Supersede Relation 且舊值可 as-of 重建者合規；**快照失敗時禁止主路徑 upsert**（須中止或回滾至快照完成前狀態）；舊值遭覆寫且不可重建者違反本條（`§P4.E5` MUST NOT，不可時限豁免）。
 
 > **KS.52（Supersede DAG 無循環）[N｜carries｜`AUGUR-MC v1.4 §P4.E6`（禁循環）；`AUGUR-WM v1.0 §WM.34(a)`]**
 > Supersede Relation 構成有向無環圖（DAG）；**不得**循環失效。任一 Knowledge 之當前有效版本可由 Supersede DAG 於任一 as-of 時點單值解析。
@@ -468,7 +476,7 @@ Augur Enterprise AI Operating System
 
 > **EV.1（分類法）[N]** Data／Knowledge／Computational Evidence＋assumption（如 KS.71），各附界定判準與範例（範例為 [I]，通過刪名測試）。
 
-> **EV.2（Trust Rank 序）[N]** Trust Rank 序集（`TR-A ⊐ TR-B ⊐ TR-C ⊐ TR-D ⊐ TR-⊥`）及各級之 L_C 天花板為**規範性閉集**，為 KS.74／EV.3 之可判定錨點；下表僅「**具體門檻數值**」DEFER Layer 6（KDO.2），序集與各級 L_C 天花板本身**非**示意、不因下放而失位。
+> **EV.2（Trust Rank 序）[N]** Trust Rank 序集（由弱至强，**序方向同 CL.0**：`<`＝由弱至强）為**規範性閉集**（`TR-⊥` ＜ `TR-D` ＜ `TR-C` ＜ `TR-B` ＜ `TR-A`），及各級之 L_C 天花板為 KS.74／EV.3 之可判定錨點；下表僅「**具體門檻數值**」DEFER Layer 6（KDO.2），序集與各級 L_C 天花板本身**非**示意、不因下放而失位。
 >
 > | Trust Rank | 典型來源 | Confidence 上限（映 L_C） | 判準 |
 > |---|---|---|---|
@@ -502,9 +510,12 @@ Augur Enterprise AI Operating System
 
 > **KS.83（完備性量測落地承接 IDO.4）[N｜hooks｜`AUGUR-ID v1.0` IDO.4；目標 L4 概念＋L5 推論（KDO.1）＋L5/L7 量測（KDO.4）]**
 > `AUGUR-ID v1.0` IDO.4 含二事項，本層**分別**處置，不得靜默丟失任一半：
-> * **(i) 未解析存量指標量測**：未解析存量、解析時效、顯式待決同一性存量（`§ID.51`）為完備性之個體層輸入指標；本層定其於完備性等級之**納入語義**，量測落地 DEFER（KDO.4）。
+> * **(i) 未解析存量指標量測**：未解析存量、解析時效、顯式待決同一性存量（`§ID.51`）為完備性之個體層輸入指標；本層定其於完備性等級之**納入語義**如下，量測落地 DEFER（KDO.4）：
+>   * **(a) 未解析存量（ID.51(a)）**：若某 Knowledge 所繫結 Identity 之解析狀態涉及未解析存量＞0（指涉該 Identity 或其所屬類型之 unresolved backlog 非零），該 Knowledge 之完備性等級**不得高于** `E1`；
+>   * **(b) 解析時效（ID.51(b)）**：解析時效分佈納入完備性 gate 之可盤點輸入維度；具體門檻值 DEFER（KDO.4），本層僅定其為 KS.81 合成之輸入指標；
+>   * **(c) 顯式待決同一性存量（ID.51(c)）**：納入 KS.81(e)（未裁決 Conflict Set）維度——顯式待決存量非零時，(e) 維度未達標，完備性上限受 CL.1 meet 約束。
 > * **(ii) resolution 演算實作**：相似度／比對／批次流程之解析演算屬 Layer 5 Cognitive Kernel 之 **inference**（`AUGUR-MC v1.4 §5` 角色四、KS.100）——為推論產生過程，非 Knowledge 之信度／欄位語義；本層**不定義**，明記 DEFER Layer 5（KDO.1）並附理由。`AUGUR-ID v1.0` IDO.4 將二事項均標為目標 L4；本層就 (ii) 讀為 Layer 5 Reasoning 之落點（KS.100），此定性分歧列為緊張關係 **T-KS-6**（CS.2）。
-> **義務主體**：本規格、Layer 5/7 規格作者。**可判定判準**：`§ID.51` 三指標於完備性等級之納入語義存在、本層未對其量測門檻值作實質定義、且 resolution 演算實作明記 DEFER（KDO.1）而本層未對其作實質定義者合規。
+> **義務主體**：本規格、Layer 5/7 規格作者。**可判定判準**：`§ID.51` 三指標之納入語義依上款 (i)(a)–(c) 可機械適用、本層未對其量測門檻值作實質定義、且 resolution 演算實作明記 DEFER（KDO.1）而本層未對其作實質定義者合規。
 
 > **KS.84（GATE 統計治理之 Layer 4 Evidence 機制承接——承 WM-D12／HOOK-03）[N｜carries｜`AUGUR-WM v1.0 §D12`、HOOK-03、`§A.19`、`§A.52`；refines｜`AUGUR-MC v1.4 §P4.E6`、`§P4.E7`；hooks｜統計計算實作→L5（KDO.3）]**
 > 預註冊可證偽實驗（GATE）之統計治理，依 `AUGUR-WM v1.0` HOOK-03 明定為**Layer 4 Evidence 機制設計權**（「統計嚴謹化屬 Layer 4 Evidence 機制設計權」）；本層承接其**概念層**面向，落地為對既有機制之約束：
@@ -832,11 +843,11 @@ Augur Enterprise AI Operating System
 | **D1** | Identity 實體類型完整分類體系（L2） | 不觸及：型別完整分類屬 L2 本體層（上游概念層）；KS.7 明示本層不定型別，僅消費已解析個體 Knowledge。 |
 | **D2** | 每類 Identity 同一性判準之制定與採認；instance/type 分類（L2/L3） | 不觸及：同一性判準採認屬 L2/L3；KS.23 僅要求槽值為已採認之已解析 Identity，不代行採認。 |
 | **D3** | identity claim 一級表介面、轉指機制、tombstone、去識別化（L3） | 不觸及：claim 機制/轉指/去識別屬 L3；KS 僅覆蓋其 Confidence 與五元組語義（§10），不定機制本體。 |
-| **D4** | provisional identity 解析時限與未解析存量稽核指標（含 WM.3（L3） | 不觸及：解析時限與存量指標屬 L3；KS 僅取已解析 Identity 為槽值，量測落地另轉 KDO.4。 |
+| **D4** | provisional identity 解析時限與未解析存量稽核指標（含 WM.35 unmapped 存量準用） | 不觸及：解析時限與存量指標屬 L3；KS 僅取已解析 Identity 為槽值，量測落地另轉 KDO.4。 |
 | **D5** | identifier 之鑄造、結構與命名空間設計（L3） | 不觸及：identifier 鑄造/命名空間屬 L3；KS.7 明示本層不鑄造 identifier。 |
-| **D6** | 本域證券代碼身份假設之判準採認（改名／代碼重用／借殼；Steward／決策層拍板後承（L3） | 不觸及：代碼身份假設判準採認屬 L3（拍板後由 L3 承接）；非 L4 概念層事項。 |
+| **D6** | 本域證券代碼身份假設之判準採認（改名／代碼重用／借殼；Steward／決策層拍板後承接） | 不觸及：代碼身份假設判準採認屬 L3（拍板後由 L3 承接）；非 L4 概念層事項。 |
 | **D7** | Knowledge 五元組欄位設計（L4） | 承接：目標即本層；KDI.1→§3（KS.20–26）承接並行使五元組欄位設計權，落實 §P4.E1。 |
-| **D8** | as-of 重建機制與能力等級（vintage、發布日 gate、embargo、p（L4） | 承接：目標即本層；KDI.2→§5（KS.40–46）承接 as-of 能力等級 A0–A3；實作機制對稱下放 KDO.6。 |
+| **D8** | as-of 重建機制與能力等級（vintage、發布日 gate、embargo、purged 口徑——HOOK-01 上呈素材） | 承接：目標即本層；KDI.2→§5（KS.40–46）承接 as-of 能力等級 A0–A3；實作機制對稱下放 KDO.6。 |
 | **D9** | Confidence 形式化語義、傳播、比較（L4） | 承接：目標即本層；KDI.3→§4（KS.30–39）承接單一形式化語義 L_C；生成演算下放 L5（KDO.1）。 |
 | **D10** | Evidence 三分類法維護、supersede/tombstone、來源信任分級（L4） | 承接：目標即本層；KDI.4→§6/§8 承接三分類法、失效與信任分級（NoLaundering）。 |
 | **D11** | Evidence 完備性等級（L4） | 承接：目標即本層；KDI.5→§9（KS.80–83）承接完備性等級。 |
@@ -966,7 +977,7 @@ Augur Enterprise AI Operating System
 | MC §2.8（Agent 定義） | KS.21 | 承接（本層散用不重定義） |
 | MC §2.9（Action 定義） | P5.D 界分 | 承接（本層引用不重定義，行動治理界分 L6） |
 
-> **TR.Z（逐條完整枚舉之完成與殘餘生效阻卻）[N]** TR.A–TR.E 已就 `AUGUR-MC v1.4`（P4 家族＋非 P4 逐條）、`AUGUR-WM v1.0`（WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）、`AUGUR-ONT v1.0`（ONT.1–62＋Annex T T.0–T.91）、`AUGUR-ID v1.0`（ID.1–81＋IDO.0–8＋Annex L4）**全部條款逐條枚舉落點**（承接／細化／DEFER／不觸及＋理由），滿足 `§WM.44`「任一條款無對應且無明記者，聲明不完整」之形式充分性要件。**Steward 充任認定業經作成，本規格自 2026-07-17 起生效**（Steward 裁決第 2026-005 號、AL-2026-009；`§0.5`、`§8.3`），**殘餘生效阻卻已解消**——形式充分性已成就；**實質**充分性之最終判斷仍屬 Steward 違憲審查程序（`§8.2`），充任不排除嗣後之違憲審查。上層規格（`AUGUR-ONT v1.0`／`AUGUR-ID v1.0`）於各自升版或條款增修時，本矩陣對應列**必須**同步維護（KS.111 diff 檢查）。
+> **TR.Z（逐條完整枚舉之完成與殘餘生效阻卻）[N]** TR.A–TR.E 已就 `AUGUR-MC v1.4`（P4 家族＋非 P4 逐條）、`AUGUR-WM v1.0`（WM.1–53＋Annex A A.0–A.59＋Annex D D0–D28）、`AUGUR-ONT v1.0`（ONT.1–62＋Annex T T.0–T.91）、`AUGUR-ID v1.0`（ID.1–81＋IDO.0–8＋Annex L4）**全部條款逐條枚舉落點**（承接／細化／DEFER／不觸及＋理由），滿足 `§WM.44`「任一條款無對應且無明記者，聲明不完整」之形式充分性要件。**Steward 充任認定業經作成，本規格自 2026-07-17 起生效**（Steward 裁決第 2026-005 號、AL-2026-009；`§0.5`、`§8.3`），**殘餘生效阻卻已解消**〔**連同 Annex TR.Y 讀**：「缺 0 條」宣稱經 2026-07-18 更正、手工維護〕——形式充分性已成就；**實質**充分性之最終判斷仍屬 Steward 違憲審查程序（`§8.2`），充任不排除嗣後之違憲審查。上層規格（`AUGUR-ONT v1.0`／`AUGUR-ID v1.0`）於各自升版或條款增修時，本矩陣對應列**必須**同步維護（KS.111 diff 檢查）。
 > **義務主體**：本規格、Steward。**可判定判準**：四上層全部 [N] 條款逐一於本矩陣有落點列者為完備（已成就）；上層條款增修而本矩陣未同步致某新條款無落點者，聲明重回不完整。
 
 ---
@@ -1038,7 +1049,7 @@ compliance-statement:
 
 **MC [N] 條款覆蓋清單（`§WM.44` 骨架自查，逐一具名以資機器盤點；落點見 Annex TR（TR.A–TR.E／TR.Z））[N]**：`PA`；`EV.1`、`EV.2`、`EV.3`、`EV.4`、`EV.5`、`EV.6`、`EV.7`、`EV.8`、`EV.9`、`EV.10`、`EV.11`、`EV.12`；`F1`、`F2`、`F3`、`F4`、`F5`、`F6`；`P1.D`、`P1.E1`、`P1.E2`、`P1.E3`、`P1.W1`；`P2.D`、`P2.E1`、`P2.E2`、`P2.E3`、`P2.E4`、`P2.E5`、`P2.W1`、`P2.W2`；`P3.D`、`P3.E1`、`P3.E2`、`P3.E3`、`P3.W1`、`P3.W2`；`P4.D`、`P4.E1`、`P4.E2`、`P4.E3`、`P4.E4`、`P4.E5`、`P4.E6`、`P4.E7`、`P4.E8`、`P4.W1`；`P5.D`、`P5.E1`、`P5.E2`、`P5.W1`、`P5.W2`、`P5.W3`、`P5.W4`、`P5.W5`；`§0`、`§0.1`、`§0.2`、`§0.3`、`§0.4`、`§0.5`、`§0.6`、`§1`、`§1.1`、`§1.2`、`§1.3`、`§2`、`§2.1`、`§2.2`、`§2.3`、`§2.4`、`§2.5`、`§2.6`、`§2.7`、`§2.8`、`§2.9`、`§2.10`、`§2.11`、`§3`、`§4`、`§5`、`§5.1`、`§5.2`、`§5.3`、`§5.4`、`§5.5`、`§5.6`、`§6`、`§7`、`§8`、`§8.1`、`§8.2`、`§8.3`、`§8.4`、`§8.5`、`§8.6`。各 `Pn.Y`（`P1.Y`、`P2.Y`、`P3.Y`、`P4.Y`、`P5.Y`）為 [I] 說理條款，本層以「不觸及＋理由：屬各原則之風險說理，非規範義務落點」統一處置（落點／不觸及理由見 Annex TR（TR.A–TR.E／TR.Z）），為骨架覆蓋完備計於此具名。**誠實界限**：本清單＝機器盤點之字面具名；語意承接仍以 Annex TR 為權威，不因本清單宣稱新建語意矩陣或完成「決策四第二輪」嚴格強制。
 
-**逐條對應矩陣已完整枚舉——形式充分性成就**：`AUGUR-MC v1.4`／`AUGUR-WM v1.0`／`AUGUR-ONT v1.0`／`AUGUR-ID v1.0` 全部 [N] 條款 → 本規格落點之**逐條完整枚舉**（`§WM.44` 要求之機器可判完備對應矩陣）已於 Annex TR 作成。依 `§WM.44` 判準，形式充分性**已成就**；**Steward 充任認定業經作成，本規格自 2026-07-17 起生效**（Steward 裁決第 2026-005 號、AL-2026-009；見【地位】、Annex TR.Z），**殘餘生效阻卻已解消**。**實質充分性**仍由違憲審查程序（`AUGUR-MC v1.4 §8.2`）判斷，未因充任而終局確認；上層規格升版或條款增修時本矩陣對應列**必須**同步維護（KS.111 diff 檢查），否則聲明重回不完整。
+**逐條對應矩陣已完整枚舉——形式充分性成就**〔**連同 Annex TR.Y 讀**：「缺 0 條」宣稱經 2026-07-18 更正、手工維護〕：`AUGUR-MC v1.4`／`AUGUR-WM v1.0`／`AUGUR-ONT v1.0`／`AUGUR-ID v1.0` 全部 [N] 條款 → 本規格落點之**逐條完整枚舉**（`§WM.44` 要求之機器可判完備對應矩陣）已於 Annex TR 作成。依 `§WM.44` 判準，形式充分性**已成就**；**Steward 充任認定業經作成，本規格自 2026-07-17 起生效**（Steward 裁決第 2026-005 號、AL-2026-009；見【地位】、Annex TR.Z），**殘餘生效阻卻已解消**。**實質充分性**仍由違憲審查程序（`AUGUR-MC v1.4 §8.2`）判斷，未因充任而終局確認；上層規格升版或條款增修時本矩陣對應列**必須**同步維護（KS.111 diff 檢查），否則聲明重回不完整。
 
 ---
 
@@ -1054,6 +1065,7 @@ compliance-statement:
 > | 「可重放」（DETERMINISTIC 依據） | KS.31 | 存在可重現之機械驗證引用 |
 > | 「as-of 可用」 | KS.42、KS.44 | 承載表能力等級 ≥ A2 ∧ 通道時間屬性雙宣告完備 |
 > | 「最弱環節」（NoLaundering） | KS.34、KS.73 | 證據鏈上 Confidence／Trust Rank 之 meet（下確界）可機器計算 |
+> | 「推理規則 Confidence」 | KS.34 | 缺省＝`STRONG` 且須攜 Grading Method（KS.32）；未指定時 meet 取 `STRONG` |
 > | 「高風險」（Action） | KS.76、KS.101、KS.84 | **DEFER Layer 6 風險分級表（KDO.2）；本層不判定**——本層僅定「高風險 Action 之證據要求結構」（KS.76），風險分級本身為 Layer 6 職掌 |
 >
 > **掃描—完備性義務（[N]，比照 `AUGUR-WM v1.0` Annex E1）**：本規格正文如增列自創或操作化之評價性謂詞，**必須**同步收錄本 EO.1 表；全文謂詞掃描與本表逐列對照，**未收錄且未附判準者採保守解釋**（存疑即不允許，`§8.3`）。此使 EO 對全文評價性謂詞之涵蓋完備性可機器驗證。
@@ -1061,6 +1073,6 @@ compliance-statement:
 
 ---
 
-*本規格計：正文條款 KS.1–KS.111（十位制保留區塊，空號為保留；KS.84 已啟用）、Annex CM（CM.0、CM.1(a)/(b)、CM.2）、Annex EV（EV.0–EV.3）、Annex CL（CL.0–CL.1）、Annex DI（KDI.0–KDI.18）、Annex DO（KDO.0–KDO.7；KDO.3、KDO.5 已啟用）、Annex L3U（L3U.0）、Annex L56（L56.0）、Annex TR（TR.0、TR.A–TR.E、TR.Z）、Annex CS 合規聲明（CS.1–CS.4）、Annex EO（EO.1）。全文以繁體中文為權威文本（§0.4）。本文件為 **v1.1 生效版本**（v1.0 於 2026-07-17 充任生效；v1.1＝2026-07-18 RULING-2026-016／AL-2026-019 之 minor：KS.80 增補款＋KS.81(f)＋KDI.18），自 2026-07-17 起生效（Steward 裁決第 2026-005 號、AL-2026-009；`AUGUR-MC v1.4 §0.5`、【地位】、KS.110）；WM.44 逐條矩陣（Annex TR）已就 MC／WM／ONT／ID 全數逐條完成，形式充分性已成就，**殘餘生效阻卻已解消**；**實質**充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序。*
+*本規格計：正文條款 KS.1–KS.111（十位制保留區塊，空號為保留；KS.84 已啟用）、Annex CM（CM.0、CM.1(a)/(b)、CM.2）、Annex EV（EV.0–EV.3）、Annex CL（CL.0–CL.1）、Annex DI（KDI.0–KDI.18）、Annex DO（KDO.0–KDO.7；KDO.3、KDO.5 已啟用）、Annex L3U（L3U.0）、Annex L56（L56.0）、Annex TR（TR.0、TR.A–TR.E、TR.Z）、Annex CS 合規聲明（CS.1–CS.4）、Annex EO（EO.1）。全文以繁體中文為權威文本（§0.4）。本文件為 **v1.1 生效版本**（v1.0 於 2026-07-17 充任生效；v1.1＝2026-07-18 RULING-2026-016／AL-2026-019 之 minor：KS.80 增補款＋KS.81(f)＋KDI.18），自 2026-07-17 起生效（Steward 裁決第 2026-005 號、AL-2026-009；`AUGUR-MC v1.4 §0.5`、【地位】、KS.110）；WM.44 逐條矩陣（Annex TR）已就 MC／WM／ONT／ID 全數逐條完成，形式充分性已成就〔**連同 Annex TR.Y 讀**〕，**殘餘生效阻卻已解消**；**實質**充分性之最終判斷仍屬 Steward `§8.2` 違憲審查程序。*
 
 **核心產物索引 [I]**：Confidence 單一形式化語義＝§4（KS.30–KS.39）＋Annex CM（單一偏序格 L_C＋官方映射表，解 AUD-03 critical）；五元組欄位不變式＝§3（KS.20，第五元 Confidence 落地）；雙時間 as-of 能力等級＝§5（KS.40–KS.46，A0–A3，解 AUD-08）；supersede/tombstone＝§6（KS.50–KS.55，Supersede Relation 形式化，解 AUD-02）；矛盾保存＝§7；Evidence 分類法/溯源/信任分級/NoLaundering＝§8＋Annex EV；完備性等級＝§9＋Annex CL（DEFER 門檻至 L6）；identity claim Confidence 承接＝§10；L5/L6 分界＝§11＋Annex L56；DEFER 表＝Annex DI/DO；WM.44 矩陣＝Annex TR。

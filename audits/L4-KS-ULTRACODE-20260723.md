@@ -208,8 +208,12 @@ severity：major／**medium**／minor／info。
 
 ### 建議拍板句（供 Steward）
 
-> **接受 L4 ultracode 呈核（零 major、medium×3＋minor×5）；同案 RULING-2026-0XX 順修 F-L4-1（KS.23 同步 ID.50 乙案）＋F-L4-2（KS.34 推理規則 Confidence／EO.1）＋F-L4-3（KS.83(i) 納入語義具體化）及 minor×5；T-KS-6 維持 open-tension 不另開 major；蓋章不動搖。**
+> **接受 L4 ultracode 呈核（零 major、medium×3＋minor×5）；同案 RULING-2026-034 順修 F-L4-1（KS.23 同步 ID.50 乙案）＋F-L4-2（KS.34 推理規則 Confidence／EO.1）＋F-L4-3（KS.83(i) 納入語義具體化）及 minor×5；T-KS-6 維持 open-tension 不另開 major；蓋章不動搖。**
+
+### Steward 定案（2026-07-23）
+
+**Steward 接受 034**——`constitution/RULING-2026-034-L4-KS-ULTRACODE-DISPOSITION.md` 生效；Amendment Log **AL-2026-038**；KS 規格 F-L4-1～8 同案落地；T-KS-6 維持 open-tension；蓋章不動搖。RULING-2026-028 第 3 點獨立對抗核驗**留待另輪**（施作者機械簡核已列 RULING-034 第十二節）。
 
 ---
 
-*本報告為 [I] 審查素材，全程零規格修改（審計交付物除外）。攻擊官／反駁官／批評官：ultracode-L4 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照。*
+*本報告為 [I] 審查素材；ultracode 呈核段已閉環（2026-07-23）。攻擊官／反駁官／批評官：ultracode-L4 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照（施作後複核）。*
