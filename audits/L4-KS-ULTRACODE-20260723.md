@@ -212,8 +212,8 @@ severity：major／**medium**／minor／info。
 
 ### Steward 定案（2026-07-23）
 
-**Steward 接受 034**——`constitution/RULING-2026-034-L4-KS-ULTRACODE-DISPOSITION.md` 生效；Amendment Log **AL-2026-038**；KS 規格 F-L4-1～8 同案落地；T-KS-6 維持 open-tension；蓋章不動搖。RULING-2026-028 第 3 點獨立對抗核驗**留待另輪**（施作者機械簡核已列 RULING-034 第十二節）。
+**Steward 接受 034**——`constitution/RULING-2026-034-L4-KS-ULTRACODE-DISPOSITION.md` 生效；Amendment Log **AL-2026-038**；KS 規格 F-L4-1～8 同案落地；T-KS-6 維持 open-tension；蓋章不動搖。**獨立對抗核驗 PASS**（2026-07-23；RULING-034 第十二節十二項全 ✅；非施作者 3793c37）。
 
 ---
 
-*本報告為 [I] 審查素材；ultracode 呈核段已閉環（2026-07-23）。攻擊官／反駁官／批評官：ultracode-L4 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照（施作後複核）。*
+*本報告為 [I] 審查素材；ultracode 呈核段已閉環（2026-07-23）。攻擊官／反駁官／批評官：ultracode-L4 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照（施作後複核）。**L4 定案**：`constitution/RULING-2026-034-L4-KS-ULTRACODE-DISPOSITION.md`（2026-07-23 Steward **接受 034**；**AL-2026-038**；獨立對抗核驗 PASS 2026-07-23）。*
