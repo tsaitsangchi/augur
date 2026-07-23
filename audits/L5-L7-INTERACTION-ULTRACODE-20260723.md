@@ -215,3 +215,12 @@ venv/bin/python -m pytest tests/test_l7_knowledge_not_null.py -q
 | L5–L7 單層 ultracode | `audits/L5-CK-ULTRACODE-20260723.md`、`audits/L6-AR-ULTRACODE-20260723.md`、`audits/L7-INF-ULTRACODE-20260723.md` |
 | 排程 | `LAYER-SEALING-SCHEDULE.md` §3b；`ULTRACODE-SCHEDULE.md` |
 | L7.21(f) 測試 | `tests/test_l7_knowledge_not_null.py` |
+| RULING-038／AL | `constitution/RULING-2026-038-L5-L7-INTERACTION-3B-DISPOSITION.md`；AL-2026-042 |
+
+---
+
+## 12. Steward 定案（2026-07-23）
+
+**Steward 接受本 Phase 3b 專項覆核、同案 RULING-2026-038／AL-2026-042**——F-IX-3…6 一攬子閉合（CS.3 措辭；LDO.3→`L7（L6 僅監督 UI）`；L7 誠實界限；LDO.4→純 L7）；020 M2 **維持 honest deferred**；025／029 復審日 **仍 2026-10-14**；L5–L7 蓋章不動搖。獨立對抗核驗＝待非施作者（RULING-038 §九）。
+
+*本報告為 [I] 審查素材；3b 呈核＋038 處置閉環（2026-07-23）。*

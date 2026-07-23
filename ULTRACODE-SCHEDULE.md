@@ -38,7 +38,7 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 | **L2** ONT v1.0 | ONTOLOGY-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 032；**獨立核驗通過**） | `audits/L2-ONT-ULTRACODE-20260723.md`（**零 major；1 medium＋3 minor 存活**——**RULING-2026-032 定案、AL-2026-036**；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
 | **L3** ID v1.0 | IDENTITY-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 033；**獨立核驗通過**） | `audits/L3-ID-ULTRACODE-20260723.md`（**零 major；2 medium＋5 minor 存活**——**RULING-2026-033 定案、AL-2026-037**；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
 | **L4** KS v1.1 | KNOWLEDGE-SYSTEM-SPECIFICATION.md | 7 | ✅ 定案（2026-07-23；Steward 接受 034；**獨立核驗通過**） | `audits/L4-KS-ULTRACODE-20260723.md`（**零 major；medium×3＋minor×5 存活**——**RULING-2026-034 定案、AL-2026-038**；T-KS-6 維持 open-tension；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
-| **L5** CK v1.0 | COGNITIVE-KERNEL-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 035；**獨立核驗通過**） | `audits/L5-CK-ULTRACODE-20260723.md`（**零 major；medium×2＋minor×4 存活**——**RULING-2026-035 定案、AL-2026-039**；029 PRV／ASF 程序性閉合（未翻 major）；F-IX-4／6 仍另案；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
+| **L5** CK v1.0 | COGNITIVE-KERNEL-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 035；**獨立核驗通過**） | `audits/L5-CK-ULTRACODE-20260723.md`（**零 major；medium×2＋minor×4 存活**——**RULING-2026-035 定案、AL-2026-039**；029 PRV／ASF 程序性閉合（未翻 major）；F-IX-4／6 **已於 038／AL-2026-042 閉**；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
 | **L6** AR v1.2 | AGENT-RUNTIME-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 036；**獨立核驗通過**） | `audits/L6-AR-ULTRACODE-20260723.md`（**零 major；medium×2＋minor×4 存活**——**RULING-2026-036 定案、AL-2026-040**；020／016／007 已癒合项覆核 PASS；T-L6-5 維持 007 residual；蓋章不動搖；獨立核驗 PASS 2026-07-23） |
 | **L7** Infra v1.0 | INFRASTRUCTURE-SPECIFICATION.md | 6 | ✅ 定案（2026-07-23；Steward 接受 037；**獨立核驗通過**） | `audits/L7-INF-ULTRACODE-20260723.md`（**零 major；medium×2＋minor×6 存活**——**RULING-2026-037 定案、AL-2026-041**；025 residual 维持分階段①至 2026-10-14；lint PASS 7/7 親跑；028 §3 核驗十一項全 ✅ 2026-07-23） |
 
@@ -74,4 +74,4 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 
 ## 收束
 
-各層產出之呈核報告若含 **major**，即為後續 RULING 之材料；若某層之發現動搖其蓋章地位，報告須明載動搖程度（需重採認／需 §8.2 補審／僅需 patch）。**Phase 3b 執行層 L5–7 交互檢查**——✅ 全棧首跑（2026-07-23，`audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md`；027 閉 M-IX-1／2）＋✅ **L5–L7 專項覆核**（同日，`audits/L5-L7-INTERACTION-ULTRACODE-20260723.md`；零新 major；F-IX-3…6 仍 open；025／029 日曆至 2026-10-14）——詳 `LAYER-SEALING-SCHEDULE.md` §3b。**單層 ultracode 與跨層交互檢查為互補而非替代**。
+各層產出之呈核報告若含 **major**，即為後續 RULING 之材料；若某層之發現動搖其蓋章地位，報告須明載動搖程度（需重採認／需 §8.2 補審／僅需 patch）。**Phase 3b 執行層 L5–7 交互檢查**——✅ 全棧首跑（2026-07-23，`audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md`；027 閉 M-IX-1／2）＋✅ **L5–L7 專項覆核**（同日，`audits/L5-L7-INTERACTION-ULTRACODE-20260723.md`）＋✅ **Steward 接受 3b ＋ RULING-2026-038／AL-2026-042**（F-IX-3…6 閉；020 M2 維持 deferred；025／029 復審仍 2026-10-14）——詳 `LAYER-SEALING-SCHEDULE.md` §3b。**單層 ultracode 與跨層交互檢查為互補而非替代**。

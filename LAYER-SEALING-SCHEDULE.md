@@ -23,7 +23,7 @@
 | **L2** ONT | ✅ | ✅RULING-021 | ✅窮舉 | ✅TR.2補4群 | ✅複驗乾淨(a0516e88) | ✅ **已蓋章** | — |
 | **L3** ID | ✅ | ✅ | ✅ | ✅ | ✅再驗乾淨(aa7cc78e) | ✅ **已蓋章** | — |
 | **L4** KS | ✅ | ✅ | ✅ | ✅ | ✅再驗乾淨(a0cda4f) | ✅ **已蓋章** | — |
-| **L5** Cognitive | ✅ | ✅撤回→重採認(RULING-023乙) | ✅矩陣重作(TR.F 16 KS塊+L5.10 as-of) | ✅ | ✅複驗 | ✅ **v1.0（§8.2 條件通過 RULING-2026-029，2026-07-23；provisional 已解除）** | 附條件：L5 單層 ultracode PRV／ASF 複核於 2026-10-14 前執行（翻 major 另依 §8.2 辦）＋F-IX-4／F-IX-6 簿記另案 minor；復審 2026-10-14（與 L7 residual 同日併結）；AL-2026-032 |
+| **L5** Cognitive | ✅ | ✅撤回→重採認(RULING-023乙) | ✅矩陣重作(TR.F 16 KS塊+L5.10 as-of) | ✅ | ✅複驗 | ✅ **v1.0（§8.2 條件通過 RULING-2026-029，2026-07-23；provisional 已解除）** | 附條件：L5 單層 ultracode PRV／ASF 複核——**035 程序性閉合**；F-IX-4／F-IX-6——**038／AL-2026-042 已閉**；復審 2026-10-14（與 L7 residual 同日併結）；AL-2026-032 |
 | **L6** Agent Runtime | ✅ | ✅RULING-020 | ✅ | ✅ | ✅G5乾淨(a34d411) | ✅ **已蓋章** | 2 minor 待順修(非阻斷) |
 | **L7** Infra | ✅ | ✅ | ✅ | ✅ | ✅§8.2 條件通過 | ✅ **v1.0（RULING-025）** | residual iii/iv/vi 分階段①、復審 2026-10-14 |
 
@@ -87,6 +87,7 @@
 * **前置**（3/3 齊，2026-07-19）：L6 G5 蓋章 **✅**；L5 重採認 **✅**（RULING-2026-023 乙）；L7 §8.2 **✅條件通過**（RULING-2026-025）。
 * **全棧首跑**：L0 投影＋L4↔L5＋L5↔L6＋L6↔L7＋L7→物理＋X1–X4——[`audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md`](audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md)（2 major＋4 medium；probe **1/7**）。
 * **✅ M-IX-1／M-IX-2 已修（RULING-2026-027／AL-2026-030）**：KS FM 補 `WM.D22`；L5 編號地圖改「L5.10 已啟用」。
-* **✅ L5–L7 專項覆核（2026-07-23 晚段；疊加 035／036／037）**：[`audits/L5-L7-INTERACTION-ULTRACODE-20260723.md`](audits/L5-L7-INTERACTION-ULTRACODE-20260723.md)——**零新 major**；027 閉環有效；F-IX-3…6 **四 medium 仍 open**；020 M2 **honest deferred**；025 (iii)(iv)(vi)／029 復審 **2026-10-14 日曆留痕**（本輪不假裝結清）；L7.21(f) **`tests/test_l7_knowledge_not_null.py` 6/6 PASS**（PG5432）；probe **4/7**。
-* **待 Steward**：F-IX-3…6 另案 minor（建議候選 RULING-2026-038）；020 M2 trigger 設計；025／029 **2026-10-14 併結復審**。
+* **✅ L5–L7 專項覆核（2026-07-23 晚段；疊加 035／036／037）**：[`audits/L5-L7-INTERACTION-ULTRACODE-20260723.md`](audits/L5-L7-INTERACTION-ULTRACODE-20260723.md)——**零新 major**；027 閉環有效；020 M2 **honest deferred**；025 (iii)(iv)(vi)／029 復審 **2026-10-14 日曆留痕**；L7.21(f) **6/6 PASS**；probe **4/7**。
+* **✅ Steward 接受 3b ＋ RULING-2026-038／AL-2026-042（2026-07-23）**：F-IX-3…6 **一攬子閉合**（L6 CS.3 措辭；L5 LDO.3→`L7（L6 僅監督 UI）`；L7 誠實界限；L5 LDO.4→純 L7）；**禁止假關 020 M2**；025／029 復審日 **仍 2026-10-14**；L5–L7 蓋章不動搖。
+* **仍開放**：020 M2 trigger 設計（執行層）；025／029 **2026-10-14 併結復審**。
 * **計畫**：[`reports/augur_l0_l7_interaction_ultracode_plan_20260723.md`](reports/augur_l0_l7_interaction_ultracode_plan_20260723.md)。

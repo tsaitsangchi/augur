@@ -429,11 +429,11 @@
 * **驗證**：`python3 -m tools.constitution_lint compliance specs/AGENT-RUNTIME-SPECIFICATION.md` error 0／warning 0（2026-07-23 獨立核驗親跑）；RULING-2026-036 第十一節十一項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 6ce22ae；L7 lint error 1 本案範圍外）
 * **定案**：Steward 2026-07-23 **接受 L6 ultracode 呈核、同案 036**
 
-## AL-2026-041
+## AL-2026-042
 
 * **日期**：2026-07-23
-* **事項**：Steward 裁決第 2026-037 號——**L7（AUGUR-INF v1.0）單層 ultracode findings 一攬子處置**：F-L7-1（upper-specs／全文 L6 v1.2 同步＋CS mc-version v1.5）＋F-L7-2（L7.21(f) 四欄可執行回歸 `tests/test_l7_knowledge_not_null.py`）＋F-L7-3–8（L7.16 測試引用、L7.45(d) 領域基線註記、OPEN-L7-00 分拆、CS.4 DRAFT 刪、020 M2 誠實 deferred）。**分級登錄**：F-L7-1／2＝medium；F-L7-3–8＝minor；**零 major**。**025 (iii)(iv)(vi) residual 維持分階段①至 2026-10-14**（不關閉）。**蓋章不動搖**。**INF 版本維持 v1.0、MC [N] 本文零改、PA 零觸**
-* **文件**：[RULING-2026-037-L7-INF-ULTRACODE-DISPOSITION.md](RULING-2026-037-L7-INF-ULTRACODE-DISPOSITION.md)；findings `audits/L7-INF-ULTRACODE-20260723.md`
-* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
-* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 獨立核驗親跑；L7 error 0／warning 0）；RULING-2026-037 第十二節十一項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 4411e2f）
-* **定案**：Steward 2026-07-23 **接受 L7 ultracode 呈核、同案 037**
+* **事項**：Steward 裁決第 2026-038 號——**接受 Phase 3b（L5–L7 執行層交互專項覆核）＋F-IX-3…6 一攬子 minor**：F-IX-3（L6 CS.3 措辭：WM.D13/15/22/24/28 不另設 LDI 專列、LDI.0 單向）＋F-IX-4（L5 LDO.3 目標→`L7（L6 僅監督 UI）`）＋F-IX-5（L7 CS.4 覆蓋清單補誠實界限句）＋F-IX-6（L5 LDO.4 目標→純 `L7`）。**分級登錄**：F-IX-3…6＝medium；**零 major**。**020 M2 維持 honest deferred**；**025／029 復審日維持 2026-10-14**（不關閉）。**蓋章不動搖**。**CK／AR／INF 版本維持、MC／PA 零觸**
+* **文件**：[RULING-2026-038-L5-L7-INTERACTION-3B-DISPOSITION.md](RULING-2026-038-L5-L7-INTERACTION-3B-DISPOSITION.md)；findings `audits/L5-L7-INTERACTION-ULTRACODE-20260723.md`
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核（Sole Steward 拍板「接受 Phase 3b ＋ RULING-2026-038」）
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 施作親跑）；RULING-2026-038 第九節十項 **待獨立對抗核驗**（非施作者）
+* **定案**：Steward 2026-07-23 **接受 Phase 3b、同案 038**
