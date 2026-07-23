@@ -74,14 +74,14 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 
 ## 收束
 
-各層產出之呈核報告若含 **major**，即為後續 RULING 之材料；若某層之發現動搖其蓋章地位，報告須明載動搖程度（需重採認／需 §8.2 補審／僅需 patch）。**Phase 3b 執行層 L5–7 交互檢查**——✅ 全棧首跑（2026-07-23，`audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md`；027 閉 M-IX-1／2）＋✅ **L5–L7 專項覆核**（同日，`audits/L5-L7-INTERACTION-ULTRACODE-20260723.md`）＋✅ **Steward 接受 3b ＋ RULING-2026-038／AL-2026-042**（F-IX-3…6 閉；020 M2 維持 deferred；025／029 復審仍 2026-10-14）＋✅ **038 獨立核驗 PASS**（2026-07-23；§九 十項全 ✅；`audits/RULING-2026-038-INDEPENDENT-VERIFY-20260723.md`）——詳 `LAYER-SEALING-SCHEDULE.md` §3b。**單層 ultracode 與跨層交互檢查為互補而非替代**。
+各層產出之呈核報告若含 **major**，即為後續 RULING 之材料；若某層之發現動搖其蓋章地位，報告須明載動搖程度（需重採認／需 §8.2 補審／僅需 patch）。**Phase 3b 執行層 L5–7 交互檢查**——✅ 全棧首跑（2026-07-23，`audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md`；027 閉 M-IX-1／2）＋✅ **L5–L7 專項覆核**（同日，`audits/L5-L7-INTERACTION-ULTRACODE-20260723.md`）＋✅ **Steward 接受 3b ＋ RULING-2026-038／AL-2026-042**（F-IX-3…6 閉；020 M2 維持 deferred；025／029 復審仍 2026-10-14）＋✅ **038 獨立核驗 PASS**（2026-07-23；§九 十項全 ✅；`audits/RULING-2026-038-INDEPENDENT-VERIFY-20260723.md`）＋✅ **residual omnibus RULING-2026-039／AL-2026-043**（2026-07-23）＋✅ **039 獨立核驗 PASS**（2026-07-23；第十四節十項全 ✅；`audits/RULING-2026-039-INDEPENDENT-VERIFY-20260723.md`）——詳 `LAYER-SEALING-SCHEDULE.md` §3b。**單層 ultracode 與跨層交互檢查為互補而非替代**。
 
 ---
 
 ## Residual omnibus（RULING-2026-039／AL-2026-043；2026-07-23）
 
 * **計畫**：`reports/augur_l0_l7_residual_omnibus_disposition_plan_20260723.md`
-* **狀態**：✅ **全部殘留已拍板**（可閉則閉；open-tension／日曆＝明示再確認；**禁止假關** OT-5／T-KS-6／T-L6-5／025／020 M2／無 Evidence 10-14）
+* **狀態**：✅ **全部殘留已拍板**（可閉則閉；open-tension／日曆＝明示再確認；**禁止假關** OT-5／T-KS-6／T-L6-5／025／020 M2／無 Evidence 10-14）＋✅ **039 獨立核驗 PASS**（2026-07-23；第十四節十項全 ✅；`audits/RULING-2026-039-INDEPENDENT-VERIFY-20260723.md`）
 * **同案**：AL-2026-041 補登（037 漏列）；L1–L6 CS `mc-version`→v1.5
 
 | 殘留 | 類 | 拍板 |
