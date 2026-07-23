@@ -448,7 +448,7 @@ def render(data: dict) -> str:
              f"{v['label_errors_upper'] + v['label_errors_unclassified']}」即為捏造。")
     L.append(f"  比對筆數合計                 ： {v['compared_total']}"
              f"（MC {v['compared_mc']}／上層 {v['compared_upper']}）— 與 error 數為不同量，勿混用")
-    L.append(f"  憲章 [N] 條款宇宙（母集）    ： {v['mc_universe']} 條")
+    L.append(f"  憲章條款宇宙（母集；97[N]+5[I] WHY）： {v['mc_universe']} 條")
     L.append("")
     L.append("【error 分型】（取自 finding 之 `kind` 欄，於生成處指定；非以 grep 訊息反推）")
     for k, n in sorted(data["kinds"].items(), key=lambda kv: -kv[1]):

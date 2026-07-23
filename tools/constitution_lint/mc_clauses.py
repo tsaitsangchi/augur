@@ -1,6 +1,6 @@
 """從 META-CONSTITUTION.md 枚舉 102 條條款宇宙（97 [N]＋5 [I] WHY；供 WM.44 形式充分性覆蓋檢查）＋抽取原文標籤。
 
-依 `AUGUR-MC v1.3 §0.3` 條款編號系統：PA｜P{n}.D / P{n}.W{m} / P{n}.Y / P{n}.E{m}｜EV.1–EV.12｜F1–F6｜
+依 `AUGUR-MC v1.5 §0.3` 條款編號系統：PA｜P{n}.D / P{n}.W{m} / P{n}.Y / P{n}.E{m}｜EV.1–EV.12｜F1–F6｜
 **§2.{n}（Definitions）**；另「章節號（§0–§9 及其小節與項次，如 §8.3、§2.11）視同條款編號」。
 
 **B3 修正（條款宇宙不完整）**：前版 `_SECTION_SUB` 僅匹配 heading（`^#{2,4} §?n.m`），而 §2 之十一條

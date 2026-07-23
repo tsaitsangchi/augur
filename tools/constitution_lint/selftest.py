@@ -134,8 +134,8 @@ def run(quiet: bool = False):
         "禁插補冒充 Representation Representation" in msgs)
 
     # ── G3 回歸鎖：代號脫檢不得靜默（弄壞代號不得比修好標籤容易）────────────────────
-    chk("G3 突變鎖：代號形態合致但不在 [N] 宇宙（`P5.E9`）→ error、非靜默略過",
-        any(f.rule == "WM.44-LABEL" and "`P5.E9`" in f.message and "不在憲章 [N] 條款宇宙" in f.message
+    chk("G3 突變鎖：代號形態合致但不在條款宇宙（`P5.E9`）→ error、非靜默略過",
+        any(f.rule == "WM.44-LABEL" and "`P5.E9`" in f.message and "不在憲章條款宇宙" in f.message
             for f in r.errors))
     chk("  └ G3 前綴已知但未列於 upper-specs（`KS.1`）→ warning（非 error、非靜默）",
         any(f.rule == "WM.44-LABEL" and "`KS.1`" in f.message for f in r.warnings))

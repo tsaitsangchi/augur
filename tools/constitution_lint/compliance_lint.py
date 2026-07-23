@@ -811,8 +811,9 @@ def _report_unresolved_code(res, code, label, universe, sources, loc):
     first = code.split("–")[0]
     if _MC_CODE_FULL.match(first) and first not in universe:
         res.add("WM.44-LABEL", Severity.ERROR,
-                f"{base}——該代號合於 `AUGUR-MC §0.3` 之條款編號形態，卻不在憲章 [N] 條款宇宙"
-                f"（共 {len(universe)} 條）之內：憲章側代號之宇宙為封閉且可枚舉，形態合致而不在其中者，"
+                f"{base}——該代號合於 `AUGUR-MC §0.3` 之條款編號形態，卻不在憲章條款宇宙"
+                f"（共 {len(universe)} 條＝97 [N]＋5 [I] WHY；權威落點＝WM.44／RULING-017 §0.3）之內："
+                f"憲章側代號之宇宙為封閉且可枚舉，形態合致而不在其中者，"
                 f"非誤植即杜撰。**代號不存在則其標籤無所附麗**，該列不得作為形式充分性之枚舉依據"
                 f"（`§8.2`：[N] 原文優於轉述）",
                 "AUGUR-WM v1.0 §WM.44 / AUGUR-MC v1.3 §8.2", loc, kind="code_not_in_universe")

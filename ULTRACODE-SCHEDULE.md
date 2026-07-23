@@ -86,7 +86,7 @@ Synthesize → Steward 呈核報告（含**誠實界限節**，不得省略）
 
 | 殘留 | 類 | 拍板 |
 |---|---|---|
-| XRF-1 | A | 操作閉（工具層）；歷史裁決幽靈措辭不改本文 |
+| XRF-1 | A | 操作閉（工具層）；歷史裁決幽靈措辭不改本文；**路徑 A 措辭衛生已執行**（2026-07-23；見 `audits/MC-TOOL-HYGIENE-20260723.md`、`constitution/adoption-drafts/RULING-PHRASEOLOGY.md`） |
 | GOV-3 B | B | 觀察觸發維持 |
 | F-L1-2／3 | C | DEFER 下次 WM 升版 |
 | WM.35／36 | D | 到期 **2026-10-14** |
