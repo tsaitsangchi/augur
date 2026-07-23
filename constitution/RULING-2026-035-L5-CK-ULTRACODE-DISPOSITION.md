@@ -66,22 +66,24 @@
 
 ## 十一、獨立對抗核驗（RULING-2026-028 第 3 點 (b)）
 
-> **誠實揭露**：下列項次為 commit 後**須經非施作者**確認之核驗清單。**獨立對抗核驗待執行**（本輪施作者不得自核）。
+> **誠實揭露**：下列項次為 commit 後**須經非施作者**確認之核驗清單。**獨立對抗核驗已完成**（2026-07-23；核驗者＝Cursor 獨立核驗 agent；方法＝逐項檔案原文／`git show 15f3ef1`／親跑 lint；非施作者 15f3ef1）。
 
 | # | 核驗項 | 範圍 | 狀態 |
 |---|---|---|---|
-| 1 | **EO.1 L5.10 謂詞**：三翼 as-of／anti-leakage／能力透明已收錄 | EO.1 | ⏳ 待獨立核驗 |
-| 2 | **L5.6(iii) Computational 最低滿足**：可重放映射＋model 版本；feature attribution DEFER L7 | L5.6 | ⏳ 待獨立核驗 |
-| 3 | **enumeration 納 L5.10**：LDI.6／TR.B／CS.3(a) 一致 | LDI.6、TR.B、CS.3 | ⏳ 待獨立核驗 |
-| 4 | **L5.90 無 DRAFT**：與 v1.0 生效敘事一致 | L5.90 | ⏳ 待獨立核驗 |
-| 5 | **CS.2 T-L5-1…5**：無裸 DRAFT、已核定（029） | CS.2 | ⏳ 待獨立核驗 |
-| 6 | **TR.F 歷史語**：無「零列／現全缺」與 16 列在卷矛盾 | TR.F | ⏳ 待獨立核驗 |
-| 7 | **029 PRV／ASF 程序性閉合**：035 §七登錄、不重開 §8.2 | RULING-029／035 | ⏳ 待獨立核驗 |
-| 8 | **[N] 零逾越**：diff 限本裁決核示之 patch | CK 全 diff | ⏳ 待獨立核驗 |
-| 9 | **lint 基線**：`python3 -m tools.constitution_lint report` error 0／warning 0 | 全 corpus | ⏳ 待獨立核驗 |
-| 10 | **PA／五原則 byte 零改** | `constitution/` 五原則檔 | ⏳ 待獨立核驗 |
-| 11 | **F-IX-4／6 仍另案**：未併入本案 diff | LDO.3／LDO.4 | ⏳ 待獨立核驗 |
-| 12 | **蓋章不動搖**：零 major、CK v1.0 維持 | 全案 | ⏳ 待獨立核驗 |
+| 1 | **EO.1 L5.10 謂詞**：三翼 as-of／anti-leakage／能力透明已收錄 | EO.1 | ✅ 獨立核驗 PASS（2026-07-23；`:537-539` 三謂詞對齊 L5.10(a)(b)(c)） |
+| 2 | **L5.6(iii) Computational 最低滿足**：可重放映射＋model 版本；feature attribution DEFER L7 | L5.6 | ✅ 獨立核驗 PASS（2026-07-23；`:140` 可重放映射＋model 版本；feature attribution DEFER L7／LDO.3） |
+| 3 | **enumeration 納 L5.10**：LDI.6／TR.B／CS.3(a) 一致 | LDI.6、TR.B、CS.3 | ✅ 獨立核驗 PASS（2026-07-23；`:201`、`:283`、`:506` 均 L5.1–L5.10） |
+| 4 | **L5.90 無 DRAFT**：與 v1.0 生效敘事一致 | L5.90 | ✅ 獨立核驗 PASS（2026-07-23；`:173` v1.0 生效 RULING-2026-029；全檔零裸 DRAFT） |
+| 5 | **CS.2 T-L5-1…5**：無裸 DRAFT、已核定（029） | CS.2 | ✅ 獨立核驗 PASS（2026-07-23；`:494-498` 五列均「已核定（029）」） |
+| 6 | **TR.F 歷史語**：無「零列／現全缺」與 16 列在卷矛盾 | TR.F | ✅ 獨立核驗 PASS（2026-07-23；`:428-443` 16 列在卷；歷史語改「已補列（019 重作）」） |
+| 7 | **029 PRV／ASF 程序性閉合**：035 §七登錄、不重開 §8.2 | RULING-029／035 | ✅ 獨立核驗 PASS（2026-07-23；findings 冊 PRV 零 finding、ASF 未翻 major；035 §七程序性閉合、F-IX-4／6 仍另案） |
+| 8 | **[N] 零逾越**：diff 限本裁決核示之 patch | CK 全 diff | ✅ 獨立核驗 PASS（2026-07-23；15f3ef1 限 5 檔、CK +40/-17，僅 F-L5-1～6 授權範圍） |
+| 9 | **lint 基線**：`python3 -m tools.constitution_lint report` error 0／warning 0 | 全 corpus | ✅ 獨立核驗 PASS（2026-07-23；PASS 7／7 親跑；error 0／warning 0） |
+| 10 | **PA／五原則 byte 零改** | `constitution/` 五原則檔 | ✅ 獨立核驗 PASS（2026-07-23；15f3ef1 MC／PA 檔零 diff） |
+| 11 | **F-IX-4／6 仍另案**：未併入本案 diff | LDO.3／LDO.4 | ✅ 獨立核驗 PASS（2026-07-23；LDO.3／LDO.4 目標欄未改；035 §七／§八仍列另案） |
+| 12 | **蓋章不動搖**：零 major、CK v1.0 維持 | 全案 | ✅ 獨立核驗 PASS（2026-07-23；零 major；【地位】v1.0 生效維持） |
+
+**誠實揭露**：上列十二項均經獨立 agent 逐項原文／diff／lint 覆核，與施作者機械簡核結論一致；零殘留阻塞項。
 
 **Steward 2026-07-23：**接受 L5 ultracode 呈核、同案 035**（定案）**
 
@@ -92,4 +94,4 @@
 > - [x] **逐項改核**：全照收（無逐項改核）
 > - [ ] 修改意見：（無）
 
-*本裁決定案（2026-07-23；Steward **接受 L5 ultracode 呈核、同案 035**）。L5 ultracode 處置閉環；蓋章不動搖。第十一節獨立對抗核驗**待另輪**（非施作者）。*
+*本裁決定案（2026-07-23；Steward **接受 L5 ultracode 呈核、同案 035**）。L5 ultracode 處置閉環；蓋章不動搖。第十一節獨立對抗核驗已完成（2026-07-23；十二項全 ✅）。*

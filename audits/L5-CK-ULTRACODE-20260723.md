@@ -198,8 +198,8 @@ severity：major／**medium**／minor／info。
 
 ### Steward 定案（2026-07-23）
 
-**Steward 接受 L5 ultracode 呈核、同案 035**——`constitution/RULING-2026-035-L5-CK-ULTRACODE-DISPOSITION.md` 生效；Amendment Log **AL-2026-039**；CK 規格 F-L5-1～6 同案落地；029 PRV／ASF **程序性閉合**（未翻 major）；F-IX-4／F-IX-6 仍另案 minor；蓋章不動搖。**獨立對抗核驗待另輪**（RULING-035 第十一節十二項）。
+**Steward 接受 L5 ultracode 呈核、同案 035**——`constitution/RULING-2026-035-L5-CK-ULTRACODE-DISPOSITION.md` 生效；Amendment Log **AL-2026-039**；CK 規格 F-L5-1～6 同案落地；029 PRV／ASF **程序性閉合**（未翻 major）；F-IX-4／F-IX-6 仍另案 minor；蓋章不動搖。**獨立對抗核驗 PASS**（2026-07-23；RULING-035 第十一節十二項全 ✅；非施作者 15f3ef1）。
 
 ---
 
-*本報告為 [I] 審查素材；ultracode 呈核段已閉環（2026-07-23）。攻擊官／反駁官／批評官：ultracode-L5 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照（施作後複核）。**L5 定案**：`constitution/RULING-2026-035-L5-CK-ULTRACODE-DISPOSITION.md`（2026-07-23 Steward **接受 035**；**AL-2026-039**；獨立對抗核驗待另輪）。*
+*本報告為 [I] 審查素材；ultracode 呈核段已閉環（2026-07-23）。攻擊官／反駁官／批評官：ultracode-L5 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照（施作後複核）。**L5 定案**：`constitution/RULING-2026-035-L5-CK-ULTRACODE-DISPOSITION.md`（2026-07-23 Steward **接受 035**；**AL-2026-039**；獨立對抗核驗 PASS 2026-07-23）。*
