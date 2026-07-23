@@ -390,5 +390,5 @@
 * **事項**：Steward 裁決第 2026-032 號——**L2（AUGUR-ONT v1.0）單層 ultracode findings 一攬子處置**：F-L2-1 甲案（T.28 矛盾句統一措辭＋CS.8 增 OT-5 揭露，不改 parent）＋F-L2-2／3（TR.2 WM.53 析出改標、Annex A 區塊分列）＋F-L2-4（T.6 判準補外部識別碼體系×代碼值×有效期間，minor）。**分級登錄**：F-L2-1＝medium；F-L2-2／3／4＝minor；**零 major**。**蓋章不動搖**。**ONT 版本維持 v1.0、MC／PA 零觸**
 * **文件**：[RULING-2026-032-L2-ONT-ULTRACODE-DISPOSITION.md](RULING-2026-032-L2-ONT-ULTRACODE-DISPOSITION.md)；findings `audits/L2-ONT-ULTRACODE-20260723.md`
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
-* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 同輪機械簡核親跑）；RULING-2026-032 第七節八項全 ✅（同輪機械簡核）
-* **定案**：Steward 2026-07-23 **接受 032**
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 獨立核驗親跑）；RULING-2026-032 第七節八項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 a8a425f5）
+* **定案**：Steward 2026-07-23 **接受 032**（獨立核驗通過後定案）
