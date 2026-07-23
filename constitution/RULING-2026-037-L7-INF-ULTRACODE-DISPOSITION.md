@@ -70,21 +70,23 @@
 
 ## 十二、獨立對抗核驗（RULING-2026-028 第 3 點 (b)）
 
-> **誠實揭露**：下列項次為 commit 後**須經非施作者**確認之核驗清單。**待獨立 agent 逐項覆核**（本節占位；施作者不得自核）。
+> **誠實揭露**：下列項次為 commit 後**須經非施作者**確認之核驗清單。**獨立對抗核驗已完成**（2026-07-23；核驗者＝Cursor 獨立核驗 agent；方法＝逐項檔案原文／`git show 4411e2f`／親跑 lint；非施作者 4411e2f）。
 
 | # | 核驗項 | 範圍 | 狀態 |
 |---|---|---|---|
-| 1 | **L6 v1.2 引用**：§0.1／CS upper-specs／【地位】／全文零 `AUGUR-L6 v1.0` | INF 全檔 | ⏳ 待獨立核驗 |
-| 2 | **lint L7 歸零**：`compliance specs/INFRASTRUCTURE-SPECIFICATION.md` error 0 | L7 | ⏳ 待獨立核驗 |
-| 3 | **corpus PASS 7/7**：`python3 -m tools.constitution_lint report` | 全 corpus | ⏳ 待獨立核驗 |
-| 4 | **L7.21(f) 測試掛點**：規格 `:253` 與 `tests/test_l7_knowledge_not_null.py` 四欄逐項 | L7.21(f) | ⏳ 待獨立核驗 |
-| 5 | **OPEN-L7-00 分拆**：物理 PG vs Bearer 未登錄 | OPEN | ⏳ 待獨立核驗 |
-| 6 | **CS.4 無 DRAFT 殘句** | CS.4 | ⏳ 待獨立核驗 |
-| 7 | **025 residual 維持**：(iii)(iv)(vi) 分階段①、復審 2026-10-14、未關閉 | 025 §二 | ⏳ 待獨立核驗 |
-| 8 | **020 M2 誠實 deferred**：L7 不虛假承接 trigger | CS.4 | ⏳ 待獨立核驗 |
-| 9 | **[N] 零逾越**：diff 限本裁決核示之 patch | INF 全 diff | ⏳ 待獨立核驗 |
-| 10 | **PA／五原則 byte 零改** | `constitution/` 五原則檔 | ⏳ 待獨立核驗 |
-| 11 | **蓋章不動搖**：零 major、INF v1.0 維持 | 全案 | ⏳ 待獨立核驗 |
+| 1 | **L6 v1.2 引用**：§0.1／CS upper-specs／【地位】／全文零 `AUGUR-L6 v1.0` | INF 全檔 | ✅ 獨立核驗 PASS（2026-07-23；全檔零 `AUGUR-L6 v1.0`；112 處 `AUGUR-L6 v1.2`；§0.1 `:60`、CS `:957-958` upper-specs／mc-version v1.5） |
+| 2 | **lint L7 歸零**：`compliance specs/INFRASTRUCTURE-SPECIFICATION.md` error 0 | L7 | ✅ 獨立核驗 PASS（2026-07-23；error 0／warning 0／info 2 親跑；L6 v1.2 22 筆 TR 已比對） |
+| 3 | **corpus PASS 7/7**：`python3 -m tools.constitution_lint report` | 全 corpus | ✅ 獨立核驗 PASS（2026-07-23；PASS 7/7、errors_L7=0、warnings_L7=0、git HEAD 4411e2f 親跑） |
+| 4 | **L7.21(f) 測試掛點**：規格 `:253` 與 `tests/test_l7_knowledge_not_null.py` 四欄逐項 | L7.21(f) | ✅ 獨立核驗 PASS（2026-07-23；`:253` `:255` 明示掛點；測試 4 欄 parametrize＋schema 盤點＋skip 路徑；**pytest／PG 未裝→結構對齊、未實跑**） |
+| 5 | **OPEN-L7-00 分拆**：物理 PG vs Bearer 未登錄 | OPEN | ✅ 獨立核驗 PASS（2026-07-23；`:152` L7.11「物理 PG 已存在」；`:692` OPEN-L7-00「未登錄 ≠ 無 DB」） |
+| 6 | **CS.4 無 DRAFT 殘句** | CS.4 | ✅ 獨立核驗 PASS（2026-07-23；`:1073` 末段零「本子代理不宣稱…（DRAFT）」；全檔 grep 零匹配） |
+| 7 | **025 residual 維持**：(iii)(iv)(vi) 分階段①、復審 2026-10-14、未關閉 | 025 §二 | ✅ 獨立核驗 PASS（2026-07-23；037 §八維持分階段①；025 §二① 復審 2026-10-14 未改；②③ 在卷未觸發） |
+| 8 | **020 M2 誠實 deferred**：L7 不虛假承接 trigger | CS.4 | ✅ 獨立核驗 PASS（2026-07-23；`:1073` cross-layer 追蹤「L7 誠實未承接…俟 Phase 3b」） |
+| 9 | **[N] 零逾越**：diff 限本裁決核示之 patch | INF 全 diff | ✅ 獨立核驗 PASS（2026-07-23；4411e2f 限 6 檔、INF +214/-109，F-L7-1～8 授權範圍；無 [N] 義務句逾越） |
+| 10 | **PA／五原則 byte 零改** | `constitution/` 五原則檔 | ✅ 獨立核驗 PASS（2026-07-23；4411e2f MC／PA／五原則檔零 diff） |
+| 11 | **蓋章不動搖**：零 major、INF v1.0 維持 | 全案 | ✅ 獨立核驗 PASS（2026-07-23；零 major；【地位】v1.0 生效維持；025 residual 分階段①保留） |
+
+**誠實揭露**：上列十一項均經獨立 agent 逐項原文／diff／lint 覆核；L7.21(f) 測試本環境 pytest／psycopg2 未裝，結構對齊 PASS、執行層實跑 SKIP。
 
 **Steward 2026-07-23：**接受 L7 ultracode 呈核、同案 037**（定案）**
 
@@ -95,4 +97,4 @@
 > - [x] **逐項改核**：全照收（無逐項改核）
 > - [ ] 修改意見：（無）
 
-*本裁決定案（2026-07-23；Steward **接受 L7 ultracode 呈核、同案 037**）。L7 ultracode 處置閉環；蓋章不動搖。第十二節獨立對抗核驗**待另輪**（RULING-2026-028 §3）。*
+*本裁決定案（2026-07-23；Steward **接受 L7 ultracode 呈核、同案 037**）。L7 ultracode 處置閉環；蓋章不動搖。第十二節獨立對抗核驗已完成（2026-07-23；十一項全 ✅）。*

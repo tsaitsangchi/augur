@@ -435,5 +435,5 @@
 * **事項**：Steward 裁決第 2026-037 號——**L7（AUGUR-INF v1.0）單層 ultracode findings 一攬子處置**：F-L7-1（upper-specs／全文 L6 v1.2 同步＋CS mc-version v1.5）＋F-L7-2（L7.21(f) 四欄可執行回歸 `tests/test_l7_knowledge_not_null.py`）＋F-L7-3–8（L7.16 測試引用、L7.45(d) 領域基線註記、OPEN-L7-00 分拆、CS.4 DRAFT 刪、020 M2 誠實 deferred）。**分級登錄**：F-L7-1／2＝medium；F-L7-3–8＝minor；**零 major**。**025 (iii)(iv)(vi) residual 維持分階段①至 2026-10-14**（不關閉）。**蓋章不動搖**。**INF 版本維持 v1.0、MC [N] 本文零改、PA 零觸**
 * **文件**：[RULING-2026-037-L7-INF-ULTRACODE-DISPOSITION.md](RULING-2026-037-L7-INF-ULTRACODE-DISPOSITION.md)；findings `audits/L7-INF-ULTRACODE-20260723.md`
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
-* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 施作者親跑；L7 error 0／warning 0）；RULING-2026-037 第十二節十一項**待獨立對抗核驗**（028 §3）
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 獨立核驗親跑；L7 error 0／warning 0）；RULING-2026-037 第十二節十一項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 4411e2f）
 * **定案**：Steward 2026-07-23 **接受 L7 ultracode 呈核、同案 037**
