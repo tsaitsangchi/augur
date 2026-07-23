@@ -11,6 +11,8 @@
 
 密鑰與資料庫 dump **永不進 git**（見 `.gitignore`：`.env`、`*.dump`）。
 
+Git 同步／封存：拉取 `bash sync_from_github.sh` · 封存 push `bash scripts/archive_push.sh`（詳 [`HANDOFF.md`](HANDOFF.md)）。
+
 ---
 
 
