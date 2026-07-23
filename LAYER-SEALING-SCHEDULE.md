@@ -83,10 +83,10 @@
   (1) P5.W4 最小權限於 WM 全篇無承接（核心 [N] 無家）；(2) ID/KS 之 WM Annex D 處置表用廢棄舊編號、兩層互斥；(3) KS 誤標 9 列 D 編號；(4) KS 誤認 D19 為 RBAC、斷鏈。
 * **處置**：→ **RULING-2026-022**（cross-layer patch）待作成。**「單層完整」成立、「整合完整」差此 4 條**。
 
-## 3b. 執行層 L5–7 交互檢查 — ✅ 已執行（2026-07-23；全棧含 L0 投影＋L4↔L5）
+## 3b. 執行層 L5–7 交互檢查 — ✅ 已執行（2026-07-23；全棧＋L5–7 專項覆核）
 * **前置**（3/3 齊，2026-07-19）：L6 G5 蓋章 **✅**；L5 重採認 **✅**（RULING-2026-023 乙）；L7 §8.2 **✅條件通過**（RULING-2026-025）。
-* **接縫**：L0 投影抽樣、L4→L5（KDO／LDI）、L5→L6（LDO）、L6→L7（defers-out／LDI）、**L7→物理**（OPEN↔`operability_probe`）；橫貫 X1–X4（§0.6(b)／DEFER 雙向／幽靈落點／WM.44 誠實界限）。
-* **結果**：見 [`audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md`](audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md)——**2 存活 cross-layer major**（(1) KS KDI.18／§D22 缺 front-matter `defers-in`；(2) L5.10 已准入但編號地圖仍稱保留空號）＋ 4 medium；主鏈 LDO／風險分級／L6.15 非幽靈；本機 probe **1/7** 與 OPEN-00…05 一致。3a／RULING-2026-022 四 major 抽查仍立。
-* **處置**：major → Steward 另開交互 RULING（建議候選 2026-027）；本輪**未**改 [N]。lint 基線 PASS 7／error 0（骨架≠語意完備）。
-* **✅ M-IX-1／M-IX-2 已修（2026-07-23，RULING-2026-027／AL-2026-030）**：KS front-matter `defers-in` 補列 `WM.D22`；L5 編號地圖（§0.3、文末總計）改為「L5.10 已啟用；L5.11–L5.89 保留」。lint 施作後 PASS 7／error 0／warning 0 逐檔不變；4 medium（F-IX-3…6）未處置，留待另案。
+* **全棧首跑**：L0 投影＋L4↔L5＋L5↔L6＋L6↔L7＋L7→物理＋X1–X4——[`audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md`](audits/L0-L7-INTERACTION-ULTRACODE-2026-07-23.md)（2 major＋4 medium；probe **1/7**）。
+* **✅ M-IX-1／M-IX-2 已修（RULING-2026-027／AL-2026-030）**：KS FM 補 `WM.D22`；L5 編號地圖改「L5.10 已啟用」。
+* **✅ L5–L7 專項覆核（2026-07-23 晚段；疊加 035／036／037）**：[`audits/L5-L7-INTERACTION-ULTRACODE-20260723.md`](audits/L5-L7-INTERACTION-ULTRACODE-20260723.md)——**零新 major**；027 閉環有效；F-IX-3…6 **四 medium 仍 open**；020 M2 **honest deferred**；025 (iii)(iv)(vi)／029 復審 **2026-10-14 日曆留痕**（本輪不假裝結清）；L7.21(f) **`tests/test_l7_knowledge_not_null.py` 6/6 PASS**（PG5432）；probe **4/7**。
+* **待 Steward**：F-IX-3…6 另案 minor（建議候選 RULING-2026-038）；020 M2 trigger 設計；025／029 **2026-10-14 併結復審**。
 * **計畫**：[`reports/augur_l0_l7_interaction_ultracode_plan_20260723.md`](reports/augur_l0_l7_interaction_ultracode_plan_20260723.md)。
