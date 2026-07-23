@@ -419,3 +419,12 @@
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
 * **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（2026-07-23 獨立核驗親跑）；RULING-2026-035 第十一節十二項全 ✅（2026-07-23 **獨立對抗核驗 PASS**；非施作者 15f3ef1）
 * **定案**：Steward 2026-07-23 **接受 L5 ultracode 呈核、同案 035**
+
+## AL-2026-040
+
+* **日期**：2026-07-23
+* **事項**：Steward 裁決第 2026-036 號——**L6（AUGUR-AR v1.2）單層 ultracode findings 一攬子處置**：F-L6-1（EO.1 收 016 四謂詞）＋F-L6-2（v1.2 版本锚点同步）＋F-L6-3–6（TR.Z／CS.2 DRAFT 殘留、TR.D D28 020 M2 語、【地位】升版史實）。**分級登錄**：F-L6-1／2＝medium；F-L6-3–6＝minor；**零 major**。**T-L6-5 維持 007 residual open-tension**（不關閉、不翻 major）。**蓋章不動搖**。**AR 版本維持 v1.2、MC／PA 零觸**
+* **文件**：[RULING-2026-036-L6-AR-ULTRACODE-DISPOSITION.md](RULING-2026-036-L6-AR-ULTRACODE-DISPOSITION.md)；findings `audits/L6-AR-ULTRACODE-20260723.md`
+* **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23 一攬子簽核
+* **驗證**：`python3 -m tools.constitution_lint report` PASS 7／7（施作者親跑）；RULING-2026-036 第十一節**待獨立核驗**（028 §3 另輪）
+* **定案**：Steward 2026-07-23 **接受 L6 ultracode 呈核、同案 036**

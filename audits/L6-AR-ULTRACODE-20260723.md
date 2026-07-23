@@ -204,10 +204,14 @@ severity：major／**medium**／minor／info。
 
 **L6（AUGUR-AR v1.2）ultracode 呈核：零 major；medium×2＋minor×4 存活；020／016／007 已癒合项覆核 PASS；lint PASS 7/7 亲跑对照。建议 Steward 接受呈核并同案 RULING-2026-036 顺修 F-L6-1–6。**
 
+### Steward 定案（2026-07-23）
+
+**Steward 接受 L6 ultracode 呈核、同案 036**——`constitution/RULING-2026-036-L6-AR-ULTRACODE-DISPOSITION.md` 生效；Amendment Log **AL-2026-040**；AR 規格 F-L6-1～6 同案落地；T-L6-5 **維持 007 residual open-tension**（不關閉）；蓋章不動搖。**獨立對抗核驗待辦**（RULING-028 §3 另輪）。
+
 ### 建议拍板句（供 Steward）
 
 > **接受 L6 ultracode 呈核（零 major、medium×2＋minor×4）；同案 RULING-2026-036 顺修 F-L6-1（EO.1 收 016 谓词）＋F-L6-2（v1.2 版本锚点同步）及 minor×4；T-L6-5 维持 007 residual open-tension；盖章不動搖。**
 
 ---
 
-*本報告為 [I] 審查素材；ultracode 呈核段待 Steward 定案。攻擊官／反駁官／批評官：ultracode-L6 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照。*
+*本報告為 [I] 審查素材；ultracode 呈核段已閉環（2026-07-23）。攻擊官／反駁官／批評官：ultracode-L6 代理（單代理分節），2026-07-23；lint PASS 7/7 親跑對照（施作後複核）。**L6 定案**：`constitution/RULING-2026-036-L6-AR-ULTRACODE-DISPOSITION.md`（2026-07-23 Steward **接受 036**；**AL-2026-040**；獨立對抗核驗待另輪）。*
