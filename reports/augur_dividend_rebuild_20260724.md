@@ -4,6 +4,7 @@
 * **授權**：Steward 本輪明示 — Dividend 重建＋窄窗 audit；封存 `archive_push.sh --slug dividend-rebuild-narrow-audit`
 * **工單 SSOT**：`reports/augur_roadmap_r4_data_foundation_20260724.md` §4；帳本 G-DIV-1
 * **狀態**：**PAUSED（partial＋API 凍結）** — 已完成 rename／PK 修復／部分 per-stock sync（800/3123）；額度閘暫停後由 API 凍結護欄停跑。凍結＝`.cursor/rules/finmind-fred-api-freeze.mdc`。解凍＝路線圖全部落地 **且** 用戶明示「解凍 FinMind／FRED」。
+* **庫內斷點狀態（2026-07-24 DB-only 複驗）**：live／bak／Result 數字與 §4 停點**一致**（9721／588／2330=42；bak 2411）；**未** resume sync／audit。證據＝`reports/augur_data_foundation_db_only_20260724.md`。
 
 ## 0. 一句結論
 

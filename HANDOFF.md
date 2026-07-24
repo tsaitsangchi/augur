@@ -88,13 +88,15 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 
 ### 4.0 近程優先（2026-07-24 Steward 拍板）
 
-> **要強化預測：力氣留在 PME（哲學↔市場）＋解凍後的資料地基。**（優先序／範圍決策；≠開新實作、≠解凍 API）
+> **要強化預測：力氣留在 PME（哲學↔市場）＋資料地基。**（優先序／範圍決策；**API 仍凍**——庫內可做 ≠ 解凍）
 
 | | |
 |---|---|
-| **做** | **PME**（哲學↔市場進化閉環）強化預測；**解凍後**資料地基（Dividend 續跑、catalog 表級、attestation 等 R4 殘留） |
+| **做** | **PME**（哲學↔市場進化閉環）強化預測；**資料地基庫內段**（catalog `db_only`、Dividend／attestation 唯讀親驗——已跑 2026-07-24；見下） |
 | **不做（近程）** | 孫子↔ERP、太陽能↔儲能 等**他域進化閉環**計畫／實作；不以他域進化「灌進」台股因子 |
 | **凍結** | FinMind／FRED **仍凍**（條件＝憲章→實作全部落地＋明示解凍；見 §4.4）—本節不改凍結 |
+| **API 洞另帳** | Dividend resume／全量 `build_catalog`／當日 attestation audit·heal — **解凍＋明示後**；G-CAT-1／G-DIV-1／G-ATTEST 仍 **partial** |
+| **庫內證據** | `reports/augur_data_foundation_db_only_20260724.md` · `audits/ROADMAP-DATA-FOUNDATION-DB-ONLY-20260724.md` · tag `archive-20260724-data-foundation-db-only` |
 
 ### 4.1 一句話現況（2026-07-23；取代前版）
 

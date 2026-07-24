@@ -5,6 +5,7 @@
 * **路線圖**：`reports/augur_constitution_to_implementation_roadmap_20260724.md` §3.4
 * **種子**：construction v4 §1.4／§2.2／§11；AUD-02；R2 10-14 表；L7.16；原則 #7／P4.E5
 * **Ultracode**：U3 已跑（`audits/ROADMAP-U3-…`）；**U4 已跑**（2026-07-24；`audits/ROADMAP-U4-R4-ULTRACODE-20260724.md`）——G-CAT／G-DIV／G-ATTEST evidence 經 U4 補正如下。
+* **DB-only 地基（2026-07-24）**：Steward「開資料地基（僅庫內／零 API）」→ `reports/augur_data_foundation_db_only_20260724.md`；三 Gap **仍 partial**（evidence 已刷新）。
 
 ## 0. 使用規則
 
@@ -24,7 +25,7 @@
 | G-ATT-1 | P4.E5／原則 #7；AUD-02 | heal 覆寫前留 pre-image；禁靜默 LWW | `raw_supersede_log`＋snapshot gate | 表／trigger／tombstone：Steward superuser migrate **全 ✓**；pytest **15 passed**；`reconcile.heal_by_date`→`heal_by_date`；`daily_maintenance --heal`→`daily_heal` | **none** | 維持；生產首遇 value_mismatch 觀察首列 |
 | G-OWN-1 | L7.16；AUD-02 owner 殘餘 | 受保護物件 owner≠app；拒絕可測 | Phase 1 owner 分離＋局部測試 | HANDOFF Phase 1；`tests/test_raw_supersede_log.py` 局部；L7.16 明示「全矩陣俟擴充」；R2 #4 deferred | **partial** | 擴全受保護物件矩陣（另案）；不假關 L7.16 |
 | G-FT-1 | 憲章全文三軌；knowledge | 全文僅公版／CC／owned_local；owned_local⇒local_private | promote／fetch 閘＋CHECK | **U3 更正**：`migrate_text_understanding_ddl.py:153-157` **已含** CHECK。**R6-S12 再親驗 2026-07-24**：`chk_itext_owned_local_private`＋admission health；哨兵 A1。見 `audits/ROADMAP-R6-S12-CLOSED-20260724.md` | **none** | 換機靠該 migrate 重套；維持 |
-| G-ATTEST | L7／attestation | attestation／audit log 可溯 | INFRA_DDL attestation_* | **R4**：INFRA selftest ✓；id=4 `2026-07-16` PASS＝**史料**；當日 e2e **SKIP**。**U4 2026-07-24**：SELECT 確認 id=4 仍 True／VM0/EX0；**禁**把史料 PASS 讀成當日 e2e 或「今日可開賽」；arena G1 用 id=4＝G1-PIN 凍結段≠ live freshness。見 `audits/ROADMAP-U4-R4-ULTRACODE-20260724.md` F-U4-3 | **partial** | 授權窄窗／正典 audit 刷新 freshness；或明示接受史料至下輪 |
+| G-ATTEST | L7／attestation | attestation／audit log 可溯 | INFRA_DDL attestation_* | **R4／U4** 同上。**DB-only 2026-07-24**：`schema --selftest` INFRA ✓；四表在；`attestation_result` 3 列；id=4 仍 True／VM0/EX0（史料）；`data_audit_log`=261163；當日 e2e／heal **SKIP**（API 凍）。見 `reports/augur_data_foundation_db_only_20260724.md` · `audits/ROADMAP-DATA-FOUNDATION-DB-ONLY-20260724.md` | **partial** | 解凍＋授權窄窗／正典 audit 刷新 freshness；或明示接受史料至下輪 |
 
 ## 2. 擴充種子（高槓桿／已知債；非完整宇宙）
 
@@ -32,8 +33,8 @@
 |---|---|---|---|---|---|---|
 | G-PV-1 | 隔離／COMMENT | `prediction_values` 禁回讀當特徵 | AST PV-α（PREDICT_CONSUMERS） | **R5-S12**＋**R5-S3 2026-07-24**：`PRODUCT_LITERALS`；`import_isolation` exit 0；`test_philosophy_isolation` **9 passed**；COMMENT 誠實（β 未做）。**U5 F-U5-2**：勿把 none 讀成「雙閘／β 已做」（SELECT 仍 true）。見 `audits/ROADMAP-R5-S3-STATUS-20260724.md` · `ROADMAP-U5-R5-ULTRACODE-20260724.md` | **none** | 維持 α；β REVOKE SELECT 另授權（須證明 writer 零自讀） |
 | G-MIG-1 | #12／換機 | migrate 無參數＝建表 | `import_database.sh` 迴圈 ✓ | **U3**：`import_database.sh:158-167` 已試 `--migrate`→`--run`→裸呼（緩解 v4 假 ✓）；裸呼 exit 0 仍可能印 ✓ | **partial** | 根除：gated 裸呼勿印 ✓；或強制 `--run` |
-| G-CAT-1 | catalog／#15 | catalog 反映 DB 真值 | build 後真值 | **R4**：`db_only` exit 0＝欄級；表級 STALE。**U4 親驗 2026-07-24**：Price catalog `n_stocks=3102`／`probe` vs DB **55121**；landed／landed_probe≈**83／81**（Dividend live 表離線致較 R4 86／82 下修）。`build(db_only=True)` **不動表級**（`catalog/__init__.py:323-331`）。見 U4 F-U4-1 | **partial** | 授權全量 `build_catalog`（非 db-only）刷新表級；欄級維持 db-only 即可 |
-| G-DIV-1 | raw／#15 | Dividend 全史可用 | writer 已 require date | **2026-07-24 重建 partial＋API 凍結**：live PK=`(stock_id,date)`；列 **9721**／股 **588**／2330=**42**；bak=`TaiwanStockDividend_collapsed_bak_20260724`（2411／舊 PK）；sync 停 **800/3123**（額度閘→凍結）；窄窗 audit **SKIP**。證據=`reports/augur_dividend_rebuild_20260724.md` | **partial** | 解凍後 resume `_per_stock_sync`（勿再 DROP）；再窄窗 audit；勿把 R4 塌列數字當 live |
+| G-CAT-1 | catalog／#15 | catalog 反映 DB 真值 | build 後真值 | **R4／U4** 表級 STALE。**DB-only 2026-07-24**：`build_catalog --db-only` exit 0（84 datasets）；欄 mismatch／landed orphan **0**；表級**未動**——Price catalog `n_stocks=3102`／`probe`／`last_verified≈2026-06-16` vs DB DISTINCT **55121**；landed／landed_probe＝**84／82**／97。見 `reports/augur_data_foundation_db_only_20260724.md` | **partial** | 授權全量 `build_catalog`（非 db-only；需解凍 API）刷新表級；欄級維持 db-only 即可 |
+| G-DIV-1 | raw／#15 | Dividend 全史可用 | writer 已 require date | **重建 partial＋API 凍結**；**DB-only 2026-07-24 庫內斷點複驗**：live PK=`(stock_id,date)`；列 **9721**／股 **588**／2330=**42**；bak 2411／舊 PK；Result 30973／2369；roster **800/3123 PAUSED**；窄窗 audit **SKIP**；本輪零 sync。見 `reports/augur_dividend_rebuild_20260724.md` · `augur_data_foundation_db_only_20260724.md` | **partial** | 解凍後 resume `_per_stock_sync`（勿再 DROP）；再窄窗 audit；勿把 R4 塌列數字當 live |
 | G-KDO-1 | KS KDO.1／4 | 聚合語義／量測門檻 | DEFER L5／實作 | RULING-039：概念閉／量測仍 DEFER；R2 #5 | **calendar**／DEFER | 10-14 或實作觸發 |
 | G-HAR-1 | CLAUDE #29b；R6 TERMINAL_VOCAB | harvest「完成／可答」須終態；禁程序結束語意冒充 | R6-E12 哨兵＋詞彙鎖 | **U6 2026-07-24**：哨兵 A3 乾淨、A9＝U6 本檔；admin `_DONE_MARKS` 字串與 `acquire_topic` 終行**漂移**＋UI「✓ 完成」≠終態；live **91933** item 無全文且無 `knowledge_fulltext_status`（DOI 形≈75373）。見 `audits/ROADMAP-U6-R6-ULTRACODE-20260724.md` F-U6-2／3 | **partial** | UI／sentinel 對齊另案；清庫存 pending＝HAR-ext／refresh 另授權（≠解凍 FinMind／FRED） |
 | G-R7-1 | R7 §4.1／U7 | 產品閘哨兵＝結構／禁語抽樣；≠語義核准／空殼四判準 | `verify_roadmap_r7_gate.py` | **U7**：結構綠≠語義。**PRODSET 2026-07-24**：禁語已補「生產特徵集已登錄」「Dividend…完備」→ G-P9 可抓（selftest）；殘留＝G-P4 空殼仍可 PASS（F-U7-1）。PRODSET 真寫另見 G-PME-PRODSET=none | **doc-only** | 知情；勿讀成 none＝計畫語義已審完 |
@@ -47,7 +48,7 @@
 |---|---|---|
 | 三敵人／隔離機械閘 | G-ISO-1／2、G-PV-1 | 靜態閘綠；G-PV-1 **none**（PV-α；U5 誤讀路徑知情）；G-ISO-2 **none**（S3 再親驗） |
 | 輸出契約 | G-OUT-1／2 | G-OUT-1 **none**（S3 `--verify` 再綠）；幅度軸＝doc-only |
-| attestation | G-ATTEST | infra＋史料 PASS（id=4）；當日 e2e SKIP（R4）；U4 確認誤讀路徑 |
+| attestation | G-ATTEST | infra＋史料 PASS（id=4）；當日 e2e SKIP；U4 誤讀路徑；**DB-only 2026-07-24** 再複驗仍 partial |
 | owner／app | G-OWN-1、G-ROLE | 局部綠；全矩陣 partial |
 | 全文三軌 | G-FT-1 | **none**（live CHECK 本機親驗 2026-07-24；U6 再確認 owned_leak=0） |
 | harvest 終態誠實（庫存／UI） | G-HAR-1 | **partial**（U6：程序「完成」≠可答；91k pending 知情） |
