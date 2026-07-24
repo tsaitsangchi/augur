@@ -32,7 +32,7 @@ def _selftest() -> int:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="MAP-E012 S2 建 roe／debt_ratio")
     ap.add_argument("--run", action="store_true", help="寫入 feature_values")
-    ap.add_argument("--dry-run", action="store_true", help="只算不寫（抽樣計數）")
+    ap.add_argument("--dry-run", action="store_true", help="只算不寫")
     ap.add_argument("--since", default=None, help="panel_date ≥")
     ap.add_argument("--panels", default=None, help="逗號分隔 panel 日")
     ap.add_argument("--asof", action="store_true", help="限 core_universe_asof")
@@ -54,48 +54,52 @@ def main(argv: list[str] | None = None) -> int:
         print("SKIP: DB 不可達", file=sys.stderr)
         return 2
 
-    with db.connect() as conn, db.transaction(conn) as cur:
-        if args.panels:
-            pds = sorted(p.strip() for p in args.panels.split(","))
-        else:
-            sql = "SELECT DISTINCT panel_date FROM feature_values"
-            params: tuple = ()
-            if args.since:
-                sql += " WHERE panel_date >= %s"
-                params = (args.since,)
-            cur.execute(sql + " ORDER BY panel_date", params)
-            pds = [r[0] for r in cur.fetchall()]
-        if args.asof:
-            cur.execute("SELECT DISTINCT stock_id FROM core_universe_asof ORDER BY stock_id")
-        else:
-            cur.execute('SELECT DISTINCT stock_id FROM "TaiwanStockInfo" ORDER BY stock_id')
-        roster = [r[0] for r in cur.fetchall()]
+    with db.connect() as conn:
+        with db.transaction(conn) as cur:
+            if args.panels:
+                pds = sorted(p.strip() for p in args.panels.split(","))
+            else:
+                sql = "SELECT DISTINCT panel_date FROM feature_values"
+                params: tuple = ()
+                if args.since:
+                    sql += " WHERE panel_date >= %s"
+                    params = (args.since,)
+                cur.execute(sql + " ORDER BY panel_date", params)
+                pds = [r[0] for r in cur.fetchall()]
+            if args.asof:
+                cur.execute("SELECT DISTINCT stock_id FROM core_universe_asof ORDER BY stock_id")
+            else:
+                cur.execute('SELECT DISTINCT stock_id FROM "TaiwanStockInfo" ORDER BY stock_id')
+            roster = [r[0] for r in cur.fetchall()]
 
-    print(f"S2 fundamentals: {len(pds)} panels × {len(roster)} stocks；write={args.run}")
-    n_roe = n_debt = n_rows = 0
-    for pd_ in pds:
-        batch = []
-        for sid in roster:
-            with db.connect() as conn, db.transaction(conn) as cur:
-                feats = compute_fundamental_features(cur, sid, pd_)
-            if "roe" in feats:
-                n_roe += 1
-                batch.append((pd_, sid, "roe", feats["roe"]))
-            if "debt_ratio" in feats:
-                n_debt += 1
-                batch.append((pd_, sid, "debt_ratio", feats["debt_ratio"]))
-        if args.run and batch:
-            with db.connect() as conn, db.transaction(conn) as cur:
-                execute_values(
-                    cur,
-                    f"INSERT INTO {FEATURE_TABLE} (panel_date, stock_id, feature, value) VALUES %s "
-                    f"ON CONFLICT (panel_date, stock_id, feature) DO UPDATE SET value = EXCLUDED.value",
-                    batch,
-                )
-            n_rows += len(batch)
-        print(f"  {pd_}: batch={len(batch)} (cum roe_cells={n_roe} debt_cells={n_debt})")
-    print(f"完成: roe_cells={n_roe} debt_cells={n_debt} written_rows={n_rows if args.run else 0} dry={args.dry_run}")
-    print("未建: peg_ratio／piotroski_fscore／macro_regime（deferred／FZ）")
+        print(f"S2 fundamentals: {len(pds)} panels × {len(roster)} stocks；write={args.run}")
+        n_roe = n_debt = n_rows = 0
+        for pd_ in pds:
+            batch = []
+            with db.transaction(conn) as cur:
+                for sid in roster:
+                    feats = compute_fundamental_features(cur, sid, pd_)
+                    if "roe" in feats:
+                        n_roe += 1
+                        batch.append((pd_, sid, "roe", feats["roe"]))
+                    if "debt_ratio" in feats:
+                        n_debt += 1
+                        batch.append((pd_, sid, "debt_ratio", feats["debt_ratio"]))
+            if args.run and batch:
+                with db.transaction(conn) as cur:
+                    execute_values(
+                        cur,
+                        f"INSERT INTO {FEATURE_TABLE} (panel_date, stock_id, feature, value) VALUES %s "
+                        f"ON CONFLICT (panel_date, stock_id, feature) DO UPDATE SET value = EXCLUDED.value",
+                        batch,
+                    )
+                n_rows += len(batch)
+            print(f"  {pd_}: batch={len(batch)} (cum roe_cells={n_roe} debt_cells={n_debt})")
+        print(
+            f"完成: roe_cells={n_roe} debt_cells={n_debt} "
+            f"written_rows={n_rows if args.run else 0} dry={args.dry_run}"
+        )
+        print("未建: peg_ratio／piotroski_fscore／macro_regime（deferred／FZ）")
     return 0
 
 

@@ -96,4 +96,5 @@
 ## 6. 封存
 
 * `bash scripts/archive_push.sh --slug db-predict-n2-parallel`
-* HEAD／tag：見封存 stdout（本檔寫入時預留；以 push 後為準）
+* HEAD：`6e08d1ea7ddd74f70a769f1f95c3b2883c805e2e`
+* tag：`archive-20260724-db-predict-n2-parallel`（已 push origin）

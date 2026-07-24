@@ -12,12 +12,12 @@
 | 欄 | 內容 |
 |---|---|
 | **日期** | 2026-07-24 |
-| **狀態** | ✅ **已拍板**＋✅ **已開 MAP-E012**（S0＋S1＋S2；S3／S4／U 另令） |
+| **狀態** | ✅ **已拍板**＋✅ **MAP-E012 CLOSED**（S0＋S1＋S2；S3／S4／U 另令） |
 | **四碼** | `MAP-P-yes` ＋ `MAP-E012` ＋ `FZ-keep` ＋ `GATE-keep`（已採納） |
 | **效力** | 計畫＝執行藍圖；近程授權＝S0–S2（庫內可建）；執行令＝「開 MAP-E012」 |
 | **解凍邊界** | **擴大 map ≠ 解凍 API**（FZ-keep）；Dividend／blocked_div 另帳（見 §5） |
 | **GATE 邊界** | GATE-keep：不降閾；ECON-only 不晉升；SKIP≠PASS；本輪不跑閘 |
-| **留痕** | `audits/PME-MAP-EXPAND-PLAN-APPROVED-20260724.md`；執行 CLOSED＝待 S0–S2 收尾 |
+| **留痕** | `audits/PME-MAP-EXPAND-PLAN-APPROVED-20260724.md`；執行 CLOSED＝`audits/PME-MAP-E012-CLOSED-20260724.md` |
 
 ---
 
