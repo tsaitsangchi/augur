@@ -131,7 +131,9 @@
 
 **驗收**：帳本覆蓋「承重義務」集合（至少：三敵人機械閘、輸出契約、隔離、attestation、owner／app、全文三軌）；每一「已落地」宣稱有親驗證據。
 
-**狀態**：✅ **DONE**（2026-07-24）。Steward「**開 R3**」＝交付 Gap 帳本；承重列齊；G-ATT-1／G-ISO-1 當日親驗為 `none`；predict runtime／L7.16 全矩陣／owned_local 遷移等為 **partial／conflict**（不假關）。帳本：`reports/augur_roadmap_r3_gap_ledger_20260724.md`。**U3 未跑**（〔U-defer〕＝帳本後另開）。
+**狀態**：✅ **DONE**（2026-07-24）。Steward「**開 R3**」＝交付 Gap 帳本；承重列齊；G-ATT-1／G-ISO-1 當日親驗為 `none`；predict runtime／L7.16 全矩陣等為 **partial**（不假關）。帳本：`reports/augur_roadmap_r3_gap_ledger_20260724.md`。
+
+**Ultracode U3**：✅ **DONE**（2026-07-24；Steward「**開 U3**」）。對抗報告 `audits/ROADMAP-U3-GAP-LEDGER-ULTRACODE-20260724.md`：F-U3-1 major 帳本錯（G-FT-1「遷移無」已否證）已回寫；G-OUT-2 改 doc-only；G-OUT-1 補 migrate path:line。無新 [N] RULING。
 
 **Ultracode 插入點 U3（高槓桿）**：對 Gap 帳本做對抗——專打幽靈落點與不實「缺 0 條」；方法同 `ULTRACODE-SCHEDULE.md` 共用鐵律。major → 另案 RULING／實作計畫，不在帳本內偷改 [N]。
 
@@ -202,7 +204,7 @@
 |---|---|---|---|
 | **U0** | R0 後、R3 前 | 本路線圖完整性／可執行性 | `audits/` 或本報告附錄 [I] |
 | **U2** | R2／10-14 前 | 假關、殘留狀態謊言 | 呈核；禁改 checklist 為結清 |
-| **U3** | R3 Gap 帳本初版後 | 幽靈落點、不實完備 | Gap 修訂＋major 另案 |
+| **U3** | R3 Gap 帳本初版後 | 幽靈落點、不實完備 | ✅ DONE 2026-07-24：`audits/ROADMAP-U3-…`；帳本已補正 |
 | **U4** | R4 attestation／開賽宣稱前 | 假綠、IP ban 路徑 | 停手條件＋證據 |
 | **U5** | R5 確立級／econ 宣稱前 | Goodhart、洩漏、門柱挪動 | 計畫修訂或 RULING 材料 |
 | **U6** | R6 「可答／完成」宣稱前 | 半套 harvest、隔離破口 | 終態定義鎖定 |
