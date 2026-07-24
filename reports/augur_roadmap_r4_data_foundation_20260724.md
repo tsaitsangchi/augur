@@ -26,7 +26,7 @@ R4＝**親驗＋安全最小動作＋工單／帳本更新**，非全量 FinMind
 | A2 | 欄級對齊（post） | **PASS** | SQL：`column_catalog`↔`information_schema` col-count mismatch **0**；orphan cc 列 **0** |
 | A3 | 表級 provenance／n_stocks 真值 | **FAIL（已知債）** | `TaiwanStockPrice` catalog `n_stocks=3102`／`source_provenance=probe`／`last_verified≈2026-06-16`；DB `COUNT(DISTINCT stock_id)=55121`；landed 仍 probe **82**/86；`db_only` **故意不動表級**（`catalog.build` docstring） |
 | B | Dividend 塌列診斷（唯讀） | **PASS（診斷）** | PK=`(stock_id)`；rows=**2411**=distinct stock_id；2330=**1** 列；`DividendResult`=(30973, 2369) |
-| B2 | Dividend DROP+re-sync | **SKIP** | 破壞性＋放量；本輪未授權；見 §4 工單 |
+| B2 | Dividend DROP+re-sync | **PARTIAL／PAUSED** | rename＋re-sync 至 800/3123；PK 已 `(stock_id,date)`；API 凍結停；見 `augur_dividend_rebuild_20260724.md` |
 | C | INFRA_DDL 哨兵（本地） | **PASS** | `python -m augur.core.schema --selftest` 全 ✓；四表 `to_regclass` 皆在 |
 | C2 | attestation 端到端綠哨兵（當日） | **SKIP** | 須 `daily_maintenance --audit-only --heal`＝FinMind 放量；本輪停手 |
 | C3 | 歷史綠哨兵列（可溯） | **PASS（史料）** | `attestation_result` id=**4** `2026-07-16` `passed=True` VM=0 EX=0 `audit_since=2026-06-01`（對齊 HANDOFF G1 attestation #4 敘事） |
@@ -60,7 +60,9 @@ Post：表級數字**不變**（預期）；欄數對齊 mismatch=0。
 
 維持 **partial**：欄級可宣稱對齊；表級 provenance／n_stocks 須全量 `build`（API）才動——另案授權，非本輪。
 
-## 4. G-DIV-1 — Dividend 工單（待 Steward 放量授權）
+## 4. G-DIV-1 — Dividend 工單（2026-07-24 partial＋API 凍結）
+> **2026-07-24 現況**：重建曾啟動後因 **FinMind／FRED API 凍結** PAUSED。live PK=`(stock_id,date)`、9721／588、2330=42；bak 保留塌列。詳 `reports/augur_dividend_rebuild_20260724.md`。解凍前禁續跑 API。
+
 
 ### 4.1 真兆（2026-07-24 本機）
 
@@ -72,16 +74,26 @@ Post：表級數字**不變**（預期）；欄數對齊 mismatch=0。
 | `2330` | 1 列 |
 | 對照 `TaiwanStockDividendResult` | 30973 列／2369 股 |
 
+### 4.1b 重建後停點（2026-07-24T09:39:43，API 凍結）
+
+| 指標 | 值 |
+|---|---|
+| PK | `(stock_id, date)` |
+| 列數／stocks | **9721**／**588** |
+| `2330` | **42** |
+| sync 進度 | **800/3123**（額度閘後凍結） |
+| bak | `TaiwanStockDividend_collapsed_bak_20260724` 保留 |
+
 根因（既有）：首建 PK 鎖 `stock_id`；writer 已修 `require_keys=("date",)`（`src/augur/ingestion/sync.py:217-220`／by-date `:495-498`），**既有表 PK 不因新 writer 自癒**。
 
-### 4.2 建議修復（**未執行**）
+### 4.2 修復進度（**partial／凍結**）
 
 1. `#25` 最小探測：`TaiwanStockDividend` 單股單窗確認 IP／token 健康。  
 2. Steward 明示授權後：`DROP TABLE "TaiwanStockDividend"`（或 rename 備份）→ 全史 per-stock re-sync（走現 writer，強制 date∈PK）。  
 3. 驗收：PK ⊇ `(stock_id, date)`；同股多列；抽樣 2330 多年事件；**禁止** hand-patch INSERT。  
 4. 未入生產特徵路徑前，alpha 不受污染（既有建設理解）；修復後才可升特徵候選。
 
-**gap_class**：維持 **partial**（診斷閉合；資料未修）。
+**gap_class**：維持 **partial**（PK／2330／總列已過門檻；roster 800/3123 未完；audit SKIP）。詳見 `reports/augur_dividend_rebuild_20260724.md`。**停點**：API 凍結（`.cursor/rules/finmind-fred-api-freeze.mdc`）；解凍後 resume、勿再 DROP。
 
 ## 5. G-ATTEST — attestation
 

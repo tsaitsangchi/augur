@@ -71,7 +71,7 @@
 | **R2** | 治權衛生／殘留誠實 | 入口一致；10-14 checklist 明示；不合規假關 | 案 D；RULING-039；WM.44／合規聲明 | constitution-mcp；`constitution_lint`；GOVERNANCE-MAP | ✅ **DONE**（2026-07-24；見 §3.3／`audits/ROADMAP-R2-1014-CHECKLIST-STATUS-20260724.md`） |
 | **R3** | 規格→實作 Gap 帳本 | 建立「義務→落點→證據」對帳表 | MC §8.2／§8.3；L4–L7 DEFER／TR；construction §9／§11 | `recall`／`local_research`（[I]）；`deliberate.py`；既有 audits | ✅ **DONE**（2026-07-24；見 §3.4／`reports/augur_roadmap_r3_gap_ledger_20260724.md`） |
 | **R4** | 資料地基（12-PHASE 對齊） | raw／對帳／panel 可定案或 live 增量誠實 | 原則 #1／#7／#18；大憲章 PHASE 0–8；arena G1-PIN | `full_market_sync.py`；`daily_maintenance.py`；`audit_selfheal.sh`；reconcile | ✅ **DONE**（2026-07-24；親驗＋db_only＋工單；表級 catalog／Dividend／當日 e2e 仍 partial；見 §3.5／`audits/ROADMAP-R4-CLOSED-20260724.md`） |
-| **R5** | 預測半系統落地 | universe→model→econ／arena 可驗 | 原則 #8／#11／#12–15；輸出契約；arena／direction_gate | `build_core_universe.py`；提拔／econ scripts；arena pipeline；DB triggers | 🔧 **S1＋S2 閉**（2026-07-24；`R5-E12`＋`PV-α`；S3／U5 pending；`audits/ROADMAP-R5-S12-CLOSED-20260724.md`） |
+| **R5** | 預測半系統落地 | universe→model→econ／arena 可驗 | 原則 #8／#11／#12–15；輸出契約；arena／direction_gate | `build_core_universe.py`；提拔／econ scripts；arena pipeline；DB triggers | ✅ **近程 DONE**（2026-07-24；S1–S3＋U5；計畫 §7 A*；**≠** 確立級／可交易／universe→econ 全綠；見 §3.6） |
 | **R6** | 素養／顧問半系統落地 | acquire→promote→全文閘→embed→advisor | 憲章 philosophy；KS；原則 #1；L6 | knowledge 引擎腳本；`export_qdrant_index.py`；advisor／chat／admin 服務 | 終態＝license 允許之可答態；預測零 import 素養；owned_local 閘可重建 |
 | **R7** | 產品計畫閘＋持續 ultracode | 活躍產品計畫拍板後實作；邊界對抗 | plan-first；ULTRACODE-SCHEDULE；#28 | 既有 product plans；`ultracode-layer`；審議引擎 | 每產品計畫附 schema＋程式規畫；階段邊界 ultracode 呈核；Steward 處置 major |
 
@@ -162,9 +162,9 @@
 
 **驗收**：`tests/test_philosophy_isolation.py` 綠；direction 產物非 evaluated_pass 不得寫入；arena 雙閘／TTY 紅線依 HANDOFF。
 
-**狀態**：🔧 **S1＋S2 閉**＋**G-ISO-2 live ping none**（2026-07-24）。接線＋PV-α：`audits/ROADMAP-R5-S12-CLOSED-20260724.md`；predict ping：`audits/ROADMAP-R5-PREDICT-PING-20260724.md`。G-PV-1／G-ISO-2→**none**。**S3／U5／全量 R5 DONE 仍 pending**。計畫：`reports/augur_roadmap_r5_plan_20260724.md`。FinMind／FRED **操作凍結**仍有效——至本路線圖全部階段落地＋用戶明示解凍（R5／局部完成 ≠ 解凍）；Dividend API 邊界同。
+**狀態**：✅ **近程 DONE**（2026-07-24；Steward「先短跑 R5 S3 → 立刻 U5」）。S1＋S2：`audits/ROADMAP-R5-S12-CLOSED-20260724.md`；ping：`ROADMAP-R5-PREDICT-PING-20260724.md`；S3 哨兵：`ROADMAP-R5-S3-STATUS-20260724.md`（A1–A10 PASS；`evaluated_pass=0`）。G-PV-1／G-ISO-2／G-OUT-1→**none**（α／live）。**≠** 路線圖大標「universe→model→econ 全綠」；**≠** 確立級／可交易。計畫：`reports/augur_roadmap_r5_plan_20260724.md`。FinMind／FRED **操作凍結**仍有效（近程 R5 DONE ≠ 解凍）；Dividend API 線 PAUSED。
 
-**Ultracode 插入點 U5**：對「可交易／確立」行銷句與 registry 宣稱做攻擊；重大方法變更 → plan-first 新報告。**尚未開**。
+**Ultracode U5**：✅ **DONE**（2026-07-24）。對抗報告 `audits/ROADMAP-U5-R5-ULTRACODE-20260724.md`：F-U5-1～6（文件幽靈／PV-α 誤讀／範圍膨脹／凍結破口／arena≠direction／計畫 as-of）；**禁**把近程 DONE 讀成可交易。無新 [N] RULING。
 
 ### 3.7 R6 — 素養／顧問半系統
 
@@ -210,7 +210,7 @@
 | **U2** | R2／10-14 前 | 假關、殘留狀態謊言 | 呈核；禁改 checklist 為結清 |
 | **U3** | R3 Gap 帳本初版後 | 幽靈落點、不實完備 | ✅ DONE 2026-07-24：`audits/ROADMAP-U3-…`；帳本已補正 |
 | **U4** | R4 attestation／開賽宣稱前 | 假綠、IP ban 路徑 | ✅ DONE 2026-07-24：`audits/ROADMAP-U4-…`；帳本 G-CAT／G-DIV／G-ATTEST evidence 補正 |
-| **U5** | R5 確立級／econ 宣稱前 | Goodhart、洩漏、門柱挪動 | 計畫修訂或 RULING 材料 |
+| **U5** | R5 確立級／econ 宣稱前 | Goodhart、洩漏、門柱挪動 | ✅ DONE 2026-07-24：`audits/ROADMAP-U5-R5-ULTRACODE-20260724.md`；近程 R5 DONE≠可交易 |
 | **U6** | R6 「可答／完成」宣稱前 | 半套 harvest、隔離破口 | 終態定義鎖定 |
 | **U7** | 各產品計畫拍板前 | 高風險門檻（治權／跨 package） | 對抗審查發現表留痕（#20／#28 分級） |
 
@@ -335,9 +335,10 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **R5 計畫已拍板**（2026-07-24；`R5-P-yes`＋`R5-E12`＋`PV-α`＋`PAR`）  
 - ✅ **R5 S1＋S2 閉**（2026-07-24；「開 R5」；`audits/ROADMAP-R5-S12-CLOSED-20260724.md`；G-PV-1 none）  
 - ✅ **G-ISO-2 live ping → none**（2026-07-24；`audits/ROADMAP-R5-PREDICT-PING-20260724.md`）  
+- ✅ **R5 S3＋U5 閉**（2026-07-24；`ROADMAP-R5-S3-STATUS`＋`ROADMAP-U5-R5-ULTRACODE`）→ **近程 R5 DONE**（計畫 §7 A*）  
 - ❌ 未改任何 [N]  
-- ❌ 未開 S3／U5；未全量 R5 DONE；未解凍 FinMind／FRED  
-- ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5-S12 時已重跑親驗**，不得把舊 wiring 表當永真  
+- ❌ **未**解凍 FinMind／FRED；**未**宣稱確立級／可交易；**未**閉合 universe→econ 全量產品半系統  
+- ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5 時已重跑親驗**，不得把舊 wiring 表當永真  
 
 ---
 
