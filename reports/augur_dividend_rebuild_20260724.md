@@ -57,7 +57,8 @@ _pending_（清 → `none`；否則 `partial`＋剩餘）
 
 ## 7. HEAD／tag
 
-（封存 `archive_push.sh --slug api-freeze-plans-pending` 後回填）
+* HEAD：`d07c1caa83cb2d364d09791b70b41e37bba151e5`（`d07c1ca`）
+* tag：`archive-20260724-api-freeze-plans-pending`
 
 ## 8. 停點／續跑（若有）
 
