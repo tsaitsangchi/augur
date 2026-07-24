@@ -67,7 +67,7 @@
 | 階段 | 名稱 | 目標 | 治權對應 | 主要既有工具 | 驗收（可判定） |
 |---|---|---|---|---|---|
 | **R0** | 認知對齊 | 確認採「對齊落地」；讀序＋現況 STATE 親驗 | GOVERNANCE-MAP；HANDOFF §4；MC §0.5／§0.6 | `read_handoff.py`；constitution-mcp `layer_status`；`python3 -m tools.constitution_lint … report` | ✅ **DONE**（2026-07-24；見 §3.1／§7.1／`audits/ROADMAP-R0-CLOSED-20260724.md`） |
-| **R1** | 環境可運作 | 機器／DB／服務可跑，零幻像接線 | 原則 #2／#6／#17；CLAUDE #23／#31；L7 | `resume_project.sh`；`import_database.sh`；`sync_from_github.sh`；import smoke | `db.ping()`；核心 import 綠；必要 systemd／ollama 依 HANDOFF |
+| **R1** | 環境可運作 | 機器／DB／服務可跑，零幻像接線 | 原則 #2／#6／#17；CLAUDE #23／#31；L7 | `resume_project.sh`；`import_database.sh`；`sync_from_github.sh`；import smoke | ⚠ **PARTIAL**（2026-07-24；repo 綠、`db.ping()` FAIL；見 §3.2） |
 | **R2** | 治權衛生／殘留誠實 | 入口一致；10-14 checklist 明示；不合規假關 | 案 D；RULING-039；WM.44／合規聲明 | constitution-mcp；`constitution_lint`；GOVERNANCE-MAP | ✅ **DONE**（2026-07-24；見 §3.3／`audits/ROADMAP-R2-1014-CHECKLIST-STATUS-20260724.md`） |
 | **R3** | 規格→實作 Gap 帳本 | 建立「義務→落點→證據」對帳表 | MC §8.2／§8.3；L4–L7 DEFER／TR；construction §9／§11 | `recall`／`local_research`（[I]）；`deliberate.py`；既有 audits | Gap 帳本入 `reports/`；每列有 path 或「誠實未落」；major gap 另案計畫 |
 | **R4** | 資料地基（12-PHASE 對齊） | raw／對帳／panel 可定案或 live 增量誠實 | 原則 #1／#7／#18；大憲章 PHASE 0–8；arena G1-PIN | `full_market_sync.py`；`daily_maintenance.py`；`audit_selfheal.sh`；reconcile | attestation 綠哨兵句；G1 釘点不滾動追；無 hand-patch |
@@ -96,6 +96,8 @@
 **表／程式**：不新產表；讀既有 public schema；工具見總表。
 
 **驗收**：`from augur.core import db; db.ping()`；`pip install -e .` 後 scripts 個別可執行（#29）。
+
+**狀態**：⚠ **PARTIAL／BLOCKED on PG**（2026-07-24）。Steward「**開 R1**」＝環境親驗已跑：`.env`／venv／import smoke／cmd matrix NEED=0／schema＋AUD-02 `--selftest` ✅；**`db.ping()` = False**（5432 down；本環境無法 sudo 起 PG）。**不宣稱全綠 DONE**。親驗證據：`audits/ROADMAP-R1-ENV-STATUS-20260724.md`。PG 起後重跑 ping／`--check`／pytest DB 層 → 另指令「閉合 R1」升 DONE。**不擋開 R3**（Gap 帳本不需 live DB）。
 
 **Ultracode**：通常不需；若換機反覆失敗，用審議引擎對「環境宣稱」做 oracle 裁（本地優先 #28）。
 
