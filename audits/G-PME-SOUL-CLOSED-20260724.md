@@ -4,13 +4,14 @@
 * 草案 SSOT：`reports/augur_pme_soul_wording_auto_b_20260724.md`
 * 呈核：`audits/G-PME-SOUL-DRAFT-20260724.md`（史料；草稿≠生效）
 * Gap：`reports/augur_pme_gap_ledger_20260724.md` → **G-PME-SOUL＝none**
-* 硬邊界：零 FinMind／FRED；**自動下單仍禁**；預測仍隔離；引擎不得自改判準
+* 硬邊界：**自動下單仍禁**；預測仍隔離；引擎不得自改判準
+* **正交聲明（Steward 澄清 2026-07-24）**：**靈魂措辭與 FinMind／FRED API 無關**——**G-PME-SOUL 閉合 ≠ FZ-keep 解除 ≠ API 解凍 ≠ 資料地基放行**；本案**不**改 `.cursor/rules/finmind-fred-api-freeze.mdc`、**不**改 HANDOFF 凍結條件
 
 ---
 
 ## 0. 結論（一句）
 
-靈魂／原則 #20／WM A.53 已依 AUTO-B 對照**最小 diff 寫入**；P5.W2／P5.W5 **MC 條文未改**；附 §8.1 書面認定如下。Gap **G-PME-SOUL → none**。
+靈魂／原則 #20／WM A.53 已依 AUTO-B 對照**最小 diff 寫入**；P5.W2／P5.W5 **MC 條文未改**；附 §8.1 書面認定如下。Gap **G-PME-SOUL → none**。**FZ-keep／FinMind／FRED 操作凍結維持原狀（與本措辭案正交）。**
 
 ---
 
@@ -61,7 +62,7 @@
 | `soul_wording_pending` | **False** |
 | F-U-PME-6 | 攻擊面「謊稱已修」→改為「已寫入可對照」；知情張力已解（見 ULTRACODE 補註） |
 | 自動下單／G-NOEXEC | **仍禁**（不變） |
-| FZ-keep | **維持** |
+| FZ-keep／FinMind／FRED | **維持凍結原狀**（與 G-PME-SOUL **正交**；本案不解凍、不放行資料地基 API） |
 
 ---
 
