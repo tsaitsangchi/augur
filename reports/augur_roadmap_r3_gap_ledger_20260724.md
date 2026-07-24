@@ -17,13 +17,13 @@
 
 | ID | layer / clause | obligation_summary | claimed_landing | actual_evidence | gap_class | next |
 |---|---|---|---|---|---|---|
-| G-ISO-1 | 原則 #1／#8；大憲章隔離命門 | 預測管線不得 import 素養／顧問／knowledge | AST 雙閘＋predict role | `tests/test_philosophy_isolation.py` **8 passed**（2026-07-24）；`src/augur/audit/import_isolation.py` | **none** | 維持 CI／換機重跑 |
+| G-ISO-1 | 原則 #1／#8；大憲章隔離命門 | 預測管線不得 import 素養／顧問／knowledge | AST 雙閘＋predict role | `tests/test_philosophy_isolation.py` **9 passed**（R6-S12 2026-07-24 再親驗）；`src/augur/audit/import_isolation.py`；哨兵 A4＝`scripts/verify_roadmap_r6_s12.py` | **none** | 維持 CI／換機重跑 |
 | G-ISO-2 | 同左；setup_predict_role | 動態閘＝預測連線走 `augur_predict` | role／GRANT 已 provision＋runtime 接線 | **R5-S12** 接線＋GRANT；**R5-PREDICT-PING**＋**R5-S3 2026-07-24 再親驗**：`ping_predict()=True`；`connect_predict`→`augur_predict`；`pytest tests/test_predict_role_isolation.py` **5 passed**；素養表 SELECT＝false（≥5）。見 `audits/ROADMAP-R5-S3-STATUS-20260724.md`（S12 檔內「partial」＝時點史料） | **none** | 維持；換機還原後重跑 setup＋對齊密碼 |
 | G-OUT-1 | 大憲章輸出契約 v1.45；方向產物 | direction 產物 fail-closed：gate≠`evaluated_pass` 拒寫 | DB trigger `trg_*dirprob*_gate_guard` | **code 落點**：`scripts/migrate_direction_product_gate_ddl.py:27-43`。**本機親驗**：U3-DB-VERIFY＋**R5-S3 再跑 `--verify` exit 0**；`evaluated_pass=0`；triggers 在。見 `audits/ROADMAP-R5-S3-STATUS-20260724.md` | **none** | 維持；正向 `evaluated_pass` 路徑俟首個 pass 門 |
 | G-OUT-2 | 同左；幅度軸 | 幅度產物**無**等價 DB fail-closed（與方向軸不對稱） | 展示層把關（設計） | construction／輸出契約明文只強制方向軸；**非**「無 gap」 | **doc-only** | 知情；勿讀成 none＝已機械滿足 |
 | G-ATT-1 | P4.E5／原則 #7；AUD-02 | heal 覆寫前留 pre-image；禁靜默 LWW | `raw_supersede_log`＋snapshot gate | 表／trigger／tombstone：Steward superuser migrate **全 ✓**；pytest **15 passed**；`reconcile.heal_by_date`→`heal_by_date`；`daily_maintenance --heal`→`daily_heal` | **none** | 維持；生產首遇 value_mismatch 觀察首列 |
 | G-OWN-1 | L7.16；AUD-02 owner 殘餘 | 受保護物件 owner≠app；拒絕可測 | Phase 1 owner 分離＋局部測試 | HANDOFF Phase 1；`tests/test_raw_supersede_log.py` 局部；L7.16 明示「全矩陣俟擴充」；R2 #4 deferred | **partial** | 擴全受保護物件矩陣（另案）；不假關 L7.16 |
-| G-FT-1 | 憲章全文三軌；knowledge | 全文僅公版／CC／owned_local；owned_local⇒local_private | promote／fetch 閘＋CHECK | **U3 更正**：`migrate_text_understanding_ddl.py:153-157` **已含** CHECK。**本機親驗 2026-07-24**：`pg_constraint` 存在於 `knowledge_item_text`；`CHECK ((((license)::text <> 'owned_local'::text) OR ((access_scope)::text = 'local_private'::text)))`。見 `audits/ROADMAP-U3-DB-VERIFY-20260724.md` | **none** | 換機靠該 migrate 重套；維持 |
+| G-FT-1 | 憲章全文三軌；knowledge | 全文僅公版／CC／owned_local；owned_local⇒local_private | promote／fetch 閘＋CHECK | **U3 更正**：`migrate_text_understanding_ddl.py:153-157` **已含** CHECK。**R6-S12 再親驗 2026-07-24**：`chk_itext_owned_local_private`＋admission health；哨兵 A1。見 `audits/ROADMAP-R6-S12-CLOSED-20260724.md` | **none** | 換機靠該 migrate 重套；維持 |
 | G-ATTEST | L7／attestation | attestation／audit log 可溯 | INFRA_DDL attestation_* | **R4**：INFRA selftest ✓；id=4 `2026-07-16` PASS＝**史料**；當日 e2e **SKIP**。**U4 2026-07-24**：SELECT 確認 id=4 仍 True／VM0/EX0；**禁**把史料 PASS 讀成當日 e2e 或「今日可開賽」；arena G1 用 id=4＝G1-PIN 凍結段≠ live freshness。見 `audits/ROADMAP-U4-R4-ULTRACODE-20260724.md` F-U4-3 | **partial** | 授權窄窗／正典 audit 刷新 freshness；或明示接受史料至下輪 |
 
 ## 2. 擴充種子（高槓桿／已知債；非完整宇宙）
@@ -64,6 +64,7 @@
 ## 5. 建議下一句
 
 * ✅ **S3＋U5 已跑**（2026-07-24；`audits/ROADMAP-R5-S3-STATUS-20260724.md` · `ROADMAP-U5-R5-ULTRACODE-20260724.md`）——近程 R5 DONE **待 Steward 採納呈核**；禁確立級／可交易
+* ✅ **R6 S1＋S2 已閉**（2026-07-24；`audits/ROADMAP-R6-S12-CLOSED-20260724.md`）——**U6 pending**；G-ISO-1／G-FT-1 維持 none；G-KDO-1 仍 calendar
 * Dividend：解凍＋明示後 resume G-DIV-1；或授權全量 `build_catalog`／正典 attestation
 * Steward 本機補（G-OUT-1／G-FT-1）：**已做** 2026-07-24（見 `audits/ROADMAP-U3-DB-VERIFY-20260724.md`）
 * 單點修：IP ban job-abort（U4 F-U4-5）另案；β REVOKE（G-PV-1）另授權

@@ -7,7 +7,9 @@
      admin 須為**確有公開授權/自有可釋出**之檔聲明 `--license`(責任在 admin;DB 物理擋)。
      **owned_local=自有私有軌**(憲章 v1.36.0):用戶自有專有檔(ERP 匯出/私人筆記)硬配 `access_scope='local_private'`
      (DB CHECK chk_itext_owned_local_private 綁死、永不公開;安全繫於本機+私有+自有,**非拿來繞他人版權**)。
-   - `access_scope` 預設 `local_private`(不入對外對話池,拍板P2);`source_type='local_upload'`(DB CHECK<>ai_generated)。
+   - `access_scope`：CLI 明示優先；未給 → `adapter_config.access_scope` → 再預設 `local_private`
+     (不入對外對話池,拍板P2；**禁**把「CLI 預設 local_private」覆寫成源 cfg 的 public——否則私有意圖靜默公開)。
+     `source_type='local_upload'`(DB CHECK<>ai_generated)。
    - 逐字入庫、禁 AI 摘要改寫(#1);抽不出=誠實跳過分類(fileparse,#15);符號連結不跟、大小上限(#5)。
 守 #1 · #15 · #5 · #6(sha1 冪等 resume)· #29。SSOT 落地模板=fetch_oa_fulltext.py;抽取器=augur.knowledge.fileparse。
 
@@ -16,6 +18,7 @@
   python scripts/acquire_local_files.py --dir ~/docs --license public_domain --domain finance   # 遞迴入庫
   python scripts/acquire_local_files.py --dir ~/docs --license cc-by --access-scope public       # 對外可見
   python scripts/acquire_local_files.py --dir ~/erp --license owned_local --owner-user-id 1      # 自有私有(強制 local_private)
+  python scripts/acquire_local_files.py --dir ~/docs --license public_domain --access-scope local_private  # 明示私有(蓋過源 cfg)
   python scripts/acquire_local_files.py --dir ~/docs --license public_domain --dry-run           # 掃描預覽不寫
 """
 import argparse
@@ -81,7 +84,8 @@ def main():
     ap.add_argument("--source-type", choices=list(admission.SOURCE_TYPE_WHITELIST), default="local_upload",
                     help="item_text.source_type(白名單 SSOT=admission.SOURCE_TYPE_WHITELIST;預設 local_upload)")
     ap.add_argument("--license", choices=list(corpus.LICENSE_WHITELIST))
-    ap.add_argument("--access-scope", choices=["public", "local_private"], default="local_private")
+    ap.add_argument("--access-scope", choices=["public", "local_private"], default=None,
+                    help="明示優先;未給→adapter_config.access_scope→local_private(勿把預設當可覆寫為 public)")
     ap.add_argument("--domain", default="local")
     ap.add_argument("--owner-user-id", type=int, default=None,
                     help="local_private 擁有者 app_user.user_id(RBAC 擁有者收窄;僅本人+super 可檢索)")
@@ -113,7 +117,9 @@ def main():
                 cfg = (r[0] or {}) if r else {}
         the_dir = args.dir or cfg.get("root_dir")
         license = args.license or cfg.get("default_license")
-        access_scope = args.access_scope if args.access_scope != "local_private" else cfg.get("access_scope", "local_private")
+        # CLI 明示 > 源 cfg > local_private(R6:禁「預設 private」被源 cfg public 靜默蓋掉→假私有實公開)
+        access_scope = (args.access_scope if args.access_scope is not None
+                        else cfg.get("access_scope", "local_private"))
         domain = args.domain if args.domain != "local" else cfg.get("domain", "local")
         if not args.source_key:                            # 寫入必填(#29b provenance;缺→本機通道非治理公民)
             sys.exit("須 --source-key(件 A1:本機通道須註冊 knowledge_source 列並經 admission 源-active 閘;"

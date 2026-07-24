@@ -1,7 +1,7 @@
 # Roadmap R6 計畫 — 素養／顧問半系統對齊落地 [I]（2026-07-24）
 
-* **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；領域大憲章第六部計畫完整性 v1.39.0）— **不創設 [N] 義務**；**計畫已拍板；執行未開**
-* **授權觸發**：Steward「**開 R6 計畫**」＝只寫計畫（✅）；「**開 R6**」／分階碼＝實作**另待**（本輪僅登錄拍板）
+* **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；領域大憲章第六部計畫完整性 v1.39.0）— **不創設 [N] 義務**；**計畫已拍板；S1＋S2 已執行閉合（U6 pending）**
+* **授權觸發**：Steward「**開 R6 計畫**」＝只寫計畫（✅）；「**開 R6**」＝實作 S1＋S2（✅ 2026-07-24；見 `audits/ROADMAP-R6-S12-CLOSED-20260724.md`）
 * **對齊落地 〔A〕**：`reports/augur_constitution_to_implementation_roadmap_20260724.md` §3.7／§4.3 U6／§7.1
 * **Gap SSOT**：`reports/augur_roadmap_r3_gap_ledger_20260724.md`（G-ISO-1／G-FT-1＝**none** 維持；G-KDO-1＝calendar／DEFER **禁假關**；G-ATTEST＝R4 殘留、非 R6 主閉合）
 * **前置**：R0–R4 ✅ DONE；近程 R5 ✅ DONE（S1–S3＋U5；**≠** 確立級／可交易）；FinMind／FRED **操作凍結**仍有效；Dividend API 線 **PAUSED**
@@ -13,17 +13,17 @@
 |---|---|
 | **日期** | 2026-07-24 |
 | **四碼** | `R6-P-yes` ＋ `R6-E12` ＋ `HAR-local` ＋ `FZ-keep` |
-| **效力** | **計畫採納**為 R6 執行藍圖；**執行未授權**——實作另待 Steward「**開 R6**」 |
-| **範圍（開實作時預選）** | `R6-E12`＝S1＋S2（終態定義＋本地暢通／隔離哨兵；零市場 API；零知識外部放量）；`HAR-local`；`FZ-keep` |
-| **解凍／Dividend 邊界** | **FZ-keep＝凍結維持**：FinMind／FRED **操作凍結**至 **constitution-to-implementation 全部階段落地＋用戶明示解凍**（R6 計畫拍板 **≠** 解凍）；不續 Dividend；不改 [N]；不假關 10-14／G-KDO-1 |
-| **留痕** | `audits/ROADMAP-R6-PLAN-APPROVED-20260724.md`；封存 tag `archive-20260724-roadmap-r6-plan-approved` |
+| **效力** | **計畫採納**為 R6 執行藍圖；**執行已開**（「開 R6」）→ **S1＋S2 CLOSED** |
+| **範圍** | `R6-E12`＝S1＋S2（終態定義＋本地暢通／隔離哨兵；零市場 API；零知識外部放量）；`HAR-local`；`FZ-keep` |
+| **解凍／Dividend 邊界** | **FZ-keep＝凍結維持**：FinMind／FRED **操作凍結**至 **constitution-to-implementation 全部階段落地＋用戶明示解凍**（開 R6 **≠** 解凍）；不續 Dividend；不改 [N]；不假關 10-14／G-KDO-1 |
+| **留痕** | `audits/ROADMAP-R6-PLAN-APPROVED-20260724.md`；`audits/ROADMAP-R6-S12-CLOSED-20260724.md`；哨兵 `scripts/verify_roadmap_r6_s12.py` |
 
 **四碼展開（§10 原文對照）**：
 
 | 碼 | §10 含義 |
 |---|---|
 | **R6-P-yes** | 採納本計畫為 R6 執行藍圖；實作另待「開 R6」／分階授權 |
-| **R6-E12** | 授權 S1＋S2（終態定義＋本地暢通／隔離哨兵；**零市場 API**；**零知識外部放量**）— 建議近程；**本輪僅預選，未開跑** |
+| **R6-E12** | 授權 S1＋S2（終態定義＋本地暢通／隔離哨兵；**零市場 API**；**零知識外部放量**）— **已執行閉合** |
 | **HAR-local** | 僅本地／manual／owned_local／庫內消費（預設建議） |
 | **FZ-keep** | 確認：R6 不解凍 FinMind／FRED；Dividend 維持 PAUSED（採納 §3） |
 
@@ -387,7 +387,7 @@ reason, source_url, checked_at
 | 凍結規則 | `.cursor/rules/finmind-fred-api-freeze.mdc` |
 | Dividend（只讀邊界） | `reports/augur_dividend_rebuild_20260724.md`（PAUSED） |
 
-**建議下一句（用戶）**：若要執行明示「**開 R6**」（範圍預選＝`R6-E12`＋`HAR-local`＋`FZ-keep`）——**仍禁** FinMind／FRED、**仍禁** metadata 當可答。
+**建議下一句（用戶）**：明示「**開 U6**」（可答／完成宣稱前對抗）或「**開 R7 計畫**」——**仍禁** FinMind／FRED、**仍禁** metadata 當可答。
 
 ---
 
@@ -397,9 +397,10 @@ reason, source_url, checked_at
 - ✅ 對齊 〔A〕／R6 定義／U6／Gap／凍結與知識 API 分界  
 - ✅ 附 schema＋python 規畫＋驗收表＋拍板句  
 - ✅ **Steward 已拍板**（2026-07-24；`R6-P-yes`＋`R6-E12`＋`HAR-local`＋`FZ-keep`）  
-- ✅ 路線圖標「R6 計畫已拍板／執行未開」  
-- ❌ **未**開 R6 實作、**未**打 FinMind／FRED、**未**續 Dividend、**未**改 [N]  
+- ✅ **開 R6 → S1＋S2 CLOSED**（2026-07-24；`audits/ROADMAP-R6-S12-CLOSED-20260724.md`；哨兵 `verify_roadmap_r6_s12.py --with-smoke`）  
+- ❌ **未**開 U6、**未**打 FinMind／FRED、**未**續 Dividend、**未**改 [N]、**未**假關 G-KDO-1  
 - ⚠ 知識外部 API ≠ 已解凍；放量須 `HAR-ext`  
-- ⚠ G-FT-1／G-ISO-1 為 **none**＝維持義務，非「R6 無事可做」  
-- ⚠ **FZ-keep**：凍結維持；計畫拍板 ≠ 解凍  
+- ⚠ G-FT-1／G-ISO-1 為 **none**＝維持義務  
+- ⚠ **FZ-keep**：凍結維持；開 R6 ≠ 解凍  
+- ⚠ S1–S2 完成 ≠ 可答完備／≠ 全量 R6 DONE（須 U6）  
 

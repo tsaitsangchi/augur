@@ -122,7 +122,7 @@ def run(with_llm=False, keep=False, as_json=False):
         (Path(td) / "sentinel_priv.txt").write_text(priv_text, encoding="utf-8")
         rc2, o2 = _sh([PY, str(REPO / "scripts/acquire_local_files.py"), "--dir", td,
                        "--source-key", SMOKE_SOURCE, "--license", "public_domain",
-                       "--domain", DOMAIN])   # 預設 access_scope=local_private、無 owner
+                       "--domain", DOMAIN, "--access-scope", "local_private"])  # 明示私有(蓋過源 cfg=public)
     check("S1 sentinel 入庫(本機通道×2;件 A1 source_key+admission)", rc1 == 0 and rc2 == 0, o1 + o2)
 
     # (2) 鏈:sentences → concordance(en)→ embed(既有 builder 逐支;#12)
