@@ -3,7 +3,7 @@
 * Steward 指令：**先短跑 R5 S3 → 立刻 U5**；全程零 FinMind／FRED（`.cursor/rules/finmind-fred-api-freeze.mdc`）
 * 前置：`audits/ROADMAP-R5-S12-CLOSED-20260724.md`；`audits/ROADMAP-R5-PREDICT-PING-20260724.md`（G-ISO-2 live ping → none）
 * **本檔＝S3 哨兵閉合**（≠ 確立級／可交易；U5 見 `audits/ROADMAP-U5-R5-ULTRACODE-20260724.md`）
-* HEAD（撰寫時）：`e5cf57b96082e312153e79aff68890927f56c68a`（封存後以 tag `archive-*-roadmap-r5-s3-u5` 為準）
+* HEAD（撰寫時）：`e5cf57b`；封存後以 tag `archive-*-roadmap-r5-s3-u5`／含本檔之 commit 為準（S3／U5 正文已入 `2bbf452`；HANDOFF／計畫刷寫隨本 slug）
 
 ## 操作凍結／Dividend
 
