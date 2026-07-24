@@ -75,7 +75,8 @@ Log：`/tmp/augur_logs/dividend_rebuild_20260724.log`；stdout：`…/dividend_r
 
 ## 7. HEAD／tag
 
-見本輪 `archive_push` 輸出（寫入時填）。
+- **HEAD**（archive push）：`2bbf452b3da74fb01c2c1f1dd757ff9a9e40574a`（`2bbf452`）— `2026-07-24 archive push`
+- **tag**：`archive-20260724-dividend-rebuild-narrow-audit` → 同上 commit
 
 ## 8. 停點／續跑
 
