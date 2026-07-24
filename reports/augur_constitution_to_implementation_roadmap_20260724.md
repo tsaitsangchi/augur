@@ -68,7 +68,7 @@
 |---|---|---|---|---|---|
 | **R0** | 認知對齊 | 確認採「對齊落地」；讀序＋現況 STATE 親驗 | GOVERNANCE-MAP；HANDOFF §4；MC §0.5／§0.6 | `read_handoff.py`；constitution-mcp `layer_status`；`python3 -m tools.constitution_lint … report` | ✅ **DONE**（2026-07-24；見 §3.1／§7.1／`audits/ROADMAP-R0-CLOSED-20260724.md`） |
 | **R1** | 環境可運作 | 機器／DB／服務可跑，零幻像接線 | 原則 #2／#6／#17；CLAUDE #23／#31；L7 | `resume_project.sh`；`import_database.sh`；`sync_from_github.sh`；import smoke | `db.ping()`；核心 import 綠；必要 systemd／ollama 依 HANDOFF |
-| **R2** | 治權衛生／殘留誠實 | 入口一致；10-14 checklist 明示；不合規假關 | 案 D；RULING-039；WM.44／合規聲明 | constitution-mcp；`constitution_lint`；GOVERNANCE-MAP | 無「假結清」；殘留項狀態與 AL／RULING 一致；docs 整合近程義務不開案 A／C |
+| **R2** | 治權衛生／殘留誠實 | 入口一致；10-14 checklist 明示；不合規假關 | 案 D；RULING-039；WM.44／合規聲明 | constitution-mcp；`constitution_lint`；GOVERNANCE-MAP | ✅ **DONE**（2026-07-24；見 §3.3／`audits/ROADMAP-R2-1014-CHECKLIST-STATUS-20260724.md`） |
 | **R3** | 規格→實作 Gap 帳本 | 建立「義務→落點→證據」對帳表 | MC §8.2／§8.3；L4–L7 DEFER／TR；construction §9／§11 | `recall`／`local_research`（[I]）；`deliberate.py`；既有 audits | Gap 帳本入 `reports/`；每列有 path 或「誠實未落」；major gap 另案計畫 |
 | **R4** | 資料地基（12-PHASE 對齊） | raw／對帳／panel 可定案或 live 增量誠實 | 原則 #1／#7／#18；大憲章 PHASE 0–8；arena G1-PIN | `full_market_sync.py`；`daily_maintenance.py`；`audit_selfheal.sh`；reconcile | attestation 綠哨兵句；G1 釘点不滾動追；無 hand-patch |
 | **R5** | 預測半系統落地 | universe→model→econ／arena 可驗 | 原則 #8／#11／#12–15；輸出契約；arena／direction_gate | `build_core_universe.py`；提拔／econ scripts；arena pipeline；DB triggers | 機械閘仍 armed；確立級數字唯經門二；隔離 AST 0 violation |
@@ -107,6 +107,8 @@
 3. 不合規：開補正計畫，不開「把 docs 併進 META」（案 A／C 近程否決）。
 
 **驗收**：checklist 無勾「結清」除非有 RULING／Evidence；lint PASS 不當作合憲唯一依據（ultracode 鐵律）。
+
+**狀態**：✅ **DONE**（2026-07-24）。Steward「**開 R2**」＝建立 10-14 checklist 誠實狀態表；七項仍 calendar／deferred／observation（**零假關**）。親驗證據：`audits/ROADMAP-R2-1014-CHECKLIST-STATUS-20260724.md` · 閉合留痕 `audits/ROADMAP-R2-CLOSED-20260724.md`。
 
 **Ultracode 插入點 U2**：殘留 omnibus 複核前，對「宣稱已閉」項做幽靈落點抽查（親讀下層條文）。
 
@@ -316,6 +318,7 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 
 - ✅ 產出本計劃報告  
 - ✅ **R0 閉合**（2026-07-24；§7.1 拍板〔A〕〔U-defer〕〔S1〕；audit 留痕）  
+- ✅ **R2 閉合**（2026-07-24；10-14 checklist 誠實狀態表；日曆項仍 open）  
 - ❌ 未改任何 [N]  
 - ❌ 未實作 code／未開 ultracode 執行（U0 依〔U-defer〕跳過）  
 - ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3 時須重跑親驗**，不得把舊 wiring 表當永真  
