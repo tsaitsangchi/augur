@@ -30,6 +30,7 @@ alwaysApply: true
 
 - API＝取 raw 的**通道**，不是靈魂、不是概念升格路徑。
 - 本邊界**不解凍** API；凍結規則見 `finmind-fred-api-freeze.mdc`。
+- **預測熱路徑**與 API 亦正交——庫內 as-of 切分即可訓練／推估；見 `predict-vs-market-api.mdc`（預測 ≠ 解凍）。
 
 ## Agent 檢查清單
 

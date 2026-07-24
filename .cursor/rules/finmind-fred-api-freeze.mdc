@@ -21,6 +21,7 @@ alwaysApply: true
 ## 允許（本凍結不擋）
 
 - 純本地 **DB 唯讀**／對帳讀庫／schema 檢查（零外部 API）
+- **預測／訓練／回測／切分／推估**——消費庫內已落地 raw／features／panel（as-of）；**凍結 ≠ 不能預測**（見 `predict-vs-market-api.mdc`）
 - **零網路** script、本地 pytest（mock／免 API）
 - 計畫書、ultracode、治權理解、報告撰寫、封存（不觸發 FinMind／FRED）
 - 常駐本地服務（advisor／chat／admin／Ollama）——**不**經 FinMind／FRED
