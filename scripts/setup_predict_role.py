@@ -96,14 +96,34 @@ def dry_run(cur):
     print("    " + ", ".join(forbidden[:12]) + (" …" if len(forbidden) > 12 else ""))
     print(f"  預測 allowed(GRANT)= {len(allowed)} 表;其中可寫 {sorted(WRITABLE & set(allowed))}")
     print("    " + ", ".join(allowed[:12]) + (" …" if len(allowed) > 12 else ""))
+    # P2H 明示：prodset 准、其他 evolution 拒
+    for t, expect in (
+        ("evolution_production_feature_set", "allowed"),
+        ("evolution_run", "forbidden"),
+        ("promotion_queue", "forbidden"),
+    ):
+        bucket = "allowed" if t in allowed else ("forbidden" if t in forbidden else "missing")
+        mark = "✓" if bucket == expect else f"✗ 不符(期望{expect})!"
+        print(f"  P2H classify {t}: {bucket} {mark}")
     if role_exists(cur, PREDICT_ROLE):
         print(f"  role {PREDICT_ROLE} 已存在——抽驗存取:")
-        ft = forbidden[0] if forbidden else None
-        at = next((a for a in allowed if a not in WRITABLE), None)
-        for t, expect in ((ft, "拒"), (at, "准")):
-            if not t:
+        samples = [
+            ("evolution_production_feature_set", "准"),
+            ("evolution_run", "拒"),
+            ("promotion_queue", "拒"),
+        ]
+        ft = next((t for t in forbidden if t.startswith("philosophy_") or t.startswith("knowledge_")), None)
+        if ft:
+            samples.append((ft, "拒"))
+        at = next((a for a in allowed if a not in WRITABLE and a not in PRODSET_ALLOW), None)
+        if at:
+            samples.append((at, "准"))
+        for t, expect in samples:
+            cur.execute("SELECT to_regclass(%s)", (f"public.{t}",))
+            if not cur.fetchone()[0]:
+                print(f"    {t}: 表不存在(跳過)")
                 continue
-            cur.execute("SELECT has_table_privilege(%s, %s, 'SELECT')", (PREDICT_ROLE, f'"{t}"'))  # 引號保留大小寫(混大小寫表名如 CnnFearGreedIndex 否則被 lower 化查無)
+            cur.execute("SELECT has_table_privilege(%s, %s, 'SELECT')", (PREDICT_ROLE, f'"{t}"'))
             got = "准" if cur.fetchone()[0] else "拒"
             mark = "✓" if got == expect else "✗ 不符!"
             print(f"    {t}: SELECT={got}(應{expect}){mark}")

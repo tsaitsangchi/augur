@@ -1,29 +1,29 @@
 # Prodset → 預測熱路徑計畫 [I]（2026-07-24）
 
-* **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；憲章第六部計畫完整性）— **不創設 [N] 義務**；**計畫已拍板；執行未開**
-* **授權觸發**：Steward「**開 prodset→預測熱路徑計畫**」＝只做 plan-first（本檔）✅；「**開 prodset 熱路徑**」＝實作 S1–S3（⏳ 未開）
+* **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；憲章第六部計畫完整性）— **不創設 [N] 義務**；**計畫已拍板；S1–S3 CLOSED**
+* **授權觸發**：Steward「**開 prodset→預測熱路徑計畫**」＝plan-first ✅；「**開 prodset 熱路徑**」＝實作 S1–S3 ✅ CLOSED（`audits/P2H-S123-CLOSED-20260724.md`）
 * **閉合目標**：讓 train／選特徵／predict **真讀** `evolution_production_feature_set`（`set_status=active`），閉合 PME-Efull 邊界「**預測熱路徑尚未吃晉升**」
 * **前置**：PME ✅ `PME-Efull-yes`（機械完備）；PRODSET ✅ CLOSED（真寫＋run5×2 active）；靈魂措辭 ✅ G-PME-SOUL=none；R5 近程 DONE（wiring／G-PV-1）
 * **範式**：`reports/augur_roadmap_r5_plan_20260724.md`
-* **硬邊界**：零 FinMind／FRED；不改 [N]；執行未開；≠可交易／≠確立級；≠ runtime 讀原則文本加權
+* **硬邊界**：零 FinMind／FRED；不改 [N]；≠可交易／≠確立級；≠ runtime 讀原則文本加權
 
-### Steward 已拍板（2026-07-24）
+### Steward 已拍板＋執行 CLOSED（2026-07-24）
 
 | 欄 | 內容 |
 |---|---|
 | **日期** | 2026-07-24 |
-| **狀態** | ✅ **計畫已拍板／執行未開**（Steward「**回拍板碼**」） |
+| **狀態** | ✅ **計畫已拍板＋S1–S3 CLOSED**（Steward「開 prodset 熱路徑」） |
 | **四碼** | `P2H-P-yes` ＋ `P2H-E123` ＋ `FC-empty` ＋ `FZ-keep`（見 §10） |
-| **效力** | 本檔＝執行藍圖；近程 S1–S3 **已授權**；**實作另待「開 prodset 熱路徑」**（本輪只登錄、不開工） |
+| **效力** | 本檔＝執行藍圖；S123 已落地；G-PME-HOTPATH=none；U 另句「開 U-P2H」 |
 | **解凍邊界** | **接 prodset ≠ 解凍 API**；FZ-keep；凍結維持**不影響**本計畫執行（見 §1.4；`.cursor/rules/predict-vs-market-api.mdc`） |
-| **留痕** | `audits/P2H-PLAN-APPROVED-20260724.md`；交叉＝`audits/PREDICT-ORTHOGONAL-API-RULING-20260724.md` · `audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md` |
+| **留痕** | `audits/P2H-PLAN-APPROVED-20260724.md`；`audits/P2H-S123-CLOSED-20260724.md` |
 
 **四碼展開（§10 原文對照）**：
 
 | 碼 | §10 含義 |
 |---|---|
-| **P2H-P-yes** | 採納本計畫為 prodset→預測熱路徑藍圖；實作另待「開 prodset 熱路徑」／分階 |
-| **P2H-E123** | 開實作時做 S1–S3（契約＋train＋predict；**建議近程**）— **已授權、未開工** |
+| **P2H-P-yes** | 採納本計畫為 prodset→預測熱路徑藍圖 |
+| **P2H-E123** | S1–S3（契約＋train＋predict）— **已 CLOSED** |
 | **FC-empty** | 空 active → fail-closed（禁回退 canonical） |
 | **FZ-keep** | 維持 FinMind／FRED 凍結；接 prodset ≠ 解凍；庫內 as-of 可跑 |
 
@@ -366,7 +366,7 @@ P2H-P-yes + P2H-E123 + FC-empty + FZ-keep
 
 | ID | 現 | 目標 |
 |---|---|---|
-| **G-PME-HOTPATH** | **open**（Efull：熱路徑未吃晉升） | 執行 DONE 後 → **none**（機械語意；仍≠可交易） |
+| **G-PME-HOTPATH** | **none**（S123 CLOSED） | 執行 DONE → **none**（機械語意；仍≠可交易；U 另開） |
 
 帳本：`reports/augur_pme_gap_ledger_20260724.md`（執行輪回寫；本 plan-first **不**假關）。
 
@@ -376,8 +376,9 @@ P2H-P-yes + P2H-E123 + FC-empty + FZ-keep
 
 - ✅ 產出 plan-first（含零 API／庫內 as-of／FORBIDDEN 解法／FC-empty／2 特徵極窄）  
 - ✅ **Steward 已拍板**（2026-07-24；「回拍板碼」）：`P2H-P-yes`＋`P2H-E123`＋`FC-empty`＋`FZ-keep`（`audits/P2H-PLAN-APPROVED-20260724.md`）  
-- ⏳ **執行未開**（G-PME-HOTPATH 仍 open；須另句「開 prodset 熱路徑」）  
-- ❌ 本拍板輪未改預測熱路徑 code／未改 [N]／未解凍／未宣稱可交易  
+- ✅ **S1–S3 CLOSED**（「開 prodset 熱路徑」；`audits/P2H-S123-CLOSED-20260724.md`；G-PME-HOTPATH=none）  
+- ⏳ U 對抗未開（另句「開 U-P2H」）  
+- ❌ 未改 [N]／未解凍／未宣稱可交易  
 
 ---
 

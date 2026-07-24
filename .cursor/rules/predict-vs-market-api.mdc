@@ -1,24 +1,35 @@
 ---
-description: 預測／訓練／回測／切分／推估消費庫內已落地資料；與 FinMind／FRED 熱路徑正交（凍結≠不能預測；可追溯拍板）
+description: 預測／訓練／回測／切分／推估消費庫內已落地資料；與 FinMind／FRED 熱路徑正交（凍結≠不能預測；可追溯拍板＋code）
 alwaysApply: true
 ---
 
 # 預測 ↔ 市場 API：正交邊界（庫內切分即可推估）
 
-> **生效**：2026-07-24 Steward 正式定義＋追溯拍板授權 · **位階**：[I] 工具／接續記憶（非 META-CONSTITUTION [N]；入憲另開案）  
-> **關鍵詞**：predict · train · backtest · split · as-of · DB · FinMind · FRED · hotpath · source-pure · anti-leakage · PREDICT-ORTHOGONAL  
-> **留痕**：`audits/PREDICT-ORTHOGONAL-API-RULING-20260724.md` · 追溯總表 `audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md` · P2H 正式拍板 `audits/P2H-PLAN-APPROVED-20260724.md`
+> **生效**：2026-07-24 Steward 正式定義＋追溯拍板授權 · **同日擴充：code 效力** · **位階**：[I] 工具／接續記憶（非 META-CONSTITUTION [N]；入憲另開案）  
+> **關鍵詞**：predict · train · backtest · split · as-of · DB · FinMind · FRED · hotpath · source-pure · anti-leakage · PREDICT-ORTHOGONAL · CODE-REMEDIATION  
+> **留痕**：`audits/PREDICT-ORTHOGONAL-API-RULING-20260724.md` · 追溯總表 `audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md` · code 補正 `audits/PREDICT-ORTHOGONAL-CODE-REMEDIATION-20260724.md` · P2H 正式拍板 `audits/P2H-PLAN-APPROVED-20260724.md`
 
 ## 一句定錨（Steward 原文要旨）
 
 **所有的預測都與 FinMind 及 FRED 沒有關係**——就算沒有現在最新的資料，過去已存在資料庫內的資料仍可拿來做**資料切分**並進行**預測推估**。
 
+**此定義可追溯過去因需 FinMind／FRED API 的所有程式修改**——預測範圍依此原則**修改**，效力邊界成立（見 code 補正 audit）。
+
 ## 追溯效力（2026-07-24）
+
+### 計畫／文件
 
 - 過去因「需 FinMind／FRED API／等解凍」而**未能拍板／執行未開／deferred** 的**預測相關**計畫，依本定義**追溯拍板＝yes**（效力邊界見下）。
 - **yes**＝允許依庫內已落地資料 **plan／實作／驗收**（含 train／backtest／as-of 切分／predict hotpath）。
 - **仍否**（本定義**不解凍、不放行**）：放量 sync、解凍取數、假稱資料洞已補、Dividend 缺股已滿、可交易／確立級（除非原計畫另有閘且已過）。
 - **不屬預測、真需 API 補洞**者（Dividend resume、FRED 新 series、正典 attestation heal 等）→ **仍 API 門**；**不得**假追溯 yes。
+
+### 程式（code；同日擴充）
+
+- 預測／訓練／切分／推估／evaluation／baseline／panel 消費相關**程式**，**不得**以「必須 live FinMind／FRED」為硬前提。
+- **缺最新增量**時：用 **DB as-of**（庫內已落地 raw／features／panel 之最大可見日或呼叫端明示 as-of）續跑；可告警，**不得**因「資料距今 N 日／API 凍結」直接 `raise`／exit 拒絕預測。
+- **取數腳本與預測腳本分離**：`ingestion`／`sync`／`daily_maintenance`／Dividend resume／FRED 新抓＝**API 門**；`train_*`／`predict_*`／`run_evaluation`／`run_economic_*`／arena **對局本體**／baseline helpers＝**庫內路徑**。編排腳本若兩者並存，須提供 **跳過取數**（如 `--skip-sync`）之預測路徑，不得把 sync 當預測唯一入口。
+- **禁止**：預測熱路徑 `import`／呼叫 `finmind.fetch`／`fred.fetch`、強制 `_quota_gate` 通過才允許 train、因 freeze flag 拒絕 predict。
 
 ## 邊界
 
@@ -26,14 +37,14 @@ alwaysApply: true
 |---|---|---|
 | **預測熱路徑** | 訓練／回測／切分／推估——消費 **DB 內已落地** 之 raw／features／panel（**as-of 切分**） | **不**以「必須先開 FinMind／FRED／每日增量」為預測前提 |
 | **FinMind／FRED** | 歷史／增量**取數通道**（資料地基） | 預測 runtime 依賴；不是「沒開 API 就不能預測」的閘 |
-| **API 凍結** | 見 `finmind-fred-api-freeze.mdc`——外部 sync／probe／audit 停 | **≠** 禁止預測拍板／執行；庫內斷點／as-of 即可跑 |
+| **API 凍結** | 見 `finmind-fred-api-freeze.mdc`——外部 sync／probe／audit 停 | **≠** 禁止預測拍板／執行／code 熱路徑；庫內斷點／as-of 即可跑 |
 
 ## 與凍結 rule 交叉（必讀）
 
 | | |
 |---|---|
 | **凍結仍有效於取數** | sync／probe／放量／Dividend 重建／FRED 拉取 → **仍凍**（`finmind-fred-api-freeze.mdc`） |
-| **預測拍板／執行不因凍結而否決** | 不得以「API 仍凍／等解凍」否決庫內預測計畫之採納或實作 |
+| **預測拍板／執行／code 不因凍結而否決** | 不得以「API 仍凍／等解凍」否決庫內預測計畫之採納、實作或執行 |
 | **預測 ≠ 解凍** | 「可以預測」**不得**解讀為「可以再開 API」 |
 
 ## 仍守（不變）
@@ -47,4 +58,5 @@ alwaysApply: true
 1. 接到預測／訓練／回測／切分任務 → 預設走 **DB 唯讀／庫內 panel**；**不要**先開 FinMind／FRED。
 2. 若任務混入「先 sync 再 predict」→ 拆開：預測可先跑；sync 仍受凍結擋。
 3. 文件曾寫「等解凍才能拍板預測」→ 依本 rule＋追溯總表改讀：**預測側可 yes**；取數側仍凍。
-4. 需入憲（改 [N]）→ **另開案**；本 rule／HANDOFF／audits 僅 [I] 記憶。
+4. 改／審預測 code 時：確認無 live API 硬前提；缺增量→DB as-of；取數與預測入口分離（見 code 補正 audit）。
+5. 需入憲（改 [N]）→ **另開案**；本 rule／HANDOFF／audits 僅 [I] 記憶。

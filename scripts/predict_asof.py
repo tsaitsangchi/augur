@@ -7,8 +7,10 @@
    寫 prediction_values(panel_date/model_id/stock_id/score/rank/in_portfolio/weight),並印投組。這是靈魂
    產品輸出口:**系統建議、人決策——只出相對強弱排序 + long 部位建議,不下單、不動錢**。
    as-of 凍結:只用 ≤as-of 已知特徵、model 不得晚於 as-of 訓練(registry.latest 已 asof_snapshot≤as-of);
-   feats_hash 口徑鎖:artifact 凍結之特徵集與當下不符即拒(防漂移)。**複用鐵律**:_panel_matrix/_asof_stocks
-   複用 baseline 同 helper、投組建構複用 portfolio.build_long_portfolio → 與離線回測同口徑(#12)。
+   feats_hash 口徑鎖 + **當下解析集 vs artifact 凍結漂移檢測**(prodset 模式=resolve_prodset_feats;
+   canonical 研究模型=canonical_features);漂移→拒載。**FC-empty**:prodset 模型且 active 空→中止。
+   **複用鐵律**:_panel_matrix/_asof_stocks 複用 baseline 同 helper、投組建構複用 portfolio.build_long_portfolio。
+   ≠可交易／確立級；零 FinMind／FRED。
 守 #8(as-of 凍結、只用已知)· #12(複用 baseline helper + 共用投組 fn)· #15(feats_hash 口徑鎖)· 隔離不變式(寫
    prediction_values、禁被預測 package 回讀)· 靈魂(系統建議人決策、不下單)· CLAUDE #29。
 
@@ -24,12 +26,20 @@
 """
 import argparse
 import datetime as _dt
+import json
 import sys
 
 import _bootstrap  # noqa: F401
 import numpy as np
 
 from augur.core import db
+from augur.core.prodset_contract import (
+    FEATURE_SOURCE_CANONICAL,
+    FEATURE_SOURCE_PRODSET,
+    ProdsetEmptyError,
+    load_active_features,
+    resolve_prodset_feats,
+)
 from augur.evaluation import baseline, label as label_mod, portfolio
 from augur.execution import risk_control
 from augur.models import artifact, registry
@@ -47,6 +57,38 @@ def _latest_asof(conn):
         cur.execute(f"SELECT max(as_of_date) FROM {baseline.ASOF_TABLE}")
         r = cur.fetchone()
         return r[0] if r else None
+
+
+def _metrics_dict(reg_metrics):
+    """registry.latest 回 metrics 可能為 JSON text → dict。"""
+    if reg_metrics is None:
+        return {}
+    if isinstance(reg_metrics, dict):
+        return reg_metrics
+    if isinstance(reg_metrics, str):
+        try:
+            return json.loads(reg_metrics) or {}
+        except json.JSONDecodeError:
+            return {}
+    return {}
+
+
+def _feature_source_of(metrics: dict) -> str:
+    """讀 metrics.feature_source；缺省＝canonical（舊 artifact 皆走 canonical 訓練）。"""
+    src = (metrics.get("feature_source") or "").strip().lower()
+    if src in (FEATURE_SOURCE_PRODSET, FEATURE_SOURCE_CANONICAL):
+        return src
+    return FEATURE_SOURCE_CANONICAL
+
+
+def _current_resolve_feats(conn, asof, feature_source: str) -> list[str]:
+    """當下解析集（漂移對照）。prodset→resolve；canonical→canonical_features。"""
+    if feature_source == FEATURE_SOURCE_PRODSET:
+        active = load_active_features(conn)
+        if not active:
+            raise ProdsetEmptyError("prodset empty: no active features (FC-empty)")
+        return resolve_prodset_feats(conn, [asof])
+    return baseline.canonical_features(conn, [asof]) or []
 
 
 def _deployed_dd_returns(conn, model_id, asof, h):
@@ -118,10 +160,26 @@ def predict(horizon, family, asof, top_n=20, top_frac=0.1, weight="equal", dry_r
             print(f"✗ registry 無 ≤{asof} 之 {family} H={horizon} 模型;先跑 train_ranker.py。"); return None
         art = artifact.load(reg["artifact_path"])
         feats = art["feats"]
-        # feats_hash 口徑鎖:當下 canonical 特徵集須與 artifact 凍結時一致
-        cur_feats = baseline.canonical_features(conn, [asof]) or feats
+        metrics = _metrics_dict(reg.get("metrics"))
+        feature_source = _feature_source_of(metrics)
+        # feats_hash：artifact ↔ registry
         if artifact.feats_hash(feats) != reg["feats_hash"]:
-            print(f"✗ artifact feats_hash 與 registry 不符(artifact 損壞?);中止。"); return None
+            print("✗ artifact feats_hash 與 registry 不符(artifact 損壞?);中止。"); return None
+        # 漂移：當下解析集 vs artifact 凍結（修死變數 cur_feats）
+        # prodset → 拒載；canonical 舊模型 → 僅告警（[asof] 交集≠全史交集，禁誤殺既有 serve）
+        try:
+            cur_feats = _current_resolve_feats(conn, asof, feature_source)
+        except ProdsetEmptyError as e:
+            print(f"✗ prodset empty (FC-empty): {e};中止。"); return None
+        if sorted(cur_feats) != sorted(feats):
+            msg = (
+                f"特徵漂移 (feature_source={feature_source}): "
+                f"frozen={sorted(feats)} vs current={sorted(cur_feats)}"
+            )
+            if feature_source == FEATURE_SOURCE_PRODSET:
+                print(f"✗ {msg};拒載中止。")
+                return None
+            print(f"⚠ {msg};canonical 舊模型僅告警、仍以 artifact 凍結 feats serve。")
         stocks = baseline._asof_stocks(conn, asof)
         if not stocks:
             print(f"✗ {asof} 無 core_universe_asof 名單;中止。"); return None
@@ -151,8 +209,10 @@ def predict(horizon, family, asof, top_n=20, top_frac=0.1, weight="equal", dry_r
                     [(asof, reg["model_id"], sid, sc, rk, inp, w) for rk, sid, sc, inp, w in rows])
     tag = "(dry-run 未寫庫)" if dry_run else f"→ prediction_values ({len(rows)} 列)"
     n_port = len(port)
-    print(f"✓ as-of {asof} 預測 model={reg['model_id']} {tag}")
-    print(f"── long 投組建議 top{top_frac:.0%}/{weight}({n_port} 檔;系統建議、人決策、不下單)──")
+    print(f"✓ as-of {asof} 預測 model={reg['model_id']} feature_source={feature_source} "
+          f"n_feats={len(feats)} {tag}")
+    print(f"  frozen_feats={feats}")
+    print(f"── long 投組建議 top{top_frac:.0%}/{weight}({n_port} 檔;系統建議、人決策、不下單;≠可交易)──")
     for rk, sid, sc, inp, w in rows:
         if inp:
             print(f"  #{rk:<3} {sid:<8} score={sc:+.4f} w={w:.4f}")

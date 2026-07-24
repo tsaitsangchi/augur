@@ -43,7 +43,7 @@ def load_active_features(conn) -> list[str]:
 
 
 def covered_features(conn, panel_dates) -> list[str]:
-    """在 CANONICAL_START 起每個 panel 皆出現於 feature_values 之特徵（交集）。"""
+    """在 CANONICAL_START 起每個 panel 皆出現於 feature_values 之特徵（嚴格交集；canonical 同構）。"""
     pds = [p for p in panel_dates if str(p) >= CANONICAL_START]
     if not pds:
         return []
@@ -57,13 +57,27 @@ def covered_features(conn, panel_dates) -> list[str]:
 
 
 def resolve_prodset_feats(conn, panel_dates, *, require_nonempty: bool = False) -> list[str]:
-    """feats = sorted(active ∩ covered)。require_nonempty 且空 active → ProdsetEmptyError。"""
+    """feats = sorted(active ∩ 於 panel 窗至少出現一次)。
+
+    不用「全 panel 嚴格交集」當 prodset 預設——晉升特徵常短於 CANONICAL_START 全史，
+    嚴格交集會把合法 active 誤殺成空集再誘使假寬 fallback。缺列 panel 由 _fold_xy／_panel_matrix
+    自然跳過。require_nonempty 且空 active → ProdsetEmptyError。
+    """
     active = load_active_features(conn)
     if require_nonempty and not active:
         raise ProdsetEmptyError("prodset empty: no active features in evolution_production_feature_set")
     if not active:
         return []
-    covered = set(covered_features(conn, panel_dates))
+    pds = [p for p in panel_dates if str(p) >= CANONICAL_START]
+    if not pds:
+        return []
+    with db.transaction(conn) as cur:
+        cur.execute(
+            f"SELECT DISTINCT feature FROM {FEATURE_TABLE} "
+            f"WHERE panel_date = ANY(%s) AND feature = ANY(%s)",
+            (pds, list(active)),
+        )
+        covered = {r[0] for r in cur.fetchall()}
     return sorted(f for f in active if f in covered)
 
 
@@ -89,8 +103,20 @@ def _selftest() -> int:
     sig = inspect.signature(resolve_prodset_feats)
     chk("resolve_prodset_feats 含 require_nonempty", "require_nonempty" in sig.parameters)
     chk("ProdsetEmptyError 為 RuntimeError 子類", issubclass(ProdsetEmptyError, RuntimeError))
+    import ast
+    import pathlib
     text = pathlib.Path(__file__).read_text(encoding="utf-8")
-    chk("本檔零 import augur.philosophy", "augur.philosophy" not in text)
+    tree = ast.parse(text)
+    bad_imports = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for n in node.names:
+                if n.name == "augur.philosophy" or n.name.startswith("augur.philosophy."):
+                    bad_imports.append(n.name)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            if node.module == "augur.philosophy" or node.module.startswith("augur.philosophy."):
+                bad_imports.append(node.module)
+    chk("本檔 AST 零 import augur.philosophy", bad_imports == [])
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

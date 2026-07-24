@@ -1,7 +1,7 @@
 # PME Gap 帳本 [I]（2026-07-24）
 
 * 掛接：`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`
-* 狀態留痕：`audits/PME-S012-STATUS-20260724.md`；**E123**：`audits/PME-E123-STATUS-20260724.md`；**U-PME**：`audits/PME-ULTRACODE-20260724.md`；**A7**：`audits/PME-A7-STATUS-or-CLOSED-20260724.md`；**PRODSET**：`audits/PME-PRODSET-CLOSED-20260724.md`；**S4**：`audits/PME-S4-CLOSED-20260724.md`；**Efull**：`audits/PME-EFULL-REVIEW-20260724.md`＋✅ **`PME-Efull-yes`**＝`audits/PME-EFULL-APPROVED-20260724.md`；**G-PME-SOUL**：✅ **`audits/G-PME-SOUL-CLOSED-20260724.md`**（none）
+* 狀態留痕：`audits/PME-S012-STATUS-20260724.md`；**E123**：`audits/PME-E123-STATUS-20260724.md`；**U-PME**：`audits/PME-ULTRACODE-20260724.md`；**A7**：`audits/PME-A7-STATUS-or-CLOSED-20260724.md`；**PRODSET**：`audits/PME-PRODSET-CLOSED-20260724.md`；**S4**：`audits/PME-S4-CLOSED-20260724.md`；**Efull**：`audits/PME-EFULL-REVIEW-20260724.md`＋✅ **`PME-Efull-yes`**＝`audits/PME-EFULL-APPROVED-20260724.md`；**G-PME-SOUL**：✅ **`audits/G-PME-SOUL-CLOSED-20260724.md`**（none）；**P2H-S123**：✅ **`audits/P2H-S123-CLOSED-20260724.md`**（G-PME-HOTPATH=none）
 * 性質：[I]；**不**創設 [N]
 
 | ID | 前 | 後 | 說明 |
@@ -17,4 +17,4 @@
 | **G-PME-PRODSET** | partial | **none** | **PRODSET CLOSED 2026-07-24**：真寫 `evolution_production_feature_set`；APPLY／`--backfill-prodset`；run_id=5×2 active；`audits/PME-PRODSET-CLOSED-20260724.md`；**≠**可交易／確立級 |
 | **G-PME-DEMOTE** | — | **doc-only** | U-PME F-U-PME-8：閘紅＝rejected_gate；降級 status 未自動執行 |
 | **G-PME-S4** | absent | **none** | **S4 CLOSED 2026-07-24**：`interpretation.py`＋報告 script＋advisor 單向注入；tags=0 知情；**≠**可交易；Efull＝機械完備（`PME-Efull-yes`）仍≠可交易完備 |
-| **G-PME-HOTPATH** | open | **open** | Efull 邊界：預測熱路徑尚未吃晉升；✅ **計畫已拍板**（`P2H-P-yes`＋`P2H-E123`＋`FC-empty`＋`FZ-keep`；`audits/P2H-PLAN-APPROVED-20260724.md`；交叉＝`audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md`）—**執行未開**故仍 open；須「開 prodset 熱路徑」（接線≠解凍；≠可交易） |
+| **G-PME-HOTPATH** | open | **none** | **S123 CLOSED 2026-07-24**：train／predict 真讀 prodset（`P2H-E123`＋FC-empty）；`audits/P2H-S123-CLOSED-20260724.md`；n_feats=2 誠實極窄；**≠**可交易；U 對抗未開 |
