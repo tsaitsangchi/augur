@@ -12,7 +12,7 @@
 
 | # | path | 原先卡關理由（摘要） | 屬預測／庫內切分？ | 追溯拍板 | 效力邊界註 |
 |---|---|---|---|---|---|
-| 1 | `reports/augur_prodset_predict_hotpath_plan_20260724.md` | 計畫已出／執行未開；近程敘事常與「資料地基等解凍」並列 | **是**（prodset→train／predict；零 API／庫內 as-of） | ✅ **`P2H-P-yes`＋`P2H-E123`＋`FC-empty`＋`FZ-keep`**（＝建議碼等價 **P2H 已追溯 yes**） | 計畫採納＋近程執行**授權**；本輪**不自動開工**（實作仍可另句「開 prodset 熱路徑」啟動）。≠可交易／≠確立級／≠解凍 |
+| 1 | `reports/augur_prodset_predict_hotpath_plan_20260724.md` | 計畫已出／執行未開；近程敘事常與「資料地基等解凍」並列 | **是**（prodset→train／predict；零 API／庫內 as-of） | ✅ **正式拍板** `P2H-P-yes`＋`P2H-E123`＋`FC-empty`＋`FZ-keep`（`audits/P2H-PLAN-APPROVED-20260724.md`） | 計畫已拍板＋近程執行**授權**；**執行未開**（須「開 prodset 熱路徑」）。≠可交易／≠確立級／≠解凍 |
 | 2 | `reports/augur_prediction_sop_plan_20260705.md` | 文首「待拍板」；曾與放量／資料完整敘事綁讀 | **是**（端到端預測 SOP；可庫內） | ✅ **yes** | 庫內 train／predict／eval 可依案 plan／實作／驗收；仍否放量 sync |
 | 3 | `reports/augur_stock_prediction_sop_20260705.md` | 端到端 SOP；增量／cron／as-of 前推曾混 API | **是**（預測骨幹） | ✅ **yes** | 同上；tradability 等閘值仍須原案決策層，但不因 API 凍否決庫內路徑 |
 | 4 | `reports/augur_prediction_sop_master_20260706.md` | plan-first 主計劃；歷史與資料地基敘事交織 | **是** | ✅ **yes** | 庫內階段可拍／可做；需新 raw 之節點 → 見 B |
@@ -49,10 +49,11 @@
 | 項 | 內容 |
 |---|---|
 | 計畫 | `reports/augur_prodset_predict_hotpath_plan_20260724.md` |
+| 正式拍板 | Steward「**回拍板碼**」→ `audits/P2H-PLAN-APPROVED-20260724.md`（2026-07-24） |
 | 追溯碼 | **`P2H-P-yes`＋`P2H-E123`＋`FC-empty`＋`FZ-keep`** |
 | 意義 | 採納藍圖；近程 S1–S3（含 predict）**授權**；空 active→fail-closed；凍結維持、接 prodset≠解凍 |
 | Gap | `G-PME-HOTPATH` 仍 **open**（執行未開工前不假 none）；帳本見 `reports/augur_pme_gap_ledger_20260724.md` |
-| 本輪 | **不**自動改 code；實作待啟動句或後續 session 執行 |
+| 本輪 | **計畫已拍板／執行未開**；實作須另句「**開 prodset 熱路徑**」 |
 
 ---
 

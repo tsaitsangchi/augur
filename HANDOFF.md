@@ -93,7 +93,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 | | |
 |---|---|
 | **做** | **PME**（哲學↔市場進化閉環）強化預測；**資料地基庫內段**（catalog `db_only`、Dividend／attestation 唯讀親驗——已跑 2026-07-24；見下） |
-| **prodset→熱路徑** | ✅ **`P2H` 已追溯 yes**（2026-07-24；`P2H-P-yes`＋`P2H-E123`＋`FC-empty`＋`FZ-keep`；`audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md`）——計畫採納＋近程執行**授權**；**實作未自動開工**（G-PME-HOTPATH 仍 open）；零 API／庫內 as-of；接 prodset≠解凍 |
+| **prodset→熱路徑** | ✅ **計畫已拍板／執行未開**（2026-07-24；Steward「回拍板碼」＝`P2H-P-yes`＋`P2H-E123`＋`FC-empty`＋`FZ-keep`；`audits/P2H-PLAN-APPROVED-20260724.md`；交叉追溯＝`audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md`）——S1–S3 **已授權**；須另句「**開 prodset 熱路徑**」才實作（G-PME-HOTPATH 仍 open）；零 API／庫內 as-of；接 prodset≠解凍 |
 | **預測↔API** | **[I]** Steward 正式定義：所有預測與 FinMind／FRED **無關**——庫內已落地 raw／features／panel 即可 as-of 切分／訓練／推估；**凍結仍凍取數**，**預測拍板／執行不因凍結否決**；過去因 API 不能拍板之**預測**文件可追溯 **yes**（效力邊界見下）。仍守 #1／#8。rule＝`.cursor/rules/predict-vs-market-api.mdc`；裁決＝`audits/PREDICT-ORTHOGONAL-API-RULING-20260724.md`；追溯總表＝`audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md`；交叉＝`finmind-fred-api-freeze`／`soul-vs-raw-correlation`（**預測 ≠ 解凍**；**未改** [N]） |
 | **追溯 yes 邊界** | **yes**＝庫內 plan／實作／驗收；**仍否**＝放量 sync、解凍取數、假稱洞已補、Dividend 已滿、可交易／確立級（除非原閘已過）；Dividend／FRED 新 series／attestation heal 等 **仍 API 門** |
 | **PME 靈魂措辭** | ✅ **G-PME-SOUL=none**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；`audits/G-PME-SOUL-CLOSED-20260724.md`）——適用**新入 know-how**（新哲學／新研發技術／新學術論文等）閘後有界自動晉升；**自動下單仍禁**；**與 FinMind／FRED 正交（≠解凍）** |

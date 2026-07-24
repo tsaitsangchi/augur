@@ -25,6 +25,7 @@
 | 凍結交叉（取數仍凍） | `.cursor/rules/finmind-fred-api-freeze.mdc`（允許段＋交叉一句；**未**解凍） |
 | HANDOFF | `HANDOFF.md` §4.0「預測↔API」＋ prodset→熱路徑 |
 | 追溯總表 | `audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md` |
+| P2H 正式拍板 | `audits/P2H-PLAN-APPROVED-20260724.md`（Steward「回拍板碼」；執行未開） |
 | 本留痕 | 本檔 |
 
 ## 與凍結正交
