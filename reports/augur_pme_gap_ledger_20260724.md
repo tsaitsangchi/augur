@@ -1,7 +1,7 @@
 # PME Gap 帳本 [I]（2026-07-24）
 
 * 掛接：`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`
-* 狀態留痕：`audits/PME-S012-STATUS-20260724.md`；**E123**：`audits/PME-E123-STATUS-20260724.md`；**U-PME**：`audits/PME-ULTRACODE-20260724.md`；**A7**：`audits/PME-A7-STATUS-or-CLOSED-20260724.md`；**PRODSET**：`audits/PME-PRODSET-CLOSED-20260724.md`；**S4**：`audits/PME-S4-CLOSED-20260724.md`；**Efull 呈核**：`audits/PME-EFULL-REVIEW-20260724.md`（⚠ **待拍板**；≠已採納）
+* 狀態留痕：`audits/PME-S012-STATUS-20260724.md`；**E123**：`audits/PME-E123-STATUS-20260724.md`；**U-PME**：`audits/PME-ULTRACODE-20260724.md`；**A7**：`audits/PME-A7-STATUS-or-CLOSED-20260724.md`；**PRODSET**：`audits/PME-PRODSET-CLOSED-20260724.md`；**S4**：`audits/PME-S4-CLOSED-20260724.md`；**Efull**：`audits/PME-EFULL-REVIEW-20260724.md`＋✅ **`PME-Efull-yes`**＝`audits/PME-EFULL-APPROVED-20260724.md`（機械完備；§3 邊界不可分割；≠可交易）
 * 性質：[I]；**不**創設 [N]
 
 | ID | 前 | 後 | 說明 |
@@ -16,4 +16,4 @@
 | **G-PME-U** | open | **none** | U-PME DONE（`audits/PME-ULTRACODE-20260724.md`；A11 PASS） |
 | **G-PME-PRODSET** | partial | **none** | **PRODSET CLOSED 2026-07-24**：真寫 `evolution_production_feature_set`；APPLY／`--backfill-prodset`；run_id=5×2 active；`audits/PME-PRODSET-CLOSED-20260724.md`；**≠**可交易／確立級 |
 | **G-PME-DEMOTE** | — | **doc-only** | U-PME F-U-PME-8：閘紅＝rejected_gate；降級 status 未自動執行 |
-| **G-PME-S4** | absent | **none** | **S4 CLOSED 2026-07-24**：`interpretation.py`＋報告 script＋advisor 單向注入；tags=0 知情；**≠**可交易／Efull 完備 |
+| **G-PME-S4** | absent | **none** | **S4 CLOSED 2026-07-24**：`interpretation.py`＋報告 script＋advisor 單向注入；tags=0 知情；**≠**可交易；Efull＝機械完備（`PME-Efull-yes`）仍≠可交易完備 |

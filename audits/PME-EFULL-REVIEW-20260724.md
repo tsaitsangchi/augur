@@ -1,19 +1,18 @@
 # PME-Efull 呈核 [I]（2026-07-24）
 
-* Steward 明示：「**PME-Efull 呈核**」
+* Steward 明示：「**PME-Efull 呈核**」→ ✅ **已採 `PME-Efull-yes`**（2026-07-24）
 * 性質：**合成呈核**（audit／報告）— **不是**擅自宣告治權完備、**不是**解凍 API、**不是**改 [N]
 * 計畫定義：`reports/augur_philosophy_market_evolution_loop_plan_20260724.md` §10.4 — **〔PME-Efull〕＝S0–S4＋U-PME**
 * Gap：`reports/augur_pme_gap_ledger_20260724.md`
 * 硬邊界：零 FinMind／FRED；不改靈魂 [N]；FZ-keep 維持
 * 交叉：R7 S2 首掛 **P-PME**；U7＝`audits/ROADMAP-U7-R7-ULTRACODE-20260724.md`（G-R7-1 doc-only）
+* 拍板登錄：`audits/PME-EFULL-APPROVED-20260724.md`
 
 ---
 
-## 0. 呈核結論草稿（一句）
+## 0. 呈核結論（一句）＋拍板
 
-近程閉環**機械構件**（S0–S4＋U-PME＋A7＋PRODSET）**已齊且可追溯**；建議 Steward 以 **`PME-Efull-yes`** 承認「近程閉環機械完備」——**同時釘死邊界**：≠可交易／≠確立級／≠靈魂 [N] 已修／≠ API 解凍／≠多數 G-PROM 綠／≠預測熱路徑已吃晉升。
-
-（若 Steward 不願讓「Efull」承載上述邊界語意 → 改採 `PME-Efull-partial`。）
+近程閉環**機械構件**（S0–S4＋U-PME＋A7＋PRODSET）**已齊且可追溯**；Steward **已採 `PME-Efull-yes`**（2026-07-24）承認「近程閉環**機械完備**」——**§3 邊界為不可分割條件**：≠可交易／≠確立級／≠靈魂 [N] 已修／≠ API 解凍／≠多數 G-PROM 綠／≠預測熱路徑已吃晉升。
 
 ---
 
@@ -105,48 +104,49 @@ Gap **none**：G-PME-KILL／AUTO-PATH／COV／STATUS／U／PRODSET／S4。
 
 ---
 
-## 5. 建議 Steward 拍板選項
+## 5. Steward 拍板選項（史料）＋已採碼
 
-| 碼 | 含義 | 何時選 |
+| 碼 | 含義 | 本輪 |
 |---|---|---|
-| **`PME-Efull-yes`** | 承認近程閉環**機械完備**（S0–S4＋U-PME＋A* 機械語意）；**必須**同時接受 §3 邊界清單為不可分割條件 | 構件齊＋願意讓「Efull」＝機械閉環（計畫 §10.4 字面） |
-| **`PME-Efull-partial`** | 僅承認至 S4／U-PME／PRODSET／A7 CLOSED；**不用**「Efull」名稱對外 | 認為「Efull」須另含多數 G-PROM 綠或靈魂措辭閉合才可掛名 |
-| **`PME-Efull-no`** | 退回；須補缺件後再呈 | 若認定尚缺阻斷項（見下「缺件清單」草案） |
+| **`PME-Efull-yes`** | 承認近程閉環**機械完備**（S0–S4＋U-PME＋A* 機械語意）；**必須**同時接受 §3 邊界清單為不可分割條件 | ✅ **已採（2026-07-24）** |
+| **`PME-Efull-partial`** | 僅承認至 S4／U-PME／PRODSET／A7 CLOSED；**不用**「Efull」名稱對外 | 未採 |
+| **`PME-Efull-no`** | 退回；須補缺件後再呈 | 未採 |
 
-### 5.1 建議碼（呈核方）
+### 5.1 已採理由（呈核方原建議，Steward 採納）
 
-**`PME-Efull-yes`**（附 §3 邊界為拍板條件）。
+**`PME-Efull-yes`**（附 §3 邊界為拍板條件）＝計畫對 Efull 的定義＝**S0–S4＋U-PME**，非「可交易完備」；A0–A11 機械項與附屬 CLOSED 均可追溯；誠實殘留已入帳本且文件一致防膨脹。
 
-理由：計畫對 Efull 的定義＝**S0–S4＋U-PME**，非「可交易完備」；A0–A11 機械項與附屬 CLOSED 均可追溯；誠實殘留已入帳本且文件一致防膨脹。
+### 5.2 未升格為 Efull 阻斷之項（史料；仍 pending／partial／doc-only）
 
-### 5.2 若選 `PME-Efull-no` 之缺件清單（草案）
+下列**不**因 Efull-yes 假關（見 §3）：
 
-僅當 Steward 將下列任一升格為 Efull **阻斷**：
-
-1. G-PME-SOUL 靈魂措辭案閉合（改 [N] 另授權）  
-2. G-PROM／G-ECON 達另訂多數綠閾  
+1. G-PME-SOUL 靈魂措辭案（改 [N] 另授權）  
+2. G-PROM／G-ECON 多數綠  
 3. G-PME-DEMOTE 自動降級路徑真執行  
-4. G-R7-1 升格為語義閘（超出現行哨兵設計）  
-5. Dividend／FZ 解凍條件滿足（**本呈核不建議**納入 Efull 阻斷——與 FZ-keep 拍板衝突）
+4. G-R7-1 升格為語義閘  
+5. Dividend／FZ 解凍（與 FZ-keep 衝突；禁自解凍）
 
 ---
 
-## 6. 拍板後效力邊界（無論 yes／partial）
+## 6. 拍板後效力邊界（`PME-Efull-yes`）
 
+* ✅ **是**＝近程閉環**機械完備**（S0–S4＋U-PME＋A* 機械語意；§3 邊界不可分割）  
 * **不**＝constitution-to-implementation 全部落地  
 * **不**＝解凍 FinMind／FRED／續 Dividend  
 * **不**＝確立級／可交易／自動下單  
 * **不**＝靈魂 [N] 已對齊 AUTO-B  
 * **不**＝八產品 R7 全掛閘出貨  
+* **不**＝G-PROM／G-ECON 多數綠／預測熱路徑已吃晉升  
 
-建議下一句（拍板後）：「**靈魂措辭另案（G-PME-SOUL）**」；資料地基等解凍條件再續。
+建議下一句：「**靈魂措辭另案（G-PME-SOUL）**」；資料地基等解凍條件再續。
 
 ---
 
 ## 7. 本檔效力
 
-* [I] audit；**待 Steward 拍板**（`PME-Efull-yes`｜`partial`｜`no`）  
-* 寫入當下：**呈核已出／尚未拍板**——計畫／路線圖僅標此狀態，**禁止**寫成已採納 Efull  
+* [I] audit；✅ Steward **已採 `PME-Efull-yes`**（2026-07-24）  
+* 登錄：`audits/PME-EFULL-APPROVED-20260724.md`  
+* §3 邊界＝拍板不可分割條件；**禁止**寫成可交易／確立級／API 已解凍／靈魂 [N] 已修  
 
 ---
 
