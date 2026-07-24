@@ -109,7 +109,7 @@ def predict(horizon, family, asof, top_n=20, top_frac=0.1, weight="equal", dry_r
     與 run_backtest 同一支選股邏輯、live≡回測零漂移)。risk=True 時收尾套 execution.risk_control overlay
     (單標的 cap 生效於落庫權重;DD 熔斷/換手為建議旗標、不自動下單),閾值讀 risk_policy(#29b)。
     """
-    with db.connect() as conn:
+    with db.connect_predict() as conn:  # G-ISO-2：預測寫入走 augur_predict（非 app／advisor）
         asof = _as_date(asof) or _latest_asof(conn)
         if asof is None:
             print("✗ core_universe_asof 無資料;中止。"); return None

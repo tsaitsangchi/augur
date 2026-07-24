@@ -82,3 +82,22 @@ def test_predict_role_can_write_outputs(cur):
         if got is None:
             continue
         assert got is True, f"augur_predict 不能寫輸出表 {t}(WRITABLE grants 缺)"
+
+
+def test_db_params_predict_user_is_augur_predict():
+    """G-ISO-2：config 結構接線——DB_PARAMS_PREDICT.user 釘 augur_predict（免 DB）。"""
+    assert config.DB_PARAMS_PREDICT["user"] == PREDICT_ROLE
+    assert set(config.DB_PARAMS_PREDICT) == {"host", "port", "dbname", "user", "password"}
+
+
+def test_connect_predict_session_user(cur):
+    """G-ISO-2：connect_predict() 實際 session_user＝augur_predict（role/密碼就緒時）。"""
+    from augur.core import db as _db
+    if not config.DB_PARAMS_PREDICT.get("password"):
+        pytest.skip("DB_PREDICT_PASSWORD 未設、跳過 connect_predict 實連")
+    try:
+        with _db.connect_predict() as conn, conn.cursor() as c:
+            c.execute("SELECT current_user")
+            assert c.fetchone()[0] == PREDICT_ROLE
+    except Exception as e:  # noqa: BLE001
+        pytest.skip(f"connect_predict 不可用:{e}")

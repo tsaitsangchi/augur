@@ -60,7 +60,7 @@ DDL = [
         CREATE INDEX IF NOT EXISTS ix_pred_panel_model ON prediction_values (panel_date, model_id)"""),
     ("comment prediction_values", """
         COMMENT ON TABLE prediction_values IS
-        '預測產物;禁被預測 7 package(features/models/universe/evaluation/ingestion/audit/catalog)回讀當特徵——AST import_isolation + DB GRANT 雙閘強制(隔離不變式)'"""),
+        '預測產物;禁被 PREDICT_CONSUMERS(features/models/universe/evaluation)字面回讀當特徵——import_isolation PRODUCT_LITERALS AST 閘(G-PV-1 PV-α)。合法寫入=scripts/predict_*;顧問讀=augur.advisor。GRANT 層 predict role 仍可 SELECT(寫入自讀;β REVOKE 未做)。'"""),
     ("comment model_registry", """
         COMMENT ON TABLE model_registry IS
         '模型登錄;#15 可重現(git_sha/feats_hash 凍結)+ resume 帳本;非預測輸入表'"""),

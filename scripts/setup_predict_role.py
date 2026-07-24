@@ -16,7 +16,8 @@
   python scripts/setup_predict_role.py --apply --confirm  # 真的執行(role 密碼取 env DB_PREDICT_PASSWORD)
 
 ⚠ **破壞性 + 跨機**:建 role 屬 doctrine 級運維(#6),須 --confirm;role 不在 pg_dump,換機還原後重跑本腳本。
-   預測 code 連此 role 之接線(config DB_PARAMS_PREDICT)為另一步、本腳本只管 role/GRANT。
+   Runtime 接線(G-ISO-2):`config.DB_PARAMS_PREDICT` + `db.connect_predict()`；`scripts/predict_asof.py` 已走 predict role。
+   本腳本只管 role/GRANT provision。
 """
 import argparse
 import os
@@ -140,7 +141,7 @@ def main():
                 sys.exit("✗ --apply 為破壞性(建 role/改 GRANT),須加 --confirm(#6)")
             with db.transaction(conn) as cur:
                 apply(cur)
-            print("  完成。下一步:預測入口改連 augur_predict(config DB_PARAMS_PREDICT);換機還原後重跑本腳本。")
+            print("  完成。Runtime 接線:config.DB_PARAMS_PREDICT + db.connect_predict()（predict_asof 已用）；換機還原後重跑本腳本。")
         else:
             with db.transaction(conn) as cur:
                 if not args.dry_run:

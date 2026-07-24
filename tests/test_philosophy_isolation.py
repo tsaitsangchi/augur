@@ -120,3 +120,19 @@ def test_pipeline_and_core_have_no_bridge_table_reference():
         bad.write_text("q = 'SELECT stat_value FROM field_knowhow_lexical_affinity'\n", encoding="utf-8")
         caught = _string_ref_violations([pathlib.Path(d)], BRIDGE_LITERALS, "bridge")
         assert caught, "掃描器未抓到植入的橋表字面引用=紅測失敗(閘是假的)"
+
+
+def test_predict_consumers_have_no_product_table_literal():
+    """G-PV-1 PV-α：純預測消費者禁字面 prediction_values／prediction_probability（禁回讀當特徵）。"""
+    from augur.audit.import_isolation import (
+        _string_ref_violations, PRODUCT_LITERALS, PREDICT_CONSUMERS, _AUGUR_ROOT,
+    )
+    v = _string_ref_violations(
+        [_AUGUR_ROOT / p for p in PREDICT_CONSUMERS], PRODUCT_LITERALS, "product")
+    assert not v, "PREDICT_CONSUMERS 字面引用產物表(G-PV-1 自迴圈):\n" + "\n".join(v)
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        bad = pathlib.Path(d) / "sneaky.py"
+        bad.write_text("q = 'SELECT score FROM prediction_values'\n", encoding="utf-8")
+        caught = _string_ref_violations([pathlib.Path(d)], PRODUCT_LITERALS, "product")
+        assert caught, "掃描器未抓到植入的 prediction_values 字面=紅測失敗(閘是假的)"

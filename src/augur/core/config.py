@@ -46,6 +46,16 @@ DB_PARAMS = {
     "password": os.getenv("DB_PASSWORD", ""),
 }
 
+# 預測受限 role（G-ISO-2）：同 host/port/dbname，user=augur_predict；密碼缺 → 結構可建、連線 FAIL 誠實。
+# advisor／knowledge／migrate 維持 DB_PARAMS；僅 predict 寫入路徑顯式走此 params。
+DB_PARAMS_PREDICT = {
+    "host": DB_PARAMS["host"],
+    "port": DB_PARAMS["port"],
+    "dbname": DB_PARAMS["dbname"],
+    "user": "augur_predict",
+    "password": os.getenv("DB_PREDICT_PASSWORD", ""),
+}
+
 # ---- API 密鑰 ----
 FINMIND_TOKEN = os.getenv("FINMIND_TOKEN", "")
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
@@ -71,10 +81,17 @@ def _selftest():
         DATA_DIR.parent == PROJECT_ROOT and MODELS_DIR.parent == PROJECT_ROOT
         and REPORTS_DIR.parent == PROJECT_ROOT)
     chk("LOG_DIR = DATA_DIR/logs", LOG_DIR == DATA_DIR / "logs" and LOG_DIR.parent == DATA_DIR)
-    # DB_PARAMS：psycopg2.connect(**DB_PARAMS) 之必備鍵齊全、port 解析為 int
-    chk("DB_PARAMS 五鍵齊全",
-        set(DB_PARAMS) == {"host", "port", "dbname", "user", "password"})
+    # DB_PARAMS／DB_PARAMS_PREDICT：psycopg2.connect(**…) 之必備鍵齊全、port 解析為 int
+    _keys = {"host", "port", "dbname", "user", "password"}
+    chk("DB_PARAMS 五鍵齊全", set(DB_PARAMS) == _keys)
     chk("DB_PARAMS.port 為 int", isinstance(DB_PARAMS["port"], int))
+    chk("DB_PARAMS_PREDICT 五鍵齊全", set(DB_PARAMS_PREDICT) == _keys)
+    chk("DB_PARAMS_PREDICT.port 為 int", isinstance(DB_PARAMS_PREDICT["port"], int))
+    chk("DB_PARAMS_PREDICT.user=augur_predict", DB_PARAMS_PREDICT["user"] == "augur_predict")
+    chk("PREDICT 與 app 同 host/port/dbname",
+        DB_PARAMS_PREDICT["host"] == DB_PARAMS["host"]
+        and DB_PARAMS_PREDICT["port"] == DB_PARAMS["port"]
+        and DB_PARAMS_PREDICT["dbname"] == DB_PARAMS["dbname"])
     chk("密鑰/運維選項為 str", all(isinstance(x, str)
         for x in (FINMIND_TOKEN, FRED_API_KEY, ENV, LOG_LEVEL, TZ)))
     chk("ensure_dirs 為可呼叫", callable(ensure_dirs))   # 結構斷言：不實呼叫（會 mkdir=IO）

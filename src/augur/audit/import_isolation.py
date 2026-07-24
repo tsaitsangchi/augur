@@ -9,6 +9,7 @@
    - **(b) 字面旁路稽核**:預測管線 + `augur.core` 禁**字串拼 SQL** 觸及 RBAC 授權表/resolver
      與 chat 對話表/API;預測管線 + core + 素養層寫入者(knowledge/philosophy)禁觸及蒸餾
      staging 表 `advisor_distill_*`(界線-A:蒸餾產物零回流真兆庫;import 稽核看不到 raw SQL)。
+     純預測消費者另禁產物表 `prediction_values`/`prediction_probability` 字面(G-PV-1 PV-α)。
    - **(c) 對位稽核**:resolver 必住 `augur.knowledge`、chat_history 必住 `augur.advisor`
      (FORBIDDEN 前綴、預測管線零 import),絕不誤置 `augur.core`(否則 pipeline 經 core 可達)。
 
@@ -56,6 +57,9 @@ SUPERSEDE_LITERALS = ("raw_supersede_log",)
 IDENTITY_LITERALS = ("identity_claim", "identity_lifecycle_event", "entity_attribute_version")
 # 自動行動授權/留痕表(步 11 AUD-10/11):執行層記錄、與預測管線無涉;純預測消費者禁字面觸及(縱深雙閘,對稱 DB REVOKE)。
 ACTION_LITERALS = ("automation_action_log", "authorization_grant")
+# 預測產物表(G-PV-1／PV-α)：禁被純消費側回讀當特徵(自迴圈)；合法寫入在 scripts/predict_*、顧問讀在 advisor。
+# AST 字面閘對稱 SUPERSEDE；GRANT 層 REVOKE SELECT＝β（本輪未做——predict writer 仍可自讀）。
+PRODUCT_LITERALS = ("prediction_values", "prediction_probability")
 PREDICT_CONSUMERS = ("features", "models", "universe", "evaluation")   # 純消費側:排除合法寫入者 core/ingestion/audit/catalog
 # grep-lint 面:預測管線 + core 皆禁字面引用 RBAC/chat(擋不 import 但字串旁路)
 SCAN_STR = PIPELINE + ("core",)
@@ -187,6 +191,7 @@ def check_isolation() -> list[str]:
         + _string_ref_violations([_AUGUR_ROOT / p for p in PREDICT_CONSUMERS], SUPERSEDE_LITERALS, "supersede")
         + _string_ref_violations([_AUGUR_ROOT / p for p in PREDICT_CONSUMERS], IDENTITY_LITERALS, "identity")
         + _string_ref_violations([_AUGUR_ROOT / p for p in PREDICT_CONSUMERS], ACTION_LITERALS, "action")
+        + _string_ref_violations([_AUGUR_ROOT / p for p in PREDICT_CONSUMERS], PRODUCT_LITERALS, "product")
         + _placement_violations()
         + _scripts_predict_leak_violations()
     )
@@ -201,7 +206,8 @@ def main() -> int:
         return 1
     print(f"✓ 隔離不變式通過:{' / '.join(PIPELINE)} 零 import 素養層 + 預測/core 零 RBAC/chat 字面 + "
           f"預測/core/素養層零 advisor_distill 字面(界線-A)+ 純預測消費者零 raw_supersede_log/identity(claim/"
-          f"lifecycle/attribute)/action(automation/authz)字面(WM.35 雙閘對稱)+ "
+          f"lifecycle/attribute)/action(automation/authz)/product(prediction_values|probability)字面"
+          f"(WM.35＋G-PV-1 PV-α)+ "
           f"resolver/chat_history 住對位 + scripts 預測腳本零洩漏面")
     return 0
 

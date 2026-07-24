@@ -71,7 +71,7 @@
 | **R2** | 治權衛生／殘留誠實 | 入口一致；10-14 checklist 明示；不合規假關 | 案 D；RULING-039；WM.44／合規聲明 | constitution-mcp；`constitution_lint`；GOVERNANCE-MAP | ✅ **DONE**（2026-07-24；見 §3.3／`audits/ROADMAP-R2-1014-CHECKLIST-STATUS-20260724.md`） |
 | **R3** | 規格→實作 Gap 帳本 | 建立「義務→落點→證據」對帳表 | MC §8.2／§8.3；L4–L7 DEFER／TR；construction §9／§11 | `recall`／`local_research`（[I]）；`deliberate.py`；既有 audits | ✅ **DONE**（2026-07-24；見 §3.4／`reports/augur_roadmap_r3_gap_ledger_20260724.md`） |
 | **R4** | 資料地基（12-PHASE 對齊） | raw／對帳／panel 可定案或 live 增量誠實 | 原則 #1／#7／#18；大憲章 PHASE 0–8；arena G1-PIN | `full_market_sync.py`；`daily_maintenance.py`；`audit_selfheal.sh`；reconcile | ✅ **DONE**（2026-07-24；親驗＋db_only＋工單；表級 catalog／Dividend／當日 e2e 仍 partial；見 §3.5／`audits/ROADMAP-R4-CLOSED-20260724.md`） |
-| **R5** | 預測半系統落地 | universe→model→econ／arena 可驗 | 原則 #8／#11／#12–15；輸出契約；arena／direction_gate | `build_core_universe.py`；提拔／econ scripts；arena pipeline；DB triggers | 📋 **計畫已拍板／執行未開**（2026-07-24；`R5-P-yes`＋`R5-E12`＋`PV-α`＋`PAR`；`reports/augur_roadmap_r5_plan_20260724.md`） |
+| **R5** | 預測半系統落地 | universe→model→econ／arena 可驗 | 原則 #8／#11／#12–15；輸出契約；arena／direction_gate | `build_core_universe.py`；提拔／econ scripts；arena pipeline；DB triggers | 🔧 **S1＋S2 閉**（2026-07-24；`R5-E12`＋`PV-α`；S3／U5 pending；`audits/ROADMAP-R5-S12-CLOSED-20260724.md`） |
 | **R6** | 素養／顧問半系統落地 | acquire→promote→全文閘→embed→advisor | 憲章 philosophy；KS；原則 #1；L6 | knowledge 引擎腳本；`export_qdrant_index.py`；advisor／chat／admin 服務 | 終態＝license 允許之可答態；預測零 import 素養；owned_local 閘可重建 |
 | **R7** | 產品計畫閘＋持續 ultracode | 活躍產品計畫拍板後實作；邊界對抗 | plan-first；ULTRACODE-SCHEDULE；#28 | 既有 product plans；`ultracode-layer`；審議引擎 | 每產品計畫附 schema＋程式規畫；階段邊界 ultracode 呈核；Steward 處置 major |
 
@@ -162,9 +162,9 @@
 
 **驗收**：`tests/test_philosophy_isolation.py` 綠；direction 產物非 evaluated_pass 不得寫入；arena 雙閘／TTY 紅線依 HANDOFF。
 
-**狀態**：📋 **R5 計畫已拍板／執行未開**（2026-07-24）。Steward 四碼 `R5-P-yes`＋`R5-E12`＋`PV-α`＋`PAR`＝計畫採納＋開實作時範圍預登；**實作未授權**直至「**開 R5**」。計畫：`reports/augur_roadmap_r5_plan_20260724.md`；留痕：`audits/ROADMAP-R5-PLAN-APPROVED-20260724.md`。FinMind／FRED **操作凍結**仍有效——至本路線圖（constitution-to-implementation）**全部階段落地＋用戶明示解凍**（R5／局部完成 ≠ 解凍）；Dividend API 邊界同。
+**狀態**：🔧 **S1＋S2 閉**（2026-07-24；Steward「**開 R5**」）。接線＋PV-α AST：`audits/ROADMAP-R5-S12-CLOSED-20260724.md`。G-PV-1→**none**；G-ISO-2 仍 **partial**（live predict 密碼漂移）。**S3／U5／全量 R5 DONE 仍 pending**。計畫：`reports/augur_roadmap_r5_plan_20260724.md`。FinMind／FRED **操作凍結**仍有效——至本路線圖全部階段落地＋用戶明示解凍（R5／局部完成 ≠ 解凍）；Dividend API 邊界同。
 
-**Ultracode 插入點 U5**：對「可交易／確立」行銷句與 registry 宣稱做攻擊；重大方法變更 → plan-first 新報告。
+**Ultracode 插入點 U5**：對「可交易／確立」行銷句與 registry 宣稱做攻擊；重大方法變更 → plan-first 新報告。**尚未開**。
 
 ### 3.7 R6 — 素養／顧問半系統
 
@@ -332,10 +332,11 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **R3／U3 閉合**（2026-07-24；Gap 帳本＋對抗補正）  
 - ✅ **R4 閉合**（2026-07-24；資料地基親驗＋db_only＋Dividend 工單；殘留 partial 見帳本）  
 - ✅ **U4 閉合**（2026-07-24；零 API 對抗；`audits/ROADMAP-U4-R4-ULTRACODE-20260724.md`）  
-- ✅ **R5 計畫已拍板**（2026-07-24；`R5-P-yes`＋`R5-E12`＋`PV-α`＋`PAR`；執行未開；`reports/augur_roadmap_r5_plan_20260724.md`／`audits/ROADMAP-R5-PLAN-APPROVED-20260724.md`）  
+- ✅ **R5 計畫已拍板**（2026-07-24；`R5-P-yes`＋`R5-E12`＋`PV-α`＋`PAR`）  
+- ✅ **R5 S1＋S2 閉**（2026-07-24；「開 R5」；`audits/ROADMAP-R5-S12-CLOSED-20260724.md`；G-PV-1 none；G-ISO-2 partial）  
 - ❌ 未改任何 [N]  
-- ❌ 未實作 R5 code／未開 U5（U0 依〔U-defer〕跳過；U3／U4 DONE；待「開 R5」）  
-- ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4 時已重跑親驗**，不得把舊 wiring 表當永真  
+- ❌ 未開 S3／U5；未全量 R5 DONE；未解凍 FinMind／FRED  
+- ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5-S12 時已重跑親驗**，不得把舊 wiring 表當永真  
 
 ---
 

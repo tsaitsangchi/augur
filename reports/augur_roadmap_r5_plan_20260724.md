@@ -1,7 +1,7 @@
 # Roadmap R5 計畫 — 預測半系統對齊落地 [I]（2026-07-24）
 
-* **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；憲章第六部計畫完整性）— **不創設 [N] 義務**；**計畫已拍板；實作另待「開 R5」**
-* **授權觸發**：Steward「**開 R5 計畫**」＝只寫計畫（✅ 已完成）；「**開 R5**」＝才啟動實作（❌ **尚未授權**）
+* **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；憲章第六部計畫完整性）— **不創設 [N] 義務**；**計畫已拍板；S1＋S2 已開跑並閉合**
+* **授權觸發**：Steward「**開 R5 計畫**」＝只寫計畫（✅）；「**開 R5**」＝啟動實作（✅ **2026-07-24 已授權**；範圍 `R5-E12`）
 * **對齊落地 〔A〕**：`reports/augur_constitution_to_implementation_roadmap_20260724.md` §3.6／§7.1
 * **Gap SSOT**：`reports/augur_roadmap_r3_gap_ledger_20260724.md`（G-ISO-2／G-PV-1／G-OUT-*；G-DIV-1／G-CAT-1＝依賴邊界）
 * **前置**：R0–R4 ✅ DONE；direction product gate 本機親驗 PASS（`audits/ROADMAP-U3-DB-VERIFY-20260724.md`）；`import_isolation`／`test_philosophy_isolation` 靜態閘綠
@@ -13,17 +13,17 @@
 |---|---|
 | **日期** | 2026-07-24 |
 | **四碼** | `R5-P-yes` ＋ `R5-E12` ＋ `PV-α` ＋ `PAR` |
-| **效力** | **計畫採納**為 R5 執行藍圖；**執行未授權**（不啟動 S1–S2／S3／U5，直至 Steward 另發「**開 R5**」） |
-| **範圍預登（開實作時）** | `R5-E12`＝S1＋S2（predict wiring＋G-PV-1）；`PV-α`＝AST 字面禁；`PAR`＝採納 §3 並行／等待判準 |
+| **效力** | **計畫採納**為 R5 執行藍圖；**執行已開**（「開 R5」→ S1＋S2 閉；見 `audits/ROADMAP-R5-S12-CLOSED-20260724.md`） |
+| **範圍** | `R5-E12`＝S1＋S2（predict wiring＋G-PV-1）；`PV-α`＝AST 字面禁；`PAR`＝採納 §3 並行／等待判準；**S3／U5 未授權** |
 | **解凍／Dividend 邊界** | **仍有效**：FinMind／FRED **操作凍結**至 **constitution-to-implementation 全部階段落地＋用戶明示解凍**（禁 sync／probe／放量／窄窗／Dividend 重建 API；**R5 S1–S2／局部完成 ≠ 解凍**）；不 DROP Dividend；不改 [N]；不假關 10-14；零 `evaluated_pass` 禁確立級宣稱 |
-| **留痕** | `audits/ROADMAP-R5-PLAN-APPROVED-20260724.md` |
+| **留痕** | 拍板：`audits/ROADMAP-R5-PLAN-APPROVED-20260724.md`；S12 閉：`audits/ROADMAP-R5-S12-CLOSED-20260724.md` |
 
 **四碼展開（§10 原文對照）**：
 
 | 碼 | §10 含義 |
 |---|---|
 | **R5-P-yes** | 採納本計畫為 R5 執行藍圖；實作另待「開 R5」／分階授權 |
-| **R5-E12** | （開實作時）授權 S1＋S2（wiring＋G-PV-1；**零 API**）— 近程建議；**本登錄≠已開跑** |
+| **R5-E12** | 授權 S1＋S2（wiring＋G-PV-1；**零 API**）— ✅ 已執行閉合 |
 | **PV-α** | G-PV-1 採 AST 字面禁（預設建議）；不採裸 γ |
 | **PAR** | wiring／AST 可與 Dividend 並行；確立級與 Dividend 特徵鏈須等條件（採納 §3） |
 
@@ -349,7 +349,7 @@ REVOKE SELECT ON TABLE prediction_values FROM augur_predict;
 | R4 閉合 | `audits/ROADMAP-R4-CLOSED-20260724.md` |
 | Dividend（只讀邊界） | `reports/augur_dividend_rebuild_20260724.md` |
 
-**建議下一句（用戶）**：四碼已登錄 → 另發「**開 R5**」啟動 S1（範圍依已登錄 `R5-E12`＋`PV-α`＋`PAR`）。
+**建議下一句（用戶）**：對齊 predict 密碼 → 可衝 G-ISO-2 none；另發「**開 S3**」／「**開 U5**」（S1＋S2 已閉）。
 
 ---
 
@@ -358,6 +358,8 @@ REVOKE SELECT ON TABLE prediction_values FROM augur_predict;
 - ✅ 產出本 plan-first 計畫書  
 - ✅ 對齊 〔A〕／R5 定義／Gap／並行邊界  
 - ✅ 附 schema＋python 規畫＋驗收表＋拍板句  
-- ✅ **Steward 已拍板**（2026-07-24；`R5-P-yes`＋`R5-E12`＋`PV-α`＋`PAR`；計畫採納／執行未授權）  
-- ❌ 未實作 S1–S3、未放量 API、未改 [N]、未改 Dividend 報告  
+- ✅ **Steward 已拍板**（2026-07-24；`R5-P-yes`＋`R5-E12`＋`PV-α`＋`PAR`）  
+- ✅ **開 R5 → S1＋S2 閉**（2026-07-24；`audits/ROADMAP-R5-S12-CLOSED-20260724.md`）  
+- ❌ 未做 S3／U5、未放量 API、未改 [N]、未改 Dividend 報告、未解凍  
 - ⚠ FinMind／FRED 操作凍結仍有效（至 constitution-to-implementation 全部落地＋明示解凍；R5 局部完成不解凍）；Dividend API 線 PAUSED
+- ⚠ G-ISO-2 仍 partial（live `connect_predict` 密碼漂移）
