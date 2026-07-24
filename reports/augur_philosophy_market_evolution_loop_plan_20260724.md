@@ -1,8 +1,8 @@
 # 哲學↔市場進化閉環計畫 [I]（2026-07-24）
 
-* **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；領域大憲章第六部計畫完整性 v1.39.0）— **不創設 [N] 義務**；**計畫已拍板；執行未授權**（須另發「開 PME」／分階碼）
-* **授權觸發**：Steward「開哲學↔市場進化閉環計畫」＝只寫本檔（✅）；「**開 PME**」／`PME-E*`＝實作另授權（❌ 本輪未開）
-* **路線圖掛接**：**R7 候選／獨立產品計畫**（見 `reports/augur_constitution_to_implementation_roadmap_20260724.md` §3.8）— **不取代** R7 產品全貌；不併吞 R5／R6 已閉義務
+* **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；領域大憲章第六部計畫完整性 v1.39.0）— **不創設 [N] 義務**；**計畫已拍板；執行已開近程**（Steward「**開 PME**」2026-07-24）
+* **授權觸發**：Steward「開哲學↔市場進化閉環計畫」＝只寫本檔（✅）；「**開 PME**」＝實作（✅ 近程已開；見 `audits/PME-S012-STATUS-20260724.md`）
+* **路線圖掛接**：**R7 候選／獨立產品計畫**（見 `reports/augur_constitution_to_implementation_roadmap_20260724.md` §3.8）— **不取代** R7 產品全貌；不併吞 R5／R6 已閉義務；**≠** 開 R7 S2
 * **對齊先例**：理論框架＝`reports/augur_investment_philosophy_framework_plan_20260630.md`；漏斗／#14＝`reports/augur_feature_discovery_methodology_20260626.md` §四；計畫範式＝`reports/augur_roadmap_r5_plan_20260724.md`／`r6_plan`
 * **前置／邊界**：近程 R5／R6＋U5／U6 DONE；FinMind／FRED **操作凍結**仍有效；G-DIV-1 **PAUSED**；`direction_gate.evaluated_pass`＝**0** → **禁確立級／可交易宣稱**
 * **主路徑（已採納）**：**PME-AUTO-B**＝有界 AI 自主上線＋緊急停機（`PME-KILL`）
@@ -13,11 +13,11 @@
 |---|---|
 | **日期** | 2026-07-24 |
 | **四碼** | `PME-P-yes` ＋ `PME-AUTO-B` ＋ `PME-KILL` ＋ `FZ-keep` |
-| **效力** | **計畫採納**為哲學↔市場進化閉環執行藍圖；**執行未授權**（須另發「開 PME」／`PME-E*`） |
-| **範圍** | 上線自治＝**B**（有界自動＋kill-switch）；凍結＝**FZ-keep**；**不**含執行分階（`PME-E0`／`E12`／`E123`／`Efull` 未回） |
+| **效力** | **計畫採納**＋**執行已開**（「開 PME」；近程＝S0／S1／零 API S2 骨架＋KILL＋AUTO-B 路徑） |
+| **範圍** | 上線自治＝**B**；凍結＝**FZ-keep**；近程對齊 **PME-E12 精神**＋KILL（G-PROM／G-ECON 本輪誠實 SKIP） |
 | **解凍／Dividend 邊界** | **FZ-keep＝凍結維持**：FinMind／FRED **操作凍結**至 **constitution-to-implementation 全部階段落地＋用戶明示解凍**（拍板 ≠ 解凍）；不續 Dividend；不改 [N] |
 | **靈魂措辭** | 採 B → 與「系統建議，人決策／非自動駕駛」張力已知 → **另案 pending**（本輪不改靈魂 [N]；見 §2.2） |
-| **留痕** | `audits/PME-PLAN-APPROVED-20260724.md` |
+| **留痕** | `audits/PME-PLAN-APPROVED-20260724.md`；執行 `audits/PME-S012-STATUS-20260724.md`；Gap `reports/augur_pme_gap_ledger_20260724.md` |
 
 **四碼展開（§10 原文對照）**：
 
@@ -34,7 +34,7 @@
 
 ## 0. 一句結論
 
-把「哲學定假說 → 市場（feature／#14）定生死 → 閉環自動重驗 → **有界 AI 自主晉升／降級／上線**」做成可機械驗的產品閉環：素養層永不 runtime import 進預測；AI 不生成原則入庫；經濟價值 #14 仍為裁決；人的角色＝**監控＋緊急停＋治權變更**（非每案準入簽名）。本檔＝R7 候選獨立計畫；**計畫已拍板、執行未開**——須「開 PME」才落地。
+把「哲學定假說 → 市場（feature／#14）定生死 → 閉環自動重驗 → **有界 AI 自主晉升／降級／上線**」做成可機械驗的產品閉環：素養層永不 runtime import 進預測；AI 不生成原則入庫；經濟價值 #14 仍為裁決；人的角色＝**監控＋緊急停＋治權變更**（非每案準入簽名）。本檔＝R7 候選獨立計畫；**計畫已拍板；「開 PME」近程骨架已落地**（S0／S1／S2-SKIP／KILL；真綠 #14 另續）。
 
 ---
 
@@ -299,9 +299,9 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 
 **結果落哪**：重驗數字 → `principle_factor_map`＋`evolution_run`；上線動作 → `promotion_queue`＋`evolution_apply_log`＋`philosophy_principle.status`；覆蓋 → snapshot；緊急停 → `evolution_kill_switch`。
 
-### 5.3 禁止本輪 DDL／資料動作（未拍板）
+### 5.3 禁止動作（仍有效）
 
-* 不建上表於 production（僅計畫草案）  
+* ~~不建上表於 production~~ → **已建**（`migrate_philosophy_evolution_ddl.py --run`；2026-07-24 開 PME）  
 * 不手改 `validated_*`／伪造 gate_json  
 * 不 DROP philosophy／feature 表  
 * 不觸發 FinMind／FRED  
@@ -384,7 +384,8 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 
 ## 10. Steward 拍板句
 
-> **✅ 已登錄（2026-07-24）**：`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep` — 見文首「Steward 已拍板」；**執行仍待「開 PME」**。  
+> **✅ 已登錄（2026-07-24）**：`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep` — 見文首「Steward 已拍板」。  
+> **✅ 執行已開（2026-07-24）**：Steward「**開 PME**」→ 近程 S0／S1／S2 骨架＋KILL；`audits/PME-S012-STATUS-20260724.md`。  
 > 留痕：`audits/PME-PLAN-APPROVED-20260724.md`。**不改 [N]**；靈魂「非自動駕駛」措辭 **另案 pending**。
 
 ### 10.1 計畫採納（必選）
@@ -403,11 +404,11 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 
 - **〔PME-KILL〕** ✅ **已採納** — kill-switch 為 B 硬要件（無則不得稱 B 已落地）。
 
-### 10.4 執行範圍（採納後、開實作時 — **本輪未回**）
+### 10.4 執行範圍
 
 - **〔PME-E0〕** 只做 S0 盤點留痕。  
-- **〔PME-E12〕** S1＋S2（覆蓋＋自動重驗；零市場 API）— **建議近程**。  
-- **〔PME-E123〕** 至 S3 自動 APPLY＋kill-switch。  
+- **〔PME-E12〕** S1＋S2（覆蓋＋自動重驗；零市場 API）— **建議近程**；本輪「開 PME」＝**E12 精神**（S2 全量重驗閘＝骨架 SKIP）。  
+- **〔PME-E123〕** 至 S3 自動 APPLY＋kill-switch — KILL／APPLY **路徑已落地**；真綠 APPLY 待 G-PROM／G-ECON。  
 - **〔PME-Efull〕** S0–S3＋S4＋U-PME。
 
 ### 10.5 凍結
@@ -435,17 +436,18 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 | 隔離 | `src/augur/audit/import_isolation.py` |
 | 既有 verify | `scripts/verify_philosophy_factors.py` |
 
-**路線圖最小句**：§3.8／§9 註記本獨立計畫 **已拍板／執行未開**（`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`）——**不**假稱 R7 產品全貌已閉、**不**等於「開 PME」。
+**路線圖最小句**：§3.8／§9 註記本獨立計畫 **已拍板＋「開 PME」近程骨架**（`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`）——**不**假稱全量閉環／可交易、**不**等於開 R7 S2。
 
 ---
 
 ## 12. 本輪邊界（誠實）
 
 - ✅ 產出 plan-first 計畫書（含 AUTO-B 主路徑、A／C 對照、schema＋python、驗收、拍板句）  
-- ✅ **Steward 已拍板**（2026-07-24；`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`；`audits/PME-PLAN-APPROVED-20260724.md`）  
+- ✅ **Steward 已拍板**（2026-07-24；四碼；`audits/PME-PLAN-APPROVED-20260724.md`）  
+- ✅ **開 PME 近程落地**（2026-07-24；`audits/PME-S012-STATUS-20260724.md`；DDL／KILL／S0–S1／S2 骨架／APPLY 路徑）  
 - ✅ 誠實標出與「系統建議，人決策／非自動駕駛」之張力；**靈魂措辭另案 pending**  
-- ❌ **未**開 PME 實作、未建表、未改 [N]、未解凍 API、未自動上線任何特徵  
-- ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；執行分階 `PME-E*` 未授權  
+- ❌ **未**全量 S2 重驗 PASS、**未**真綠自動上線翻 status、未改 [N]、未解凍 API、未自動下單  
+- ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝SKIP  
 
 ---
 

@@ -45,3 +45,9 @@
 ## 建議下一句
 
 **開 R7 S2**（PME 骨架就緒後；首掛 P-PME）——或繼續 PME 本體；**勿**本輪假定 U7／全產品授權。
+
+## 封存註記（誠實）
+
+* tag：`archive-20260724-roadmap-r7-s1` @ `44975464e3971302b2aceaadf7a6d0d11dda3bc8`
+* 並行 PME **code**（evolution／kill-switch 等）已刻意排除、未入本 tag
+* 同 commit **誤掃入**並行 PME **文件**（`PME-PLAN-APPROVED` 更新、`PME-S012-STATUS`、`augur_pme_gap_ledger`）——非 R7 S1 交付本體；訊息「Does not include parallel PME WIP」僅對 code 成立、對上述 docs **不成立**

@@ -185,9 +185,9 @@
 3. 階段邊界跑 ultracode 或審議引擎（機械可驗優先本地）。  
 4. major／治權判準變更 → Steward；不假關 10-14 項。
 
-**獨立計畫已拍板／執行未開（R7 候選，不取代本節產品全貌）**：哲學↔市場進化閉環＝`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`（✅ `PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`；`audits/PME-PLAN-APPROVED-20260724.md`；**執行須另發「開 PME」**；靈魂措辭另案 pending）。與 R7 上線政策引用交叉：R7 已綁 `PME-AUTO-B`；**PME 本體亦已 `PME-P-yes`**。
+**獨立計畫已拍板＋近程執行已開（R7 候選，不取代本節產品全貌）**：哲學↔市場進化閉環＝`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`（✅ `PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`；「**開 PME**」→ `audits/PME-S012-STATUS-20260724.md`；Gap `reports/augur_pme_gap_ledger_20260724.md`；靈魂措辭另案 pending）。與 R7 上線政策引用交叉：R7 已綁 `PME-AUTO-B`。
 
-**狀態**：✅ **R7 S1 DONE**／⏳ **S2＋U7 pending**（2026-07-24；Steward「**開 R7，只跑 S1**」；四碼 `R7-P-yes`＋`R7-G12`＋`FZ-keep`＋`PME-AUTO-B`；拍板 `audits/ROADMAP-R7-PLAN-APPROVED-20260724.md`；閉合 `audits/ROADMAP-R7-S1-CLOSED-20260724.md`）。閘框架計畫＝`reports/augur_roadmap_r7_plan_20260724.md`；哨兵＝`scripts/verify_roadmap_r7_gate.py`；checklist 模板＝`audits/ROADMAP-R7-PRODUCT-GATE-CHECKLIST-TEMPLATE.md`。上線政策**引用 PME-AUTO-B**。**S2**＝首掛預設 P-PME（待 PME 骨架後另開）；**U7 本輪不開**。**≠** 產品全量出貨；**≠** API 解凍；**≠** 可答完備／確立級可交易；**≠** 開 PME 全量。
+**狀態**：✅ **R7 S1 DONE**／⏳ **S2＋U7 pending**（2026-07-24；Steward「**開 R7，只跑 S1**」；四碼 `R7-P-yes`＋`R7-G12`＋`FZ-keep`＋`PME-AUTO-B`；拍板 `audits/ROADMAP-R7-PLAN-APPROVED-20260724.md`；閉合 `audits/ROADMAP-R7-S1-CLOSED-20260724.md`）。閘框架計畫＝`reports/augur_roadmap_r7_plan_20260724.md`；哨兵＝`scripts/verify_roadmap_r7_gate.py`；checklist 模板＝`audits/ROADMAP-R7-PRODUCT-GATE-CHECKLIST-TEMPLATE.md`。上線政策**引用 PME-AUTO-B**。**S2**＝首掛預設 P-PME（PME 近程骨架已落地，S2 掛接另開）；**U7 本輪不開**。**≠** 產品全量出貨；**≠** API 解凍；**≠** 可答完備／確立級可交易；**≠** PME 全量閉環／真綠 #14。
 
 **Ultracode 插入點 U7**：各產品計畫拍板前／閘框架宣稱前——攻擊閘幽靈、範圍膨脹、上線政策與 PME 衝突、假關 10-14、凍結破口（見 R7 計畫 §5 U7；**pending**，本輪不開）。
 
@@ -347,11 +347,11 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **R6 計畫已拍板**（2026-07-24；`R6-P-yes`＋`R6-E12`＋`HAR-local`＋`FZ-keep`；`audits/ROADMAP-R6-PLAN-APPROVED-20260724.md`）  
 - ✅ **R6 S1＋S2 閉**（2026-07-24；「開 R6」；`audits/ROADMAP-R6-S12-CLOSED-20260724.md`；哨兵 `--with-smoke` PASS）  
 - ✅ **U6 DONE**（2026-07-24；「開 U6」；`audits/ROADMAP-U6-R6-ULTRACODE-20260724.md`；G-HAR-1 partial）  
-- ✅ **哲學↔市場進化閉環獨立計畫已拍板／執行未開**（2026-07-24；`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`；`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`；`audits/PME-PLAN-APPROVED-20260724.md`；靈魂措辭另案 pending）  
-- ✅ **R7 計畫已拍板**（2026-07-24；`R7-P-yes`＋`R7-G12`＋`FZ-keep`＋`PME-AUTO-B`；`reports/augur_roadmap_r7_plan_20260724.md`；`audits/ROADMAP-R7-PLAN-APPROVED-20260724.md`；**PME 本體亦已 `PME-P-yes`**）  
+- ✅ **哲學↔市場進化閉環：計畫拍板＋「開 PME」近程骨架**（2026-07-24；四碼；`audits/PME-S012-STATUS-20260724.md`；Gap `reports/augur_pme_gap_ledger_20260724.md`；靈魂措辭另案 pending）  
+- ✅ **R7 計畫已拍板**（2026-07-24；`R7-P-yes`＋`R7-G12`＋`FZ-keep`＋`PME-AUTO-B`；`reports/augur_roadmap_r7_plan_20260724.md`；`audits/ROADMAP-R7-PLAN-APPROVED-20260724.md`）  
 - ✅ **R7 S1 DONE**（2026-07-24；「開 R7，只跑 S1」；哨兵＋模板；`audits/ROADMAP-R7-S1-CLOSED-20260724.md`；**S2／U7 pending**）  
 - ❌ 未改任何 [N]  
-- ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 HAR-ext／S3a；**未**閉合 universe→econ 全量產品半系統；**未**掛接 R7 S2／**未**開 U7（須另授權）  
+- ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 HAR-ext／S3a；**未**閉合 universe→econ 全量產品半系統；**未**掛接 R7 S2／**未**開 U7；**未** PME 真綠 G-PROM／G-ECON／全量閉環（須另授權）  
 
 - ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5 時已重跑親驗**，不得把舊 wiring 表當永真  
 
