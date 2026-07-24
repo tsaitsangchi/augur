@@ -93,6 +93,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 | | |
 |---|---|
 | **做** | **PME**（哲學↔市場進化閉環）強化預測；**資料地基庫內段**（catalog `db_only`、Dividend／attestation 唯讀親驗——已跑 2026-07-24；見下） |
+| **prodset→熱路徑** | 📋 **計畫已出／執行未開**（2026-07-24；`reports/augur_prodset_predict_hotpath_plan_20260724.md`；建議 `P2H-P-yes`＋`P2H-E123`＋`FC-empty`＋`FZ-keep`；零 API／庫內 as-of；接 prodset≠解凍） |
 | **預測↔API** | **[I]** 所有預測與 FinMind／FRED **無關**——訓練／回測／切分／推估消費 **DB 已落地** raw／features／panel（as-of）；**不以**開 API／每日增量為前提；凍結 ≠ 不能預測。仍守 #1 source-pure、#8 anti-leakage。rule＝`.cursor/rules/predict-vs-market-api.mdc`；交叉＝`finmind-fred-api-freeze`／`soul-vs-raw-correlation`（**預測 ≠ 解凍**；**未改** [N]） |
 | **PME 靈魂措辭** | ✅ **G-PME-SOUL=none**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；`audits/G-PME-SOUL-CLOSED-20260724.md`）——適用**新入 know-how**（新哲學／新研發技術／新學術論文等）閘後有界自動晉升；**自動下單仍禁**；**與 FinMind／FRED 正交（≠解凍）** |
 | **靈魂↔raw 邊界** | **[I]** raw＝觀測／結果呈現——**不**因「有 raw」升格靈魂；升到靈魂層的是 raw **交互**抽象出的**概念**與可證偽關係（相關係數等＝概念載體）。管線仍 source-pure raw→features；靈魂指導假說、不加權 runtime；禁整庫 raw 灌靈魂。API＝取 raw 通道≠靈魂。rule＝`.cursor/rules/soul-vs-raw-correlation.mdc`；留痕＝`audits/SOUL-VS-RAW-CORRELATION-20260724.md`（**未改** META-CONSTITUTION [N]） |

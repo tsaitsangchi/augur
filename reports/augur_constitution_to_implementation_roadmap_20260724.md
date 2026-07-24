@@ -356,10 +356,11 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **U7 DONE**（2026-07-24；「開 U7」；`audits/ROADMAP-U7-R7-ULTRACODE-20260724.md`；G-R7-1 doc-only；幽靈詞已補禁）  
 - ✅ **G-PME-SOUL CLOSED**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；靈魂／#20／A.53；MC P5 條文未改；`audits/G-PME-SOUL-CLOSED-20260724.md`）  
 - ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 HAR-ext／S3a；**未**閉合 universe→econ 全量產品半系統；**`PME-Efull-yes`＝機械完備仍≠對外可交易完備／預測熱路徑已吃晉升**；**MC [N] 本輪未改**  
+- 📋 **prodset→預測熱路徑：計畫已出／執行未開**（2026-07-24；`reports/augur_prodset_predict_hotpath_plan_20260724.md`；G-PME-HOTPATH 仍 open；接線≠解凍）  
 
 - ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5 時已重跑親驗**，不得把舊 wiring 表當永真  
 
-**建議下一句（對齊近程優先 2026-07-24）**：「**資料地基（Dividend／catalog 表級／attestation）等解凍條件再續**」——G-PME-SOUL 已閉；**仍禁**他域近程開工、**仍禁** API 未達條件自解凍。
+**建議下一句（對齊近程優先 2026-07-24）**：拍板／開 **prodset→熱路徑**（`P2H-*`）或「**資料地基等解凍條件再續**」——G-PME-SOUL 已閉；**仍禁**他域近程開工、**仍禁** API 未達條件自解凍。
 
 ---
 
