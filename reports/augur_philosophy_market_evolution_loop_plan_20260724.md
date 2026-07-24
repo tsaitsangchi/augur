@@ -2,7 +2,7 @@
 
 * **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；領域大憲章第六部計畫完整性 v1.39.0）— **不創設 [N] 義務**；**計畫已拍板；執行已開近程**（Steward「**開 PME**」2026-07-24）
 * **授權觸發**：Steward「開哲學↔市場進化閉環計畫」＝只寫本檔（✅）；「**開 PME**」＝實作（✅ 近程已開；見 `audits/PME-S012-STATUS-20260724.md`）
-* **路線圖掛接**：**R7 候選／獨立產品計畫**（見 `reports/augur_constitution_to_implementation_roadmap_20260724.md` §3.8）— **不取代** R7 產品全貌；不併吞 R5／R6 已閉義務；**R7 S2 首掛 P-PME**（閘掛接；見 `audits/ROADMAP-R7-GATE-PME-20260724.md`）— **≠** 開 U7／U-PME／全量閉環
+* **路線圖掛接**：**R7 候選／獨立產品計畫**（見 `reports/augur_constitution_to_implementation_roadmap_20260724.md` §3.8）— **不取代** R7 產品全貌；不併吞 R5／R6 已閉義務；**R7 S2 首掛 P-PME**；✅ **U-PME DONE**（`audits/PME-ULTRACODE-20260724.md`）— **≠** 開 U7／PME-Efull
 * **對齊先例**：理論框架＝`reports/augur_investment_philosophy_framework_plan_20260630.md`；漏斗／#14＝`reports/augur_feature_discovery_methodology_20260626.md` §四；計畫範式＝`reports/augur_roadmap_r5_plan_20260724.md`／`r6_plan`
 * **前置／邊界**：近程 R5／R6＋U5／U6 DONE；FinMind／FRED **操作凍結**仍有效；G-DIV-1 **PAUSED**；`direction_gate.evaluated_pass`＝**0** → **禁確立級／可交易宣稱**
 * **主路徑（已採納）**：**PME-AUTO-B**＝有界 AI 自主上線＋緊急停機（`PME-KILL`）
@@ -13,11 +13,11 @@
 |---|---|
 | **日期** | 2026-07-24 |
 | **四碼** | `PME-P-yes` ＋ `PME-AUTO-B` ＋ `PME-KILL` ＋ `FZ-keep` |
-| **效力** | **計畫採納**＋**執行已開**（「開 PME」→E12 骨架；**「開 PME-E123」**＋本地 G-PROM／G-ECON 2026-07-24） |
-| **範圍** | 上線自治＝**B**；凍結＝**FZ-keep**；E123＝S2 本地真閘＋S3 APPLY（見 `audits/PME-E123-STATUS-20260724.md`） |
+| **效力** | **計畫採納**＋**執行已開**（「開 PME」→E12 骨架；**「開 PME-E123」**＋本地 G-PROM／G-ECON；**「開 U-PME」** DONE） |
+| **範圍** | 上線自治＝**B**；凍結＝**FZ-keep**；E123＝S2 本地真閘＋S3 APPLY；U-PME＝對抗呈核（見 `audits/PME-ULTRACODE-20260724.md`） |
 | **解凍／Dividend 邊界** | **FZ-keep＝凍結維持**：FinMind／FRED **操作凍結**至 **constitution-to-implementation 全部階段落地＋用戶明示解凍**（拍板 ≠ 解凍）；不續 Dividend；不改 [N] |
 | **靈魂措辭** | 採 B → 與「系統建議，人決策／非自動駕駛」張力已知 → **另案 pending**（本輪不改靈魂 [N]；見 §2.2） |
-| **留痕** | `audits/PME-PLAN-APPROVED-20260724.md`；E12 `audits/PME-S012-STATUS-20260724.md`；E123 `audits/PME-E123-STATUS-20260724.md`／`PME-E123-CLOSED-20260724.md`；Gap `reports/augur_pme_gap_ledger_20260724.md` |
+| **留痕** | `audits/PME-PLAN-APPROVED-20260724.md`；E12 `audits/PME-S012-STATUS-20260724.md`；E123 `audits/PME-E123-STATUS-20260724.md`／`PME-E123-CLOSED-20260724.md`；U-PME `audits/PME-ULTRACODE-20260724.md`；Gap `reports/augur_pme_gap_ledger_20260724.md` |
 
 **四碼展開（§10 原文對照）**：
 
@@ -421,8 +421,9 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 
 - **〔PME-E0〕** 只做 S0 盤點留痕。  
 - **〔PME-E12〕** S1＋S2（覆蓋＋自動重驗；零市場 API）— **建議近程**；本輪「開 PME」＝**E12 精神**（S2 全量重驗閘＝骨架 SKIP）。  
-- **〔PME-E123〕** ✅ **已開**（2026-07-24）— 本地 G-PROM／G-ECON＋S3 真綠 APPLY×2；見 `audits/PME-E123-STATUS-20260724.md`。  
-- **〔PME-Efull〕** S0–S3＋S4＋U-PME。
+- **〔PME-E123〕** ✅ **已開**（2026-07-24）— 本地 G-PROM／G-ECON＋S3 真綠 APPLY×2；見 `audits/PME-E123-STATUS-20260724.md`。
+- **〔U-PME〕** ✅ **DONE**（2026-07-24）— `audits/PME-ULTRACODE-20260724.md`（A11；≠ PME-Efull／≠ 生產集登錄完備）。
+- **〔PME-Efull〕** S0–S3＋S4＋U-PME（U-PME 已完；S4／PRODSET／A7 全閉仍缺）。
 
 ### 10.5 凍結
 
@@ -449,7 +450,7 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 | 隔離 | `src/augur/audit/import_isolation.py` |
 | 既有 verify | `scripts/verify_philosophy_factors.py` |
 
-**路線圖最小句**：§3.8／§9 註記本獨立計畫 **已拍板＋「開 PME」近程骨架**（`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`）＋ **R7 S2 首掛 P-PME**（G-P4 書面＋閘紀錄）——**不**假稱全量閉環／可交易、**≠** 開 U7／U-PME。
+**路線圖最小句**：§3.8／§9 註記本獨立計畫 **已拍板＋E12／E123＋U-PME DONE**（`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`）＋ **R7 S2 首掛 P-PME**——**不**假稱全量閉環／可交易／生產集已登錄、**≠** 開 U7。
 
 ---
 
@@ -460,8 +461,9 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 - ✅ **開 PME 近程落地**（2026-07-24；`audits/PME-S012-STATUS-20260724.md`；DDL／KILL／S0–S1／S2 骨架／APPLY 路徑）  
 - ✅ **開 PME-E123**（2026-07-24；本地 G-PROM／G-ECON；`run_id=5`；真綠 APPLY×2→validated；`audits/PME-E123-STATUS-20260724.md`）  
 - ✅ **§4.2 執行前四判準（G-P4）**＋R7 S2 掛接（`audits/ROADMAP-R7-GATE-PME-20260724.md`／`ROADMAP-R7-S2-CLOSED-20260724.md`）  
+- ✅ **開 U-PME**（2026-07-24；`audits/PME-ULTRACODE-20260724.md`；A11 PASS；G-PME-PRODSET／DEMOTE 入帳）  
 - ✅ 誠實標出與「系統建議，人決策／非自動駕駛」之張力；**靈魂措辭另案 pending**  
-- ❌ **未**多數特徵 G-PROM PASS、**未** A7 全閉、未改 [N]、未解凍 API、未自動下單、未開 U-PME／U7  
+- ❌ **未**多數特徵 G-PROM PASS、**未** A7 全閉、**未**生產特徵集真登錄、未改 [N]、未解凍 API、未自動下單、未開 U7  
 - ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝本地真裁決（多數 FAIL／SKIP，非假綠） 
 
 ---
