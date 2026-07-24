@@ -5,6 +5,7 @@
 * **掛接**：`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`（PME-AUTO-B 已採納）；`reports/augur_pme_gap_ledger_20260724.md` **G-PME-SOUL=pending**；`audits/PME-EFULL-APPROVED-20260724.md`；`audits/PME-ULTRACODE-20260724.md` **F-U-PME-6**
 * **Sole Steward**：不設新公示要件（任意公示；採納碼即生效條件）
 * **硬邊界**：零 FinMind／FRED；草稿 ≠ 生效；**不**假關 G-PME-SOUL→none
+* **適用域補註 [I]（Steward 澄清 2026-07-24；apply 後見 CLOSED）**：本措辭對齊談的是**新入 know-how**（新哲學思想／**新研發技術**／**新學術論文**等）經策展→映射→閘後之有界自動晉升——**與 FinMind／FRED 無關**；禁 AI 生成冒充論文；素養不進預測 import。**不**因此加碼改 [N] 超出 §3 對照表。
 
 ---
 

@@ -93,7 +93,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 | | |
 |---|---|
 | **做** | **PME**（哲學↔市場進化閉環）強化預測；**資料地基庫內段**（catalog `db_only`、Dividend／attestation 唯讀親驗——已跑 2026-07-24；見下） |
-| **PME 靈魂措辭** | ✅ **G-PME-SOUL=none**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；`audits/G-PME-SOUL-CLOSED-20260724.md`）——閘內狀態晉升可自動；**自動下單仍禁**；**與 FinMind／FRED 正交（≠解凍／≠解除 FZ-keep）** |
+| **PME 靈魂措辭** | ✅ **G-PME-SOUL=none**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；`audits/G-PME-SOUL-CLOSED-20260724.md`）——適用**新入 know-how**（新哲學／新研發技術／新學術論文等）閘後有界自動晉升；**自動下單仍禁**；**與 FinMind／FRED 正交（≠解凍）** |
 | **不做（近程）** | 孫子↔ERP、太陽能↔儲能 等**他域進化閉環**計畫／實作；不以他域進化「灌進」台股因子 |
 | **凍結** | FinMind／FRED **仍凍**（條件＝憲章→實作全部落地＋明示解凍；見 §4.4）—本節不改凍結 |
 | **API 洞另帳** | Dividend resume／全量 `build_catalog`／當日 attestation audit·heal — **解凍＋明示後**；G-CAT-1／G-DIV-1／G-ATTEST 仍 **partial** |
