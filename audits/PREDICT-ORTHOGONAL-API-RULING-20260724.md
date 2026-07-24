@@ -9,6 +9,8 @@
 
 **此定義可以追溯過去因需 FinMind API 及 FRED API 不能拍板的所有文件**，都依此原則進行拍板，**效力邊界為 yes**。
 
+**同日擴充（code）**：可追溯過去因需 FinMind／FRED API 的**程式修改**——預測範圍依正交原則修正；留痕＝`audits/PREDICT-ORTHOGONAL-CODE-REMEDIATION-20260724.md`。
+
 ## 效力邊界
 
 | | |
@@ -26,6 +28,7 @@
 | HANDOFF | `HANDOFF.md` §4.0「預測↔API」＋ prodset→熱路徑 |
 | 追溯總表 | `audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md` |
 | P2H 正式拍板 | `audits/P2H-PLAN-APPROVED-20260724.md`（Steward「回拍板碼」；執行未開） |
+| code 補正 | `audits/PREDICT-ORTHOGONAL-CODE-REMEDIATION-20260724.md` |
 | 本留痕 | 本檔 |
 
 ## 與凍結正交
