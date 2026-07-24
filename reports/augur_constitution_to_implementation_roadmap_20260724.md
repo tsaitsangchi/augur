@@ -72,7 +72,7 @@
 | **R3** | 規格→實作 Gap 帳本 | 建立「義務→落點→證據」對帳表 | MC §8.2／§8.3；L4–L7 DEFER／TR；construction §9／§11 | `recall`／`local_research`（[I]）；`deliberate.py`；既有 audits | ✅ **DONE**（2026-07-24；見 §3.4／`reports/augur_roadmap_r3_gap_ledger_20260724.md`） |
 | **R4** | 資料地基（12-PHASE 對齊） | raw／對帳／panel 可定案或 live 增量誠實 | 原則 #1／#7／#18；大憲章 PHASE 0–8；arena G1-PIN | `full_market_sync.py`；`daily_maintenance.py`；`audit_selfheal.sh`；reconcile | ✅ **DONE**（2026-07-24；親驗＋db_only＋工單；表級 catalog／Dividend／當日 e2e 仍 partial；見 §3.5／`audits/ROADMAP-R4-CLOSED-20260724.md`） |
 | **R5** | 預測半系統落地 | universe→model→econ／arena 可驗 | 原則 #8／#11／#12–15；輸出契約；arena／direction_gate | `build_core_universe.py`；提拔／econ scripts；arena pipeline；DB triggers | ✅ **近程 DONE**（2026-07-24；S1–S3＋U5；計畫 §7 A*；**≠** 確立級／可交易／universe→econ 全綠；見 §3.6） |
-| **R6** | 素養／顧問半系統落地 | acquire→promote→全文閘→embed→advisor | 憲章 philosophy；KS；原則 #1；L6 | knowledge 引擎腳本；`export_qdrant_index.py`；advisor／chat／admin 服務 | ✅ **S1＋S2 DONE**（2026-07-24；「開 R6」＝`R6-E12`＋`HAR-local`＋`FZ-keep`；哨兵 `verify_roadmap_r6_s12.py`；**U6／S3 pending**；≠可答完備；見 §3.7／`audits/ROADMAP-R6-S12-CLOSED-20260724.md`） |
+| **R6** | 素養／顧問半系統落地 | acquire→promote→全文閘→embed→advisor | 憲章 philosophy；KS；原則 #1；L6 | knowledge 引擎腳本；`export_qdrant_index.py`；advisor／chat／admin 服務 | ✅ **S1＋S2＋U6 DONE**（2026-07-24；「開 R6」＝`R6-E12`＋`HAR-local`＋`FZ-keep`；哨兵綠；U6＝`audits/ROADMAP-U6-R6-ULTRACODE-20260724.md`；**S3a／HAR-ext pending**；≠可答完備／≠全域 harvest；見 §3.7／`ROADMAP-R6-S12-CLOSED`） |
 | **R7** | 產品計畫閘＋持續 ultracode | 活躍產品計畫拍板後實作；邊界對抗 | plan-first；ULTRACODE-SCHEDULE；#28 | 既有 product plans；`ultracode-layer`；審議引擎 | 每產品計畫附 schema＋程式規畫；階段邊界 ultracode 呈核；Steward 處置 major |
 
 ### 3.1 R0 — 認知對齊（理解軸；ultracode 可完善「本路線圖」）
@@ -174,7 +174,7 @@
 
 **Ultracode 插入點 U6**：攻擊「metadata 當可答」、隔離被顧問反向污染、RBAC／role 虛報。
 
-**狀態**：✅ **S1＋S2 DONE**（2026-07-24）。Steward「**開 R6**」＝執行 `R6-E12`＋`HAR-local`＋`FZ-keep`。閉合：`audits/ROADMAP-R6-S12-CLOSED-20260724.md`；哨兵＝`scripts/verify_roadmap_r6_s12.py`（A1–A8＋A10 PASS；A9＝U6 SKIP）。計畫：`reports/augur_roadmap_r6_plan_20260724.md`。FinMind／FRED **FZ-keep** 仍有效；Dividend PAUSED；G-FT-1／G-ISO-1＝**none**（維持）；G-KDO-1＝calendar（**未假關**）。**U6／S3a／HAR-ext 未開**；≠可答完備／≠全域 harvest 完成。
+**狀態**：✅ **S1＋S2＋U6 DONE**（2026-07-24）。Steward「**開 R6**」＝`R6-E12`＋`HAR-local`＋`FZ-keep`；「**開 U6**」＝對抗呈核。閉合：`audits/ROADMAP-R6-S12-CLOSED-20260724.md`；U6：`audits/ROADMAP-U6-R6-ULTRACODE-20260724.md`；哨兵＝`scripts/verify_roadmap_r6_s12.py`（A1–A8＋A10 PASS；A9＝U6 本檔補）。計畫：`reports/augur_roadmap_r6_plan_20260724.md`。FinMind／FRED **FZ-keep**；Dividend PAUSED；G-FT-1／G-ISO-1＝**none**；G-KDO-1＝calendar（**未假關**）；**G-HAR-1＝partial**（UI 完成詞／庫存 pending）。**S3a／HAR-ext 未開**；≠可答完備／≠全域 harvest 完成／≠產品全量 R6。
 
 ### 3.8 R7 — 產品閘＋持續 ultracode
 
@@ -213,7 +213,7 @@
 | **U3** | R3 Gap 帳本初版後 | 幽靈落點、不實完備 | ✅ DONE 2026-07-24：`audits/ROADMAP-U3-…`；帳本已補正 |
 | **U4** | R4 attestation／開賽宣稱前 | 假綠、IP ban 路徑 | ✅ DONE 2026-07-24：`audits/ROADMAP-U4-…`；帳本 G-CAT／G-DIV／G-ATTEST evidence 補正 |
 | **U5** | R5 確立級／econ 宣稱前 | Goodhart、洩漏、門柱挪動 | ✅ DONE 2026-07-24：`audits/ROADMAP-U5-R5-ULTRACODE-20260724.md`；近程 R5 DONE≠可交易 |
-| **U6** | R6 「可答／完成」宣稱前 | 半套 harvest、隔離破口 | S1–S2 已閉（終態詞彙＋哨兵綠）；**U6 執行 pending**（另待「開 U6」；見 `ROADMAP-R6-S12-CLOSED`） |
+| **U6** | R6 「可答／完成」宣稱前 | 半套 harvest、隔離破口 | ✅ **DONE**（2026-07-24；`audits/ROADMAP-U6-R6-ULTRACODE-20260724.md`；G-HAR-1 partial；禁可答完備） |
 | **U7** | 各產品計畫拍板前 | 高風險門檻（治權／跨 package） | 對抗審查發現表留痕（#20／#28 分級） |
 
 ### 4.4 與既有 ultracode 投資之關係
@@ -339,9 +339,10 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **G-ISO-2 live ping → none**（2026-07-24；`audits/ROADMAP-R5-PREDICT-PING-20260724.md`）  
 - ✅ **R5 S3＋U5 閉**（2026-07-24；`ROADMAP-R5-S3-STATUS`＋`ROADMAP-U5-R5-ULTRACODE`）→ **近程 R5 DONE**（計畫 §7 A*）  
 - ✅ **R6 計畫已拍板**（2026-07-24；`R6-P-yes`＋`R6-E12`＋`HAR-local`＋`FZ-keep`；`audits/ROADMAP-R6-PLAN-APPROVED-20260724.md`）  
-- ✅ **R6 S1＋S2 閉**（2026-07-24；「開 R6」；`audits/ROADMAP-R6-S12-CLOSED-20260724.md`；哨兵 `--with-smoke` PASS；**U6 pending**）  
+- ✅ **R6 S1＋S2 閉**（2026-07-24；「開 R6」；`audits/ROADMAP-R6-S12-CLOSED-20260724.md`；哨兵 `--with-smoke` PASS）  
+- ✅ **U6 DONE**（2026-07-24；「開 U6」；`audits/ROADMAP-U6-R6-ULTRACODE-20260724.md`；G-HAR-1 partial）  
 - ❌ 未改任何 [N]  
-- ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 U6／HAR-ext；**未**閉合 universe→econ 全量產品半系統  
+- ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 HAR-ext／S3a；**未**閉合 universe→econ 全量產品半系統  
 
 - ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5 時已重跑親驗**，不得把舊 wiring 表當永真  
 
