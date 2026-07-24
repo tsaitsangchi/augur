@@ -2,7 +2,7 @@
 
 * **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；領域大憲章第六部計畫完整性 v1.39.0）— **不創設 [N] 義務**；**計畫已拍板；執行已開近程**（Steward「**開 PME**」2026-07-24）
 * **授權觸發**：Steward「開哲學↔市場進化閉環計畫」＝只寫本檔（✅）；「**開 PME**」＝實作（✅ 近程已開；見 `audits/PME-S012-STATUS-20260724.md`）
-* **路線圖掛接**：**R7 候選／獨立產品計畫**（見 `reports/augur_constitution_to_implementation_roadmap_20260724.md` §3.8）— **不取代** R7 產品全貌；不併吞 R5／R6 已閉義務；**≠** 開 R7 S2
+* **路線圖掛接**：**R7 候選／獨立產品計畫**（見 `reports/augur_constitution_to_implementation_roadmap_20260724.md` §3.8）— **不取代** R7 產品全貌；不併吞 R5／R6 已閉義務；**R7 S2 首掛 P-PME**（閘掛接；見 `audits/ROADMAP-R7-GATE-PME-20260724.md`）— **≠** 開 U7／U-PME／全量閉環
 * **對齊先例**：理論框架＝`reports/augur_investment_philosophy_framework_plan_20260630.md`；漏斗／#14＝`reports/augur_feature_discovery_methodology_20260626.md` §四；計畫範式＝`reports/augur_roadmap_r5_plan_20260724.md`／`r6_plan`
 * **前置／邊界**：近程 R5／R6＋U5／U6 DONE；FinMind／FRED **操作凍結**仍有效；G-DIV-1 **PAUSED**；`direction_gate.evaluated_pass`＝**0** → **禁確立級／可交易宣稱**
 * **主路徑（已採納）**：**PME-AUTO-B**＝有界 AI 自主上線＋緊急停機（`PME-KILL`）
@@ -220,6 +220,19 @@ flowchart LR
 2. **緊急停**：置 `halt` → 停止自動上線；已上線項可另觸「緊急降級」策略（拍板後釘）。  
 3. **治權變更**：改閘閾值／漏斗判準／靈魂措辭 → Steward 程序；**引擎不得自行改判準**（此即 B≠C）。
 
+### 4.2 執行前四判準（G-P4／R7 產品閘掛接）
+
+> CLAUDE #20／R7 G-P4：開「可申請執行授權」前書面四勾。本節＝**R7 S2 掛接**書面（2026-07-24）；**不**重跑完整 E123；證據引用既有 `run_id=5`。
+
+| # | 判準 | 證據（path／節） | 勾 |
+|---|---|---|---|
+| ① | **完整**（對應該產品計畫範圍） | 本檔 §5 schema＋§6 python＋§4.1 PME-AUTO-B 機械閘＋§8 A*＋文首四碼；R7 閘模板 `audits/ROADMAP-R7-PRODUCT-GATE-CHECKLIST-TEMPLATE.md` | ✅ |
+| ② | **內部一致** | 全文主路徑＝**PME-AUTO-B**（非寫死一律人准）；`PME-KILL`／`FZ-keep`／禁確立級／禁自動下單與 §1.3 硬非目標一致；上線＝機械閘全綠＋kill clear | ✅ |
+| ③ | **與現況／code 一致** | E12 骨架 `audits/PME-S012-STATUS-20260724.md`；E123 `run_id=5` succeeded、G-PROM／G-ECON 真裁決、APPLY×2→validated（`audits/PME-E123-STATUS-20260724.md`／`PME-E123-CLOSED-20260724.md`）；kill-switch 路徑已在；**不**重跑 E123 | ✅ |
+| ④ | **可實作**（含凍結／依賴誠實） | 零 FinMind／FRED 即可掛閘與本地續跑；靈魂措辭另案 pending（不擋閘掛接）；U-PME／U7 **另授權**；全量 G-PROM 綠／可交易 **非**本掛接範圍 | ✅ |
+
+**四判準結論（R7 S2）**：書面四勾齊 → P-PME 進入「**可申請執行授權**」狀態（哨兵 `--check --plan` 本檔 PASS）。**閘 PASS ≠** 假稱 PME-Efull／確立級可交易／解凍 API。
+
 ---
 
 ## 5. (a) Table schema
@@ -436,7 +449,7 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 | 隔離 | `src/augur/audit/import_isolation.py` |
 | 既有 verify | `scripts/verify_philosophy_factors.py` |
 
-**路線圖最小句**：§3.8／§9 註記本獨立計畫 **已拍板＋「開 PME」近程骨架**（`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`）——**不**假稱全量閉環／可交易、**不**等於開 R7 S2。
+**路線圖最小句**：§3.8／§9 註記本獨立計畫 **已拍板＋「開 PME」近程骨架**（`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`）＋ **R7 S2 首掛 P-PME**（G-P4 書面＋閘紀錄）——**不**假稱全量閉環／可交易、**≠** 開 U7／U-PME。
 
 ---
 
@@ -446,10 +459,11 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 - ✅ **Steward 已拍板**（2026-07-24；四碼；`audits/PME-PLAN-APPROVED-20260724.md`）  
 - ✅ **開 PME 近程落地**（2026-07-24；`audits/PME-S012-STATUS-20260724.md`；DDL／KILL／S0–S1／S2 骨架／APPLY 路徑）  
 - ✅ **開 PME-E123**（2026-07-24；本地 G-PROM／G-ECON；`run_id=5`；真綠 APPLY×2→validated；`audits/PME-E123-STATUS-20260724.md`）  
+- ✅ **§4.2 執行前四判準（G-P4）**＋R7 S2 掛接（`audits/ROADMAP-R7-GATE-PME-20260724.md`／`ROADMAP-R7-S2-CLOSED-20260724.md`）  
 - ✅ 誠實標出與「系統建議，人決策／非自動駕駛」之張力；**靈魂措辭另案 pending**  
-- ❌ **未**多數特徵 G-PROM PASS、**未** A7 全閉、未改 [N]、未解凍 API、未自動下單、未開 U-PME  
+- ❌ **未**多數特徵 G-PROM PASS、**未** A7 全閉、未改 [N]、未解凍 API、未自動下單、未開 U-PME／U7  
 - ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝本地真裁決（多數 FAIL／SKIP，非假綠） 
 
 ---
 
-*計畫完整性：§5 schema＋§6 python；30 分鐘可讀：§0–§2＋§4.1＋§10。*
+*計畫完整性：§5 schema＋§6 python＋§4.2 四判準；30 分鐘可讀：§0–§2＋§4.1–4.2＋§10。*
