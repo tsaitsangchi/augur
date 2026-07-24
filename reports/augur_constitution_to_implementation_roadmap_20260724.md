@@ -152,9 +152,9 @@
 
 **驗收**：attestation 以現行哨兵句為準；禁 hand-patch（#12／原則 #7 操作閉合受 AUD-02 閘）。
 
-**狀態**：✅ **DONE**（2026-07-24）。Steward「**開 R4**」＝親驗＋安全最小動作＋帳本／工單更新（≠全量放量修復）。證據：`reports/augur_roadmap_r4_data_foundation_20260724.md` · `audits/ROADMAP-R4-CLOSED-20260724.md`。殘留：**G-CAT-1** 表級 STALE、**G-DIV-1** 塌列未修、**G-ATTEST** 當日 e2e SKIP（史料 id=4 PASS）。
+**狀態**：✅ **DONE**（2026-07-24）。Steward「**開 R4**」＝親驗＋安全最小動作＋帳本／工單更新（≠全量放量修復）。證據：`reports/augur_roadmap_r4_data_foundation_20260724.md` · `audits/ROADMAP-R4-CLOSED-20260724.md`。殘留：**G-CAT-1** 表級 STALE、**G-DIV-1** 重建中（U4：live 表已 rename bak）、**G-ATTEST** 當日 e2e SKIP（史料 id=4 PASS）。
 
-**Ultracode 插入點 U4**：對「完整／綠／可開賽」宣稱做三鏡反駁；撞 FinMind 限速則停（#24／#25），不重試風暴。
+**Ultracode U4**：✅ **DONE**（2026-07-24；Steward「**開 U4（零 API）**」）。對抗報告 `audits/ROADMAP-U4-R4-ULTRACODE-20260724.md`：F-U4-2 major 帳本幽靈（G-DIV-1 live 數字過時）已回寫；db_only／史料 attestation 假綠誤讀路徑＋ IP ban 停手未完整機械化已標。無新 [N] RULING。
 
 ### 3.6 R5 — 預測半系統
 
@@ -209,7 +209,7 @@
 | **U0** | R0 後、R3 前 | 本路線圖完整性／可執行性 | `audits/` 或本報告附錄 [I] |
 | **U2** | R2／10-14 前 | 假關、殘留狀態謊言 | 呈核；禁改 checklist 為結清 |
 | **U3** | R3 Gap 帳本初版後 | 幽靈落點、不實完備 | ✅ DONE 2026-07-24：`audits/ROADMAP-U3-…`；帳本已補正 |
-| **U4** | R4 attestation／開賽宣稱前 | 假綠、IP ban 路徑 | 停手條件＋證據 |
+| **U4** | R4 attestation／開賽宣稱前 | 假綠、IP ban 路徑 | ✅ DONE 2026-07-24：`audits/ROADMAP-U4-…`；帳本 G-CAT／G-DIV／G-ATTEST evidence 補正 |
 | **U5** | R5 確立級／econ 宣稱前 | Goodhart、洩漏、門柱挪動 | 計畫修訂或 RULING 材料 |
 | **U6** | R6 「可答／完成」宣稱前 | 半套 harvest、隔離破口 | 終態定義鎖定 |
 | **U7** | 各產品計畫拍板前 | 高風險門檻（治權／跨 package） | 對抗審查發現表留痕（#20／#28 分級） |
@@ -331,10 +331,11 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **R2 閉合**（2026-07-24；10-14 checklist 誠實狀態表；日曆項仍 open）  
 - ✅ **R3／U3 閉合**（2026-07-24；Gap 帳本＋對抗補正）  
 - ✅ **R4 閉合**（2026-07-24；資料地基親驗＋db_only＋Dividend 工單；殘留 partial 見帳本）  
+- ✅ **U4 閉合**（2026-07-24；零 API 對抗；`audits/ROADMAP-U4-R4-ULTRACODE-20260724.md`）  
 - ✅ **R5 計畫已出**（2026-07-24；執行未開；`reports/augur_roadmap_r5_plan_20260724.md`）  
 - ❌ 未改任何 [N]  
-- ❌ 未實作 R5 code／未開 ultracode 執行（U0 依〔U-defer〕跳過；U3 另案已 DONE；U4／U5 未開）  
-- ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4 時已重跑親驗**，不得把舊 wiring 表當永真  
+- ❌ 未實作 R5 code／未開 U5（U0 依〔U-defer〕跳過；U3／U4 DONE）  
+- ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4 時已重跑親驗**，不得把舊 wiring 表當永真  
 
 ---
 
