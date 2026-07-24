@@ -18,7 +18,7 @@
 | ID | layer / clause | obligation_summary | claimed_landing | actual_evidence | gap_class | next |
 |---|---|---|---|---|---|---|
 | G-ISO-1 | 原則 #1／#8；大憲章隔離命門 | 預測管線不得 import 素養／顧問／knowledge | AST 雙閘＋predict role | `tests/test_philosophy_isolation.py` **8 passed**（2026-07-24）；`src/augur/audit/import_isolation.py` | **none** | 維持 CI／換機重跑 |
-| G-ISO-2 | 同左；setup_predict_role | 動態閘＝預測連線走 `augur_predict` | role／GRANT 已 provision＋runtime 接線 | **R5-S12 2026-07-24**：`config.DB_PARAMS_PREDICT`（`config.py`）；`db.connect_predict()`（`db.py`）；`predict_asof.py:112` 走 predict。`--selftest` 結構綠；`test_predict_role_isolation` 素養 SELECT＝false／`prediction_values` INSERT＝true。**live `connect_predict` 密碼認證失敗**（env／role 漂移；未擅 `--apply`）。見 `audits/ROADMAP-R5-S12-CLOSED-20260724.md` | **partial** | 對齊 `DB_PREDICT_PASSWORD` 或授權 re-apply role 後重驗 `ping_predict`；S3／U5 另案 |
+| G-ISO-2 | 同左；setup_predict_role | 動態閘＝預測連線走 `augur_predict` | role／GRANT 已 provision＋runtime 接線 | **R5-S12** 接線＋GRANT；**R5-PREDICT-PING 2026-07-24**：Steward 授權 `--apply --confirm` exit 0＋superuser 對齊 role 密碼與 env；`ping_predict()`＝True；`pytest tests/test_predict_role_isolation.py` **5 passed**（含 `test_connect_predict_session_user`）。見 `audits/ROADMAP-R5-PREDICT-PING-20260724.md` | **none** | 維持；換機還原後重跑 setup＋對齊密碼；S3／U5 另案 |
 | G-OUT-1 | 大憲章輸出契約 v1.45；方向產物 | direction 產物 fail-closed：gate≠`evaluated_pass` 拒寫 | DB trigger `trg_*dirprob*_gate_guard` | **code 落點**：`scripts/migrate_direction_product_gate_ddl.py:27-43`。**本機親驗 2026-07-24**：`./venv/bin/python scripts/migrate_direction_product_gate_ddl.py --verify` → exit 0；`evaluated_fail`／不存在門皆 trigger 拒寫；`pg_trigger` 有 `trg_dirprob_gate_guard`／`trg_ddirprob_gate_guard`。見 `audits/ROADMAP-U3-DB-VERIFY-20260724.md` | **none** | 維持；正向 `evaluated_pass` 路徑俟首個 pass 門 |
 | G-OUT-2 | 同左；幅度軸 | 幅度產物**無**等價 DB fail-closed（與方向軸不對稱） | 展示層把關（設計） | construction／輸出契約明文只強制方向軸；**非**「無 gap」 | **doc-only** | 知情；勿讀成 none＝已機械滿足 |
 | G-ATT-1 | P4.E5／原則 #7；AUD-02 | heal 覆寫前留 pre-image；禁靜默 LWW | `raw_supersede_log`＋snapshot gate | 表／trigger／tombstone：Steward superuser migrate **全 ✓**；pytest **15 passed**；`reconcile.heal_by_date`→`heal_by_date`；`daily_maintenance --heal`→`daily_heal` | **none** | 維持；生產首遇 value_mismatch 觀察首列 |
@@ -43,7 +43,7 @@
 
 | 承重主題 | 帳本列 | 狀態 |
 |---|---|---|
-| 三敵人／隔離機械閘 | G-ISO-1／2、G-PV-1 | 靜態閘綠；G-PV-1 **none**（PV-α）；G-ISO-2 **partial**（接線在、live 密碼漂移） |
+| 三敵人／隔離機械閘 | G-ISO-1／2、G-PV-1 | 靜態閘綠；G-PV-1 **none**（PV-α）；G-ISO-2 **none**（live ping PASS；`ROADMAP-R5-PREDICT-PING`） |
 | 輸出契約 | G-OUT-1／2 | G-OUT-1 **none**（本機 `--verify` 2026-07-24）；幅度軸＝doc-only |
 | attestation | G-ATTEST | infra＋史料 PASS（id=4）；當日 e2e SKIP（R4）；U4 確認誤讀路徑 |
 | owner／app | G-OWN-1、G-ROLE | 局部綠；全矩陣 partial |
@@ -63,7 +63,7 @@
 
 ## 5. 建議下一句
 
-* **開 S3／U5**／對齊 predict 密碼後重驗 G-ISO-2→none（見 `audits/ROADMAP-R5-S12-CLOSED-20260724.md`）
+* **開 S3／U5**（G-ISO-2 已 **none**；見 `audits/ROADMAP-R5-PREDICT-PING-20260724.md`）
 * Dividend 重建代理收口後再裁 G-DIV-1；或授權全量 `build_catalog`／正典 attestation
 * Steward 本機補（G-OUT-1／G-FT-1）：**已做** 2026-07-24（見 `audits/ROADMAP-U3-DB-VERIFY-20260724.md`）
-* 單點修：G-ISO-2 live login；IP ban job-abort（U4 F-U4-5）另案
+* 單點修：IP ban job-abort（U4 F-U4-5）另案

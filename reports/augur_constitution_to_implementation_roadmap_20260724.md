@@ -162,7 +162,7 @@
 
 **驗收**：`tests/test_philosophy_isolation.py` 綠；direction 產物非 evaluated_pass 不得寫入；arena 雙閘／TTY 紅線依 HANDOFF。
 
-**狀態**：🔧 **S1＋S2 閉**（2026-07-24；Steward「**開 R5**」）。接線＋PV-α AST：`audits/ROADMAP-R5-S12-CLOSED-20260724.md`。G-PV-1→**none**；G-ISO-2 仍 **partial**（live predict 密碼漂移）。**S3／U5／全量 R5 DONE 仍 pending**。計畫：`reports/augur_roadmap_r5_plan_20260724.md`。FinMind／FRED **操作凍結**仍有效——至本路線圖全部階段落地＋用戶明示解凍（R5／局部完成 ≠ 解凍）；Dividend API 邊界同。
+**狀態**：🔧 **S1＋S2 閉**＋**G-ISO-2 live ping none**（2026-07-24）。接線＋PV-α：`audits/ROADMAP-R5-S12-CLOSED-20260724.md`；predict ping：`audits/ROADMAP-R5-PREDICT-PING-20260724.md`。G-PV-1／G-ISO-2→**none**。**S3／U5／全量 R5 DONE 仍 pending**。計畫：`reports/augur_roadmap_r5_plan_20260724.md`。FinMind／FRED **操作凍結**仍有效——至本路線圖全部階段落地＋用戶明示解凍（R5／局部完成 ≠ 解凍）；Dividend API 邊界同。
 
 **Ultracode 插入點 U5**：對「可交易／確立」行銷句與 registry 宣稱做攻擊；重大方法變更 → plan-first 新報告。**尚未開**。
 
@@ -333,7 +333,8 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **R4 閉合**（2026-07-24；資料地基親驗＋db_only＋Dividend 工單；殘留 partial 見帳本）  
 - ✅ **U4 閉合**（2026-07-24；零 API 對抗；`audits/ROADMAP-U4-R4-ULTRACODE-20260724.md`）  
 - ✅ **R5 計畫已拍板**（2026-07-24；`R5-P-yes`＋`R5-E12`＋`PV-α`＋`PAR`）  
-- ✅ **R5 S1＋S2 閉**（2026-07-24；「開 R5」；`audits/ROADMAP-R5-S12-CLOSED-20260724.md`；G-PV-1 none；G-ISO-2 partial）  
+- ✅ **R5 S1＋S2 閉**（2026-07-24；「開 R5」；`audits/ROADMAP-R5-S12-CLOSED-20260724.md`；G-PV-1 none）  
+- ✅ **G-ISO-2 live ping → none**（2026-07-24；`audits/ROADMAP-R5-PREDICT-PING-20260724.md`）  
 - ❌ 未改任何 [N]  
 - ❌ 未開 S3／U5；未全量 R5 DONE；未解凍 FinMind／FRED  
 - ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5-S12 時已重跑親驗**，不得把舊 wiring 表當永真  

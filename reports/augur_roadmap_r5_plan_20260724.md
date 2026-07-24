@@ -349,7 +349,7 @@ REVOKE SELECT ON TABLE prediction_values FROM augur_predict;
 | R4 閉合 | `audits/ROADMAP-R4-CLOSED-20260724.md` |
 | Dividend（只讀邊界） | `reports/augur_dividend_rebuild_20260724.md` |
 
-**建議下一句（用戶）**：對齊 predict 密碼 → 可衝 G-ISO-2 none；另發「**開 S3**」／「**開 U5**」（S1＋S2 已閉）。
+**建議下一句（用戶）**：G-ISO-2 已 **none**（`ROADMAP-R5-PREDICT-PING`）；另發「**開 S3**」／「**開 U5**」（S1＋S2 已閉）。
 
 ---
 
@@ -362,4 +362,4 @@ REVOKE SELECT ON TABLE prediction_values FROM augur_predict;
 - ✅ **開 R5 → S1＋S2 閉**（2026-07-24；`audits/ROADMAP-R5-S12-CLOSED-20260724.md`）  
 - ❌ 未做 S3／U5、未放量 API、未改 [N]、未改 Dividend 報告、未解凍  
 - ⚠ FinMind／FRED 操作凍結仍有效（至 constitution-to-implementation 全部落地＋明示解凍；R5 局部完成不解凍）；Dividend API 線 PAUSED
-- ⚠ G-ISO-2 仍 partial（live `connect_predict` 密碼漂移）
+- ✅ G-ISO-2 → **none**（2026-07-24 live `ping_predict` PASS；`audits/ROADMAP-R5-PREDICT-PING-20260724.md`）
