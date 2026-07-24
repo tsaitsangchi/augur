@@ -339,6 +339,8 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 | **新** `scripts/run_philosophy_evolution.py` | run evolution | 一鍵 S2→佇列；寫 `evolution_run` | S2 | 編排；零 API |
 | **新** `scripts/apply_evolution_promotions.py` | apply promotions | **B 自動 APPLY**：消費 `pending_auto`、檢查閘＋kill-switch、寫 status／apply_log | S3 | **無人簽核參數**（可有 `--dry-run`）；`--force` 禁用於跳閘 |
 | **新** `scripts/set_evolution_kill_switch.py` | set kill-switch | 人／ops 置 clear｜halt | 全程 | 只寫 kill_switch 表 |
+| **新** `src/augur/philosophy/interpretation.py` | library：`interpretation` | S4 唯讀快照→解讀 markdown；禁回流 | S4 | 只讀 prodset／validated／apply_log；禁進 PIPELINE |
+| **新** `scripts/report_philosophy_evolution_interpretation.py` | 動詞：report interpretation | S4 解讀報告（markdown／JSON） | S4 | 唯讀；零 API |
 | **可選** `scripts/verify_roadmap_pme_sentry.py` | verify sentry | 驗收 A* 機械鎖 | S3／U | 唯讀＋isolation |
 
 **FORBIDDEN 維持法**：
@@ -424,8 +426,9 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 - **〔PME-E0〕** 只做 S0 盤點留痕。  
 - **〔PME-E12〕** S1＋S2（覆蓋＋自動重驗；零市場 API）— **建議近程**；本輪「開 PME」＝**E12 精神**（S2 全量重驗閘＝骨架 SKIP）。  
 - **〔PME-E123〕** ✅ **已開**（2026-07-24）— 本地 G-PROM／G-ECON＋S3 真綠 APPLY×2；見 `audits/PME-E123-STATUS-20260724.md`。
-- **〔U-PME〕** ✅ **DONE**（2026-07-24）— `audits/PME-ULTRACODE-20260724.md`（A11；≠ PME-Efull／≠ 生產集登錄完備）。
-- **〔PME-Efull〕** S0–S3＋S4＋U-PME（U-PME／A7 已完；S4／PRODSET 仍缺）。
+- **〔U-PME〕** ✅ **DONE**（2026-07-24）— `audits/PME-ULTRACODE-20260724.md`（A11；後續 PRODSET／S4 已 CLOSED；仍≠可交易）。
+- **〔PME-Efull〕** S0–S4＋U-PME — 構件已齊（S4／PRODSET／U-PME／A7 CLOSED）；**呈核另說**；仍≠可交易／≠靈魂 [N] 已修。
+- **〔PME-S4〕** ✅ **CLOSED**（2026-07-24）— `audits/PME-S4-CLOSED-20260724.md`；顧問單向解讀。
 
 ### 10.5 凍結
 
@@ -452,7 +455,7 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 | 隔離 | `src/augur/audit/import_isolation.py` |
 | 既有 verify | `scripts/verify_philosophy_factors.py` |
 
-**路線圖最小句**：§3.8／§9 註記本獨立計畫 **已拍板＋E12／E123＋U-PME DONE**（`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`）＋ **R7 S2 首掛 P-PME**——**不**假稱全量閉環／可交易／生產集已登錄、**≠** 開 U7。
+**路線圖最小句**：§3.8／§9 註記本獨立計畫 **已拍板＋E12／E123＋U-PME＋PRODSET＋S4 CLOSED**（`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`）＋ **R7 S2 首掛 P-PME**——**不**假稱可交易／確立級／靈魂 [N] 已修、**≠** 自動解凍 API。
 
 ---
 
@@ -466,8 +469,9 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 - ✅ **開 U-PME**（2026-07-24；`audits/PME-ULTRACODE-20260724.md`；A11 PASS；G-PME-PRODSET／DEMOTE 入帳）  
 - ✅ **PME 補 A7（非假綠）**（2026-07-24；`audits/PME-A7-STATUS-or-CLOSED-20260724.md`；violations=0；raw_desync=21＝gate_rejected）  
 - ✅ **PME PRODSET 真寫**（2026-07-24；`audits/PME-PRODSET-CLOSED-20260724.md`；`evolution_production_feature_set`；run5×2 active；G-PME-PRODSET=none；**≠**可交易）  
+- ✅ **PME S4 顧問單向解讀**（2026-07-24；`audits/PME-S4-CLOSED-20260724.md`；`interpretation.py`＋報告 script＋advisor 注入；G-PME-S4=none；tags=0 知情；**≠**可交易）  
 - ✅ 誠實標出與「系統建議，人決策／非自動駕駛」之張力；**靈魂措辭另案 pending**  
-- ❌ **未**多數特徵 G-PROM PASS、未改 [N]、未解凍 API、未自動下單；✅ U7 已開（R7 閘對抗；≠本閉環 Efull）  
+- ❌ **未**多數特徵 G-PROM PASS、未改 [N]、未解凍 API、未自動下單；✅ U7 已開（R7 閘對抗）；構件齊≠對外「可交易完備」  
 - ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝本地真裁決（多數 FAIL／SKIP，非假綠） 
 
 ---

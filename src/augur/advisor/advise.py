@@ -8,6 +8,7 @@
    (數字雙源=payload.numbers() ∪ citation_numbers 檢索真兆數字集),其餘 → guard()。
    llm_fn 為抽象界面(可接 Claude API 或本地 LLM 或 mock),advisor 本身不綁特定 LLM。
 守 憲章 v1.17.0(顧問對預測/哲學表皆唯讀、零寫回)· #1/#8/#15(經 guard 落地)。
+   PME S4：主路徑可附加進化解讀塊（`include_evolution`／`evolution_md`）；Mode B 不套；零回流特徵。
 
 執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.advisor.advise              # 印用途+公開入口（唯讀）
@@ -127,7 +128,7 @@ def _bridge_block(links):
 
 
 def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_fn=None, prompt_fn=None,
-           scope=None):
+           scope=None, evolution_md=None, include_evolution=True):
     """顧問一次問答。
 
     query:      用戶問題
@@ -138,6 +139,8 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     retrieve_fn/lexicon_fn: 檢索抽象界面(預設 philosophy.retrieval;可 mock/注入 Mode B 附加檔檢索)
     prompt_fn:  覆寫 prompt 組裝(Mode B 附加檔用 build_attached_prompt;預設 build_prompt)——
                 guard 不變、只換人格框架與檢索語料,誠實三敵防護一致
+    evolution_md: PME S4 解讀 markdown（注入則優先；None 且 include_evolution 時 fail-soft 載入）
+    include_evolution: 主路徑是否附加 S4 進化解讀（Mode B／prompt_fn 覆寫時一律不附加）
     回:{response, guard, citations, lex_entries, prompt}
     """
     from augur.philosophy.retrieval import retrieve, lexicon_lookup, verify_verbatim, is_low_content
@@ -219,6 +222,14 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
         prompt += _concept_block(concept_links)
     if prompt_fn is None:                                    # K1 橋:欄位/特徵問句之 know-how 詞面關聯(免責硬綁)
         prompt += _bridge_block(_bridge_links(query, None))
+    # PME S4：進化結果單向注入解讀塊（零寫回預測；Mode B 不套）
+    if prompt_fn is None and include_evolution:
+        from augur.philosophy.interpretation import (
+            evolution_prompt_block,
+            load_interpretation_markdown,
+        )
+        md = evolution_md if evolution_md is not None else load_interpretation_markdown()
+        prompt += evolution_prompt_block(md)
     response = llm_fn(prompt)
     if isinstance(payload, KnowledgePayload):
         # P8 域條款(已拍板 2026-07-04):雙源=payload.numbers() ∪ 本回合檢索真兆數字集
@@ -267,6 +278,24 @@ def _selftest():
     bb = _bridge_block([{"field": "d.c", "terms": [{"t": "護城河", "npmi": 0.55, "n": 9, "corpus": "items"}]}])
     chk("橋塊含 npmi+非資料值相關免責+不得複述", "0.55" in bb
         and "非該欄位資料數值與報酬之相關" in bb and "不得複述本段數值" in bb)
+
+    # PME S4：evolution 塊純函式語意（零 DB／零 advise 全路徑——全路徑含 _bridge_links 會開庫）
+    from augur.philosophy.interpretation import evolution_prompt_block
+    eblock = evolution_prompt_block("## PME S4\n> ≠可交易")
+    chk("S4 evolution_prompt_block 含禁確立語境", "確立級" in eblock and "≠可交易" in eblock)
+    chk("S4 空 md 不注入", evolution_prompt_block("") == "")
+    # 模擬 advise 主路徑附加條件（prompt_fn is None ∧ include_evolution）
+    def _maybe_append(prompt, *, prompt_fn, include_evolution, evolution_md):
+        if prompt_fn is None and include_evolution:
+            return prompt + evolution_prompt_block(evolution_md)
+        return prompt
+    base = "PROMPT"
+    chk("S4 條件注入", "PME S4" in _maybe_append(base, prompt_fn=None, include_evolution=True,
+                                                  evolution_md="## PME S4\n> ≠可交易"))
+    chk("S4 include_evolution=False", "PME S4" not in _maybe_append(
+        base, prompt_fn=None, include_evolution=False, evolution_md="## PME S4"))
+    chk("S4 Mode B(prompt_fn) 不注入", "PME S4" not in _maybe_append(
+        base, prompt_fn=lambda *a: "", include_evolution=True, evolution_md="## PME S4"))
 
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
