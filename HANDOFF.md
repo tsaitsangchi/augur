@@ -99,9 +99,10 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 | **PME 靈魂措辭** | ✅ **G-PME-SOUL=none**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；`audits/G-PME-SOUL-CLOSED-20260724.md`）——適用**新入 know-how**（新哲學／新研發技術／新學術論文等）閘後有界自動晉升；**自動下單仍禁**；**與 FinMind／FRED 正交（≠解凍）** |
 | **靈魂↔raw 邊界** | **[I]** raw＝觀測／結果呈現——**不**因「有 raw」升格靈魂；升到靈魂層的是 raw **交互**抽象出的**概念**與可證偽關係（相關係數等＝概念載體）。管線仍 source-pure raw→features；靈魂指導假說、不加權 runtime；禁整庫 raw 灌靈魂。API＝取 raw 通道≠靈魂。rule＝`.cursor/rules/soul-vs-raw-correlation.mdc`；留痕＝`audits/SOUL-VS-RAW-CORRELATION-20260724.md`（**未改** META-CONSTITUTION [N]） |
 | **不做（近程）** | 孫子↔ERP、太陽能↔儲能 等**他域進化閉環**計畫／實作；不以他域進化「灌進」台股因子 |
-| **落地盤點** | ✅ **已出**（2026-07-24；`audits/ROADMAP-LANDING-INVENTORY-20260724.md`）——機械近程大致齊；**產品完備／可解凍＝否**；預測正交 ≠ 解凍 |
-| **凍結** | FinMind／FRED **仍凍**（條件＝憲章→實作全部落地＋明示解凍；見 §4.4）—本節不改凍結；預測熱路徑見上列「預測↔API」 |
-| **API 洞另帳** | Dividend resume／全量 `build_catalog`／當日 attestation audit·heal — **解凍＋明示後**；G-CAT-1／G-DIV-1／G-ATTEST 仍 **partial** |
+| **落地盤點** | ✅ **已出**（2026-07-24；`audits/ROADMAP-LANDING-INVENTORY-20260724.md`）——機械近程大致齊；**產品完備＝否**；預測正交 ≠ 解凍 |
+| **INV-1「全部落地」** | ✅ **`INV1-LAND-MECH`**（2026-07-24；`audits/ROADMAP-INV1-APPROVED-20260724.md`＋定義檔）——機械近程＋另帳；附 **`INV2-THAW-STILL-REQUIRED`** → **仍凍**（無明示解凍句） |
+| **凍結** | FinMind／FRED **仍凍**（前提 (1)＝LAND-MECH 已釘；(2)＝明示解凍**仍缺**；見 §4.4）—**未**解凍；預測熱路徑見上列「預測↔API」 |
+| **API 洞另帳** | Dividend resume／全量 `build_catalog`／當日 attestation audit·heal — **解凍＋明示後**；G-CAT-1／G-DIV-1／G-ATTEST／G-HAR／10-14／evaluated_pass=0／R6 S3a 等 **另帳**（LAND-MECH 接受） |
 | **庫內證據** | `reports/augur_data_foundation_db_only_20260724.md` · `audits/ROADMAP-DATA-FOUNDATION-DB-ONLY-20260724.md` · tag `archive-20260724-data-foundation-db-only` |
 
 ### 4.1 一句話現況（2026-07-23；取代前版）
@@ -162,7 +163,7 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 **⚠ 換機注意（2026-07-13）**：舊機的 audit 跑者/watcher **不隨機器遷移**——新機還原 DB 後，audit 對帳狀態已在 DB（dump 含 658,911 列增量、取於尾段對帳中），**新機第一件事＝`bash audit_selfheal.sh` 續跑至綠**（DB-driven resume、冪等快轉已對帳段;新 IP 對 FinMind 反而有利），綠後接 4.2 鏈。嵌入積壓（469,551 句）由新機 03:30 timer 或手動 `systemctl --user start augur-embed-catchup` 補。
 
 ### 4.4 紅線（絕不能做）
-- ⚠ **操作凍結（2026-07-24；同日收緊）**：**FinMind／FRED 外部 API 一律不開**，直至 **憲章→實作路線圖（constitution-to-implementation）全部階段落地完成之後**，且用戶明示解凍（「解凍 FinMind／FRED」等）——含 sync／probe／放量／窄窗／Dividend 重建；**「計畫落地」／近程 R5 DONE（S1–S3＋U5）／局部階段完成 ≠ 解凍**；護欄＝`.cursor/rules/finmind-fred-api-freeze.mdc`（alwaysApply）。允許本地 DB 唯讀／零網路／計畫／免 API pytest／零 API 實作。**預測拍板／庫內 train／predict 不因本凍結否決**（`.cursor/rules/predict-vs-market-api.mdc`；`audits/PREDICT-ORTHOGONAL-API-RULING-20260724.md`）。R5 近程證據：`audits/ROADMAP-R5-S3-STATUS-20260724.md` · `ROADMAP-U5-R5-ULTRACODE-20260724.md`（**禁**確立級／可交易宣稱；`direction_gate.evaluated_pass=0`）。
+- ⚠ **操作凍結（2026-07-24；同日收緊＋INV-1 釘義）**：**FinMind／FRED 外部 API 一律不開**，直至（1）**「全部落地」**＝Steward **`INV1-LAND-MECH`**（機械近程完備 ∧ 殘留 partial **另帳**；定義＝`audits/ROADMAP-INV1-FULL-LANDING-DEFINITION-20260724.md`；登錄＝`ROADMAP-INV1-APPROVED`）**之後**，且（2）用戶**明示**解凍（「解凍 FinMind／FRED」等）——**`INV2-THAW-STILL-REQUIRED`**（本輪無明示 → **仍凍**）。含 sync／probe／放量／窄窗／Dividend 重建；**「計畫落地」／近程 R5 DONE／局部階段／LAND-MECH 已拍 ≠ 已解凍**；護欄＝`.cursor/rules/finmind-fred-api-freeze.mdc`（alwaysApply）。允許本地 DB 唯讀／零網路／計畫／免 API pytest／零 API 實作。**預測拍板／庫內 train／predict 不因本凍結否決**（`.cursor/rules/predict-vs-market-api.mdc`；`audits/PREDICT-ORTHOGONAL-API-RULING-20260724.md`）。R5 近程證據：`audits/ROADMAP-R5-S3-STATUS-20260724.md` · `ROADMAP-U5-R5-ULTRACODE-20260724.md`（**禁**確立級／可交易宣稱；`direction_gate.evaluated_pass=0`）。
 - ⚠ **`evaluate_arena_admission --evaluate` 是終態寫入**（evaluated_pass/fail 皆不可回改、複核=另立新 gate）——**必先 `--check`（唯讀預演）綠才 evaluate**（07-16 實證:--check 曾因 bug 假紅,預演救了不白燒）。舊「unfreeze gate evaluate」紅線已隨 gate 退史料失效（該 evaluate 實為唯讀 stub）。
 - ⚠ **FinMind 類作業（市場補同步／PriceAdj 修復）與 audit 互斥**——同一 IP，audit 跑完才輪它們（#24 IP sustained ban 07-12 實錘）。**本階段兩者皆凍（見上條操作凍結）**。
 - ⚠ **PDF 抽取未經 P0 拍板前不啟動**（含 OAPEN 61/skip_pdf 976）——OCR 維持不啟動（P8 原裁定）;IA 掃蕩已完成(491 抓/其餘誠實終態)、勿重複放量。

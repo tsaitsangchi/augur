@@ -33,12 +33,14 @@ alwaysApply: true
 
 **前提（兩者皆須）**：
 
-1. **憲章→實作路線圖（constitution-to-implementation）全部階段落地完成**——見 `reports/augur_constitution_to_implementation_roadmap_20260724.md`；**「計畫落地」≠ 足夠**；**R5 S1–S2／局部階段完成 ≠ 解凍**。
-2. 用戶**明示**解凍（下列措辭之一或等價）：
+1. **憲章→實作路線圖（constitution-to-implementation）全部階段落地完成**——見 `reports/augur_constitution_to_implementation_roadmap_20260724.md`。  
+   **「全部落地」正式定義（Steward `INV1-LAND-MECH`，2026-07-24）**＝**機械近程完備** ∧ Steward 書面接受殘留 **partial 另帳**（G-CAT／G-DIV／G-ATTEST／G-HAR／10-14／`evaluated_pass=0`／R6 S3a 等——清單 SSOT＝`audits/ROADMAP-INV1-FULL-LANDING-DEFINITION-20260724.md` §2）。  
+   **「計畫落地」≠ 足夠**；**R5 S1–S2／局部階段完成 ≠ 解凍**；**另帳項未清 ≠ 已可開 API**（倒果為因禁止）。拍板登錄＝`audits/ROADMAP-INV1-APPROVED-20260724.md`。
+2. 用戶**明示**解凍（下列措辭之一或等價）——**`INV2-THAW-STILL-REQUIRED`**：即使前提 (1) 已依 LAND-MECH 成立，**仍須本句**才開 API：
    - 「憲章→實作路線圖全部落地後解凍」／「constitution-to-implementation 全部完成後再開 FinMind／FRED」
    - 「解凍 FinMind／FRED」／「解凍 API」
 
-**禁止**：以「先前授權仍有效」「窄窗很輕」「只 probe 一下」「某計畫／R5 階段已綠」「所有計畫落地」自行解凍或試打。
+**禁止**：以「先前授權仍有效」「窄窗很輕」「只 probe 一下」「某計畫／R5 階段已綠」「所有計畫落地」「INV1-LAND-MECH 已拍＝已解凍」自行解凍或試打。
 
 ## Agent 檢查清單
 

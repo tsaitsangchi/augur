@@ -362,8 +362,9 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5 時已重跑親驗**，不得把舊 wiring 表當永真  
 
 - ✅ **落地盤點已出**（2026-07-24；文件盤點／呈核；`audits/ROADMAP-LANDING-INVENTORY-20260724.md`）——機械近程大致齊；**產品完備＝否**；**可解凍＝否**（預測正交 ≠ 解凍）
+- ✅ **INV-1 已拍 `INV1-LAND-MECH`**（2026-07-24；「全部落地」＝機械近程＋另帳；`audits/ROADMAP-INV1-FULL-LANDING-DEFINITION-20260724.md`／`ROADMAP-INV1-APPROVED-20260724.md`）——附 **`INV2-THAW-STILL-REQUIRED`** → **仍凍**（缺明示解凍句）；**未**採 LAND-PROD；**未**改 [N]
 
-**建議下一句（對齊近程優先 2026-07-24）**：「**維持 FZ-keep；勾 INV-1（定義全部落地）或續 PME／map**」——落地盤點已出；**仍禁**自解凍、**仍禁**假關確立級／可交易。
+**建議下一句（對齊近程優先 2026-07-24）**：「**維持 FZ-keep；續 PME／map（INV-4／INV-5）**」——INV-1／INV-2 已釘；**仍禁**自解凍、**仍禁**假關確立級／可交易。
 
 ---
 

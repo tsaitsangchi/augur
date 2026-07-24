@@ -11,13 +11,13 @@
 
 ## 0. 一句結論（給 Steward）
 
-**近程授權範圍內的 R0–R7／U3–U7／PME／P2H 機械閉合大致齊——但「憲章→實作全部落地」若讀成產品完備或可解凍，則尚未全綠。禁止以本盤點假關解凍。**
+**「全部落地」已釘＝`INV1-LAND-MECH`（機械近程＋另帳）——仍缺明示解凍句（`INV2-THAW-STILL-REQUIRED`）→ 不可解凍。產品完備／確立級＝否。禁止以本盤點假關解凍。**
 
 | 判定軸 | 結論 |
 |---|---|
 | **機械近程完備**（各階段當日授權範圍＋哨兵／audit） | **大致 YES**（見 §1；殘留標 **partial** 者不假關） |
 | **產品完備**（路線圖大標：universe→econ 全綠／可答完備／產品艦隊出貨／確立級） | **NO** |
-| **可解凍 FinMind／FRED** | **NO**（缺：明示解凍句＋對「全部落地」的 Steward 定義；API 洞 G-CAT／G-DIV／G-ATTEST 仍 partial；預測正交**不**滿足解凍） |
+| **可解凍 FinMind／FRED** | **NO**（✅「全部落地」已釘＝`INV1-LAND-MECH`；⚠ **仍缺明示解凍句**＝`INV2-THAW-STILL-REQUIRED`；API 洞另帳不擋語意、**不**假關已可開；預測正交**不**滿足解凍） |
 
 ---
 
@@ -82,14 +82,14 @@
 
 | 讀法 | 是否成立 | 說明 |
 |---|---|---|
-| A. 近程授權機械閉合＝「全部落地」 | **爭議／不建議自動成立** | R0–R7 近程多標 DONE，但 R5／R6／R7 **自承**≠大標全綠；R4 殘留 API 洞 |
-| B. 產品完備＝「全部落地」 | **否** | evaluated_pass=0；G-HAR partial；S3a pending；產品艦隊未出貨 |
-| C. API 洞閉合後才算可解凍前置 | **仍否（缺明示）** | G-CAT／G-DIV／G-ATTEST partial——且這些**正是**解凍後要做的事，不能倒果為因自稱已落地 |
+| A. 近程授權機械閉合＝「全部落地」 | ✅ **已採 `INV1-LAND-MECH`** | 機械近程完備 ∧ 殘留 partial **另帳**；定義＝`audits/ROADMAP-INV1-FULL-LANDING-DEFINITION-20260724.md`；**仍須明示解凍句**才開 API |
+| B. 產品完備＝「全部落地」 | **否（未採）** | evaluated_pass=0；G-HAR partial；S3a pending；產品艦隊未出貨 |
+| C. API 洞閉合後才算可解凍前置 | **倒果禁止** | G-CAT／G-DIV／G-ATTEST partial＝另帳／解凍後工作——**不得**自稱已落地才解凍 |
 
-**建議 Steward 採納句（擇一寫入凍結條件或 HANDOFF，本檔不擅改 [N]／rule）**：
+**已採納（Steward `INV1-LAND-MECH`＋`INV2-THAW-STILL-REQUIRED`）**：
 
-> 「全部落地」＝**機械近程完備 ∧ Steward 書面接受殘留 partial 另帳** ∧ **明示解凍**；  
-> **或**更嚴：「全部落地」＝產品大標閉合（含方向確立／可答終態政策）——**現行證據下後者未達**。
+> 「全部落地」＝**機械近程完備 ∧ Steward 書面接受殘留 partial 另帳**；  
+> **解凍**＝上句成立 **∧** **明示解凍句**（本輪無明示 → **仍凍**）。
 
 ### 2.3 解凍後仍 API 門（與預測正交）
 
@@ -111,9 +111,9 @@
 
 | 軸 | 定義 | 2026-07-24 判定 | 可寫入解凍？ |
 |---|---|---|---|
-| **機械完備** | 各 R 當日授權範圍＋對應 U*（U0 defer／U2 可另開）＋PME／P2H 機械閉 | **大致 YES** | **否**（凍結文已排除近程／局部） |
-| **產品完備** | 路線圖大標＋確立級／可交易／可答完備／產品艦隊 | **NO** | **否** |
-| **可解凍** | 機械或產品（Steward 定義）全綠 **＋** 明示解凍句 | **NO** | — |
+| **機械完備** | 各 R 當日授權範圍＋對應 U*（U0 defer／U2 可另開）＋PME／P2H 機械閉 | **大致 YES**（＝LAND-MECH「全部落地」） | **否**（仍要明示解凍句） |
+| **產品完備** | 路線圖大標＋確立級／可交易／可答完備／產品艦隊 | **NO**（未採 LAND-PROD） | **否** |
+| **可解凍** | LAND-MECH 已釘 **＋** 明示解凍句 | **NO**（缺明示） | — |
 
 **禁止句**：
 
@@ -127,9 +127,9 @@
 
 ### 4.1 解凍定義（決策層——建議先勾）
 
-- [ ] **INV-1** 書面定義「全部落地」＝機械近程接受殘留另帳 **或** 產品大標（二擇一）
-- [ ] **INV-2** 若採機械近程：明示接受 G-CAT／G-DIV／G-ATTEST／G-HAR／10-14 **另帳**後，是否仍要求第二句「解凍 FinMind／FRED」
-- [ ] **INV-3** 維持現行：**不解凍**直至 INV-1 定義下全綠＋明示句（**預設建議**）
+- [x] **INV-1** ✅ **已拍 `INV1-LAND-MECH`**（定義＝`ROADMAP-INV1-FULL-LANDING-DEFINITION`；登錄＝`ROADMAP-INV1-APPROVED`）——機械近程＋另帳；**非** LAND-PROD
+- [x] **INV-2** ✅ **`INV2-THAW-STILL-REQUIRED`**——另帳接受後**仍**要求第二句「解凍 FinMind／FRED」；本輪無明示 → **仍凍**
+- [x] **INV-3** ✅ 維持：**不解凍**直至 LAND-MECH（已釘）**＋**明示句（仍缺）
 
 ### 4.2 近程優先對齊（執行層——FZ-keep）
 
@@ -166,6 +166,7 @@
 | PME | `PME-EFULL-APPROVED` · `G-PME-SOUL-CLOSED` |
 | P2H | `P2H-S123-CLOSED` · `P2H-ULTRACODE` |
 | 預測正交 | `PREDICT-ORTHOGONAL-API-RULING-20260724.md` |
+| INV-1 定義／拍板 | `ROADMAP-INV1-FULL-LANDING-DEFINITION-20260724.md` · `ROADMAP-INV1-APPROVED-20260724.md` |
 | HANDOFF 近程 | `HANDOFF.md` §4.0／§4.4 |
 
 ---
@@ -178,7 +179,7 @@
 * ❌ 未實作 code；未改 [N]；未解凍；未宣稱可解凍
 * ⚠ 可與「擴大 map 覆蓋」並行；本檔不改其 WIP 大段
 
-**建議下一句（Steward）**：「**維持 FZ-keep；勾 INV-1（定義全部落地）或續 INV-4／INV-5（PME／map）**」——**勿**「解凍 FinMind／FRED」除非 INV-1＋明示句齊備。
+**建議下一句（Steward）**：「**維持 FZ-keep；續 INV-4／INV-5（PME／map）**」——INV-1／INV-2 已釘；**勿**「解凍 FinMind／FRED」除非明示句。
 
 ---
 
