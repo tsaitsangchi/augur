@@ -49,5 +49,6 @@ G-P1–G-P10 PASS (fail=0)
 
 ## 封存註記
 
-* 指令：`bash scripts/archive_push.sh --slug roadmap-r7-s2`
-* 前置 E123 tag：`archive-20260724-philosophy-market-evolution-e123` @ `0be3647`
+* tag：`archive-20260724-roadmap-r7-s2` @ `fedbe9dd1d04fe663c04af89bc369d7bd16828d0`
+* 前置 E123：`archive-20260724-philosophy-market-evolution-e123` @ `0be3647`
+* 本輪零 FinMind／FRED；未開 U7／U-PME；未改 [N]
