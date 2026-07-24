@@ -51,6 +51,12 @@ FORBIDDEN_EXPLICIT = {
 #     現況(未來重新映射)或 registry status(未來下市)=洩漏未來、違 anti-leakage #8。合規入口=Phase 2 之 as-of
 #     resolution 視圖(遮蔽 transaction_time/status 現況、僅暴露 as-of 解析結果);屆時把此三基礎表改回 forbidden、
 #     只 GRANT 該視圖(承接 L4/L5)。本步僅留此文件護欄(as-of resolver DEFER L4/L5、過渡期無機械閘)。
+# P2H：predict 只讀 prodset 登錄表；其餘 evolution 帳本／promotion_queue 一律拒（禁圖省事整包 evolution）
+PRODSET_ALLOW = {"evolution_production_feature_set"}
+EVOLUTION_REVOKE_EXPLICIT = {
+    "evolution_run", "evolution_coverage_snapshot", "evolution_apply_log",
+    "evolution_kill_switch", "promotion_queue",
+}
 # 預測 role 需寫入(非只讀)之輸出表(2026-07-08 補 harness 記錄表:revalidate/deflation/判停之落地)
 WRITABLE = {"model_registry", "prediction_values", "feature_values",
             "pipeline_execution_log", "data_audit_log",
@@ -60,12 +66,18 @@ WRITABLE = {"model_registry", "prediction_values", "feature_values",
 
 
 def classify(cur):
-    """回 (forbidden[], allowed[]):public 全表依素養層判準分流。"""
+    """回 (forbidden[], allowed[]):public 全表依素養層＋P2H evolution 收斂判準分流。"""
     cur.execute("SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")
     forbidden, allowed = [], []
     for (t,) in cur.fetchall():
         if t.startswith(FORBIDDEN_PREFIXES) or t in FORBIDDEN_EXPLICIT:
             forbidden.append(t)
+        elif t in PRODSET_ALLOW:
+            allowed.append(t)                          # P2H：熱路徑唯讀 prodset
+        elif t in EVOLUTION_REVOKE_EXPLICIT or (
+            t.startswith("evolution_") and t not in PRODSET_ALLOW
+        ):
+            forbidden.append(t)                        # 其餘 evolution 帳本拒
         elif t.startswith("core_universe") or t.startswith("feature_"):
             allowed.append(t)
         else:

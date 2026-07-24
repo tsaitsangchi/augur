@@ -7,14 +7,15 @@
 * **範式**：`reports/augur_roadmap_r5_plan_20260724.md`
 * **硬邊界**：零 FinMind／FRED；不改 [N]；不實作；≠可交易／≠確立級；≠ runtime 讀原則文本加權
 
-### Steward 拍板（待回覆）
+### Steward 拍板（✅ 已追溯登錄）
 
 | 欄 | 內容 |
 |---|---|
-| **狀態** | ⏳ **計畫已出／執行未開** |
-| **建議碼** | `P2H-P-yes` ＋ `P2H-E123` ＋ `FC-empty` ＋ `FZ-keep`（見 §10） |
-| **效力（採納後）** | 本檔＝執行藍圖；**實作另待「開 prodset 熱路徑」／分階授權** |
+| **狀態** | ✅ **`P2H` 已追溯 yes**（2026-07-24；PREDICT-ORTHOGONAL）— 計畫採納＋近程執行**授權**；**實作未自動開工** |
+| **登錄碼** | `P2H-P-yes` ＋ `P2H-E123` ＋ `FC-empty` ＋ `FZ-keep`（見 §10；等價建議碼） |
+| **效力** | 本檔＝執行藍圖；S1–S3 **已授權**；開工可另句「開 prodset 熱路徑」或後續 session 執行 |
 | **解凍邊界** | **接 prodset ≠ 解凍 API**；凍結維持**不影響**本計畫執行（見 §1.4） |
+| **留痕** | `audits/PREDICT-ORTHOGONAL-API-RULING-20260724.md` · `audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md` |
 
 ---
 
@@ -362,8 +363,9 @@ P2H-P-yes + P2H-E123 + FC-empty + FZ-keep
 ## 12. 本輪邊界（誠實）
 
 - ✅ 產出 plan-first（含零 API／庫內 as-of／FORBIDDEN 解法／FC-empty／2 特徵極窄）  
-- ⏳ 計畫待 Steward 拍板；**執行未開**  
-- ❌ 未改 code／未改 [N]／未解凍／未宣稱可交易  
+- ✅ **Steward 追溯拍板**（2026-07-24）：`P2H-P-yes`＋`P2H-E123`＋`FC-empty`＋`FZ-keep`  
+- ⏳ **實作未自動開工**（G-PME-HOTPATH 仍 open）  
+- ❌ 未改預測熱路徑 code／未改 [N]／未解凍／未宣稱可交易  
 
 ---
 

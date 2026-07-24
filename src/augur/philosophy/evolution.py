@@ -16,6 +16,12 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from augur.core.prodset_contract import (
+    PRODSET_ACTIVE,
+    PRODSET_REMOVED,
+    PRODSET_TABLE,
+)
+
 # §4.1 機械閘（全綠才可自動 APPLY；SKIP ≠ PASS）
 GATE_IDS = (
     "G-ISO",
@@ -469,12 +475,6 @@ def status_after_apply(action: str, before: str | None) -> str:
     if action == "freeze":
         return "untested" if not before else before
     return before or "untested"
-
-
-# 生產特徵登錄表名（philosophy 域；禁與 feature_values／canonical_features 混淆）
-PRODSET_TABLE = "evolution_production_feature_set"
-PRODSET_ACTIVE = "active"
-PRODSET_REMOVED = "removed"
 
 
 def prodset_status_for_action(action: str) -> str | None:

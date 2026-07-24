@@ -17,4 +17,4 @@
 | **G-PME-PRODSET** | partial | **none** | **PRODSET CLOSED 2026-07-24**：真寫 `evolution_production_feature_set`；APPLY／`--backfill-prodset`；run_id=5×2 active；`audits/PME-PRODSET-CLOSED-20260724.md`；**≠**可交易／確立級 |
 | **G-PME-DEMOTE** | — | **doc-only** | U-PME F-U-PME-8：閘紅＝rejected_gate；降級 status 未自動執行 |
 | **G-PME-S4** | absent | **none** | **S4 CLOSED 2026-07-24**：`interpretation.py`＋報告 script＋advisor 單向注入；tags=0 知情；**≠**可交易；Efull＝機械完備（`PME-Efull-yes`）仍≠可交易完備 |
-| **G-PME-HOTPATH** | open | **open** | Efull 邊界：預測熱路徑尚未吃晉升；**計畫已出／執行未開**＝`reports/augur_prodset_predict_hotpath_plan_20260724.md`（接線≠解凍；≠可交易） |
+| **G-PME-HOTPATH** | open | **open** | Efull 邊界：預測熱路徑尚未吃晉升；計畫 ✅ **`P2H` 已追溯 yes**（`P2H-P-yes`＋`P2H-E123`＋`FC-empty`＋`FZ-keep`；`audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md`）—**實作未開工**故仍 open（接線≠解凍；≠可交易） |

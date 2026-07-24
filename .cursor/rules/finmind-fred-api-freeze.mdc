@@ -21,11 +21,13 @@ alwaysApply: true
 ## 允許（本凍結不擋）
 
 - 純本地 **DB 唯讀**／對帳讀庫／schema 檢查（零外部 API）
-- **預測／訓練／回測／切分／推估**——消費庫內已落地 raw／features／panel（as-of）；**凍結 ≠ 不能預測**（見 `predict-vs-market-api.mdc`）
+- **預測／訓練／回測／切分／推估**——消費庫內已落地 raw／features／panel（as-of）；**凍結 ≠ 不能預測**；**預測拍板／執行不因本凍結而否決**（見 `predict-vs-market-api.mdc`；追溯＝`audits/PREDICT-ORTHOGONAL-API-RULING-20260724.md`）
 - **零網路** script、本地 pytest（mock／免 API）
 - 計畫書、ultracode、治權理解、報告撰寫、封存（不觸發 FinMind／FRED）
 - 常駐本地服務（advisor／chat／admin／Ollama）——**不**經 FinMind／FRED
 - R5／路線圖其餘 **零 API** 實作（wiring、AST 閘、本地測試等）——**不解凍 API**
+
+> **交叉一句**：本 rule **只凍取數**；**不解凍**。預測正交定義與追溯 yes **不**改本凍結條件。
 
 ## 解凍條件（AI 不自行解凍）
 
