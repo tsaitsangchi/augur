@@ -15,7 +15,7 @@
 | 上線自治 | ✅ **PME-AUTO-B**＋**PME-KILL**（E123 真綠 APPLY×2；U-PME DONE；A7／PRODSET／S4 CLOSED；✅ **`PME-Efull-yes`**） |
 | FinMind／FRED 凍結 | ⚠ **FZ-keep＝凍結維持** |
 | Dividend 邊界 | ⚠ API 線 PAUSED；覆蓋標 blocked_div |
-| 靈魂［N］ | ⚠ **靈魂措辭另案 pending**（本輪不改原文） |
+| 靈魂［N］ | ✅ **已寫入**（`SOUL-PME-B-yes`＋採納並寫入；`audits/G-PME-SOUL-CLOSED-20260724.md`；G-PME-SOUL=none） |
 
 ## 四碼展開
 
@@ -32,10 +32,10 @@
 * ✅ `run_id=5` local_gates；真綠 APPLY×2；principle validated=2
 * ✅ Steward「**開 U-PME**」→ `audits/PME-ULTRACODE-20260724.md`（A11 PASS；G-PME-PRODSET／DEMOTE 入帳）
 * ✅ A7 CLOSED（`audits/PME-A7-STATUS-or-CLOSED-20260724.md`；violations=0；raw=21 誠實分類）
-* ⚠ 靈魂措辭 pending；FZ-keep 維持；PRODSET／S4 CLOSED
+* ✅ 靈魂措辭 **CLOSED**（`audits/G-PME-SOUL-CLOSED-20260724.md`；G-PME-SOUL=none）；FZ-keep 維持；PRODSET／S4 CLOSED
 * ✅ Steward **`PME-Efull-yes`**（2026-07-24）→ `audits/PME-EFULL-APPROVED-20260724.md`（機械完備；§3 邊界不可分割；≠可交易）
 
 ## 下一步
 
-「**靈魂措辭另案（G-PME-SOUL）**」；資料地基等解凍條件再續。  
-仍禁 FinMind／FRED、仍禁自動下單、仍禁假確立級；靈魂措辭另案另開。
+「**資料地基等解凍條件再續**」（G-PME-SOUL 已閉）。  
+仍禁 FinMind／FRED、仍禁自動下單、仍禁假確立級。

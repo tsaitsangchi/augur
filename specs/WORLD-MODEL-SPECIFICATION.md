@@ -664,7 +664,7 @@ Augur Enterprise AI Operating System
 
 > **A.52（假說與 GATE 之定位）[N]** 哲學與外部知識語料＝**假說，非真兆**（A.45③ 未成就前不得為 Knowledge 依據）；其進入 World Representation 之判準 DEFER Layer 4/5（HOOK-02）。預註冊可證偽實驗（GATE）為絕對方向輸出與即時准入之唯一產生路（判準定位）；其統計治理（多重比較、判準凍結、二次證偽封鎖）DEFER Layer 4（HOOK-03）。〔DOM-16、DOM-40、DOM-47〕
 
-> **A.53（系統建議、人決策）[N]** 本域「系統建議、人決策」原則＝ Human Authority Gate（`AUGUR-MC v1.4 §4` EV.9）之領域落點：人類決策動作（核准、啟用、as-of 更新、授權政策、下單）為授權鏈驗證點之域內閉集（閉集內容之維護屬 Layer 6，DEFER，Annex D D16）。〔DOM-15〕
+> **A.53（系統建議、人決策）[N]** 本域「系統建議、人決策」原則＝ Human Authority Gate（`AUGUR-MC v1.4 §4` EV.9）之領域落點：人類決策動作（核准、**治權／閘閾值之訂立與變更**、as-of 更新、授權政策、下單、**緊急停之武裝與解除策略**）為授權鏈驗證點之域內閉集。**「啟用」不含**：在已生效機械閘全綠且 kill-switch＝clear 時，由進化引擎對哲學原則／特徵登錄所為之**狀態晉升 APPLY**（PME-AUTO-B；機制 DEFER Layer 5–7／既有 evolution 路徑）。該 APPLY **不**構成下單、**不**構成預測特徵回流授權。（閉集內容之維護屬 Layer 6，DEFER，Annex D D16）。〔DOM-15〕
 
 ## A-⑥ 待決事項（OPEN）[N]
 

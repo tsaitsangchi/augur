@@ -12,7 +12,7 @@
 
 ## 0. 呈核結論（一句）＋拍板
 
-近程閉環**機械構件**（S0–S4＋U-PME＋A7＋PRODSET）**已齊且可追溯**；Steward **已採 `PME-Efull-yes`**（2026-07-24）承認「近程閉環**機械完備**」——**§3 邊界為不可分割條件**：≠可交易／≠確立級／≠靈魂 [N] 已修／≠ API 解凍／≠多數 G-PROM 綠／≠預測熱路徑已吃晉升。
+近程閉環**機械構件**（S0–S4＋U-PME＋A7＋PRODSET）**已齊且可追溯**；Steward **已採 `PME-Efull-yes`**（2026-07-24）承認「近程閉環**機械完備**」——**§3 邊界為不可分割條件**：≠可交易／≠確立級／≠ API 解凍／≠多數 G-PROM 綠／≠預測熱路徑已吃晉升。**靈魂措辭**：後續另案 ✅ **已寫入**（`SOUL-PME-B-yes`；G-PME-SOUL=none）。
 
 ---
 
@@ -80,7 +80,7 @@ Gap **none**：G-PME-KILL／AUTO-PATH／COV／STATUS／U／PRODSET／S4。
 
 | ID／項 | 狀態 | 說明 |
 |---|---|---|
-| **G-PME-SOUL** | **pending** | 靈魂「非自動駕駛」措辭另案；未改 [N]；未謊稱已修 |
+| **G-PME-SOUL** | **none** | ✅ **已寫入**（2026-07-24；`SOUL-PME-B-yes`；`audits/G-PME-SOUL-CLOSED-20260724.md`）；自動下單仍禁 |
 | **G-PME-PROM** | **partial** | E123：PASS=2／FAIL=34／SKIP=6；**多數 FAIL＝門檻生效，非假綠** |
 | **G-PME-ECON** | **partial** | PASS=15／FAIL=21／SKIP=6；非全綠／非解凍全量 |
 | **G-PME-DEMOTE** | **doc-only** | 閘紅＝`rejected_gate`（拒上線真）；降級 status 未自動執行 |
@@ -120,7 +120,7 @@ Gap **none**：G-PME-KILL／AUTO-PATH／COV／STATUS／U／PRODSET／S4。
 
 下列**不**因 Efull-yes 假關（見 §3）：
 
-1. G-PME-SOUL 靈魂措辭案（改 [N] 另授權）  
+1. ~~G-PME-SOUL 靈魂措辭案~~ → ✅ **CLOSED**（`audits/G-PME-SOUL-CLOSED-20260724.md`）  
 2. G-PROM／G-ECON 多數綠  
 3. G-PME-DEMOTE 自動降級路徑真執行  
 4. G-R7-1 升格為語義閘  
@@ -134,11 +134,11 @@ Gap **none**：G-PME-KILL／AUTO-PATH／COV／STATUS／U／PRODSET／S4。
 * **不**＝constitution-to-implementation 全部落地  
 * **不**＝解凍 FinMind／FRED／續 Dividend  
 * **不**＝確立級／可交易／自動下單  
-* **不**＝靈魂 [N] 已對齊 AUTO-B  
 * **不**＝八產品 R7 全掛閘出貨  
 * **不**＝G-PROM／G-ECON 多數綠／預測熱路徑已吃晉升  
+* （另案）靈魂措辭 ✅ **已寫入**（`audits/G-PME-SOUL-CLOSED-20260724.md`；G-PME-SOUL=none）  
 
-建議下一句：「**靈魂措辭另案（G-PME-SOUL）**」；資料地基等解凍條件再續。
+建議下一句：「**資料地基等解凍條件再續**」；G-PME-SOUL 已閉。
 
 ---
 
@@ -146,7 +146,7 @@ Gap **none**：G-PME-KILL／AUTO-PATH／COV／STATUS／U／PRODSET／S4。
 
 * [I] audit；✅ Steward **已採 `PME-Efull-yes`**（2026-07-24）  
 * 登錄：`audits/PME-EFULL-APPROVED-20260724.md`  
-* §3 邊界＝拍板不可分割條件；**禁止**寫成可交易／確立級／API 已解凍／靈魂 [N] 已修  
+* §3 邊界＝拍板不可分割條件；**禁止**寫成可交易／確立級／API 已解凍；靈魂措辭狀態以 `G-PME-SOUL-CLOSED` 為準（已寫入≠可交易）  
 
 ---
 

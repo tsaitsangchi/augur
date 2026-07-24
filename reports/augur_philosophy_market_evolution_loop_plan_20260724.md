@@ -15,9 +15,9 @@
 | **四碼** | `PME-P-yes` ＋ `PME-AUTO-B` ＋ `PME-KILL` ＋ `FZ-keep` |
 | **效力** | **計畫採納**＋**執行已開**（「開 PME」→E12 骨架；**「開 PME-E123」**＋本地 G-PROM／G-ECON；**「開 U-PME」** DONE）＋✅ **`PME-Efull-yes`**（近程閉環**機械完備**；§3 邊界不可分割） |
 | **範圍** | 上線自治＝**B**；凍結＝**FZ-keep**；E123＝S2 本地真閘＋S3 APPLY；U-PME＝對抗呈核；Efull＝S0–S4＋U-PME 機械語意（見 `audits/PME-EFULL-APPROVED-20260724.md`） |
-| **解凍／Dividend 邊界** | **FZ-keep＝凍結維持**：FinMind／FRED **操作凍結**至 **constitution-to-implementation 全部階段落地＋用戶明示解凍**（拍板 ≠ 解凍）；不續 Dividend；不改 [N] |
-| **靈魂措辭** | 採 B → 與「系統建議，人決策／非自動駕駛」張力已知 → **另案 pending**（本輪不改靈魂 [N]；見 §2.2） |
-| **留痕** | `audits/PME-PLAN-APPROVED-20260724.md`；E12 `audits/PME-S012-STATUS-20260724.md`；E123 `audits/PME-E123-STATUS-20260724.md`／`PME-E123-CLOSED-20260724.md`；U-PME `audits/PME-ULTRACODE-20260724.md`；Efull `audits/PME-EFULL-REVIEW-20260724.md`／`PME-EFULL-APPROVED-20260724.md`；Gap `reports/augur_pme_gap_ledger_20260724.md` |
+| **解凍／Dividend 邊界** | **FZ-keep＝凍結維持**：FinMind／FRED **操作凍結**至 **constitution-to-implementation 全部階段落地＋用戶明示解凍**（拍板 ≠ 解凍）；不續 Dividend |
+| **靈魂措辭** | ✅ **已寫入**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；`audits/G-PME-SOUL-CLOSED-20260724.md`；G-PME-SOUL=none） |
+| **留痕** | `audits/PME-PLAN-APPROVED-20260724.md`；E12 `audits/PME-S012-STATUS-20260724.md`；E123 `audits/PME-E123-STATUS-20260724.md`／`PME-E123-CLOSED-20260724.md`；U-PME `audits/PME-ULTRACODE-20260724.md`；Efull `audits/PME-EFULL-REVIEW-20260724.md`／`PME-EFULL-APPROVED-20260724.md`；G-PME-SOUL `audits/G-PME-SOUL-CLOSED-20260724.md`；Gap `reports/augur_pme_gap_ledger_20260724.md` |
 
 **四碼展開（§10 原文對照）**：
 
@@ -63,7 +63,7 @@
 | **預測管線 runtime import 哲學／顧問／知識** | A.16／T.27／L7.33／`import_isolation.FORBIDDEN` |
 | **AI 生成原則／學派入庫** | #1／#16；`source_type`／`work_type` CHECK 禁 `ai_generated` |
 | **runtime 哲學加權改預測分數** | 哲學零量化證據價值；不得當特徵係數 |
-| **改 [N] 於本輪** | 靈魂措辭另案 pending；本輪決策登錄不改治權原文 |
+| **改 [N] 於本輪** | ✅ 靈魂／#20／A.53 已於 G-PME-SOUL apply 寫入（`audits/G-PME-SOUL-CLOSED-20260724.md`）；**MC P5 條文未改** |
 | **FinMind／FRED 放量** | 操作凍結至路線圖全落地＋明示解凍 |
 | **PME-AUTO-C** | 與現行治權不相容（見 §2.2） |
 | **假關 10-14／偽造 evaluated_pass** | #15；R2／R5 誠實邊界 |
@@ -229,7 +229,7 @@ flowchart LR
 | ① | **完整**（對應該產品計畫範圍） | 本檔 §5 schema＋§6 python＋§4.1 PME-AUTO-B 機械閘＋§8 A*＋文首四碼；R7 閘模板 `audits/ROADMAP-R7-PRODUCT-GATE-CHECKLIST-TEMPLATE.md` | ✅ |
 | ② | **內部一致** | 全文主路徑＝**PME-AUTO-B**（非寫死一律人准）；`PME-KILL`／`FZ-keep`／禁確立級／禁自動下單與 §1.3 硬非目標一致；上線＝機械閘全綠＋kill clear | ✅ |
 | ③ | **與現況／code 一致** | E12 骨架 `audits/PME-S012-STATUS-20260724.md`；E123 `run_id=5` succeeded、G-PROM／G-ECON 真裁決、APPLY×2→validated（`audits/PME-E123-STATUS-20260724.md`／`PME-E123-CLOSED-20260724.md`）；kill-switch 路徑已在；**不**重跑 E123 | ✅ |
-| ④ | **可實作**（含凍結／依賴誠實） | 零 FinMind／FRED 即可掛閘與本地續跑；靈魂措辭另案 pending（不擋閘掛接）；U-PME／U7 **另授權**；全量 G-PROM 綠／可交易 **非**本掛接範圍 | ✅ |
+| ④ | **可實作**（含凍結／依賴誠實） | 零 FinMind／FRED 即可掛閘與本地續跑；靈魂措辭 ✅ 已寫入（G-PME-SOUL=none）；全量 G-PROM 綠／可交易 **非**本掛接範圍 | ✅ |
 
 **四判準結論（R7 S2）**：書面四勾齊 → P-PME 進入「**可申請執行授權**」狀態（哨兵 `--check --plan` 本檔 PASS）。**閘 PASS ≠** 假稱 PME-Efull／確立級可交易／解凍 API。
 
@@ -392,7 +392,7 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 1. 自動下單／投組實盤執行  
 2. runtime 哲學加權預測  
 3. AI 生成原則入庫  
-4. 本輪改靈魂／MC／specs 原文（**靈魂措辭另案 pending**）  
+4. ~~本輪改靈魂／MC／specs 原文（靈魂措辭另案 pending）~~ → ✅ 靈魂／#20／A.53 已寫入；**MC P5 未改**（`audits/G-PME-SOUL-CLOSED-20260724.md`）  
 5. 解凍 FinMind／FRED／續 Dividend  
 6. 偽造 `evaluated_pass`  
 7. 宣稱取代 R7 全部產品計畫  
@@ -404,7 +404,7 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 > **✅ 已登錄（2026-07-24）**：`PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep` — 見文首「Steward 已拍板」。  
 > **✅ 執行已開（2026-07-24）**：Steward「**開 PME**」→ 近程 S0／S1／S2 骨架＋KILL；`audits/PME-S012-STATUS-20260724.md`。  
 > **✅ Efull（2026-07-24）**：Steward **`PME-Efull-yes`** — 近程閉環機械完備；§3 邊界不可分割；`audits/PME-EFULL-APPROVED-20260724.md`。  
-> 留痕：`audits/PME-PLAN-APPROVED-20260724.md`。**不改 [N]**；靈魂「非自動駕駛」措辭 **另案 pending**；**≠**可交易／≠ API 解凍。
+> 留痕：`audits/PME-PLAN-APPROVED-20260724.md`。✅ **靈魂措辭已寫入**（`SOUL-PME-B-yes`；`audits/G-PME-SOUL-CLOSED-20260724.md`；G-PME-SOUL=none）；**MC P5 條文未改**；**≠**可交易／≠ API 解凍。
 
 ### 10.1 計畫採納（必選）
 
@@ -415,7 +415,7 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 ### 10.2 上線自治模式（必選其一）
 
 - **〔PME-AUTO-A〕** 對照：自動候選＋**人一鍵確認** — **本輪未採**。  
-- **〔PME-AUTO-B〕** ✅ **已採納** — 有界自動上線；機械閘＝§4.1；人＝監控＋緊急停＋治權變更；靈魂／原則措辭 **另案 pending**。  
+- **〔PME-AUTO-B〕** ✅ **已採納** — 有界自動上線；機械閘＝§4.1；人＝監控＋緊急停＋治權變更；靈魂／原則措辭 ✅ **已寫入**（G-PME-SOUL=none；`audits/G-PME-SOUL-CLOSED-20260724.md`）。  
 - **〔PME-AUTO-C〕** 完整自動駕駛——**不相容，未採**。
 
 ### 10.3 緊急停
@@ -471,10 +471,10 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 - ✅ **PME 補 A7（非假綠）**（2026-07-24；`audits/PME-A7-STATUS-or-CLOSED-20260724.md`；violations=0；raw_desync=21＝gate_rejected）  
 - ✅ **PME PRODSET 真寫**（2026-07-24；`audits/PME-PRODSET-CLOSED-20260724.md`；`evolution_production_feature_set`；run5×2 active；G-PME-PRODSET=none；**≠**可交易）  
 - ✅ **PME S4 顧問單向解讀**（2026-07-24；`audits/PME-S4-CLOSED-20260724.md`；`interpretation.py`＋報告 script＋advisor 注入；G-PME-S4=none；tags=0 知情；**≠**可交易）  
-- ✅ 誠實標出與「系統建議，人決策／非自動駕駛」之張力；**靈魂措辭另案 pending**  
-- ❌ **未**多數特徵 G-PROM PASS、未改 [N]、未解凍 API、未自動下單；✅ U7 已開（R7 閘對抗）；**`PME-Efull-yes`＝機械完備 ≠ 對外「可交易完備」**  
+- ✅ **靈魂措辭已寫入**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；`audits/G-PME-SOUL-CLOSED-20260724.md`；G-PME-SOUL=none；自動下單仍禁）  
+- ❌ **未**多數特徵 G-PROM PASS、未解凍 API、未自動下單；✅ U7 已開（R7 閘對抗）；**`PME-Efull-yes`＝機械完備 ≠ 對外「可交易完備」**  
 - ✅ **`PME-Efull-yes` 已登錄**（2026-07-24；`audits/PME-EFULL-APPROVED-20260724.md`；§3 邊界不可分割）  
-- ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝本地真裁決（多數 FAIL／SKIP，非假綠）；G-PME-SOUL pending；G-PME-DEMOTE／G-R7-1 doc-only 
+- ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝本地真裁決（多數 FAIL／SKIP，非假綠）；G-PME-SOUL=none；G-PME-DEMOTE／G-R7-1 doc-only 
 
 ---
 

@@ -26,7 +26,7 @@ DISCLAIMER_LINES: tuple[str, ...] = (
     "PME S4 顧問單向解讀：已驗證原則／生產特徵登錄之**假說解讀骨架**。",
     "≠可交易、≠確立級、≠預測熱路徑權重、≠自動下單。",
     "零寫回 feature_values／訓練輸入；文獻≠真兆。",
-    "靈魂「非自動駕駛」措辭另案 pending（G-PME-SOUL）。",
+    "靈魂「非自動駕駛」＝禁改判準／禁自動下單／人得緊急停；閘內狀態晉升≠下單（G-PME-SOUL closed）。",
 )
 
 # 本模組源碼禁出現之「回流寫入」字面（selftest 靜態鎖；不掃 SELECT）
@@ -81,7 +81,7 @@ class EvolutionInterpretationSnapshot:
     apply_logs: tuple[ApplyLogEntry, ...]
     tag_count: int = 0
     kill_state: str | None = None
-    soul_wording_pending: bool = True
+    soul_wording_pending: bool = False
     note: str = ""
 
 
@@ -183,7 +183,7 @@ def snapshot_from_rows(
 ) -> EvolutionInterpretationSnapshot:
     """純函式組裝快照（供 selftest／mock；不連 DB）。"""
     soul = (
-        DEFAULT_GATE_CONFIG.get("soul_wording_pending", True)
+        DEFAULT_GATE_CONFIG.get("soul_wording_pending", False)
         if soul_wording_pending is None
         else soul_wording_pending
     )
@@ -393,7 +393,7 @@ def _selftest() -> int:
         ],
         tag_count=0,
         kill_state="clear",
-        soul_wording_pending=True,
+        soul_wording_pending=False,
     )
     md = render_interpretation_markdown(snap)
     chk("disclaimer ≠可交易", "≠可交易" in md)
@@ -401,7 +401,7 @@ def _selftest() -> int:
     chk("含 prodset feature", "inst_cumflow_position_120d" in md)
     chk("含 validated 原則", "週期相位假說" in md)
     chk("含 apply_log", "apply_log=1" in md)
-    chk("soul pending 註記", "G-PME-SOUL" in md)
+    chk("soul closed 註記", "G-PME-SOUL closed" in md)
     chk("tag 空表誠實", "空表" in md or "0" in md)
 
     block = evolution_prompt_block(md)
@@ -422,7 +422,7 @@ def _selftest() -> int:
     hits = scan_writeback_literals(body)
     chk("fetch 路徑無 writeback 字面", hits == [])
     chk("PRODSET_TABLE 常數對齊", PRODSET_TABLE == "evolution_production_feature_set")
-    chk("soul flag 預設 True", DEFAULT_GATE_CONFIG.get("soul_wording_pending") is True)
+    chk("soul flag 預設 False", DEFAULT_GATE_CONFIG.get("soul_wording_pending") is False)
 
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1

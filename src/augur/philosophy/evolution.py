@@ -93,7 +93,7 @@ DEFAULT_GATE_CONFIG: dict[str, Any] = {
             "max_dd_floor": -0.60,  # portfolio_net MaxDD 不得劣於此（更負＝FAIL）
         },
     },
-    "soul_wording_pending": True,  # [I] 靈魂措辭另案；不擅改 [N]
+    "soul_wording_pending": False,  # [I] G-PME-SOUL closed 2026-07-24；靈魂／#20／A.53 已寫入
 }
 
 EVOLUTION_DDL = [
@@ -675,7 +675,7 @@ def _selftest() -> int:
     )
     chk("map_action freeze blocked", map_action_from_evidence(coverage_class="blocked_div", g_prom_pass=True, g_econ_pass=True) == "freeze")
     chk("DEFAULT_GATE_CONFIG fz_keep", DEFAULT_GATE_CONFIG.get("fz_keep") is True)
-    chk("soul wording pending flag", DEFAULT_GATE_CONFIG.get("soul_wording_pending") is True)
+    chk("soul wording pending flag", DEFAULT_GATE_CONFIG.get("soul_wording_pending") is False)
     chk("G-PROM thresholds pinned", DEFAULT_GATE_CONFIG["gates"]["G-PROM"]["min_abs_hac_t"] == 2.0)
 
     prom_pass = evaluate_g_prom_from_evidence(

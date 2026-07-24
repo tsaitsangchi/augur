@@ -185,9 +185,9 @@
 3. 階段邊界跑 ultracode 或審議引擎（機械可驗優先本地）。  
 4. major／治權判準變更 → Steward；不假關 10-14 項。
 
-**獨立計畫已拍板＋近程執行已開（R7 候選，不取代本節產品全貌）**：哲學↔市場進化閉環＝`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`（✅ `PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`；「**開 PME**」→ E12／E123；✅ **U-PME DONE**＝`audits/PME-ULTRACODE-20260724.md`；✅ **PRODSET 真寫**＝`audits/PME-PRODSET-CLOSED-20260724.md`；✅ **S4 CLOSED**＝`audits/PME-S4-CLOSED-20260724.md`（G-PME-S4=none；≠可交易）；✅ **`PME-Efull-yes`**＝`audits/PME-EFULL-APPROVED-20260724.md`（近程閉環**機械完備**；§3 邊界不可分割；**≠**可交易／≠確立級／≠API 解凍）；Gap `reports/augur_pme_gap_ledger_20260724.md`；靈魂措辭另案 pending）。與 R7 上線政策引用交叉：R7 已綁 `PME-AUTO-B`；**R7 S2 已首掛 P-PME**。
+**獨立計畫已拍板＋近程執行已開（R7 候選，不取代本節產品全貌）**：哲學↔市場進化閉環＝`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`（✅ `PME-P-yes`＋`PME-AUTO-B`＋`PME-KILL`＋`FZ-keep`；「**開 PME**」→ E12／E123；✅ **U-PME DONE**＝`audits/PME-ULTRACODE-20260724.md`；✅ **PRODSET 真寫**＝`audits/PME-PRODSET-CLOSED-20260724.md`；✅ **S4 CLOSED**＝`audits/PME-S4-CLOSED-20260724.md`（G-PME-S4=none；≠可交易）；✅ **`PME-Efull-yes`**＝`audits/PME-EFULL-APPROVED-20260724.md`（近程閉環**機械完備**；§3 邊界不可分割；**≠**可交易／≠確立級／≠API 解凍）；✅ **G-PME-SOUL=none**＝`audits/G-PME-SOUL-CLOSED-20260724.md`（靈魂措辭已寫入）；Gap `reports/augur_pme_gap_ledger_20260724.md`）。與 R7 上線政策引用交叉：R7 已綁 `PME-AUTO-B`；**R7 S2 已首掛 P-PME**。
 
-**狀態**：✅ **R7 S1＋S2＋U7 DONE**（2026-07-24）。S1＝「開 R7，只跑 S1」；S2＝「開 R7 S2」→ 首掛 P-PME（閘紀錄 `audits/ROADMAP-R7-GATE-PME-20260724.md`）；U7＝「開 U7」→ `audits/ROADMAP-U7-R7-ULTRACODE-20260724.md`（A9 PASS；G-R7-1 doc-only；幽靈詞已補禁）。四碼 `R7-P-yes`＋`R7-G12`＋`FZ-keep`＋`PME-AUTO-B`；哨兵＝`scripts/verify_roadmap_r7_gate.py`（結構綠≠語義完備）。上線政策**引用 PME-AUTO-B**。**≠** 產品全量出貨；**≠** API 解凍；**≠** 可答完備／確立級可交易；PME ✅ **`PME-Efull-yes`**（機械完備）仍**≠**「可交易完備／預測熱路徑已吃晉升／靈魂 [N] 已修」。
+**狀態**：✅ **R7 S1＋S2＋U7 DONE**（2026-07-24）。S1＝「開 R7，只跑 S1」；S2＝「開 R7 S2」→ 首掛 P-PME（閘紀錄 `audits/ROADMAP-R7-GATE-PME-20260724.md`）；U7＝「開 U7」→ `audits/ROADMAP-U7-R7-ULTRACODE-20260724.md`（A9 PASS；G-R7-1 doc-only；幽靈詞已補禁）。四碼 `R7-P-yes`＋`R7-G12`＋`FZ-keep`＋`PME-AUTO-B`；哨兵＝`scripts/verify_roadmap_r7_gate.py`（結構綠≠語義完備）。上線政策**引用 PME-AUTO-B**。**≠** 產品全量出貨；**≠** API 解凍；**≠** 可答完備／確立級可交易；PME ✅ **`PME-Efull-yes`**（機械完備）仍**≠**「可交易完備／預測熱路徑已吃晉升」；靈魂措辭 ✅ **已寫入**（G-PME-SOUL=none）。
 
 **Ultracode 插入點 U7**：各產品計畫拍板前／閘框架宣稱前——攻擊閘幽靈、範圍膨脹、上線政策與 PME 衝突、假關 10-14、凍結破口（見 R7 計畫 §5 U7；✅ **DONE** 2026-07-24）。
 
@@ -348,18 +348,18 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **R6 計畫已拍板**（2026-07-24；`R6-P-yes`＋`R6-E12`＋`HAR-local`＋`FZ-keep`；`audits/ROADMAP-R6-PLAN-APPROVED-20260724.md`）  
 - ✅ **R6 S1＋S2 閉**（2026-07-24；「開 R6」；`audits/ROADMAP-R6-S12-CLOSED-20260724.md`；哨兵 `--with-smoke` PASS）  
 - ✅ **U6 DONE**（2026-07-24；「開 U6」；`audits/ROADMAP-U6-R6-ULTRACODE-20260724.md`；G-HAR-1 partial）  
-- ✅ **哲學↔市場進化閉環：計畫拍板＋E12／E123＋U-PME＋PRODSET＋S4 CLOSED＋`PME-Efull-yes`**（2026-07-24；四碼；`audits/PME-S012-STATUS`／`PME-E123-STATUS`／`PME-ULTRACODE`／`PME-PRODSET-CLOSED`／`PME-S4-CLOSED-20260724.md`／`PME-EFULL-APPROVED-20260724.md`；Gap `reports/augur_pme_gap_ledger_20260724.md`；靈魂措辭 pending；G-PME-S4=none；機械完備≠可交易）  
-- ✅ **`PME-Efull-yes` 已登錄**（2026-07-24；呈核 `PME-EFULL-REVIEW`＋登錄 `PME-EFULL-APPROVED`；§3 邊界不可分割：G-PME-SOUL pending；G-PROM／G-ECON partial；FZ-keep／Dividend PAUSED；evaluated_pass=0；G-R7-1／G-PME-DEMOTE doc-only）  
+- ✅ **哲學↔市場進化閉環：計畫拍板＋E12／E123＋U-PME＋PRODSET＋S4 CLOSED＋`PME-Efull-yes`＋G-PME-SOUL CLOSED**（2026-07-24；四碼；`audits/PME-S012-STATUS`／`PME-E123-STATUS`／`PME-ULTRACODE`／`PME-PRODSET-CLOSED`／`PME-S4-CLOSED-20260724.md`／`PME-EFULL-APPROVED-20260724.md`／`G-PME-SOUL-CLOSED-20260724.md`；Gap `reports/augur_pme_gap_ledger_20260724.md`；G-PME-SOUL=none；G-PME-S4=none；機械完備≠可交易）  
+- ✅ **`PME-Efull-yes` 已登錄**（2026-07-24；呈核 `PME-EFULL-REVIEW`＋登錄 `PME-EFULL-APPROVED`；§3 邊界：G-PME-SOUL=none；G-PROM／G-ECON partial；FZ-keep／Dividend PAUSED；evaluated_pass=0；G-R7-1／G-PME-DEMOTE doc-only）  
 - ✅ **R7 計畫已拍板**（2026-07-24；`R7-P-yes`＋`R7-G12`＋`FZ-keep`＋`PME-AUTO-B`；`reports/augur_roadmap_r7_plan_20260724.md`；`audits/ROADMAP-R7-PLAN-APPROVED-20260724.md`）  
 - ✅ **R7 S1 DONE**（2026-07-24；「開 R7，只跑 S1」；哨兵＋模板；`audits/ROADMAP-R7-S1-CLOSED-20260724.md`）  
 - ✅ **R7 S2 DONE**（2026-07-24；「開 R7 S2」；首掛 P-PME；G-P4＋閘 PASS；`audits/ROADMAP-R7-S2-CLOSED-20260724.md`）  
 - ✅ **U7 DONE**（2026-07-24；「開 U7」；`audits/ROADMAP-U7-R7-ULTRACODE-20260724.md`；G-R7-1 doc-only；幽靈詞已補禁）  
-- ❌ 未改任何 [N]  
-- ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 HAR-ext／S3a；**未**閉合 universe→econ 全量產品半系統；**`PME-Efull-yes`＝機械完備仍≠對外可交易完備／預測熱路徑已吃晉升**  
+- ✅ **G-PME-SOUL CLOSED**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；靈魂／#20／A.53；MC P5 條文未改；`audits/G-PME-SOUL-CLOSED-20260724.md`）  
+- ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 HAR-ext／S3a；**未**閉合 universe→econ 全量產品半系統；**`PME-Efull-yes`＝機械完備仍≠對外可交易完備／預測熱路徑已吃晉升**；**MC [N] 本輪未改**  
 
 - ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5 時已重跑親驗**，不得把舊 wiring 表當永真  
 
-**建議下一句（對齊近程優先 2026-07-24）**：「**靈魂措辭另案（G-PME-SOUL）**」；資料地基（Dividend／catalog 表級／attestation）**等解凍條件**再續——**仍禁**他域近程開工、**仍禁** API 未達條件自解凍。
+**建議下一句（對齊近程優先 2026-07-24）**：「**資料地基（Dividend／catalog 表級／attestation）等解凍條件再續**」——G-PME-SOUL 已閉；**仍禁**他域近程開工、**仍禁** API 未達條件自解凍。
 
 ---
 
