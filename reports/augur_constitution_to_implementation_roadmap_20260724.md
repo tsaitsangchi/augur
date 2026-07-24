@@ -70,7 +70,7 @@
 | **R1** | 環境可運作 | 機器／DB／服務可跑，零幻像接線 | 原則 #2／#6／#17；CLAUDE #23／#31；L7 | `resume_project.sh`；`import_database.sh`；`sync_from_github.sh`；import smoke | ✅ **DONE**（2026-07-24；本機 `db.ping()` True／pytest 15；見 §3.2） |
 | **R2** | 治權衛生／殘留誠實 | 入口一致；10-14 checklist 明示；不合規假關 | 案 D；RULING-039；WM.44／合規聲明 | constitution-mcp；`constitution_lint`；GOVERNANCE-MAP | ✅ **DONE**（2026-07-24；見 §3.3／`audits/ROADMAP-R2-1014-CHECKLIST-STATUS-20260724.md`） |
 | **R3** | 規格→實作 Gap 帳本 | 建立「義務→落點→證據」對帳表 | MC §8.2／§8.3；L4–L7 DEFER／TR；construction §9／§11 | `recall`／`local_research`（[I]）；`deliberate.py`；既有 audits | ✅ **DONE**（2026-07-24；見 §3.4／`reports/augur_roadmap_r3_gap_ledger_20260724.md`） |
-| **R4** | 資料地基（12-PHASE 對齊） | raw／對帳／panel 可定案或 live 增量誠實 | 原則 #1／#7／#18；大憲章 PHASE 0–8；arena G1-PIN | `full_market_sync.py`；`daily_maintenance.py`；`audit_selfheal.sh`；reconcile | attestation 綠哨兵句；G1 釘点不滾動追；無 hand-patch |
+| **R4** | 資料地基（12-PHASE 對齊） | raw／對帳／panel 可定案或 live 增量誠實 | 原則 #1／#7／#18；大憲章 PHASE 0–8；arena G1-PIN | `full_market_sync.py`；`daily_maintenance.py`；`audit_selfheal.sh`；reconcile | ✅ **DONE**（2026-07-24；親驗＋db_only＋工單；表級 catalog／Dividend／當日 e2e 仍 partial；見 §3.5／`audits/ROADMAP-R4-CLOSED-20260724.md`） |
 | **R5** | 預測半系統落地 | universe→model→econ／arena 可驗 | 原則 #8／#11／#12–15；輸出契約；arena／direction_gate | `build_core_universe.py`；提拔／econ scripts；arena pipeline；DB triggers | 機械閘仍 armed；確立級數字唯經門二；隔離 AST 0 violation |
 | **R6** | 素養／顧問半系統落地 | acquire→promote→全文閘→embed→advisor | 憲章 philosophy；KS；原則 #1；L6 | knowledge 引擎腳本；`export_qdrant_index.py`；advisor／chat／admin 服務 | 終態＝license 允許之可答態；預測零 import 素養；owned_local 閘可重建 |
 | **R7** | 產品計畫閘＋持續 ultracode | 活躍產品計畫拍板後實作；邊界對抗 | plan-first；ULTRACODE-SCHEDULE；#28 | 既有 product plans；`ultracode-layer`；審議引擎 | 每產品計畫附 schema＋程式規畫；階段邊界 ultracode 呈核；Steward 處置 major |
@@ -151,6 +151,8 @@
 **Live 現況誠實句**（原則精華）：歷史完整性 as-of `2026-05-31` 定案性保留；解凍後 live 增量常態；arena 資料地基 **G1-PIN `2026-06-30`**；確立級數字唯 `direction_gate`（≥60 clusters）。
 
 **驗收**：attestation 以現行哨兵句為準；禁 hand-patch（#12／原則 #7 操作閉合受 AUD-02 閘）。
+
+**狀態**：✅ **DONE**（2026-07-24）。Steward「**開 R4**」＝親驗＋安全最小動作＋帳本／工單更新（≠全量放量修復）。證據：`reports/augur_roadmap_r4_data_foundation_20260724.md` · `audits/ROADMAP-R4-CLOSED-20260724.md`。殘留：**G-CAT-1** 表級 STALE、**G-DIV-1** 塌列未修、**G-ATTEST** 當日 e2e SKIP（史料 id=4 PASS）。
 
 **Ultracode 插入點 U4**：對「完整／綠／可開賽」宣稱做三鏡反駁；撞 FinMind 限速則停（#24／#25），不重試風暴。
 
@@ -325,9 +327,11 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ 產出本計劃報告  
 - ✅ **R0 閉合**（2026-07-24；§7.1 拍板〔A〕〔U-defer〕〔S1〕；audit 留痕）  
 - ✅ **R2 閉合**（2026-07-24；10-14 checklist 誠實狀態表；日曆項仍 open）  
+- ✅ **R3／U3 閉合**（2026-07-24；Gap 帳本＋對抗補正）  
+- ✅ **R4 閉合**（2026-07-24；資料地基親驗＋db_only＋Dividend 工單；殘留 partial 見帳本）  
 - ❌ 未改任何 [N]  
-- ❌ 未實作 code／未開 ultracode 執行（U0 依〔U-defer〕跳過）  
-- ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3 時須重跑親驗**，不得把舊 wiring 表當永真  
+- ❌ 未實作 code／未開 ultracode 執行（U0 依〔U-defer〕跳過；U3 另案已 DONE；U4 未開）  
+- ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4 時已重跑親驗**，不得把舊 wiring 表當永真  
 
 ---
 
