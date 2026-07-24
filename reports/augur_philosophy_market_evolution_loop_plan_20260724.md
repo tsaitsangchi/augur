@@ -13,11 +13,11 @@
 |---|---|
 | **日期** | 2026-07-24 |
 | **四碼** | `PME-P-yes` ＋ `PME-AUTO-B` ＋ `PME-KILL` ＋ `FZ-keep` |
-| **效力** | **計畫採納**＋**執行已開**（「開 PME」；近程＝S0／S1／零 API S2 骨架＋KILL＋AUTO-B 路徑） |
-| **範圍** | 上線自治＝**B**；凍結＝**FZ-keep**；近程對齊 **PME-E12 精神**＋KILL（G-PROM／G-ECON 本輪誠實 SKIP） |
+| **效力** | **計畫採納**＋**執行已開**（「開 PME」→E12 骨架；**「開 PME-E123」**＋本地 G-PROM／G-ECON 2026-07-24） |
+| **範圍** | 上線自治＝**B**；凍結＝**FZ-keep**；E123＝S2 本地真閘＋S3 APPLY（見 `audits/PME-E123-STATUS-20260724.md`） |
 | **解凍／Dividend 邊界** | **FZ-keep＝凍結維持**：FinMind／FRED **操作凍結**至 **constitution-to-implementation 全部階段落地＋用戶明示解凍**（拍板 ≠ 解凍）；不續 Dividend；不改 [N] |
 | **靈魂措辭** | 採 B → 與「系統建議，人決策／非自動駕駛」張力已知 → **另案 pending**（本輪不改靈魂 [N]；見 §2.2） |
-| **留痕** | `audits/PME-PLAN-APPROVED-20260724.md`；執行 `audits/PME-S012-STATUS-20260724.md`；Gap `reports/augur_pme_gap_ledger_20260724.md` |
+| **留痕** | `audits/PME-PLAN-APPROVED-20260724.md`；E12 `audits/PME-S012-STATUS-20260724.md`；E123 `audits/PME-E123-STATUS-20260724.md`／`PME-E123-CLOSED-20260724.md`；Gap `reports/augur_pme_gap_ledger_20260724.md` |
 
 **四碼展開（§10 原文對照）**：
 
@@ -408,7 +408,7 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 
 - **〔PME-E0〕** 只做 S0 盤點留痕。  
 - **〔PME-E12〕** S1＋S2（覆蓋＋自動重驗；零市場 API）— **建議近程**；本輪「開 PME」＝**E12 精神**（S2 全量重驗閘＝骨架 SKIP）。  
-- **〔PME-E123〕** 至 S3 自動 APPLY＋kill-switch — KILL／APPLY **路徑已落地**；真綠 APPLY 待 G-PROM／G-ECON。  
+- **〔PME-E123〕** ✅ **已開**（2026-07-24）— 本地 G-PROM／G-ECON＋S3 真綠 APPLY×2；見 `audits/PME-E123-STATUS-20260724.md`。  
 - **〔PME-Efull〕** S0–S3＋S4＋U-PME。
 
 ### 10.5 凍結
@@ -445,9 +445,10 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 - ✅ 產出 plan-first 計畫書（含 AUTO-B 主路徑、A／C 對照、schema＋python、驗收、拍板句）  
 - ✅ **Steward 已拍板**（2026-07-24；四碼；`audits/PME-PLAN-APPROVED-20260724.md`）  
 - ✅ **開 PME 近程落地**（2026-07-24；`audits/PME-S012-STATUS-20260724.md`；DDL／KILL／S0–S1／S2 骨架／APPLY 路徑）  
+- ✅ **開 PME-E123**（2026-07-24；本地 G-PROM／G-ECON；`run_id=5`；真綠 APPLY×2→validated；`audits/PME-E123-STATUS-20260724.md`）  
 - ✅ 誠實標出與「系統建議，人決策／非自動駕駛」之張力；**靈魂措辭另案 pending**  
-- ❌ **未**全量 S2 重驗 PASS、**未**真綠自動上線翻 status、未改 [N]、未解凍 API、未自動下單  
-- ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝SKIP  
+- ❌ **未**多數特徵 G-PROM PASS、**未** A7 全閉、未改 [N]、未解凍 API、未自動下單、未開 U-PME  
+- ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝本地真裁決（多數 FAIL／SKIP，非假綠） 
 
 ---
 

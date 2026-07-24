@@ -26,8 +26,13 @@
 | **PME-KILL** | kill-switch 為 B 硬要件 |
 | **FZ-keep** | 不解凍 FinMind／FRED；Dividend 維持 PAUSED |
 
+## 執行續（2026-07-24）
+
+* ✅ Steward「**開 PME-E123**」＋「**PME 跑本地 G-PROM＋G-ECON（零 API）**」→ 見 `audits/PME-E123-STATUS-20260724.md`
+* ✅ `run_id=5` local_gates；真綠 APPLY×2；principle validated=2
+* ⚠ A7 仍 partial；A11／U-PME／靈魂措辭 pending；FZ-keep 維持
+
 ## 下一步
 
-* 本地零 API 補 G-PROM／G-ECON 真證據 → 再 APPLY（修 status desync）  
-* 或 Steward「**開 PME-E123**」／「PME 跑本地經濟閘」  
-* 仍禁 FinMind／FRED、仍禁自動下單、仍禁假確立級；靈魂措辭另案另開；**不**等於「開 R7 S2」
+* 「**開 U-PME**」或「**開 R7 S2**」或「**PME 補 A7 desync 規則（非假綠）**」  
+* 仍禁 FinMind／FRED、仍禁自動下單、仍禁假確立級；靈魂措辭另案另開

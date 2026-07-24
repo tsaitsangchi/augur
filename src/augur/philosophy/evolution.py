@@ -3,7 +3,8 @@
 🎯 這支在做什麼（白話）：把「假說→市場重驗→有界自動晉升」的機械閘與緊急停做成
    可回歸的 library（零 IO `--selftest`）。不進預測 runtime；不生成原則；不含下單。
    編排腳本（coverage／run／apply／kill-switch）呼叫本模組；G-PROM／G-ECON 證據由
-   呼叫端餵入——凍結期間可誠實 SKIP（≠ PASS），禁 FinMind／FRED。
+   呼叫端餵入——skeleton 可誠實 SKIP；`--local-gates` 餵本地重算證據後裁決 PASS／FAIL／SKIP
+   （SKIP ≠ PASS），禁 FinMind／FRED、禁為跑閘 sync。
 
 守 #1 #14 #15 #18；計畫 SSOT＝reports/augur_philosophy_market_evolution_loop_plan_20260724.md。
 
@@ -55,13 +56,26 @@ NOEXEC_FORBIDDEN_LITERALS = tuple(
 )
 
 # 預設閘閾值（釘入 evolution_run.config_json；同 run 禁事後改寫）
+# G-PROM 三關＝方法論 §四：(a) as-of IC (b) |HAC-t|≥2 (c) ≥3 seed 多因子增量 Δ>0
+# G-ECON＝#14：淨 Sharpe 優於基準 ∧ MaxDD ≥ floor（floor 為負值下界）
 DEFAULT_GATE_CONFIG: dict[str, Any] = {
     "policy": "PME-AUTO-B",
     "kill_required": True,
     "fz_keep": True,
     "gates": {
-        "G-PROM": {"require_hac_t": True, "min_seeds": 3},
-        "G-ECON": {"require_sharpe_vs_benchmark": True},
+        "G-PROM": {
+            "require_hac_t": True,
+            "min_abs_hac_t": 2.0,
+            "min_seeds": 3,
+            "min_panels": 10,
+            "min_delta_ic": 0.0,  # 多 seed 平均 Δ IC 須 > 此值（穩定正增量）
+        },
+        "G-ECON": {
+            "require_sharpe_vs_benchmark": True,
+            "cost": 0.00585,
+            "top_frac": 0.1,
+            "max_dd_floor": -0.60,  # portfolio_net MaxDD 不得劣於此（更負＝FAIL）
+        },
     },
     "soul_wording_pending": True,  # [I] 靈魂措辭另案；不擅改 [N]
 }
@@ -275,6 +289,145 @@ def map_action_from_evidence(
     return "demote"
 
 
+def evaluate_g_prom_from_evidence(
+    evidence: Mapping[str, Any],
+    cfg: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """由本地重算證據裁決 G-PROM（純函式；IO 在呼叫端）。
+
+    evidence 鍵（缺則該關 SKIP／FAIL）：
+      n_panels, mean_ic, hac_t, seed_deltas (list[float]|None),
+      skipped_reason (str|None) — 整閘無法算時誠實 SKIP
+    """
+    gcfg = dict((cfg or DEFAULT_GATE_CONFIG).get("gates", {}).get("G-PROM", {}))
+    min_abs = float(gcfg.get("min_abs_hac_t", 2.0))
+    min_panels = int(gcfg.get("min_panels", 10))
+    min_seeds = int(gcfg.get("min_seeds", 3))
+    min_delta = float(gcfg.get("min_delta_ic", 0.0))
+
+    skip = evidence.get("skipped_reason")
+    if skip:
+        return {
+            "verdict": "SKIP",
+            "reason": str(skip),
+            "evidence": dict(evidence),
+            "thresholds": gcfg,
+        }
+
+    n_panels = evidence.get("n_panels")
+    mean_ic = evidence.get("mean_ic")
+    hac_t = evidence.get("hac_t")
+    seed_deltas = evidence.get("seed_deltas")
+
+    checks: dict[str, Any] = {
+        "asof_ic": False,
+        "hac_t": False,
+        "multi_seed_delta": False,
+    }
+    notes: list[str] = []
+
+    if n_panels is None or int(n_panels) < min_panels or mean_ic is None:
+        notes.append(f"asof_ic insufficient (n_panels={n_panels}, mean_ic={mean_ic})")
+    else:
+        checks["asof_ic"] = True
+
+    if hac_t is None:
+        notes.append("hac_t missing")
+    elif abs(float(hac_t)) < min_abs:
+        notes.append(f"|hac_t|={abs(float(hac_t)):.3f} < {min_abs}")
+    else:
+        checks["hac_t"] = True
+
+    if seed_deltas is None:
+        notes.append("multi_seed_delta not computed")
+        return {
+            "verdict": "SKIP",
+            "reason": "G-PROM triad partial: multi-seed not run/unavailable",
+            "checks": checks,
+            "notes": notes,
+            "evidence": dict(evidence),
+            "thresholds": gcfg,
+        }
+    deltas = [float(x) for x in seed_deltas if x is not None]
+    if len(deltas) < min_seeds:
+        notes.append(f"seed_deltas n={len(deltas)} < min_seeds={min_seeds}")
+        return {
+            "verdict": "SKIP",
+            "reason": "G-PROM triad partial: insufficient seeds",
+            "checks": checks,
+            "notes": notes,
+            "evidence": dict(evidence),
+            "thresholds": gcfg,
+        }
+    mean_delta = sum(deltas) / len(deltas)
+    if mean_delta > min_delta and all(d > min_delta for d in deltas):
+        checks["multi_seed_delta"] = True
+    else:
+        notes.append(f"seed Δ mean={mean_delta:+.4f} not stable > {min_delta}")
+
+    all_ok = all(checks.values())
+    return {
+        "verdict": "PASS" if all_ok else "FAIL",
+        "reason": "triad ok" if all_ok else "; ".join(notes) or "triad fail",
+        "checks": checks,
+        "notes": notes,
+        "mean_delta_ic": mean_delta,
+        "evidence": dict(evidence),
+        "thresholds": gcfg,
+    }
+
+
+def evaluate_g_econ_from_evidence(
+    evidence: Mapping[str, Any],
+    cfg: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """由本地 #14 回測證據裁決 G-ECON（純函式）。
+
+    evidence 鍵：port_sharpe, bench_sharpe, max_dd, n_periods, skipped_reason
+    """
+    gcfg = dict((cfg or DEFAULT_GATE_CONFIG).get("gates", {}).get("G-ECON", {}))
+    dd_floor = float(gcfg.get("max_dd_floor", -0.60))
+
+    skip = evidence.get("skipped_reason")
+    if skip:
+        return {
+            "verdict": "SKIP",
+            "reason": str(skip),
+            "evidence": dict(evidence),
+            "thresholds": gcfg,
+        }
+
+    port_s = evidence.get("port_sharpe")
+    bench_s = evidence.get("bench_sharpe")
+    max_dd = evidence.get("max_dd")
+    n_periods = evidence.get("n_periods")
+
+    if port_s is None or bench_s is None or n_periods is None or int(n_periods) < 3:
+        return {
+            "verdict": "SKIP",
+            "reason": "econ backtest insufficient (need sharpes + n_periods≥3)",
+            "evidence": dict(evidence),
+            "thresholds": gcfg,
+        }
+
+    beat = float(port_s) > float(bench_s)
+    dd_ok = max_dd is not None and float(max_dd) >= dd_floor
+    ok = beat and dd_ok
+    reason_parts = []
+    if not beat:
+        reason_parts.append(f"port_sharpe={float(port_s):+.3f} ≤ bench={float(bench_s):+.3f}")
+    if not dd_ok:
+        reason_parts.append(f"max_dd={max_dd} < floor={dd_floor}")
+    return {
+        "verdict": "PASS" if ok else "FAIL",
+        "reason": "econ ok" if ok else "; ".join(reason_parts),
+        "beat_benchmark": beat,
+        "dd_ok": dd_ok,
+        "evidence": dict(evidence),
+        "thresholds": gcfg,
+    }
+
+
 def status_after_apply(action: str, before: str | None) -> str:
     """philosophy_principle.status 轉移（B 引擎寫入）。"""
     if action == "promote":
@@ -335,6 +488,28 @@ def _selftest() -> int:
     chk("map_action freeze blocked", map_action_from_evidence(coverage_class="blocked_div", g_prom_pass=True, g_econ_pass=True) == "freeze")
     chk("DEFAULT_GATE_CONFIG fz_keep", DEFAULT_GATE_CONFIG.get("fz_keep") is True)
     chk("soul wording pending flag", DEFAULT_GATE_CONFIG.get("soul_wording_pending") is True)
+    chk("G-PROM thresholds pinned", DEFAULT_GATE_CONFIG["gates"]["G-PROM"]["min_abs_hac_t"] == 2.0)
+
+    prom_pass = evaluate_g_prom_from_evidence(
+        {"n_panels": 20, "mean_ic": 0.05, "hac_t": 2.5, "seed_deltas": [0.01, 0.02, 0.015]}
+    )
+    chk("G-PROM PASS triad", prom_pass["verdict"] == "PASS")
+    prom_fail = evaluate_g_prom_from_evidence(
+        {"n_panels": 20, "mean_ic": 0.05, "hac_t": 1.2, "seed_deltas": [0.01, 0.02, 0.015]}
+    )
+    chk("G-PROM FAIL low hac", prom_fail["verdict"] == "FAIL")
+    prom_skip = evaluate_g_prom_from_evidence(
+        {"n_panels": 20, "mean_ic": 0.05, "hac_t": 2.5, "seed_deltas": None}
+    )
+    chk("G-PROM SKIP no seeds", prom_skip["verdict"] == "SKIP")
+    econ_pass = evaluate_g_econ_from_evidence(
+        {"port_sharpe": 1.2, "bench_sharpe": 0.9, "max_dd": -0.2, "n_periods": 10}
+    )
+    chk("G-ECON PASS", econ_pass["verdict"] == "PASS")
+    econ_fail = evaluate_g_econ_from_evidence(
+        {"port_sharpe": 0.5, "bench_sharpe": 0.9, "max_dd": -0.2, "n_periods": 10}
+    )
+    chk("G-ECON FAIL vs bench", econ_fail["verdict"] == "FAIL")
 
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
@@ -347,5 +522,6 @@ if __name__ == "__main__":
         raise SystemExit(_selftest())
     print((__doc__ or __name__).split("🎯")[0].strip())
     print("公開入口: classify_coverage / build_gate_json / all_gates_green / may_apply /")
-    print("          decide_queue_status / normalize_kill_state / scan_noexec_text / attest_complete")
+    print("          decide_queue_status / normalize_kill_state / scan_noexec_text / attest_complete /")
+    print("          evaluate_g_prom_from_evidence / evaluate_g_econ_from_evidence")
     print("(自測: python -m augur.philosophy.evolution --selftest；免 DB 免 API)")
