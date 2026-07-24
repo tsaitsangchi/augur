@@ -69,7 +69,7 @@
 | **R0** | 認知對齊 | 確認採「對齊落地」；讀序＋現況 STATE 親驗 | GOVERNANCE-MAP；HANDOFF §4；MC §0.5／§0.6 | `read_handoff.py`；constitution-mcp `layer_status`；`python3 -m tools.constitution_lint … report` | ✅ **DONE**（2026-07-24；見 §3.1／§7.1／`audits/ROADMAP-R0-CLOSED-20260724.md`） |
 | **R1** | 環境可運作 | 機器／DB／服務可跑，零幻像接線 | 原則 #2／#6／#17；CLAUDE #23／#31；L7 | `resume_project.sh`；`import_database.sh`；`sync_from_github.sh`；import smoke | ✅ **DONE**（2026-07-24；本機 `db.ping()` True／pytest 15；見 §3.2） |
 | **R2** | 治權衛生／殘留誠實 | 入口一致；10-14 checklist 明示；不合規假關 | 案 D；RULING-039；WM.44／合規聲明 | constitution-mcp；`constitution_lint`；GOVERNANCE-MAP | ✅ **DONE**（2026-07-24；見 §3.3／`audits/ROADMAP-R2-1014-CHECKLIST-STATUS-20260724.md`） |
-| **R3** | 規格→實作 Gap 帳本 | 建立「義務→落點→證據」對帳表 | MC §8.2／§8.3；L4–L7 DEFER／TR；construction §9／§11 | `recall`／`local_research`（[I]）；`deliberate.py`；既有 audits | Gap 帳本入 `reports/`；每列有 path 或「誠實未落」；major gap 另案計畫 |
+| **R3** | 規格→實作 Gap 帳本 | 建立「義務→落點→證據」對帳表 | MC §8.2／§8.3；L4–L7 DEFER／TR；construction §9／§11 | `recall`／`local_research`（[I]）；`deliberate.py`；既有 audits | ✅ **DONE**（2026-07-24；見 §3.4／`reports/augur_roadmap_r3_gap_ledger_20260724.md`） |
 | **R4** | 資料地基（12-PHASE 對齊） | raw／對帳／panel 可定案或 live 增量誠實 | 原則 #1／#7／#18；大憲章 PHASE 0–8；arena G1-PIN | `full_market_sync.py`；`daily_maintenance.py`；`audit_selfheal.sh`；reconcile | attestation 綠哨兵句；G1 釘点不滾動追；無 hand-patch |
 | **R5** | 預測半系統落地 | universe→model→econ／arena 可驗 | 原則 #8／#11／#12–15；輸出契約；arena／direction_gate | `build_core_universe.py`；提拔／econ scripts；arena pipeline；DB triggers | 機械閘仍 armed；確立級數字唯經門二；隔離 AST 0 violation |
 | **R6** | 素養／顧問半系統落地 | acquire→promote→全文閘→embed→advisor | 憲章 philosophy；KS；原則 #1；L6 | knowledge 引擎腳本；`export_qdrant_index.py`；advisor／chat／admin 服務 | 終態＝license 允許之可答態；預測零 import 素養；owned_local 閘可重建 |
@@ -130,6 +130,8 @@
 種子來源：construction v4 §9 wiring＋§11 債；AUD 補正；L7 residual；knowledge DEFER（KDO.*）等。
 
 **驗收**：帳本覆蓋「承重義務」集合（至少：三敵人機械閘、輸出契約、隔離、attestation、owner／app、全文三軌）；每一「已落地」宣稱有親驗證據。
+
+**狀態**：✅ **DONE**（2026-07-24）。Steward「**開 R3**」＝交付 Gap 帳本；承重列齊；G-ATT-1／G-ISO-1 當日親驗為 `none`；predict runtime／L7.16 全矩陣／owned_local 遷移等為 **partial／conflict**（不假關）。帳本：`reports/augur_roadmap_r3_gap_ledger_20260724.md`。**U3 未跑**（〔U-defer〕＝帳本後另開）。
 
 **Ultracode 插入點 U3（高槓桿）**：對 Gap 帳本做對抗——專打幽靈落點與不實「缺 0 條」；方法同 `ULTRACODE-SCHEDULE.md` 共用鐵律。major → 另案 RULING／實作計畫，不在帳本內偷改 [N]。
 
