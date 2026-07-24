@@ -2,7 +2,7 @@
 
 * **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；領域大憲章第六部計畫完整性 v1.39.0）— **不創設 [N] 義務**；**計畫已拍板；執行已開近程**（Steward「**開 PME**」2026-07-24）
 * **授權觸發**：Steward「開哲學↔市場進化閉環計畫」＝只寫本檔（✅）；「**開 PME**」＝實作（✅ 近程已開；見 `audits/PME-S012-STATUS-20260724.md`）
-* **路線圖掛接**：**R7 候選／獨立產品計畫**（見 `reports/augur_constitution_to_implementation_roadmap_20260724.md` §3.8）— **不取代** R7 產品全貌；不併吞 R5／R6 已閉義務；**R7 S2 首掛 P-PME**；✅ **U-PME DONE**（`audits/PME-ULTRACODE-20260724.md`）— **≠** 開 U7／PME-Efull
+* **路線圖掛接**：**R7 候選／獨立產品計畫**（見 `reports/augur_constitution_to_implementation_roadmap_20260724.md` §3.8）— **不取代** R7 產品全貌；不併吞 R5／R6 已閉義務；**R7 S2 首掛 P-PME**；✅ **U-PME DONE**（`audits/PME-ULTRACODE-20260724.md`）；⚠ **PME-Efull 呈核已出／待拍板**（`audits/PME-EFULL-REVIEW-20260724.md`）— **≠** 已採納 Efull／≠ 可交易
 * **對齊先例**：理論框架＝`reports/augur_investment_philosophy_framework_plan_20260630.md`；漏斗／#14＝`reports/augur_feature_discovery_methodology_20260626.md` §四；計畫範式＝`reports/augur_roadmap_r5_plan_20260724.md`／`r6_plan`
 * **前置／邊界**：近程 R5／R6＋U5／U6 DONE；FinMind／FRED **操作凍結**仍有效；G-DIV-1 **PAUSED**；`direction_gate.evaluated_pass`＝**0** → **禁確立級／可交易宣稱**
 * **主路徑（已採納）**：**PME-AUTO-B**＝有界 AI 自主上線＋緊急停機（`PME-KILL`）
@@ -427,7 +427,7 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 - **〔PME-E12〕** S1＋S2（覆蓋＋自動重驗；零市場 API）— **建議近程**；本輪「開 PME」＝**E12 精神**（S2 全量重驗閘＝骨架 SKIP）。  
 - **〔PME-E123〕** ✅ **已開**（2026-07-24）— 本地 G-PROM／G-ECON＋S3 真綠 APPLY×2；見 `audits/PME-E123-STATUS-20260724.md`。
 - **〔U-PME〕** ✅ **DONE**（2026-07-24）— `audits/PME-ULTRACODE-20260724.md`（A11；後續 PRODSET／S4 已 CLOSED；仍≠可交易）。
-- **〔PME-Efull〕** S0–S4＋U-PME — 構件已齊（S4／PRODSET／U-PME／A7 CLOSED）；**呈核另說**；仍≠可交易／≠靈魂 [N] 已修。
+- **〔PME-Efull〕** S0–S4＋U-PME — 構件已齊（S4／PRODSET／U-PME／A7 CLOSED）；⚠ **呈核已出／待拍板**（`audits/PME-EFULL-REVIEW-20260724.md`；建議碼 `PME-Efull-yes`＋§3 邊界）— **≠** 已採納；仍≠可交易／≠靈魂 [N] 已修。
 - **〔PME-S4〕** ✅ **CLOSED**（2026-07-24）— `audits/PME-S4-CLOSED-20260724.md`；顧問單向解讀。
 
 ### 10.5 凍結
@@ -472,6 +472,7 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 - ✅ **PME S4 顧問單向解讀**（2026-07-24；`audits/PME-S4-CLOSED-20260724.md`；`interpretation.py`＋報告 script＋advisor 注入；G-PME-S4=none；tags=0 知情；**≠**可交易）  
 - ✅ 誠實標出與「系統建議，人決策／非自動駕駛」之張力；**靈魂措辭另案 pending**  
 - ❌ **未**多數特徵 G-PROM PASS、未改 [N]、未解凍 API、未自動下單；✅ U7 已開（R7 閘對抗）；構件齊≠對外「可交易完備」  
+- ⚠ **PME-Efull 呈核已出／待拍板**（2026-07-24；`audits/PME-EFULL-REVIEW-20260724.md`）— **勿假已拍板**  
 - ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝本地真裁決（多數 FAIL／SKIP，非假綠） 
 
 ---
