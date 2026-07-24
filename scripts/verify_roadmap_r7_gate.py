@@ -78,6 +78,24 @@ _FORBIDDEN = [
             r"否決|不採|對照|引用|對齊|G-P6)"
         ),
     ),
+    # U7 F-U7-5：幽靈完備宣稱（結構綠≠PRODSET／Dividend 完備）
+    (
+        "claim_prodset",
+        re.compile(r"生產特徵集已登錄"),
+        re.compile(
+            r"(禁|不得|≠|非|不是|勿|仍禁|攻擊|FAIL|停手|禁止|緩解|風險|焦點|"
+            r"未|無|仍缺|partial|幽靈|未做|未真|≠可交易|philosophy\s*域|"
+            r"G-PME-PRODSET|宣稱鎖|驗收)"
+        ),
+    ),
+    (
+        "claim_dividend_complete",
+        re.compile(r"(Dividend\s*(特徵)?完備|股息.{0,8}完備)"),
+        re.compile(
+            r"(禁|不得|≠|非|不是|勿|仍禁|攻擊|FAIL|停手|禁止|緩解|風險|焦點|"
+            r"未|無|仍缺|partial|PAUSED|G-DIV|凍結|宣稱鎖|驗收)"
+        ),
+    ),
 ]
 
 _I_MARK = re.compile(r"\[I\]")
@@ -188,10 +206,15 @@ def check_plan(plan_path: Path) -> list[dict]:
     rows.append(_row("G-P8", "PASS" if ok_m else "FAIL",
                      "major→Steward／禁假關可指" if ok_m else "欠：major／假關路徑明示"))
 
-    # G-P9
+    # G-P9（含 U7：PRODSET／Dividend 完備幽靈詞）
     claim_hits = [
         h for h in _forbidden_hits(text)
-        if h.startswith(("claim_answerable@", "claim_tradable@"))
+        if h.startswith((
+            "claim_answerable@",
+            "claim_tradable@",
+            "claim_prodset@",
+            "claim_dividend_complete@",
+        ))
     ]
     lock = bool(_CLAIM_LOCK.search(text))
     if claim_hits:
@@ -321,6 +344,33 @@ def _selftest() -> int:
     conflict = "| **寫死「一律人准特徵上線」** | 與 PME-AUTO-B 衝突 |"
     chk("衝突表列不誤抓", not (bool(_FORBIDDEN[3][1].search(conflict)) and not _FORBIDDEN[3][2].search(conflict)))
 
+    # U7 幽靈詞：肯定可抓、禁令／≠可交易不誤抓
+    by_name = {t[0]: t for t in _FORBIDDEN}
+    prod_affirm = "本產品生產特徵集已登錄，可上線"
+    prod_ban = "禁宣稱生產特徵集已登錄＝可交易（G-PME-PRODSET）"
+    div_affirm = "本產品 Dividend 特徵完備可上線"
+    div_ban = "Dividend 特徵未完備（G-DIV-1 partial／PAUSED）"
+    chk(
+        "PRODSET 肯定可抓",
+        bool(by_name["claim_prodset"][1].search(prod_affirm)
+             and not by_name["claim_prodset"][2].search(prod_affirm)),
+    )
+    chk(
+        "PRODSET 禁令不誤抓",
+        not (bool(by_name["claim_prodset"][1].search(prod_ban)
+                  and not by_name["claim_prodset"][2].search(prod_ban))),
+    )
+    chk(
+        "Dividend 完備肯定可抓",
+        bool(by_name["claim_dividend_complete"][1].search(div_affirm)
+             and not by_name["claim_dividend_complete"][2].search(div_affirm)),
+    )
+    chk(
+        "Dividend 未完備不誤抓",
+        not (bool(by_name["claim_dividend_complete"][1].search(div_ban)
+                  and not by_name["claim_dividend_complete"][2].search(div_ban))),
+    )
+
     # 迷你計畫 fixture
     good = """# Demo [I]
 ## 1. 非目標
@@ -340,13 +390,30 @@ ultracode U7；major→Steward；禁假關 10-14／G-KDO。
 一律人准特徵上線。
 本輪可答完備。
 """
+    ghost = """# Demo [I]
+## 1. 非目標
+硬邊界。
+## 5. (a) Table schema
+有表。
+## 6. (b) Python 程式規畫
+scripts/foo.py
+執行前四判準：①完整 ②內部一致 ③與現況一致 ④可實作
+上線政策引用 PME-AUTO-B。
+ultracode U7；major→Steward；禁假關。
+不宣稱確立級可交易；不宣稱可答完備。
+與 R5／R6／PME／凍結邊界表見引用。
+本產品生產特徵集已登錄。
+本產品 Dividend 特徵完備可上線。
+"""
     gr = {r["id"]: r["status"] for r in check_plan(_write_tmp(good))}
     br = {r["id"]: r["status"] for r in check_plan(_write_tmp(bad))}
+    gh = {r["id"]: r["status"] for r in check_plan(_write_tmp(ghost))}
     chk("good 全 PASS", all(v == "PASS" for v in gr.values()))
     chk("bad G-P1 FAIL", br.get("G-P1") == "FAIL")
     chk("bad G-P2 FAIL", br.get("G-P2") == "FAIL")
     chk("bad G-P6 FAIL", br.get("G-P6") == "FAIL")
     chk("bad G-P9 FAIL", br.get("G-P9") == "FAIL")
+    chk("ghost PRODSET/Dividend → G-P9 FAIL", gh.get("G-P9") == "FAIL")
 
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1

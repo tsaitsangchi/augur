@@ -153,6 +153,20 @@ EVOLUTION_DDL = [
         reason          TEXT,
         CHECK (state IN ('clear','halt'))
     )""",
+    # PME 生產特徵登錄（philosophy 域 allowlist）。≠可交易／確立級；≠predict 熱路徑自動納入。
+    """CREATE TABLE IF NOT EXISTS evolution_production_feature_set (
+        feature           VARCHAR(255) PRIMARY KEY,
+        set_status        VARCHAR(16) NOT NULL DEFAULT 'active',
+        registered_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+        source_run_id     BIGINT NOT NULL REFERENCES evolution_run(run_id),
+        source_queue_id   BIGINT NOT NULL REFERENCES promotion_queue(queue_id),
+        apply_log_id      BIGINT NOT NULL REFERENCES evolution_apply_log(apply_log_id),
+        principle_id      INTEGER REFERENCES philosophy_principle(principle_id),
+        last_action       VARCHAR(16) NOT NULL,
+        CHECK (set_status IN ('active','removed')),
+        CHECK (last_action IN ('promote','demote','freeze'))
+    )""",
 ]
 
 # ALTER 補 FK（promotion_queue.apply_log_id → evolution_apply_log；建表後冪等）
@@ -163,6 +177,8 @@ EVOLUTION_DDL_POST = [
           FOREIGN KEY (apply_log_id) REFERENCES evolution_apply_log(apply_log_id);
     EXCEPTION WHEN duplicate_object THEN NULL;
     END $$""",
+    """COMMENT ON TABLE evolution_production_feature_set IS
+        'PME 生產特徵登錄（philosophy 域）；≠可交易/確立級；≠predict 熱路徑自動納入；SSOT=APPLY promote/demote'""",
 ]
 
 
@@ -455,6 +471,43 @@ def status_after_apply(action: str, before: str | None) -> str:
     return before or "untested"
 
 
+# 生產特徵登錄表名（philosophy 域；禁與 feature_values／canonical_features 混淆）
+PRODSET_TABLE = "evolution_production_feature_set"
+PRODSET_ACTIVE = "active"
+PRODSET_REMOVED = "removed"
+
+
+def prodset_status_for_action(action: str) -> str | None:
+    """APPLY 對生產登錄表之落點：promote→active；demote→removed；freeze→不寫（None）。"""
+    a = (action or "").strip().lower()
+    if a == "promote":
+        return PRODSET_ACTIVE
+    if a == "demote":
+        return PRODSET_REMOVED
+    return None
+
+
+def production_set_delta(
+    feature: str,
+    action: str,
+    *,
+    set_status: str | None = None,
+) -> dict[str, Any]:
+    """evolution_apply_log.production_set_delta 可溯源 payload（含表名；非僅 feature/action）。"""
+    st = set_status if set_status is not None else prodset_status_for_action(action)
+    out: dict[str, Any] = {
+        "feature": feature,
+        "action": action,
+        "table": PRODSET_TABLE,
+    }
+    if st is not None:
+        out["set_status"] = st
+    else:
+        out["set_status"] = None
+        out["note"] = "freeze_no_prodset_write"
+    return out
+
+
 def classify_status_alignment(
     *,
     status: str,
@@ -523,7 +576,13 @@ def _selftest() -> int:
         print(f"  {'✓' if cond else '✗FAIL'} {name}")
 
     chk("GATE_IDS 七閘", len(GATE_IDS) == 7)
-    chk("DDL 五表", len(EVOLUTION_DDL) == 5 and all("CREATE TABLE" in d for d in EVOLUTION_DDL))
+    chk("DDL 六表", len(EVOLUTION_DDL) == 6 and all("CREATE TABLE" in d for d in EVOLUTION_DDL))
+    chk("DDL 含 prodset", any(PRODSET_TABLE in d for d in EVOLUTION_DDL))
+    chk("prodset promote→active", prodset_status_for_action("promote") == PRODSET_ACTIVE)
+    chk("prodset demote→removed", prodset_status_for_action("demote") == PRODSET_REMOVED)
+    chk("prodset freeze→None", prodset_status_for_action("freeze") is None)
+    delta = production_set_delta("f1", "promote")
+    chk("delta has table+active", delta.get("table") == PRODSET_TABLE and delta.get("set_status") == PRODSET_ACTIVE)
     chk("classify dividend → blocked_div", classify_coverage("dividend_yield", in_feature_values=True) == "blocked_div")
     chk("classify mapped", classify_coverage("pe_ratio", in_feature_values=True) == "mapped")
     chk("classify missing", classify_coverage("roe", in_feature_values=False) == "missing")
@@ -653,5 +712,6 @@ if __name__ == "__main__":
     print("公開入口: classify_coverage / build_gate_json / all_gates_green / may_apply /")
     print("          decide_queue_status / normalize_kill_state / scan_noexec_text / attest_complete /")
     print("          evaluate_g_prom_from_evidence / evaluate_g_econ_from_evidence /")
-    print("          classify_status_alignment / sync_action_for_alignment / is_a7_violation")
+    print("          classify_status_alignment / sync_action_for_alignment / is_a7_violation /")
+    print("          prodset_status_for_action / production_set_delta")
     print("(自測: python -m augur.philosophy.evolution --selftest；免 DB 免 API)")

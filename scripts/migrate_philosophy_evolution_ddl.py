@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-"""哲學↔市場進化閉環 DDL — evolution_run／coverage／promotion_queue／apply_log／kill_switch。
+"""哲學↔市場進化閉環 DDL — evolution_run／coverage／queue／apply_log／kill／prodset。
 
-🎯 這支在做什麼（白話）：冪等建 PME 新表（計畫 §5.2），含全域 kill-switch 單列種子。
-   不觸 FinMind／FRED；不改 philosophy 既有表資料。
+🎯 這支在做什麼（白話）：冪等建 PME 新表（計畫 §5.2＋生產特徵登錄），含 kill-switch 種子。
+   不觸 FinMind／FRED；不改 philosophy 既有表資料。prodset ≠可交易／確立級。
 
 守 #6 #12 #15 #29；SSOT＝reports/augur_philosophy_market_evolution_loop_plan_20260724.md §5.2。
 
@@ -19,7 +19,7 @@ import sys
 
 import _bootstrap  # noqa: F401
 
-from augur.philosophy.evolution import EVOLUTION_DDL, EVOLUTION_DDL_POST
+from augur.philosophy.evolution import EVOLUTION_DDL, EVOLUTION_DDL_POST, PRODSET_TABLE
 
 TABLES = (
     "evolution_run",
@@ -27,6 +27,7 @@ TABLES = (
     "promotion_queue",
     "evolution_apply_log",
     "evolution_kill_switch",
+    PRODSET_TABLE,
 )
 
 
@@ -38,11 +39,12 @@ def _selftest() -> int:
         ok = ok and cond
         print(f"  {'✓' if cond else '✗FAIL'} {name}")
 
-    chk("DDL 五段", len(EVOLUTION_DDL) == 5)
+    chk("DDL 六段", len(EVOLUTION_DDL) == 6)
     chk("每段含 CREATE TABLE", all("CREATE TABLE IF NOT EXISTS" in d for d in EVOLUTION_DDL))
     for t in TABLES:
         chk(f"DDL 含 {t}", any(t in d for d in EVOLUTION_DDL))
     chk("kill_switch CHECK clear|halt", any("clear|halt" in d or "'clear','halt'" in d for d in EVOLUTION_DDL))
+    chk("prodset CHECK active|removed", any("'active','removed'" in d for d in EVOLUTION_DDL))
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 
@@ -82,7 +84,10 @@ def run() -> int:
                 "VALUES (1, 'clear', 'migrate_philosophy_evolution_ddl', 'PME-KILL seed') "
                 "ON CONFLICT (switch_id) DO NOTHING"
             )
-        print("✓ --run 完成（冪等）: evolution_* + promotion_queue + kill_switch 種子")
+        print(
+            "✓ --run 完成（冪等）: evolution_* + promotion_queue + "
+            f"{PRODSET_TABLE} + kill_switch 種子"
+        )
     return 0
 
 

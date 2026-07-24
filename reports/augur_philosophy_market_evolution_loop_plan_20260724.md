@@ -310,7 +310,9 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 );
 ```
 
-**結果落哪**：重驗數字 → `principle_factor_map`＋`evolution_run`；上線動作 → `promotion_queue`＋`evolution_apply_log`＋`philosophy_principle.status`；覆蓋 → snapshot；緊急停 → `evolution_kill_switch`。
+**結果落哪**：重驗數字 → `principle_factor_map`＋`evolution_run`；上線動作 → `promotion_queue`＋`evolution_apply_log`＋`philosophy_principle.status`＋**`evolution_production_feature_set`**（promote→active／demote→removed；≠可交易／確立級）；覆蓋 → snapshot；緊急停 → `evolution_kill_switch`。
+
+> **PRODSET（2026-07-24）**：既有盤點無獨立 feature allowlist → 新建 philosophy 域表 `evolution_production_feature_set`（見 `audits/PME-PRODSET-CLOSED-20260724.md`）。**禁**讀成 predict 熱路徑／可交易。
 
 ### 5.3 禁止動作（仍有效）
 
@@ -463,8 +465,9 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 - ✅ **§4.2 執行前四判準（G-P4）**＋R7 S2 掛接（`audits/ROADMAP-R7-GATE-PME-20260724.md`／`ROADMAP-R7-S2-CLOSED-20260724.md`）  
 - ✅ **開 U-PME**（2026-07-24；`audits/PME-ULTRACODE-20260724.md`；A11 PASS；G-PME-PRODSET／DEMOTE 入帳）  
 - ✅ **PME 補 A7（非假綠）**（2026-07-24；`audits/PME-A7-STATUS-or-CLOSED-20260724.md`；violations=0；raw_desync=21＝gate_rejected）  
+- ✅ **PME PRODSET 真寫**（2026-07-24；`audits/PME-PRODSET-CLOSED-20260724.md`；`evolution_production_feature_set`；run5×2 active；G-PME-PRODSET=none；**≠**可交易）  
 - ✅ 誠實標出與「系統建議，人決策／非自動駕駛」之張力；**靈魂措辭另案 pending**  
-- ❌ **未**多數特徵 G-PROM PASS、**未**生產特徵集真登錄、未改 [N]、未解凍 API、未自動下單；✅ U7 已開（R7 閘對抗；≠本閉環 Efull）  
+- ❌ **未**多數特徵 G-PROM PASS、未改 [N]、未解凍 API、未自動下單；✅ U7 已開（R7 閘對抗；≠本閉環 Efull）  
 - ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝本地真裁決（多數 FAIL／SKIP，非假綠） 
 
 ---
