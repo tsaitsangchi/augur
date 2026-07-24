@@ -3,7 +3,7 @@
 * **性質**：[I] 執行／證據報告（不創設義務；不改 [N]）
 * **授權**：Steward 本輪明示 — Dividend 重建＋窄窗 audit；封存 `archive_push.sh --slug dividend-rebuild-narrow-audit`
 * **工單 SSOT**：`reports/augur_roadmap_r4_data_foundation_20260724.md` §4；帳本 G-DIV-1
-* **狀態**：**PAUSED（API 凍結）** — 2026-07-24 Steward 指示：計畫落地前不開 FinMind／FRED；runner `dividend_rebuild_runner.py --run`（原 PID 499349）已 `SIGTERM` 停掉；勿續打 API。護欄＝`.cursor/rules/finmind-fred-api-freeze.mdc`；HANDOFF §4.4 操作凍結。解凍條件＝用戶明示「解凍 FinMind／FRED」或「所有計畫落地後解凍」。
+* **狀態**：**PAUSED（API 凍結）** — 2026-07-24 Steward 指示（同日收緊）：**constitution-to-implementation 全部階段落地前**不開 FinMind／FRED；runner `dividend_rebuild_runner.py --run`（原 PID 499349）已 `SIGTERM` 停掉；勿續打 API。護欄＝`.cursor/rules/finmind-fred-api-freeze.mdc`；HANDOFF §4.4。解凍＝路線圖全部落地 **且** 用戶明示「解凍 FinMind／FRED」（「計畫落地」／R5 局部 ≠ 解凍）。
 
 ## 0. 一句結論
 

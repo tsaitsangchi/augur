@@ -15,7 +15,7 @@
 | **四碼** | `R5-P-yes` ＋ `R5-E12` ＋ `PV-α` ＋ `PAR` |
 | **效力** | **計畫採納**為 R5 執行藍圖；**執行未授權**（不啟動 S1–S2／S3／U5，直至 Steward 另發「**開 R5**」） |
 | **範圍預登（開實作時）** | `R5-E12`＝S1＋S2（predict wiring＋G-PV-1）；`PV-α`＝AST 字面禁；`PAR`＝採納 §3 並行／等待判準 |
-| **解凍／Dividend 邊界** | **仍有效**：FinMind／FRED **操作凍結**（禁 sync／probe／放量／窄窗／Dividend 重建 API）；不 DROP Dividend；不改 [N]；不假關 10-14；零 `evaluated_pass` 禁確立級宣稱 |
+| **解凍／Dividend 邊界** | **仍有效**：FinMind／FRED **操作凍結**至 **constitution-to-implementation 全部階段落地＋用戶明示解凍**（禁 sync／probe／放量／窄窗／Dividend 重建 API；**R5 S1–S2／局部完成 ≠ 解凍**）；不 DROP Dividend；不改 [N]；不假關 10-14；零 `evaluated_pass` 禁確立級宣稱 |
 | **留痕** | `audits/ROADMAP-R5-PLAN-APPROVED-20260724.md` |
 
 **四碼展開（§10 原文對照）**：
@@ -360,4 +360,4 @@ REVOKE SELECT ON TABLE prediction_values FROM augur_predict;
 - ✅ 附 schema＋python 規畫＋驗收表＋拍板句  
 - ✅ **Steward 已拍板**（2026-07-24；`R5-P-yes`＋`R5-E12`＋`PV-α`＋`PAR`；計畫採納／執行未授權）  
 - ❌ 未實作 S1–S3、未放量 API、未改 [N]、未改 Dividend 報告  
-- ⚠ FinMind／FRED 操作凍結仍有效；Dividend API 線 PAUSED 直至明示解凍 
+- ⚠ FinMind／FRED 操作凍結仍有效（至 constitution-to-implementation 全部落地＋明示解凍；R5 局部完成不解凍）；Dividend API 線 PAUSED

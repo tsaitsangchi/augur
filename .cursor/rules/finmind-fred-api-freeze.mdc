@@ -1,12 +1,12 @@
 ---
-description: FinMind／FRED 外部 API 操作凍結（計畫落地前）— sync／probe／放量一律停
+description: FinMind／FRED 外部 API 操作凍結（憲章→實作路線圖全部落地前）— sync／probe／放量一律停
 alwaysApply: true
 ---
 
-# FinMind／FRED API 操作凍結（計畫落地前）
+# FinMind／FRED API 操作凍結（憲章→實作路線圖全部落地前）
 
-> **生效**：2026-07-24 Steward 指示 · **階段**：所有活躍計畫落地前 · **位階**：[I] 工具護欄（非憲章 [N]）  
-> **關鍵詞**：FinMind · FRED · API freeze · 操作凍結 · sync · probe · audit
+> **生效**：2026-07-24 Steward 指示 · **階段**：`constitution-to-implementation` 全部階段落地完成前 · **位階**：[I] 工具護欄（非憲章 [N]）  
+> **關鍵詞**：FinMind · FRED · API freeze · 操作凍結 · sync · probe · audit · constitution-to-implementation
 
 ## 凍結範圍（禁止，除非用戶明示解凍）
 
@@ -24,15 +24,18 @@ alwaysApply: true
 - **零網路** script、本地 pytest（mock／免 API）
 - 計畫書、ultracode、治權理解、報告撰寫、封存（不觸發 FinMind／FRED）
 - 常駐本地服務（advisor／chat／admin／Ollama）——**不**經 FinMind／FRED
+- R5／路線圖其餘 **零 API** 實作（wiring、AST 閘、本地測試等）——**不解凍 API**
 
 ## 解凍條件（AI 不自行解凍）
 
-僅當用戶**明示**下列之一，方可恢復 FinMind／FRED 外部呼叫：
+**前提（兩者皆須）**：
 
-1. 「所有計畫落地後解凍」／「計畫落地後再開 FinMind 及 FRED」
-2. 「解凍 FinMind／FRED」／「解凍 API」
+1. **憲章→實作路線圖（constitution-to-implementation）全部階段落地完成**——見 `reports/augur_constitution_to_implementation_roadmap_20260724.md`；**「計畫落地」≠ 足夠**；**R5 S1–S2／局部階段完成 ≠ 解凍**。
+2. 用戶**明示**解凍（下列措辭之一或等價）：
+   - 「憲章→實作路線圖全部落地後解凍」／「constitution-to-implementation 全部完成後再開 FinMind／FRED」
+   - 「解凍 FinMind／FRED」／「解凍 API」
 
-**禁止**：以「先前授權仍有效」「窄窗很輕」「只 probe 一下」自行解凍或試打。
+**禁止**：以「先前授權仍有效」「窄窗很輕」「只 probe 一下」「某計畫／R5 階段已綠」「所有計畫落地」自行解凍或試打。
 
 ## Agent 檢查清單
 

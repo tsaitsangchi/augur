@@ -162,7 +162,7 @@
 
 **驗收**：`tests/test_philosophy_isolation.py` 綠；direction 產物非 evaluated_pass 不得寫入；arena 雙閘／TTY 紅線依 HANDOFF。
 
-**狀態**：📋 **R5 計畫已拍板／執行未開**（2026-07-24）。Steward 四碼 `R5-P-yes`＋`R5-E12`＋`PV-α`＋`PAR`＝計畫採納＋開實作時範圍預登；**實作未授權**直至「**開 R5**」。計畫：`reports/augur_roadmap_r5_plan_20260724.md`；留痕：`audits/ROADMAP-R5-PLAN-APPROVED-20260724.md`。FinMind／FRED 凍結與 Dividend 邊界仍有效。
+**狀態**：📋 **R5 計畫已拍板／執行未開**（2026-07-24）。Steward 四碼 `R5-P-yes`＋`R5-E12`＋`PV-α`＋`PAR`＝計畫採納＋開實作時範圍預登；**實作未授權**直至「**開 R5**」。計畫：`reports/augur_roadmap_r5_plan_20260724.md`；留痕：`audits/ROADMAP-R5-PLAN-APPROVED-20260724.md`。FinMind／FRED **操作凍結**仍有效——至本路線圖（constitution-to-implementation）**全部階段落地＋用戶明示解凍**（R5／局部完成 ≠ 解凍）；Dividend API 邊界同。
 
 **Ultracode 插入點 U5**：對「可交易／確立」行銷句與 registry 宣稱做攻擊；重大方法變更 → plan-first 新報告。
 
