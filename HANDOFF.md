@@ -99,6 +99,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 | **PME 靈魂措辭** | ✅ **G-PME-SOUL=none**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；`audits/G-PME-SOUL-CLOSED-20260724.md`）——適用**新入 know-how**（新哲學／新研發技術／新學術論文等）閘後有界自動晉升；**自動下單仍禁**；**與 FinMind／FRED 正交（≠解凍）** |
 | **靈魂↔raw 邊界** | **[I]** raw＝觀測／結果呈現——**不**因「有 raw」升格靈魂；升到靈魂層的是 raw **交互**抽象出的**概念**與可證偽關係（相關係數等＝概念載體）。管線仍 source-pure raw→features；靈魂指導假說、不加權 runtime；禁整庫 raw 灌靈魂。API＝取 raw 通道≠靈魂。rule＝`.cursor/rules/soul-vs-raw-correlation.mdc`；留痕＝`audits/SOUL-VS-RAW-CORRELATION-20260724.md`（**未改** META-CONSTITUTION [N]） |
 | **不做（近程）** | 孫子↔ERP、太陽能↔儲能 等**他域進化閉環**計畫／實作；不以他域進化「灌進」台股因子 |
+| **落地盤點** | ✅ **已出**（2026-07-24；`audits/ROADMAP-LANDING-INVENTORY-20260724.md`）——機械近程大致齊；**產品完備／可解凍＝否**；預測正交 ≠ 解凍 |
 | **凍結** | FinMind／FRED **仍凍**（條件＝憲章→實作全部落地＋明示解凍；見 §4.4）—本節不改凍結；預測熱路徑見上列「預測↔API」 |
 | **API 洞另帳** | Dividend resume／全量 `build_catalog`／當日 attestation audit·heal — **解凍＋明示後**；G-CAT-1／G-DIV-1／G-ATTEST 仍 **partial** |
 | **庫內證據** | `reports/augur_data_foundation_db_only_20260724.md` · `audits/ROADMAP-DATA-FOUNDATION-DB-ONLY-20260724.md` · tag `archive-20260724-data-foundation-db-only` |
