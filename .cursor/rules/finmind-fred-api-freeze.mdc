@@ -1,0 +1,43 @@
+---
+description: FinMind／FRED 外部 API 操作凍結（計畫落地前）— sync／probe／放量一律停
+alwaysApply: true
+---
+
+# FinMind／FRED API 操作凍結（計畫落地前）
+
+> **生效**：2026-07-24 Steward 指示 · **階段**：所有活躍計畫落地前 · **位階**：[I] 工具護欄（非憲章 [N]）  
+> **關鍵詞**：FinMind · FRED · API freeze · 操作凍結 · sync · probe · audit
+
+## 凍結範圍（禁止，除非用戶明示解凍）
+
+本專案階段**一律不開** FinMind API 與 FRED API。下列一律 **停／不啟動／不續跑**：
+
+- 任何會打 **FinMind** 或 **FRED** 外部網路的：`sync`／`probe`／放量／窄窗／寬窗／`daily_maintenance` audit／heal
+- 含用戶先前已授權、但尚未完成者——例如 **Dividend 重建**、**窄窗 audit**（`TaiwanStockDividend` rebuild）→ **暫停**，勿繼續打 API
+- `sync_finmind*`、`ingestion/finmind` 實際 fetch、FRED series 拉取、會觸發上述呼叫的 runner／cron／nohup
+
+見 403／ban／額度訊號 → **停、不重試風暴**（與 CLAUDE #24 同精神；本凍結下根本不應開打）。
+
+## 允許（本凍結不擋）
+
+- 純本地 **DB 唯讀**／對帳讀庫／schema 檢查（零外部 API）
+- **零網路** script、本地 pytest（mock／免 API）
+- 計畫書、ultracode、治權理解、報告撰寫、封存（不觸發 FinMind／FRED）
+- 常駐本地服務（advisor／chat／admin／Ollama）——**不**經 FinMind／FRED
+
+## 解凍條件（AI 不自行解凍）
+
+僅當用戶**明示**下列之一，方可恢復 FinMind／FRED 外部呼叫：
+
+1. 「所有計畫落地後解凍」／「計畫落地後再開 FinMind 及 FRED」
+2. 「解凍 FinMind／FRED」／「解凍 API」
+
+**禁止**：以「先前授權仍有效」「窄窗很輕」「只 probe 一下」自行解凍或試打。
+
+## Agent 檢查清單
+
+接到會碰市場資料同步／audit／Dividend／FRED 的任務時：
+
+1. 先讀本 rule + `HANDOFF.md` 操作凍結指標  
+2. 若仍凍結 → 拒跑外部 API，改本地／計畫路徑，並回報凍結狀態  
+3. 發現仍在跑的 FinMind／FRED 進程 → **安全停掉**，報告標 **PAUSED（API 凍結）**

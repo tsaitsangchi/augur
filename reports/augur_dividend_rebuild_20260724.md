@@ -3,11 +3,11 @@
 * **性質**：[I] 執行／證據報告（不創設義務；不改 [N]）
 * **授權**：Steward 本輪明示 — Dividend 重建＋窄窗 audit；封存 `archive_push.sh --slug dividend-rebuild-narrow-audit`
 * **工單 SSOT**：`reports/augur_roadmap_r4_data_foundation_20260724.md` §4；帳本 G-DIV-1
-* **狀態**：**IN PROGRESS**（執行中；下表數字待親驗回填）
+* **狀態**：**PAUSED（API 凍結）** — 2026-07-24 Steward 指示：計畫落地前不開 FinMind／FRED；runner `dividend_rebuild_runner.py --run`（原 PID 499349）已 `SIGTERM` 停掉；勿續打 API。護欄＝`.cursor/rules/finmind-fred-api-freeze.mdc`；HANDOFF §4.4 操作凍結。解凍條件＝用戶明示「解凍 FinMind／FRED」或「所有計畫落地後解凍」。
 
 ## 0. 一句結論
 
-（待填：重建是否使 PK⊇`(stock_id,date)`、2330 列數是否不再塌成 1、G-DIV-1 gap_class。）
+**PAUSED（API 凍結）**：重建未完成（log 停於 probe OK → roster n=3123、sync 放量前／中被凍）。續跑須待 API 解凍後再 `sync_finmind_dataset`（表若已 bak／absent：見 §8，勿再盲目 RENAME）。
 
 ## 1. 診斷（before）
 
@@ -57,8 +57,8 @@ _pending_（清 → `none`；否則 `partial`＋剩餘）
 
 ## 7. HEAD／tag
 
-_pending_
+（封存 `archive_push.sh --slug api-freeze-plans-pending` 後回填）
 
 ## 8. 停點／續跑（若有）
 
-若 sync 中斷：表已以新 PK 首建則**勿再 RENAME／DROP**；直接重跑 `sync_finmind_dataset`（每股 `max(date)` resume）。見 403 → 停、記錄 `failed_ids`、額度恢復後同路徑續。
+**2026-07-24 PAUSED（API 凍結）**：runner 已 kill；log＝probe OK、roster 3123、sync 未完成。表狀態：`TaiwanStockDividend` 當時已 absent、bak=`TaiwanStockDividend_collapsed_bak_20260724`（見 runner log）。解凍後：若 live 仍 absent／已以新 PK 首建 → **勿再 RENAME／DROP**；直接重跑 `sync_finmind_dataset`（每股 `max(date)` resume）。見 403 → 停、記錄 `failed_ids`、額度恢復後同路徑續。**凍結期間禁止任何 FinMind／FRED 呼叫。**

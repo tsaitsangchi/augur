@@ -144,8 +144,9 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 **⚠ 換機注意（2026-07-13）**：舊機的 audit 跑者/watcher **不隨機器遷移**——新機還原 DB 後，audit 對帳狀態已在 DB（dump 含 658,911 列增量、取於尾段對帳中），**新機第一件事＝`bash audit_selfheal.sh` 續跑至綠**（DB-driven resume、冪等快轉已對帳段;新 IP 對 FinMind 反而有利），綠後接 4.2 鏈。嵌入積壓（469,551 句）由新機 03:30 timer 或手動 `systemctl --user start augur-embed-catchup` 補。
 
 ### 4.4 紅線（絕不能做）
+- ⚠ **操作凍結（2026-07-24）**：**FinMind／FRED 外部 API 一律不開**，至用戶明示「所有計畫落地後解凍」或「解凍 FinMind／FRED」——含 sync／probe／放量／窄窗／Dividend 重建；護欄＝`.cursor/rules/finmind-fred-api-freeze.mdc`（alwaysApply）。允許本地 DB 唯讀／零網路／計畫／免 API pytest。
 - ⚠ **`evaluate_arena_admission --evaluate` 是終態寫入**（evaluated_pass/fail 皆不可回改、複核=另立新 gate）——**必先 `--check`（唯讀預演）綠才 evaluate**（07-16 實證:--check 曾因 bug 假紅,預演救了不白燒）。舊「unfreeze gate evaluate」紅線已隨 gate 退史料失效（該 evaluate 實為唯讀 stub）。
-- ⚠ **FinMind 類作業（市場補同步／PriceAdj 修復）與 audit 互斥**——同一 IP，audit 跑完才輪它們（#24 IP sustained ban 07-12 實錘）。
+- ⚠ **FinMind 類作業（市場補同步／PriceAdj 修復）與 audit 互斥**——同一 IP，audit 跑完才輪它們（#24 IP sustained ban 07-12 實錘）。**本階段兩者皆凍（見上條操作凍結）**。
 - ⚠ **PDF 抽取未經 P0 拍板前不啟動**（含 OAPEN 61/skip_pdf 976）——OCR 維持不啟動（P8 原裁定）;IA 掃蕩已完成(491 抓/其餘誠實終態)、勿重複放量。
 
 ### 4.5 待人類 vs 待 AI
