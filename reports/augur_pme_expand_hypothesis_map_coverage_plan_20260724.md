@@ -1,22 +1,23 @@
 # PME 擴大假說／map 覆蓋計畫 [I]（2026-07-24）
 
-* **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；憲章第六部計畫完整性 v1.39.0）— **不創設 [N] 義務**；**本輪只出計畫，不實作**
-* **授權觸發**：Steward「**開擴大假說／map 覆蓋計畫**」＝plan-first ✅；實作另待拍板碼＋「開 …」分階令
+* **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；憲章第六部計畫完整性 v1.39.0）— **不創設 [N] 義務**
+* **授權觸發**：Steward「**開擴大假說／map 覆蓋計畫**」＝plan-first ✅；拍板＋「**開 MAP-E012**」＝S0–S2 已開（S3／S4／U 另令）
 * **閉合目標**：在 **零 FinMind／FRED**、維持 **P2H／AUTO-B** 紀律下，擴大 `principle_factor_map` 覆蓋與**可過 G-PROM／G-ECON 雙綠**之路徑，使 prodset `active`／熱路徑 `n_feats` 能**誠實成長**（現況再晉升後仍僅 2）
 * **前置**：PME ✅ `PME-Efull-yes`（機械完備）；PRODSET／S4／SOUL CLOSED；P2H S123＋U DONE（熱路徑真讀 prodset）；本地再晉升 run6＋重訓（`audits/PME-LOCAL-REPROMOTE-20260724.md`／`PME-REPROMOTE-RETRAIN-20260724.md`）— **active／n_feats 未擴大**
 * **範式**：`reports/augur_prodset_predict_hotpath_plan_20260724.md`／`reports/augur_roadmap_r5_plan_20260724.md`／`reports/augur_roadmap_r6_plan_20260724.md`
 * **硬邊界**：FZ-keep；不改 [N]；≠可交易／≠確立級；≠偷放寬閘；≠以解凍補 Dividend 當主路徑；≠ AI 造原則／假說入庫；AUTO-B 七閘全綠才 APPLY
 
-### Steward 拍板欄（待填）
+### Steward 已拍板（2026-07-24）
 
 | 欄 | 內容 |
 |---|---|
-| **日期** | （待） |
-| **狀態** | ⏳ **計畫待拍板**（本檔＝藍圖；實作未開） |
-| **建議四碼** | `MAP-P-yes` ＋ `MAP-E012` ＋ `FZ-keep` ＋ `GATE-keep`（見 §10） |
-| **效力** | 採納後＝執行藍圖；**仍須**「開 MAP-S0／S1…」分階令才動工 |
-| **解凍邊界** | **擴大 map ≠ 解凍 API**；Dividend／blocked_div 另帳（見 §5） |
-| **留痕** | 拍板後寫 `audits/PME-MAP-EXPAND-PLAN-APPROVED-20260724.md`（實作後另 CLOSED） |
+| **日期** | 2026-07-24 |
+| **狀態** | ✅ **已拍板**＋✅ **已開 MAP-E012**（S0＋S1＋S2；S3／S4／U 另令） |
+| **四碼** | `MAP-P-yes` ＋ `MAP-E012` ＋ `FZ-keep` ＋ `GATE-keep`（已採納） |
+| **效力** | 計畫＝執行藍圖；近程授權＝S0–S2（庫內可建）；執行令＝「開 MAP-E012」 |
+| **解凍邊界** | **擴大 map ≠ 解凍 API**（FZ-keep）；Dividend／blocked_div 另帳（見 §5） |
+| **GATE 邊界** | GATE-keep：不降閾；ECON-only 不晉升；SKIP≠PASS；本輪不跑閘 |
+| **留痕** | `audits/PME-MAP-EXPAND-PLAN-APPROVED-20260724.md`；執行 CLOSED＝待 S0–S2 收尾 |
 
 ---
 
@@ -289,6 +290,10 @@
 
 **建議拍板組合**：`MAP-P-yes` ＋ `MAP-E012` ＋ `FZ-keep` ＋ `GATE-keep`。
 
+> **✅ 已登錄（2026-07-24）**：`MAP-P-yes`＋`MAP-E012`＋`FZ-keep`＋`GATE-keep` — 見文首「Steward 已拍板」。  
+> **✅ 執行已開（2026-07-24）**：Steward「**開 MAP-E012**」→ S0＋S1＋S2（庫內可建）；`audits/PME-MAP-E012-CLOSED-20260724.md`。  
+> 留痕：`audits/PME-MAP-EXPAND-PLAN-APPROVED-20260724.md`。**不改 [N]**；S3／S4／U 另令。
+
 ---
 
 ## 11. 產物與下一步
@@ -300,10 +305,11 @@
 | Gap 帳本 | `reports/augur_pme_gap_ledger_20260724.md` |
 | 再晉升／重訓 | `audits/PME-LOCAL-REPROMOTE-20260724.md`／`PME-REPROMOTE-RETRAIN-20260724.md` |
 | P2H | `reports/augur_prodset_predict_hotpath_plan_20260724.md` |
-| 拍板後 audit | `audits/PME-MAP-EXPAND-PLAN-APPROVED-20260724.md`（待） |
-| 路線圖／HANDOFF | 一句掛接（本輪收尾） |
+| 拍板後 audit | ✅ `audits/PME-MAP-EXPAND-PLAN-APPROVED-20260724.md` |
+| 執行（MAP-E012） | `audits/PME-MAP-E012-CLOSED-20260724.md`（或 STATUS） |
+| 路線圖／HANDOFF | §4.0 已掛接 |
 
-**下一步（人）**：回覆 §10 拍板碼 → 再下「開 MAP-S0」或「開 MAP-E012」才實作。
+**下一步（人）**：S0–S2 收尾後，若要再閘／APPLY →「**開 MAP-S3**」（仍 GATE-keep／FZ-keep）。
 
 ---
 
