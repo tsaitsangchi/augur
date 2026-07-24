@@ -353,11 +353,11 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **R7 S1 DONE**（2026-07-24；「開 R7，只跑 S1」；哨兵＋模板；`audits/ROADMAP-R7-S1-CLOSED-20260724.md`）  
 - ✅ **R7 S2 DONE**（2026-07-24；「開 R7 S2」；首掛 P-PME；G-P4＋閘 PASS；`audits/ROADMAP-R7-S2-CLOSED-20260724.md`；**U7 pending**）  
 - ❌ 未改任何 [N]  
-- ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 HAR-ext／S3a；**未**閉合 universe→econ 全量產品半系統；**未**開 U7；**未** PME-Efull（生產集真登錄／A7 全閉／S4 仍缺）  
+- ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 HAR-ext／S3a；**未**閉合 universe→econ 全量產品半系統；**未**開 U7；**未** PME-Efull（生產集真登錄／S4 仍缺；A7 規則已 CLOSED）  
 
 - ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5 時已重跑親驗**，不得把舊 wiring 表當永真  
 
-**建議下一句（對齊近程優先 2026-07-24）**：「**PME 補生產集登錄（消歧或真寫）**」或「**PME 補 A7（非假綠）**」；資料地基（Dividend／catalog 表級／attestation）**等解凍條件**再續——**仍禁**他域進化閉環近程開工、**仍禁** API 未達條件自解凍。
+**建議下一句（對齊近程優先 2026-07-24）**：「**PME 補生產集登錄（消歧或真寫）**」或「**開 U7**」；資料地基（Dividend／catalog 表級／attestation）**等解凍條件**再續——**仍禁**他域進化閉環近程開工、**仍禁** API 未達條件自解凍。
 
 ---
 

@@ -423,7 +423,7 @@ CREATE TABLE IF NOT EXISTS evolution_kill_switch (
 - **〔PME-E12〕** S1＋S2（覆蓋＋自動重驗；零市場 API）— **建議近程**；本輪「開 PME」＝**E12 精神**（S2 全量重驗閘＝骨架 SKIP）。  
 - **〔PME-E123〕** ✅ **已開**（2026-07-24）— 本地 G-PROM／G-ECON＋S3 真綠 APPLY×2；見 `audits/PME-E123-STATUS-20260724.md`。
 - **〔U-PME〕** ✅ **DONE**（2026-07-24）— `audits/PME-ULTRACODE-20260724.md`（A11；≠ PME-Efull／≠ 生產集登錄完備）。
-- **〔PME-Efull〕** S0–S3＋S4＋U-PME（U-PME 已完；S4／PRODSET／A7 全閉仍缺）。
+- **〔PME-Efull〕** S0–S3＋S4＋U-PME（U-PME／A7 已完；S4／PRODSET 仍缺）。
 
 ### 10.5 凍結
 
@@ -462,8 +462,9 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 - ✅ **開 PME-E123**（2026-07-24；本地 G-PROM／G-ECON；`run_id=5`；真綠 APPLY×2→validated；`audits/PME-E123-STATUS-20260724.md`）  
 - ✅ **§4.2 執行前四判準（G-P4）**＋R7 S2 掛接（`audits/ROADMAP-R7-GATE-PME-20260724.md`／`ROADMAP-R7-S2-CLOSED-20260724.md`）  
 - ✅ **開 U-PME**（2026-07-24；`audits/PME-ULTRACODE-20260724.md`；A11 PASS；G-PME-PRODSET／DEMOTE 入帳）  
+- ✅ **PME 補 A7（非假綠）**（2026-07-24；`audits/PME-A7-STATUS-or-CLOSED-20260724.md`；violations=0；raw_desync=21＝gate_rejected）  
 - ✅ 誠實標出與「系統建議，人決策／非自動駕駛」之張力；**靈魂措辭另案 pending**  
-- ❌ **未**多數特徵 G-PROM PASS、**未** A7 全閉、**未**生產特徵集真登錄、未改 [N]、未解凍 API、未自動下單、未開 U7  
+- ❌ **未**多數特徵 G-PROM PASS、**未**生產特徵集真登錄、未改 [N]、未解凍 API、未自動下單、未開 U7  
 - ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝本地真裁決（多數 FAIL／SKIP，非假綠） 
 
 ---

@@ -12,7 +12,7 @@
 |---|---|
 | 計畫採納 | ✅ 本檔＝哲學↔市場進化閉環執行藍圖 |
 | 執行授權 | ✅ **已開**（「開 PME」；近程＝S0／S1／零 API S2 骨架＋KILL＋AUTO-B 路徑） |
-| 上線自治 | ✅ **PME-AUTO-B**＋**PME-KILL**（E123 真綠 APPLY×2；U-PME DONE；PRODSET／A7 仍 partial） |
+| 上線自治 | ✅ **PME-AUTO-B**＋**PME-KILL**（E123 真綠 APPLY×2；U-PME DONE；A7 CLOSED；PRODSET 仍 partial） |
 | FinMind／FRED 凍結 | ⚠ **FZ-keep＝凍結維持** |
 | Dividend 邊界 | ⚠ API 線 PAUSED；覆蓋標 blocked_div |
 | 靈魂［N］ | ⚠ **靈魂措辭另案 pending**（本輪不改原文） |
@@ -31,9 +31,10 @@
 * ✅ Steward「**開 PME-E123**」＋「**PME 跑本地 G-PROM＋G-ECON（零 API）**」→ 見 `audits/PME-E123-STATUS-20260724.md`
 * ✅ `run_id=5` local_gates；真綠 APPLY×2；principle validated=2
 * ✅ Steward「**開 U-PME**」→ `audits/PME-ULTRACODE-20260724.md`（A11 PASS；G-PME-PRODSET／DEMOTE 入帳）
-* ⚠ A7 仍 partial；靈魂措辭 pending；生產集登錄 partial；FZ-keep 維持
+* ✅ A7 CLOSED（`audits/PME-A7-STATUS-or-CLOSED-20260724.md`；violations=0；raw=21 誠實分類）
+* ⚠ 靈魂措辭 pending；生產集登錄 partial；FZ-keep 維持
 
 ## 下一步
 
-* 「**PME 補生產集登錄（消歧或真寫）**」或「**PME 補 A7 desync 規則（非假綠）**」或「**開 U7**」  
+* 「**PME 補生產集登錄（消歧或真寫）**」或「**開 U7**」  
 * 仍禁 FinMind／FRED、仍禁自動下單、仍禁假確立級；靈魂措辭另案另開

@@ -2,9 +2,9 @@
 
 🎯 這支在做什麼（白話）：把「假說→市場重驗→有界自動晉升」的機械閘與緊急停做成
    可回歸的 library（零 IO `--selftest`）。不進預測 runtime；不生成原則；不含下單。
-   編排腳本（coverage／run／apply／kill-switch）呼叫本模組；G-PROM／G-ECON 證據由
-   呼叫端餵入——skeleton 可誠實 SKIP；`--local-gates` 餵本地重算證據後裁決 PASS／FAIL／SKIP
-   （SKIP ≠ PASS），禁 FinMind／FRED、禁為跑閘 sync。
+   編排腳本（coverage／run／apply／kill-switch／A7 status sync）呼叫本模組；G-PROM／G-ECON
+   證據由呼叫端餵入——skeleton 可誠實 SKIP；`--local-gates` 餵本地重算後裁決 PASS／FAIL／SKIP
+   （SKIP ≠ PASS）。A7：status=validated 僅認 promote APPLY；map validated_*≠假綠授權。
 
 守 #1 #14 #15 #18；計畫 SSOT＝reports/augur_philosophy_market_evolution_loop_plan_20260724.md。
 
@@ -32,6 +32,22 @@ KILL_HALT = "halt"
 KILL_STATES = (KILL_CLEAR, KILL_HALT)
 
 COVERAGE_CLASSES = ("mapped", "missing", "retired", "blocked_div")
+
+# A7：philosophy_principle.status ↔ 晉升實證（抽樣／分類規則釘死）
+# 不變式：map.validated_* 存在 ≠ 得翻 status=validated（須雙閘 APPLY；禁假綠）
+STATUS_ALIGNMENT_CLASSES = (
+    "aligned_validated",            # status=validated ∧ promote applied
+    "aligned_untested_clean",       # untested ∧ 無 map validated_*
+    "map_evidence_gate_rejected",   # untested ∧ 有 validated_* ∧ rejected_gate（誠實殘留）
+    "map_evidence_pending_auto",    # untested ∧ pending_auto（待 APPLY）
+    "map_evidence_no_queue",        # untested ∧ 有 validated_* ∧ 尚無 queue
+    "apply_lag",                    # 已 promote applied 但 status≠validated（可機械收斂）
+    "fake_validated",               # status=validated 卻無 promote apply（A7 違規）
+    "coverage_blocked_or_missing",  # 僅 blocked_div／missing／retired；禁冒充已對齊 validated
+)
+
+# 僅此二類＝A7 違規；raw untested∩validated_* 在 gate_rejected 下≠違規
+A7_VIOLATION_CLASSES = frozenset({"fake_validated", "apply_lag"})
 
 # G-DIV-1 PAUSED：股息族覆蓋／重驗／上線不得標完備（計畫 §3.1）
 BLOCKED_DIV_FEATURES = frozenset({
@@ -439,6 +455,65 @@ def status_after_apply(action: str, before: str | None) -> str:
     return before or "untested"
 
 
+def classify_status_alignment(
+    *,
+    status: str,
+    has_map_validated: bool,
+    has_promote_applied: bool,
+    has_pending_auto: bool = False,
+    has_rejected_gate: bool = False,
+    coverage_classes: frozenset[str] | set[str] | tuple[str, ...] | None = None,
+) -> str:
+    """A7 對齊分類（純函式）。
+
+    抽樣規則：
+      1) status=validated 僅當存在 promote APPLY 證據 → aligned_validated；否則 fake_validated
+      2) promote applied 但 status 未翻 → apply_lag（可 sync；非假綠來源）
+      3) untested ∧ map validated_* ∧ rejected_gate → map_evidence_gate_rejected（誠實；禁翻 validated）
+      4) untested ∧ pending_auto → map_evidence_pending_auto（等 APPLY，禁預先翻）
+      5) untested ∧ 無 validated_* → aligned_untested_clean
+      6) 僅 blocked_div／missing／retired → coverage_blocked_or_missing（禁冒充已對齊）
+    """
+    st = (status or "untested").strip().lower()
+    cov = frozenset(coverage_classes or ())
+    only_non_mapped = bool(cov) and cov <= frozenset({"blocked_div", "missing", "retired"})
+
+    if has_promote_applied:
+        if st == "validated":
+            return "aligned_validated"
+        return "apply_lag"
+
+    if st == "validated":
+        return "fake_validated"
+
+    if only_non_mapped and not has_map_validated:
+        return "coverage_blocked_or_missing"
+
+    if not has_map_validated:
+        return "aligned_untested_clean"
+
+    # 以下：untested（或非 validated）且有 map validated_*，無 promote apply
+    if has_pending_auto:
+        return "map_evidence_pending_auto"
+    if has_rejected_gate:
+        return "map_evidence_gate_rejected"
+    return "map_evidence_no_queue"
+
+
+def sync_action_for_alignment(alignment: str) -> str | None:
+    """機械收斂動作；禁對 gate_rejected／pending／no_queue／blocked 翻 validated。"""
+    if alignment == "apply_lag":
+        return "set_validated"
+    if alignment == "fake_validated":
+        return "rollback_untested"
+    return None
+
+
+def is_a7_violation(alignment: str) -> bool:
+    """A7 違規＝假綠或 APPLY 後 status 未收斂；≠ raw untested∩validated_*。"""
+    return alignment in A7_VIOLATION_CLASSES
+
+
 def _selftest() -> int:
     ok = True
 
@@ -485,6 +560,60 @@ def _selftest() -> int:
     chk("attest complete", attest_complete(code_sha="abc", since_date="2021-01-01", horizon_h=60, config_json=DEFAULT_GATE_CONFIG))
     chk("attest incomplete", not attest_complete(code_sha="", since_date="2021-01-01", horizon_h=60, config_json={}))
     chk("status promote→validated", status_after_apply("promote", "untested") == "validated")
+    # A7 分類規則（禁假綠）
+    chk(
+        "A7 aligned_validated",
+        classify_status_alignment(
+            status="validated", has_map_validated=True, has_promote_applied=True
+        )
+        == "aligned_validated",
+    )
+    chk(
+        "A7 fake_validated",
+        classify_status_alignment(
+            status="validated", has_map_validated=True, has_promote_applied=False
+        )
+        == "fake_validated",
+    )
+    chk(
+        "A7 gate_rejected ≠ flip",
+        classify_status_alignment(
+            status="untested",
+            has_map_validated=True,
+            has_promote_applied=False,
+            has_rejected_gate=True,
+        )
+        == "map_evidence_gate_rejected",
+    )
+    chk(
+        "A7 sync rejects gate_rejected",
+        sync_action_for_alignment("map_evidence_gate_rejected") is None,
+    )
+    chk(
+        "A7 sync apply_lag→set_validated",
+        sync_action_for_alignment("apply_lag") == "set_validated",
+    )
+    chk(
+        "A7 sync fake→rollback",
+        sync_action_for_alignment("fake_validated") == "rollback_untested",
+    )
+    chk(
+        "A7 pending ≠ violation sync",
+        sync_action_for_alignment("map_evidence_pending_auto") is None
+        and not is_a7_violation("map_evidence_pending_auto"),
+    )
+    chk("A7 violation fake", is_a7_violation("fake_validated"))
+    chk("A7 gate_rejected not violation", not is_a7_violation("map_evidence_gate_rejected"))
+    chk(
+        "A7 blocked_or_missing",
+        classify_status_alignment(
+            status="untested",
+            has_map_validated=False,
+            has_promote_applied=False,
+            coverage_classes={"blocked_div", "missing"},
+        )
+        == "coverage_blocked_or_missing",
+    )
     chk("map_action freeze blocked", map_action_from_evidence(coverage_class="blocked_div", g_prom_pass=True, g_econ_pass=True) == "freeze")
     chk("DEFAULT_GATE_CONFIG fz_keep", DEFAULT_GATE_CONFIG.get("fz_keep") is True)
     chk("soul wording pending flag", DEFAULT_GATE_CONFIG.get("soul_wording_pending") is True)
@@ -523,5 +652,6 @@ if __name__ == "__main__":
     print((__doc__ or __name__).split("🎯")[0].strip())
     print("公開入口: classify_coverage / build_gate_json / all_gates_green / may_apply /")
     print("          decide_queue_status / normalize_kill_state / scan_noexec_text / attest_complete /")
-    print("          evaluate_g_prom_from_evidence / evaluate_g_econ_from_evidence")
+    print("          evaluate_g_prom_from_evidence / evaluate_g_econ_from_evidence /")
+    print("          classify_status_alignment / sync_action_for_alignment / is_a7_violation")
     print("(自測: python -m augur.philosophy.evolution --selftest；免 DB 免 API)")

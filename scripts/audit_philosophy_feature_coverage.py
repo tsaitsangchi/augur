@@ -2,15 +2,16 @@
 """哲學假說↔特徵覆蓋審計 — PME S0 盤點＋S1 覆蓋（零市場 API）。
 
 🎯 這支在做什麼（白話）：讀 philosophy_*／principle_factor_map／feature_values，印 S0 現況
-   （schools／principles status／validated 覆蓋／G-ISO）與 S1 覆蓋類別
+   （schools／principles status／validated 覆蓋／G-ISO／A7 對齊）與 S1 覆蓋類別
    （mapped｜missing｜retired｜blocked_div）。可選寫 evolution_coverage_snapshot。
    dividend 族標 blocked_div（G-DIV-1 PAUSED）；禁把 missing 當已驗證。
+   raw desync≠假綠授權；A7 細類見 sync_philosophy_principle_status。
 
-守 #1 #15 #29；計畫 §4 S0／S1；FZ-keep。
+守 #1 #15 #29；計畫 §4 S0／S1／A7；FZ-keep。
 
 執行指令矩陣:
   python scripts/audit_philosophy_feature_coverage.py              # S0+S1 報告（唯讀）
-  python scripts/audit_philosophy_feature_coverage.py --inventory  # 僅 S0
+  python scripts/audit_philosophy_feature_coverage.py --inventory  # 僅 S0（含 A7 摘要）
   python scripts/audit_philosophy_feature_coverage.py --write-snapshot  # 需表；建 coverage run＋寫入
   python scripts/audit_philosophy_feature_coverage.py --selftest   # 免 DB
 """
@@ -20,6 +21,7 @@ import argparse
 import json
 import subprocess
 import sys
+from collections import Counter
 from datetime import date
 
 import _bootstrap  # noqa: F401
@@ -27,6 +29,8 @@ import _bootstrap  # noqa: F401
 from augur.philosophy.evolution import (
     DEFAULT_GATE_CONFIG,
     classify_coverage,
+    classify_status_alignment,
+    is_a7_violation,
     KILL_CLEAR,
 )
 
@@ -41,6 +45,17 @@ def _selftest() -> int:
 
     chk("blocked_div 優先於 in_fv", classify_coverage("dividend_yield", in_feature_values=True) == "blocked_div")
     chk("missing", classify_coverage("roe", in_feature_values=False) == "missing")
+    chk(
+        "A7 rejected not fake-green",
+        classify_status_alignment(
+            status="untested",
+            has_map_validated=True,
+            has_promote_applied=False,
+            has_rejected_gate=True,
+        )
+        == "map_evidence_gate_rejected"
+        and not is_a7_violation("map_evidence_gate_rejected"),
+    )
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 
@@ -92,6 +107,68 @@ def inventory(cur) -> dict:
         """
     )
     out["status_desync_principles"] = cur.fetchone()[0]
+    # A7 細類（與 sync_philosophy_principle_status 同規則；禁把 raw desync 當假綠）
+    cur.execute("SELECT to_regclass('public.promotion_queue')")
+    has_queue = cur.fetchone()[0] is not None
+    if not has_queue:
+        out["a7_alignment"] = {"SKIP": "promotion_queue absent"}
+        out["a7_violations"] = -1
+        out["a7_closed"] = False
+        return out
+    cur.execute(
+        """
+        SELECT m.principle_id, m.feature,
+               EXISTS(SELECT 1 FROM feature_values fv WHERE fv.feature = m.feature) AS in_fv
+        FROM principle_factor_map m
+        """
+    )
+    cov_by: dict[int, set[str]] = {}
+    for pid, feature, in_fv in cur.fetchall():
+        cov_by.setdefault(int(pid), set()).add(
+            classify_coverage(feature, in_feature_values=bool(in_fv))
+        )
+    cur.execute(
+        """
+        SELECT p.principle_id, p.status,
+               EXISTS(
+                 SELECT 1 FROM principle_factor_map m
+                 WHERE m.principle_id = p.principle_id
+                   AND (m.validated_ic IS NOT NULL OR m.validated_econ IS NOT NULL)
+               ) AS has_map_validated,
+               EXISTS(
+                 SELECT 1 FROM promotion_queue q
+                 JOIN evolution_apply_log a ON a.queue_id = q.queue_id
+                 WHERE q.principle_id = p.principle_id
+                   AND q.action = 'promote' AND q.queue_status = 'applied'
+               ) AS has_promote_applied,
+               EXISTS(
+                 SELECT 1 FROM promotion_queue q
+                 WHERE q.principle_id = p.principle_id AND q.queue_status = 'pending_auto'
+               ) AS has_pending_auto,
+               EXISTS(
+                 SELECT 1 FROM promotion_queue q
+                 WHERE q.principle_id = p.principle_id AND q.queue_status = 'rejected_gate'
+               ) AS has_rejected_gate
+        FROM philosophy_principle p
+        """
+    )
+    tallies: Counter[str] = Counter()
+    n_viol = 0
+    for pid, status, has_mv, has_pa, has_pend, has_rej in cur.fetchall():
+        al = classify_status_alignment(
+            status=status,
+            has_map_validated=bool(has_mv),
+            has_promote_applied=bool(has_pa),
+            has_pending_auto=bool(has_pend),
+            has_rejected_gate=bool(has_rej),
+            coverage_classes=cov_by.get(int(pid), frozenset()),
+        )
+        tallies[al] += 1
+        if is_a7_violation(al):
+            n_viol += 1
+    out["a7_alignment"] = dict(tallies)
+    out["a7_violations"] = n_viol
+    out["a7_closed"] = n_viol == 0
     return out
 
 
@@ -124,9 +201,12 @@ def print_report(inv: dict, rows: list[dict], *, inventory_only: bool) -> None:
     print(f"  principle_status={inv['principle_status']}")
     print(f"  validated_ic={inv['validated_ic']}  validated_econ={inv['validated_econ']}")
     print(f"  status_desync(untested∩validated_*)={inv['status_desync_principles']}")
+    print(f"  a7_alignment={inv.get('a7_alignment', {})}")
+    print(f"  a7_violations={inv.get('a7_violations', '?')}  a7_closed={inv.get('a7_closed', '?')}")
     print(f"  G-ISO={iso}" + (f" violations={n_iso}" if n_iso >= 0 else ""))
     print("  ⚠ FZ-keep：FinMind／FRED 凍結；G-DIV-1 Dividend PAUSED；禁確立級宣稱")
     print("  ⚠ [I] 靈魂措辭另案 pending（PME-AUTO-B 張力；不擅改 [N]）")
+    print("  ⚠ A7：raw desync≠假綠；細分／heal → sync_philosophy_principle_status.py")
     if inventory_only:
         return
     tallies: dict[str, int] = {}
