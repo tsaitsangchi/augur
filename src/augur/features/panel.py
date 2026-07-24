@@ -31,7 +31,15 @@ import pandas as pd
 from psycopg2.extras import execute_values
 
 from augur.core import db
-from augur.features import chip, concentration, margin_cycle, phase, release_lag, valuation  # F2b 籌碼 + F2c 估值 + 八二集中度 + 康波相位/毛利循環 + 發布日 gate
+from augur.features import (  # F2b 籌碼 + F2c 估值 + 八二集中度 + 康波相位/毛利循環 + 發布日 gate + 基本面
+    chip,
+    concentration,
+    fundamentals,
+    margin_cycle,
+    phase,
+    release_lag,
+    valuation,
+)
 
 FEATURE_TABLE = "feature_values"
 # recency gate(operational、透明揭露;審查 R3/R4/R7):最近還原價距 panel 超過此日數＝下市/長停更 →
@@ -159,6 +167,7 @@ def build_panel(conn, panel_date, stock_ids, *, progress=None):
         with db.transaction(conn) as cur:                              # 康波相位 C2/C4 + C3 毛利循環(需 cur 查法人累計流/財報;各自算不出已過濾)
             feats.update(phase.compute_phase_features(cur, sid, panel_date, df))
             feats.update(margin_cycle.compute_margin_cycle_features(cur, sid, panel_date))  # C3 毛利循環相位(發布日 gate、過四道漏斗+#14+#15)
+            feats.update(fundamentals.compute_fundamental_features(cur, sid, panel_date))  # MAP-E012：roe／debt_ratio（#8 gate）
         if not feats:
             continue
         data = [(panel_date, sid, f, v) for f, v in feats.items()]
