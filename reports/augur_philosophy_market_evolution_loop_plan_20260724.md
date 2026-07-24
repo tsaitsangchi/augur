@@ -464,7 +464,7 @@ PME-P-yes + PME-AUTO-B + PME-KILL + FZ-keep
 - ✅ **開 U-PME**（2026-07-24；`audits/PME-ULTRACODE-20260724.md`；A11 PASS；G-PME-PRODSET／DEMOTE 入帳）  
 - ✅ **PME 補 A7（非假綠）**（2026-07-24；`audits/PME-A7-STATUS-or-CLOSED-20260724.md`；violations=0；raw_desync=21＝gate_rejected）  
 - ✅ 誠實標出與「系統建議，人決策／非自動駕駛」之張力；**靈魂措辭另案 pending**  
-- ❌ **未**多數特徵 G-PROM PASS、**未**生產特徵集真登錄、未改 [N]、未解凍 API、未自動下單、未開 U7  
+- ❌ **未**多數特徵 G-PROM PASS、**未**生產特徵集真登錄、未改 [N]、未解凍 API、未自動下單；✅ U7 已開（R7 閘對抗；≠本閉環 Efull）  
 - ⚠ G-DIV-1 PAUSED；evaluated_pass＝0；確立級仍禁；G-PROM／G-ECON＝本地真裁決（多數 FAIL／SKIP，非假綠） 
 
 ---

@@ -14,5 +14,5 @@
 | **G-PME-STATUS** | known／open → partial | **none** | A7 CLOSED：規則釘死；violations=0；raw_desync=21＝`map_evidence_gate_rejected`（禁假翻） |
 | **G-PME-SOUL** | — | **pending** | 靈魂措辭另案；U-PME：未謊稱已修 [N] |
 | **G-PME-U** | open | **none** | U-PME DONE（`audits/PME-ULTRACODE-20260724.md`；A11 PASS） |
-| **G-PME-PRODSET** | — | **partial** | U-PME F-U-PME-7：`production_set_delta` 僅 log；無生產登錄表寫入 |
+| **G-PME-PRODSET** | — | **partial** | U-PME F-U-PME-7：`production_set_delta` 僅 log；無生產登錄表寫入；**U7 交叉確認**未因 R7 閘 PASS 假關（`audits/ROADMAP-U7-R7-ULTRACODE-20260724.md` F-U7-2） |
 | **G-PME-DEMOTE** | — | **doc-only** | U-PME F-U-PME-8：閘紅＝rejected_gate；降級 status 未自動執行 |
