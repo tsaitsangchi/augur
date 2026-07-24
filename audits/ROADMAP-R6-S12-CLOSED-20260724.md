@@ -19,7 +19,7 @@
 |---|---|---|
 | **A1** | **PASS** | `chk_itext_owned_local_private` 在 `knowledge_item_text`；admission health schema ✓ |
 | **A2** | **PASS** | `knowledge_fulltext_status`＋status CHECK；`migrate_fulltext_status_ddl.py --check` ✓；終態帳非空（含 skip_no_oa／skip_license 等） |
-| **A3** | **PASS** | 哨兵掃 HANDOFF／路線圖／R6 計畫／Gap／R6 audits：零「僅 metadata＝完成／可答」肯定宣稱 |
+| **A3** | **PASS** | 哨兵掃 HANDOFF／路線圖／R6 計畫／Gap／R6 audits：抽樣無半套完成／可答肯定宣稱（禁 metadata 當可答） |
 | **A4** | **PASS** | `pytest tests/test_philosophy_isolation.py` → **9 passed** |
 | **A5** | **PASS** | app session ≠ `augur_predict`；predict 對 knowledge／philosophy SELECT＝false（3/3） |
 | **A6** | **PASS** | `verify_knowledge_e2e_smoke.py --run` exit 0（含 private 反向零外洩＋隔離斷言）；經 `verify_roadmap_r6_s12.py --with-smoke` |
@@ -29,6 +29,8 @@
 | **A10** | **PASS** | G-ISO-1／G-FT-1 維持 **none**；G-KDO-1 仍 **calendar**／DEFER（未假關） |
 
 **近程 R6-E12 定義**＝A1–A8＋A10 PASS 且 A9 SKIP 誠實 — ✅ 本檔滿足。
+
+> **A3 復驗（同日）**：閉合檔曾以「零「僅 metadata＝…」」點名禁句觸發哨兵假陽性；已改敘述＋哨兵 `_A3_NEG` 納入審計點名免誤抓；`verify_roadmap_r6_s12.py --with-smoke` 再親驗綠。
 
 ## Gap
 

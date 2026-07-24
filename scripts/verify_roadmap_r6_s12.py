@@ -53,7 +53,8 @@ _A3_PAT = re.compile(
 )
 _A3_NEG = re.compile(
     r"(禁|不得|≠|非|不是|勿|仍禁|攻擊|FAIL|停手|禁止|緩解|風險|焦點|"
-    r"半套|不得只抓|不得謊稱|非止於|≠可答|誠實)"
+    r"半套|不得只抓|不得謊稱|非止於|≠可答|誠實|"
+    r"零「|抽樣無|無半套|哨兵掃)"  # 閉合／審計敘述「點名禁句≠自稱完成」
 )
 _A3_SCOPE = [
     REPO / "HANDOFF.md",
@@ -82,6 +83,9 @@ def _selftest() -> int:
     chk("A3 風險列不誤抓", not bool(_A3_PAT.search(risk)))
     claim = "本輪 harvest 完成＝僅 metadata 即可答"
     chk("A3 肯定半套可抓", bool(_A3_PAT.search(claim) and not _A3_NEG.search(claim)))
+    audit = "哨兵掃 Gap：零「僅 metadata＝完成／可答」肯定宣稱"
+    chk("A3 審計點名禁句不誤抓",
+        not (_A3_PAT.search(audit) and not _A3_NEG.search(audit)))
     chk("矩陣字串在 docstring", "執行指令矩陣" in (__doc__ or ""))
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
