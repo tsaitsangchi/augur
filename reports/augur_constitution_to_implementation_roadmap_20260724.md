@@ -185,6 +185,8 @@
 3. 階段邊界跑 ultracode 或審議引擎（機械可驗優先本地）。  
 4. major／治權判準變更 → Steward；不假關 10-14 項。
 
+**獨立計畫已出／待拍板（R7 候選，不取代本節產品全貌）**：哲學↔市場進化閉環＝`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`（Steward 意向 **PME-AUTO-B**；正式碼待 `PME-P-yes`＋`PME-AUTO-B`［＋`PME-KILL`］；未回碼不實作）。
+
 ---
 
 ## 4. Ultracode 如何完善「計畫」與「落地」
@@ -341,8 +343,9 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **R6 計畫已拍板**（2026-07-24；`R6-P-yes`＋`R6-E12`＋`HAR-local`＋`FZ-keep`；`audits/ROADMAP-R6-PLAN-APPROVED-20260724.md`）  
 - ✅ **R6 S1＋S2 閉**（2026-07-24；「開 R6」；`audits/ROADMAP-R6-S12-CLOSED-20260724.md`；哨兵 `--with-smoke` PASS）  
 - ✅ **U6 DONE**（2026-07-24；「開 U6」；`audits/ROADMAP-U6-R6-ULTRACODE-20260724.md`；G-HAR-1 partial）  
+- ✅ **哲學↔市場進化閉環獨立計畫已出**（2026-07-24；`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`；意向 PME-AUTO-B；**待正式拍板碼**）  
 - ❌ 未改任何 [N]  
-- ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 HAR-ext／S3a；**未**閉合 universe→econ 全量產品半系統  
+- ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 HAR-ext／S3a；**未**閉合 universe→econ 全量產品半系統；**未**實作進化閉環  
 
 - ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5 時已重跑親驗**，不得把舊 wiring 表當永真  
 
