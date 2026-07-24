@@ -357,6 +357,7 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **G-PME-SOUL CLOSED**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；靈魂／#20／A.53；MC P5 條文未改；`audits/G-PME-SOUL-CLOSED-20260724.md`）  
 - ❌ **未**解凍 FinMind／FRED（FZ-keep）；**未**宣稱確立級／可交易／可答完備；**未**開 HAR-ext／S3a；**未**閉合 universe→econ 全量產品半系統；**`PME-Efull-yes`＝機械完備仍≠對外可交易完備**；**MC [N] 本輪未改**
 - ✅ **prodset→預測熱路徑：S123 CLOSED＋U-P2H DONE**（2026-07-24；四碼 `P2H-P-yes`＋`P2H-E123`＋`FC-empty`＋`FZ-keep`；`audits/P2H-PLAN-APPROVED-20260724.md`／`P2H-S123-CLOSED-20260724.md`／`P2H-ULTRACODE-20260724.md`；計畫＝`reports/augur_prodset_predict_hotpath_plan_20260724.md`）—**G-PME-HOTPATH=none**；n_feats=2 誠實極窄；接線≠解凍／≠可交易
+- ⏳ **擴大假說／map 覆蓋：計畫已出、待拍板**（2026-07-24；`reports/augur_pme_expand_hypothesis_map_coverage_plan_20260724.md`；建議 `MAP-P-yes`＋`MAP-E012`＋`FZ-keep`＋`GATE-keep`）—再晉升後雙綠仍 2；主路徑＝策展＋庫內可建特徵；**≠**解凍 Dividend／≠放寬閘
 - ✅ **預測↔API 正交＋追溯**（2026-07-24；Steward）：庫內切分即可預測；凍結仍凍取數；預測拍板不因凍結否決 — `audits/PREDICT-ORTHOGONAL-API-RULING-20260724.md` · `audits/PREDICT-ORTHOGONAL-RETROACTIVE-APPROVALS-20260724.md`
 
 - ⚠ construction v4 時點為 2026-07-13；HANDOFF STATE 為 2026-07-23——**執行 R3／R4／U4／R5 時已重跑親驗**，不得把舊 wiring 表當永真  
@@ -364,7 +365,7 @@ Steward 指令「**閉合 R0**」＝以下組合**即書面〔A〕**（路線圖
 - ✅ **落地盤點已出**（2026-07-24；文件盤點／呈核；`audits/ROADMAP-LANDING-INVENTORY-20260724.md`）——機械近程大致齊；**產品完備＝否**；**可解凍＝否**（預測正交 ≠ 解凍）
 - ✅ **INV-1 已拍 `INV1-LAND-MECH`**（2026-07-24；「全部落地」＝機械近程＋另帳；`audits/ROADMAP-INV1-FULL-LANDING-DEFINITION-20260724.md`／`ROADMAP-INV1-APPROVED-20260724.md`）——附 **`INV2-THAW-STILL-REQUIRED`** → **仍凍**（缺明示解凍句）；**未**採 LAND-PROD；**未**改 [N]
 
-**建議下一句（對齊近程優先 2026-07-24）**：「**維持 FZ-keep；續 PME／map（INV-4／INV-5）**」——INV-1／INV-2 已釘；**仍禁**自解凍、**仍禁**假關確立級／可交易。
+**建議下一句（對齊近程優先 2026-07-24）**：「**維持 FZ-keep；拍板／開擴大假說／map 覆蓋（MAP-P-yes＋MAP-E012）**」——INV-1／INV-2 已釘；**仍禁**自解凍、**仍禁**假關確立級／可交易。
 
 ---
 
