@@ -97,7 +97,7 @@
 
 **驗收**：`from augur.core import db; db.ping()`；`pip install -e .` 後 scripts 個別可執行（#29）。
 
-**狀態**：✅ **DONE**（2026-07-24）。Steward 本機：PG 17 online、`db.ping()=True`、AUD-02 pytest **15 passed**、ollama 就緒。親驗證據：`audits/ROADMAP-R1-ENV-STATUS-20260724.md`。殘留（不擋 R1）：`--check` 顯示 append-only trigger／tombstone 尚未套用 → 可另跑 `migrate_raw_supersede_ddl.py`（無 `--check`）。
+**狀態**：✅ **DONE**（2026-07-24）。Steward 本機：PG 17 online、`db.ping()=True`、AUD-02 pytest **15 passed**、ollama 就緒；其後 superuser 重跑 `migrate_raw_supersede_ddl.py` **全 ✓**（trigger／tombstone 硬化已解消）。親驗證據：`audits/ROADMAP-R1-ENV-STATUS-20260724.md`。
 
 **Ultracode**：通常不需；若換機反覆失敗，用審議引擎對「環境宣稱」做 oracle 裁（本地優先 #28）。
 

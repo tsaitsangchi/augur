@@ -33,21 +33,13 @@ pytest tests/test_raw_supersede_log.py → 15 passed in 0.79s
 
 ## AUD-02 硬化殘留（不擋 R1 DONE）
 
-`--check` 報告：
-
-* triggers(append-only + no-truncate)：**(無)**
-* tombstone SECURITY DEFINER：**(無)**
-* 表 COMMENT：**(無)**
-
-表本體已在、pytest 行為層全綠；append-only／tombstone DDL 可能尚未 apply。建議另指令：
+**已解消**（2026-07-24 Steward 本機，superuser 重跑）：
 
 ```bash
-./venv/bin/python scripts/migrate_raw_supersede_ddl.py   # 無 --check＝執行硬化 DDL
-./venv/bin/python scripts/migrate_raw_supersede_ddl.py --check
+DB_USER="${DB_SUPERUSER_USER:-postgres}" DB_PASSWORD="${DB_SUPERUSER_PASSWORD}" \
+  ./venv/bin/python scripts/migrate_raw_supersede_ddl.py
+# → 全 ✓（含 append_only／no_truncate／tombstone／REVOKE）
+# --check → triggers＋tombstone SECURITY DEFINER✓；列數 0
 ```
 
-## 刻意不做
-
-* 假關 10-14／039
-* 未改 MC／specs [N]
-* 本輪未代跑 hardening apply（待 Steward「套用 AUD-02 硬化」）
+應用角色 `augur` 不可 REPLACE owner 函式（預期）；hardening apply 須 superuser／owner。
