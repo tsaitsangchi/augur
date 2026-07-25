@@ -86,7 +86,8 @@ DDL = [
         CREATE TABLE IF NOT EXISTS mc_simulation_run (
           run_id text PRIMARY KEY, target_id text NOT NULL, asof_date date NOT NULL,
           horizon_td integer NOT NULL,
-          method text NOT NULL CHECK (method IN ('iid_bootstrap','block_bootstrap')),
+          method text NOT NULL CHECK (method IN ('iid_bootstrap','block_bootstrap',
+            'episode_replay_2008','episode_replay_2020','episode_replay_2022')),
           block_len_td integer, n_paths integer NOT NULL, seed integer NOT NULL,
           summary jsonb NOT NULL,
           is_simulation boolean NOT NULL DEFAULT true CHECK (is_simulation),
