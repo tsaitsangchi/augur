@@ -35,7 +35,7 @@ import _bootstrap  # noqa: F401
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 MATRIX_STR = "執行指令矩陣"
-SKIP_DIRS = {".venv", "venv", "__pycache__", ".git", "node_modules",
+SKIP_DIRS = {".venv", "venv", ".gpu-test-venv", "__pycache__", ".git", "node_modules",
              ".mypy_cache", ".pytest_cache", ".idea", ".cache"}
 SCAN_TOP_DIRS = ("scripts", "src", "tools", "ops", "augur_proxy", "tests")
 NAMED_ENTRY_FILES = {"__main__.py", "selftest.py", "measure.py"}

@@ -105,6 +105,7 @@ def freeze(dry_run=False, role="deploy"):
             print("\n[dry-run] 不寫 revalidation_baseline。")
             return 0
         with db.transaction(conn) as cur:
+            cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(freeze upsert 合法路)
             for uni, net, bench, ht, defl, n, src, note in rows:
                 cur.execute(
                     "INSERT INTO revalidation_baseline "

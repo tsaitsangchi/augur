@@ -120,7 +120,8 @@ def vol_target_series(series, ppy, target_ann_vol=None, lookback=4, max_scale=1.
     """波動率目標 overlay(P4,alpha 1-4;誠實化籃=分母工程):逐期以 **trailing ≤t−1** 已實現 vol 縮放曝險。
 
     scale_t = min(max_scale, target/realized_{t-lookback..t-1});首 lookback 期無足夠歷史→scale=1
-    (dormant,誠實揭露);target_ann_vol=None→用全序列已實現年化 vol(口徑內生、零外生魔數,預註冊單點)。
+    (dormant,誠實揭露);target_ann_vol=None→用**首 lookback 窗**已實現年化 vol(口徑內生、零外生魔數,單點且僅取最早
+    資料=無前視;2026-07-25 修:原「全序列 vol」含未來資訊、實測未來值可位移歷史 scale,#8 違規、生產零呼叫端未污染)。
     long-only 無槓桿:max_scale=1.0=只縮不放(縮=部分轉現金,現金報酬 0 保守)。
     回 (scaled_series, scales, dormant_n)。#8:scale_t 嚴禁用 t 期當期報酬。純函式(selftest 可測)。"""
     s = np.asarray(series, float)
@@ -128,7 +129,8 @@ def vol_target_series(series, ppy, target_ann_vol=None, lookback=4, max_scale=1.
     if n == 0:
         return [], [], 0
     if target_ann_vol is None:
-        target_ann_vol = float(np.std(s, ddof=1)) * float(np.sqrt(ppy)) if n > 1 else 0.0
+        head = s[:lookback] if n > lookback else s                       # 僅最早窗(#8:不含未來)
+        target_ann_vol = float(np.std(head, ddof=1)) * float(np.sqrt(ppy)) if len(head) > 1 else 0.0
     scales, dormant = [], 0
     for t in range(n):
         if t < lookback:
@@ -255,8 +257,12 @@ def _selftest():
     chk("vol_target:首 lookback 期 dormant=scale 1", dn == 4 and all(x == 1.0 for x in sc[:4]))
     chk("vol_target:高 vol 段被縮(scale<1)", sc[-1] < 1.0 and abs(vt[-1]) < abs(spike[-1]))
     chk("vol_target:平靜段不放大(max_scale=1)", all(x <= 1.0 for x in sc))
-    _, sc2, _ = vol_target_series(calm + [9.9], ppy=4.0, lookback=4)
-    chk("vol_target:#8 無前視——t 期爆量不影響 t 期 scale(仍由 ≤t−1 決定)", sc2[-1] == sc[len(calm)] or sc2[-1] == 1.0)
+    base8 = [0.01, -0.02, 0.015, -0.01, 0.02, -0.015, 0.01, -0.02, 0.01, 0.015]
+    mut8 = base8[:8] + [0.30, -0.35]
+    _, sa, _ = vol_target_series(base8, ppy=12.0, lookback=4)
+    _, sb, _ = vol_target_series(mut8, ppy=12.0, lookback=4)
+    chk("vol_target:#8 無前視——改動未來(t=8,9)不得位移任何 t≤7 的 scale(真變異測試,2026-07-25 換掉 or-恆真假綠鎖)",
+        all(abs(a - b) < 1e-12 for a, b in zip(sa[:8], sb[:8])))
 
     # _metrics:全正報酬 hit_rate=1、len<2→{}
     m = _metrics([0.1, 0.1, 0.1], 1.0)

@@ -127,6 +127,7 @@ def main(argv=None):
                 cur.execute(ddl)
                 print(f"✓ {label}")
             if not args.no_backfill:
+                cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(ON CONFLICT UPDATE 合法路)
                 cur.execute(BACKFILL)
                 print(f"✓ backfill from revalidation_ledger (rowcount={cur.rowcount})")
         _verify(cur)

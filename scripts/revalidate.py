@@ -286,6 +286,7 @@ def refresh_trial_ledger(conn):
     (禁人手,SOP §6 G7)。trial_ledger UNIQUE 鍵不含 as_of + ON CONFLICT UPDATE → 同 config 重跑不增 N
     (N 反身性已 schema 強制)、只更新最新 net_sharpe。"""
     with db.transaction(conn) as cur:
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(裸手 UPDATE 遭 trigger 拒)
         cur.execute(_TRIAL_BACKFILL)
 
 
