@@ -34,7 +34,7 @@ OLLAMA = "http://127.0.0.1:11434/api/generate"
 MODEL = "qwen3:4b"
 TOP_INSIGHTS = 60
 TOP_SEMANTICS = 200
-PACK_K = 6
+PACK_K = 10
 EVAL_N = 6
 
 
@@ -95,6 +95,32 @@ def _export_serving_pack(cur):
     print(f"serving pack {vid} → {PACK_FILE}")
 
 
+KNOWLEDGE_DOMAINS = ("quant_finance", "software_engineering")
+
+
+def _knowledge_gold(cur):
+    """收割文獻 → 地景教材(metadata 層;per-item 出處 gold+per-domain 摘覽 gold;SSOT 指針)。"""
+    out = []
+    for dom in KNOWLEDGE_DOMAINS:
+        cur.execute("""SELECT title, authors, year, venue FROM knowledge_item
+            WHERE domain=%s ORDER BY item_id DESC LIMIT 15""", (dom,))
+        rows = cur.fetchall()
+        if not rows:
+            continue
+        for title, authors, year, venue in rows[:10]:
+            q = f"文獻《{title[:80]}》的出處?"
+            a = (f"依 knowledge_item(收割層 SSOT):{(authors or '作者未載')[:120]}"
+                 f"({year or '年份未載'}),{venue or '(venue 未載)'}。domain={dom};全文/摘要以該表與"
+                 f" license 准入現況為準、不憑記憶補述內容。")
+            out.append((q, a, {"source": "knowledge_item", "domain": dom, "title": title[:80]}))
+        digest = "；".join(f"《{t[:50]}》({y or '?'})" for t, _, y, _ in rows[:8])
+        out.append((f"augur 知識庫中 {dom} 域近期收割的文獻地景?",
+                    f"依 knowledge_item 近收:{digest}。完整清單=SELECT ... WHERE domain='{dom}' ORDER BY item_id DESC;"
+                    f"內容摘要不在 metadata 層、以 license 准入後的 item_text 為準。",
+                    {"source": "knowledge_item", "domain": dom, "kind": "digest"}))
+    return out
+
+
 def _score(answer, gold):
     """CJK 雙字元組+ASCII 詞覆蓋分(2026-07-25 修:原空白切詞對中文恆零=假評分器)。"""
     import re
@@ -133,6 +159,7 @@ def cycle(do_eval=True):
             FROM column_catalog WHERE dirty_value_note IS NOT NULL OR type_caveat IS NOT NULL
             ORDER BY dataset, column_name LIMIT %s""", (TOP_SEMANTICS,))
         gold += _semantics_gold(cur.fetchall())
+        gold += _knowledge_gold(cur)
         # 入帳(append-only、prompt 去重、公開層)
         new = 0
         for q, a, ev in gold:
@@ -147,11 +174,13 @@ def cycle(do_eval=True):
         conn.commit()
         # ③ promptpack 候選(擇優=最新一批多樣抽樣:insight/semantics 各半)
         cur.execute("""(SELECT sample_id, prompt, gold_answer FROM local_model_gold_sample
-                        WHERE trigger_event->>'source'='field_correlation_baseline' ORDER BY sample_id LIMIT %s)
+                        WHERE trigger_event->>'source'='field_correlation_baseline' ORDER BY sample_id LIMIT 4)
                        UNION ALL
                        (SELECT sample_id, prompt, gold_answer FROM local_model_gold_sample
-                        WHERE trigger_event->>'source'='column_catalog' ORDER BY sample_id LIMIT %s)""",
-                    (PACK_K // 2, PACK_K - PACK_K // 2))
+                        WHERE trigger_event->>'source'='column_catalog' ORDER BY sample_id LIMIT 3)
+                       UNION ALL
+                       (SELECT sample_id, prompt, gold_answer FROM local_model_gold_sample
+                        WHERE trigger_event->>'source'='knowledge_item' ORDER BY sample_id LIMIT 3)""")
         ex = cur.fetchall()
         ids = [r[0] for r in ex]
         ph = _pack_hash(ids)

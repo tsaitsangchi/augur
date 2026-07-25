@@ -20,7 +20,7 @@
    → 預註冊 GATE(判準凍結=人簽) → 晉升=hugo 經 #11 一鍵 → shadow eval → cutover/回滾
 ```
 
-1. **樣本源（真教師訊號，非自產）**：①advisor/MCP 真實工作的教師修正（多教師抽象層：Claude／Cursor／Gemini／任何平台，交叉投票一致才入 gold）②audit escalation 的人裁結果（最高權重）③既有 171 條錨集。**隱私閘（DB CHECK 強制非腳本自律）**：含 owned_local/private citation 的樣本**禁送外部教師**（v1.37.0 Gemini 案同構）、只許本地評分或棄評。
+1. **樣本源（真教師訊號，非自產）〔v3 修訂：hugo 2026-07-25 晚拍板「所有本地 AI 進化都用本地 AI 模型、外部 token 歸零」——外部教師選項（Claude／Cursor／Gemini adapter）除役〕**：教師階層＝**①oracle 機械裁決（零 AI）②本地大模型教小模型（qwen3:8b 教 4b＝本地蒸餾，零外部）③hugo 人裁（最高權重）**；④既有 171 條錨集。確定性模板教材（SQL 事實組裝）維持零任何 AI。外部教師復用唯經 hugo 未來明示拍板反轉。**隱私閘（DB CHECK 強制非腳本自律）**：含 owned_local/private citation 的樣本**禁送外部教師**（v1.37.0 Gemini 案同構）、只許本地評分或棄評。
 2. **訓練＝本機階梯（v3 修訂：hugo 2026-07-25 宣告無 GB10、僅本機可用）**——
    - **Tier 1（主力、立即可行、零訓練）：prompt-pack／few-shot 演化**——從 gold 帳本擇優 exemplar、演化系統提示與少樣本包；「版本」＝prompt_pack_hash 註冊進 `local_model_version`（base_model 不變）、走同一晉升閘與部署域評測。窄任務上增益常與 LoRA 同級、成本兩個數量級低、回滾＝換 hash。
    - **Tier 2（實驗、須先環境鏈 spike）**：(a) CPU LoRA on 4b——週級 cadence（171 條×3 epochs ≈1-2 天/輪）、訓練窗停 PG 或 bf16、實測定 go/no-go；(b) GPU QLoRA on **qwen3:1.7b 特化生**——NF4 ~1.1GB 塞得進 free 2.7GB，賭「窄任務特化 1.7b ≥ 通用 4b」，由部署域金標裁決（輸了誠實留檔）。權重鏈（HF→PEFT→convert_lora_to_gguf→ollama）仍須建、於 Tier 2 spike 實證。
