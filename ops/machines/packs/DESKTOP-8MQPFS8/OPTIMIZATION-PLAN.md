@@ -1,5 +1,7 @@
 # DESKTOP-8MQPFS8 系統最佳化計畫
 
+> ⚠️ **2026-07-25 重錨（hugo 拍板「極限版」，部分取代本計畫之保守基準）**：資源軸現況＝WSL **26GB**/swap **128GB**＋zram 12.7GB(lzo-rle)/`autoMemoryReclaim=gradual`；PG 極限版 14 項持久化（shared_buffers **6GB**，非本檔 B5 之 2GB 溫和值）；sysctl swappiness=100/page-cluster=0；`.mcp.json` 顯式覆寫移除（per-host 邏輯接管，本機 4b/ctx **8192** 不變）。**本檔 Phase E「排除 swap 加大／memory>24GB」與 §3 資源預算之 24GB 口徑自此失效**；分工原則（資料層在此、重模型歸 GB10）與錯峰建議不變；**模型紀律 C1 修正一處（hugo 拍板 2026-07-25）：advisor（:8399）例外核可 `qwen3:8b`——接受 4GB VRAM 溢出降速換答題品質**，MCP 機械性任務仍 4b、禁 pull 30b／coder-next 不變。SSOT＝`reports/ops_platform_tuning_plan_20260725.md`。
+
 * **性質**：[I] 營運計畫（依本機鎖定基準，非 GB10）
 * **基準時間**：2026-07-22 19:34 CST
 * **基準檔**：[`ENV-BASELINE-20260722.md`](ENV-BASELINE-20260722.md)、[`../../DESKTOP-8MQPFS8.md`](../../DESKTOP-8MQPFS8.md)

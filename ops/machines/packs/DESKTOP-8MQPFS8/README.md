@@ -5,13 +5,13 @@
 * **對立機**：[`../aitopatom-b96e/`](../aitopatom-b96e/)（GB10 · 大模型／122GiB）。
 * **正典 remote**：public monorepo [`tsaitsangchi/augur`](https://github.com/tsaitsangchi/augur)（`main`）。**勿**再追蹤 `augur-constitution`。
 
-## 本機路徑（2026-07-22 實測）
+## 本機路徑（2026-07-25 實測）
 
 | 項目 | 值 |
 |---|---|
-| 正典 clone | **`/home/giga/augur/augur-code`** |
-| 歷史 constitution 樹 | `/home/giga/augur/augur-constitution`（⛔ superseded；見該樹 `DEPRECATED.md`） |
-| Cursor workspace 根 | `/home/giga/augur` → MCP 用上層 `.cursor/mcp.json`，**cwd 釘死 augur-code** |
+| 正典 clone | **`/home/hugo/project/augur`**（monorepo；使用者 `hugo`） |
+| 舊路徑 | `/home/giga/augur/...` **已不存在**（勿用） |
+| Cursor workspace 根 | `/home/hugo/project/augur` |
 
 ## 硬體對齊的 MCP／模型
 
@@ -20,10 +20,11 @@
 | `OLLAMA_MODEL` | **`qwen3:4b`**（~2.5GB；VRAM 4GB 上限） | `qwen3-coder-next`、`qwen3:30b-a3b` |
 | `OLLAMA_NUM_CTX` | **`8192`**（hostname 預設） | `32768`（GB10） |
 | `EMBED_MODEL` | `nomic-embed-text` | — |
-| ollama | **0.32.1** active（2026-07-22） | — |
-| PostgreSQL | **17.10** online | GB10 未裝 |
+| ollama | **0.32.1** active（2026-07-25）；已裝 `qwen3:4b`／`qwen3:8b`／`nomic-embed-text` | — |
+| PostgreSQL | **17.10** online + pgvector 套件 0.8.5 | GB10 未裝 |
+| UI 服務 | chat `:8090` · advisor `:8399`（現跑 `qwen3:8b`）· admin `:8500` · probability `:8600`（皆 process，非 systemd unit） | — |
 
-共享 repo 設定不寫死模型：`tools.local_llm_mcp` 依 hostname=`DESKTOP-8MQPFS8` 自動選 `qwen3:4b`。工作區 MCP 額外顯式覆寫，避免誤載 GB10 預設。
+共享 repo 設定不寫死模型：`tools.local_llm_mcp` 依 hostname=`DESKTOP-8MQPFS8` 自動選 `qwen3:4b`／num_ctx 8192。**2026-07-25 hugo 拍板：`.mcp.json` 之顯式覆寫（`LLM_MODEL`/`OLLAMA_NUM_CTX`/`OLLAMA_KEEP_ALIVE`）移除**——per-host 邏輯（`tools.py` hostname 分派）已涵蓋三機、寫死反成跨機污染；`OLLAMA_URL`/`OLLAMA_TEMPERATURE=0` 保留。
 
 ## 環境基準與最佳化計畫
 
@@ -40,9 +41,9 @@
 
 ```bash
 hostname   # DESKTOP-8MQPFS8
-cd /home/giga/augur/augur-code
+cd /home/hugo/project/augur
 git remote -v   # 僅 origin → tsaitsangchi/augur.git
 test -d src/augur && test -d constitution && test -d tools/constitution_mcp && echo MONOREPO_OK
-ollama list     # 應有 qwen3:4b；建議另有 nomic-embed-text
+ollama list     # 應有 qwen3:4b；另有 qwen3:8b、nomic-embed-text
 curl -s http://127.0.0.1:11434/api/version
 ```
