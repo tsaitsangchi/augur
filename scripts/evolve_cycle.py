@@ -83,8 +83,8 @@ def _score(answer, gold):
 
 
 def _ask_ollama(prompt, system=None, timeout=150):
-    body = {"model": MODEL, "prompt": prompt, "stream": False,
-            "options": {"temperature": 0, "num_predict": 300}}
+    body = {"model": MODEL, "prompt": prompt, "stream": False, "think": False,
+            "options": {"temperature": 0, "num_predict": 400}}   # think:false=R2 誠實對話定調(qwen3 思考鏈耗盡 token 之對策)
     if system:
         body["system"] = system
     req = urllib.request.Request(OLLAMA, json.dumps(body).encode(), {"Content-Type": "application/json"})
