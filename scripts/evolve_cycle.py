@@ -17,6 +17,7 @@
   python scripts/evolve_cycle.py                 # 無參數:現況(gold/版本/候選統計,唯讀)
   python scripts/evolve_cycle.py --cycle         # 跑一輪完整迴圈(①→④;冪等、cron 友善)
   python scripts/evolve_cycle.py --cycle --no-eval   # 略過 ollama 評測段(離線/省時)
+  python scripts/evolve_cycle.py --export-pack   # 只匯出 serving pack 快取檔(晉升/退役後手動同步)
   python scripts/evolve_cycle.py --selftest      # 零 DB 紅綠
 """
 import argparse
@@ -24,6 +25,7 @@ import hashlib
 import json
 import sys
 import urllib.request
+from pathlib import Path
 
 import _bootstrap  # noqa: F401
 from augur.core import db
@@ -67,6 +69,30 @@ def _pack_text(samples):
 
 def _pack_hash(sample_ids):
     return hashlib.sha256(json.dumps(sorted(sample_ids)).encode()).hexdigest()[:12]
+
+
+PACK_FILE = Path.home() / ".cache" / "augur" / "serving_pack.txt"
+
+
+def _export_serving_pack(cur):
+    """serving pack → 快取檔(MCP ask 路消費端;無 serving=刪檔=MCP 自動回基線=退役即回滾)。"""
+    cur.execute("""SELECT version_id, eval_result->'sample_ids' FROM local_model_version
+        WHERE status='serving' AND eval_result->>'kind'='prompt_pack'
+        ORDER BY promoted_at DESC LIMIT 1""")
+    row = cur.fetchone()
+    PACK_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not row:
+        PACK_FILE.unlink(missing_ok=True)
+        print("serving pack: 無 → 快取檔移除(MCP 回基線)")
+        return
+    vid, ids = row
+    cur.execute("""SELECT prompt, gold_answer FROM local_model_gold_sample
+        WHERE sample_id = ANY(%s) ORDER BY sample_id""", (ids,))
+    tmp = PACK_FILE.with_suffix(".tmp")
+    tmp.write_text(f"# serving pack {vid}(evolve_cycle 匯出;晉升/退役由 local_model_version 人閘驅動)\n"
+                   + _pack_text(cur.fetchall()), encoding="utf-8")
+    tmp.replace(PACK_FILE)
+    print(f"serving pack {vid} → {PACK_FILE}")
 
 
 def _score(answer, gold):
@@ -163,6 +189,8 @@ def cycle(do_eval=True):
                   f"vs off={res['eval']['score_without']}")
         print(f"\n晉升永遠人閘——hugo 檢視後親跑:\n  psql: UPDATE local_model_version SET status='serving',"
               f" promoted_by='hugo', promoted_at=now() WHERE version_id='{vid}';")
+        _export_serving_pack(cur)
+        conn.commit()
     return 0
 
 
@@ -175,6 +203,7 @@ def status():
         cur.execute("SELECT version_id, status, eval_result->'eval' FROM local_model_version ORDER BY created_at DESC LIMIT 5")
         for v, st, ev in cur.fetchall():
             print(f"  version {v} [{st}] eval={ev}")
+        _export_serving_pack(cur)
     return 0
 
 
@@ -205,10 +234,15 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="本地 AI 永續進化迴圈(晉升人閘)")
     ap.add_argument("--cycle", action="store_true")
     ap.add_argument("--no-eval", action="store_true")
+    ap.add_argument("--export-pack", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
     if a.selftest:
         return _selftest()
+    if a.export_pack:
+        with db.connect() as conn, db.transaction(conn) as cur:
+            _export_serving_pack(cur)
+        return 0
     if a.cycle:
         return cycle(do_eval=not a.no_eval)
     print(__doc__)

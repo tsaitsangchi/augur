@@ -179,6 +179,29 @@ def _keep_alive() -> str:
     return "30s"
 
 
+_PACK_CACHE: dict = {"mtime": None, "text": None}
+
+
+def _serving_pack() -> str | None:
+    """讀 serving prompt-pack 快取檔（演化迴圈自 local_model_version 匯出;憲章 Tier1 演化消費端）。
+
+    fail-open:檔不在/讀失敗=回 None=基線行為(pack 是增益非誠實閘,絕不因它壞 MCP);
+    退役自動回滾=evolve_cycle 匯出端在無 serving pack 時刪檔。mtime memo 免重複 IO。
+    路徑可 AUGUR_SERVING_PACK 覆寫(測試用)。
+    """
+    path = pathlib.Path(os.getenv("AUGUR_SERVING_PACK")
+                        or pathlib.Path.home() / ".cache" / "augur" / "serving_pack.txt")
+    try:
+        mt = path.stat().st_mtime
+        if _PACK_CACHE["mtime"] != mt:
+            _PACK_CACHE["text"] = path.read_text(encoding="utf-8").strip() or None
+            _PACK_CACHE["mtime"] = mt
+        return _PACK_CACHE["text"]
+    except OSError:
+        _PACK_CACHE["mtime"] = _PACK_CACHE["text"] = None
+        return None
+
+
 def _stub_enabled() -> bool:
     return os.getenv("LOCAL_LLM_MCP_STUB", "").lower() in ("1", "true", "yes")
 
@@ -234,17 +257,20 @@ def _generate_ollama(prompt: str, timeout: int, profile: str = "default") -> str
     t = _temperature()
     if t is not None:
         options["temperature"] = t
-    body = json.dumps(
-        {
-            "model": _llm_model(),
-            "prompt": prompt,
-            "stream": False,
-            # qwen3：關 thinking，避免思考段佔滿短 num_predict（與 advisor/openai 路徑對齊）
-            "think": False,
-            "keep_alive": _keep_alive(),
-            "options": options,
-        }
-    ).encode()
+    payload = {
+        "model": _llm_model(),
+        "prompt": prompt,
+        "stream": False,
+        # qwen3：關 thinking，避免思考段佔滿短 num_predict（與 advisor/openai 路徑對齊）
+        "think": False,
+        "keep_alive": _keep_alive(),
+        "options": options,
+    }
+    if profile == "ask":
+        pack = _serving_pack()          # Tier1 演化 pack(僅 ask 路;fail-open;退役即自動摘除)
+        if pack:
+            payload["system"] = pack
+    body = json.dumps(payload).encode()
     req = urllib.request.Request(
         url, data=body, headers={"Content-Type": "application/json"}, method="POST"
     )
