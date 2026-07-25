@@ -1,15 +1,15 @@
-# Constitutional Compliance Statement — 系統架構大憲章 v1.46.0
+# Constitutional Compliance Statement — 系統架構大憲章 v1.47.0
 
 * **性質**：領域治權檔之 Constitutional Compliance Statement（[N] 聲明；**不上收** docs 進 META）
 * **依據**：`AUGUR-MC v1.6 §8.3`；`AUGUR-WM v1.0 §WM.39–45`；RULING-2026-002 主文二（補正期至 **2026-10-14**）
 * **登錄 Layer**：7（Infrastructure／領域架構承載；涉 L4–6 由本聲明逐節標注）
-* **正文 SSOT**：`docs/系統架構大憲章_v1.46.0.md`
+* **正文 SSOT**：`docs/系統架構大憲章_v1.47.0.md`
 * **誠實界限**：履行本檔補正；不假關 039／025／029 等其他 10-14 項。
 
 ```
 compliance-statement:
   spec: Augur Domain Architecture Charter（系統架構大憲章）
-  spec-version: v1.46.0
+  spec-version: v1.47.0
   layer: 7
   mc-version: AUGUR-MC v1.6
   upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0, AUGUR-KS v1.1, AUGUR-L5 v1.0, AUGUR-L6 v1.2]
@@ -21,7 +21,7 @@ compliance-statement:
   defers-out: [D-CHARTER-1]
   date: 2026-07-23
   author: Steward 授權執行層（P2）
-  archive-path: docs/compliance/CS-系統架構大憲章_v1.46.0.md
+  archive-path: docs/compliance/CS-系統架構大憲章_v1.47.0.md
 ```
 
 ## CS.1 逐原則論證（七節）[N]
