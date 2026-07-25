@@ -5,6 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 72546fba-9700-443b-8926-863d212acd39
+  modified: 2026-07-25T06:39:48.417Z
 ---
 
 repo 根目錄有**五支**「本地優先、零 Claude usage」的接續工具(2026-07-10 建、實測通過;守 CLAUDE #28;入憲 CLAUDE #31 換機接續慣例、v1.23):
@@ -19,3 +20,4 @@ repo 根目錄有**五支**「本地優先、零 Claude usage」的接續工具(
 
 **Why:** 減少 Claude token——讓人/本地 AI 不開 Claude session 即讀全狀態;且讓記憶能跨機接續。
 **How to apply:** 換機接續序見 [[cross-machine-handoff]] 與 `HANDOFF.md` §2。記憶有實質更新後,commit 前跑 `sync_memory.py export` 讓 repo 快照同步(否則 `handoff_memory/` 會落後活記憶)。
+**⚠ restore 回滾陷阱(2026-07-25 實證)**:在**已活躍**的機器上跑 `resume_project.sh`/`restore`,若 repo 快照比本機活記憶舊(本機沒 export、或他機推了舊快照),restore 會**把新記憶蓋回舊版**——當日三檔被回滾,靠自動備份 `memory_backup_<ts>/` 救回。紀律:活躍機器不例行跑 restore;跑前先 `sync_memory.py`(無參數=status)看方向;被蓋立即從 backup 目錄 `cp -p` 復原。

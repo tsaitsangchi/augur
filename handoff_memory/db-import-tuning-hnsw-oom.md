@@ -5,6 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 778040ca-21b5-4b60-ad2d-0fad302930ca
+  modified: 2026-07-25T05:09:14.258Z
 ---
 
 # augur DB 匯入調優 + HNSW OOM 陷阱（2026-07-13 實證入憲）
@@ -27,6 +28,8 @@ augur dump 內有 **3 個 pgvector HNSW 向量索引**：`idx_sent_emb_hnsw`（k
 
 ## 本機（WSL2）資源與 PostgreSQL 17 調優值
 
+> ✅ **2026-07-25 極限版調優已以 `ALTER SYSTEM` 持久化並重啟驗證**（hugo 拍板；DESKTOP-8MQPFS8、WSL2 RAM **26GB**/swap **128GB**＋zram 12.7GB lzo-rle 先於磁碟 swap；WSL2 核心 zram 無 zstd/lz4）：shared_buffers=6GB·effective_cache_size=18GB·work_mem=256MB·**maintenance_work_mem=2GB＋max_parallel_maintenance_workers=2（OOM 護欄刻意封頂）**·random_page_cost=1.1·effective/maintenance_io_concurrency=300·max_wal_size=16GB·min_wal_size=2GB·wal_compression=lz4·max_worker_processes/max_parallel_workers=12·gather=6。在 `postgresql.auto.conf`、重啟不失。ollama 亦掛 override（KEEP_ALIVE=1h/FLASH_ATTENTION/KV q8_0）。匯入前仍實查 `pg_settings` 為準。詳 `reports/ops_platform_tuning_plan_20260725.md`。
+>
 > ⚠️ **2026-07-17 實測:下列 2026-07-13 記載之調優值多數已不生效——這台機器不是當時那台**（`.wslconfig` 路徑 `S114013.GSMCTW` 在本機不存在；WSL2 RAM 實測 **15GB** 非 10GB；dump 在 `D:\` 非 `C:\`）。**大檔匯入前務必實查 `pg_settings` 現值,勿假設此檔所載已在。**
 >
 > | 參數 | 2026-07-13 記載 | 2026-07-17 live 實測 | PG17 default |
