@@ -21,7 +21,10 @@
 ```
 
 1. **樣本源（真教師訊號，非自產）**：①advisor/MCP 真實工作的教師修正（多教師抽象層：Claude／Cursor／Gemini／任何平台，交叉投票一致才入 gold）②audit escalation 的人裁結果（最高權重）③既有 171 條錨集。**隱私閘（DB CHECK 強制非腳本自律）**：含 owned_local/private citation 的樣本**禁送外部教師**（v1.37.0 Gemini 案同構）、只許本地評分或棄評。
-2. **訓練 @GB10（本機除名，降為實驗選項）**：完整權重鏈明文化——HF safetensors 下載 → PEFT QLoRA → `convert_lora_to_gguf` → Modelfile ADAPTER → ollama tag（v1 缺這整條＝機械 blocker，本稿補上）；量化匹配（NF4↔Q4_K_M 劣化）須首訓實測。跨機樣本搬運**機械剔除私有樣本**，或由 hugo 釋義「本機＝自有機群」入憲後放行。
+2. **訓練＝本機階梯（v3 修訂：hugo 2026-07-25 宣告無 GB10、僅本機可用）**——
+   - **Tier 1（主力、立即可行、零訓練）：prompt-pack／few-shot 演化**——從 gold 帳本擇優 exemplar、演化系統提示與少樣本包；「版本」＝prompt_pack_hash 註冊進 `local_model_version`（base_model 不變）、走同一晉升閘與部署域評測。窄任務上增益常與 LoRA 同級、成本兩個數量級低、回滾＝換 hash。
+   - **Tier 2（實驗、須先環境鏈 spike）**：(a) CPU LoRA on 4b——週級 cadence（171 條×3 epochs ≈1-2 天/輪）、訓練窗停 PG 或 bf16、實測定 go/no-go；(b) GPU QLoRA on **qwen3:1.7b 特化生**——NF4 ~1.1GB 塞得進 free 2.7GB，賭「窄任務特化 1.7b ≥ 通用 4b」，由部署域金標裁決（輸了誠實留檔）。權重鏈（HF→PEFT→convert_lora_to_gguf→ollama）仍須建、於 Tier 2 spike 實證。
+   - **硬體路（選項）**：二手 12GB GPU（如 RTX 3060）即解鎖 4b QLoRA 夜間輪——本機升級屬「本機」，供 hugo 參考。
 3. **晉升閘（判準人閘名實相符的四補丁）**：(a) 判準凍結的 approve＝**人簽留痕**（鏡射 arena gate `approved_by=hugo`）(b) 評測集＋171 錨集 **byte hash 釘入 gate 列**（防從分布側挪門柱）(c) 評分程式版本 hash 錨定、讀端斷言 fail-loud (d) **補部署工作域評測**——MCP summarize/extract 迷你金標（反方抓到：舊三式只測 benchmark 軸，4b 真飯碗可靜默變差）。GATE 裁判限 oracle/凍結金標，禁被評模型自評。
 4. **權重＝私有 artifact**：訓過私有樣本的 LoRA 可記憶回吐——權重檔／SFT jsonl／evolution 帳本一律 owned_local 級管制（永不入 git/公開 repo、sync_memory export 掃描排除、跨機唯私有通道）；P4.E7：teacher_gold 與模型輸出 provenance 永久帶 synthetic 標記。
 5. **隔離不變式**：evolution 帳本比照蒸餾界線-A/B/C 納 import_isolation 稽核（不落 knowledge_*/philosophy_*/feature_values、不成 citation、不進預測管線）＋負向測試。

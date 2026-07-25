@@ -15,6 +15,7 @@ import array
 import hashlib
 import os
 import pathlib
+import signal
 import sqlite3
 import sys
 import time
@@ -62,6 +63,20 @@ def _file_sha(abspath: str) -> str:
         for block in iter(lambda: f.read(65536), b""):
             h.update(block)
     return h.hexdigest()
+
+
+def _remove_db_files(db_file: str) -> None:
+    """刪主庫與 sidecar（-journal／-wal／-shm），避免殘 journal 污染新建庫。"""
+    for path in (
+        db_file,
+        f"{db_file}-journal",
+        f"{db_file}-wal",
+        f"{db_file}-shm",
+    ):
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
 
 
 def _iter_files(root):
@@ -219,40 +234,67 @@ def _build_full(
     batch: int,
     log,
 ) -> dict:
-    if os.path.exists(db_file):
-        os.remove(db_file)
+    # 連同 -journal/-wal/-shm 一併清，避免殘 sidecar 讓新建庫 rollback 失敗
+    _remove_db_files(db_file)
 
     conn = sqlite3.connect(db_file)
     n_files = 0
-    n_chunks = 0
     pending_text: List[str] = []
     pending_meta: List[Tuple] = []
     try:
         _ensure_schema(conn)
-        log(f"[project-memory] 全量掃描 {root_path}（embed={embed.embed_model()}）…")
-        for abspath in _iter_files(root_path):
-            resolved = pathlib.Path(abspath).resolve()
-            if not govern.should_index(resolved, root=root_path):
-                continue
-            try:
-                text = resolved.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-            rel = str(resolved.relative_to(root_path))
-            log(f"[project-memory] ({n_files + 1}) 索引 {rel} …")
-            fhash = _file_sha(abspath)
-            mt = os.path.getmtime(abspath)
-            n_pieces = _index_one_file(
-                conn, rel, text, fhash, mt, batch, pending_text, pending_meta
-            )
-            n_files += 1
-            # chunk 計數在 flush 後才準；先累切塊數於 files；最終用 COUNT
-            _ = n_pieces
-        n_chunks += _flush_pending(conn, pending_text, pending_meta)
-        # 補上未計入 flush 前的：以 DB COUNT 為準
-        n_chunks = int(conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0])
+        # 提前寫 meta，中斷後 memory_status／續跑仍知 embed_model
         _write_meta(conn)
         conn.commit()
+        log(
+            f"[project-memory] 全量掃描 {root_path}（embed={embed.embed_model()}，"
+            f"batch={batch}）…"
+        )
+        try:
+            for abspath in _iter_files(root_path):
+                resolved = pathlib.Path(abspath).resolve()
+                if not govern.should_index(resolved, root=root_path):
+                    continue
+                try:
+                    text = resolved.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                rel = str(resolved.relative_to(root_path))
+                log(f"[project-memory] ({n_files + 1}) 索引 {rel} …")
+                fhash = _file_sha(abspath)
+                mt = os.path.getmtime(abspath)
+                # 每檔提交一次（與 incremental 同），避免全庫單一巨大 journal 在最終 commit 爆 disk I/O
+                try:
+                    _index_one_file(
+                        conn, rel, text, fhash, mt, batch, pending_text, pending_meta
+                    )
+                    _flush_pending(conn, pending_text, pending_meta)
+                    conn.commit()
+                    n_files += 1
+                except Exception:
+                    conn.rollback()
+                    pending_text.clear()
+                    pending_meta.clear()
+                    raise
+            _flush_pending(conn, pending_text, pending_meta)
+            n_chunks = int(conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0])
+            _write_meta(conn)
+            conn.commit()
+        except KeyboardInterrupt:
+            pending_text.clear()
+            pending_meta.clear()
+            try:
+                conn.rollback()
+            except sqlite3.Error:
+                pass
+            n_chunks = int(conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0])
+            _write_meta(conn)
+            conn.commit()
+            log(
+                f"[project-memory] 中斷：已保留 {n_files} 檔／{n_chunks} chunk。"
+                f" 勿再 --full；改跑：python3 -m tools.project_memory_mcp index --batch {batch}"
+            )
+            raise
     finally:
         conn.close()
 
@@ -286,68 +328,89 @@ def _build_incremental(
         if not _has_fts_table(conn):
             raise RuntimeError("incremental 需要 chunks_fts")
         old_hashes = _load_file_hashes(conn)
-        log(
-            f"[project-memory] 增量掃描 {root_path} "
-            f"（既有 {len(old_hashes)} 檔，embed={embed.embed_model()}）…"
-        )
-
-        for abspath in _iter_files(root_path):
-            resolved = pathlib.Path(abspath).resolve()
-            if not govern.should_index(resolved, root=root_path):
-                continue
-            try:
-                text = resolved.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-            rel = str(resolved.relative_to(root_path))
-            seen.add(rel)
-            fhash = _file_sha(abspath)
-            mt = os.path.getmtime(abspath)
-            prev = old_hashes.get(rel)
-            if prev == fhash:
-                skipped += 1
-                continue
-
-            # 每檔提交一次，避免長鎖；不用顯式 BEGIN（與 sqlite3 隱式交易衝突易毀庫）
-            try:
-                is_new = prev is None
-                if not is_new:
-                    _delete_path(conn, rel)
-                _index_one_file(
-                    conn, rel, text, fhash, mt, batch, pending_text, pending_meta
-                )
-                _flush_pending(conn, pending_text, pending_meta)
-                conn.commit()
-                if is_new:
-                    log(f"[project-memory] + 新增 {rel}")
-                    added += 1
-                else:
-                    log(f"[project-memory] ~ 更新 {rel}")
-                    updated += 1
-            except Exception:
-                conn.rollback()
-                pending_text.clear()
-                pending_meta.clear()
-                raise
-
-        # 刪除：DB 有、本次未見
-        for rel in list(old_hashes.keys()):
-            if rel in seen:
-                continue
-            try:
-                _delete_path(conn, rel)
-                conn.commit()
-                log(f"[project-memory] - 移除 {rel}")
-                removed += 1
-            except Exception:
-                conn.rollback()
-                raise
-
-        _flush_pending(conn, pending_text, pending_meta)
-        n_files = int(conn.execute("SELECT COUNT(*) FROM files").fetchone()[0])
-        n_chunks = int(conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0])
+        # 中斷續跑時 memory_status 仍能顯示 embed_model
         _write_meta(conn)
         conn.commit()
+        log(
+            f"[project-memory] 增量掃描 {root_path} "
+            f"（既有 {len(old_hashes)} 檔，embed={embed.embed_model()}，batch={batch}）…"
+        )
+
+        try:
+            for abspath in _iter_files(root_path):
+                resolved = pathlib.Path(abspath).resolve()
+                if not govern.should_index(resolved, root=root_path):
+                    continue
+                try:
+                    text = resolved.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                rel = str(resolved.relative_to(root_path))
+                seen.add(rel)
+                fhash = _file_sha(abspath)
+                mt = os.path.getmtime(abspath)
+                prev = old_hashes.get(rel)
+                if prev == fhash:
+                    skipped += 1
+                    continue
+
+                # 每檔提交一次，避免長鎖；不用顯式 BEGIN（與 sqlite3 隱式交易衝突易毀庫）
+                try:
+                    is_new = prev is None
+                    if not is_new:
+                        _delete_path(conn, rel)
+                    _index_one_file(
+                        conn, rel, text, fhash, mt, batch, pending_text, pending_meta
+                    )
+                    _flush_pending(conn, pending_text, pending_meta)
+                    conn.commit()
+                    if is_new:
+                        log(f"[project-memory] + 新增 {rel}")
+                        added += 1
+                    else:
+                        log(f"[project-memory] ~ 更新 {rel}")
+                        updated += 1
+                except Exception:
+                    conn.rollback()
+                    pending_text.clear()
+                    pending_meta.clear()
+                    raise
+
+            # 刪除：DB 有、本次未見
+            for rel in list(old_hashes.keys()):
+                if rel in seen:
+                    continue
+                try:
+                    _delete_path(conn, rel)
+                    conn.commit()
+                    log(f"[project-memory] - 移除 {rel}")
+                    removed += 1
+                except Exception:
+                    conn.rollback()
+                    raise
+
+            _flush_pending(conn, pending_text, pending_meta)
+            n_files = int(conn.execute("SELECT COUNT(*) FROM files").fetchone()[0])
+            n_chunks = int(conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0])
+            _write_meta(conn)
+            conn.commit()
+        except KeyboardInterrupt:
+            pending_text.clear()
+            pending_meta.clear()
+            try:
+                conn.rollback()
+            except sqlite3.Error:
+                pass
+            n_files = int(conn.execute("SELECT COUNT(*) FROM files").fetchone()[0])
+            n_chunks = int(conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0])
+            _write_meta(conn)
+            conn.commit()
+            log(
+                f"[project-memory] 中斷：已保留 {n_files} 檔／{n_chunks} chunk "
+                f"（+{added} ~{updated} skip={skipped}）。"
+                f" 勿再 --full；改跑：python3 -m tools.project_memory_mcp index --batch {batch}"
+            )
+            raise
     finally:
         conn.close()
 
@@ -368,7 +431,7 @@ def _build_incremental(
 def build(
     root: Optional[str] = None,
     db: Optional[str] = None,
-    batch: int = 32,
+    batch: int = 8,
     verbose: bool = False,
     full: bool = False,
 ) -> dict:
@@ -396,16 +459,39 @@ def main(argv=None) -> int:
     )
     p.add_argument("--db", default=None, help="索引 DB 路徑（預設 MEMORY_DB／.project_memory）")
     p.add_argument("--root", default=None, help="掃描根目錄（預設 repo 根）")
-    p.add_argument("--batch", type=int, default=32, help="嵌入 batch 大小")
+    p.add_argument(
+        "--batch",
+        type=int,
+        default=8,
+        help="嵌入 batch 大小（預設 8；越大越吃 RAM／CPU）",
+    )
     args = p.parse_args(argv)
 
-    stats = build(
-        root=args.root,
-        db=args.db,
-        batch=args.batch,
-        verbose=True,
-        full=args.full,
-    )
+    # SIGTERM（shell 顯示 Terminated）預設不轉 KeyboardInterrupt；轉成可清尾的中斷
+    def _on_term(_signum, _frame) -> None:
+        raise KeyboardInterrupt()
+
+    try:
+        signal.signal(signal.SIGTERM, _on_term)
+    except (ValueError, OSError):
+        pass
+
+    try:
+        stats = build(
+            root=args.root,
+            db=args.db,
+            batch=args.batch,
+            verbose=True,
+            full=args.full,
+        )
+    except KeyboardInterrupt:
+        print(
+            "[project-memory] Terminated／中斷：已提交檔案保留。"
+            " 續跑請用增量（不要 --full）：\n"
+            f"  python3 -m tools.project_memory_mcp index --batch {args.batch}",
+            file=sys.stderr,
+        )
+        return 130
     print(
         f"project-memory index [{stats['mode']}]: "
         f"{stats['files']} 檔 / {stats['chunks']} chunk "

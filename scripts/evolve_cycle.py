@@ -32,8 +32,8 @@ from augur.core import db
 
 OLLAMA = "http://127.0.0.1:11434/api/generate"
 MODEL = "qwen3:4b"
-TOP_INSIGHTS = 20
-TOP_SEMANTICS = 30
+TOP_INSIGHTS = 60
+TOP_SEMANTICS = 200
 PACK_K = 6
 EVAL_N = 6
 

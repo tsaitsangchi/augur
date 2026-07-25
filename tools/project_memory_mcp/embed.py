@@ -51,6 +51,23 @@ def _stub_vec(text: str) -> List[float]:
     return [x / norm for x in vec]
 
 
+def _embed_timeout_s() -> float:
+    """單次 /api/embed HTTP timeout（秒）。可用 EMBED_TIMEOUT_S 覆寫。"""
+    raw = os.getenv("EMBED_TIMEOUT_S", "90")
+    try:
+        return max(5.0, float(raw))
+    except ValueError:
+        return 90.0
+
+
+def _embed_retries() -> int:
+    raw = os.getenv("EMBED_RETRIES", "2")
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 2
+
+
 def embed(texts: List[str]) -> List[List[float]]:
     """對一批文本回向量清單。空清單回空。"""
     if not texts:
@@ -59,26 +76,55 @@ def embed(texts: List[str]) -> List[List[float]]:
         return [_stub_vec(t) for t in texts]
 
     url = _ollama_url() + "/api/embed"
-    body = json.dumps({"model": embed_model(), "input": texts}).encode()
-    req = urllib.request.Request(
-        url, data=body, headers={"Content-Type": "application/json"}, method="POST"
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            data = json.loads(resp.read().decode())
-    except urllib.error.HTTPError as exc:
-        detail = ""
+    model = embed_model()
+    body = json.dumps({"model": model, "input": texts}).encode()
+    timeout_s = _embed_timeout_s()
+    retries = _embed_retries()
+    last_exc: Exception | None = None
+    data = None
+
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(
+            url, data=body, headers={"Content-Type": "application/json"}, method="POST"
+        )
         try:
-            detail = exc.read().decode(errors="replace")[:200]
-        except Exception:
-            pass
-        raise EmbedError(
-            f"Ollama 嵌入回 HTTP {exc.code}（模型是否已 pull？EMBED_MODEL={embed_model()}）：{detail}"
-        ) from exc
-    except (urllib.error.URLError, OSError, TimeoutError) as exc:
-        raise EmbedError(f"Ollama 不可達（{_ollama_url()}）：{exc}") from exc
-    except json.JSONDecodeError as exc:
-        raise EmbedError(f"Ollama 嵌入回應非 JSON：{exc}") from exc
+            with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+                data = json.loads(resp.read().decode())
+            break
+        except urllib.error.HTTPError as exc:
+            detail = ""
+            try:
+                detail = exc.read().decode(errors="replace")[:200]
+            except Exception:
+                pass
+            raise EmbedError(
+                f"Ollama 嵌入回 HTTP {exc.code}（模型是否已 pull？EMBED_MODEL={model}）：{detail}"
+            ) from exc
+        except TimeoutError as exc:
+            last_exc = exc
+            if attempt < retries:
+                continue
+            raise EmbedError(
+                f"Ollama 嵌入逾時（>{timeout_s:.0f}s，model={model}，batch={len(texts)}，"
+                f"url={_ollama_url()}）。GTX 1650 勿同時載 qwen3:8b；可降 --batch 或設 EMBED_TIMEOUT_S。"
+            ) from exc
+        except (urllib.error.URLError, OSError) as exc:
+            # URLError 常包住 socket.timeout；一律當可重試暫態
+            last_exc = exc
+            if attempt < retries:
+                continue
+            reason = getattr(exc, "reason", exc)
+            if isinstance(reason, TimeoutError) or "timed out" in str(exc).lower():
+                raise EmbedError(
+                    f"Ollama 嵌入逾時（>{timeout_s:.0f}s，model={model}，batch={len(texts)}，"
+                    f"url={_ollama_url()}）。GTX 1650 勿同時載 qwen3:8b；可降 --batch 或設 EMBED_TIMEOUT_S。"
+                ) from exc
+            raise EmbedError(f"Ollama 不可達（{_ollama_url()}）：{exc}") from exc
+        except json.JSONDecodeError as exc:
+            raise EmbedError(f"Ollama 嵌入回應非 JSON：{exc}") from exc
+
+    if data is None:
+        raise EmbedError(f"Ollama 嵌入失敗（{_ollama_url()}）：{last_exc}")
 
     embeddings = data.get("embeddings")
     if not isinstance(embeddings, list) or len(embeddings) != len(texts):
