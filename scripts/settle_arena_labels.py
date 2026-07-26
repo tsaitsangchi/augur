@@ -15,10 +15,22 @@
 守 #6(冪等可重跑)· #8(label=已實現才結、不猜未來日曆)· #12(損傷不 hand-patch)· #15(factor 機械
    檢核非自律)· #28(本地零 usage)· #29a/d。SSOT=reports/augur_direction_live_arena_plan_20260711.md §2.3/§5。
 
+計分口徑(2026-07-26 首批覆盤後成文;變更即換覆盤口徑、須留痕):
+  - **平手規則**:p_up=0.5 之列命中計 **0.5 分**(中性;不送任何方向免費分)。首批曾有 1 列 p_up=0.5,
+    「平手=猜漲」口徑得 0.5087、本口徑得 0.5080——差異之源在此,兩口徑皆可溯源。
+  - **三基準常設並排**:恆 0.5(Brier=0.25)/同樣本恆猜跌(=mean(y))/事後氣候學(=var(y),**事後之明,
+    僅天花板參考、非公平對手**)。首批教訓:無基準並排時「majority 0.7645 最強」「命中 0.62」皆成假兆。
+  - **常數輸出隊自動標示**:凡某隊於每一 pred_date 之 distinct p_up=1,計分板自動標「常數輸出/基準隊」
+    (資料驅動偵測、不寫死隊名 #29b;首批 majority 即此類=恆猜跌鏡像,resolution=0)。
+  - **洩漏稽核常態化**:逐 (model×pred_date) 組斷言 train_data_max_date==pred_date,結算與計分板皆印。
+  - **觀察級鐵則**:確立級宣稱唯經 direction_gate(≥60 clusters);計分板常駐印當前 cluster 數與此門檻。
+  - 觀察名單預註冊=audits/ARENA-WATCHLIST-PREREG-20260726.md(後批只驗不改)。
+
 執行指令矩陣:
   python scripts/settle_arena_labels.py                # 無參數:現況(唯讀:未結算/已結算分佈)
-  python scripts/settle_arena_labels.py --run          # 冪等結算(兩閘不過=exit 1 零寫入)
+  python scripts/settle_arena_labels.py --run          # 冪等結算(兩閘不過=exit 1 零寫入;尾附洩漏稽核)
   python scripts/settle_arena_labels.py --check-factor # 只跑 factor 單調性檢核(唯讀診斷,零寫入)
+  python scripts/settle_arena_labels.py --scoreboard   # 官方計分板(唯讀:三基準並排+常數隊標示+洩漏稽核)
 """
 import argparse
 import sys
@@ -182,6 +194,60 @@ def settle(write):
                             "settled_at=now() WHERE model_key=%s AND target_id=%s AND pred_date=%s "
                             "AND horizon_td=%s AND settled_at IS NULL", (y, ret, mode, mk, tid, pred, h))
         print(f"✓ 結算完成:{modes}(trigger③ 保證唯 NULL→值一次;重跑冪等)")
+        with db.transaction(conn) as cur:
+            n_groups, leak_bad = _leak_audit(cur)   # 洩漏稽核常態化(2026-07-26 首批覆盤 §五-5)
+        print(f"  洩漏稽核:{n_groups} 組 train_data_max_date==pred_date "
+              + ("全過 ✓" if not leak_bad else f"⚠ 違規 {leak_bad}(查 writer、不 hand-patch #12)"))
+    return 0
+
+
+def _leak_audit(cur):
+    """洩漏稽核(#8):逐 (model×pred_date) 組斷言 train_data_max_date==pred_date。回 (n_groups, 違規列)。"""
+    cur.execute("""SELECT model_key, pred_date, count(*),
+            count(*) FILTER (WHERE train_data_max_date IS DISTINCT FROM pred_date)
+        FROM direction_arena_prediction WHERE settled_at IS NOT NULL
+        GROUP BY model_key, pred_date ORDER BY 1, 2""")
+    rows = cur.fetchall()
+    bad = [(mk, pd, nb) for mk, pd, _n, nb in rows if nb]
+    return len(rows), bad
+
+
+def scoreboard():
+    """官方計分板(唯讀):三基準並排+常數隊標示+洩漏稽核+觀察級鐵則。口徑見檔頭「計分口徑」。"""
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("""SELECT model_key, count(*),
+                avg(CASE WHEN p_up=0.5 THEN 0.5
+                         WHEN (p_up>0.5 AND y_up=1) OR (p_up<0.5 AND y_up=0) THEN 1.0 ELSE 0.0 END),
+                avg((p_up - y_up)^2), avg(p_up), avg(y_up::float8)
+            FROM direction_arena_prediction
+            WHERE settled_at IS NOT NULL AND settle_mode <> 'unsettleable'
+            GROUP BY model_key""")
+        teams = {mk: (n, float(hit), float(br), float(mp), float(my))
+                 for mk, n, hit, br, mp, my in cur.fetchall()}
+        if not teams:
+            print("(尚無已結算列;先 --run)"); return 1
+        cur.execute("""SELECT model_key, max(nd) FROM (SELECT model_key, pred_date,
+                count(DISTINCT p_up) AS nd FROM direction_arena_prediction
+                WHERE settled_at IS NOT NULL GROUP BY model_key, pred_date) x GROUP BY model_key""")
+        const_team = {mk for mk, ndmax in cur.fetchall() if ndmax == 1}
+        cur.execute("SELECT count(DISTINCT pred_date) FROM direction_arena_prediction WHERE settled_at IS NOT NULL")
+        n_clusters = cur.fetchone()[0]
+        n_groups, leak_bad = _leak_audit(cur)
+    print(f"═══ arena 官方計分板(觀察級;cluster={n_clusters}/確立門檻 60=direction_gate)═══")
+    print(f"  {'隊':<22}{'n':>5}{'命中':>8}{'恆跌命中':>9}{'Brier':>8}{'Δ恆0.5':>9}{'Δ恆跌':>9}{'事後天花板':>10}")
+    for mk in sorted(teams, key=lambda k: teams[k][2]):
+        n, hit, br, mp, my = teams[mk]
+        b_down = my                       # 同樣本恆猜跌 Brier=mean(y);其命中=1-mean(y)
+        b_clim = my * (1 - my)            # 事後氣候學 Brier=var(y)(事後之明)
+        tag = "  ← 常數輸出/基準隊" if mk in const_team else ""
+        print(f"  {mk:<22}{n:>5}{hit:>8.4f}{1 - my:>9.4f}{br:>8.4f}{br - 0.25:>+9.4f}"
+              f"{br - b_down:>+9.4f}{b_clim:>10.4f}{tag}")
+    print("  口徑:平手(p=0.5)命中計 0.5;Δ<0 才是贏;恆跌=同樣本 mean(y);事後天花板=var(y)(事後之明、非公平對手)")
+    print(f"  洩漏稽核:{n_groups} 組 train_data_max_date==pred_date "
+          + ("全過 ✓" if not leak_bad else f"⚠ 違規 {leak_bad}"))
+    print("  ⚠ 觀察級鐵則:cluster<60 之前,任何「技能/排名/確立」措辭皆屬自欺;"
+          "橫斷面 344 檔高度相關(首批 DEFF≈43-53、有效 n≈8)")
+    print("  觀察名單(預註冊、只驗不改):audits/ARENA-WATCHLIST-PREREG-20260726.md")
     return 0
 
 
@@ -205,7 +271,10 @@ def main():
     ap = argparse.ArgumentParser(description="擂台結算:已實現交易日動態判 label+停牌分支+factor 檢核(fail-closed)")
     ap.add_argument("--run", action="store_true", help="冪等結算(寫 ledger 結算欄)")
     ap.add_argument("--check-factor", action="store_true", dest="factor", help="只跑 factor 檢核(唯讀)")
+    ap.add_argument("--scoreboard", action="store_true", help="官方計分板(唯讀;三基準並排)")
     args = ap.parse_args()
+    if args.scoreboard:
+        return scoreboard()
     if args.run or args.factor:
         return settle(write=args.run)
     return status()
