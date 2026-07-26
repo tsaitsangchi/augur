@@ -37,6 +37,7 @@ if [ "${1:-}" = "--uninstall" ]; then
     UC disable --now "$u" 2>/dev/null; UC stop "$u" 2>/dev/null
   done
   rm -f "$UD"/augur-*.service "$UD"/augur-*.timer
+  rm -rf "$UD"/augur-*.service.d "$UD"/augur-*.timer.d   # drop-in 目錄同清(2026-07-26 加 drop-in 後之必要;否則重裝殘留舊 override)
   UC daemon-reload 2>/dev/null
   echo "✓ 已移除所有 augur-* unit(資料/.env 未動)"; exit 0
 fi
@@ -144,6 +145,18 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+# --- drop-in: knowhow-refresh 時間平移(V2 Phase 0.6,2026-07-26) ---
+# 週日 02:00 與 01:30 演化鏈重疊(鏈含 60 分鐘收割段)→ 後移至 04:30。
+# Persistent=false 為必要:實測 Persistent=true 下改 OnCalendar,systemd 視「新排程之上一次發生」
+# 為錯過而**立刻補觸發一次**(2026-07-26 誤觸紀錄)。時間平移類改動一律同時關 Persistent。
+mkdir -p "$UD/augur-knowhow-refresh.timer.d"
+cat > "$UD/augur-knowhow-refresh.timer.d/shift.conf" <<EOF
+[Timer]
+OnCalendar=
+OnCalendar=Sun *-*-* 04:30:00
+Persistent=false
+EOF
+
 # --- timer: l2-deliberation(每日自審;預設 disabled,待 hugo 開閘) ---
 cat > "$UD/augur-l2-deliberation.service" <<EOF
 [Unit]
@@ -164,6 +177,17 @@ Persistent=true
 
 [Install]
 WantedBy=timers.target
+EOF
+
+# --- drop-in: l2-deliberation 納入 LLM 單槽鎖(V2 Phase 0.2,2026-07-26) ---
+# deliberation engine.py:32 經 make_structured_llm_fn 走 ollama,與 evolve_cycle／演化鏈搶同一個
+# LLM 槽(ollama -np 1 全域序列化)。-n＝非阻塞:搶不到即跳過本輪(不排隊、不堆積);
+# 連續 3 日全 skip 須回滾並改排時刻(V2 Phase 0.2 中止條件)。鎖檔與 crontab 條目同一把:/tmp/augur_llm.lock。
+mkdir -p "$UD/augur-l2-deliberation.service.d"
+cat > "$UD/augur-l2-deliberation.service.d/llm-lock.conf" <<EOF
+[Service]
+ExecStart=
+ExecStart=/usr/bin/flock -n /tmp/augur_llm.lock $VENV $ROOT/scripts/run_daily_deliberation.py --run
 EOF
 
 # --- timer: audit-watchdog(每 30 分驗證 audit 執行狀況;selfheal 死且未綠→relaunch,flock 防重複) ---

@@ -65,6 +65,12 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 
 ## 3. 不在 git、新機須重建（皆 gitignored）
 
+> **排程：新機必跑兩支（2026-07-26 補齊；此前 cron 完全無工具管、換機即失）**
+> - `bash install_services.sh` — systemd user 服務棧＋timers＋**drop-in**（l2-deliberation 的 LLM 單槽鎖、knowhow-refresh 時間平移）
+> - `bash install_cron.sh --apply` — crontab 之 augur 區塊（以 `# >>> augur` 標記圍出，**合併而非覆蓋**：他人條目原封保留）。首次於已有舊條目的機器上跑會被拒絕並列出待取代項，確認後改 `--migrate`。無參數＝唯讀 diff、`--dry-run` 預覽、`--uninstall` 只移除 augur 區塊。
+>
+> 兩支的排程內容是各自檔內的單一 SSOT（改排程改檔、跑一次即生效、隨 git 走）。**共用一把 LLM 單槽鎖 `/tmp/augur_llm.lock`**——ollama `-np 1` 全域序列化，不鎖則多支互搶、全部變慢且結果不可比。
+
 - **DB**（靠 dump 搬、#30):最新 = **`augur_pgdump_20260713_Fd`**（換機用;本地 ext4 `~/db_dumps/` 目錄版 + `D:\database\augur_pgdump_20260713_Fd.tar` 單檔版;含 07-12 全日成果=擂台九門簽核/三鏡頭月頻/491 件公版全文+469,551 句/K 計畫橋表/**audit 增量 658,911 列**;⚠ dump 取於 audit 尾段對帳中——新機還原後 audit 須續跑至綠,見 §4）。還原一律用 `bash import_database.sh`（自動判 tar/-Fd/-Fc、平行還原;新機庫不存在直接建、取代既有須 `--force`）。舊 dump（20260712_Fd 9.9GB/20260711_Fd 7.0GB）可備援。56GB 庫=35GB 資料+21GB 索引,dump ~10GB 屬正常。**dump 不進 git**,用外接碟/雲端搬。
 - **`.env`**（手動重建、值不入 git;**按通道分組——漏鍵=對應通道靜默失效**):
   | 通道/層 | 鍵 | 漏了會怎樣 |
