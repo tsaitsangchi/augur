@@ -99,25 +99,33 @@ def _export_serving_pack(cur):
 
 
 KNOWLEDGE_DOMAINS = ("quant_finance", "software_engineering")
+LIT_PER_ROUND = 60     # 每域每輪取「尚未教過」之文獻數(非總量上限;語料成長即教材成長)
 
 
 def _knowledge_gold(cur):
     """收割文獻 → 地景教材(metadata 層;per-item 出處 gold+per-domain 摘覽 gold;SSOT 指針)。"""
     out = []
     for dom in KNOWLEDGE_DOMAINS:
-        cur.execute("""SELECT title, authors, year, venue FROM knowledge_item
-            WHERE domain=%s ORDER BY item_id DESC LIMIT 80""", (dom,))
+        # 取「尚未教過」之文獻(2026-07-26 齒輪咬合修:原「最新 80 篇」使新文獻進來後 gold 恆 0 新增
+        # =教材天花板;改為每輪取未用過者 → 語料成長即教材成長,無上限且不重複)。
+        cur.execute("""SELECT ki.title, ki.authors, ki.year, ki.venue FROM knowledge_item ki
+            WHERE ki.domain=%s AND ki.title IS NOT NULL
+              AND NOT EXISTS (SELECT 1 FROM local_model_gold_sample g
+                              WHERE g.trigger_event->>'source'='knowledge_item'
+                                AND g.trigger_event->>'title' = left(ki.title, 80))
+            ORDER BY ki.item_id DESC LIMIT %s""", (dom, LIT_PER_ROUND))
         rows = cur.fetchall()
         if not rows:
+            print(f"  (文獻源 {dom}:無未教過之新文獻)")
             continue
-        for title, authors, year, venue in rows[:75]:
+        for title, authors, year, venue in rows:
             q = f"文獻《{title[:80]}》的出處?"
             a = (f"依 knowledge_item(收割層 SSOT):{(authors or '作者未載')[:120]}"
                  f"({year or '年份未載'}),{venue or '(venue 未載)'}。domain={dom};全文/摘要以該表與"
                  f" license 准入現況為準、不憑記憶補述內容。")
             out.append((q, a, {"source": "knowledge_item", "domain": dom, "title": title[:80]}))
         digest = "；".join(f"《{t[:50]}》({y or '?'})" for t, _, y, _ in rows[:8])
-        out.append((f"augur 知識庫中 {dom} 域近期收割的文獻地景?",
+        out.append((f"augur 知識庫中 {dom} 域近期收割的文獻地景(截至 item_id 高水位)?",
                     f"依 knowledge_item 近收:{digest}。完整清單=SELECT ... WHERE domain='{dom}' ORDER BY item_id DESC;"
                     f"內容摘要不在 metadata 層、以 license 准入後的 item_text 為準。",
                     {"source": "knowledge_item", "domain": dom, "kind": "digest"}))
@@ -178,8 +186,11 @@ def _pack_text_of(cur, ids):
 
 
 # 選材變體(名稱, 相關性, catalog, 文獻);pack 選材從未被優化過=此搜尋之動機
-PACK_VARIANTS = [("balanced_k10", 4, 3, 3), ("balanced_k16", 6, 5, 5), ("corr_heavy_k12", 8, 2, 2),
-                 ("catalog_heavy_k12", 2, 8, 2), ("lit_heavy_k12", 2, 2, 8), ("balanced_k20", 8, 6, 6)]
+# 2026-07-26 搜尋實證回饋(hugo 指示入矩陣):單源獨大(單源≥67%)全輸均衡——lit_heavy 0.328 墊底、
+# balanced_k16 A=0.567/B=0.521 奪冠 → 變體改探「均衡內的傾斜」交互空間:每源保底 25%、繞冠軍 K=16
+# 變混源比;純 heavy 三變體與 k10 退場(教訓留此註)。
+PACK_VARIANTS = [("balanced_k16", 6, 5, 5), ("mix_corr8_k16", 8, 4, 4), ("mix_cat8_k16", 4, 8, 4),
+                 ("mix_lit8_k16", 4, 4, 8), ("balanced_k20", 8, 6, 6)]
 
 
 def _compose(cur, n_corr, n_cat, n_lit, exclude):

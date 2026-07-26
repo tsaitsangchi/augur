@@ -72,6 +72,46 @@ def _simulate(logr, h, n_paths, method, block_len, rng):
     return np.exp(cum_log) - 1.0                     # 逐日累積簡單報酬
 
 
+def _stationary_paths(logr, h, n_paths, mean_block, rng):
+    """stationary bootstrap(Politis-Romano 1994;方法擴充 2026-07-26):幾何隨機塊長(期望 mean_block,
+    與 block 引擎同均值=單獨隔離「塊長固定 vs 隨機」假設)、環繞取樣。回 paths 同 _simulate 約定。"""
+    m = len(logr)
+    p = 1.0 / max(1, mean_block)
+    restart = rng.random(size=(n_paths, h)) < p
+    restart[:, 0] = True
+    fresh = rng.integers(0, m, size=(n_paths, h))
+    idx = np.empty((n_paths, h), dtype=np.int64)
+    idx[:, 0] = fresh[:, 0]
+    for t in range(1, h):
+        idx[:, t] = np.where(restart[:, t], fresh[:, t], (idx[:, t - 1] + 1) % m)
+    return np.exp(np.cumsum(logr[idx], axis=1)) - 1.0
+
+
+def _garch_fhs_paths(logr, h, n_paths, rng):
+    """GARCH(1,1)-FHS(filtered historical simulation;方法擴充 2026-07-26):QMLE 擬合→經驗標準化殘差
+    重抽→前向波動遞迴(壞日波動傳染)。回 (paths, fit_diag);依賴 arch 套件,缺席由呼叫端 graceful SKIP。"""
+    from arch import arch_model                      # 延遲 import:模組不硬依賴 arch
+    r_pct = np.asarray(logr, dtype=float) * 100.0    # arch 慣例:百分比尺度利 QMLE 收斂
+    res = arch_model(r_pct, mean="Constant", vol="GARCH", p=1, q=1,
+                     dist="normal", rescale=False).fit(disp="off", show_warning=False)
+    mu, omega, alpha, beta = (float(res.params[k]) for k in ("mu", "omega", "alpha[1]", "beta[1]"))
+    z = np.asarray(res.std_resid, dtype=float)
+    z = z[np.isfinite(z)]                            # FHS 定義:經驗殘差(保留窗內真實偏態/峰度)
+    sig2 = np.full(n_paths, omega + alpha * float(r_pct[-1] - mu) ** 2
+                   + beta * float(res.conditional_volatility[-1]) ** 2)
+    draws = rng.choice(z, size=(n_paths, h), replace=True)
+    step = np.empty((n_paths, h))
+    for t in range(h):
+        r_t = mu + np.sqrt(sig2) * draws[:, t]
+        step[:, t] = r_t
+        sig2 = omega + alpha * (r_t - mu) ** 2 + beta * sig2
+    fit_diag = {"omega": round(omega, 6), "alpha": round(alpha, 5), "beta": round(beta, 5),
+                "persistence": round(alpha + beta, 5), "n_obs": int(len(r_pct)),
+                "converged": bool(getattr(res, "convergence_flag", 0) == 0),
+                "note_fit": "QMLE 擬合於本窗(平靜窗→前向波動起點偏低;殘差=窗內經驗分布、窗外尾部不可得)"}
+    return np.exp(np.cumsum(step / 100.0, axis=1)) - 1.0, fit_diag
+
+
 def _summary(last_close, paths, h):
     """分位錐(逐 td)+ 終值分布 + P(終值>0)。只存摘要、不存逐路徑(鎖②)。"""
     cone = []

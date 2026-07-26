@@ -14,7 +14,10 @@
   python scripts/simulate_portfolio_risk.py --run                 # RankRidge_H60 全套:bootstrap(h=60)+三 episode
   python scripts/simulate_portfolio_risk.py --run --episode 2008  # 只跑指定情境重放
   python scripts/simulate_portfolio_risk.py --run --cell RankRidge_H120 --n-paths 10000 --seed 42
+  python scripts/simulate_portfolio_risk.py --compare --cell RankRidge_H60 # 四法對照表(唯讀帳本、零重算)
   python scripts/simulate_portfolio_risk.py --selftest            # 零 DB 純紅綠(聚合數學/MaxDD 一致/揭露欄鎖)
+註:bootstrap 族=四法(iid/block/stationary/garch_fhs;後二為 2026-07-26 方法擴充對照組——拆固定塊長/
+   波動齊性假設;仍同窗重抽、episode 主結論地位不變)。garch_fhs 依賴 arch 套件、缺席 graceful SKIP。
 """
 import argparse
 import hashlib
@@ -27,7 +30,9 @@ import numpy as np
 from augur.core import db
 from augur.evaluation.portfolio import drawdown_series
 from augur.execution.risk_control import load_policies
-from simulate_mc_paths import BLOCK_LEN, PCTS, _git7, _simulate
+from simulate_mc_paths import BLOCK_LEN, PCTS, _garch_fhs_paths, _git7, _simulate, _stationary_paths
+
+BOOT_METHODS = ("iid_bootstrap", "block_bootstrap", "stationary_bootstrap", "garch_fhs")
 
 MIN_COMMON_TD = 252            # 共同覆蓋誠實下限(不足=fail-closed 拒跑、不硬出數字)
 WINDOW_TD = 756
@@ -86,7 +91,16 @@ def _maxdd_per_path(paths):
 
 def _bootstrap_summary(logr, h, n_paths, method, seed, policies, window_maxdd, meta):
     rng = np.random.default_rng(seed)
-    paths = _simulate(logr, h, n_paths, method, BLOCK_LEN, rng)
+    fit_diag = None
+    if method == "stationary_bootstrap":             # 方法擴充 2026-07-26:對照組(拆固定塊長假設)
+        paths = _stationary_paths(logr, h, n_paths, BLOCK_LEN, rng)
+    elif method == "garch_fhs":                      # 對照組(拆波動齊性假設);缺 arch → None=SKIP
+        try:
+            paths, fit_diag = _garch_fhs_paths(logr, h, n_paths, rng)
+        except ImportError:
+            return None
+    else:
+        paths = _simulate(logr, h, n_paths, method, BLOCK_LEN, rng)
     term, mdd = paths[:, -1], _maxdd_per_path(paths)
     dd_gate = policies.get("dd_circuit", {})
     thr = dd_gate.get("threshold")
@@ -103,6 +117,8 @@ def _bootstrap_summary(logr, h, n_paths, method, seed, policies, window_maxdd, m
         "note_window_bias": "重抽窗內無某級事件→該檔位機率≈0 係窗的性質、非安全證據;窗內實際最深回檔="
                             f"{window_maxdd:+.1%}(錨);主結論請看 episode_replay 列",
     }
+    if fit_diag:
+        summ["fit_diag"] = fit_diag                  # garch_fhs 擬合品質入帳可稽(方法擴充計畫 §二)
     return summ
 
 
@@ -157,12 +173,17 @@ def run(cell, episodes, n_paths, seed, h):
         print(f"候選組合 {cell}@{panel}:{len(members)} 檔|共同覆蓋 {len(rets)} td(剔除 {dropped} 日)|"
               f"窗內實際 MaxDD={window_maxdd:+.1%}")
         rows = []
-        for method in ("iid_bootstrap", "block_bootstrap"):
+        for method in BOOT_METHODS:
             summ = _bootstrap_summary(logr, horizon, n_paths, method, seed, policies, window_maxdd,
                                       {**meta, "effective_window_td": len(rets), "dropped_dates": dropped})
-            rows.append((method, BLOCK_LEN if method == "block_bootstrap" else None, horizon, summ))
-            print(f"  [參考] {method:<15} h={horizon} | MaxDD p50={summ['maxdd']['p50']:+.1%} "
-                  f"p95={summ['maxdd']['p95']:+.1%} | P(MaxDD<{summ['policy_threshold']})={summ['p_maxdd_lt_policy']}")
+            if summ is None:
+                print(f"  [參考] {method:<19} SKIP(arch 未安裝——graceful、非失敗)"); continue
+            rows.append((method, BLOCK_LEN if method in ("block_bootstrap", "stationary_bootstrap") else None,
+                         horizon, summ))
+            fd = summ.get("fit_diag")
+            print(f"  [參考] {method:<19} h={horizon} | MaxDD p50={summ['maxdd']['p50']:+.1%} "
+                  f"p95={summ['maxdd']['p95']:+.1%} | P(MaxDD<{summ['policy_threshold']})={summ['p_maxdd_lt_policy']}"
+                  + (f" | persistence={fd['persistence']}" if fd else ""))
         for ep in episodes:
             s, e = EPISODES[ep]
             cur.execute("""SELECT DISTINCT date FROM "TaiwanStockPriceAdj"
@@ -186,6 +207,29 @@ def run(cell, episodes, n_paths, seed, h):
                  json.dumps(summ, ensure_ascii=False, default=str), git7))
         conn.commit()
     print(f"✓ 完成(is_simulation=true;只存摘要;seed={seed} 可重現)\n  ⚠ {DISCLAIMER}")
+    return 0
+
+
+def compare(cell):
+    """四法對照(唯讀帳本、零重算;方法擴充計畫 P3):MaxDD 分位並排+P(MaxDD<閾)。判讀按計畫 §一預註冊規則。"""
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("""SELECT method, summary FROM mc_simulation_run
+            WHERE target_id LIKE %s AND method = ANY(%s) ORDER BY array_position(%s::text[], method)""",
+            (f"PORT_{cell}_%", list(BOOT_METHODS), list(BOOT_METHODS)))
+        rows = cur.fetchall()
+    if not rows:
+        print(f"(cell {cell} 無 bootstrap 族 run;先 --run)"); return 1
+    print(f"{cell} 四法對照(參考層;主結論=episode_replay、不在此表):")
+    print(f"  {'method':<20}{'MaxDD p5':>10}{'p25':>8}{'p50':>8}{'p95':>8}{'P(<閾)':>9}")
+    for m, s in rows:
+        md, p = s["maxdd"], s.get("p_maxdd_lt_policy")
+        print(f"  {m:<20}{md['p5']:>10.1%}{md['p25']:>8.1%}{md['p50']:>8.1%}{md['p95']:>8.1%}"
+              f"{('n/a' if p is None else format(p, '.4f')):>9}")
+        fd = s.get("fit_diag")
+        if fd:
+            print(f"      fit: ω={fd['omega']} α={fd['alpha']} β={fd['beta']} "
+                  f"persistence={fd['persistence']} converged={fd['converged']}")
+    print("  ⚠ 窗偏差不變:四法皆重抽同一窗、變不出窗外事件;episode 重放主結論地位不變")
     return 0
 
 
@@ -231,6 +275,27 @@ def _selftest():
     ep_ok = _episode_summary([("A", 1.0)], by30, d30, "x", {}, {})
     chk("情境揭露欄硬綁三件", ep_ok["kind"] == "episode_replay" and all(
         k in ep_ok for k in ("note_single_scenario", "note_survivor", "note_renorm")))
+    # 方法擴充增項(2026-07-26 計畫 P1)
+    lr = np.tile(np.array([0.01, -0.02, 0.005, 0.003]), 75)
+    p_a = _stationary_paths(lr, 8, 5, BLOCK_LEN, np.random.default_rng(7))
+    chk("stationary:同 seed 逐位重現", np.array_equal(
+        p_a, _stationary_paths(lr, 8, 5, BLOCK_LEN, np.random.default_rng(7))))
+    chk("stationary:形狀/有限", p_a.shape == (5, 8) and np.isfinite(p_a).all())
+    big = _stationary_paths(lr, 6, 3, 10 ** 9, np.random.default_rng(3))
+    stp = np.diff(np.concatenate([np.zeros((3, 1)), np.log1p(big)], axis=1), axis=1)
+    m = len(lr)
+    chk("stationary:mean_block→∞ 退化為環繞連續片段", all(
+        any(np.allclose(stp[i], np.take(lr, (np.arange(6) + st) % m)) for st in range(m)) for i in range(3)))
+    try:
+        import arch  # noqa: F401
+        rng = np.random.default_rng(11)
+        syn = np.concatenate([rng.normal(0, .005, 200), rng.normal(0, .03, 100), rng.normal(0, .005, 200)])
+        gp, fd = _garch_fhs_paths(syn, 10, 50, np.random.default_rng(5))
+        chk("garch_fhs:persistence∈(0,1) 且收斂", 0 < fd["persistence"] < 1 and fd["converged"])
+        chk("garch_fhs:形狀/有限/fit_diag 齊", gp.shape == (50, 10) and np.isfinite(gp).all()
+            and all(k in fd for k in ("omega", "alpha", "beta", "n_obs", "note_fit")))
+    except ImportError:
+        print("  ⊘ garch_fhs 兩項 SKIP(arch 未安裝——graceful 非 FAIL)")
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 
@@ -242,10 +307,13 @@ def main(argv=None):
     ap.add_argument("--episode", choices=[*EPISODES, "all"], default="all")
     ap.add_argument("--n-paths", type=int, default=10000)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--compare", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
     if a.selftest:
         return _selftest()
+    if a.compare:
+        return compare(a.cell)
     if not a.run:
         print(__doc__)
         return status()

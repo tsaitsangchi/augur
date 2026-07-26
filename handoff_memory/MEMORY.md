@@ -1,8 +1,13 @@
 # Memory Index
 
+- [不代打人簽](never-type-human-signature.md) — **promoted_by/approved_by/decided_by 一律 hugo 親跑寫入**;07-25 實犯(代打 promoted_by='hugo' 使 P5.W2 保證變成我能自行滿足);判斷句「這欄位是不是為了證明某事由人做的?」;已犯列以註記自陳不竄改
+
+- [GB10 不可用](gb10-unavailable.md) — **hugo 07-25 宣告:沒有 GB10、進化只能本機**;凡「GB10=大模型/訓練機」記憶皆過時;本機進化階梯=prompt-pack(Tier1)/CPU LoRA 4b 或 GPU LoRA 1.7b(Tier2)/二手 12GB GPU(硬體路)
+- 【07-25 晚新增,詳細記憶待寫】**憲章已 v1.47.0**(跨域原理映射準則;principle_domain_map 表);**人閘機制 live**(governance_proposal 三表三鎖+governance_queue CLI,首案全循環:v1 審查退回→v2 hugo 人簽→enacted);演化迴圈 evolve_cycle 首輪跑通(gold+50/pack pp_7c55);夜間收割 cron 01:30 已掛(quant_finance/software_engineering 新域);venv 新增 peft/trl/dspy/gguf;**演化鏈全自動編排 run_evolution_chain.sh(01:30)+2h 快車道+6h 自我求知;hugo 鐵律:演化教師永久本地化(oracle>8b教4b>人裁)、外部 AI token 歸零、僅 hugo 可反轉**
+
 - [憲章 corpus 已讀 20260723](augur-constitution-corpus-20260723.md) — monorepo 治權全貌：入口 GOVERNANCE-MAP；**MC v1.6**；L1–L7 生效版；領域靈魂／原則／大憲章／CLAUDE；RULING-041 #7 規範閉合；10-14 勿假關
 - [AUGUR-MC 上位治權體系](augur-mc-upper-governance.md) — **MC v1.6 原文在 `constitution/`**（不再「不在本機」）；領域 Layer 登錄；#7↔P4.E5 規範已閉（RULING-041）；AUD-02 code 仍受閘；2026-10-14 日曆項勿假關
-- [機械閘缺口盤點](augur-mechanical-gate-gaps.md) — 最弱防護在最關鍵表(trial_ledger/revalidation_baseline 零DB trigger);base_rate寫死0.5=誠實鎖沒接線;全新DB上trial_ledger建不起來(UNIQUE 7欄vs ON CONFLICT 8欄);refetch_fixed_tables無參數=DROP+放量;vol_target #8前視(未親驗待複)
+- [機械閘缺口盤點](augur-mechanical-gate-gaps.md) — **07-25 兩項已封:①兩帳本表 honesty trigger 上閘(DELETE 拒/UPDATE 綁 GUC 通行證,migrate_honesty_guards_ddl.py)②vol_target #8 前視親驗 CONFIRMED 已修(幸生產零呼叫)**;殘:base_rate寫死0.5、全新DB trial_ledger UNIQUE 7vs8欄、refetch_fixed_tables無參數=DROP+放量、feats_hash/deflated_floor 疑空轉未親驗
 - [跨宣稱矛盾檢查](cross-claim-contradiction-check.md) — 對抗驗證抓不到跨章矛盾(v4 §3.3vs§8.3自打架存活58agent);鐘擺型記憶自帶權威口吻最危險;索引/frontmatter/內文三處各自漂移;無對抗層深讀結論須標【親驗/單域/索引時效】級別
 - [PriceAdj修復=減資非除息](priceadj-repair-capital-reduction.md) — 175檔「除息誤標」真機制=減資(1109在減資表親驗);結構反證=除息使factor上跳不可能觸發guard;⚠backlog照「排除除息日」字面實作只消5/250、殘留245會白打FinMind撞#24
 - [alpha Phase1 錨修復鏈](alpha-phase1-anchor-repair.md) — 簽核錨 1.1321(hugo,另一台機器);⚠本機07-16快照 dry-run=1.1302/DSR 34.3%(差0.0019=PriceAdj快照漂;DSR「47.9%」查無來源、真值≈34.5%@N=32);PriceAdj 41真損傷/175減資誤標(非除息);7候選全滅headline未動;踩雷四型
@@ -31,7 +36,7 @@
 - [預言機方向軸判決](augur-oracle-direction-verdict.md) — 六門(H20/40/82/120+D1/D5)全判死/never_shown;建置鏈+踩雷+MC模擬情境(逐日股價唯一合法答法、四鎖硬綁模擬非預測)
 - [方向軸 v2 復活計畫+終局](augur-oracle-v2-plan.md) — **v2 全家族判死(二次證偽)**:D5 hit p=.072(灌水懷疑實證)、Brier 四門全敗;方向軸凍結至解凍+新資料、不開 v3;結案報告待親簽
 - [FREEZE 解凍+四項親核](augur-unfreeze-20260712.md) — 2026-07-12 解凍入憲(v1.9.0/v1.43.0);no-v3 入憲;殘餘=FinMind 續訂+E 債裁定→unfreeze evaluate→arena 開賽
-- [輸出契約入憲+三鏡頭候選](augur-output-contract.md) — 三度堅持刪句(靈魂v1.8.0/憲章v1.46.0):E[r]升格幅度級得逐股;⚠**A3 `_r2`三門「已簽」為假**——live DB 零`_r2`列、原三門仍preregistered/approved_by NULL(以DB為準)、有2026-08 deadline;Wave1 R4+activate 完
+- [輸出契約入憲+三鏡頭候選](augur-output-contract.md) — 三度堅持刪句(靈魂v1.8.0/憲章v1.46.0):E[r]升格幅度級得逐股;**A3 已拆彈(07-25 hugo 甲′)**:own_threelens retired+三門 superseded(原「已簽」為假、以DB為準之教訓留檔);Wave1 R4+activate 完
 
 ## 本機封存記憶（2026-07-09 前舊索引；上方新索引為現況權威；史料檔仍在、recall 可讀，各檔內文警語為準）
 
