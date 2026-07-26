@@ -4,7 +4,9 @@
 
 > **這份文件是什麼**：augur 會在**另一台電腦接續開發**。這是「新機 clone 後第一份該讀的文件」——
 > 告訴你**從哪接、怎麼跑起來、哪些不在 git、進度到哪、紅線是什麼**。
-> 快照時點：**2026-07-26**（最新封存 tag＝`archive-20260726-risk-sim-4method`；HEAD 以 `git log -1`／該 tag 為準）。
+> 快照時點：**2026-07-26**（最新封存 tag＝`archive-20260726-evo-ruler-v2plan-phase0`；HEAD 以 `git log -1`／該 tag 為準）。
+>
+> **2026-07-26 地基級更正（接續者必讀）**：本地 AI 演化的舊評測尺經親驗失效——一條不看題目的常數樣板得 0.654、高於當時現役 pack 的 0.492；竄改金標數字仍得 1.000（事實敏感度 0%）；`think:false` 對 qwen3:4b 無效致評到的是被截斷的思考鏈。**今日之前所有 LAIEVO 能力數字（0.492/0.567/0.521…）無證據力**。新尺已建（凍結集 `local_model_eval_item`＋三軸 0/1 `src/augur/evolution/behavior_rubric.py`＋多臂 `scripts/eval_local_model.py`），首個有證據力的數字＝behavior 臂 **F@L1 0.933**（floor 0.000／mismatched 0.000／shuffled 0.167）。新一代總控計畫＝`reports/augur_self_evolution_master_plan_v2_20260726.md`。
 
 ---
 
@@ -105,6 +107,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 | **凍結** | FinMind／FRED **仍凍**（前提 (1)＝LAND-MECH 已釘；(2)＝明示解凍**仍缺**；見 §4.4）—**未**解凍；預測熱路徑見上列「預測↔API」 |
 | **API 洞另帳** | Dividend resume／全量 `build_catalog`／當日 attestation audit·heal — **解凍＋明示後**；G-CAT-1／G-DIV-1／G-ATTEST／G-HAR／10-14／evaluated_pass=0／R6 S3a 等 **另帳**（LAND-MECH 接受） |
 | **庫內證據** | `reports/augur_data_foundation_db_only_20260724.md` · `audits/ROADMAP-DATA-FOUNDATION-DB-ONLY-20260724.md` · tag `archive-20260724-data-foundation-db-only` |
+| **三軸自進化** | ✅ **採納／未開執行**（2026-07-26；Steward「計畫書先拍板不執行」＝`TRI-P-yes`＋`TRI-IFACE-yes`＋`RAWEVO-P-yes`＋`TWEVO-P-yes`＋`LAIEVO-P-yes`＋`FZ-keep`＋`GATE-keep`；`DUAL-IFACE-yes`⊂`TRI-IFACE-yes`）——audit＝`audits/TRI-SELF-EVO-PLANS-APPROVED-NO-EXEC-20260726.md`；master＝`reports/augur_triple_self_evolution_master_plan_20260726.md`；**仍否**任何 go／DDL／新腳本／iteration／解凍 |
 
 ### 4.1 一句話現況（2026-07-23；取代前版）
 

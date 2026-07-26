@@ -320,8 +320,17 @@ def cycle(do_eval=True):
         conn.commit()
         print(f"①② gold 新增 {new} 條(累積見現況);③ 候選 pack {vid}"
               + ("(新註冊)" if pack_is_new else "(已存在,冪等)"))
-        # ④ eval:held-out(不在 pack 內)之 gold 比對 pack-on vs pack-off
+        # ④ eval:**已 fail-closed 停用**(V2 Phase 0.4,hugo 2026-07-26 拍板)。
+        # 停用理由(親驗,非推測):(a) _score 是「與金標之 CJK 雙字元組覆蓋率」而 gold 全出自三個固定模板
+        # → 一條不看題目的常數樣板得 0.654、高於當時現役 pack 的 0.492;(b) 竄改金標所有數字後仍得 1.000
+        # (事實敏感度 0%);(c) qwen3:4b 之 think:false 無效、num_predict 下 100% done_reason='length',
+        # 被打分的是**被截斷的思考鏈**而非答案。此路徑產出的任何分數皆無證據力,續寫入即污染帳本。
+        # 取代者=scripts/eval_local_model.py(凍結集 + 三軸 0/1 + ceiling/floor/mismatched 對照臂 + 跨尺 fail-loud)。
+        # 本函式仍照常產生教材與註冊候選 pack(該部分未受汙染);唯「評分」一段拒跑。
         if do_eval:
+            print("④ eval:**已停用**(V2 Phase 0.4)——舊 _score 經親驗失效(樣板地板 0.654 > 當時冠軍 0.492、"
+                  "事實敏感度 0%、評到思考鏈);改用 scripts/eval_local_model.py --arm behavior 於凍結集評測。")
+        if False:  # noqa: SIM223  保留原路徑供考古;不刪除(P4.E3 只失效不刪)
             cur.execute("""SELECT prompt, gold_answer FROM local_model_gold_sample
                 WHERE verdict='oracle_pass' AND NOT (sample_id = ANY(%s))
                 ORDER BY sample_id DESC LIMIT %s""", (ids, EVAL_N))

@@ -2,7 +2,9 @@
 
 - [不代打人簽](never-type-human-signature.md) — **promoted_by/approved_by/decided_by 一律 hugo 親跑寫入**;07-25 實犯(代打 promoted_by='hugo' 使 P5.W2 保證變成我能自行滿足);判斷句「這欄位是不是為了證明某事由人做的?」;已犯列以註記自陳不竄改
 
-- [GB10 不可用](gb10-unavailable.md) — **hugo 07-25 宣告:沒有 GB10、進化只能本機**;凡「GB10=大模型/訓練機」記憶皆過時;本機進化階梯=prompt-pack(Tier1)/CPU LoRA 4b 或 GPU LoRA 1.7b(Tier2)/二手 12GB GPU(硬體路)
+- [GB10 不可用](gb10-unavailable.md) — **hugo 07-25 宣告:沒有 GB10、進化只能本機**;07-26 修正:1.7b QLoRA 可行/4b no-go(embedding 不被量化)、GTX1650 無 tensor core 故 bf16 快 3×、CPU LoRA 退場、權重鏈唯 convert_lora_to_gguf 路
+- [評測樣板地板](eval-boilerplate-floor.md) — **鐵律:宣稱分數代表能力前必跑 ceiling/floor/mismatched 三臂**;07-26 實證不看題目的常數字串 0.654 > 現役冠軍 0.492、事實敏感度 0%、評到的是被截斷的思考鏈
+- [自我進化計畫地貌](augur-self-evolution-plan-map.md) — 三軸 RAWEVO×TWEVO×LAIEVO + TRI 總控(APPROVED-NO-EXEC 07-26);⚠LAIEVO 能力數字全建立在已破的尺上、涉 LAIEVO 部分或需重新確認;Tier2 裁決=事實不該進權重
 - 【07-25 晚新增,詳細記憶待寫】**憲章已 v1.47.0**(跨域原理映射準則;principle_domain_map 表);**人閘機制 live**(governance_proposal 三表三鎖+governance_queue CLI,首案全循環:v1 審查退回→v2 hugo 人簽→enacted);演化迴圈 evolve_cycle 首輪跑通(gold+50/pack pp_7c55);夜間收割 cron 01:30 已掛(quant_finance/software_engineering 新域);venv 新增 peft/trl/dspy/gguf;**演化鏈全自動編排 run_evolution_chain.sh(01:30)+2h 快車道+6h 自我求知;hugo 鐵律:演化教師永久本地化(oracle>8b教4b>人裁)、外部 AI token 歸零、僅 hugo 可反轉**
 
 - [憲章 corpus 已讀 20260723](augur-constitution-corpus-20260723.md) — monorepo 治權全貌：入口 GOVERNANCE-MAP；**MC v1.6**；L1–L7 生效版；領域靈魂／原則／大憲章／CLAUDE；RULING-041 #7 規範閉合；10-14 勿假關
