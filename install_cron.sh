@@ -36,8 +36,11 @@ $BEGIN
 0 8 * * 1 { date; cd $ROOT && set -a && . ./.env && set +a && PGPASSWORD=\$DB_PASSWORD psql -h \$DB_HOST -p \$DB_PORT -U \$DB_USER -d \$DB_NAME -c "VACUUM ANALYZE"; free -h; df -h /; /usr/local/bin/ollama list; pg_lsclusters; zramctl; echo ----; } >> \$HOME/logs/ops_weekly.log 2>&1
 # 週一 08:40 工具自測(錯開 08:00 維運;原 08:10 過近)
 40 8 * * 1 cd $ROOT && { date; bash ops/gpu-verify/gpu_verify.sh; python3 -m tools.constitution_mcp --selftest; python3 -m tools.local_llm_mcp --selftest; python3 -m tools.project_memory_mcp --selftest; echo ----; } >> \$HOME/logs/verify_weekly.log 2>&1
-# 一次性:arena 首批結算(成功後自拆;資料未到=rc≠0+sentinel,不靜默)
-0 20 27 7 * bash $ROOT/scripts/arena_settle_oneshot.sh --run
+# arena 每交易日出單(hugo 2026-07-26「讓 arena 的鐘重新走起來」;全鏈=sync〔freeze mdc 有界豁免 V2-FZ-scope〕
+# →特徵→對局;雙機械閘+休市誠實缺席 exit 0;取代已完成使命之 oneshot)
+0 20 * * 1-5 cd $ROOT && venv/bin/python scripts/run_arena_daily_pipeline.py --run >> \$HOME/logs/arena_pipeline.log 2>&1
+# arena 每日結算+官方計分板(冪等;標籤到期才結;三基準並排+洩漏稽核)
+30 21 * * 1-5 cd $ROOT && venv/bin/python scripts/settle_arena_labels.py --run >> \$HOME/logs/arena_settle.log 2>&1; cd $ROOT && venv/bin/python scripts/settle_arena_labels.py --scoreboard >> \$HOME/logs/arena_settle.log 2>&1
 $END
 EOF
 )
@@ -59,8 +62,11 @@ case "${1:-}" in
         "$([ "$(printf '%s' "$AUGUR_BLOCK" | grep -c 'flock -n /tmp/augur_llm.lock')" -ge 2 ] && echo 1 || echo 0)"
     chk "evolve_cycle 不落在 01:15(避免撞 01:30 鏈)" \
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q '^15 4,10,16,22' && echo 1 || echo 0)"
-    chk "arena 需明示 --run(不會被無參數誤觸)" \
-        "$(printf '%s' "$AUGUR_BLOCK" | grep -q 'arena_settle_oneshot.sh --run' && echo 1 || echo 0)"
+    chk "arena 每日雙條目(出單 20:00 平日+結算 21:30 平日,皆明示 --run)" \
+        "$(printf '%s' "$AUGUR_BLOCK" | grep -q 'run_arena_daily_pipeline.py --run' \
+           && printf '%s' "$AUGUR_BLOCK" | grep -q 'settle_arena_labels.py --run' && echo 1 || echo 0)"
+    chk "oneshot 已退場(由每日條目取代,不殘留)" \
+        "$(printf '%s' "$AUGUR_BLOCK" | grep -q 'arena_settle_oneshot' && echo 0 || echo 1)"
     chk "路徑不寫死 hugo(換機可攜)" \
         "$(printf '%s' "$AUGUR_BLOCK" | grep -qv '/home/hugo/project' && echo 1 || echo 0)"
     chk "無 % 未跳脫(cron 會截斷)" \

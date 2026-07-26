@@ -29,6 +29,18 @@ alwaysApply: true
 
 > **交叉一句**：本 rule **只凍取數**；**不解凍**。預測正交定義與追溯 yes **不**改本凍結條件。
 
+## 有界豁免：arena 日頻增量維運（V2-FZ-scope，2026-07-26 hugo 拍板）
+
+> **授權鏈**（逐次明示、非 AI 自行）：07-25 hugo 拍板 arena oneshot SOP（含 `daily_maintenance` audit+heal 段）→ 07-25 hugo「現在補跑 PriceAdj 的 sync」→ **07-26 hugo「讓 arena 的鐘重新走起來」**（採每交易日出單套件；本節＝該拍板之落文字）。本節**是有界豁免、不是解凍**——下方全面解凍條件（INV1／INV2）原文不動。
+
+**白名單（僅此二項、僅此節奏）**：
+1. `daily_maintenance.py --end <當日>`——**日頻增量** audit+heal（走既有限速引擎 #24；每交易日一次，cron 20:00 arena 管線內）
+2. `sync_macro.py --no-catalog`——FRED 總經日更（同節奏、同管線內）
+
+**仍凍（明示，不因本節鬆動）**：歷史重抓／寬窗窄窗 probe／`TaiwanStockDividend` rebuild／`refetch_fixed_tables`／任何放量或補洞回填；見 403／ban／額度訊號→**停、不重試風暴**（撞牆即當日缺席、翌日再試，不升級為放量）。
+
+**退場**：hugo 一句「停 arena 出單」即撤本節白名單、回全凍。
+
 ## 解凍條件（AI 不自行解凍）
 
 **前提（兩者皆須）**：
