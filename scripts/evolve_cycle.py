@@ -17,6 +17,8 @@
   python scripts/evolve_cycle.py                 # 無參數:現況(gold/版本/候選統計,唯讀)
   python scripts/evolve_cycle.py --cycle         # 跑一輪完整迴圈(①→④;冪等、cron 友善)
   python scripts/evolve_cycle.py --cycle --no-eval   # 略過 ollama 評測段(離線/省時)
+  python scripts/evolve_cycle.py --search-packs # 選材搜尋(多變體→集A比→冠軍集B確認)
+  python scripts/evolve_cycle.py --eval-all     # 全候選+基線在固定集重評(可比排名)
   python scripts/evolve_cycle.py --export-pack   # 只匯出 serving pack 快取檔(晉升/退役後手動同步)
   python scripts/evolve_cycle.py --selftest      # 零 DB 紅綠
 """
@@ -36,6 +38,7 @@ TOP_INSIGHTS = 60
 TOP_SEMANTICS = 200
 PACK_K = 10
 EVAL_N = 6
+EVAL_SET_N = 12          # 固定 held-out 集大小(決定性 md5 序;跨版本可比)
 
 
 def _insight_gold(pairs):
@@ -103,11 +106,11 @@ def _knowledge_gold(cur):
     out = []
     for dom in KNOWLEDGE_DOMAINS:
         cur.execute("""SELECT title, authors, year, venue FROM knowledge_item
-            WHERE domain=%s ORDER BY item_id DESC LIMIT 15""", (dom,))
+            WHERE domain=%s ORDER BY item_id DESC LIMIT 80""", (dom,))
         rows = cur.fetchall()
         if not rows:
             continue
-        for title, authors, year, venue in rows[:10]:
+        for title, authors, year, venue in rows[:75]:
             q = f"文獻《{title[:80]}》的出處?"
             a = (f"依 knowledge_item(收割層 SSOT):{(authors or '作者未載')[:120]}"
                  f"({year or '年份未載'}),{venue or '(venue 未載)'}。domain={dom};全文/摘要以該表與"
@@ -144,6 +147,114 @@ def _ask_ollama(prompt, system=None, timeout=150):
         return json.loads(r.read())["response"]
 
 
+
+def _fixed_eval_set(cur, confirm=False):
+    """固定 held-out 集:決定性(md5(prompt) 序)、與 pack 選材互斥、跨版本同一批題=分數可比。
+
+    修 2026-07-25 缺口:原每輪隨機取 held-out → 各版本分數不可互比(off 基線 0.055~0.005 漂移即證)。
+    """
+    cur.execute("""SELECT sample_id, prompt, gold_answer FROM local_model_gold_sample
+        WHERE verdict='oracle_pass' ORDER BY md5(prompt) LIMIT %s OFFSET %s""",
+        (EVAL_SET_N, EVAL_SET_N if confirm else 0))
+    return cur.fetchall()
+
+
+def _eval_pack(cur, pack_text, evalset):
+    """對固定集打分;pack_text=None 為基線(無 pack)。回 (mean_score, n_scored)。"""
+    tot = n = 0
+    for _sid, q, gold in evalset:
+        try:
+            tot += _score(_ask_ollama(q, system=pack_text), gold); n += 1
+        except Exception as e:  # noqa: BLE001  逾時=誠實記缺測、不補假分
+            print(f"    (跳過一題:{e})")
+    return (round(tot / n, 3) if n else None), n
+
+
+def _pack_text_of(cur, ids):
+    cur.execute("""SELECT prompt, gold_answer FROM local_model_gold_sample
+        WHERE sample_id = ANY(%s) ORDER BY sample_id""", (ids,))
+    return _pack_text(cur.fetchall())
+
+
+
+# 選材變體(名稱, 相關性, catalog, 文獻);pack 選材從未被優化過=此搜尋之動機
+PACK_VARIANTS = [("balanced_k10", 4, 3, 3), ("balanced_k16", 6, 5, 5), ("corr_heavy_k12", 8, 2, 2),
+                 ("catalog_heavy_k12", 2, 8, 2), ("lit_heavy_k12", 2, 2, 8), ("balanced_k20", 8, 6, 6)]
+
+
+def _compose(cur, n_corr, n_cat, n_lit, exclude):
+    ids, pairs = [], []
+    for src, n in (("field_correlation_baseline", n_corr), ("column_catalog", n_cat), ("knowledge_item", n_lit)):
+        cur.execute("""SELECT sample_id, prompt, gold_answer FROM local_model_gold_sample
+            WHERE trigger_event->>'source'=%s AND NOT (sample_id = ANY(%s))
+            ORDER BY sample_id LIMIT %s""", (src, exclude, n))
+        for sid, q, a in cur.fetchall():
+            ids.append(sid); pairs.append((q, a))
+    return ids, _pack_text(pairs)
+
+
+def search_packs():
+    """選材搜尋:多變體在集 A 比 → 冠軍在**獨立確認集 B** 驗證(套 deflation 精神:搜尋會膨脹、須外部確認)。"""
+    with db.connect() as conn:
+        cur = conn.cursor()
+        set_a, set_b = _fixed_eval_set(cur), _fixed_eval_set(cur, confirm=True)
+        excl = [r[0] for r in set_a] + [r[0] for r in set_b]
+        print(f"搜尋集 A={len(set_a)} 題 / 確認集 B={len(set_b)} 題(不相交、皆排除於選材外)")
+        base_a, _ = _eval_pack(cur, None, set_a)
+        print(f"  基線(無 pack) on A = {base_a}")
+        results = []
+        for name, nc, nk, nl in PACK_VARIANTS:
+            ids, text = _compose(cur, nc, nk, nl, excl)
+            sc, n = _eval_pack(cur, text, set_a)
+            results.append((sc or 0, name, ids, text))
+            print(f"  {name:<18} K={len(ids):<3} A={sc}")
+        results.sort(reverse=True)
+        best_sc, best_name, best_ids, best_text = results[0]
+        conf_sc, _ = _eval_pack(cur, best_text, set_b)
+        base_b, _ = _eval_pack(cur, None, set_b)
+        vid = "pp_" + _pack_hash(best_ids)
+        cur.execute("""INSERT INTO local_model_version (version_id, base_model, train_sample_manifest_hash, eval_result)
+            VALUES (%s,%s,%s,%s) ON CONFLICT (version_id) DO UPDATE SET eval_result=EXCLUDED.eval_result""",
+            (vid, MODEL, _pack_hash(best_ids), json.dumps({
+                "kind": "prompt_pack", "sample_ids": best_ids, "variant": best_name,
+                "search": {"n_variants": len(PACK_VARIANTS), "set_a_score": best_sc, "set_a_baseline": base_a},
+                "confirm": {"set_b_score": conf_sc, "set_b_baseline": base_b,
+                            "note": "B 為搜尋外獨立確認集;A 之冠軍分數含多重比較膨脹、以 B 為準(deflation 精神)"}})))
+        conn.commit()
+        print(f"\n冠軍 {best_name} ({vid}) — 搜尋集 A={best_sc}(基線 {base_a})")
+        print(f"獨立確認集 B={conf_sc}(基線 {base_b}) ← **以此為準**(A 分數含 {len(PACK_VARIANTS)} 選 1 之膨脹)")
+        cur.execute("SELECT coalesce(eval_result->'fixed_eval'->>'score','-') FROM local_model_version WHERE status='serving'")
+        r = cur.fetchone()
+        print(f"現役 serving 於集 A 之分數={r[0] if r else '-'}(同尺可比);晉升唯 hugo 人簽:")
+        print(f"  UPDATE local_model_version SET status='serving', promoted_by='hugo', promoted_at=now() WHERE version_id='{vid}';")
+    return 0
+
+
+def eval_all():
+    """全候選+基線在同一固定集重評 → 可比排名(晉升仍人閘)。"""
+    with db.connect() as conn:
+        cur = conn.cursor()
+        evalset = _fixed_eval_set(cur)
+        eset_hash = hashlib.sha256(json.dumps([r[0] for r in evalset]).encode()).hexdigest()[:12]
+        print(f"固定評測集:{len(evalset)} 題 hash={eset_hash}(決定性;與 pack 選材互斥)")
+        base, bn = _eval_pack(cur, None, evalset)
+        print(f"  基線(無 pack)= {base}  (n={bn})")
+        cur.execute("SELECT version_id, status, eval_result->'sample_ids' FROM local_model_version ORDER BY created_at")
+        for vid, st, ids in cur.fetchall():
+            if not ids:
+                continue
+            sc, n = _eval_pack(cur, _pack_text_of(cur, ids), evalset)
+            lift = (round(sc - base, 3) if (sc is not None and base is not None) else None)
+            cur.execute("""UPDATE local_model_version
+                SET eval_result = eval_result || %s::jsonb WHERE version_id=%s""",
+                (json.dumps({"fixed_eval": {"set_hash": eset_hash, "n": n, "score": sc,
+                                            "baseline": base, "lift": lift}}), vid))
+            print(f"  {vid} [{st}] = {sc}  (基線 {base}, 提升 {lift})")
+        conn.commit()
+        print("\n晉升仍唯 hugo 人簽(見上一輪 cycle 印出之指令)")
+    return 0
+
+
 def cycle(do_eval=True):
     with db.connect() as conn:
         cur = conn.cursor()
@@ -174,13 +285,17 @@ def cycle(do_eval=True):
         conn.commit()
         # ③ promptpack 候選(擇優=最新一批多樣抽樣:insight/semantics 各半)
         cur.execute("""(SELECT sample_id, prompt, gold_answer FROM local_model_gold_sample
-                        WHERE trigger_event->>'source'='field_correlation_baseline' ORDER BY sample_id LIMIT 4)
+                        WHERE trigger_event->>'source'='field_correlation_baseline'
+                          AND NOT (sample_id = ANY(%(ex)s)) ORDER BY sample_id LIMIT 4)
                        UNION ALL
                        (SELECT sample_id, prompt, gold_answer FROM local_model_gold_sample
-                        WHERE trigger_event->>'source'='column_catalog' ORDER BY sample_id LIMIT 3)
+                        WHERE trigger_event->>'source'='column_catalog'
+                          AND NOT (sample_id = ANY(%(ex)s)) ORDER BY sample_id LIMIT 3)
                        UNION ALL
                        (SELECT sample_id, prompt, gold_answer FROM local_model_gold_sample
-                        WHERE trigger_event->>'source'='knowledge_item' ORDER BY sample_id LIMIT 3)""")
+                        WHERE trigger_event->>'source'='knowledge_item'
+                          AND NOT (sample_id = ANY(%(ex)s)) ORDER BY sample_id LIMIT 3)""",
+                    {"ex": [r[0] for r in _fixed_eval_set(cur)]})
         ex = cur.fetchall()
         ids = [r[0] for r in ex]
         ph = _pack_hash(ids)
@@ -263,11 +378,17 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="本地 AI 永續進化迴圈(晉升人閘)")
     ap.add_argument("--cycle", action="store_true")
     ap.add_argument("--no-eval", action="store_true")
+    ap.add_argument("--search-packs", action="store_true")
+    ap.add_argument("--eval-all", action="store_true")
     ap.add_argument("--export-pack", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
     if a.selftest:
         return _selftest()
+    if a.search_packs:
+        return search_packs()
+    if a.eval_all:
+        return eval_all()
     if a.export_pack:
         with db.connect() as conn, db.transaction(conn) as cur:
             _export_serving_pack(cur)
