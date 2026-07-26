@@ -1,5 +1,7 @@
 # 雙軸自進化協作介面（TWEVO × LAIEVO）[I]
 
+> **SSOT 已移轉（V2-P-yes，2026-07-26 hugo 拍板、登錄 `audits/V2-ADOPTED-SUNSET-20260726.md`）**：本檔之總控／介面契約 SSOT＝`augur_self_evolution_master_plan_v2_20260726.md`；本檔降為前身史料，衝突時以 v2 為準；v2 §0.6 明列本檔哪些段落作廢／修訂／撤回。
+
 > **已升格為三軸**（2026-07-26，加入 RAWEVO 資料地基）：介面契約 SSOT 移至 `reports/augur_triple_self_evolution_master_plan_20260726.md`；本檔留為前身史料，`DUAL-IFACE-yes` 視為 `TRI-IFACE-yes` 之等價舊碼。衝突時以 triple master 之**更嚴邊界**為準。
 
 > **性質**：[I] 介面／正交矩陣短檔（≤80 行）— **不創設 [N]**；拍板碼可選 `DUAL-IFACE-yes`  

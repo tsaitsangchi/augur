@@ -38,6 +38,7 @@ from augur.philosophy.evolution import (
     build_gate_json,
     classify_coverage,
     decide_queue_status,
+    effective_kill_state,
     evaluate_g_econ_from_evidence,
     evaluate_g_prom_from_evidence,
     map_action_from_evidence,
@@ -371,10 +372,11 @@ def run_evolution(
         if cur.fetchone()[0] is None:
             print("✗ 先: python scripts/migrate_philosophy_evolution_ddl.py --run")
             return 1
-        cur.execute("SELECT state FROM evolution_kill_switch WHERE switch_id=1")
-        row = cur.fetchone()
-        kill_db = row[0] if row else KILL_CLEAR
-        kill_eff = normalize_kill_state(kill_db, env_halt=_env_halt())
+        # V2 Phase 2.4(C6):逐 scope 口徑——本引擎屬 tw 軸;自軸或 global 任一 halt 即停(OR、fail-safe)
+        cur.execute("SELECT state FROM evolution_kill_switch WHERE scope IN ('tw','global')")
+        kill_states = [r[0] for r in cur.fetchall()]
+        kill_db = "halt" if "halt" in kill_states else (kill_states[0] if kill_states else KILL_CLEAR)
+        kill_eff = effective_kill_state(kill_states, env_halt=_env_halt())
         g_kill = {
             "verdict": "PASS" if kill_eff == KILL_CLEAR else "FAIL",
             "state": kill_eff,

@@ -152,12 +152,14 @@ EVOLUTION_DDL = [
         evidence_json   JSONB NOT NULL
     )""",
     """CREATE TABLE IF NOT EXISTS evolution_kill_switch (
-        switch_id       SMALLINT PRIMARY KEY DEFAULT 1 CHECK (switch_id = 1),
+        switch_id       SMALLINT PRIMARY KEY,
+        scope           VARCHAR(8) NOT NULL DEFAULT 'global' UNIQUE,
         state           VARCHAR(16) NOT NULL DEFAULT 'clear',
         set_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
         set_by          VARCHAR(128) NOT NULL,
         reason          TEXT,
-        CHECK (state IN ('clear','halt'))
+        CHECK (state IN ('clear','halt')),
+        CHECK (scope IN ('tw','lai','raw','global'))
     )""",
     # PME 生產特徵登錄（philosophy 域 allowlist）。≠可交易／確立級；≠predict 熱路徑自動納入。
     """CREATE TABLE IF NOT EXISTS evolution_production_feature_set (
@@ -185,6 +187,29 @@ EVOLUTION_DDL_POST = [
     END $$""",
     """COMMENT ON TABLE evolution_production_feature_set IS
         'PME 生產特徵登錄（philosophy 域）；≠可交易/確立級；≠predict 熱路徑自動納入；SSOT=APPLY promote/demote'""",
+    # V2 Phase 2.4(C6):kill-switch 由單列升為逐 scope 一列(tw/lai/raw/global);TRI-HALT=global halt。
+    # 既有 DB 冪等升級:去 switch_id=1 CHECK → 加 scope 欄 → 補 UNIQUE/CHECK → 種 4 列。
+    """DO $$ BEGIN
+        ALTER TABLE evolution_kill_switch DROP CONSTRAINT IF EXISTS evolution_kill_switch_switch_id_check;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                       WHERE table_name='evolution_kill_switch' AND column_name='scope') THEN
+            ALTER TABLE evolution_kill_switch ADD COLUMN scope VARCHAR(8) NOT NULL DEFAULT 'global';
+        END IF;
+        BEGIN
+            ALTER TABLE evolution_kill_switch ADD CONSTRAINT evolution_kill_switch_scope_uq UNIQUE (scope);
+        EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
+        END;
+        BEGIN
+            ALTER TABLE evolution_kill_switch ADD CONSTRAINT evolution_kill_switch_scope_check
+                CHECK (scope IN ('tw','lai','raw','global'));
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END;
+    END $$""",
+    """INSERT INTO evolution_kill_switch (switch_id, scope, state, set_by, reason)
+        VALUES (2,'tw','clear','migrate_philosophy_evolution_ddl','V2 Phase 2.4 scope seed'),
+               (3,'lai','clear','migrate_philosophy_evolution_ddl','V2 Phase 2.4 scope seed'),
+               (4,'raw','clear','migrate_philosophy_evolution_ddl','V2 Phase 2.4 scope seed')
+        ON CONFLICT (scope) DO NOTHING""",
 ]
 
 
@@ -212,6 +237,19 @@ def normalize_kill_state(state: str | None, *, env_halt: bool = False) -> str:
     if s == KILL_CLEAR:
         return KILL_CLEAR
     raise ValueError(f"illegal kill-switch state: {state!r}")
+
+
+KILL_SCOPES = ("tw", "lai", "raw", "global")
+
+
+def effective_kill_state(states, *, env_halt: bool = False) -> str:
+    """逐 scope 多列口徑(V2 Phase 2.4/C6):任一相干 scope 為 halt ⇒ halt(OR 語意;fail-safe)。
+    呼叫端以 `WHERE scope IN (<自軸>,'global')` 取列後把 state 序列餵入;空序列=表無列=clear(建表前相容)。"""
+    eff = KILL_CLEAR
+    for s in states:
+        if normalize_kill_state(s) == KILL_HALT:
+            eff = KILL_HALT
+    return normalize_kill_state(eff, env_halt=env_halt)
 
 
 def gate_verdict(result: Mapping[str, Any]) -> str:

@@ -30,7 +30,10 @@ PREDICT_ROLE = "augur_predict"
 
 # 素養層(預測 role 一律 REVOKE、零存取)——前綴 + 非前綴之明列
 # advisor_distill_*:蒸餾(自問自答訓練)staging,界線-A 蒸餾產物零進預測管線 → DB 層亦硬擋
-FORBIDDEN_PREFIXES = ("philosophy_", "knowledge_", "advisor_distill_")
+# local_model_/local_ai_/raw_evolution_:LAIEVO/RAWEVO 帳本(V2 Phase 2.2/I3,2026-07-26)——
+#   三軸隔離 A9:predict 對之零授權;raw_evolution_/local_ai_ 為 Phase 5 未來表、先封前綴
+FORBIDDEN_PREFIXES = ("philosophy_", "knowledge_", "advisor_distill_",
+                      "local_model_", "local_ai_", "raw_evolution_")
 FORBIDDEN_EXPLICIT = {
     "chat_session", "chat_message",                                    # 對話原文
     "app_user", "app_session", "user_group", "group_domain_grant",    # RBAC 身分/授權
@@ -42,6 +45,9 @@ FORBIDDEN_EXPLICIT = {
     "identity_claim", "identity_lifecycle_event", "entity_attribute_version",
     # 自動行動授權/留痕:執行層記錄,與預測管線無涉 → 預測 role 零存取(縱深)。
     "authorization_grant", "automation_action_log",
+    # 憲章 v1.47.0 素養層表(前綴 principle_ 非 philosophy_ 而漏網;與 principle_factor_map 同理
+    # ——應用注記軸非量化資格 I8,預測 role 零存取;V2 Phase 2.2 補封 2026-07-26)
+    "principle_domain_map",
 }
 # 注:entity_type_catalog / entity_registry / entity_alias 屬 resolution 基礎設施(Phase 2 消費端須 JOIN 已解析
 #     augur_id),故不列 forbidden、留 allowed(唯讀);其 append-only/permanence 由 migrate_identity_ddl 硬化。
@@ -65,10 +71,28 @@ WRITABLE = {"model_registry", "prediction_values", "feature_values",
             "prediction_serving_log"}  # AUD-08:predict 出單伴生 append(Phase 4 改繫);同 prediction_values 為輸出表
 
 
+# 預測管線 allowed 註冊表(V2 Phase 2.2:fail-loud on unknown——原本的尾 else=fail-open,任何新表
+# 靜默 GRANT=無聲放寬;現改「未登錄→第三桶,--apply 拒跑並列名」。新表要授權=來此補登,不改回 fail-open。
+# 2026-07-26 以 live DB 157 表 catch-all 實查編錄;raw 層=FinMind 大寫命名以首字母大寫判)
+ALLOWED_PREFIXES = (
+    "core_universe", "feature_",                                     # 宇宙/特徵
+    "daily_direction_", "direction_", "market_", "probability_",     # 方向/機率軸
+    "prediction_", "mc_", "risk_", "judgestop",                      # 預測輸出/模擬/風控/判停
+    "field_", "fred_", "econ_",                                      # 欄際結構/總經/經濟判準
+    "revalidation_", "trial_", "validation_", "score_",              # 驗證帳本
+    "dataset_", "column_", "attestation_", "data_audit",             # catalog/對帳
+    "freeze_", "full_attest", "restatement_",                        # 凍結/重述
+    "deliberation_",                                                 # 審議引擎(既有授權現況、存疑待審)
+    "model_registry", "pipeline_execution", "qdrant_",               # 模型登錄/執行紀錄/向量同步
+    "governance_", "user_settings", "vectorstore_",                  # 治理佇列(唯讀)/設定(既有現況)
+    "arena_admission",                                               # arena 前置 gate
+)
+
+
 def classify(cur):
-    """回 (forbidden[], allowed[]):public 全表依素養層＋P2H evolution 收斂判準分流。"""
+    """回 (forbidden[], allowed[], unregistered[]):素養層/evolution 拒、註冊表准、**其餘=未登錄第三桶**。"""
     cur.execute("SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")
-    forbidden, allowed = [], []
+    forbidden, allowed, unregistered = [], [], []
     for (t,) in cur.fetchall():
         if t.startswith(FORBIDDEN_PREFIXES) or t in FORBIDDEN_EXPLICIT:
             forbidden.append(t)
@@ -77,12 +101,12 @@ def classify(cur):
         elif t in EVOLUTION_REVOKE_EXPLICIT or (
             t.startswith("evolution_") and t not in PRODSET_ALLOW
         ):
-            forbidden.append(t)                        # 其餘 evolution 帳本拒
-        elif t.startswith("core_universe") or t.startswith("feature_"):
-            allowed.append(t)
+            forbidden.append(t)                        # 其餘 evolution 帳本拒(含未來 hint/evidence/deferred)
+        elif t[0].isupper() or t.startswith(ALLOWED_PREFIXES):
+            allowed.append(t)                          # raw 層(FinMind 大寫)+註冊前綴
         else:
-            allowed.append(t)
-    return forbidden, allowed
+            unregistered.append(t)                     # fail-loud:未登錄不授權、--apply 拒跑
+    return forbidden, allowed, unregistered
 
 
 def role_exists(cur, role):
@@ -91,7 +115,9 @@ def role_exists(cur, role):
 
 
 def dry_run(cur):
-    forbidden, allowed = classify(cur)
+    forbidden, allowed, unregistered = classify(cur)
+    if unregistered:
+        print(f"  ⚠ 未登錄 {len(unregistered)} 表(不授權;--apply 會拒跑):{', '.join(unregistered)}")
     print(f"  素養層 forbidden(REVOKE 全部)= {len(forbidden)} 表")
     print("    " + ", ".join(forbidden[:12]) + (" …" if len(forbidden) > 12 else ""))
     print(f"  預測 allowed(GRANT)= {len(allowed)} 表;其中可寫 {sorted(WRITABLE & set(allowed))}")
@@ -132,7 +158,12 @@ def dry_run(cur):
 
 
 def apply(cur):
-    forbidden, allowed = classify(cur)
+    forbidden, allowed, unregistered = classify(cur)
+    if unregistered:
+        # V2 Phase 2.2:fail-loud——未登錄表出現即拒跑整批;正解=補登 ALLOWED_PREFIXES/FORBIDDEN,
+        # 不得改回 fail-open(換機流程因此卡住時亦同:補登該表,見 v2 §6 Phase 2 中止條件)
+        sys.exit(f"✗ --apply 拒跑:{len(unregistered)} 張未登錄表(不知該准該拒=不動手):"
+                 f"{', '.join(unregistered)}\n  → 補登 ALLOWED_PREFIXES 或 FORBIDDEN_* 後重跑")
     # 1. 建 role(冪等);已存在則僅 refresh grants(不改密碼——ALTER ROLE 需 superuser/owner,augur 非超級使用者)
     if not role_exists(cur, PREDICT_ROLE):
         pw = os.environ.get("DB_PREDICT_PASSWORD")

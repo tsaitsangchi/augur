@@ -1,5 +1,7 @@
 # 本地 AI（advisor）自進化迭代學習計畫——路線 B（不換卡／4GB VRAM）
 
+> **SSOT 已移轉（V2-P-yes，2026-07-26 hugo 拍板、登錄 `audits/V2-ADOPTED-SUNSET-20260726.md`）**：本檔之總控／介面契約 SSOT＝`augur_self_evolution_master_plan_v2_20260726.md`；本檔降為前身史料，衝突時以 v2 為準；v2 §0.6 明列本檔哪些段落作廢／修訂／撤回。
+
 > **性質**：[I] 工具層計畫（#20 計畫先行／憲章 v1.39.0 計畫完整性）  
 > **日期**：2026-07-26｜**機器**：DESKTOP-8MQPFS8（GTX 1650 4GB／Ryzen 5 3600／~24GB RAM／WSL2）  
 > **狀態**：計畫書已升格為「自進化迭代學習」語意；**本計畫書拍板後才動工**（尚未授權實作）  
@@ -674,7 +676,7 @@ LAIEVO-P-yes  （＝ ROUTEB-P-yes）＋可選 DUAL-IFACE-yes
 
 ### 12.4 錯峰／kill 通知／週儀表
 
-* **錯峰**：B4 embed／B2／B3 **避開** TWEVO I3 local-gates（~25–35min）與 I6 `train_ranker`；`close_local_ai_iteration`／訓練腳本可偵測對偶 `status=running` 後 `--defer`。  
+* **錯峰**：B4 embed／B2／B3 **避開** TWEVO I3 local-gates（~25–35min）與 I6 `train_ranker`；`close_local_ai_iteration`／訓練腳本可偵測對偶 `status=running` 後 `--defer-heavy`（V2 C8 統一名；原文裸 `--defer` 與 TRI 契約名歧異、2026-07-26 更正）。  
 * **通知**：本側停損或讀到 PME `kill=halt` → 寫 `cross_notify_json`；**不**自動 halt 對方 APPLY／serving。  
 * **週儀表**：`report_dual_evolution_week.py` 並列兩 ledger。
 

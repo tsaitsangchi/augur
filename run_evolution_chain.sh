@@ -44,5 +44,7 @@ flock -n 9 || { echo "$(date '+%F %T') 另一條鏈在跑,略過" >> "$LOG"; exi
   venv/bin/python scripts/evolve_self_seek.py --seek
   echo "── 待簽現況(晉升唯 hugo 人簽) ──"
   venv/bin/python scripts/evolve_cycle.py 2>/dev/null | grep -E "version|gold\[" | head -8
+  echo "── 8/8 凍結題庫漂移哨兵(V2 Phase 2.5;收割後複驗題目仍成立;唯讀只印) ──"
+  venv/bin/python scripts/verify_eval_set_validity.py
   echo "═══ $(date '+%F %T') 演化鏈結束 ═══"
 } >> "$LOG" 2>&1

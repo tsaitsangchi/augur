@@ -31,7 +31,8 @@ import pathlib
 # 預測管線模組(raw→feature→universe→model→validate + 橫切 audit/catalog);不含 core(共用)、philosophy(被隔離者)
 PIPELINE = ("features", "models", "universe", "evaluation", "ingestion", "audit", "catalog")
 # 素養/顧問/知識層:預測管線絕不 import(FORBIDDEN 前綴、單向依賴)
-FORBIDDEN = ("augur.philosophy", "augur.advisor", "augur.knowledge")
+# augur.evolution(V2 Phase 2.1/I3,2026-07-26):LAIEVO 之家——預測管線 import 之=行為評測層滲入預測,同禁
+FORBIDDEN = ("augur.philosophy", "augur.advisor", "augur.knowledge", "augur.evolution")
 # RBAC 授權表/resolver:禁被預測管線【或 augur.core】以 import 或字串拼 SQL 觸及(知識→預測旁路面)
 RBAC_LITERALS = ("app_user", "user_group", "group_domain_grant", "allowed_domains", "resolve_allowed_domains")
 # chat 對話原文表/API:禁字面被預測管線/core 觸及(對話原文禁進預測管線/當特徵;import 稽核看不到 raw SQL)
@@ -60,6 +61,17 @@ ACTION_LITERALS = ("automation_action_log", "authorization_grant")
 # 預測產物表(G-PV-1／PV-α)：禁被純消費側回讀當特徵(自迴圈)；合法寫入在 scripts/predict_*、顧問讀在 advisor。
 # AST 字面閘對稱 SUPERSEDE；GRANT 層 REVOKE SELECT＝β（本輪未做——predict writer 仍可自讀）。
 PRODUCT_LITERALS = ("prediction_values", "prediction_probability")
+# LAIEVO/RAWEVO 帳本字面(V2 Phase 2.1/I3):預測管線+core 禁字面觸及 local_model_*/未來三軸 ledger——
+# 行為評測樣本/pack 版本是「訓練行為樣本、非真兆」(界線-A 同構);與 setup_predict_role 之 DB REVOKE 成雙閘。
+LAIEVO_LITERALS = ("local_model_gold_sample", "local_model_version", "local_model_eval_item",
+                   "local_model_eval_run", "local_model_", "local_ai_iteration", "raw_evolution_")
+# 反向(I2/I5):augur.evolution 禁 import 預測管線/素養層、禁字面觸及 panel/prodset/預測產物——
+# LAI 軸零寫入 feature_values/prodset/promotion_queue 之機械落點(v2 §3.1 正交矩陣)。
+# 允許之家依賴=stdlib+augur.core;日後接 augur.deliberation(M-3)須同批來此開洞並附理由,不得默默相依。
+EVOLUTION_SRC_FORBIDDEN_IMPORTS = ("augur.features", "augur.models", "augur.universe", "augur.evaluation",
+                                   "augur.ingestion", "augur.philosophy", "augur.advisor", "augur.knowledge")
+EVOLUTION_PANEL_LITERALS = ("feature_values", "feature_candidate_values", "prediction_values",
+                            "promotion_queue", "evolution_production_feature_set", "TaiwanStockPrice")
 PREDICT_CONSUMERS = ("features", "models", "universe", "evaluation")   # 純消費側:排除合法寫入者 core/ingestion/audit/catalog
 # grep-lint 面:預測管線 + core 皆禁字面引用 RBAC/chat(擋不 import 但字串旁路)
 SCAN_STR = PIPELINE + ("core",)
@@ -72,6 +84,21 @@ _REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]       # <root>
 _SCRIPTS = _REPO_ROOT / "scripts"
 # 稽核器自身合法定義 RBAC/chat 字面為**偵測常數**(非 SQL);字面掃描須排除本檔,否則稽核器自我誤報。
 _SELF = pathlib.Path(__file__).resolve()
+# DDL 常數住所豁免(V2 Phase 5;同 _SELF 之理——schema 定義必然持有表名,非 SQL 存取路徑)。
+# **豁免綁純度條件**:該模組一旦 import augur.core.db 或含 connect( 即失純,豁免自動作廢、恢復違規報告
+# (_string_ref_violations 內檢);純常數模組拿表名=定義,帶連線的模組拿表名=存取,二者不同罪。
+_DDL_HOME = (_AUGUR_ROOT / "audit" / "evolution_ledger_ddl.py").resolve()
+
+
+def _is_exempt(py: pathlib.Path, txt: str) -> bool:
+    p = py.resolve()
+    if p == _SELF:
+        return True
+    if p == _DDL_HOME:
+        if "augur.core" in txt or "connect(" in txt:
+            return False                             # 失純=豁免作廢,照常報違規
+        return True
+    return False
 
 
 def _rel(py: pathlib.Path) -> str:
@@ -82,11 +109,10 @@ def _rel(py: pathlib.Path) -> str:
         return str(py)
 
 
-def _import_violations() -> list[str]:
-    """(a) 預測管線任一 package AST import 素養層(FORBIDDEN)→ 違規列。"""
+def _ast_import_scan(dirs, forbidden, tag, why) -> list[str]:
+    """通用 AST import 掃描:dirs 下任一 .py import forbidden 前綴 → 違規列(可測性:dirs 可注入)。"""
     out = []
-    for pkg in PIPELINE:
-        d = _AUGUR_ROOT / pkg
+    for d in dirs:
         if not d.exists():
             continue
         for py in d.rglob("*.py"):
@@ -102,9 +128,15 @@ def _import_violations() -> list[str]:
                 else:
                     continue
                 for m in mods:
-                    if any(m == f or m.startswith(f + ".") for f in FORBIDDEN):
-                        out.append(f"[import] {_rel(py)}:{node.lineno} → import {m}(素養層禁進預測管線)")
+                    if any(m == f or m.startswith(f + ".") for f in forbidden):
+                        out.append(f"[{tag}] {_rel(py)}:{node.lineno} → import {m}({why})")
     return out
+
+
+def _import_violations() -> list[str]:
+    """(a) 預測管線任一 package AST import 素養層/evolution(FORBIDDEN)→ 違規列。"""
+    return _ast_import_scan([_AUGUR_ROOT / p for p in PIPELINE], FORBIDDEN,
+                            "import", "素養層/evolution 禁進預測管線")
 
 
 def _string_ref_violations(dirs, literals, tag) -> list[str]:
@@ -114,9 +146,9 @@ def _string_ref_violations(dirs, literals, tag) -> list[str]:
         if not d.exists():
             continue
         for py in d.rglob("*.py"):
-            if py.resolve() == _SELF:                    # 稽核器自身合法持有偵測常數,不自我誤報
-                continue
             txt = py.read_text(encoding="utf-8")
+            if _is_exempt(py, txt):                      # 稽核器自身/純 DDL 住所(失純即豁免作廢)
+                continue
             for lit in literals:
                 if lit in txt:
                     out.append(f"[{tag}] {_rel(py)} → 字面 '{lit}'(字串拼 SQL 旁路)")
@@ -192,6 +224,11 @@ def check_isolation() -> list[str]:
         + _string_ref_violations([_AUGUR_ROOT / p for p in PREDICT_CONSUMERS], IDENTITY_LITERALS, "identity")
         + _string_ref_violations([_AUGUR_ROOT / p for p in PREDICT_CONSUMERS], ACTION_LITERALS, "action")
         + _string_ref_violations([_AUGUR_ROOT / p for p in PREDICT_CONSUMERS], PRODUCT_LITERALS, "product")
+        # V2 Phase 2.1(I3):三重盲區補閘——LAIEVO 帳本字面(預測/core 禁觸)+evolution 反向(import+panel 字面)
+        + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_STR], LAIEVO_LITERALS, "laievo")
+        + _ast_import_scan([_AUGUR_ROOT / "evolution"], EVOLUTION_SRC_FORBIDDEN_IMPORTS,
+                           "evolution-import", "evolution 禁 import 預測管線/素養層(I2 單向)")
+        + _string_ref_violations([_AUGUR_ROOT / "evolution"], EVOLUTION_PANEL_LITERALS, "evolution-panel")
         + _placement_violations()
         + _scripts_predict_leak_violations()
     )

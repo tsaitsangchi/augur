@@ -1,5 +1,7 @@
 # 三軸自進化總控計畫（RAWEVO × TWEVO × LAIEVO）[I]（2026-07-26）
 
+> **SSOT 已移轉（V2-P-yes，2026-07-26 hugo 拍板、登錄 `audits/V2-ADOPTED-SUNSET-20260726.md`）**：本檔之總控／介面契約 SSOT＝`augur_self_evolution_master_plan_v2_20260726.md`；本檔降為前身史料，衝突時以 v2 為準；v2 §0.6 明列本檔哪些段落作廢／修訂／撤回。
+
 > **採納狀態**：APPROVED-NO-EXEC 2026-07-26 → `audits/TRI-SELF-EVO-PLANS-APPROVED-NO-EXEC-20260726.md`（`TRI-P-yes`＋`TRI-IFACE-yes`＋三軸 `*-P-yes`＋`FZ-keep`＋`GATE-keep`；**未開執行**）
 > **性質**：[I] plan-first 總控／交互計畫書（CLAUDE #16／#20；領域大憲章第六部計畫完整性 v1.39.0）——**不創設 [N]**、**拍板前零實作**、零市場 API（FZ-keep）、不降閘（GATE-keep）。
 > **定位**：`augur_dual_self_evolution_interface_20260726.md`（DUAL-IFACE）之**升格版**——雙軸 → **三軸**；本檔取代該短檔成為介面契約 SSOT。

@@ -31,6 +31,7 @@ from augur.philosophy.evolution import (
     KILL_HALT,
     PRODSET_TABLE,
     all_gates_green,
+    effective_kill_state,
     may_apply,
     normalize_kill_state,
     production_set_delta,
@@ -184,9 +185,9 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
         if cur.fetchone()[0] is None:
             print(f"✗ 先: python scripts/migrate_philosophy_evolution_ddl.py --run  （缺 {PRODSET_TABLE}）")
             return 1
-        cur.execute("SELECT state FROM evolution_kill_switch WHERE switch_id=1")
-        row = cur.fetchone()
-        kill_eff = normalize_kill_state(row[0] if row else None, env_halt=_env_halt())
+        # V2 Phase 2.4(C6):逐 scope 口徑——本引擎屬 tw 軸;自軸或 global 任一 halt 即停(OR、fail-safe)
+        cur.execute("SELECT state FROM evolution_kill_switch WHERE scope IN ('tw','global')")
+        kill_eff = effective_kill_state([r[0] for r in cur.fetchall()], env_halt=_env_halt())
 
         q = (
             "SELECT queue_id, run_id, principle_id, feature, action, gate_json, queue_status "

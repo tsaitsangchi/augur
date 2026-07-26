@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: b6cddf62-b16d-44ba-af86-bbdb2cb161c8
-  modified: 2026-07-26T09:41:08.422Z
+  modified: 2026-07-26T14:51:08.311Z
 ---
 
 **鐵律：每次宣稱某個分數代表能力之前，先跑三個對照臂——ceiling（理想答案）、floor（不看題目的常數字串）、mismatched（選錯行為類別）。三臂未跑完，分數一律不得引用。**
@@ -24,4 +24,5 @@ metadata:
 - **軸要分開不要平均**：平均會讓樣板分稀釋事實分。三軸 F/P/A 各自成欄。
 - **「行為類別對」≠「內容對」**：新尺實測 shuffled 臂（同層鄰題的理想答案、內容全錯）在 P/A 拿 0.900/0.967——因為「查無」對任何查無題都對。故 A 軸進步只能宣稱「更會選對行為」，不得宣稱「答得更準」；只有 F 軸對內容敏感。
 - 推廣：這不是 LLM 評測獨有。凡「相似度／覆蓋率」型指標＋「樣本同源同格式」，都有樣板地板。TWEVO 的 local-gates、RAWEVO 的覆蓋率同樣該被這樣質問。
+- **同族變體（07-26 深夜實犯）：|corr| 最大化選假說＝撈定義恆等式**。RAWEVO R3 v1 按相關絕對值降冪，端出的 10 則全是 `margin_usage=f(margin_balance)`、`market_value=close×股數`、`money=volume×價` 這類套套邏輯——**退化解永遠贏過真結構**，hugo 還批准了那批。修法＝中頻帶（0.25–0.85）＋衍生家族排除（估值比值 per/pbr/dividend_yield 皆含價，與價共動是機械的）。通則：任何「最大化 X 選候選」先問「什麼垃圾能把 X 拉滿？」——與地板臂同構，選材前先算退化解的 X 值。
 - 相關：[[cross-claim-contradiction-check]]（宣稱層的自欺）、[[augur-validation-master-plan]]（deflation 精神＝搜尋會膨脹須外部確認）、[[never-type-human-signature]]（保證被溶解的另一形態）。

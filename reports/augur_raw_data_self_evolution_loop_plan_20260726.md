@@ -1,5 +1,7 @@
 # augur 全庫 raw data 自進化迭代學習計畫（RAWEVO）[I]（2026-07-26）
 
+> **SSOT 已移轉（V2-P-yes，2026-07-26 hugo 拍板、登錄 `audits/V2-ADOPTED-SUNSET-20260726.md`）**：本檔之總控／介面契約 SSOT＝`augur_self_evolution_master_plan_v2_20260726.md`；本檔降為前身史料，衝突時以 v2 為準；v2 §0.6 明列本檔哪些段落作廢／修訂／撤回。
+
 > **性質**：[I] 計畫書（#20 plan-first；v1.39 表＋程式雙落實）——**拍板前零實作**；不創設 [N]、不改憲章。
 > **定位**：雙自進化（TWEVO × LAIEVO）之**資料地基層**閉環——raw／catalog／對帳／覆蓋／缺口→假說燃料。
 > **對偶檔**：預測＝`reports/augur_tw_prediction_self_evolution_loop_plan_20260726.md`（TWEVO）· advisor＝`reports/augur_local_ai_route_b_no_gpu_plan_20260726.md`（LAIEVO）· 介面＝`reports/augur_dual_self_evolution_interface_20260726.md`（DUAL-IFACE）。

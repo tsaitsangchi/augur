@@ -1,26 +1,25 @@
 ---
 name: augur-self-evolution-plan-map
-description: "自我迭代進化計畫書地貌——三軸 RAWEVO×TWEVO×LAIEVO 已 APPROVED-NO-EXEC(2026-07-26),但三軸皆建立在今日已破的評測尺上,需重新確認"
+description: 自我迭代進化計畫 SSOT＝v2 總控(20260726);三軸 RAWEVO×TWEVO×LAIEVO;Phase 0/1 已完、Phase 2 焊死待 V2-P-yes;V2-SUNSET 落日須 hugo 親填;拍板碼與隔離不變式全錄
 metadata: 
   node_type: memory
   type: project
   originSessionId: b6cddf62-b16d-44ba-af86-bbdb2cb161c8
-  modified: 2026-07-26T09:42:50.949Z
+  modified: 2026-07-26T13:03:00.356Z
 ---
 
-**augur 的自我進化不是一份計畫，是一組互相引用的計畫群；2026-07-26 已收斂為「三軸總控」架構，狀態 APPROVED-NO-EXEC（拍板但未開執行）。**
+**自我迭代進化的 SSOT＝`reports/augur_self_evolution_master_plan_v2_20260726.md`（891 行 13 節，14-agent workflow 產出＋親驗）。TRI-v1（`augur_triple_self_evolution_master_plan_20260726.md`）降為前身；`V2-P-yes` 承接 `TRI-P-yes`。三軸主檔：RAWEVO＝raw_data、TWEVO＝tw_prediction、LAIEVO＝local_ai_route_b（各 loop_plan_20260726.md）。**
 
-**三軸與 SSOT 檔**（命名與拍板碼是既有引用的錨，改名會破壞交叉引用）：
-- **RAWEVO**（資料地基）＝`reports/augur_raw_data_self_evolution_loop_plan_20260726.md`——raw／catalog／對帳／覆蓋／缺口 → 假說燃料
-- **TWEVO**（台股預測）＝`reports/augur_tw_prediction_self_evolution_loop_plan_20260726.md`——假說 map → 候選建值 → local-gates → 雙綠 → APPLY → prodset 重訓 → as-of 模擬／arena → 結算 → 證據回饋
-- **LAIEVO**（本地 AI）＝`reports/augur_local_ai_route_b_no_gpu_plan_20260726.md`＋母計畫 `augur_local_ai_evolution_loop_plan_20260725.md`
-- **總控／介面契約 SSOT**＝`reports/augur_triple_self_evolution_master_plan_20260726.md`（`TRI-P-yes`＋`TRI-IFACE-yes`＋三軸 `*-P-yes`＋`FZ-keep`＋`GATE-keep`；採納記錄 `audits/TRI-SELF-EVO-PLANS-APPROVED-NO-EXEC-20260726.md`）
-- `augur_dual_self_evolution_interface_20260726.md` 已被 triple 取代，僅存史料（`DUAL-IFACE-yes` ≡ `TRI-IFACE-yes`）
-- 上游相關：PME＝`augur_philosophy_market_evolution_loop_plan_20260724.md`＋`augur_pme_expand_hypothesis_map_coverage_plan_20260724.md`；憲章 v1.47.0 跨域原理映射準則（`principle_domain_map`）
+**核心結構**：
+- **§2 V2-SUNSET（v2 最重要新增）**：program-level 落日條款，**hugo 親填指標與期限、AI 不得代選**；三選一達成才續命：(a) arena 結算一批＋方向門可讀數（結算半已達成 07-26）(b) prodset active 由 2 成長且新成員過符號檢查 (c) LAIEVO 任一臂 F@L1 同時勝 floor 與 mismatched **且可獨立複現**——(c) 首半已達成（behavior F@L1=0.933），複現待跑。建議期限 2026-10-31。既有停損全停「輪」、換 trigger_code 即重開＝v1 致命缺口。
+- **§3.1 正交矩陣**：只有 TW 寫 `feature_values`/`prodset`/`promotion_queue`；只有 LAI 寫 `local_model_*`；只有 RAW 寫 `raw_table_coverage_snapshot`；`evolution_hypothesis_hint`＝唯一跨軸表（UNIQUE dedup_key＋decision 單向前進＋無 FK 故障隔離）。
+- **§3.2 六條邊**：RAW→TW（hint→人閘 H3→curate_pme_map_expand 只吃 approved）；RAW→LAI（**唯一已真接上**：build_eval_set 直讀三 SSOT 表；但產物落 L3/L4＝無內容鑑別力層 → `V2-RUBRIC-go` 前**不可量測**）；TW→LAI（brief/1，Phase 6 後、前置=arena 有 settled 列——已達成）；LAI→TW（行為類 hint）；TW/LAI→RAW（唯讀回饋）。
+- **§3.3 共用零件裁決**：C2 三 ledger **不合表**（同構 DDL 常數模組＋pytest 斷言）；C3 heavy_slot 兩階段（flock 已上；第二版 pg advisory 須**自持長生連線**——`db.connect` finally 關連線會靜默放鎖）；C4 證據協定 `evidence_protocol.py`（live 臂須同時勝 floor+mismatched 寫成程式）；C5 誠實閘**只擋 DELETE/TRUNCATE、不做 UPDATE-GUC**（GUC 對唯一自動寫入者豁免＋ON CONFLICT 首過再死）；C6 停機＝`evolution_kill_switch.scope`（tw/lai/raw/global），TRI-HALT 表已撤回。
+- **§3.4 方法移植**：M-1 對照臂→TWEVO（**最高價值**：G-PROM 零對照臂、54 測 3 過≈雜訊期望 2.7；`volume_gini_60d` direction=+1 但 mean_ic=-0.054/hit 0.25 仍過閘佔 prodset n=2 之半＝符號盲，`evolution.py` 零處讀 direction）；M-2 deflation→LAI（n_trials 入帳；LAI 搜尋**不得**寫 trial_ledger）；M-3 5-oracle 單一住所（gold verdict 983 全 'oracle_pass' 是字串常數非裁決）。
+- **§3.5 隔離不變式 I1-I9**：I3＝`src/augur/evolution/` 目前三重盲區（PIPELINE/FORBIDDEN/LITERALS 皆不含）；I8＝principle_domain_map 禁 join principle_factor_map（且實查 0 列、35 principle 全 investment、無他域原理可映射——第一步是人撰非 code）；I9＝FZ 豁免已於 07-26 落 mdc（V2-FZ-scope：日頻增量 daily_maintenance＋FRED；arena 每日出單 cron 已掛）。
+- **§6 分階段**：Phase 0 止血 **✅07-26 完**（LLM 單槽鎖/去重/降頻/fail-closed 舊評分/arena fail-loud）；Phase 1 EXP1 **✅完**（behavior F@L1 0.933>0.167=判準 A PASS；grammar 亦 0.933→行為守則在 F 軸零貢獻；L2 兩臂 P=0.000＝真缺口；判準 B＝RAW→LAI 邊「不可量測」照預註冊寫）→分叉＝**進 Phase 2＋V2-RUBRIC-go 排下一人裁**；Phase 2 焊死（V2-ISO-go+V2-HONESTY-go：isolation 三處擴充+4 pytest／predict role unregistered 桶 fail-loud／PME 六表 DELETE 拒閘／kill_switch scope／題庫漂移哨兵／check_plan_consistency）；Phase 3 RAW 唯讀先行；Phase 4 TWEVO 對照臂+GATE-raise；Phase 5 五表 DDL（前置=跨軸邊有實料——arena settled 已達成）；Phase 6 三軸開輪。
+- **§8 人閘 H1-H10**：H1 V2-P-yes+SUNSET；H2 serving 晉升（pp_3ab2 晉升依據已作廢待處置）；H3 hint approve；H4 GATE-raise；H5 volume_gini_60d 回溯；H6 V2-RUBRIC-go；H7 S0 audit 補登錄；H8 P5.W5；H9 V2-FZ-scope（✅已落 mdc）；H10 principle_domain_map 人撰。§8.1 誠實條文：單帳號機無法機械區分 AI/hugo 簽名＝榮譽制+事後偵測；augur_human 角色已裁不做。
+- **§10 明確不做**：LoRA 全鏈（復活條件之一「behavior 與 grammar 有可複現差距」首批**不成立**——兩臂同 0.933；唯 L2 P=0.000 缺口是未來重議入口）；cross_notify 表；三 ledger 合表；30 條驗收接審議引擎（82 件積壓 0 解決）；RAW 缺口寫 gold（永不）。
+- **§11 誠實天花板**：不能證「答得更準」（P/A 只證行為類別）；RUBRIC 前 RAW→LAI 不可量測；prodset 成長瓶頸=訊號強度非覆蓋（17→35 已證偽擴覆蓋路）。
 
-**⚠ 必須知道的地基級更正（2026-07-26）**：LAIEVO 全系列的能力數字（0.492／0.567／0.521／0.511…）建立在一把已實證失效的尺上——詳見 [[eval-boilerplate-floor]]。連帶效應：
-- 母計畫的成敗判準「部署工作域金標分數逐版單調升」所指的金標與錨集，在 DB／repo 中是否存在需實查，不可假定。
-- 三軸 APPROVED-NO-EXEC 是在壞尺的認知下拍的，涉及 LAIEVO 的部分**可能需要 hugo 重新確認**。
-- 新尺已建成（`local_model_eval_item` 凍結集 `4183475c5089` 120 題四層／`local_model_eval_run` 帳本／`src/augur/evolution/behavior_rubric.py` 三軸 F·P·A 0/1／`scripts/eval_local_model.py` 多臂 harness），兩表皆掛誠實閘。
-
-**Tier 2 LoRA 裁決**（8-agent 對抗審查＋親驗，2026-07-26）：硬體可行（1.7B QLoRA on GTX 1650 4GB sm_75；4B no-go），但**語料不該進權重**——983 條中 87% 是文獻 metadata，背進權重＝母計畫自己警告的訓練幻覺（知識庫天天長、權重記過期快照），違 #9／#10。LoRA 僅剩「該拒答時拒答／多實體時消歧義」這一窄塊有價值；先做 grammar＋行為守則的零訓練上界，再論剩餘價值。設計書＝`reports/augur_tier2_lora_spike_design_20260726.md`（含權重鏈 PEFT→convert_lora_to_gguf→ollama ADAPTER；ollama 的 safetensors ADAPTER 路對 qwen3 不支援）。詳硬體見 [[gb10-unavailable]]。
+**計畫落後於事實的地方（讀 v2 時須帶著的更正，07-26 晚）**：§1 錨的「arena settled 全 NULL」已過期（4,128 全結、首批覆盤完成、每日出單 cron 20:00+結算 21:30 已掛、oneshot 退場）；「0.5087」已改平手口徑 0.5080；計分板已有三基準並排+常數隊自動標示；observation prereg＝`audits/ARENA-WATCHLIST-PREREG-20260726.md`。評測尺教訓見 [[eval-boilerplate-floor]]；硬體與 LoRA 裁決見 [[gb10-unavailable]]。
