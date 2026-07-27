@@ -87,17 +87,25 @@ class HeavySlot:
                 self._held = False
                 raise SlotLost(f"[{self.owner}] {self.lock_name} 已不在本 backend 手上")
 
-    def defer(self, task: str, reason: str, payload=None) -> None:
-        """搶不到鎖 → 積壓落帳(不 silent skip);表不存在時退為 stderr 一行、不阻斷呼叫端。"""
+    def defer(self, task: str, reason: str, payload=None, axis: str | None = None) -> None:
+        """搶不到鎖 → 積壓落帳(不 silent skip);表不存在時退為 stderr 一行、不阻斷呼叫端。
+
+        ⚠ 欄名以**實表為準**:`(axis, step_key, reason, detail)`。2026-07-27 實測發現原碼寫成
+        `(axis, task, reason, payload)`——UndefinedColumn 被 except 吞成一行 stderr,於是「不 silent
+        skip」的機制本身變成 silent skip(0 列落地)。此為「寫了但沒驗過真能寫」之典型,故本方法
+        之自測改為**真插一列再刪**,不再只斷言字面。
+        """
         import json
+        ax = (axis or self.owner.split("_")[0])[:8]
         try:
             cur = self._connect().cursor()
             cur.execute("SELECT to_regclass('public.evolution_deferred_work')")
             if cur.fetchone()[0] is None:
                 raise RuntimeError("evolution_deferred_work 未建")
-            cur.execute("""INSERT INTO evolution_deferred_work (axis, task, reason, payload)
+            cur.execute("""INSERT INTO evolution_deferred_work (axis, step_key, reason, detail)
                 VALUES (%s,%s,%s,%s::jsonb)""",
-                (self.owner[:8], task, reason, json.dumps(payload or {}, ensure_ascii=False)))
+                (ax, task[:64], reason,
+                 json.dumps({"owner": self.owner, **(payload or {})}, ensure_ascii=False)))
         except Exception as e:  # noqa: BLE001
             print(f"[heavy_slot] defer 落帳失敗({type(e).__name__});積壓仍須人知: "
                   f"{self.owner}/{task}/{reason}", file=sys.stderr)
@@ -152,6 +160,8 @@ def _selftest():
         "raise SlotLost" in inspect.getsource(HeavySlot.verify))
     chk("搶不到鎖有 defer 落帳(不 silent skip)",
         "evolution_deferred_work" in inspect.getsource(HeavySlot.defer))
+    chk("defer 之欄名與實表對齊(字面斷言:step_key/detail 非 task/payload)",
+        "step_key, reason, detail" in inspect.getsource(HeavySlot.defer))
     try:
         os.environ.setdefault("PGCONNECT_TIMEOUT", "5")
         a = HeavySlot("selftest_a")
@@ -169,6 +179,18 @@ def _selftest():
             c1.cursor().execute("SELECT 1")
         a.verify()
         chk("**巢狀 with db.connect() 進出後鎖仍在**(C3 關鍵陷阱回歸)", True)
+        # **真插一列再刪**:字面斷言驗不出欄名對不對(2026-07-27 實犯:task/payload 兩欄根本不存在,
+        # UndefinedColumn 被 except 吞掉 → 「不 silent skip」的機制本身 silent skip 了)
+        d = HeavySlot("tw_selftest")
+        cur0 = d._connect().cursor()
+        cur0.execute("SELECT count(*) FROM evolution_deferred_work")
+        n0 = cur0.fetchone()[0]
+        d.defer("selftest_probe", "自測探針(隨即刪除)", {"probe": True})
+        cur0.execute("SELECT count(*) FROM evolution_deferred_work")
+        n1 = cur0.fetchone()[0]
+        chk("**defer 真的寫進 evolution_deferred_work**(非只字面有表名)", n1 == n0 + 1)
+        cur0.execute("DELETE FROM evolution_deferred_work WHERE step_key='selftest_probe'")
+        d.release()
         a.release()
         c = HeavySlot("selftest_c")
         chk("release 後他人可取得", c.acquire())
