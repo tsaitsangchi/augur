@@ -30,6 +30,10 @@ SESSION_GLOB = SESSION_GLOBS[0]  # 相容既有引用
 NOISE_PREFIXES = ("<local-command-caveat", "<command-name", "Caveat:", "[Request interrupted",
                   "<system-reminder", "[SYSTEM NOTIFICATION", "<local-command-stdout",
                   "This session is being continued")
+# 中段亦須擋:harness 把系統事件塞在真人訊息**之中**(2026-07-27 實撞:週報 awaiting_hugo
+# 清單混進 <task-notification>,352 列)。前綴濾網對這種形態無效 → 改中段包含即剔。
+NOISE_SUBSTRINGS = ("<task-notification>", "<tool-use-id>", "[SYSTEM NOTIFICATION",
+                    "<system-reminder>", "<local-command-stdout>")
 MIN_CHARS = 4
 
 
@@ -44,6 +48,8 @@ def keep(content) -> bool:
         return False
     s = content.strip()
     if len(s) < MIN_CHARS:
+        return False
+    if any(p in s for p in NOISE_SUBSTRINGS):
         return False
     return not any(s.startswith(p) for p in NOISE_PREFIXES)
 
