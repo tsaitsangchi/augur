@@ -13,6 +13,7 @@
 守 #1(零補值/不編題)· #9/#10(事實出自 DB query、可溯源)· #15(不憑我以為)· #29a/b/d。
 執行指令矩陣:
   python scripts/build_eval_set.py                  # 無參數:現況(唯讀:已凍結之集與題數)
+  python scripts/build_eval_set.py --dry-run        # 唯讀試算 set_id(零寫入;append-only 表寫錯刪不掉,先驗再寫)
   python scripts/build_eval_set.py --build          # 產生並凍結(冪等;已存在同 set_id 即跳過)
   python scripts/build_eval_set.py --build --n 30   # 指定每層題數(預設 30)
   python scripts/build_eval_set.py --show L3_ABSENT # 印某層樣題(唯讀,人工抽驗用)
@@ -180,7 +181,13 @@ def _l4(cur, n):
     return items
 
 
-def build(n):
+def build(n, dry_run=False):
+    """dry_run=True:走完全相同的產題路徑算出 set_id 後即返回,零寫入。
+
+    why:本表掛 append-only 誠實閘(DELETE/TRUNCATE 拒)——寫錯的集**刪不掉**。跨機重現或改
+    來源資料後,須能先確認「這台會產出哪個 set_id」再決定寫不寫;否則一次誤判即在凍結表
+    留下永久垃圾列。實證 2026-07-27:PC002-S1800 以此先確認 4183475c5089 相符才寫入。
+    """
     gh = _gen_hash()
     with db.connect() as conn:
         cur = conn.cursor()
@@ -194,7 +201,14 @@ def build(n):
             print(f"✗ 母體不足、拒絕產出半套集(#1 不補假題):{short}"); return 1
         sid = _set_id(items)
         cur.execute("SELECT count(*) FROM local_model_eval_item WHERE set_id=%s", (sid,))
-        if cur.fetchone()[0]:
+        frozen = bool(cur.fetchone()[0])
+        if dry_run:
+            print(f"  試算 set_id={sid}  gen_code_hash={gh}  題數={len(items)}"
+                  f"  各層={dict(sorted(by.items()))}")
+            print(f"  DB 現況:{'此集已凍結——--build 會冪等跳過' if frozen else '此集尚未凍結——--build 會寫入 '+str(len(items))+' 列'}")
+            print("  (--dry-run:零寫入)")
+            return 0
+        if frozen:
             print(f"✓ 集 {sid} 已凍結({len(items)} 題)——冪等跳過"); return 0
         for it in items:
             cur.execute("""INSERT INTO local_model_eval_item
@@ -256,6 +270,11 @@ def _selftest():
     chk("L1/L2 同題配對(L2=拿掉檢索片段之同一問句)",
         "[無檢索片段]" in inspect.getsource(_l1_l2) and "[檢索片段]" in inspect.getsource(_l1_l2))
     chk("母體不足→拒產半套集(#1)", "拒絕產出半套集" in inspect.getsource(build))
+    _bsrc = inspect.getsource(build)
+    chk("--dry-run 在 INSERT 之前返回(零寫入保證)",
+        _bsrc.index("if dry_run:") < _bsrc.index("INSERT INTO local_model_eval_item"))
+    chk("--dry-run 仍走完整產題路徑(非另寫一份會漂移的邏輯)",
+        _bsrc.index("_set_id(items)") < _bsrc.index("if dry_run:"))
     chk("全程決定性排序(md5)、零 random", "md5(" in inspect.getsource(_ki_rows)
         and "random" not in inspect.getsource(build).lower())
     chk("四層全覆蓋", set(LAYERS) == {"L1_RETRIEVED", "L2_NO_RETRIEVAL", "L3_ABSENT", "L4_AMBIG"})
@@ -266,6 +285,8 @@ def _selftest():
 def main(argv=None):
     ap = argparse.ArgumentParser(description="凍結行為題庫產生器(四層、機械產自 live DB)")
     ap.add_argument("--build", action="store_true")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="唯讀試算 set_id(同一產題路徑、零寫入);append-only 表寫錯刪不掉故先驗")
     ap.add_argument("--n", type=int, default=N_PER_LAYER)
     ap.add_argument("--show", choices=list(LAYERS))
     ap.add_argument("--selftest", action="store_true")
@@ -274,6 +295,8 @@ def main(argv=None):
         return _selftest()
     if a.show:
         return show(a.show)
+    if a.dry_run:
+        return build(a.n, dry_run=True)
     if a.build:
         return build(a.n)
     print(__doc__)
