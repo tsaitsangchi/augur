@@ -60,6 +60,20 @@ DB 取代（2026-07-27）後 serving 落後 SSOT。**精確現況**（`export_qd
 3. 驗收（精準原則）：同步後 CLEAN 反差矩陣 items/en 落差＝**0**；`verify_qdrant_shadow.py` 影子比對綠；
 4. 執行時機：待背景重活（驗收重跑／LLM 臂）清空後，不搶資源。
 
+### P-F：ttai 專案 know-how 整合（hugo 2026-07-27 增列，逐字：「把以上ttai專案所有的know how整合進來augur專案」）
+
+**ttai 現況實查**：`~/project/ttai`＝TiPTOP ERP 語意知識緩衝層（自有憲章 v1.19.0＝其 SSOT，專案本身保持獨立、augur 只整合 know-how 不吞專案）。**資料已吸收**：augur `ttai_import` schema 22 物件（`knowledge_unit` **142,040**／`knowledge_relation` **67,914**／`column_meta` **39,563**／`function_meta` 5,348／`program_meta` 874／`v_qdrant_export` 142,040…）。缺的是三塊：
+
+**F1｜14 份工程報告＋憲章＋CLAUDE → 私有知識入庫**（know-how 主體：ERP→Qdrant 通用設計、三層語意緩衝層、embedding 選型 PoC、跨欄值衍生 4gl 窮盡掃描、客製化 SOP…）
+- 機制＝**既有知識管線零新碼**（#29b）：`knowledge_source` INSERT 一列 manual_file adapter（`owned_local` 軌、`access_scope='local_private'`、DB CHECK guard）→ acquire→staging→promote→fulltext（owned_local 准全文）→sentences→embed；
+- 驗收（精準）：16 檔全數 promote、句嵌入落 pgvector、**advisor 實測答得出 ttai 專有問題**（如「三層語意緩衝層是什麼」）、qdrant CLEAN 反差矩陣「私有擋下」計數等量增加、**qdrant 外流=0**。
+
+**F2｜`ttai_import` → 知識層橋接對帳**：現有 147,196 zh 私有句疑似源於此，但未經精確對帳。驗收＝`v_qdrant_export` 142,040 與知識層對應列**逐計數對帳**（差額列成缺口帳，不含糊宣稱「已整合」）。
+
+**F3｜工程模式選擇性移植**（#3 最小邊界，不為移而移）：`embed_cache.py`（sqlite 快取，ttai 實測 773MB 規模）評估接進 augur embed 管線（re-embed 省時）；ERP→Qdrant 通用匯出設計已被 augur `export_qdrant_index` 實踐（驗證即可、不重造）；其餘（Oracle 連線、SSH 檢查、4gl 掃描）登記為參考庫不移植。
+
+**F 邊界（硬）**：ERP 內容＝公司私有 → 永遠 `local_private`（pgvector only、qdrant/git 零外流——items/zh 147,196 全擋的既有機制已證明有效）；ttai `.env` 憑證零接觸；ERP 知識**零量化價值、不進預測管線**（domain 隔離既有閘）。
+
 ### 明確不做（本檔重申、不因整合鬆動）
 | 不做 | 依據 |
 |---|---|
@@ -116,6 +130,8 @@ CREATE TABLE IF NOT EXISTS advisor_probe_candidate (
 | **B**（chat 礦脈） | `INTEG-B-go` | miner `--dry-run` 列數＝實寫數；私有 session 零洩漏（斷言）；候選僅入新 set_id | 表 append-only、不動既有集 |
 | **C**（brief＋措辭閘） | `INTEG-C-go` | validator rc=0；guard 攔截測試（5 黑名單詞注入→全攔）；brief 零數值陣列 | 移除 system prompt 節 |
 | **D**（digest 頁） | `INTEG-D-go` | 頁面唯讀斷言（GET 零寫入）；批覆寫入與 CLI 同一 decision 路徑 | 下架路由 |
+| **E**（Qdrant 對齊） | `INTEG-E-go`（已含於採納） | CLEAN 反差矩陣 items/en 落差=0；`verify_qdrant_shadow` 綠 | serving 可拋棄、重建即復原 |
+| **F**（ttai know-how） | `INTEG-F-go` | F1:16 檔 promote＋advisor 實答＋qdrant 外流=0；F2:142,040 逐計數對帳；F3:評估報告留痕 | F1 私有列可 superseded；F3 不採即不動 |
 
 **停損**：任一階段連 2 輪驗收紅→ 該階段 halt、不阻他階；P-A 若 8b 零增益→誠實結案「不接」（**這是合法終局，不是失敗**——B5 賭輸的樣子）。
 
