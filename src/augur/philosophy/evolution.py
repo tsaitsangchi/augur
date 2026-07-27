@@ -295,13 +295,36 @@ def build_gate_json(
     return out
 
 
+def _prom_verdict(gate_json: Mapping[str, Any]) -> str | None:
+    g = gate_json.get("G-PROM")
+    return g.get("verdict") if isinstance(g, Mapping) else None
+
+
+def _prom_abs_hac(gate_json: Mapping[str, Any]) -> float | None:
+    g = gate_json.get("G-PROM")
+    if not isinstance(g, Mapping):
+        return None
+    ev = g.get("evidence")
+    t = ev.get("hac_t") if isinstance(ev, Mapping) else None
+    return abs(float(t)) if t is not None else None
+
+
 def decide_queue_status(
     gate_json: Mapping[str, Any],
     kill_state: str,
+    action: str | None = None,
 ) -> str:
-    """寫入 promotion_queue.queue_status 前決策。"""
+    """寫入 promotion_queue.queue_status 前決策。
+
+    demote 通道(V2-AUTOADVANCE R3,2026-07-27):FAIL_SIGN 之 demote 列 → pending_auto——
+    引擎原本只有「雙綠自動晉升」、除役無門(demote 列永遠 rejected_gate),生產中的
+    sign-refuted 特徵無機械退場路。demote=風險遞減方向,且僅限 FAIL_SIGN(假說被反向
+    否證=無歧義);一般 FAIL(如 seed 不穩)之除役仍人裁。
+    """
     if normalize_kill_state(kill_state) == KILL_HALT:
         return "halted"
+    if action == "demote" and _prom_verdict(gate_json) == "FAIL_SIGN":
+        return "pending_auto"
     if all_gates_green(gate_json):
         return "pending_auto"
     return "rejected_gate"
@@ -312,14 +335,32 @@ def may_apply(
     kill_state: str,
     gate_json: Mapping[str, Any],
     queue_status: str,
+    action: str | None = None,
+    ctrl: Mapping[str, Any] | None = None,
 ) -> tuple[bool, str]:
-    """APPLY 前最終裁決；(ok, reason)。halt → 拒絕；閘未綠 → 拒絕。"""
+    """APPLY 前最終裁決；(ok, reason)。halt → 拒絕；閘未綠 → 拒絕(promote)。
+
+    - demote:僅 FAIL_SIGN 自動放行(R3;與 decide_queue_status 同一judgment、雙重驗證)。
+    - ctrl(R2(c) GATE-raise,對照臂證據 {"fp_rate_worst","p95_worst"}):promote 時若經驗
+      偽陽率>10%,加篩 |hac_t| ≥ 經驗 p95(升嚴唯一方向;預註冊於 audits/V2-PHASE4)。
+      2026-07-27 實測:shuffled 9.0%/mismatched 10.5% → 觸發,p95=2.643。
+    """
     if normalize_kill_state(kill_state) == KILL_HALT:
         return False, "G-KILL halt: refuse APPLY"
     if queue_status != "pending_auto":
         return False, f"queue_status={queue_status} (not pending_auto)"
+    if action == "demote":
+        if _prom_verdict(gate_json) == "FAIL_SIGN":
+            return True, "sign-refuted demote (R3 V2-AUTOADVANCE)"
+        return False, "demote 僅 FAIL_SIGN 自動;其餘除役人裁"
     if not all_gates_green(gate_json):
         return False, "gates not all PASS"
+    if ctrl and float(ctrl.get("fp_rate_worst") or 0.0) > 0.10:
+        eff = float(ctrl.get("p95_worst") or 0.0)
+        hac = _prom_abs_hac(gate_json)
+        if hac is None or hac < eff:
+            return False, (f"R2(c) GATE-raise: |hac_t|={hac} < 經驗p95 {eff:.3f}"
+                           f"(偽陽率 {float(ctrl['fp_rate_worst']):.1%}>10%)")
     return True, "ok"
 
 
@@ -525,12 +566,16 @@ def evaluate_g_econ_from_evidence(
     }
 
 
-def status_after_apply(action: str, before: str | None) -> str:
-    """philosophy_principle.status 轉移（B 引擎寫入）。"""
+def status_after_apply(action: str, before: str | None, prom_verdict: str | None = None) -> str:
+    """philosophy_principle.status 轉移（B 引擎寫入）。
+
+    FAIL_SIGN 之 demote → 'sign_refuted'(R3:與「證據不足之 rejected」可區分——
+    前者=假說被反向否證,後者=沒證到;混用會湮滅 volume_gini 型教訓)。
+    """
     if action == "promote":
         return "validated"
     if action == "demote":
-        return "rejected"
+        return "sign_refuted" if prom_verdict == "FAIL_SIGN" else "rejected"
     if action == "freeze":
         return "untested" if not before else before
     return before or "untested"

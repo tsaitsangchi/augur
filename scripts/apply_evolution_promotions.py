@@ -31,6 +31,7 @@ from augur.philosophy.evolution import (
     KILL_HALT,
     PRODSET_TABLE,
     all_gates_green,
+    decide_queue_status,
     effective_kill_state,
     may_apply,
     normalize_kill_state,
@@ -103,6 +104,39 @@ def _selftest() -> int:
     chk("backfill flag present", "--backfill-prodset" in text)
     # --force 不得用於跳閘：本腳本若出現跳閘 force 語意則 FAIL
     chk("no skip-gate force", "--force" not in text or "禁" in text or "禁止" in text)
+    # —— R3 demote 通道＋R2 篩(V2-AUTOADVANCE 2026-07-27) ——
+    sign_gj = dict(green)
+    sign_gj["G-PROM"] = {"verdict": "FAIL_SIGN", "evidence": {"hac_t": -3.966}}
+    ok_c, r_c = may_apply(kill_state=KILL_CLEAR, gate_json=sign_gj,
+                          queue_status="pending_auto", action="demote")
+    chk("R3:FAIL_SIGN demote 放行", ok_c and "R3" in r_c)
+    fail_gj = dict(green)
+    fail_gj["G-PROM"] = {"verdict": "FAIL", "evidence": {"hac_t": 1.0}}
+    ok_d, _ = may_apply(kill_state=KILL_CLEAR, gate_json=fail_gj,
+                        queue_status="pending_auto", action="demote")
+    chk("一般 FAIL 之 demote 不自動(人裁)", not ok_d)
+    chk("decide:demote+FAIL_SIGN → pending_auto",
+        decide_queue_status(sign_gj, KILL_CLEAR, action="demote") == "pending_auto")
+    chk("decide:demote+FAIL_SIGN 於 halt 仍 halted",
+        decide_queue_status(sign_gj, KILL_HALT, action="demote") == "halted")
+    ctrl = {"fp_rate_worst": 0.105, "p95_worst": 2.643}
+    weak_green = dict(green)
+    weak_green["G-PROM"] = {"verdict": "PASS", "evidence": {"hac_t": 2.1}}
+    ok_e, r_e = may_apply(kill_state=KILL_CLEAR, gate_json=weak_green,
+                          queue_status="pending_auto", action="promote", ctrl=ctrl)
+    chk("R2(c):偽陽率>10% 時 |hac_t|=2.1<p95 2.643 → 拒", (not ok_e) and "GATE-raise" in r_e)
+    strong_green = dict(green)
+    strong_green["G-PROM"] = {"verdict": "PASS", "evidence": {"hac_t": 3.0}}
+    ok_f, _ = may_apply(kill_state=KILL_CLEAR, gate_json=strong_green,
+                        queue_status="pending_auto", action="promote", ctrl=ctrl)
+    chk("R2(c):|hac_t|=3.0≥p95 → 放行", ok_f)
+    ok_g, _ = may_apply(kill_state=KILL_CLEAR, gate_json=weak_green,
+                        queue_status="pending_auto", action="promote",
+                        ctrl={"fp_rate_worst": 0.08, "p95_worst": 2.643})
+    chk("R2(c):偽陽率≤10% 不加篩", ok_g)
+    chk("status:demote+FAIL_SIGN → sign_refuted(與證據不足 rejected 區分)",
+        status_after_apply("demote", "validated", prom_verdict="FAIL_SIGN") == "sign_refuted"
+        and status_after_apply("demote", "validated") == "rejected")
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 
@@ -201,7 +235,30 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
         cur.execute(q, params)
         items = cur.fetchall()
 
+        # R2(c) GATE-raise 篩(V2-AUTOADVANCE):讀最新對照臂證據(最大 n 之 control_arms suite),
+        # 偽陽率>10% 時 promote 加篩 |hac_t|≥經驗 p95。無證據=無篩(誠實:沒跑對照臂前不假裝有)。
+        cur.execute(
+            """SELECT arm, metric_value, (detail->>'abs_hac_p95')::float8, evidence_id
+               FROM evolution_evidence_run
+               WHERE axis='tw' AND selection_scope='control_arms_v1' AND NOT is_invalid
+                 AND n_items = (SELECT max(n_items) FROM evolution_evidence_run
+                                WHERE axis='tw' AND selection_scope='control_arms_v1' AND NOT is_invalid)
+               ORDER BY created_at DESC LIMIT 4""")
+        ctrl_rows = cur.fetchall()
+    ctrl = None
+    if ctrl_rows:
+        rates = [float(r[1]) for r in ctrl_rows if r[1] is not None]
+        p95s = [float(r[2]) for r in ctrl_rows if r[2] is not None]
+        if rates and p95s:
+            ctrl = {"fp_rate_worst": max(rates), "p95_worst": max(p95s),
+                    "evidence_ids": [r[3] for r in ctrl_rows]}
+
     print(f"── PME APPLY (AUTO-B) kill={kill_eff} pending={len(items)} dry_run={dry_run} ──")
+    if ctrl:
+        print(f"  對照臂篩: 偽陽率(最壞)={ctrl['fp_rate_worst']:.1%} p95={ctrl['p95_worst']:.3f} "
+              f"→ {'升嚴生效(R2c)' if ctrl['fp_rate_worst'] > 0.10 else '未觸發(≤10%)'}")
+    else:
+        print("  對照臂篩: 無 control_arms 證據——未加篩(誠實)")
 
     if kill_eff == KILL_HALT:
         # A5：halt 時拒絕一切 APPLY；可選把 pending 標 halted
@@ -224,13 +281,19 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
 
     applied = 0
     skipped = 0
+    promotes_this_round = 0
     with db.connect() as conn:
         for queue_id, rid, principle_id, feature, action, gate_json, qstatus in items:
             if isinstance(gate_json, str):
                 gate_json = json.loads(gate_json)
             allowed, reason = may_apply(
-                kill_state=kill_eff, gate_json=gate_json, queue_status=qstatus
+                kill_state=kill_eff, gate_json=gate_json, queue_status=qstatus,
+                action=action, ctrl=ctrl,
             )
+            # R2(d):單輪 auto-promote 上限 1(demote 不設限=風險遞減);超額留 pending 下輪
+            if allowed and action == "promote" and promotes_this_round >= 1:
+                print(f"  hold q={queue_id} {feature}: R2(d) 單輪 promote 上限 1——留 pending 下輪")
+                continue
             if not allowed:
                 print(f"  skip q={queue_id} {feature}: {reason}")
                 skipped += 1
@@ -252,7 +315,8 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
                     )
                     r = cur.fetchone()
                     before = r[0] if r else None
-            after = status_after_apply(action, before)
+            prom_verdict = (gate_json.get("G-PROM") or {}).get("verdict")
+            after = status_after_apply(action, before, prom_verdict=prom_verdict)
             set_status = prodset_status_for_action(action)
             delta = production_set_delta(feature, action, set_status=set_status)
             print(
@@ -262,6 +326,8 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
             )
             if dry_run:
                 applied += 1
+                if action == "promote":
+                    promotes_this_round += 1  # dry 也計數:preview 須如實反映 R2(d) 上限
                 continue
             with db.transaction(conn) as cur:
                 if principle_id is not None and action in ("promote", "demote"):
@@ -281,7 +347,12 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
                         before,
                         after,
                         json.dumps(delta),
-                        json.dumps({"gate_json": gate_json, "run_id": rid}),
+                        # R6:自動決策落帳可稽——gate_ref + 依據規則號(週日 digest 掃此)
+                        json.dumps({"gate_json": gate_json, "run_id": rid,
+                                    "gate_ref": "V2-AUTOADVANCE",
+                                    "auto_rule": ("R3-sign-refuted-demote" if action == "demote"
+                                                  else "R2-auto-apply"),
+                                    "ctrl_screen": ctrl}),
                     ),
                 )
                 apply_log_id = cur.fetchone()[0]
@@ -302,6 +373,8 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
                     (apply_log_id, queue_id),
                 )
             applied += 1
+            if action == "promote":
+                promotes_this_round += 1
 
     print(f"✓ applied={applied} skipped={skipped}")
     return 0

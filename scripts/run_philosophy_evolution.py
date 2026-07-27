@@ -492,12 +492,15 @@ def run_control_arms(*, since: str, horizon_h: int, draws: int, seed: int) -> in
                 feat_data_cache[f] = rows
             return feat_data_cache[f]
 
+        # draws 屬組態(n=3 煙測與 n=200 全量是不同尺)→入 suite_id;
+        # 撞 UNIQUE(axis,suite,code,arm,metric)實證 2026-07-27:煙測列佔鍵、全量寫入炸
         suite_id = _hl.sha256(json.dumps(
             {"feats": feats, "panels": [str(p) for p in panels], "h": horizon_h,
-             "min_abs": min_abs, "scheme": "control_arms_v1"},
+             "min_abs": min_abs, "draws": draws, "scheme": "control_arms_v1"},
             sort_keys=True).encode()).hexdigest()[:12]
 
         summary: dict = {}
+        pending_rows: list[tuple] = []
         for arm in ("shuffled", "mismatched"):
             ts: list[float] = []
             attempted = 0
@@ -526,18 +529,22 @@ def run_control_arms(*, since: str, horizon_h: int, draws: int, seed: int) -> in
                 "n_features": len(feats), "n_panels": len(panels),
                 "gate_raise_rule": "empirical_fp_rate>0.10 => min_abs_hac_t := p95 (預註冊 audits/V2-PHASE4-RUBRIC-H2-APPROVED-20260727)",
             }
-            with db.transaction(conn) as cur:
+            # 先印後寫:寫入失敗不得滅掉算了幾十分鐘的結果(2026-07-27 教訓——200 draws 因
+            # UNIQUE 撞鍵在首筆 INSERT 全滅);兩臂算完一次交易落庫
+            summary[arm] = {"rate": rate, "p95": detail["abs_hac_p95"], "n_valid": len(ts)}
+            print(f"  [{arm:<10}] 偽陽率(|hac_t|≥{min_abs})={rate if rate is not None else 'N/A'} "
+                  f" p95={detail['abs_hac_p95']}  n_valid={len(ts)}/{attempted}", flush=True)
+            print(f"    detail={json.dumps(detail, ensure_ascii=False)}", flush=True)
+            pending_rows.append((suite_id, code_sha, arm, rate, attempted, len(ts),
+                                 attempted - len(ts), rate is None, attempted, json.dumps(detail)))
+        with db.transaction(conn) as cur:
+            for row in pending_rows:
                 cur.execute(
                     """INSERT INTO evolution_evidence_run
                        (axis, suite_id, code_hash, arm, metric_name, metric_value,
                         n_items, n_valid, n_excluded, is_invalid, n_trials, selection_scope, detail)
                        VALUES ('tw', %s, %s, %s, 'hac_t_abs_ge2_rate', %s, %s, %s, %s, %s, %s,
-                               'control_arms_v1', %s)""",
-                    (suite_id, code_sha, arm, rate, attempted, len(ts),
-                     attempted - len(ts), rate is None, attempted, json.dumps(detail)))
-            summary[arm] = {"rate": rate, "p95": detail["abs_hac_p95"], "n_valid": len(ts)}
-            print(f"  [{arm:<10}] 偽陽率(|hac_t|≥{min_abs})={rate if rate is not None else 'N/A'} "
-                  f" p95={detail['abs_hac_p95']}  n_valid={len(ts)}/{attempted}", flush=True)
+                               'control_arms_v1', %s)""", row)
 
     worst = max((v["rate"] or 0.0) for v in summary.values())
     if worst > 0.10:
@@ -680,10 +687,16 @@ def run_evolution(
                 g_kill=g_kill,
                 g_noexec=g_noexec,
             )
-            qs = decide_queue_status(gj, kill_eff)
+            dry_action = map_action_from_evidence(
+                coverage_class=cls,
+                g_prom_pass=g_prom.get("verdict") == "PASS",
+                g_econ_pass=g_econ.get("verdict") == "PASS",
+            )
+            qs = decide_queue_status(gj, kill_eff, action=dry_action)
             print(
                 f"  dry {m['feature']}: class={cls} "
-                f"PROM={g_prom.get('verdict')} ECON={g_econ.get('verdict')} →{qs}"
+                f"PROM={g_prom.get('verdict')} ECON={g_econ.get('verdict')} "
+                f"action={dry_action} →{qs}"
             )
         return 0
 
@@ -747,12 +760,13 @@ def run_evolution(
             g_kill=g_kill,
             g_noexec=g_noexec,
         )
-        qs = decide_queue_status(gj, kill_eff)
         action = map_action_from_evidence(
             coverage_class=cls,
             g_prom_pass=g_prom.get("verdict") == "PASS",
             g_econ_pass=g_econ.get("verdict") == "PASS",
         )
+        # action 先算再裁 queue_status:demote+FAIL_SIGN → pending_auto(R3 除役通道)
+        qs = decide_queue_status(gj, kill_eff, action=action)
         with db.connect() as conn, db.transaction(conn) as cur:
             cur.execute(
                 """
