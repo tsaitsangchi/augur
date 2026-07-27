@@ -45,6 +45,8 @@ $BEGIN
 17 */2 * * * cd $ROOT && venv/bin/python scripts/mine_steward_questions.py --run >> \$HOME/logs/qledger.log 2>&1 && venv/bin/python scripts/triage_questions.py --run >> \$HOME/logs/qledger.log 2>&1
 # DESKTOP→本機 進化增量拉取 2h(乙案私有通道;離線=優雅跳過、遠端排程未停即拒拉)
 37 */2 * * * cd $ROOT && bash scripts/pull_desktop_evolution_delta.sh >> \$HOME/logs/desktop_pull.log 2>&1
+# 週日 09:00 三軸週儀表+R6 digest(唯讀;第一行=V2-SUNSET 現況;存檔供掃視認領)
+0 9 * * 0 cd $ROOT && venv/bin/python scripts/report_triple_evolution_week.py --md > \$HOME/logs/evolution_week_$(date +\%Y\%m\%d).md 2>&1
 $END
 EOF
 )
