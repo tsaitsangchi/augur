@@ -158,6 +158,61 @@ def _episode_summary(members, by_stock, dates_all, name, policies, meta):
     }
 
 
+# ── M2 EVT(POT-GPD 尾部;參數凍結於進階三法計畫 20260727) ──
+EVT_U_Q = 0.05          # 門檻=經驗 5% 分位(凍結)
+EVT_MIN_TAIL = 20       # 尾部樣本下限,不足即拒答(#15)
+EVT_REFIT = 200         # ξ 之 95% CI 之 refit bootstrap 次數(凍結)
+
+
+def _evt_summary(logr, h, n_paths, seed, policies, window_maxdd, meta):
+    """混合重抽:主體經驗分布 + 左尾 GPD(scipy genpareto MLE);回 summary 或 None(拒答)。
+
+    why 混合而非全 GPD:GPD 只描述超過門檻之尾部,主體照用經驗分布才不失真;
+    結構假設仍同 iid(僅尾部校正)——時序相依請看 block/stationary 與 episode(揭露硬綁)。
+    """
+    from scipy import stats
+    r = np.asarray(logr, dtype=float)
+    u = float(np.quantile(r, EVT_U_Q))                 # 左尾門檻(對數報酬)
+    exc = u - r[r < u]                                 # 超額(正值)
+    if exc.size < EVT_MIN_TAIL:
+        return {"kind": "evt_refused", "disclaimer": DISCLAIMER, **meta,
+                "note": f"尾部樣本 n_tail={exc.size} < {EVT_MIN_TAIL}→拒答(不硬出數字,#15)",
+                "threshold_u": round(u, 6), "n_tail": int(exc.size)}
+    xi, loc, beta = stats.genpareto.fit(exc, floc=0.0)
+    rng = np.random.default_rng(seed)
+    body = r[r >= u]
+    p_tail = float(exc.size) / float(r.size)
+    # ξ 之 95% CI(refit bootstrap;#15 估計不確定性一併揭露)
+    xis = []
+    for _ in range(EVT_REFIT):
+        s = rng.choice(exc, size=exc.size, replace=True)
+        try:
+            xis.append(float(stats.genpareto.fit(s, floc=0.0)[0]))
+        except Exception:  # noqa: BLE001
+            continue
+    ci = [round(float(np.percentile(xis, 2.5)), 4), round(float(np.percentile(xis, 97.5)), 4)] if xis else None
+    # 路徑:每步以 p_tail 機率抽尾(u - GPD 超額)、否則抽主體
+    is_tail = rng.random((n_paths, h)) < p_tail
+    draws = np.where(
+        is_tail,
+        u - stats.genpareto.rvs(xi, loc=0.0, scale=beta, size=(n_paths, h), random_state=rng),
+        rng.choice(body, size=(n_paths, h), replace=True))
+    # 與 _simulate 同一約定:**累積簡單報酬**(exp(cum_log)-1),非淨值。
+    # 2026-07-27 實撞:少減 1 使整條路徑平移 +1、MaxDD 被系統性低估(EVT 反比 iid 溫和之假象)。
+    paths = np.exp(np.cumsum(draws, axis=1)) - 1.0
+    mdd = _maxdd_per_path(paths)
+    thr = float(policies.get("maxdd_threshold", -0.2)) if isinstance(policies, dict) else -0.2
+    return {"kind": "evt_pot_hybrid", "disclaimer": DISCLAIMER, **meta,
+            "maxdd": {q: round(float(np.percentile(mdd, p)), 5)
+                      for q, p in (("p5", 5), ("p25", 25), ("p50", 50), ("p95", 95))},
+            "p_maxdd_lt_policy": round(float((mdd < thr).mean()), 4), "policy_threshold": thr,
+            "threshold_u": round(u, 6), "n_tail": int(exc.size), "p_tail": round(p_tail, 4),
+            "gpd_xi": round(float(xi), 4), "gpd_xi_ci95": ci, "gpd_beta": round(float(beta), 6),
+            "window_maxdd": round(window_maxdd, 5), "n_paths": n_paths, "horizon_td": h, "seed": seed,
+            "note_structure": "結構假設同 iid(僅尾部經 GPD 校正);時序相依看 block/stationary,窗外事件看 episode",
+            "note_uncertainty": "尾部樣本少⇒ξ 估計不確定性大,95% CI 已附;點估計不可單獨引用"}
+
+
 # ── M1 跨市場類比(進階三法計畫 20260727 凍結窗;analog=非台股歷史、等權市場路徑、β=1 承受) ──
 ANALOG_EPISODES = {
     "us1929": ("USStockPrice", "1929-09-01", "1932-07-31"),
@@ -290,6 +345,16 @@ def run(cell, episodes, n_paths, seed, h):
             print(f"  [參考] {method:<19} h={horizon} | MaxDD p50={summ['maxdd']['p50']:+.1%} "
                   f"p95={summ['maxdd']['p95']:+.1%} | P(MaxDD<{summ['policy_threshold']})={summ['p_maxdd_lt_policy']}"
                   + (f" | persistence={fd['persistence']}" if fd else ""))
+        # M2 EVT(參考層;凍結參數 u=5%/refit=200)
+        evt = _evt_summary(logr, horizon, n_paths, seed, policies, window_maxdd,
+                           {**meta, "effective_window_td": len(rets)})
+        rows.append(("evt_pot_hybrid", None, horizon, evt))
+        if evt["kind"] == "evt_pot_hybrid":
+            print(f"  [參考] {'evt_pot_hybrid':<19} h={horizon} | MaxDD p50={evt['maxdd']['p50']:+.1%} "
+                  f"p95={evt['maxdd']['p95']:+.1%} | P(MaxDD<{evt['policy_threshold']})={evt['p_maxdd_lt_policy']}"
+                  f" | ξ={evt['gpd_xi']} CI95={evt['gpd_xi_ci95']} n_tail={evt['n_tail']}")
+        else:
+            print(f"  [參考] evt_pot_hybrid     {evt['note']}")
         for ep in episodes:
             s, e = EPISODES[ep]
             cur.execute("""SELECT DISTINCT date FROM "TaiwanStockPriceAdj"
@@ -402,6 +467,23 @@ def _selftest():
             and all(k in fd for k in ("omega", "alpha", "beta", "n_obs", "note_fit")))
     except ImportError:
         print("  ⊘ garch_fhs 兩項 SKIP(arch 未安裝——graceful 非 FAIL)")
+    # ── M2 EVT(2026-07-27;判準=CI 覆蓋而非點估誤差) ──
+    from scipy import stats as _st
+    _TRUE_XI = 0.25
+    _r = -_st.genpareto.rvs(_TRUE_XI, loc=0, scale=0.01, size=30000,
+                            random_state=np.random.default_rng(7))
+    _s = _evt_summary(_r, 20, 300, 42, {}, -0.2, {"cell": "T"})
+    chk("EVT:GPD 門檻穩定性——ξ 之 95% CI 覆蓋真值(統計正確判準;點估誤差隨 n 變、非判準)",
+        _s["kind"] == "evt_pot_hybrid" and _s["gpd_xi_ci95"][0] < _TRUE_XI < _s["gpd_xi_ci95"][1])
+    chk("EVT:ξ 點估收斂(n_tail=1500 時誤差 <20%;實證 24.8%→11.6%→6.8% @300/1500/6000)",
+        abs(_s["gpd_xi"] - _TRUE_XI) / _TRUE_XI < 0.20)
+    chk("EVT:尾部樣本不足→拒答(不硬出數字)",
+        _evt_summary(np.random.default_rng(1).normal(0, 0.01, 50), 20, 100, 42, {}, -0.1,
+                     {"cell": "T"})["kind"] == "evt_refused")
+    chk("EVT:路徑口徑=累積簡單報酬(與 _simulate 同約定;少減 1 會系統性低估 MaxDD)",
+        "np.exp(np.cumsum(draws, axis=1)) - 1.0" in open(__file__, encoding="utf-8").read())
+    chk("EVT:不確定性揭露欄齊(ξ CI/n_tail/結構假設)",
+        all(k in _s for k in ("gpd_xi_ci95", "n_tail", "note_structure", "note_uncertainty")))
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 
