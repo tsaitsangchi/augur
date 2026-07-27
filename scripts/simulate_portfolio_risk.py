@@ -213,6 +213,108 @@ def _evt_summary(logr, h, n_paths, seed, policies, window_maxdd, meta):
             "note_uncertainty": "尾部樣本少⇒ξ 估計不確定性大,95% CI 已附;點估計不可單獨引用"}
 
 
+# ── M3 Copula-t + GARCH 邊際(進階三法計畫 20260727 凍結;補「相關性趨一」之洞) ──
+COP_DOF_GRID = tuple(range(3, 31))   # t-copula 自由度格點(凍結)
+COP_MIN_SURVIVE = 25                 # 邊際收斂存活下限(<25/33 整法拒答)
+
+
+def _fit_marginals(rets_by_stock, sids):
+    """逐股 GARCH(1,1)-t 邊際;回 (存活 sid, 標準化殘差矩陣[T,k], 參數表, 未收斂清單)。"""
+    from arch.univariate import ConstantMean, GARCH, StudentsT
+    keep, resid, params, failed = [], [], {}, []
+    for s in sids:
+        r = np.asarray(rets_by_stock[s], dtype=float) * 100.0   # arch 建議 % 尺度(數值穩定)
+        try:
+            am = ConstantMean(r); am.volatility = GARCH(1, 1); am.distribution = StudentsT()
+            res = am.fit(disp="off", show_warning=False)
+            z = np.asarray(res.std_resid, dtype=float)
+            if not np.all(np.isfinite(z)):
+                raise ValueError("non-finite std_resid")
+            keep.append(s); resid.append(z)
+            params[s] = {"nu": round(float(res.params.get("nu", np.nan)), 3),
+                         "omega": float(res.params.get("omega", np.nan)),
+                         "alpha": float(res.params.get("alpha[1]", np.nan)),
+                         "beta": float(res.params.get("beta[1]", np.nan)),
+                         "sigma_last": float(res.conditional_volatility[-1])}
+        except Exception as e:  # noqa: BLE001
+            failed.append({"stock": s, "reason": type(e).__name__})
+    return keep, (np.column_stack(resid) if resid else np.empty((0, 0))), params, failed
+
+
+def _fit_t_copula(z):
+    """t-copula:Kendall's tau → Pearson R(穩健、避尾部污染)+dof 格點 MLE。回 (R, dof, tail_dep)。"""
+    from scipy import special, stats
+    k = z.shape[1]
+    u = np.clip((np.argsort(np.argsort(z, axis=0), axis=0) + 0.5) / z.shape[0], 1e-6, 1 - 1e-6)
+    tau = np.eye(k)
+    for i in range(k):
+        for j in range(i + 1, k):
+            tau[i, j] = tau[j, i] = stats.kendalltau(z[:, i], z[:, j]).statistic or 0.0
+    R = np.sin(np.pi * tau / 2.0)                      # tau → Pearson(橢圓族關係式)
+    ev = np.linalg.eigvalsh(R)
+    if ev.min() < 1e-8:                                # 投影回正定(最近相關矩陣之簡版)
+        w, V = np.linalg.eigh(R)
+        R = V @ np.diag(np.clip(w, 1e-8, None)) @ V.T
+        d = np.sqrt(np.diag(R)); R = R / np.outer(d, d)
+    Rinv = np.linalg.inv(R); _, logdet = np.linalg.slogdet(R)
+    best = (None, -np.inf)
+    for nu in COP_DOF_GRID:                            # profile MLE over dof grid
+        t_q = stats.t.ppf(u, nu)
+        q = np.einsum("ij,jk,ik->i", t_q, Rinv, t_q)
+        ll = float(np.sum(
+            special.gammaln((nu + k) / 2) - special.gammaln(nu / 2) - 0.5 * logdet
+            - (k - 1) * (special.gammaln((nu + 1) / 2) - special.gammaln(nu / 2))
+            - ((nu + k) / 2) * np.log1p(q / nu)
+            + ((nu + 1) / 2) * np.sum(np.log1p(t_q ** 2 / nu), axis=1)))
+        if ll > best[1]:
+            best = (nu, ll)
+    dof = best[0]
+    rbar = float((R.sum() - k) / (k * (k - 1)))        # 平均非對角相關
+    # 尾部相依係數 λ(等相關近似;t-copula 之閉式)
+    lam = float(2 * stats.t.cdf(-np.sqrt((dof + 1) * (1 - rbar) / (1 + rbar)), dof + 1))
+    return R, dof, {"avg_corr": round(rbar, 4), "tail_dep_lambda": round(lam, 4)}
+
+
+def _copula_summary(rets_by_stock, weights, h, n_paths, seed, policies, window_maxdd, meta):
+    """M3 主流程;回 summary 或拒答 dict。純計算(IO 在呼叫端)。"""
+    from scipy import stats
+    sids = [s for s, _ in weights]
+    keep, z, params, failed = _fit_marginals(rets_by_stock, sids)
+    if len(keep) < COP_MIN_SURVIVE:
+        return {"kind": "copula_refused", "disclaimer": DISCLAIMER, **meta,
+                "note": f"GARCH 邊際存活 {len(keep)}/{len(sids)} < {COP_MIN_SURVIVE}→整法拒答(#15)",
+                "failed": failed[:10]}
+    R, dof, dep = _fit_t_copula(z)
+    w = np.array([wt for s, wt in weights if s in keep], dtype=float)
+    w = w / w.sum()
+    rng = np.random.default_rng(seed)
+    L = np.linalg.cholesky(R)
+    k = len(keep)
+    # t-copula 抽樣:多元常態 × sqrt(nu/chi2) → t 邊際分位 → 標準化殘差經驗分位
+    g = rng.standard_normal((n_paths * h, k)) @ L.T
+    chi = rng.chisquare(dof, size=(n_paths * h, 1))
+    t_s = g / np.sqrt(chi / dof)
+    u = stats.t.cdf(t_s, dof)
+    zsim = np.column_stack([np.quantile(z[:, i], np.clip(u[:, i], 1e-6, 1 - 1e-6)) for i in range(k)])
+    sig = np.array([params[s]["sigma_last"] for s in keep])          # 條件波動起點(不外推 GARCH 遞迴=保守)
+    step = (zsim * sig) / 100.0                                      # 還原小數尺度
+    port = (step @ w).reshape(n_paths, h)
+    paths = np.exp(np.cumsum(np.log1p(np.clip(port, -0.99, None)), axis=1)) - 1.0
+    mdd = _maxdd_per_path(paths)
+    thr = float(policies.get("maxdd_threshold", -0.2)) if isinstance(policies, dict) else -0.2
+    return {"kind": "copula_t_garch", "disclaimer": DISCLAIMER, **meta,
+            "maxdd": {q: round(float(np.percentile(mdd, p)), 5)
+                      for q, p in (("p5", 5), ("p25", 25), ("p50", 50), ("p95", 95))},
+            "p_maxdd_lt_policy": round(float((mdd < thr).mean()), 4), "policy_threshold": thr,
+            "n_survived": len(keep), "n_members": len(sids), "failed_marginals": failed,
+            "copula_dof": dof, **dep, "window_maxdd": round(window_maxdd, 5),
+            "n_paths": n_paths, "horizon_td": h, "seed": seed,
+            "nu_median": round(float(np.median([params[s]["nu"] for s in keep])), 3),
+            "note_structure": "邊際 GARCH(1,1)-t 之條件波動固定於期末值(不遞迴外推=保守);"
+                              "相依結構由 t-copula 承載——**本法唯一補的洞=相關性趨一**",
+            "note_scope": "未覆蓋成分已剔除並重正規化權重;dof 小=尾部同步更強"}
+
+
 # ── M1 跨市場類比(進階三法計畫 20260727 凍結窗;analog=非台股歷史、等權市場路徑、β=1 承受) ──
 ANALOG_EPISODES = {
     "us1929": ("USStockPrice", "1929-09-01", "1932-07-31"),
@@ -349,6 +451,27 @@ def run(cell, episodes, n_paths, seed, h):
         evt = _evt_summary(logr, horizon, n_paths, seed, policies, window_maxdd,
                            {**meta, "effective_window_td": len(rets)})
         rows.append(("evt_pot_hybrid", None, horizon, evt))
+        # M3 copula-t + GARCH 邊際(參考層;逐股日報酬序列)
+        # 逐股序列須**等長對齊**才能疊成殘差矩陣:取共同覆蓋日交集(零補值 #1;
+        # 真實成因=上市晚/停牌,2026-07-27 實撞 756 vs 749)。
+        cop_dates = [d for d in dates_win if all(d in by_stock.get(s, {}) for s, _ in members)]
+        rets_by_stock = {}
+        if len(cop_dates) > 60:
+            for s, _w in members:
+                cl = by_stock[s]
+                a = np.asarray([cl[d] for d in cop_dates], dtype=float)
+                rets_by_stock[s] = a[1:] / a[:-1] - 1.0
+        cop = _copula_summary(rets_by_stock, [(s, w) for s, w in members if s in rets_by_stock],
+                              horizon, n_paths, seed, policies, window_maxdd,
+                              {**meta, "effective_window_td": len(rets)})
+        rows.append(("copula_t_garch", None, horizon, cop))
+        if cop["kind"] == "copula_t_garch":
+            print(f"  [參考] {'copula_t_garch':<19} h={horizon} | MaxDD p50={cop['maxdd']['p50']:+.1%} "
+                  f"p95={cop['maxdd']['p95']:+.1%} | P(MaxDD<{cop['policy_threshold']})={cop['p_maxdd_lt_policy']}"
+                  f" | dof={cop['copula_dof']} 平均相關={cop['avg_corr']} 尾部相依λ={cop['tail_dep_lambda']}"
+                  f" 存活={cop['n_survived']}/{cop['n_members']}")
+        else:
+            print(f"  [參考] copula_t_garch     {cop['note']}")
         if evt["kind"] == "evt_pot_hybrid":
             print(f"  [參考] {'evt_pot_hybrid':<19} h={horizon} | MaxDD p50={evt['maxdd']['p50']:+.1%} "
                   f"p95={evt['maxdd']['p95']:+.1%} | P(MaxDD<{evt['policy_threshold']})={evt['p_maxdd_lt_policy']}"
@@ -484,6 +607,20 @@ def _selftest():
         "np.exp(np.cumsum(draws, axis=1)) - 1.0" in open(__file__, encoding="utf-8").read())
     chk("EVT:不確定性揭露欄齊(ξ CI/n_tail/結構假設)",
         all(k in _s for k in ("gpd_xi_ci95", "n_tail", "note_structure", "note_uncertainty")))
+    # ── M3 copula(2026-07-27;合成資料還原已知相關) ──
+    _k, _T, _TRUE = 6, 3000, 0.4
+    _R = np.full((_k, _k), _TRUE); np.fill_diagonal(_R, 1.0)
+    _z = np.random.default_rng(11).multivariate_normal(np.zeros(_k), _R, size=_T)
+    _Rh, _dof, _dep = _fit_t_copula(_z)
+    _off = (_Rh.sum() - _k) / (_k * (_k - 1))
+    chk(f"copula:相關還原誤差<0.05(真值 {_TRUE} → {_off:.4f})", abs(_off - _TRUE) < 0.05)
+    chk("copula:R 正定(必要條件;非正定即 Cholesky 失敗)", bool(np.all(np.linalg.eigvalsh(_Rh) > 0)))
+    chk("copula:dof 落格點內", _dof in COP_DOF_GRID)
+    chk("copula:尾部相依 λ∈[0,1]", 0.0 <= _dep["tail_dep_lambda"] <= 1.0)
+    chk("copula:存活不足→整法拒答(不硬出數字)",
+        _copula_summary({f"s{i}": np.random.default_rng(i).normal(0, .01, 400) for i in range(3)},
+                        [(f"s{i}", 1/3) for i in range(3)], 20, 50, 42, {}, -0.1,
+                        {"cell": "T"})["kind"] == "copula_refused")
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 
