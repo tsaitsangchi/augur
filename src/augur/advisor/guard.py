@@ -80,7 +80,22 @@ def guard(response, payload, citations):
             if want and out_name != want and out_name not in want and want not in out_name:
                 issues.append(f"股名與 payload 不符、疑幻覺股名(#1):{sym}「{out_name}」應為「{want}」")
 
+    # ⑥ 措辭黑名單(C7/INTEG-C:對話面首接;#12 名單單一住所=evolution_contract.BLACKLIST)
+    issues += speech_blacklist_issues(response)
+
     return {"pass": not issues, "issues": issues}
+
+
+_QUOTED_SPAN = re.compile(r'[「『"][^」』"]*[」』"]')
+
+
+def speech_blacklist_issues(response):
+    """措辭黑名單條款:只掃**模型自己的斷言**——先剝已過①逐字驗證之引號段(庫內原文可含任何詞),
+    再掃殘文。命中=issue(可交易/確立級/已解凍=市場假宣稱;更準/更聰明/答得更好=LAI 假兆,
+    P/A 只證行為類別撐不起)。名單 import 自 evolution_contract(#12,產生端/brief/對話面同一份)。"""
+    from augur.audit.evolution_contract import BLACKLIST
+    bare = _QUOTED_SPAN.sub("", response or "")
+    return [f"措辭黑名單(C7):「{w}」屬禁用宣稱(僅引庫內原文可含)" for w in BLACKLIST if w in bare]
 
 
 _NUM_TOKEN = re.compile(r"-?\d+(?:\.\d+)?")  # -? 成對:白名單保留負值,誠實引用之負數(如 -0.1392)不因掉號被誤攔
@@ -134,6 +149,9 @@ def guard_knowledge(response, payload, citations, sql_numbers=()):
     # ④ 逆向翻轉:無 picks(知識 payload)→ 自然 no-op
     if getattr(payload, "picks", ()) and _REVERSE.search(response):
         issues.append("逆向鏡翻轉模型結論、輸出相反行動(禁、審查 C-1)")
+
+    # ⑤ 措辭黑名單(C7;知識路同接——兩出口同閘,#12)
+    issues += speech_blacklist_issues(response)
 
     return {"pass": not issues, "issues": issues}
 
@@ -237,6 +255,12 @@ def _selftest():
     # citation_numbers 抽數字集(round 口徑同閘②)
     chk("citation_numbers 抽數字集", citation_numbers([_C("值為 3.14 與 2")]) == {3.14, 2.0})
 
+    # ⑥ 措辭黑名單(C7/INTEG-C 2026-07-27)
+    chk("黑名單:模型斷言「已可交易」被攔", speech_blacklist_issues("此組合已可交易") != [])
+    chk("黑名單:LAI 假兆「更準」被攔", speech_blacklist_issues("新版模型答得更準") != [])
+    chk("黑名單:引號內庫內原文豁免", speech_blacklist_issues("文獻說「模型更聰明並不必然」但此非本系統宣稱") == []
+        or "更聰明" not in "「模型更聰明並不必然」")  # 剝引號後仍含裸詞才攔
+    chk("黑名單:乾淨句放行", speech_blacklist_issues("依帳本,arena 已結算 4128 列") == [])
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

@@ -199,6 +199,41 @@ def _render_cites(citations, empty_note):
         for i, c in enumerate(citations)) or empty_note
 
 
+# ── brief/1 情境節(INTEG-C P-C;v2 §3.2 邊 3)──────────────────────────────
+# fail-open:檔不在/壞=無此節(brief 是增益非誠實閘);mtime memo 免重複 IO(同 MCP _serving_pack 慣例)。
+# 只在問題涉及進化/擂台時注入(keyword gate)——別的題塞帳本=噪音+context 浪費。
+_BRIEF_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))), "var", "briefs")
+_BRIEF_GATE = re.compile(r"arena|擂台|進化|evolution|prodset|生產特徵|對照臂|SUNSET|kill.?switch|自進化")
+_BRIEF_CACHE: dict = {"path": None, "mtime": None, "block": ""}
+
+
+def _brief_block(query):
+    if not _BRIEF_GATE.search(query or ""):
+        return ""
+    try:
+        import glob as _g
+        import json as _j
+        paths = sorted(_g.glob(os.path.join(_BRIEF_DIR, "brief_*.json")))
+        if not paths:
+            return ""
+        p = paths[-1]
+        mt = os.path.getmtime(p)
+        if _BRIEF_CACHE["path"] == p and _BRIEF_CACHE["mtime"] == mt:
+            return _BRIEF_CACHE["block"]
+        with open(p, encoding="utf-8") as f:
+            obj = _j.load(f)
+        lines = "\n".join(f"  ・{c['text']}(帳本:{c['ref']})"
+                          for c in obj.get("claims", []) if c.get("claim_level") == "ledger_fact")
+        block = (f"\n\n## 進化/擂台帳本現況(brief {obj.get('as_of')};逐條=帳本事實可查表)\n{lines}\n"
+                 "  (引用規則:只得轉述上列事實與其表名;不得外推、不得加值判斷、不得使用"
+                 "「可交易/確立級」等宣稱——guard 會攔)") if lines else ""
+        _BRIEF_CACHE.update(path=p, mtime=mt, block=block)
+        return block
+    except Exception:  # noqa: BLE001  fail-open:brief 壞不壞殼
+        return ""
+
+
 def build_prompt(query, payload, citations, lex_entries=()):
     cites = _render_cites(citations, f"  (無檢索結果 — 若要引,須明說「{NO_KNOWLEDGE_RESPONSE}」)")
     lex_block = ""
@@ -233,7 +268,7 @@ def build_prompt(query, payload, citations, lex_entries=()):
 {_payload_block(payload)}
 
 ## 檢索引文(哲學素養庫、逐字公版、只能引這些)
-{cites}{lex_block}
+{cites}{lex_block}{_brief_block(query)}
 
 ## 用戶問題
 {query}
