@@ -245,6 +245,31 @@ ALTERS = (
     "ALTER TABLE principle_factor_map ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()",
 )
 
+# C6(v2 §3.3):kill switch 由單列升「逐 scope 一列」(tw/lai/raw/global)。
+# why 住這裡:set_evolution_kill_switch.py 讀寫皆假設 scope 欄+四種子列已在;此升級曾無 migration
+# 承載(2026-07-27 PC002 換機還原實證:UndefinedColumn、G-KILL 讀取路徑 fail-closed 阻塞)——#12 補正。
+KILL_SCOPE_STMTS = (
+    "ALTER TABLE evolution_kill_switch ADD COLUMN IF NOT EXISTS scope TEXT",
+    "UPDATE evolution_kill_switch SET scope='global' WHERE scope IS NULL",
+    # 拆舊單列設計之 CHECK(switch_id=1);DROP IF EXISTS=冪等
+    "ALTER TABLE evolution_kill_switch DROP CONSTRAINT IF EXISTS evolution_kill_switch_switch_id_check",
+    """DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_kill_switch_scope') THEN
+            ALTER TABLE evolution_kill_switch
+                ADD CONSTRAINT chk_kill_switch_scope CHECK (scope IN ('tw','lai','raw','global'));
+        END IF;
+    END $$""",
+    # UNIQUE(scope)=set_state「UPDATE ... WHERE scope=」正確性前提
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_kill_switch_scope ON evolution_kill_switch (scope)",
+    # 種子四 scope 全列(set_state 為 UPDATE-only、無列即拒;既有列保留其 state=halt 語意不動)
+    """INSERT INTO evolution_kill_switch (switch_id, scope, state, set_by, reason)
+       SELECT (SELECT coalesce(max(switch_id), 0) FROM evolution_kill_switch) + row_number() OVER (),
+              s, 'clear', 'migrate_evolution_v2_ddl', 'C6 scope 種子'
+       FROM unnest(ARRAY['global','tw','lai','raw']) AS s
+       WHERE NOT EXISTS (SELECT 1 FROM evolution_kill_switch k WHERE k.scope = s)""",
+    "ALTER TABLE evolution_kill_switch ALTER COLUMN scope SET NOT NULL",
+)
+
 ALL_TABLES = tuple(AXES[a]["table"] for a in ("raw", "tw", "lai")) + (
     "evolution_hypothesis_hint", "evolution_evidence_run", "raw_table_coverage_snapshot",
     "evolution_deferred_work", "local_model_eval_set_check", "evolution_prereg_gate")
@@ -255,7 +280,7 @@ def full_ddl() -> list[str]:
     return ([HINT_FORWARD_FN, PREREG_NO_GOALPOST_FN]
             + [ledger_ddl(a) for a in ("raw", "tw", "lai")]
             + [HINT_DDL, EVIDENCE_DDL, COVERAGE_DDL, DEFERRED_DDL, EVAL_SET_CHECK_DDL, PREREG_DDL]
-            + list(ALTERS))
+            + list(ALTERS) + list(KILL_SCOPE_STMTS))
 
 
 def _selftest():
@@ -288,7 +313,13 @@ def _selftest():
     chk("coverage:last_attest_passed 欄在(基線可能是失敗態,須誠實記)", "last_attest_passed" in COVERAGE_DDL)
     chk("prereg:no_goalpost(終態不可改+criteria_sha 凍結)", "criteria_sha 不可改" in PREREG_NO_GOALPOST_FN)
     chk("ALTER 全冪等(IF NOT EXISTS)", all("IF NOT EXISTS" in a for a in ALTERS))
-    chk("kill_switch scope 不在本檔(已住 migrate_philosophy_evolution_ddl,#12)",
+    # 2026-07-27 補正:原斷言稱 scope 住 migrate_philosophy_evolution_ddl——實查該檔零 scope(虛指),
+    # 換機還原即斷(PC002 實證 UndefinedColumn)。C6 升級自此住本檔 KILL_SCOPE_STMTS(#12 唯一住所)。
+    chk("C6 kill_switch scope 升級住本檔(四 scope 種子+UNIQUE+CHECK)",
+        any("ADD COLUMN IF NOT EXISTS scope" in s for s in KILL_SCOPE_STMTS)
+        and any("ux_kill_switch_scope" in s for s in KILL_SCOPE_STMTS)
+        and all(x in " ".join(KILL_SCOPE_STMTS) for x in ("'global'", "'tw'", "'lai'", "'raw'")))
+    chk("ALTERS 與 KILL_SCOPE 分治(kill_switch 不混入一般 ALTER)",
         not any("kill_switch" in a for a in ALTERS))
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
