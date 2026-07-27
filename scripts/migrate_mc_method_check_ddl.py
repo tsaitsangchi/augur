@@ -16,7 +16,10 @@ import _bootstrap  # noqa: F401
 from augur.core import db
 
 METHODS = ("iid_bootstrap", "block_bootstrap", "stationary_bootstrap", "garch_fhs",
-           "episode_replay_2008", "episode_replay_2020", "episode_replay_2022")
+           "episode_replay_2008", "episode_replay_2020", "episode_replay_2022",
+           # 五窗擴充(2026-07-27 預註冊;reports/augur_risk_sim_expansion_plan_20260727.md)
+           "episode_replay_1997", "episode_replay_2000", "episode_replay_2011",
+           "episode_replay_2015", "episode_replay_2018")
 CON = "mc_simulation_run_method_check"
 SQL = (f"ALTER TABLE mc_simulation_run DROP CONSTRAINT IF EXISTS {CON};\n"
        "ALTER TABLE mc_simulation_run ADD CONSTRAINT " + CON +
@@ -60,7 +63,7 @@ def _selftest():
         print(("  ✓ " if cond else "  ✗ ") + name)
         ok = ok and cond
 
-    chk("七方法值全入 SQL", all(f"'{m}'" in SQL for m in METHODS) and len(METHODS) == 7)
+    chk("十二方法值全入 SQL", all(f"'{m}'" in SQL for m in METHODS) and len(METHODS) == 12)
     chk("原五值保留(不破既有列)", all(m in METHODS for m in
         ("iid_bootstrap", "block_bootstrap", "episode_replay_2008", "episode_replay_2020", "episode_replay_2022")))
     chk("白名單型 CHECK(非自由文字)", "CHECK (method = ANY" in SQL)
