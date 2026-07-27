@@ -38,6 +38,15 @@
 | H10：`principle_domain_map` vs `field_lens_map` 分層；域概念之定位 | 討論中（hugo 2026-07-27 提問「知識可否無域」——分析見對話；任何判準變更另案） |
 | **兩機 arena 歸屬** | **已於同日稍後拍板，見 §六** |
 
+## 七、增補（同日再後）：LAIEVO 教材母體跨域化（`V2-RUBRIC-go` 範圍調整）
+
+> **hugo 對話拍板原文（逐字）**：「此專案所有自進化迭代計畫know how不需要分域，而是交互相關進行學習自我進化提高本地AI能力」
+
+- **裁定**：本地 AI 能力學習迴路（eval 題庫母體／gold 收割／pack 教材／自我求知選材）**不以域過濾**——F/P/A 量的是跨域通用行為（事實逐字／指名來源／拒答消歧義），域過濾係取材便宜行事而非原理。
+- **落地＝併入 RUBRIC v2 同一次換尺（單次破尺）**：新一代凍結集之母體由 `DOMAINS=("quant_finance","software_engineering")` 兩域擴為**全知識層跨域抽樣**（philosophy／全 domain knowledge_item／ttai owned_local 私有 know-how／raw catalog 語意）；L4 消歧義因跨域同名多實體反而**更豐富**（如「緩衝層」之 ERP vs 市場語意）。夜間收割與 `evolve_self_seek` 選材同步撤域限。
+- **不變式重申（跨域學習 ≠ 拆牆）**：①量化隔離不動——學習教材跨域 ≠ 任何內容入 `feature_values`／prodset（I2/I8/#8 原樣）；②私有邊界不動——ttai 教材僅本地學習（gold/eval 住 DB 不入 git、pack 為本地檔）、qdrant/git 零外流；③0/1 機械判準不鬆——跨域題仍須 live DB 可查核（L1 逐字/L3 NOT EXISTS），擴域不得以「跨域難驗」為由降判準；④凍結集 `4183475c5089` 原樣封存為可比史料。
+- 與 §四 H10 分層裁定相容：domain 欄保留為 provenance／檢索注記（治理把手），自此**不再是學習迴路的牆**。
+
 ## 六、增補（同日稍後）：兩機歸屬拍板＝乙案（本機 PC002-S1800 當家）
 
 > **hugo 對話拍板原文（逐字）**：「乙：本機當家。因為DESKTOP 當家只有在週六、日才會開」
