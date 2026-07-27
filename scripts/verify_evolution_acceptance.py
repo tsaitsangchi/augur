@@ -93,11 +93,32 @@ def _checks(cur):
         f"已結輪 {closed} 列、缺 closed_by {halfclosed}")
 
     # A4 gain=true ⇒ 證據指向同勝 floor 與 mismatched 之列
-    n_gain = _q(cur, " UNION ALL ".join(
-        f"SELECT count(*) FROM {t} WHERE gain IS TRUE" for t in LEDGERS
-        if _q(cur, "SELECT to_regclass(%s)", (f"public.{t}",)) is not None) or "SELECT 0") or 0
-    add("A4", "gain=true ⇒ gain_evidence 指向同勝 floor 與 mismatched 之列",
-        "N/A" if n_gain == 0 else "PASS", f"gain=true 之列:{n_gain}(evidence_protocol 為唯一判讀器)")
+    # 2026-07-27 對抗驗證抓到本條原為**橡皮圖章**:只數 gain=true 的列數就蓋 PASS,
+    # 從不讀 gain_evidence、從不呼叫 evidence_level(且 UNION ALL 只取首列,連加總都沒做到)。
+    # 改為**逐列真讀證據**:帶得動對照臂數字者才交給 evidence_protocol 判;帶不動者不得算通過。
+    from augur.audit.evidence_protocol import evidence_level
+    METRIC_BASES = ("dual_green_delta", "prodset_delta", "arena_prereg", "eval_metric")
+    rows = []
+    for t in LEDGERS:
+        if _q(cur, "SELECT to_regclass(%s)", (f"public.{t}",)) is None:
+            continue
+        cur.execute(f"SELECT iteration_uid, gain_basis, gain_evidence FROM {t} WHERE gain IS TRUE")  # noqa: S608
+        rows += [(t, u, b, e or {}) for u, b, e in cur.fetchall()]
+    judged, unsubstantiated, na_basis = [], [], []
+    for _t, uid, basis, ev in rows:
+        arms = ev.get("arms") if isinstance(ev.get("arms"), dict) else None
+        if arms and {"floor", "mismatched", "live"} <= set(arms):
+            lvl = evidence_level({k: arms.get(k) for k in
+                                  ("ceiling", "floor", "shuffled", "mismatched", "live")})
+            (judged if lvl in ("weak", "scoped_established") else unsubstantiated).append(f"{uid}:{lvl}")
+        elif basis in METRIC_BASES:
+            unsubstantiated.append(f"{uid}:{basis} 無對照臂數字")
+        else:
+            na_basis.append(f"{uid}:{basis}")   # 如 RAWEVO new_gap:非「勝過對照」型宣稱,本條不適用
+    add("A4", "gain=true 且屬度量型 ⇒ gain_evidence 須帶對照臂且過 evidence_protocol",
+        "N/A" if not rows else ("FAIL" if unsubstantiated else ("PASS" if judged else "N/A")),
+        f"gain=true {len(rows)} 列:經判讀通過 {judged or 0}、**無據 {unsubstantiated or 0}**、"
+        f"非度量型不適用 {na_basis or 0}")
 
     # A5 APPLY 紀律:apply_allowed ⇒ gate_ref 指向 enacted
     # 規則自 V2-AUTOADVANCE 生效日起適用;先前列**不溯及既往**但分開列示(不靜默放過)

@@ -42,16 +42,28 @@ def sunset_status(cur):
     b_done = n_active > 2
     b_ev = f"prodset active={n_active}(基線 2;須成長且新成員過符號一致性)"
 
+    # (c) 2026-07-27 對抗驗證後改判「未判定」——**不得再自行判綠**。
+    # 凍結原文(criteria_sha 65eda893…):「LAIEVO 有任一臂在 F@L1 上同時勝過 floor 與 mismatched,
+    # 且該結論可被獨立重跑複現。」原實作寫的是 `best > shuffled`:既不比 floor 也不比 mismatched,
+    # 「可複現」整句碼裡無對應 —— 卻在報告第一行印「續命條件已達成」。
+    # 三項親驗使「判綠」無論如何站不住:
+    #   ① 前半是空門檻:F@L1 之 floor 與 mismatched **結構性恆為 0**(mismatched 之捐贈題 29/30 屬
+    #      L3、1/30 屬 L4,理想答案不含本題 facts),連負對照臂 shuffled(0.1667)自己都「同勝」。
+    #   ② 一支 13 行、不看內容只認題幹開頭格式的零知識規則機,實跑 L1.F/L1.P/L3.A/L4.A **全 1.000**
+    #      (與 ceiling 打平、勝過每一個 LLM 臂)——此格量到的是題目格式,不是能力。
+    #   ③ 後半在現行 harness **結構上不可記錄**:run_id=sha256(set_id|code_hash|arm|model|n_items)
+    #      且 ON CONFLICT DO NOTHING,同尺同臂重跑之第二次結果必被靜默丟棄。
+    # 修成對齊原文會使 (c) 由 ✅ 轉未達成＝效果上升嚴,依 V2-SUNSET「升嚴須走 GATE-raise」不由 AI 逕判;
+    # 但「目前這個 ✅ 是錯的」屬事實陳述,故此處改為 **None=未判定**(既不判綠也不代 hugo 判死)。
     c_rows = _one(cur, """SELECT count(*) FROM local_model_eval_run
         WHERE arm NOT IN ('ceiling','floor','shuffled','mismatched') AND NOT is_invalid""") or 0
-    c_done = False
-    c_ev = f"LLM 臂有效列={c_rows}(需任一臂 F@L1 同勝 floor 與 mismatched 且獨立複現)"
-    if c_rows:
-        best = _one(cur, """SELECT max(axis_f) FROM local_model_eval_run
-            WHERE arm NOT IN ('ceiling','floor','shuffled','mismatched') AND NOT is_invalid""")
-        sh = _one(cur, "SELECT max(axis_f) FROM local_model_eval_run WHERE arm='shuffled'") or 0
-        c_done = bool(best is not None and float(best) > float(sh))
-        c_ev = f"最佳 LLM 臂 F={best} vs shuffled F={sh}(同勝門檻);有效列={c_rows}"
+    best = _one(cur, """SELECT max(axis_f) FROM local_model_eval_run
+        WHERE arm NOT IN ('ceiling','floor','shuffled','mismatched') AND NOT is_invalid""")
+    c_done = None
+    c_ev = (f"**未判定(爭議)**:有效 LLM 臂={c_rows}、最佳 F@L1={best};"
+            "原判定式 best>shuffled 與凍結原文(勝 floor 與 mismatched＋可獨立重跑複現)不符,"
+            "且零知識格式規則機於該格實跑 1.000 → 門檻空洞。處置須 hugo(GATE-raise 或裁定原文讀法);"
+            "在此之前本列不得被引為續命依據。詳見 audits/V2-SUNSET-C-DISPUTED-20260727.md")
     return [("(a) arena 結算＋方向門可讀數", a_done, a_ev),
             ("(b) prodset active 由 2 成長＋符號一致", b_done, b_ev),
             ("(c) LAIEVO 任一臂 F@L1 勝 floor 與 mismatched 且可複現", c_done, c_ev)]
@@ -63,11 +75,19 @@ def build(days, md):
     with db.connect() as conn, db.transaction(conn) as cur:
         left = (SUNSET_DEADLINE - date.today()).days
         conds = sunset_status(cur)
-        n_ok = sum(1 for _, ok, _ in conds if ok)
-        verdict = "續命條件已達成" if n_ok else "**三條件皆未達成——期限到即整體停止、帳本封存、不得換 trigger_code 重開**"
-        L.append(f"# V2-SUNSET:剩 {left} 天(至 {SUNSET_DEADLINE});三選一達成 {n_ok}/3 → {verdict}")
+        # ok 三態:True 達成 / False 未達成 / None **未判定**(判準與實作不符,須人裁)。
+        # 未判定**不計入達成數**——把爭議算成達成就是自己把落日條款關掉(#15)。
+        n_ok = sum(1 for _, ok, _ in conds if ok is True)
+        n_und = sum(1 for _, ok, _ in conds if ok is None)
+        verdict = ("續命條件已達成" if n_ok else
+                   f"**無任一條件確定達成**(其中 {n_und} 條未判定待人裁);"
+                   "**期限到而仍無確定達成者即整體停止、帳本封存、不得換 trigger_code 重開**"
+                   if n_und else
+                   "**三條件皆未達成——期限到即整體停止、帳本封存、不得換 trigger_code 重開**")
+        L.append(f"# V2-SUNSET:剩 {left} 天(至 {SUNSET_DEADLINE});"
+                 f"確定達成 {n_ok}/3、未判定 {n_und} → {verdict}")
         for code, ok, ev in conds:
-            L.append(f"  {'✅' if ok else '⬜'} {code}\n      {ev}")
+            L.append(f"  {'✅' if ok is True else ('⚠' if ok is None else '⬜')} {code}\n      {ev}")
 
         h1(f"R6 自動決策 digest(近 {days} 日;請掃視認領)")
         cur.execute("""SELECT a.applied_at, q.feature, q.action, a.before_status, a.after_status,
