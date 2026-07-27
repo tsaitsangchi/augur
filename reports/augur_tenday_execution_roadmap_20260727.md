@@ -93,3 +93,17 @@
 **明確不做**（十天內）：解凍 API、降任何閘、`TRI-CADENCE-yes`、DCC、GitHub MCP、PAT 更換（已定案維持）、stock-backend 任何觸點。
 
 **停損總則**：任一步連 2 輪驗收紅 → 該步 halt、不阻他步；`gain=NULL` 不計停損；所有停損後果須人裁。
+
+## 九、執行進度（D1 當日實記，2026-07-27 18:30；只記已驗證者）
+
+| 步 | 狀態 | 實證 |
+|---|---|---|
+| 3.1 heavy_slot v2 | ✅ | selftest 含巢狀 `with connect()` 回歸；**並修 `defer()` 死路**——原寫 `(axis,task,reason,payload)`，實表欄為 `(axis,step_key,reason,detail)`，UndefinedColumn 被 except 吞成一行 stderr → 「不 silent skip」的機制本身 silent skip（實測 0 列）。自測改為真插一列再刪 |
+| 3.2 TWEVO driver | ✅ | `run_evolution_iteration.py` 十步齊；實跑 `tw-20260727-r01`：open→I4→`--close` **遭拒**（缺 9 步）→`--partial` 結成 `halted`。重活步因 llama-server 佔 5.8/12 核、可用記憶體 2GB 而延後，已落 `evolution_deferred_work` |
+| 3.3 A0–A12 驗收器 | ✅ | `verify_evolution_acceptance.py`；今日三度演進 **PASS 8 → 11 → 12**、FAIL 0、N/A 1 |
+| 3.4 RAWEVO 首輪 | ✅ | `raw-20260727-r01`：覆蓋快照 **97 表**（驗收 ≥86）、缺口分類 `ok 54/semantic_ok 19/freeze_gap 12/schema_gap 11/true_gap 1`、新 hint 10 則 pending。零寫入實查：prodset 仍 active=1、`feature_values` 未動 |
+| 3.5 hint 批次呈報 | 🧑 待 | 10 則 pending 待 `RAWEVO-HINT-approve`（H-2） |
+| 4.3 F2 ttai 對帳 | ✅ | 142,040 逐計數：五個假說被自己的資料否證後定位損失在 acquire 段；48 列走三層管線補灌並接至可檢索終態，**未解釋 0、rc=0**；ttai 全文覆蓋 141,825 → **141,873/141,873** |
+| 5.1 Phase 5 契約落地 | ✅ | pytest 8 條（含 live DB 層）＋`validate_evolution_contract --scan` rc=0。寫測試時自撞兩個靜默 skip（env 變數名當旗標、`db.connect().__enter__()` 之 CM 被 GC）並修正 |
+
+**尚待臂收尾者（Ollama 車道序列化）**：1.1 LLM 三臂 → 1.2 判準 A 判讀／SUNSET(c) → 2.1 `--model` 旗標（**跑中不得改碼**，會動 `eval_code_hash`）→ 2.2 8b 三臂 → 2.3 P-A 判定 → 2.4 RUBRIC v2 換尺；另 `eval_local_model` 應接 heavy_slot（現走 flock，driver 看不見臂在跑）。
