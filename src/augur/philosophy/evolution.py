@@ -395,6 +395,27 @@ def evaluate_g_prom_from_evidence(
     hac_t = evidence.get("hac_t")
     seed_deltas = evidence.get("seed_deltas")
 
+    # —— M-1 符號一致性(V2-CTRL/GATE-raise 拍板 2026-07-27;audits/V2-PHASE4-RUBRIC-H2) ——
+    # mean_ic 為「已乘 direction」口徑(caller :242) → mean_ic<0 ⟺ 實測符號與假說方向相反。
+    # FAIL_SIGN 非 SKIP(終態負判、禁 I8 回填 validated);樣本須先足額(n_panels≥min)才裁——
+    # 病灶實證:volume_gini_60d dir=+1 而 mean_ic=-0.0539/hac_t=-3.966(顯著反向)仍過閘,
+    # 因舊碼只判 |hac_t| 取絕對值、mean_ic 只驗存在。
+    expected_dir = evidence.get("expected_direction")
+    if (n_panels is not None and int(n_panels) >= min_panels
+            and mean_ic is not None and float(mean_ic) < 0):
+        sig = (hac_t is not None and abs(float(hac_t)) >= min_abs)
+        return {
+            "verdict": "FAIL_SIGN",
+            "reason": (f"sign mismatch: direction-adjusted mean_ic={float(mean_ic):+.4f} < 0"
+                       + (f"; significant |hac_t|={abs(float(hac_t)):.3f}≥{min_abs}(在假說方向上穩定答錯)"
+                          if sig else "")),
+            "expected_direction": int(expected_dir) if expected_dir is not None else None,
+            "observed_sign": (-int(expected_dir)) if expected_dir else None,
+            "sign_significant": sig,
+            "evidence": dict(evidence),
+            "thresholds": gcfg,
+        }
+
     checks: dict[str, Any] = {
         "asof_ic": False,
         "hac_t": False,

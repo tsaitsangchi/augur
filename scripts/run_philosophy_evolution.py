@@ -83,6 +83,29 @@ def _selftest() -> int:
         g_noexec={"verdict": "PASS"},
     )
     chk("local green → pending_auto", decide_queue_status(g2, KILL_CLEAR) == "pending_auto")
+    # —— M-1 符號一致性(2026-07-27 拍板;實測值錨=volume_gini_60d 病灶形態) ——
+    sign = evaluate_g_prom_from_evidence(
+        {"n_panels": 32, "mean_ic": -0.0539, "hac_t": -3.966,
+         "seed_deltas": [0.01, 0.01, 0.02], "expected_direction": 1}
+    )
+    chk("顯著反向 → FAIL_SIGN(非 SKIP、非 PASS)", sign["verdict"] == "FAIL_SIGN")
+    chk("FAIL_SIGN 記 expected/observed(gate_json 驗收)",
+        sign.get("expected_direction") == 1 and sign.get("observed_sign") == -1
+        and sign.get("sign_significant") is True)
+    g3 = build_gate_json(
+        g_iso={"verdict": "PASS"}, g_map={"verdict": "PASS"}, g_prom=sign, g_econ=econ,
+        g_attest={"verdict": "PASS"}, g_kill={"verdict": "PASS"}, g_noexec={"verdict": "PASS"},
+    )
+    chk("FAIL_SIGN → rejected_gate(不入 pending_auto)",
+        decide_queue_status(g3, KILL_CLEAR) == "rejected_gate")
+    chk("樣本不足時不裁 FAIL_SIGN(insufficient 優先,3 panels 非證據)",
+        evaluate_g_prom_from_evidence(
+            {"n_panels": 3, "mean_ic": -0.9, "hac_t": -5.0, "seed_deltas": None,
+             "expected_direction": 1})["verdict"] != "FAIL_SIGN")
+    chk("正向不受影響(既有 PASS 路徑不變)",
+        evaluate_g_prom_from_evidence(
+            {"n_panels": 12, "mean_ic": 0.04, "hac_t": 2.1,
+             "seed_deltas": [0.01, 0.01, 0.02], "expected_direction": 1})["verdict"] == "PASS")
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 
@@ -255,6 +278,8 @@ def _compute_feature_gates(
         "hac_t": hac_t,
         "hit_rate": summ.get("hit_rate"),
         "seed_deltas": None,
+        # M-1 符號一致性:判決函式據此裁 FAIL_SIGN 並記 expected/observed(gate_json 驗收 A)
+        "expected_direction": int(direction),
     }
 
     if summ.get("n_panels", 0) == 0:
