@@ -21,7 +21,12 @@ import sys
 import _bootstrap  # noqa: F401
 from augur.core import db
 
-SESSION_GLOB = os.path.expanduser("~/.claude/projects/*augur*/*.jsonl")
+# augur 全家(含 worktree)+ttai+rdai(整合對象,hugo 提問一併收);stock-backend 刻意排除
+# (clean-room #17:舊專案零觸點——寧缺勿污染,逐字稿亦不例外)
+SESSION_GLOBS = (os.path.expanduser("~/.claude/projects/*augur*/*.jsonl"),
+                 os.path.expanduser("~/.claude/projects/-home-hugo-project-ttai/*.jsonl"),
+                 os.path.expanduser("~/.claude/projects/-home-hugo-project-rdai/*.jsonl"))
+SESSION_GLOB = SESSION_GLOBS[0]  # 相容既有引用
 NOISE_PREFIXES = ("<local-command-caveat", "<command-name", "Caveat:", "[Request interrupted",
                   "<system-reminder", "[SYSTEM NOTIFICATION", "<local-command-stdout",
                   "This session is being continued")
@@ -44,7 +49,8 @@ def keep(content) -> bool:
 
 
 def iter_session_questions():
-    for path in sorted(glob.glob(SESSION_GLOB)):
+    paths = sorted({p for g in SESSION_GLOBS for p in glob.glob(g)})
+    for path in paths:
         sid = os.path.basename(path).rsplit(".", 1)[0]
         try:
             with open(path, encoding="utf-8", errors="replace") as f:
