@@ -15,6 +15,8 @@
   python scripts/run_philosophy_evolution.py --local-gates   # 本地重算 G-PROM／G-ECON（零 API）
   python scripts/run_philosophy_evolution.py --local-gates --dry-run
   python scripts/run_philosophy_evolution.py --local-gates --skip-multi-seed  # 三關(c) SKIP（勿假 PASS）
+  python scripts/run_philosophy_evolution.py --control-arms  # M-1 對照臂:置換+錯配 null→evidence_run(V2-CTRL)
+  python scripts/run_philosophy_evolution.py --control-arms --draws 20 --arm-seed 7  # 小樣本煙測
   python scripts/run_philosophy_evolution.py --selftest      # 免 DB
 """
 from __future__ import annotations
@@ -106,8 +108,33 @@ def _selftest() -> int:
         evaluate_g_prom_from_evidence(
             {"n_panels": 12, "mean_ic": 0.04, "hac_t": 2.1,
              "seed_deltas": [0.01, 0.01, 0.02], "expected_direction": 1})["verdict"] == "PASS")
+    # —— M-1 對照臂純函式(_draw_abs_hac;免 DB 合成資料) ——
+    import numpy as _np
+    _r = _np.random.default_rng(7)
+    strong = []
+    for _i in range(30):  # 30 panel、preds==labels 完美訊號
+        vals = {f"s{j}": float(_r.normal()) for j in range(40)}
+        strong.append((vals, dict(vals)))
+    live_t = _draw_abs_hac(strong, "shuffled", _np.random.default_rng(1))
+    chk("置換臂:完美訊號被打亂後 |hac_t| 仍可算(null 有值)", live_t is not None)
+    d1 = _draw_abs_hac(strong, "mismatched", _np.random.default_rng(3))
+    d2 = _draw_abs_hac(strong, "mismatched", _np.random.default_rng(3))
+    chk("決定性:同 seed 同 |hac_t|(common/pool 排序後才餵 rng)", d1 == d2)
+    chk("panel<10 → None(不足額不出數)", _draw_abs_hac(strong[:5], "shuffled", _np.random.default_rng(1)) is None)
+    chk("未知臂 fail-loud", (lambda: [_draw_abs_hac(strong, "lve", _np.random.default_rng(1))]
+        ).__class__ is not None and _raises_ctrl(lambda: _draw_abs_hac(strong, "lve", _np.random.default_rng(1))))
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
+
+
+def _raises_ctrl(fn) -> bool:
+    try:
+        fn()
+    except ValueError:
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+    return False
 
 
 def _code_sha() -> str:
@@ -361,6 +388,169 @@ def _compute_feature_gates(
     return g_prom, g_econ
 
 
+def _draw_abs_hac(panel_data: list, arm: str, rng) -> float | None:
+    """單一 draw 之 |hac_t|(純函式;IO 在呼叫端)。panel_data=[(preds{stock:val}, labels{stock:ret}),…]。
+
+    shuffled  =逐 panel 打亂 labels(零訊號 null;floor 語意)——量閘的經驗偽陽率。
+    mismatched=固定一個 stock 置換 π 施於全 panels(特徵自相關保留、對到錯的股票)——
+               「量級對、類別選錯」null(mismatched 語意;volume_gini_60d 型失效的母體)。
+    決定性:common/pool 皆排序後才餵 rng;同 seed 同結果。
+    """
+    from augur.evaluation import metrics
+
+    perm_map = None
+    if arm == "mismatched":
+        pool = sorted({s for preds, _ in panel_data for s in preds})
+        if len(pool) < 5:
+            return None
+        shuffled_pool = list(pool)
+        rng.shuffle(shuffled_pool)
+        perm_map = dict(zip(pool, shuffled_pool))
+    ic_by: dict = {}
+    for i, (preds, labs) in enumerate(panel_data):
+        common = sorted(s for s in preds if s in labs)
+        if len(common) < 5:
+            continue
+        if arm == "shuffled":
+            vals = [labs[s] for s in common]
+            idx = rng.permutation(len(vals))
+            labd = {s: float(vals[int(j)]) for s, j in zip(common, idx)}
+            ic = metrics.rank_ic({s: preds[s] for s in common}, labd)
+        elif arm == "mismatched":
+            pr = {s: preds[perm_map[s]] for s in common if perm_map.get(s) in preds}
+            if len(pr) < 5:
+                continue
+            ic = metrics.rank_ic(pr, {s: labs[s] for s in pr})
+        else:
+            raise ValueError(f"未知對照臂:{arm}")
+        if ic is not None:
+            ic_by[i] = ic
+    if len(ic_by) < 10:
+        return None
+    t = metrics.effective_t_hac(ic_by)
+    return abs(float(t)) if t is not None else None
+
+
+def run_control_arms(*, since: str, horizon_h: int, draws: int, seed: int) -> int:
+    """M-1 對照臂(V2-CTRL-go 2026-07-27):null 分布走同一 local-gates 統計路徑(rank_ic+HAC)。
+
+    結果寫 evolution_evidence_run(axis='tw', arm∈{shuffled,mismatched},
+    metric='hac_t_abs_ge2_rate');detail 含 |hac_t| 分位數(p95=GATE-raise 預註冊規則輸入:
+    經驗偽陽率>10% ⇒ min_abs_hac_t 升至經驗 95 分位;升嚴唯一方向)。
+    中止條件(計畫 §6 Phase 4):壁鐘>2h → 提前收束、剩餘 draws 誠實記於 detail(統計力降)。
+    """
+    import hashlib as _hl
+
+    import numpy as np
+
+    from augur.core import db
+    from augur.evaluation import label as label_mod
+
+    t0 = time.monotonic()
+    gcfg = DEFAULT_GATE_CONFIG.get("gates", {}).get("G-PROM", {})
+    min_abs = float(gcfg.get("min_abs_hac_t", 2.0))
+    rng = np.random.default_rng(seed)
+    code_sha = _code_sha()
+
+    with db.connect() as conn:
+        with db.transaction(conn) as cur:
+            cur.execute(
+                "SELECT DISTINCT panel_date FROM feature_values WHERE panel_date>=%s ORDER BY panel_date",
+                (since,))
+            panels = [r[0] for r in cur.fetchall()]
+            cur.execute(
+                "SELECT DISTINCT feature FROM feature_values WHERE panel_date>=%s", (since,))
+            feats = sorted(r[0] for r in cur.fetchall())
+        if len(panels) < 10 or not feats:
+            print(f"✗ 素材不足:panels={len(panels)} feats={len(feats)}")
+            return 1
+        print(f"── control-arms draws={draws}/arm seed={seed} min_abs={min_abs} "
+              f"panels={len(panels)} feats={len(feats)} ──", flush=True)
+        cal = label_mod.full_calendar(conn)
+        labels_by_panel: dict = {}
+        for k, pd_ in enumerate(panels):
+            with db.transaction(conn) as cur:
+                cur.execute("SELECT DISTINCT stock_id FROM feature_values WHERE panel_date=%s", (pd_,))
+                stk = [str(r[0]) for r in cur.fetchall()]
+            labs = label_mod.labels(conn, pd_, stk, horizon_h, calendar=cal)
+            labels_by_panel[pd_] = {s: v for s, v in labs.items() if v is not None}
+            if (k + 1) % 25 == 0:
+                print(f"  …labels {k+1}/{len(panels)}", flush=True)
+
+        feat_data_cache: dict = {}
+
+        def _panel_data(f: str) -> list:
+            if f not in feat_data_cache:
+                rows = []
+                for pd_ in panels:
+                    with db.transaction(conn) as cur:
+                        cur.execute(
+                            "SELECT stock_id, value FROM feature_values "
+                            "WHERE panel_date=%s AND feature=%s", (pd_, f))
+                        preds = {str(s): float(v) for s, v in cur.fetchall() if v is not None}
+                    rows.append((preds, labels_by_panel[pd_]))
+                feat_data_cache[f] = rows
+            return feat_data_cache[f]
+
+        suite_id = _hl.sha256(json.dumps(
+            {"feats": feats, "panels": [str(p) for p in panels], "h": horizon_h,
+             "min_abs": min_abs, "scheme": "control_arms_v1"},
+            sort_keys=True).encode()).hexdigest()[:12]
+
+        summary: dict = {}
+        for arm in ("shuffled", "mismatched"):
+            ts: list[float] = []
+            attempted = 0
+            truncated = False
+            for d in range(draws):
+                if time.monotonic() - t0 > 7200:
+                    truncated = True
+                    print(f"  ⚠ 壁鐘>2h 中止條件:{arm} 於 draw {d}/{draws} 提前收束(統計力降)", flush=True)
+                    break
+                attempted += 1
+                f = feats[int(rng.integers(len(feats)))]
+                t = _draw_abs_hac(_panel_data(f), arm, rng)
+                if t is not None:
+                    ts.append(t)
+                if attempted % 25 == 0:
+                    print(f"  …{arm} {attempted}/{draws}", flush=True)
+            arr = np.array(ts) if ts else np.array([0.0])
+            rate = float((np.array(ts) >= min_abs).mean()) if ts else None
+            detail = {
+                "seed": seed, "since": since, "h": horizon_h, "threshold": min_abs,
+                "draws_requested": draws, "draws_attempted": attempted, "truncated": truncated,
+                "abs_hac_p50": float(np.percentile(arr, 50)) if ts else None,
+                "abs_hac_p95": float(np.percentile(arr, 95)) if ts else None,
+                "abs_hac_p99": float(np.percentile(arr, 99)) if ts else None,
+                "abs_hac_max": float(arr.max()) if ts else None,
+                "n_features": len(feats), "n_panels": len(panels),
+                "gate_raise_rule": "empirical_fp_rate>0.10 => min_abs_hac_t := p95 (預註冊 audits/V2-PHASE4-RUBRIC-H2-APPROVED-20260727)",
+            }
+            with db.transaction(conn) as cur:
+                cur.execute(
+                    """INSERT INTO evolution_evidence_run
+                       (axis, suite_id, code_hash, arm, metric_name, metric_value,
+                        n_items, n_valid, n_excluded, is_invalid, n_trials, selection_scope, detail)
+                       VALUES ('tw', %s, %s, %s, 'hac_t_abs_ge2_rate', %s, %s, %s, %s, %s, %s,
+                               'control_arms_v1', %s)""",
+                    (suite_id, code_sha, arm, rate, attempted, len(ts),
+                     attempted - len(ts), rate is None, attempted, json.dumps(detail)))
+            summary[arm] = {"rate": rate, "p95": detail["abs_hac_p95"], "n_valid": len(ts)}
+            print(f"  [{arm:<10}] 偽陽率(|hac_t|≥{min_abs})={rate if rate is not None else 'N/A'} "
+                  f" p95={detail['abs_hac_p95']}  n_valid={len(ts)}/{attempted}", flush=True)
+
+    worst = max((v["rate"] or 0.0) for v in summary.values())
+    if worst > 0.10:
+        p95s = [v["p95"] for v in summary.values() if v["p95"] is not None]
+        print(f"  ⚠ GATE-raise 預註冊規則觸發:經驗偽陽率 {worst:.1%} > 10% ⇒ "
+              f"APPLY 篩以經驗 95 分位 {max(p95s):.3f} 取代 min_abs_hac_t={min_abs}(升嚴;R2(c))")
+    else:
+        print(f"  ✓ 經驗偽陽率 ≤10%(最壞 {worst:.1%}):min_abs_hac_t={min_abs} 維持")
+    print(f"  suite_id={suite_id} code={code_sha[:12]} 壁鐘={time.monotonic()-t0:.0f}s "
+          f"(evidence_run 已落 2 列)")
+    return 0
+
+
 def run_evolution(
     *,
     since: str,
@@ -608,10 +798,17 @@ def main() -> int:
     )
     ap.add_argument("--since", default="2021-01-01")
     ap.add_argument("--h", type=int, default=60)
+    ap.add_argument("--control-arms", action="store_true",
+                    help="M-1 對照臂:置換+錯配 null 走同一統計路徑→evolution_evidence_run(V2-CTRL-go)")
+    ap.add_argument("--draws", type=int, default=200, help="每臂 draw 數(預設 200;煙測可降)")
+    ap.add_argument("--arm-seed", type=int, default=42)
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
     if args.selftest:
         return _selftest()
+    if args.control_arms:
+        return run_control_arms(since=args.since, horizon_h=args.h,
+                                draws=args.draws, seed=args.arm_seed)
     if args.local_gates:
         mode = "local_gates"
     elif args.skeleton or args.dry_run:
