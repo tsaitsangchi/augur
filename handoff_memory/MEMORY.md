@@ -1,9 +1,13 @@
 # Memory Index
 
+- [慢可以、提升要精準](slow-but-precise.md) — hugo 07-27 指導原則:速度讓位正確性;驗收用精確計數/凍結尺實測不用估;timeout 放寬不猶豫(advisor 900s);不為快降 draws/seeds
+- [兩台電腦同時進行](machines-two-concurrent.md) — 07-27:PC002+DESKTOP 並行非接力;**乙案=本機當家**(進化+arena 正典;DESKTOP 僅週末開=週間 cron 物理不可當家);週末待辦:停 DESKTOP cron+私有通道搬 07-26 增量;GB10 不存在再確認
+- [本機 PC002-S1800 硬體](machine-pc002-s1800-hardware.md) — SSOT=ops/machines/PC002-S1800.md;單通道記憶體(hugo 拍板不修、勿再提案);無獨顯無 AVX-512;Trend Micro 企業機;AC 永不睡眠=可跑過夜
 - [不代打人簽](never-type-human-signature.md) — **promoted_by/approved_by/decided_by 一律 hugo 親跑寫入**;07-25 實犯(代打 promoted_by='hugo' 使 P5.W2 保證變成我能自行滿足);判斷句「這欄位是不是為了證明某事由人做的?」;已犯列以註記自陳不竄改
 
 - [GB10 不可用](gb10-unavailable.md) — **hugo 07-25 宣告:沒有 GB10、進化只能本機**;07-26 修正:1.7b QLoRA 可行/4b no-go(embedding 不被量化)、GTX1650 無 tensor core 故 bf16 快 3×、CPU LoRA 退場、權重鏈唯 convert_lora_to_gguf 路
-- [評測樣板地板](eval-boilerplate-floor.md) — **鐵律:宣稱分數代表能力前必跑 ceiling/floor/mismatched 三臂**;07-26 實證不看題目的常數字串 0.654 > 現役冠軍 0.492、事實敏感度 0%、評到的是被截斷的思考鏈
+- [防呆機制自己靜默失效](guard-mechanisms-that-silently-fail.md) — 四型實犯(欄名錯被except吞/測試靜默skip/斷言掃到自己/字面斷言驗不到真行為);判斷句「這機制若壞了會不會安靜變綠燈?」;先唯讀比對再apply
+- [評測樣板地板](eval-boilerplate-floor.md) — **鐵律:宣稱分數代表能力前必跑 ceiling/floor/mismatched 三臂**;07-26 常數字串 0.654>冠軍 0.492;**07-27 新尺同病復發**:零知識格式規則機四格全 1.000、SUNSET(c) 假綠已停、判準器修補待 hugo
 - [自我進化計畫地貌](augur-self-evolution-plan-map.md) — SSOT=v2 總控(20260726,TRI-v1 降前身);Phase 0/1 ✅(behavior F@L1 0.933=判準A PASS)、Phase 2 焊死待 V2-P-yes;V2-SUNSET 落日 hugo 親填;六條邊/共用零件裁決/I1-I9/H1-H10/明確不做 全錄;⚠讀計畫須帶 07-26 晚更正(arena 已結+每日 cron)
 - 【07-25 晚新增,詳細記憶待寫】**憲章已 v1.47.0**(跨域原理映射準則;principle_domain_map 表);**人閘機制 live**(governance_proposal 三表三鎖+governance_queue CLI,首案全循環:v1 審查退回→v2 hugo 人簽→enacted);演化迴圈 evolve_cycle 首輪跑通(gold+50/pack pp_7c55);夜間收割 cron 01:30 已掛(quant_finance/software_engineering 新域);venv 新增 peft/trl/dspy/gguf;**演化鏈全自動編排 run_evolution_chain.sh(01:30)+2h 快車道+6h 自我求知;hugo 鐵律:演化教師永久本地化(oracle>8b教4b>人裁)、外部 AI token 歸零、僅 hugo 可反轉**
 

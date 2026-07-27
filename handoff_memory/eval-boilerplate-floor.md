@@ -1,11 +1,11 @@
 ---
 name: eval-boilerplate-floor
-description: "任何「與金標重疊率」型評分器,若金標同出少數模板,樣板地板會高過真能力——2026-07-26 實證:不看題目的常數字串 0.654 > 現役冠軍 0.492;新尺同臂 0.000"
+description: "樣板地板會高過真能力。07-26:常數字串 0.654>冠軍 0.492;**07-27 新尺同病復發**:13 行零知識格式規則機四格全 1.000 與 ceiling 打平、echo 臂勝 behavior、floor 只是任選弱字串"
 metadata: 
   node_type: memory
   type: feedback
   originSessionId: b6cddf62-b16d-44ba-af86-bbdb2cb161c8
-  modified: 2026-07-26T14:51:08.311Z
+  modified: 2026-07-27T13:48:32.766Z
 ---
 
 **鐵律：每次宣稱某個分數代表能力之前，先跑三個對照臂——ceiling（理想答案）、floor（不看題目的常數字串）、mismatched（選錯行為類別）。三臂未跑完，分數一律不得引用。**
@@ -25,4 +25,23 @@ metadata:
 - **「行為類別對」≠「內容對」**：新尺實測 shuffled 臂（同層鄰題的理想答案、內容全錯）在 P/A 拿 0.900/0.967——因為「查無」對任何查無題都對。故 A 軸進步只能宣稱「更會選對行為」，不得宣稱「答得更準」；只有 F 軸對內容敏感。
 - 推廣：這不是 LLM 評測獨有。凡「相似度／覆蓋率」型指標＋「樣本同源同格式」，都有樣板地板。TWEVO 的 local-gates、RAWEVO 的覆蓋率同樣該被這樣質問。
 - **同族變體（07-26 深夜實犯）：|corr| 最大化選假說＝撈定義恆等式**。RAWEVO R3 v1 按相關絕對值降冪，端出的 10 則全是 `margin_usage=f(margin_balance)`、`market_value=close×股數`、`money=volume×價` 這類套套邏輯——**退化解永遠贏過真結構**，hugo 還批准了那批。修法＝中頻帶（0.25–0.85）＋衍生家族排除（估值比值 per/pbr/dividend_yield 皆含價，與價共動是機械的）。通則：任何「最大化 X 選候選」先問「什麼垃圾能把 X 拉滿？」——與地板臂同構，選材前先算退化解的 X 值。
-- 相關：[[cross-claim-contradiction-check]]（宣稱層的自欺）、[[augur-validation-master-plan]]（deflation 精神＝搜尋會膨脹須外部確認）、[[never-type-human-signature]]（保證被溶解的另一形態）。
+- 相關：[[cross-claim-contradiction-check]]（宣稱層的自欺）、[[augur-validation-master-plan]]（deflation 精神＝搜尋會膨脹須外部確認）、[[never-type-human-signature]]（保證被溶解的另一形態）、[[guard-mechanisms-that-silently-fail]]。
+
+## 第二次發作（2026-07-27，新尺 F@L1；**修尺沒有修掉這個病**）
+
+07-26 建的新尺（`set_id=4183475c5089`）被證明**同病復發，只是換型**。三項親驗：
+
+- **13 行零知識格式規則機**（不查庫、不呼叫 LLM、不看內容，只認題幹開頭）實跑 `L1.F/L1.P/L3.A/L4.A` **全 1.000**——與 ceiling 打平、勝過每一個 LLM 臂。成因：**層別由題幹表面 100% 可推**（`guess_layer` 錯 0/120；L1 以 `[檢索片段]` 開頭、L2 以 `[無檢索片段]` 開頭、L3 問三欄、L4 問兩欄）。
+- **echo 臂**（把題目原文原樣印回）F@L1=1.000、P@L1=1.000 **勝過 behavior 0.967**——因為 L1 的 facts 逐字印在題幹裡，F 軸判準是子字串包含。
+- **常數字串 `VARCHAR`** 得 F@L1=0.2333 **> 判準 A 門檻 0.167**，`evidence_level` 同回 `scoped_established`。門檻 0.167 本身也是假的：shuffled 的 0.167 全來自 column_catalog 子格（答案只有 VARCHAR/NUMERIC 兩值，鄰題撞答）。
+- **floor 不是地板，是任選的一條弱字串**：單一常數「查無 多筆」通吃 L3.A=1.000 與 L4.A=1.000；`BOILERPLATE_ARM` 拿 0 只因它剛好不含那二詞。`behavior_rubric._selftest` 那句「地板臂全滅＝機械鎖」是**空證**。
+- **`behavior` 的 A@L3=1.000 是退化常數不是能力**：對非 L1 之 90 題 100% 拒答，多為字面「查無 查無」；實測該常數逐格得分與 behavior 三格**逐位元相同**。而 L2/L4 那 60 題的鍵**經實查全部存在於 DB** ⇒ 那是 60 次「不存在」的假陳述。**pack 捏造存在、behavior 捏造不存在，兩者都不誠實。**
+
+**新增的教訓（比 07-26 更進一步）**：
+1. **地板臂要「找最強的退化解」不是「隨手一條常數」**。問法從「一個常數能拿幾分？」升級為「**我能不能寫出一支通吃這格的零知識機器？**」——寫不出來才算這格有鑑別力。
+2. **對照臂若結構性恆為 0，那個門檻是空的**。F@L1 的 floor 與 mismatched 恆 0（mismatched 的捐贈題 29/30 屬 L3），所以「同勝 floor 與 mismatched」＝勝過 0，連 shuffled 自己都滿足。**設計對照臂時要問：它有沒有可能拿到非 0？**
+3. **「可複現」要能被記錄才談得上**：`run_id=sha256(set_id|code_hash|arm|model|n_items)` ＋ `ON CONFLICT DO NOTHING` ⇒ 重跑第二次必被靜默丟棄（親驗全表始終 7 列）。DESKTOP 0.933 vs 本機 0.967 在同尺同模型 temperature=0 下不一致，是**複現未成立**的反證。
+4. **層別／答案不得由題幹格式推得**：出題模板差異本身就是洩漏。
+5. **哨兵全綠 ≠ 尺可信**：`verify_eval_set_validity.py` 0/120 漂移，但它不驗答案是否寫在題幹裡、不驗層別可否由格式推得、不驗答案空間是否退化。
+
+**處置與待決**：SUNSET (c) 之假綠已停（週報改三態記 ⚠ 未判定）；判準器修補（`ABSTAIN_RE` 漏「未找到」、L1 補 A 軸擋「照抄＋加料」、換真地板、加規則機為第五臂、凍結集是否重建）**全部待 hugo**，因改判準即換 `eval_code_hash`＝作廢既有七臂。全文＝`audits/V2-SUNSET-C-DISPUTED-20260727.md`。
