@@ -15,6 +15,8 @@
   python scripts/simulate_portfolio_risk.py --run --episode 2008  # 只跑指定情境重放
   python scripts/simulate_portfolio_risk.py --run --cell RankRidge_H120 --n-paths 10000 --seed 42
   python scripts/simulate_portfolio_risk.py --compare --cell RankRidge_H60 # 四法對照表(唯讀帳本、零重算)
+  python scripts/simulate_portfolio_risk.py --run --analog all    # M1 跨市場類比六窗(analog 硬標示)
+  python scripts/simulate_portfolio_risk.py --run --analog us2008 # 單窗(校準錨:對照台股 2008)
   python scripts/simulate_portfolio_risk.py --selftest            # 零 DB 純紅綠(聚合數學/MaxDD 一致/揭露欄鎖)
 註:bootstrap 族=四法(iid/block/stationary/garch_fhs;後二為 2026-07-26 方法擴充對照組——拆固定塊長/
    波動齊性假設;仍同窗重抽、episode 主結論地位不變)。garch_fhs 依賴 arch 套件、缺席 graceful SKIP。
@@ -154,6 +156,103 @@ def _episode_summary(members, by_stock, dates_all, name, policies, meta):
         "note_survivor": "本重放含存活者偏誤:成分=今日候選組合(活到今天的股)、非當年可選集,結果偏樂觀",
         "note_renorm": f"未覆蓋成分已剔除、權重再正規化(={len(covered)}/{len(members)} 檔之縮水投組,明標非原組合)",
     }
+
+
+# ── M1 跨市場類比(進階三法計畫 20260727 凍結窗;analog=非台股歷史、等權市場路徑、β=1 承受) ──
+ANALOG_EPISODES = {
+    "us1929": ("USStockPrice", "1929-09-01", "1932-07-31"),
+    "us1973": ("USStockPrice", "1973-01-01", "1974-12-31"),
+    "us1987": ("USStockPrice", "1987-08-01", "1987-12-31"),
+    "us2000": ("USStockPrice", "2000-03-01", "2002-10-31"),
+    "us2008": ("USStockPrice", "2008-09-01", "2009-03-31"),   # 校準錨:對照台股 2008 重放
+    "uk1973": ("UKStockPrice", "1973-01-01", "1975-01-31"),
+}
+MIN_ANALOG_STOCKS = 100      # 日覆蓋誠實下限(計畫凍結;1929 年代可能觸發=合法拒答)
+ANALOG_NOTES = ("analog:非台股歷史——類比市場之等權分散組合實際路徑",
+                "組合視同 β=1 承受該市場路徑;不做個股映射(映射任意性=自我欺騙)",
+                "來源是否含已下市股未證實:倖存者偏誤方向未知,數字僅類比參考")
+
+
+def _analog_market_path(cur, table, start, end):
+    """類比市場等權日報酬(單一 SQL 窗函數;逐日橫斷面 winsorize 1%/99%;RAM 零壓)。
+    回 (dates, rets, n_min, n_med);首日因無前收自然剔除。"""
+    # 海外表收盤欄=大寫 "Close"(FinMind 慣例,與台股表小寫 close 不同;2026-07-27 實撞)
+    cur.execute(f"""
+        WITH px AS (SELECT stock_id, date, "Close" AS close,
+                lag("Close") OVER (PARTITION BY stock_id ORDER BY date) AS prev
+            FROM "{table}" WHERE date BETWEEN %s AND %s AND "Close" > 0),
+        r AS (SELECT date, close/prev - 1 AS ret FROM px WHERE prev > 0),
+        q AS (SELECT date, percentile_cont(0.01) WITHIN GROUP (ORDER BY ret) AS lo,
+                     percentile_cont(0.99) WITHIN GROUP (ORDER BY ret) AS hi,
+                     count(*) AS n FROM r GROUP BY date)
+        SELECT r.date, avg(GREATEST(q.lo, LEAST(q.hi, r.ret))), max(q.n)
+        FROM r JOIN q USING (date) GROUP BY r.date ORDER BY r.date""", (start, end))
+    rows = cur.fetchall()
+    if not rows:
+        return [], np.array([]), 0, 0
+    dates = [r[0] for r in rows]
+    rets = np.array([float(r[1]) for r in rows])
+    ns = sorted(int(r[2]) for r in rows)
+    return dates, rets, ns[0], ns[len(ns) // 2]
+
+
+def _analog_summary(name, dates, rets, n_min, n_med, meta, tw2008_maxdd=None):
+    """類比情境 summary(純函式;#15 拒答邏輯與揭露硬綁)。"""
+    base = {"disclaimer": DISCLAIMER, "analog_notes": list(ANALOG_NOTES), **meta,
+            "analog": name, "market_table": ANALOG_EPISODES[name][0]}
+    if len(rets) < 20 or n_min < MIN_ANALOG_STOCKS:
+        return {**base, "kind": "analog_refused",
+                "note": f"日覆蓋 min={n_min} < {MIN_ANALOG_STOCKS} 或天數不足({len(rets)} td)→拒答(不硬出數字,#15)",
+                "n_td": len(rets), "n_stocks_min": n_min}
+    cum = float(np.prod(1.0 + rets) - 1.0)
+    mdd = float(drawdown_series(list(rets))[1].min())
+    out = {**base, "kind": "episode_analog", "span": [str(dates[0]), str(dates[-1])],
+           "n_td": len(rets), "cum_return": round(cum, 5), "maxdd": round(mdd, 5),
+           "n_stocks_min": n_min, "n_stocks_med": n_med, "winsorize": "cross-section 1%/99%"}
+    if name == "us2008" and tw2008_maxdd is not None:
+        out["calib_anchor"] = {"tw2008_replay_maxdd": tw2008_maxdd,
+                               "delta": round(mdd - tw2008_maxdd, 5),
+                               "note": "校準錨:同窗台股重放 vs 美股類比之差=類比法失真度量尺"}
+    return out
+
+
+def run_analogs(cell, names, seed):
+    """M1 主流程:逐窗算類比路徑→summary→落 mc_simulation_run(method=episode_analog_*)。"""
+    git7 = _git7()
+    with db.connect() as conn:
+        cur = conn.cursor()
+        panel, members = _load_cell_portfolio(cur, cell)
+        target = f"PORT_{cell}_{panel}"
+        meta = {"cell": cell, "panel_date": str(panel), "n_members": len(members)}
+        tw2008 = None
+        cur.execute("""SELECT (summary->>'maxdd')::float8 FROM mc_simulation_run
+            WHERE target_id=%s AND method='episode_replay_2008' LIMIT 1""", (target,))
+        r = cur.fetchone()
+        tw2008 = float(r[0]) if r and r[0] is not None else None
+        for name in names:
+            table, s, e = ANALOG_EPISODES[name]
+            dates, rets, n_min, n_med = _analog_market_path(cur, table, s, e)
+            summ = _analog_summary(name, dates, rets, n_min, n_med, meta, tw2008)
+            method = f"episode_analog_{name}"
+            key = f"mc_{target}_{panel}_{summ.get('n_td', 0) or 1}_{method}_{seed}"
+            run_id = "mc_" + hashlib.sha256(key.encode()).hexdigest()[:16]
+            cur.execute("""INSERT INTO mc_simulation_run
+                (run_id, target_id, asof_date, horizon_td, method, block_len_td, n_paths, seed,
+                 summary, is_simulation, git_sha) VALUES (%s,%s,%s,%s,%s,NULL,1,%s,%s,true,%s)
+                ON CONFLICT (run_id) DO UPDATE SET summary=EXCLUDED.summary, created_at=now()""",
+                (run_id, target, panel, summ.get("n_td", 0) or 1, method, seed,
+                 json.dumps(summ, ensure_ascii=False, default=str), git7))
+            if summ["kind"] == "episode_analog":
+                extra = ""
+                if "calib_anchor" in summ:
+                    extra = f" | 校準錨Δ={summ['calib_anchor']['delta']:+.3f}(vs 台股2008)"
+                print(f"  [類比層] {name}: cum={summ['cum_return']:+.1%} MaxDD={summ['maxdd']:+.1%} "
+                      f"(日覆蓋 min={n_min}/med={n_med}){extra}")
+            else:
+                print(f"  [類比層] {name}: {summ['note']}")
+        conn.commit()
+    print(f"✓ 類比完成(analog 硬標示;is_simulation=true;台股 episode 主結論地位不動)")
+    return 0
 
 
 def run(cell, episodes, n_paths, seed, h):
@@ -312,6 +411,8 @@ def main(argv=None):
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--cell", default="RankRidge_H60")
     ap.add_argument("--episode", choices=[*EPISODES, "all"], default="all")
+    ap.add_argument("--analog", choices=[*ANALOG_EPISODES, "all"],
+                    help="M1 跨市場類比(六窗凍結;analog 硬標示、β=1 市場路徑)")
     ap.add_argument("--n-paths", type=int, default=10000)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--compare", action="store_true")
@@ -324,6 +425,9 @@ def main(argv=None):
     if not a.run:
         print(__doc__)
         return status()
+    if a.analog:
+        names = list(ANALOG_EPISODES) if a.analog == "all" else [a.analog]
+        return run_analogs(a.cell, names, a.seed)
     eps = list(EPISODES) if a.episode == "all" else [a.episode]
     return run(a.cell, eps, a.n_paths, a.seed, 60)
 

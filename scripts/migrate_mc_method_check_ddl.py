@@ -19,7 +19,11 @@ METHODS = ("iid_bootstrap", "block_bootstrap", "stationary_bootstrap", "garch_fh
            "episode_replay_2008", "episode_replay_2020", "episode_replay_2022",
            # 五窗擴充(2026-07-27 預註冊;reports/augur_risk_sim_expansion_plan_20260727.md)
            "episode_replay_1997", "episode_replay_2000", "episode_replay_2011",
-           "episode_replay_2015", "episode_replay_2018")
+           "episode_replay_2015", "episode_replay_2018",
+           # ③進階三法(2026-07-27 凍結;reports/augur_risk_sim_advanced_methods_plan_20260727.md)
+           "copula_t_garch", "evt_pot_hybrid",
+           "episode_analog_us1929", "episode_analog_us1973", "episode_analog_us1987",
+           "episode_analog_us2000", "episode_analog_us2008", "episode_analog_uk1973")
 CON = "mc_simulation_run_method_check"
 SQL = (f"ALTER TABLE mc_simulation_run DROP CONSTRAINT IF EXISTS {CON};\n"
        "ALTER TABLE mc_simulation_run ADD CONSTRAINT " + CON +
@@ -63,7 +67,7 @@ def _selftest():
         print(("  ✓ " if cond else "  ✗ ") + name)
         ok = ok and cond
 
-    chk("十二方法值全入 SQL", all(f"'{m}'" in SQL for m in METHODS) and len(METHODS) == 12)
+    chk("二十方法值全入 SQL", all(f"'{m}'" in SQL for m in METHODS) and len(METHODS) == 20)
     chk("原五值保留(不破既有列)", all(m in METHODS for m in
         ("iid_bootstrap", "block_bootstrap", "episode_replay_2008", "episode_replay_2020", "episode_replay_2022")))
     chk("白名單型 CHECK(非自由文字)", "CHECK (method = ANY" in SQL)
