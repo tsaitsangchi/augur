@@ -47,6 +47,14 @@ $BEGIN
 37 */2 * * * cd $ROOT && bash scripts/pull_desktop_evolution_delta.sh >> \$HOME/logs/desktop_pull.log 2>&1
 # 週日 09:00 三軸週儀表+R6 digest(唯讀;第一行=V2-SUNSET 現況;存檔供掃視認領)
 0 9 * * 0 cd $ROOT && venv/bin/python scripts/report_triple_evolution_week.py --md > \$HOME/logs/evolution_week_$(date +\%Y\%m\%d).md 2>&1
+# RAWEVO 週輪(週六 09:00;V2-AUTOADVANCE R1——全程庫內唯讀、零 API;hint 一律 pending 待 H3 人閘)
+0 9 * * 6 cd $ROOT && venv/bin/python scripts/run_raw_evolution_iteration.py --run >> \$HOME/logs/rawevo.log 2>&1
+# TWEVO 夜輪(週間 23:00;V2-AUTOADVANCE R2。時點=arena 出單 20:00／結算 21:30 之後、演化鏈 01:30 之前;
+# I3 local-gates 約 25-35 分。**刻意不帶 --allow-apply**:R2 授權閘內自動 APPLY,但 driver 尚未跑完
+# 任一次完整輪;先讓它連續跑出乾淨的輪再開 APPLY(比授權更保守、不鬆動任何閘)。開啟＝於本行補
+# --allow-apply 與 --gate-ref V2-AUTOADVANCE 兩個旗標(此處不用反引號:heredoc 未加引號會命令替換)。
+# 重活互斥由 heavy_slot 負責,搶不到即落 deferred 不堆積。
+0 23 * * 1-5 cd $ROOT && venv/bin/python scripts/run_evolution_iteration.py --run >> \$HOME/logs/twevo.log 2>&1
 $END
 EOF
 )
