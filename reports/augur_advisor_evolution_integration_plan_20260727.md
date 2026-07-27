@@ -74,6 +74,16 @@ DB 取代（2026-07-27）後 serving 落後 SSOT。**精確現況**（`export_qd
 
 **F 邊界（硬）**：ERP 內容＝公司私有 → 永遠 `local_private`（pgvector only、qdrant/git 零外流——items/zh 147,196 全擋的既有機制已證明有效）；ttai `.env` 憑證零接觸；ERP 知識**零量化價值、不進預測管線**（domain 隔離既有閘）。
 
+### P-G：rdai 專案資料整合（hugo 2026-07-27 增列，逐字：「此專案所有資料也要整合到augur」）
+
+**rdai 實查**：太陽能產業公開資料語意緩衝層（憲章 v1.0.0＝其 SSOT、方法論承襲 ttai）；進度停在 Phase 0–④（規劃／402 源探測／治權檔／Qdrant 選型），**Phase 1 未動手、rdai DB 空（0 表）**——故「所有資料」實體＝know-how 文件：憲章＋CLAUDE＋三報告（402 源探測 82KB／訓練規劃 25KB／交接 9.5KB）＋`_probe_data/` 原始探測。
+
+**G1｜五件文件 → 私有知識入庫**：同 F1 機制（`knowledge_source` manual_file、`owned_local`/`local_private`、零新碼）；跨域裁定下自然成為 LAIEVO 教材母體一部分。驗收＝全數 promote＋advisor 實答 rdai 專有問題（如「rdai 的 T0–T4 是什麼」）＋qdrant 外流=0。
+**G2｜DB 橋接＝無**（0 表，誠實記載、不虛列工作）。
+**G3｜方法論反向吸收（rdai→augur，本檔最有價值的一條）**：rdai 的**來源權威分級 T0–T4**與**外部來源三敵**（權威不一／會變／行銷與過時）是對 augur 知識層 harvest 治理的直接升級候選——augur 的 `knowledge_source` 現無權威分級欄。列為**評估項**（另案小計畫再落 DDL，不在本檔動 schema）。
+
+**G 邊界**：僅整合**已存在的文件**；402 個外部源的實際抓取＝rdai 自己的 Phase 1、**不在本檔**（新領域放量入庫須另拍板，「能抓≠該抓」）；rdai 專案獨立地位不變。
+
 ### 明確不做（本檔重申、不因整合鬆動）
 | 不做 | 依據 |
 |---|---|
