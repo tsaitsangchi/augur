@@ -60,6 +60,19 @@ STEP_CMD = {
     "I9": None,                     # 停損判準:driver 內建(philosophy.iteration)
 }
 
+# **射程聲明**:本 driver 實接之指令窄於 TWEVO 計畫 §5.1 規格者,逐步逐字記明,並寫進 steps_json。
+# 理由(#15):十步全 rc=0 會被讀成「一輪完整 TWEVO 跑過了」,若其中數步其實只是唯讀替身而帳上不說,
+# 就是用綠燈掩蓋沒做的事——與今日抓到的 A4 橡皮圖章、SUNSET(c) 假綠同型。
+# 要補齊者屬「改變自動輪對生產之作用」(train_ranker 寫 model_registry、arena 重跑會與既有排程重複出單),
+# 須明示授權後再接,不由 driver 逕自擴權。
+STEP_SCOPE = {
+    "I0": "計畫 §5.1 另列 curate_pme_map_expand.py(map 擴充);本步僅跑唯讀診斷,未擴 map",
+    "I6": "計畫 §5.1 另列 train_ranker.py --run 與 predict_asof.py --run;本步僅 hotpath --check(唯讀),未重訓未預測",
+    "I7": "計畫 §5.1 I7a/I7b/I7c 為 arena 出單+結算+revalidation;本步僅讀計分板——"
+          "arena 已由 cron 20:00 出單／21:30 結算,driver 再跑會重複出單,故此處**刻意只讀**",
+    "I8": "唯讀預覽,未加 --write;brief 落檔另由 export_evolution_advisor_brief.py --write 產出",
+}
+
 
 def _now():
     return dt.datetime.now().isoformat(timespec="seconds")
@@ -144,6 +157,8 @@ def _do_step(cur, uid, step, dry, allow_apply, gate_ref):
     rec = _run_cmd(step, argv, dry)
     if step == "I5" and not dry and rec["rc"] == 0:
         rec["gate_ref"] = gate_ref
+    if step in STEP_SCOPE:
+        rec["scope_note"] = STEP_SCOPE[step]      # 射程窄於計畫者,帳上逐字說明(不以 rc=0 掩蓋)
     return rec
 
 
@@ -330,6 +345,14 @@ def _selftest():
         "it.compare_gain(" in body and "def compare_gain" not in body)
     chk("incomparable 不計停損之訊息有印", "不計停損" in body)
     chk("每步落帳含 rc/started/finished(A3;經 step_record)", "it.step_record(" in body)
+    # 射程聲明:窄於計畫 §5.1 之步驟必須逐字說明,否則十步全綠會被讀成「完整一輪跑過了」
+    chk("**射程窄於計畫者有 scope_note**(I0/I6/I7/I8)",
+        set(STEP_SCOPE) == {"I0", "I6", "I7", "I8"})
+    chk("scope_note 真的寫進 steps_json(不只是常數擺著)",
+        'rec["scope_note"] = STEP_SCOPE[step]' in body)
+    chk("I7 刻意只讀之理由記明(避免與 cron 重複出單)", "重複出單" in STEP_SCOPE["I7"])
+    chk("I6 未重訓未預測記明(train_ranker/predict_asof 未接)",
+        "train_ranker" in STEP_SCOPE["I6"] and "predict_asof" in STEP_SCOPE["I6"])
     chk("重啟須人裁(R5)訊息在", "重啟須人裁" in body)
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
