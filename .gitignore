@@ -51,3 +51,4 @@ ref_augur/
 # GPU 驗證本機衍生物
 ops/gpu-verify/.gpu-test-venv/
 ops/gpu-verify/saxpy
+var/
