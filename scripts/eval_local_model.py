@@ -14,6 +14,10 @@
   python scripts/eval_local_model.py --offline-arms           # 只跑三個離線臂(零 LLM、數秒、必跑)
   python scripts/eval_local_model.py --arm grammar            # 跑單一臂
   python scripts/eval_local_model.py --arm behavior --limit 8 # 小樣本煙測
+  python scripts/eval_local_model.py --model qwen3:8b --offline-arms   # 換檔位:先補該尺之對照臂
+  python scripts/eval_local_model.py --model qwen3:8b --arm behavior   # 再跑該尺之 LLM 臂
+    ⚠ 換模型即換 eval_code_hash(MODEL 在雜湊內)=**另一把尺**;跨模型比大小前,
+      該尺自己的 ceiling/floor/shuffled/mismatched 四臂必須先跑齊(離線、數秒),否則無對照可判。
   python scripts/eval_local_model.py --all                    # 離線三臂 + 四個 LLM 臂(耗時)
   python scripts/eval_local_model.py --compare                # 對照表(唯讀帳本,同 set_id 才並排)
   python scripts/eval_local_model.py --selftest               # 零 DB 零 LLM 紅綠
@@ -290,6 +294,23 @@ def _selftest():
     chk("compare 常駐印判讀鐵則(不靠人記得)",
         "未同時勝過 floor 與 mismatched" in csrc and "測的是行為類別而非內容" in csrc)
     chk("grammar 強制 schema 含 abstain 布林", FORMAT_SCHEMA["properties"]["abstain"]["type"] == "boolean")
+    # ── 尺之錨(2026-07-27 七臂之基準;動到判準/產答/生成參數就會紅) ──
+    # 這條紅了**不代表壞掉**,代表尺換了:舊 run 自此不可與新 run 並排。要換就換,但必須是
+    # 有意識地換(改此常數並重跑全部對照臂),不能靜默漂移——否則會拿兩把尺的數字比大小。
+    PINNED = {"qwen3:4b": "f3075238eb55"}
+    if MODEL in PINNED:
+        chk(f"**尺之錨**:{MODEL} 之 eval_code_hash 仍為 {PINNED[MODEL]}(換尺須有意識)",
+            _code_hash() == PINNED[MODEL])
+    msrc = inspect.getsource(main)
+    chk("--model 只改全域、不動被雜湊之函式(故旗標本身不作廢舊 run)",
+        'globals()["MODEL"] = a.model' in msrc)
+    chk("MODEL 在雜湊輸入內(換模=另一把尺,不得跨模型並排而不自知)",
+        "MODEL" in inspect.getsource(_code_hash))
+    chk("LLM 臂經 heavy_slot 單槽(與 TWEVO/RAWEVO 重活互斥)",
+        "HeavySlot(" in msrc and "slot.acquire()" in msrc)
+    chk("搶不到槽落 deferred 且 rc=75(不 silent skip)", "slot.defer(" in msrc and "return 75" in msrc)
+    chk("離線臂不佔槽(數秒、零 LLM,佔了只會擋住別人)",
+        "a.arm not in ARMS_OFFLINE" in msrc)
     chk("num_predict 已離開 400 截斷區", NUM_PREDICT >= 1000)
     chk("timeout 已離開 150s", TIMEOUT >= 600)
     chk("行為守則四條齊(逐字/引表/未檢索給SQL/查無拒答)",
@@ -308,6 +329,8 @@ def main(argv=None):
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--set-id")
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--model", help=f"換模型檔位(預設 {MODEL});**換模即換 eval_code_hash**——"
+                                    "MODEL 在雜湊輸入內,故不同模型各成一把尺、各需自己的對照臂")
     ap.add_argument("--compare", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
@@ -315,17 +338,40 @@ def main(argv=None):
         return _selftest()
     if a.compare:
         return compare(a.set_id)
-    if a.offline_arms or a.all:
-        print("離線臂(零 LLM):")
-        for arm in ARMS_OFFLINE:
-            run_arm(arm, a.set_id, a.limit)
-    if a.all:
-        print("LLM 臂:")
-        for arm in ARMS_LLM:
-            print(f"  跑 {arm}…")
-            run_arm(arm, a.set_id, a.limit)
-    elif a.arm:
-        run_arm(a.arm, a.set_id, a.limit)
+    if a.model:
+        # 只改模組全域;**不動任何被 _code_hash 涵蓋之函式原始碼**,故同一 MODEL 值之
+        # eval_code_hash 不因本旗標存在而變(舊 run 不被無謂作廢;自測有回歸鎖)。
+        globals()["MODEL"] = a.model
+        print(f"── 模型檔位:{MODEL}(eval_code_hash 隨之改變=另一把尺,須自備對照臂) ──")
+
+    llm_wanted = bool(a.all or (a.arm and a.arm not in ARMS_OFFLINE))
+    slot = None
+    if llm_wanted:
+        from augur.core.heavy_slot import HeavySlot
+        slot = HeavySlot("lai_eval")
+        if not slot.acquire():
+            slot.defer("eval_local_model", "heavy slot busy(他軸重活進行中)",
+                       {"arm": a.arm or "all", "model": MODEL})
+            print("⚠ 重活單槽被佔用(TWEVO/RAWEVO 輪進行中)→ 已落 evolution_deferred_work;rc=75")
+            slot.release()
+            return 75
+    try:
+        if a.offline_arms or a.all:
+            print("離線臂(零 LLM):")
+            for arm in ARMS_OFFLINE:
+                run_arm(arm, a.set_id, a.limit)
+        if a.all:
+            print("LLM 臂:")
+            for arm in ARMS_LLM:
+                print(f"  跑 {arm}…")
+                if slot:
+                    slot.verify()          # 每臂邊界重驗(掉鎖 fail-loud,不續跑出不可比之數)
+                run_arm(arm, a.set_id, a.limit)
+        elif a.arm:
+            run_arm(a.arm, a.set_id, a.limit)
+    finally:
+        if slot:
+            slot.release()
     if a.arm or a.offline_arms or a.all:
         return 0
     print(__doc__)
