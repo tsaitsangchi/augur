@@ -70,3 +70,33 @@ proposed ──► L-M 機械謂詞層(六謂詞全過 → auto-approve;唯一�
 ## 六、一句話總結
 
 > 你問的「依本地 AI 判斷自動審批」，安全的形態是：**判斷交給人簽過的機械謂詞，本地 AI 只能「多攔」不能「放行」**——3,528 積壓中凡 license 白名單可判、probe 可過、域已核者自動放行（估大宗），真正需要判斷的殘餘才進你的閘。待你一個字：`SRC-AUTO-go`（P0，連同白名單首批草案我隨即出）。
+
+---
+
+## 七、P0–P1 落地實錄＋白名單首批草案（2026-07-28，`SRC-AUTO-go` 後）
+
+**已落地**：`source_license_whitelist` 表（誠實閘：citation/decided_by 禁空、UPDATE 須 GUC）＋`auto_review_sources.py` 謂詞引擎（六謂詞、週上限 50、熔斷、留痕逐謂詞 JSON；selftest 15 條全綠）。
+
+**首輪 dry 分桶（3,528 全量）**：`✅ 可自動 0｜✗ P1_license 3,528`——**fail-closed 如設計**。誠實真相：積壓大宗（~3,520）是 re3data 逐倉儲目錄列，**無 license metadata、多數無 API 端點、pace/quota/est_scale 全未設、probe 全未跑**——它們不是「等審批的來源」，是「等驗證的目錄」。瓶頸不在審批而在**逐倉驗證**，故：
+
+**P1.5 增補提案（re3data 充實步，待你點頭）**：re3data 官方 API 每倉皆公佈 `dataLicense` 與 API 端點——以受控步調（#24）逐倉查詢回填 `note`/端點/license 線索，之後 P1/P4/P5 謂詞才有料可判。約 3,520 次免費 API 呼叫＝放量行為，依 #24/#26 **須你明示**（一字：`SRC-ENRICH-go`）；不點頭則 re3data 大宗誠實留在人工/擱置桶。
+
+**白名單首批草案（6 pattern；解鎖的是未來新 proposed 之已知 provider，非 re3data 大宗）**——逐列核後**親跑** INSERT（decided_by 由你簽，AI 不代填）：
+
+| pattern | regime | citation（依據） |
+|---|---|---|
+| `arxiv%` | cc_whitelist | arXiv API ToU：metadata CC0；全文依逐篇授權 |
+| `openalex%` | cc_whitelist | OpenAlex：資料 CC0（docs.openalex.org/license） |
+| `crossref%` | cc_whitelist | Crossref metadata：公開再利用（REST API terms） |
+| `europepmc%` | cc_whitelist | Europe PMC OA 子集＋open metadata |
+| `doaj%` | cc_whitelist | DOAJ metadata CC0 |
+| `gutenberg%` / `gutendex%` | public_domain | Project Gutenberg 公版 |
+
+```sql
+-- 核可後親跑(每列一句;decided_by 請維持 'hugo'):
+INSERT INTO source_license_whitelist (provider_pattern, license_regime, citation, decided_by)
+VALUES ('arxiv%','cc_whitelist','arXiv API ToU: metadata CC0','hugo');
+-- (其餘五列同式,pattern/regime/citation 依上表)
+```
+
+**P2 抽核前提**：白名單 ≥1 列後 dry 才會出現「可自動」桶；屆時抽 20 人工覆核 20/20 一致才 `--run` 開閘。

@@ -1,0 +1,256 @@
+#!/usr/bin/env python
+"""SRC-AUTO 謂詞引擎 — 六機械謂詞全過才 auto-approve;AI 零放行權(SRC-AUTO-go,hugo 2026-07-28)。
+
+🎯 這支在做什麼(白話):3,528 個 proposed 來源不可能逐源 TTY 人批,但「依 AI 判斷審批」撞四條憲政
+   (能抓≠該抓人閘/LLM 意見零證據力/能力無 A′ 證據/模型自選教材之利益衝突)。本支=PME-AUTO-B 同型:
+   **人簽規則一次(SRC-AUTO-go),機器只在規則內自動**——六謂詞全部機械可驗,全過才放行:
+     P1 license:source_key 匹配 source_license_whitelist(人 seed 帶 citation)且 regime ∈
+        {public_domain, cc_whitelist}(白名單空=全數不過,fail-closed)
+     P2 domain ∈ 既核域集(=active 源之 domain 集,資料驅動;新域必人)
+     P3 adapter ∈ 既核 adapter 集(=active 源之 adapter 集;新協定必人)
+     P4 probe:近 30 日 review_log probe 之 http_status ∈ 2xx(#25 最小探測先行)
+     P5 限速前置:pace_seconds/quota_limit/est_scale 皆已設 且 est_scale ≤ 50,000(#24)
+     P6 tier ∉ {T3,T4}(AUTHORITY-TIER 落地後生效;欄未在=記「另案未接」不擋)
+   **護欄**:週上限 50 源;熔斷=任一 auto 批之源被事後 suspend → 拒絕再跑待人查;
+   留痕=review_log(actor='auto_rules_v1', reason=逐謂詞 JSON)→ R6 digest 週掃視(P5.W5 監督不降)。
+守 #26(規則內自動、碰線停)· #15(fail-closed;dry 分桶誠實)· #24/#25 · #29a/b/d。
+SSOT=reports/augur_source_auto_review_plan_20260728.md。
+
+執行指令矩陣:
+  python scripts/auto_review_sources.py                 # 無參數:現況(週餘額/熔斷態/白名單數,唯讀)
+  python scripts/auto_review_sources.py --dry-run       # 3,528 全量分桶統計(零寫入)
+  python scripts/auto_review_sources.py --run --limit 10    # 實批(≤週餘額;全謂詞留痕)
+  python scripts/auto_review_sources.py --selftest      # 零 DB 紅綠(謂詞邏輯/護欄)
+"""
+import argparse
+import json
+import sys
+
+import _bootstrap  # noqa: F401
+from augur.core import db
+
+WEEKLY_CAP = 50            # 首月週上限(提額=規則修訂,人簽)
+EST_SCALE_CAP = 50000      # P5 放量上限
+PROBE_FRESH_DAYS = 30
+AUTO_ACTOR = "auto_rules_v1"
+P1_ALLOW = ("public_domain", "cc_whitelist")   # 納 metadata_only=規則 v2(人簽);dry 另印該假設統計
+
+
+def load_context(cur):
+    """一次載入謂詞所需資料側(全部資料驅動)。"""
+    cur.execute("SELECT provider_pattern, license_regime FROM source_license_whitelist")
+    wl = cur.fetchall()
+    cur.execute("SELECT DISTINCT domain FROM knowledge_source WHERE approval_status='active'")
+    domains = {r[0] for r in cur.fetchall()}
+    cur.execute("SELECT DISTINCT adapter FROM knowledge_source WHERE approval_status='active'")
+    adapters = {r[0] for r in cur.fetchall()}
+    cur.execute("""SELECT DISTINCT ON (source_key) source_key,
+                          (probe_result->>'http_status')::int AS st
+                   FROM knowledge_source_review_log
+                   WHERE action='probe' AND created_at > now() - make_interval(days => %s)
+                   ORDER BY source_key, review_id DESC""", (PROBE_FRESH_DAYS,))
+    probe_ok = {k for k, st in cur.fetchall() if st is not None and 200 <= st < 300}
+    cur.execute("""SELECT 1 FROM information_schema.columns
+                   WHERE table_name='knowledge_source' AND column_name='authority_tier'""")
+    tier_wired = cur.fetchone() is not None
+    return {"wl": wl, "domains": domains, "adapters": adapters,
+            "probe_ok": probe_ok, "tier_wired": tier_wired}
+
+
+def wl_match(source_key, wl):
+    """白名單 LIKE 匹配(最長 pattern 優先=最特定);回 regime|None。純函式。"""
+    best = None
+    for pat, regime in wl:
+        like = pat.replace("%", "")
+        hit = (source_key == pat) if "%" not in pat else source_key.startswith(like) \
+            if pat.endswith("%") and pat.count("%") == 1 else like in source_key
+        if hit and (best is None or len(pat) > len(best[0])):
+            best = (pat, regime)
+    return best[1] if best else None
+
+
+def judge_source(row, ctx):
+    """回 (all_pass, checks dict)。row=(source_key,domain,adapter,pace,quota,est_scale,tier)。"""
+    k, dom, ada, pace, quota, est, tier = row
+    regime = wl_match(k, ctx["wl"])
+    checks = {
+        "P1_license": regime in P1_ALLOW,
+        "P2_domain": dom in ctx["domains"],
+        "P3_adapter": ada in ctx["adapters"],
+        "P4_probe": k in ctx["probe_ok"],
+        "P5_pacing": pace is not None and quota is not None and est is not None
+                     and est <= EST_SCALE_CAP,
+        "P6_tier": (tier not in ("T3", "T4")) if ctx["tier_wired"] else None,  # None=另案未接,不擋
+        "_regime": regime,
+    }
+    core = [v for c, v in checks.items() if c.startswith("P") and v is not None]
+    return all(core), checks
+
+
+def _rows(cur):
+    tier_sel = "authority_tier" if _tier_wired(cur) else "NULL"
+    cur.execute(f"""SELECT source_key, domain, adapter, pace_seconds, quota_limit, est_scale,
+                           {tier_sel}
+                    FROM knowledge_source WHERE approval_status='proposed' ORDER BY source_key""")  # noqa: S608
+    return cur.fetchall()
+
+
+def _tier_wired(cur):
+    cur.execute("""SELECT 1 FROM information_schema.columns
+                   WHERE table_name='knowledge_source' AND column_name='authority_tier'""")
+    return cur.fetchone() is not None
+
+
+def breaker_tripped(cur):
+    """熔斷:任一 auto 批之源現為 suspended → True(拒跑待人查)。"""
+    cur.execute("""SELECT count(*) FROM knowledge_source s
+                   WHERE s.approval_status='suspended'
+                     AND EXISTS (SELECT 1 FROM knowledge_source_review_log l
+                                 WHERE l.source_key=s.source_key AND l.actor=%s
+                                   AND l.action='approve')""", (AUTO_ACTOR,))
+    return cur.fetchone()[0] > 0
+
+
+def weekly_remaining(cur):
+    cur.execute("""SELECT count(*) FROM knowledge_source_review_log
+                   WHERE actor=%s AND action='approve'
+                     AND created_at > now() - interval '7 days'""", (AUTO_ACTOR,))
+    return max(0, WEEKLY_CAP - cur.fetchone()[0])
+
+
+def dry_run():
+    from collections import Counter
+    with db.connect() as conn, db.transaction(conn) as cur:
+        ctx = load_context(cur)
+        rows = _rows(cur)
+        first_fail, n_pass, meta_only_gain = Counter(), 0, 0
+        for row in rows:
+            ok, checks = judge_source(row, ctx)
+            if ok:
+                n_pass += 1
+                continue
+            for c in ("P1_license", "P2_domain", "P3_adapter", "P4_probe", "P5_pacing", "P6_tier"):
+                if checks.get(c) is False:
+                    first_fail[c] += 1
+                    break
+            if checks["_regime"] == "metadata_only":
+                c2 = dict(checks)
+                c2["P1_license"] = True
+                if all(v for c, v in c2.items() if c.startswith("P") and v is not None):
+                    meta_only_gain += 1
+    print(f"── SRC-AUTO dry 分桶(proposed {len(rows)} 源;白名單 {len(ctx['wl'])} 列) ──")
+    print(f"  ✅ 六謂詞全過(可自動):{n_pass}")
+    for c, n in first_fail.most_common():
+        print(f"  ✗ 首個未過={c}:{n}")
+    print(f"  ⓘ 規則 v2 假設(P1 納 metadata_only 時另可自動):{meta_only_gain}(僅供人議,現規則不採)")
+    if not ctx["wl"]:
+        print("  ⚠ 白名單 0 列=P1 全數不過(fail-closed);首批 pattern 待 hugo 核(草案見計畫報告)")
+    return 0
+
+
+def run(limit):
+    with db.connect() as conn:
+        cur = conn.cursor()
+        if breaker_tripped(cur):
+            print("⛔ 熔斷:曾有 auto 批之源被 suspend——拒跑,待人查明復位(#26 碰護欄即停)")
+            return 75
+        rem = weekly_remaining(cur)
+        if rem <= 0:
+            print(f"⏸ 週上限 {WEEKLY_CAP} 已滿——本週不再自動批(提額=規則修訂人簽)")
+            return 0
+        ctx = load_context(cur)
+        rows = _rows(cur)
+        n = 0
+        for row in rows:
+            if n >= min(limit, rem):
+                break
+            ok, checks = judge_source(row, ctx)
+            if not ok:
+                continue
+            k = row[0]
+            regime = checks.pop("_regime")
+            cur.execute("""UPDATE knowledge_source
+                SET approval_status='active', license_regime=coalesce(license_regime, %s)
+                WHERE source_key=%s AND approval_status='proposed'""", (regime, k))
+            if cur.rowcount:
+                cur.execute("""INSERT INTO knowledge_source_review_log
+                    (source_key, action, old_status, new_status, actor, os_user, reason)
+                    VALUES (%s,'approve','proposed','active',%s,%s,%s)""",
+                    (k, AUTO_ACTOR, AUTO_ACTOR,
+                     json.dumps({"rule": "SRC-AUTO v1", "checks": checks}, ensure_ascii=False)))
+                n += 1
+                print(f"  ✓ auto-approve {k}(regime={regime})")
+        conn.commit()
+    print(f"合計自動批 {n}(週餘額 {rem};留痕 review_log actor={AUTO_ACTOR} → R6 digest 掃視)")
+    return 0
+
+
+def status():
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SELECT count(*) FROM source_license_whitelist")
+        print(f"  白名單:{cur.fetchone()[0]} 列")
+        print(f"  週餘額:{weekly_remaining(cur)}/{WEEKLY_CAP}")
+        print(f"  熔斷:{'⛔ 已觸發' if breaker_tripped(cur) else 'clear'}")
+        cur.execute("SELECT count(*) FROM knowledge_source WHERE approval_status='proposed'")
+        print(f"  proposed 積壓:{cur.fetchone()[0]}")
+    return 0
+
+
+def _selftest():
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        print(("  ✓ " if cond else "  ✗ ") + name)
+        ok = ok and cond
+
+    wl = [("arxiv%", "cc_whitelist"), ("re3data_r3d100000001", "public_domain")]
+    chk("wl:前綴 pattern 匹配", wl_match("arxiv_search", wl) == "cc_whitelist")
+    chk("wl:精確鍵優先於前綴", wl_match("re3data_r3d100000001", wl + [("re3data%", "metadata_only")])
+        == "public_domain")
+    chk("wl:未列=None(fail-closed)", wl_match("unknown_src", wl) is None)
+    ctx = {"wl": wl, "domains": {"general"}, "adapters": {"generic_json"},
+           "probe_ok": {"arxiv_search"}, "tier_wired": False}
+    row_ok = ("arxiv_search", "general", "generic_json", 2, 100, 1000, None)
+    chk("六謂詞全過=放行", judge_source(row_ok, ctx)[0])
+    chk("P1 未列白名單=不放", not judge_source(("x", "general", "generic_json", 2, 100, 1000, None), ctx)[0])
+    chk("P2 新域=不放", not judge_source(("arxiv_search", "newdom", "generic_json", 2, 100, 1000, None), ctx)[0])
+    chk("P4 無 probe=不放", not judge_source(("arxiv2", "general", "generic_json", 2, 100, 1000, None),
+                                         {**ctx, "wl": [("arxiv%", "cc_whitelist")]})[0])
+    chk("P5 pace 未設=不放", not judge_source(("arxiv_search", "general", "generic_json", None, 100, 1000, None), ctx)[0])
+    chk("P5 est_scale 超限=不放",
+        not judge_source(("arxiv_search", "general", "generic_json", 2, 100, EST_SCALE_CAP + 1, None), ctx)[0])
+    chk("P6 tier 未接=None 不擋", judge_source(row_ok, ctx)[1]["P6_tier"] is None)
+    chk("P6 接線後 T3 必人", not judge_source(("arxiv_search", "general", "generic_json", 2, 100, 10, "T3"),
+                                          {**ctx, "tier_wired": True})[0])
+    chk("metadata_only 不在 P1 放行集(納入=規則 v2 人簽)", "metadata_only" not in P1_ALLOW)
+    import inspect
+    src = inspect.getsource(run)
+    chk("熔斷先於一切(breaker 在 run 首查)", src.index("breaker_tripped") < src.index("weekly_remaining"))
+    chk("週上限硬蓋(min(limit, rem))", "min(limit, rem)" in src)
+    chk("留痕含逐謂詞 JSON(R6 可稽)", '"checks": checks' in src)
+    chk("actor=auto_rules_v1(與人批可辨)", AUTO_ACTOR == "auto_rules_v1")
+    print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
+    return 0 if ok else 1
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="SRC-AUTO 謂詞引擎(六機械謂詞;AI 零放行權)")
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--run", action="store_true")
+    ap.add_argument("--limit", type=int, default=10)
+    ap.add_argument("--selftest", action="store_true")
+    a = ap.parse_args(argv)
+    if a.selftest:
+        return _selftest()
+    if a.dry_run:
+        return dry_run()
+    if a.run:
+        return run(a.limit)
+    print(__doc__)
+    print("現況:")
+    return status()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
