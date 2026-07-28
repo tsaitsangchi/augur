@@ -99,3 +99,7 @@ hugo 親跑 `UPDATE evolution_prereg_gate SET note = note || ';;2026-07-28 hugo 
 ## 九、S-6 結案（2026-07-28，唯增列）
 
 hugo 拍板「**S6-基線2-keep**」：SUNSET (b) 之比較基線**認列維持 2**（甲案）。理由錄要：R3 之 sign-refuted demote 為誠實結果，把基線改小＝放寬、違「GATE 只升不降」；基線維持 2 只是讓 (b) 誠實地變難。週報既按此口徑顯示，無碼變更。殘餘開放：S-5（待新尺 pack 數字，臂跑中）。S-4/S-8 已由 `EVALSET-V2-go` 進入執行（登錄=`reports/augur_evalset_v2_rebuild_plan_20260728.md` §七補正）。
+
+## 十、S-5 結案（2026-07-28 深夜，唯增列）
+
+hugo 拍板「**(a) 現在就鎚**」：pp_3ab2efebb04e 退役。依據＝新尺 run `ev_f1b803a84b8648`（L1_RETRIEVED F=0.760＝R1 一票否決成立；L3.A=0.333 無減緩；behavior 素臂全軸勝 pack；run 帶 INVALID 註記〔15 題逾時〕，hugo 知悉後仍裁現鎚）。執行＝status 機械轉移＋provenance 入 eval_result（`s5_retire`：hugo(對話拍板)＋claude 繕打 §8.1，不代打人名欄）；serving 空缺、快取檔移除＝advisor/MCP 自動回基線（退役即回滾設計）。**S-5 結案**；S-4/S-8 已由 EVALSET-V2 執行收斂。本 audit 全部待決項（S-1〜S-8）至此皆有終態。
