@@ -17,8 +17,8 @@
 | **狀態** | ✅ 已拍（`RKI-PLAN`＋`RKI-SCOPE-ALL-KH`＋`RKI-S01`＋`FZ-keep`＋`NHC-keep`） |
 | **建議拍板碼** | `RKI-PLAN`＋`RKI-SCOPE-ALL-KH`＋`RKI-S01`＋`FZ-keep`＋`NHC-keep` |
 | **效力** | 採納本計畫藍圖＋範圍定錨；開工 S0＋S1（DDL＋種子）；**不解凍** API；**不**取代 NHC／KH-XDOM／PME；禁領域 hardcode |
-| **同日追加** | Steward：「AI 模型進化 × 投資預測模型進化」；「依第一性原理強化 AI 模型自我迭代再進化」；「依第一性原理強化投資模擬／預測模型自我迭代再進化」。種子＝`RKI-AI-PREDICT-*`／`RKI-FP-AI-ITER`／`RKI-FP-AI-PREDICT`／`RKI-FP-PREDICT-ITER`。**≠**自動開 `PME-XDOM-AI-PREDICT`（另需拍板） |
-| **留痕** | `audits/RKI-PLAN-APPROVED-20260728.md` · 收官 `audits/RKI-S01-CLOSED-20260728.md` |
+| **同日追加** | Steward：「AI 模型進化 × 投資預測模型進化」；「依第一性原理強化 AI 模型自我迭代再進化」；「依第一性原理強化投資模擬／預測模型自我迭代再進化」；「AI 模型進化來強化太陽能材料研發技術」。種子＝`RKI-AI-PREDICT-*`／`RKI-FP-AI-ITER`／`RKI-FP-AI-PREDICT`／`RKI-FP-PREDICT-ITER`／`RKI-AI-SOLAR-RD`／`RKI-FP-AI-SOLAR`。**≠**自動開 `PME-XDOM-AI-PREDICT`／`PME-XDOM-SOLAR`（另需拍板） |
+| **留痕** | `audits/RKI-PLAN-APPROVED-20260728.md` · 收官 `audits/RKI-S01-CLOSED-20260728.md` · 追加種子 `audits/RKI-AI-SOLAR-RD-SEED-20260728.md` |
 
 ---
 
@@ -41,7 +41,7 @@
 
 **正式定錨（拍板碼 `RKI-SCOPE-ALL-KH`）**：
 
-> **方法論上**＝**所有 know-how × 所有 know-how**——含：哲學×研發、原則×原則、原則×raw **概念橋**（非整庫 raw 灌入）、know-how×特徵族假說、跨域 know-how×know-how（如孫子×企管、**AI 模型進化×投資預測模型進化**、**第一性原理×AI 自我迭代**）。  
+> **方法論上**＝**所有 know-how × 所有 know-how**——含：哲學×研發、原則×原則、原則×raw **概念橋**（非整庫 raw 灌入）、know-how×特徵族假說、跨域 know-how×know-how（如孫子×企管、**AI 模型進化×投資預測模型進化**、**第一性原理×AI 自我迭代**、**AI 模型進化×太陽能材料研發技術**）。  
 > **實作上**＝**DB 驅動探針列＋種子子集**——**不是**一次枚舉宇宙所有配對；擴充＝`INSERT` 進 `knowhow_interaction_probe`（或等價表），**零改碼**。
 
 ### 1.2 種子子集（近程必種；非範圍上限）
@@ -60,6 +60,8 @@
 | `RKI-FP-AI-ITER` | 第一性原理 | AI 模型自我迭代／再進化 | Steward 追加例；禁 hardcode 專答 |
 | `RKI-FP-AI-PREDICT` | 第一性→AI 迭代（橋） | 投資預測模型進化（反饋） | **optional** 交叉軸；灌因子另拍 |
 | `RKI-FP-PREDICT-ITER` | 第一性原理 | 投資模擬／預測模型自我迭代再進化 | Steward 追加例；PME／arena 僅檢索軸；NHC-keep |
+| `RKI-AI-SOLAR-RD` | AI／ML 模型進化 | 太陽能材料研發技術 | Steward 追加；顧問／研發交互；**≠** `PME-XDOM-SOLAR`；**≠** `PME-XDOM-AI-PREDICT` |
+| `RKI-FP-AI-SOLAR` | 第一性→AI 進化（橋） | 太陽能材料研發（反饋） | **optional** 交叉軸；可與 FP-SOLAR 變體交叉；灌因子另拍 |
 
 ### 1.3 成功定義（範圍驗收句）
 
@@ -96,6 +98,7 @@
 | ≠ 取代 NHC／KH-XDOM／PME-XDOM | 本層＝交互探針；互鏈三者 |
 | ≠ 因本計畫開通 `PME-XDOM-SOLAR` 或自動 SEED map | PME 近程仍僅 `SUNZI-MGMT`；S3 僅**人策展候選清單** |
 | ≠ 因本計畫開通 `PME-XDOM-AI-PREDICT` | AI×預測／FP×AI 僅 **RKI 探針列**；異域灌因子**另需拍板** |
+| ≠ 因本計畫開通 `PME-XDOM-SOLAR`（含 AI×太陽能研發） | AI×太陽能研發＝顧問／探針；寫進 investment map **另拍**並說明可證偽對映 |
 | ≠ 預測熱路徑 import knowledge／probe 結果當權重 | `import_isolation`；探針報告≠特徵 |
 | ≠ AI 造原則／把探針報告當 citation 權威入庫 | #1；策展＝人 |
 | ≠ 本輪放量實作（無執行碼則不動 DDL） | plan-first；僅計畫＋建議拍板 |

@@ -7,6 +7,7 @@
 > 1. 「AI模型進化 × 投資預測模型進化也加入此專案」  
 > 2. 「例如依第一性原理來強化AI 模型自我迭代再進化」  
 > 3. 「例如依第一性原理來強化投資模擬預測模型自我迭代再進化」  
+> 4. 「AI模型進化來強化太陽能材料研發技術」  
 > **簽名誠實註記**：本檔由 agent 依 Steward 拍板繕寫登錄；決策者＝hugo、繕寫者＝agent，二者分立。
 
 ## 一、五碼效力
@@ -26,15 +27,16 @@
 | AI×投資預測模型進化 | `RKI-AI-PREDICT-EVO`／`RKI-AI-PREDICT-EVAL` | 探針帳＋S0 對照；**≠** `PME-XDOM-AI-PREDICT` |
 | 第一性×AI 自我迭代 | `RKI-FP-AI-ITER`（＋optional `RKI-FP-AI-PREDICT`） | NHC-keep；禁專答樹 |
 | 第一性×投資模擬／預測迭代 | `RKI-FP-PREDICT-ITER` | PME／arena 僅檢索軸；答案不寫死 |
+| AI×太陽能材料研發 | `RKI-AI-SOLAR-RD`（＋optional `RKI-FP-AI-SOLAR`） | 顧問／研發交互；**≠** `PME-XDOM-SOLAR`；與 AI×預測正交 |
 
-> **另需拍板**：若要獨立異域進化灌因子閉環，開 `PME-XDOM-AI-PREDICT`（或等價碼）——**本輪未拍＝不做**。
+> **另需拍板**：若要獨立異域進化灌因子閉環，開 `PME-XDOM-AI-PREDICT`／`PME-XDOM-SOLAR`（或等價碼）——**本輪未拍＝不做**。
 
 ## 三、S01 範圍
 
 | 階段 | 做 | 驗收錨 |
 |---|---|---|
 | **S0** | 庫內 consumable 盤點＋種子命中診斷（含 AI／PME 物件） | `reports/augur_rki_s0_inventory_20260728.md` |
-| **S1** | `knowhow_interaction_probe` DDL＋12 種子；migrate 矩陣／selftest | `\d`＋active≥12；無專支 |
+| **S1** | `knowhow_interaction_probe` DDL＋種子（含同日追加→**14**）；migrate 矩陣／selftest | `\d`＋active≥14；無專支 |
 
 ## 四、非目標
 

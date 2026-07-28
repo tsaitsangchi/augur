@@ -2,9 +2,9 @@
 """建 knowhow_interaction_probe 表(raw↔know-how 交互探針列)+ §1.2 種子 — RKI-S01。
 
 🎯 這支在做什麼(白話):把「第一性×太陽能／Pareto×太陽能／哲學×研發模板／孫子×企管／
-   AI 模型進化×投資預測模型進化」等交互議題變成 **PostgreSQL 探針列**;runner(S2)讀
+   AI 模型進化×投資預測／AI×太陽能材料研發」等交互議題變成 **PostgreSQL 探針列**;runner(S2)讀
    active 列展開 template→庫內檢索。**新交互議題＝INSERT 一列、零改碼**(#29b)。
-   本表是探針帳本,**不是**答案 SSOT／非預測特徵；**≠**自動開 PME-XDOM-AI-PREDICT。
+   本表是探針帳本,**不是**答案 SSOT／非預測特徵；**≠**自動開 PME-XDOM-AI-PREDICT／PME-XDOM-SOLAR。
 守 #29b(策展住 DB)· #6(冪等)· #29a/d(指令矩陣)· FZ-keep(零市場 API)· NHC-keep(禁領域 hardcode)。
 
 執行指令矩陣:
@@ -192,6 +192,33 @@ SEED = (
         },
         "Steward 追加例 2026-07-28；與 FP-AI-ITER／AI-PREDICT 成套；NHC-keep",
     ),
+    (
+        "RKI-AI-SOLAR-RD",
+        "「{{kh_a}}」如何強化「{{kh_b}}」？（要求：可溯源概念橋；缺料誠實缺口；禁寫死太陽能／AI 專答樹；≠台股因子鏈）",
+        "AI／ML 模型進化",
+        "太陽能材料研發技術",
+        "corpus+principle",
+        "kh_x_kh",
+        {
+            "kh_a": "AI 模型進化（架構／訓練／評測／對齊）",
+            "kh_b": "太陽能材料研發技術",
+        },
+        "Steward 追加 2026-07-28；顧問／研發 know-how 交互；≠PME-XDOM-SOLAR；≠PME-XDOM-AI-PREDICT",
+    ),
+    (
+        "RKI-FP-AI-SOLAR",
+        "依「{{principle}}」強化「{{ai_axis}}」後，如何反饋改進「{{solar_axis}}」？（optional 交叉軸；可溯源；缺料誠實；禁專答樹；≠PME 灌因子）",
+        "第一性原理 → AI 模型進化",
+        "太陽能材料研發技術（反饋橋）",
+        "corpus+principle",
+        "kh_x_kh",
+        {
+            "principle": "第一性原理",
+            "ai_axis": "AI 模型進化",
+            "solar_axis": "太陽能材料研發技術",
+        },
+        "optional 交叉臂；可與 FP-SOLAR／AI-SOLAR-RD 交叉；灌因子另拍 PME-XDOM-SOLAR",
+    ),
 )
 
 SEED_IDS = tuple(s[0] for s in SEED)
@@ -294,7 +321,7 @@ def selftest():
             "principle_x_raw_bridge", "kh_x_feature_family",
         )
     ))
-    chk("種子 12 列", len(SEED) == 12)
+    chk("種子 14 列", len(SEED) == 14)
     chk("種子含 FP×solar 四變體", all(
         i in SEED_IDS for i in (
             "RKI-FP-SOLAR-CORE", "RKI-FP-SOLAR-PHYS",
@@ -310,10 +337,12 @@ def selftest():
     chk("種子含 FP×AI 迭代", "RKI-FP-AI-ITER" in SEED_IDS)
     chk("種子含 FP×AI×預測 optional", "RKI-FP-AI-PREDICT" in SEED_IDS)
     chk("種子含 FP×投資預測迭代", "RKI-FP-PREDICT-ITER" in SEED_IDS)
+    chk("種子含 AI×太陽能研發", "RKI-AI-SOLAR-RD" in SEED_IDS)
+    chk("種子含 FP×AI×太陽能 optional", "RKI-FP-AI-SOLAR" in SEED_IDS)
     chk("COMMENT 載 #29b／非答案", "#29b" in DDL and "非答案" in DDL)
     chk("無領域 if/hardcode 答案樹字面於 DDL", "if 太陽能" not in DDL.lower())
     chk("所有種子 prompt 含 slot", all("{{" in s[1] for s in SEED))
-    chk("AI×預測種子為 kh_x_kh", all(
+    chk("AI×* 種子為 kh_x_kh", all(
         s[5] == "kh_x_kh" for s in SEED if s[0].startswith("RKI-AI-")
     ))
     chk("FP-AI-ITER 為 principle_x_rd", any(
@@ -321,6 +350,9 @@ def selftest():
     ))
     chk("FP-PREDICT-ITER 為 principle_x_rd", any(
         s[0] == "RKI-FP-PREDICT-ITER" and s[5] == "principle_x_rd" for s in SEED
+    ))
+    chk("FP-AI-SOLAR 為 kh_x_kh", any(
+        s[0] == "RKI-FP-AI-SOLAR" and s[5] == "kh_x_kh" for s in SEED
     ))
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
