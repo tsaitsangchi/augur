@@ -35,7 +35,8 @@ from augur.evolution.behavior_rubric import BOILERPLATE_ARM, aggregate, judge
 
 OLLAMA = "http://127.0.0.1:11434/api/generate"
 MODEL = "qwen3:4b"
-TIMEOUT = 600            # 舊值 150s 造成靜默跳題;拉高並改記 INVALID(#1 不補假分)
+TIMEOUT = 1200           # T1200-go(hugo 2026-07-29):600s 下 temperature 0 同 2 題永逾時=INVALID 死循環
+                         # (系譜:150 靜默跳題→600 改記 INVALID→1200「timeout 放寬不猶豫」;在 hash 內=換尺)
 NUM_PREDICT = 1200       # 舊值 400 → 實測 100% done_reason=length(評到的是思考鏈非答案)
 
 # grammar 強制:abstain 為布林,攤平時 true→「查無」(behavior_rubric.flatten_response 之約定)
@@ -363,7 +364,7 @@ def _selftest():
     # 有意識地換(改此常數並重跑全部對照臂),不能靜默漂移——否則會拿兩把尺的數字比大小。
     # V2-RUBRIC-go(hugo 2026-07-28)有意識換尺:f3075238eb55(07-26)→ 0646872fdce7/ef142e9374c1(07-28 中繼)→ 35aeffc3e160(中繼)→ aeff01c18ace(EVALSET-V2 孿生尺,BEHAVIOR_PROMPT 適配統一殼)。
     # 變更=ABSTAIN_RE 補詞+F 軸加料年份否決+floor 換最強退化常數+robot 第五臂+run_id attempt 序。
-    PINNED = {"qwen3:4b": "aeff01c18ace"}
+    PINNED = {"qwen3:4b": "b6e5208ef821"}  # T1200-go 2026-07-29(前:aeff01c18ace,系譜見 audit)
     if MODEL in PINNED:
         chk(f"**尺之錨**:{MODEL} 之 eval_code_hash 仍為 {PINNED[MODEL]}(換尺須有意識)",
             _code_hash() == PINNED[MODEL])
