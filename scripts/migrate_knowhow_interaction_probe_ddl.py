@@ -207,17 +207,17 @@ SEED = (
     ),
     (
         "RKI-FP-AI-SOLAR",
-        "依「{{principle}}」強化「{{ai_axis}}」後，如何反饋改進「{{solar_axis}}」？（optional 交叉軸；可溯源；缺料誠實；禁專答樹；≠PME 灌因子）",
-        "第一性原理 → AI 模型進化",
-        "太陽能材料研發技術（反饋橋）",
+        "依「{{principle}}」如何使用「{{ai_axis}}」來強化「{{tech_domain}}」？（要求：可溯源概念橋；缺料誠實；禁寫死技術核心清單／專答樹；≠PME-XDOM-SOLAR 灌因子）",
+        "第一性原理",
+        "AI 模型 × 太陽能材料研發技術核心",
         "corpus+principle",
-        "kh_x_kh",
+        "principle_x_rd",
         {
             "principle": "第一性原理",
-            "ai_axis": "AI 模型進化",
-            "solar_axis": "太陽能材料研發技術",
+            "ai_axis": "AI 模型",
+            "tech_domain": "太陽能材料研發技術核心",
         },
-        "optional 交叉臂；可與 FP-SOLAR／AI-SOLAR-RD 交叉；灌因子另拍 PME-XDOM-SOLAR",
+        "Steward 探針 2026-07-28；與 RKI-AI-SOLAR-RD／FP-SOLAR-* 成套；NHC-keep；研發 know-how",
     ),
 )
 
@@ -351,8 +351,8 @@ def selftest():
     chk("FP-PREDICT-ITER 為 principle_x_rd", any(
         s[0] == "RKI-FP-PREDICT-ITER" and s[5] == "principle_x_rd" for s in SEED
     ))
-    chk("FP-AI-SOLAR 為 kh_x_kh", any(
-        s[0] == "RKI-FP-AI-SOLAR" and s[5] == "kh_x_kh" for s in SEED
+    chk("FP-AI-SOLAR 為 principle_x_rd", any(
+        s[0] == "RKI-FP-AI-SOLAR" and s[5] == "principle_x_rd" for s in SEED
     ))
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1

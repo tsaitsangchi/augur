@@ -3,7 +3,7 @@
 * **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；憲章第六部計畫完整性 v1.39.0）— **不創設 [N]**；**本輪只出計畫＋拍板碼，不實作放量**
 * **授權觸發**：Steward 明示「**要開進化閉環**」＝撤銷／取代同日 `PME-XDOM-NO`，開通異域 know-how → PME 灌預測因子路徑
 * **前置**：既有 PME ✅ `PME-Efull-yes`／AUTO-B／KILL／PRODSET／P2H；MAP-E012 CLOSED；KH-XDOM S01 CLOSED（顧問跨域作答）；HANDOFF §4.0 近程「不做他域進化閉環」＝本計畫待撤銷對象
-* **姊妹／正交**：`reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`（**讀與答**）；`reports/augur_no_hardcode_db_ssot_constitution_plan_20260728.md`（NHC：顧問**產生**＝檢索＋組答＋DB 策展、禁領域 hardcode；**≠**本檔灌因子；A0 太陽能材料題不暗示 `PME-XDOM-SOLAR`）；本檔＝**寫進預測假說鏈**（見 §1.4；近程僅 `SUNZI-MGMT`）
+* **姊妹／正交**：`reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`（**讀與答**）；`reports/augur_no_hardcode_db_ssot_constitution_plan_20260728.md`（NHC：顧問**產生**＝檢索＋組答＋DB 策展、禁領域 hardcode；**≠**本檔灌因子；A0 太陽能材料題不暗示 `PME-XDOM-SOLAR`）；本檔＝**寫進預測假說鏈**（見 §1.4；近程已開 `SUNZI-MGMT`＋`PME-XDOM-AI-PREDICT`）
 * **治權錨**：憲章 v1.47.0「跨域原理映射準則」；A.16／共同不變式②（素養不進預測 runtime）；soul-vs-raw；predict-vs-market-api；FZ-keep
 
 ### Steward 拍板欄
@@ -43,6 +43,7 @@
 | **孫子×企管（文獻橋）** | 「先勝而後求戰」→ 財務／營運緩衝／品質穩定性代理特徵；「知彼知己」→ 資訊優勢／機構籌碼族 | 中（須人把戰略句譯成可驗方向＋既有 feature） | ✅ **建議首條**＝`PME-XDOM-SUNZI-MGMT` |
 | **孫子×ERP dump** | 把 Tiptop 操作手冊／4gl 語意直接當因子 | **高危**：ERP 列≠市場可觀測；易噪音 map | ❌ 近程**不做**整庫灌；最多作**顧問引用／人讀靈感**，不自動 SEED map |
 | **太陽能材料／漿料×電子供應鏈** | 材料／製程 know-how → 相關族群營收 YoY、毛利分位、庫存週轉等（若庫內有） | 中高（產業對映＋特徵缺口） | 次條候選＝`PME-XDOM-SOLAR`（首條綠機制後） |
+| **AI 模型進化 × 投資／預測模型進化** | OOS／正則／集成／迭代回饋／第一性拆解 → 庫內 feature 假說 | 中（須人把方法論譯成可驗方向＋既有 feature） | ✅ **已開**＝`PME-XDOM-AI-PREDICT`（短計畫 `reports/augur_pme_xdom_ai_predict_plan_20260728.md`；S0／S1；≠顧問／≠RKI 探針資格） |
 | **既有 investment 擴大** | MAP-E012 路徑已開 | — | 本計畫**不取代**；正交並行 |
 
 **憲章硬句（不可繞）**〔v1.47.0〕：`principle_domain_map.domain`＝**應用注記軸、非量化資格**；他域原理欲入量化，須以 **investment school 下 principle** 為載體另走全鏈——本表列**不構成**任何量化憑據。  
@@ -196,6 +197,7 @@ flowchart LR
 | **`PME-XDOM-YES`** | 廢止 `PME-XDOM-NO`；採納本計畫為異域進化開通藍圖 | ✅ 必拍 |
 | **`PME-XDOM-SUNZI-MGMT`** | 近程範圍＝孫子×企管**文獻橋**（investment 原則＋既有／可建 feature）；**不含** ERP dump 自動 map | ✅ 建議首範圍 |
 | **`PME-XDOM-PILOT-1`** | （更窄替代）僅 1 條原則×≤3 map，機制驗證用 | 若要極窄可取代上一碼 |
+| **`PME-XDOM-AI-PREDICT`** | AI×投資／預測模型進化文獻橋（investment 原則＋既有 feature）；≠ RKI 探針-only | ✅ 已拍（2026-07-28；S0＋S1；待 `開 PME-XDOM-AI-PREDICT-S3`） |
 | **`PME-XDOM-SOLAR`** | 太陽能材料閉環 | ⏸ 次拍 |
 | **`PME-XDOM-SUNZI-ERP`** | 孫子↔ERP **含**操作語料對映嘗試 | ⚠ **不建議近程**；若拍須另附「觀測定義＋否證」附件 |
 | **`GATE-keep`** | 不降 G-PROM／G-ECON；SKIP≠PASS | ✅ 必拍 |
@@ -243,5 +245,6 @@ PME-XDOM-YES + PME-XDOM-SUNZI-MGMT + PME-XDOM-S0 + GATE-keep + FZ-keep
 |---|---|
 | 2026-07-28 | 初版：Steward「要開進化閉環」→ plan-first；對照 KH-XDOM／PME-Efull／憲章 v1.47.0／HANDOFF §4.0；建議首範圍孫子×企管文獻橋、排除 ERP dump 自動 map |
 | 2026-07-28 | Steward 拍板 `PME-XDOM-YES`＋`SUNZI-MGMT`＋`GATE-keep`＋`FZ-keep`；廢止 NO；開工 S0＋S1（S3 另令） |
+| 2026-07-28 | Steward 拍板 `PME-XDOM-AI-PREDICT`（＋GATE／FZ／NHC-keep）；短計畫＋S0／S1；範圍表補 AI×預測軸；S3 另令 |
 
-**對照索引**：PME 主計畫＝`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`；MAP 擴大＝`reports/augur_pme_expand_hypothesis_map_coverage_plan_20260724.md`；KH-XDOM＝`reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`；拍板 NO 登錄＝`audits/KH-XDOM-PLAN-APPROVED-20260728.md`。
+**對照索引**：PME 主計畫＝`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`；MAP 擴大＝`reports/augur_pme_expand_hypothesis_map_coverage_plan_20260724.md`；KH-XDOM＝`reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`；拍板 NO 登錄＝`audits/KH-XDOM-PLAN-APPROVED-20260728.md`；AI-PREDICT 短計畫＝`reports/augur_pme_xdom_ai_predict_plan_20260728.md`。

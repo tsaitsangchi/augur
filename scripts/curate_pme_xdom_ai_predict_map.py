@@ -239,7 +239,11 @@ def _selftest() -> int:
         "I8 notes after maps",
         apply_body.index('for f, d in pr["factors"]') < apply_body.index("for note in"),
     )
-    chk("NHC no hardcode answer tree", "ANSWER_TREE" not in src and "hardcode_reply" not in src)
+    # 禁領域專答樹／硬編碼回覆表（字串拆開避免本斷言自撞）
+    chk(
+        "NHC no hardcode answer tree",
+        ("ANSWER" + "_TREE") not in src and ("hardcode" + "_reply") not in src,
+    )
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 
