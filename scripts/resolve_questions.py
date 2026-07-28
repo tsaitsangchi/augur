@@ -32,14 +32,23 @@ MIN_STANDALONE = 12          # 短於此且無疑問語式 → 視為脈絡片�
 SUBSTANTIVE_LEN = 30         # 夠長即帶獨立語意(即使無疑問詞,如「回報 X 執行狀況:…」之完整請求)
 
 
-def is_fragment(q: str) -> bool:
-    """脈絡片段/短指令(非可獨立回答之問題)。純函式。
+# v3(2026-07-28 實犯:q5013 貼終端輸出因 ≥30 字被 v2 當實質問題送 advisor 佇列):
+# 終端貼文與行程指令**不論多長都是片段**——長度規則之前先判型。錨定式(行首/全式)防誤殺真問題。
+TERMINAL_RE = re.compile(r"^\(venv\)|^hugo@|@PC002|^\$ |^[a-z_]+@[\w-]+:~|crontab -|psql .*-c |systemctl ")
+DIRECTIVE_RE = re.compile(r"^(下一棒|繼續往|接續|照(這個|此)?(序|案|行程)|開始 |先跑|開走|暫停|全批照案|"
+                          r"回覆 ?\S+ 即生效|.{0,12}(-go|-yes|-keep)$)")
 
-    規則 v2(2026-07-27 自測抓出 v1 誤判:長而完整之請求無疑問詞被誤剔):
-      長度 ≥ SUBSTANTIVE_LEN → 非片段;有疑問語式且 ≥6 字 → 非片段;其餘 → 片段。
+
+def is_fragment(q: str) -> bool:
+    """脈絡片段/短指令/貼文(非可獨立回答之問題)。純函式。
+
+    規則 v3:①終端貼文/行程指令/拍板碼 → 片段(**不論長度**;v2 之「≥30 字即實質」讓長貼文漏網)
+    ②長度 ≥ SUBSTANTIVE_LEN → 非片段 ③有疑問語式且 ≥6 字 → 非片段 ④其餘 → 片段。
     """
     s = " ".join((q or "").split())
     if not s:
+        return True
+    if TERMINAL_RE.search(s) or DIRECTIVE_RE.match(s):
         return True
     if len(s) >= SUBSTANTIVE_LEN:
         return False
@@ -178,6 +187,28 @@ def solve_knowledge(limit, dry):
     return 0
 
 
+def sweep_queued(dry):
+    """v3 規則掃 queued_for_claude(304 題積壓多為 v2 前誤入之貼文/指令;只降級不生成答案)。"""
+    n_frag = n_keep = 0
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("""SELECT qid, question FROM steward_question_ledger
+            WHERE status='queued_for_claude' ORDER BY qid""")
+        for qid, q in cur.fetchall():
+            if is_fragment(q):
+                n_frag += 1
+                if not dry:
+                    cur.execute("""UPDATE steward_question_ledger SET status='superseded',
+                        resolution_ref='context_bound:v3 規則(終端貼文/行程指令/拍板碼)',
+                        resolved_by='rules_v3_sweep', resolved_at=now()
+                        WHERE qid=%s AND status='queued_for_claude'""", (qid,))
+            else:
+                n_keep += 1
+        if not dry:
+            conn.commit()
+    print(f"{'[dry-run] ' if dry else ''}queued_for_claude 掃帚:降級片段 {n_frag}、留佇 {n_keep}")
+    return 0
+
+
 def status():
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("""SELECT status||coalesce('/'||triage,''), count(*)
@@ -197,6 +228,15 @@ def _selftest():
 
     # 錨=今日 pending 佇列真實樣本
     chk("片段:「全批照案」", is_fragment("「全批照案」"))
+    # v3 真實樣本錨(2026-07-28 實犯:三題以 ≥30 字漏網進 knowledge 佇列)
+    chk("v3:終端貼文不論長度=片段(q5013 型)",
+        is_fragment("hugo@PC002-S1800:~$ crontab -l > ~/crontab.backup.$(date +%Y%m%d) && echo ok"))
+    chk("v3:行程指令=片段(q5015 型)", is_fragment("下一棒照行程走 B4"))
+    chk("v3:續走指令=片段(q5017 型)", is_fragment("繼續往 M3 走"))
+    chk("v3:拍板碼=片段", is_fragment("EVALSET-V2-go"))
+    chk("v3:真問題不誤殺(含 crontab 字樣之疑問句)",
+        not is_fragment("crontab 的排程語法中 */2 是什麼意思?可以說明嗎"))
+    chk("v3:長真問題不誤殺", not is_fragment("太陽能產業專業研發人員此專案需要大量的資料滙入你認為最佳的向量資料庫是什麼?"))
     chk("片段:「有原文就抓原文」", is_fragment("有原文就抓原文"))
     chk("片段:「(c) 全 74 支」", is_fragment("(c) 全 74 支"))
     chk("片段:「PAT 更換」", is_fragment("PAT 更換"))
@@ -214,6 +254,8 @@ def main():
     ap = argparse.ArgumentParser(add_help=True)
     ap.add_argument("--classify", action="store_true")
     ap.add_argument("--solve", action="store_true")
+    ap.add_argument("--sweep-queued", action="store_true",
+                    help="v3 規則掃 queued_for_claude 積壓(貼文/指令降級,不生成答案)")
     ap.add_argument("--solve-knowledge", action="store_true",
                     help="knowledge 題→advisor(8b 重活;批跑空檔才跑,每題 flock 禮讓)")
     ap.add_argument("--dry-run", action="store_true")
@@ -228,6 +270,8 @@ def main():
         return solve(a.limit or 3)
     if a.solve_knowledge:
         return solve_knowledge(a.limit or 16, a.dry_run)
+    if a.sweep_queued:
+        return sweep_queued(a.dry_run)
     print((__doc__ or "").strip())
     print()
     return status()
