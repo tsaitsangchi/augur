@@ -736,6 +736,76 @@ pending＝無全文且無 status（未嘗試）；blocked＝skip_license／skip_
 <table><tr><th>source</th><th>action</th><th>轉移</th><th>actor</th><th>os_user</th><th>時間</th></tr>{rl or '<tr><td colspan=6>（無留痕）</td></tr>'}</table>
 </div></body></html>"""
 
+def _digest_data():
+    """唯讀:R6 digest 資料——本週全部 gate_ref='V2-AUTOADVANCE' 自動決策 + pending hints(H3 佇列)。
+    零寫路徑(P-D;整合計畫 §二);hint 批覆走 POST /api/hint/decide(同一 decision 路徑、console 登入=是人證據)。"""
+    d = {}
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("""SELECT to_char(a.applied_at,'MM-DD HH24:MI'), q.feature, q.action,
+                              a.before_status, a.after_status, a.evidence_json->>'auto_rule'
+                       FROM evolution_apply_log a JOIN promotion_queue q USING (queue_id)
+                       WHERE a.evidence_json->>'gate_ref'='V2-AUTOADVANCE'
+                         AND a.applied_at > now() - interval '7 days'
+                       ORDER BY a.applied_at DESC""")
+        d["auto"] = cur.fetchall()
+        cur.execute("""SELECT hint_id, from_axis, from_iteration_uid, hint_text,
+                              coalesce(provenance->>'median_corr',''), coalesce(provenance->>'n_obs',''),
+                              to_char(created_at,'MM-DD HH24:MI')
+                       FROM evolution_hypothesis_hint WHERE decision='pending'
+                       ORDER BY created_at""")
+        d["pending"] = cur.fetchall()
+        cur.execute("""SELECT decision, count(*) FROM evolution_hypothesis_hint
+                       WHERE decided_at > now() - interval '7 days' GROUP BY 1""")
+        d["decided_week"] = cur.fetchall()
+    return d
+
+
+def digest_html(d, uname):
+    """R6 digest 頁(唯讀渲染;批覆按鈕走同一 decision 路徑)。榮譽制誠實條文照錄,不宣稱機械保證。"""
+    from html import escape as e
+    auto = "".join(f"<tr><td>{e(ts)}</td><td><code>{e(f)}</code></td><td>{e(ac)}</td>"
+                   f"<td>{e(b or '')}→{e(af or '')}</td><td>{e(r or '')}</td></tr>"
+                   for ts, f, ac, b, af, r in d["auto"])
+    pend = "".join(
+        f"<tr id='h_{e(h)}'><td><code>{e(h)}</code></td><td>{e(ax)}/{e(it or '')}</td>"
+        f"<td>{e(tx)}</td><td style=text-align:right>{e(mc)}{'（n=' + e(no) + '）' if no else ''}</td>"
+        f"<td>{e(ts)}</td>"
+        f"<td><button onclick=\"decide('{e(h)}','approved')\">approve</button> "
+        f"<button onclick=\"decide('{e(h)}','rejected')\" style='background:#533'>reject</button></td></tr>"
+        for h, ax, it, tx, mc, no, ts in d["pending"])
+    dw = " · ".join(f"{e(k)}={n}" for k, n in d["decided_week"]) or "（本週無批覆）"
+    return f"""<!doctype html><html><head><meta charset=utf-8><title>R6 digest · augur admin</title>
+<style>body{{font-family:system-ui,sans-serif;background:#14140f;color:#e8e6df;margin:0}}
+.w{{max-width:1150px;margin:0 auto;padding:16px}}h2{{border-bottom:1px solid #444;padding-bottom:4px}}
+table{{border-collapse:collapse;width:100%;font-size:.88em}}td,th{{border-bottom:1px solid #333;padding:4px 8px;text-align:left;vertical-align:top}}
+.note{{background:#1a2220;border:1px solid #355;border-radius:8px;padding:10px;margin:10px 0;color:#9ab;font-size:.9em}}
+button{{background:#2d4a33;color:#dfe;border:1px solid #575;border-radius:5px;padding:3px 10px;cursor:pointer}}
+code{{background:#222;padding:2px 5px;border-radius:4px}}a{{color:#8bf}}</style></head><body><div class=w>
+<p><a href="/">← 後台首頁</a></p><h1>R6 自動決策 digest ＋ H3 hint 批覆</h1>
+<div class=note><b>榮譽制條文照錄（§8.1）</b>：console 密碼登入＝比 CLI 更強的「是人」證據，
+但仍為<b>榮譽制＋事後偵測</b>，不宣稱機械保證。批覆寫入 <code>decided_by={e(uname)}</code>；
+hint 決定<b>單向不可回改</b>（forward-only 閘），要翻案走新 hint 列＋duplicate_of。
+approve＝該假說進量化鏈（H3 判準層）——不確定就先不按。</div>
+<h2>本週自動決策（gate_ref=V2-AUTOADVANCE，{len(d['auto'])} 筆；請掃視認領）</h2>
+<table><tr><th>時間</th><th>feature</th><th>action</th><th>轉移</th><th>依據規則</th></tr>
+{auto or '<tr><td colspan=5>（本週無自動決策）</td></tr>'}</table>
+<h2>pending hints（H3 佇列，{len(d['pending'])} 則）</h2>
+<table><tr><th>hint</th><th>軸/輪</th><th>內容</th><th>med corr</th><th>時間</th><th>批覆</th></tr>
+{pend or '<tr><td colspan=6>（無待批 hint）</td></tr>'}</table>
+<p>本週已批覆：{dw}</p>
+<script>
+async function decide(h, dec) {{
+  if (!confirm(dec + ' ' + h + '?（單向不可回改）')) return;
+  const r = await fetch('/api/hint/decide', {{method:'POST',
+    headers:{{'Content-Type':'application/x-www-form-urlencoded'}},
+    body:'hint_id='+encodeURIComponent(h)+'&decision='+encodeURIComponent(dec)}});
+  const j = await r.json();
+  if (j.ok) {{ document.getElementById('h_'+h).style.opacity=.35; }}
+  else alert('未生效:'+(j.err||''));
+}}
+</script></div></body></html>"""
+
+
 class AdminHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -827,6 +897,11 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self._send(200, json.dumps(_gov_data(), default=str), "application/json")
         if path == "/gov":                          # 來源治權唯讀頁(零寫路徑;升級走 CLI #14)
             return self._send(200, gov_dashboard_html(_gov_data()))
+        if path == "/api/digest":
+            return self._send(200, json.dumps(_digest_data(), default=str), "application/json")
+        if path == "/digest":                       # R6 digest 唯讀頁(P-D;批覆走 POST /api/hint/decide)
+            uname, _role = self._acct()
+            return self._send(200, digest_html(_digest_data(), uname))
         uname, role = self._acct()
         return self._send(200, dashboard_html(_status_text(), uname, role))
 
@@ -877,6 +952,35 @@ class AdminHandler(BaseHTTPRequestHandler):
 
         if not _valid(self._token()):
             return self._send(403, "未授權", ctype="text/plain")
+
+        if path == "/api/hint/decide":
+            # H3 hint 批覆(P-D):console 登入=是人證據(§8.1 榮譽制);同一 decision 路徑、
+            # forward-only 閘擋回改;decided_by=登入帳號(不由 AI 代打,承 never-type-human-signature)。
+            n = int(self.headers.get("Content-Length") or 0)
+            form = parse_qs(self.rfile.read(n).decode("utf-8", "replace")) if n else {}
+            hid = (form.get("hint_id", [""])[0]).strip()
+            dec = (form.get("decision", [""])[0]).strip()
+            if dec not in ("approved", "rejected") or not hid:
+                return self._send(200, json.dumps({"ok": False, "err": "decision 須 approved|rejected"}),
+                                  "application/json")
+            uname, _role = self._acct()
+            code = f"RAWEVO-HINT-{'approve' if dec == 'approved' else 'reject'}(console)"
+            try:
+                with db.connect() as conn:
+                    cur = conn.cursor()
+                    cur.execute("""UPDATE evolution_hypothesis_hint
+                        SET decision=%s, decided_by=%s, decided_at=now(), decision_code=%s,
+                            gate_ref='H3-console'
+                        WHERE hint_id=%s AND decision='pending'""", (dec, uname, code, hid))
+                    changed = cur.rowcount
+                    conn.commit()
+            except Exception as ex:  # noqa: BLE001  forward-only 閘拒絕等,誠實回錯不吞
+                _audit("hint_decide", f"fail {hid} {dec}: {ex}")
+                return self._send(200, json.dumps({"ok": False, "err": str(ex)[:200]}), "application/json")
+            _audit("hint_decide", f"{dec} {hid} by={uname} changed={changed}")
+            return self._send(200, json.dumps(
+                {"ok": bool(changed), "hint_id": hid, "decision": dec, "decided_by": uname,
+                 **({} if changed else {"err": "無 pending 之該 hint(不存在或已決)"})}), "application/json")
 
         if path == "/api/upload":
             return self._handle_upload(py)
