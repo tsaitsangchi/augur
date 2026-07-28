@@ -100,6 +100,15 @@ def classify_licenses(licenses, regime_map):
     return max(regimes, key=RESTRICT_ORDER.get)
 
 
+def _est_int(est):
+    """est_scale(TEXT 欄)→ int|None。非數字/負數=None=P5 誠實不過(F4 拆彈:str-vs-int 崩防)。純函式。"""
+    try:
+        v = int(str(est).strip())
+        return v if v >= 0 else None
+    except (ValueError, TypeError):
+        return None
+
+
 def judge_source(row, ctx):
     """回 (all_pass, checks dict)。row=(source_key,domain,adapter,pace,quota,est_scale,tier,lic_evidence)。"""
     k, dom, ada, pace, quota, est, tier, lic = row
@@ -113,8 +122,9 @@ def judge_source(row, ctx):
         "P2_domain": dom in ctx["domains"],
         "P3_adapter": ada in ctx["adapters"],
         "P4_probe": k in ctx["probe_ok"],
-        "P5_pacing": pace is not None and quota is not None and est is not None
-                     and est <= EST_SCALE_CAP,
+        "P5_pacing": pace is not None and quota is not None
+                     and (est is not None and _est_int(est) is not None
+                          and _est_int(est) <= EST_SCALE_CAP),
         "P6_tier": (tier not in ("T3", "T4")) if ctx["tier_wired"] else None,  # None=另案未接,不擋
         "_regime": regime,
         "_regime_via": via,
@@ -262,6 +272,14 @@ def _selftest():
     chk("P5 pace 未設=不放", not judge_source(("arxiv_search", "general", "generic_json", None, 100, 1000, None, None), ctx)[0])
     chk("P5 est_scale 超限=不放",
         not judge_source(("arxiv_search", "general", "generic_json", 2, 100, EST_SCALE_CAP + 1, None, None), ctx)[0])
+    # ── F4 拆彈(est_scale 為 TEXT 欄;SRC-QUALIFY Q1) ──
+    chk("P5 文字數字='8214' 過(TEXT 欄慣例)",
+        judge_source(("arxiv_search", "general", "generic_json", 2, 100, "8214", None, None), ctx)[0])
+    chk("P5 非數字文字=誠實不過不炸", not judge_source(
+        ("arxiv_search", "general", "generic_json", 2, 100, "n/a", None, None), ctx)[0])
+    chk("P5 文字超限=不過", not judge_source(
+        ("arxiv_search", "general", "generic_json", 2, 100, str(EST_SCALE_CAP + 1), None, None), ctx)[0])
+    chk("P5 負數=不過", _est_int("-5") is None)
     chk("P6 tier 未接=None 不擋", judge_source(row_ok, ctx)[1]["P6_tier"] is None)
     chk("P6 接線後 T3 必人", not judge_source(("arxiv_search", "general", "generic_json", 2, 100, 10, "T3", None),
                                           {**ctx, "tier_wired": True})[0])
