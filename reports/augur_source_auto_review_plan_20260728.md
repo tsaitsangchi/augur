@@ -100,3 +100,14 @@ VALUES ('arxiv%','cc_whitelist','arXiv API ToU: metadata CC0','hugo');
 ```
 
 **P2 抽核前提**：白名單 ≥1 列後 dry 才會出現「可自動」桶；屆時抽 20 人工覆核 20/20 一致才 `--run` 開閘。
+
+---
+
+## 八、REGIME-MAP-v1 落地實錄（2026-07-28，「REGIME-MAP-v1 核可」後）
+
+**簽核件（hugo 核可原文範圍）**：R1 CC0／Public Domain／publicdomain-zero／pddl → `public_domain`；R2 URL 含 `/licenses/by/` 或 `/licenses/by-sa/` → `cc_whitelist`；R3 OGL／OGLC → `cc_whitelist`；R4 `odc-by` → `cc_whitelist`；**R-X 其餘一切（other／Copyrights／-nc／-nd／軟體授權／unknown）→ 人閘 fail-closed**；一倉多授權→取最嚴。
+
+**落地**：
+- `license_regime_map` 表（`migrate_source_whitelist_ddl.py` 同支擴充；kind∈name|url、regime 僅二值、UNIQUE(kind,pattern)、同誠實閘 lic_map_row/lic_map_stmt）；**10 列 seed**（R1×5/R2×2/R3×2/R4×1），`decided_by='hugo(對話拍板)'`、citation 註繕打鏈（§8.1 不冒充親簽）。
+- `auto_review_sources.py` P1 擴為**兩路**：路甲=source_key 白名單（原）；路乙=`classify_licenses()` 純函式吃 `adapter_config->'re3data'->'licenses'` 證據查映射表——**NC/ND code 側一票否決先於映射、name 整詞匹配（防 'OGL' 誤中 'Google'）、url 子字串、多授權取最嚴、任一未映射=None 人閘**。selftest 26 條全綠（含 11 條路乙新鎖）。
+- **首輪 dry（enrich 進行中 601/3,507 已充實）**：路乙判入 **61** 源（~10%，與抽樣估 12% 同量級）——如設計移入 `P4_probe` 桶，**不會因映射落地就繞過 probe/pacing**。enrich 全量收槍後全量重分桶；P4/P5 通路（對映射倉之 probe＋pacing 預設）＝下一提案、另簽。

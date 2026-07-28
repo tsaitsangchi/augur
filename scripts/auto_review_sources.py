@@ -4,8 +4,10 @@
 🎯 這支在做什麼(白話):3,528 個 proposed 來源不可能逐源 TTY 人批,但「依 AI 判斷審批」撞四條憲政
    (能抓≠該抓人閘/LLM 意見零證據力/能力無 A′ 證據/模型自選教材之利益衝突)。本支=PME-AUTO-B 同型:
    **人簽規則一次(SRC-AUTO-go),機器只在規則內自動**——六謂詞全部機械可驗,全過才放行:
-     P1 license:source_key 匹配 source_license_whitelist(人 seed 帶 citation)且 regime ∈
-        {public_domain, cc_whitelist}(白名單空=全數不過,fail-closed)
+     P1 license:兩條路皆機械——(路甲)source_key 匹配 source_license_whitelist(人 seed 帶 citation);
+        (路乙,REGIME-MAP-v1 hugo 2026-07-28 核可)adapter_config->'re3data'->'licenses' 證據查
+        license_regime_map(R1-R4 人簽 pattern;NC/ND code 側一票否決、多授權取最嚴、未映射=人閘)
+        ——regime ∈ {public_domain, cc_whitelist} 才過(兩路皆空=不過,fail-closed)
      P2 domain ∈ 既核域集(=active 源之 domain 集,資料驅動;新域必人)
      P3 adapter ∈ 既核 adapter 集(=active 源之 adapter 集;新協定必人)
      P4 probe:近 30 日 review_log probe 之 http_status ∈ 2xx(#25 最小探測先行)
@@ -24,6 +26,7 @@ SSOT=reports/augur_source_auto_review_plan_20260728.md。
 """
 import argparse
 import json
+import re
 import sys
 
 import _bootstrap  # noqa: F401
@@ -34,12 +37,16 @@ EST_SCALE_CAP = 50000      # P5 放量上限
 PROBE_FRESH_DAYS = 30
 AUTO_ACTOR = "auto_rules_v1"
 P1_ALLOW = ("public_domain", "cc_whitelist")   # 納 metadata_only=規則 v2(人簽);dry 另印該假設統計
+NC_ND_VETO = re.compile(r"[-/](nc|nd)\b", re.I)          # REGIME-MAP R-X:非商用/禁改作=必人
+RESTRICT_ORDER = {"public_domain": 0, "cc_whitelist": 1}  # 多授權取最嚴(數字大=嚴)
 
 
 def load_context(cur):
     """一次載入謂詞所需資料側(全部資料驅動)。"""
     cur.execute("SELECT provider_pattern, license_regime FROM source_license_whitelist")
     wl = cur.fetchall()
+    cur.execute("SELECT kind, pattern, regime FROM license_regime_map")
+    regime_map = cur.fetchall()
     cur.execute("SELECT DISTINCT domain FROM knowledge_source WHERE approval_status='active'")
     domains = {r[0] for r in cur.fetchall()}
     cur.execute("SELECT DISTINCT adapter FROM knowledge_source WHERE approval_status='active'")
@@ -53,7 +60,7 @@ def load_context(cur):
     cur.execute("""SELECT 1 FROM information_schema.columns
                    WHERE table_name='knowledge_source' AND column_name='authority_tier'""")
     tier_wired = cur.fetchone() is not None
-    return {"wl": wl, "domains": domains, "adapters": adapters,
+    return {"wl": wl, "regime_map": regime_map, "domains": domains, "adapters": adapters,
             "probe_ok": probe_ok, "tier_wired": tier_wired}
 
 
@@ -69,10 +76,38 @@ def wl_match(source_key, wl):
     return best[1] if best else None
 
 
+def classify_licenses(licenses, regime_map):
+    """REGIME-MAP-v1(hugo 核可 2026-07-28):license 證據列 → regime|None。純函式、fail-closed。
+    NC/ND 一票否決(code 側,先於映射);name=整詞匹配(防 'OGL' 誤中 'Google')、url=子字串;
+    多授權取最嚴;任一未映射/被否決 → None(R-X 人閘)。"""
+    if not licenses:
+        return None
+    regimes = []
+    for lic in licenses:
+        name, url = (lic.get("name") or ""), (lic.get("url") or "")
+        if NC_ND_VETO.search(name) or NC_ND_VETO.search(url):
+            return None
+        hit = None
+        for kind, pat, regime in regime_map:
+            m = (kind == "name" and re.search(
+                    r"(?<![A-Za-z0-9])" + re.escape(pat) + r"(?![A-Za-z0-9])", name, re.I)) \
+                or (kind == "url" and pat.lower() in url.lower())
+            if m and (hit is None or RESTRICT_ORDER[regime] > RESTRICT_ORDER[hit]):
+                hit = regime
+        if hit is None:
+            return None
+        regimes.append(hit)
+    return max(regimes, key=RESTRICT_ORDER.get)
+
+
 def judge_source(row, ctx):
-    """回 (all_pass, checks dict)。row=(source_key,domain,adapter,pace,quota,est_scale,tier)。"""
-    k, dom, ada, pace, quota, est, tier = row
+    """回 (all_pass, checks dict)。row=(source_key,domain,adapter,pace,quota,est_scale,tier,lic_evidence)。"""
+    k, dom, ada, pace, quota, est, tier, lic = row
     regime = wl_match(k, ctx["wl"])
+    via = "whitelist" if regime else None
+    if regime is None and lic:
+        regime = classify_licenses(lic, ctx["regime_map"])
+        via = "regime_map" if regime else None
     checks = {
         "P1_license": regime in P1_ALLOW,
         "P2_domain": dom in ctx["domains"],
@@ -82,6 +117,7 @@ def judge_source(row, ctx):
                      and est <= EST_SCALE_CAP,
         "P6_tier": (tier not in ("T3", "T4")) if ctx["tier_wired"] else None,  # None=另案未接,不擋
         "_regime": regime,
+        "_regime_via": via,
     }
     core = [v for c, v in checks.items() if c.startswith("P") and v is not None]
     return all(core), checks
@@ -90,7 +126,7 @@ def judge_source(row, ctx):
 def _rows(cur):
     tier_sel = "authority_tier" if _tier_wired(cur) else "NULL"
     cur.execute(f"""SELECT source_key, domain, adapter, pace_seconds, quota_limit, est_scale,
-                           {tier_sel}
+                           {tier_sel}, adapter_config->'re3data'->'licenses'
                     FROM knowledge_source WHERE approval_status='proposed' ORDER BY source_key""")  # noqa: S608
     return cur.fetchall()
 
@@ -124,8 +160,10 @@ def dry_run():
         ctx = load_context(cur)
         rows = _rows(cur)
         first_fail, n_pass, meta_only_gain = Counter(), 0, 0
+        p1_via_map = 0
         for row in rows:
             ok, checks = judge_source(row, ctx)
+            p1_via_map += (checks["_regime_via"] == "regime_map")
             if ok:
                 n_pass += 1
                 continue
@@ -138,8 +176,10 @@ def dry_run():
                 c2["P1_license"] = True
                 if all(v for c, v in c2.items() if c.startswith("P") and v is not None):
                     meta_only_gain += 1
-    print(f"── SRC-AUTO dry 分桶(proposed {len(rows)} 源;白名單 {len(ctx['wl'])} 列) ──")
+    print(f"── SRC-AUTO dry 分桶(proposed {len(rows)} 源;白名單 {len(ctx['wl'])} 列/"
+          f"REGIME-MAP {len(ctx['regime_map'])} 列) ──")
     print(f"  ✅ 六謂詞全過(可自動):{n_pass}")
+    print(f"  ⓘ P1 由 REGIME-MAP(路乙)判入:{p1_via_map}(仍受 P4 probe/P5 pacing 閘)")
     for c, n in first_fail.most_common():
         print(f"  ✗ 首個未過={c}:{n}")
     print(f"  ⓘ 規則 v2 假設(P1 納 metadata_only 時另可自動):{meta_only_gain}(僅供人議,現規則不採)")
@@ -209,21 +249,45 @@ def _selftest():
     chk("wl:精確鍵優先於前綴", wl_match("re3data_r3d100000001", wl + [("re3data%", "metadata_only")])
         == "public_domain")
     chk("wl:未列=None(fail-closed)", wl_match("unknown_src", wl) is None)
-    ctx = {"wl": wl, "domains": {"general"}, "adapters": {"generic_json"},
+    RM = [("name", "CC0", "public_domain"), ("name", "OGL", "cc_whitelist"),
+          ("url", "/licenses/by/", "cc_whitelist"), ("url", "publicdomain/zero", "public_domain")]
+    ctx = {"wl": wl, "regime_map": RM, "domains": {"general"}, "adapters": {"generic_json"},
            "probe_ok": {"arxiv_search"}, "tier_wired": False}
-    row_ok = ("arxiv_search", "general", "generic_json", 2, 100, 1000, None)
+    row_ok = ("arxiv_search", "general", "generic_json", 2, 100, 1000, None, None)
     chk("六謂詞全過=放行", judge_source(row_ok, ctx)[0])
-    chk("P1 未列白名單=不放", not judge_source(("x", "general", "generic_json", 2, 100, 1000, None), ctx)[0])
-    chk("P2 新域=不放", not judge_source(("arxiv_search", "newdom", "generic_json", 2, 100, 1000, None), ctx)[0])
-    chk("P4 無 probe=不放", not judge_source(("arxiv2", "general", "generic_json", 2, 100, 1000, None),
+    chk("P1 兩路皆空=不放", not judge_source(("x", "general", "generic_json", 2, 100, 1000, None, None), ctx)[0])
+    chk("P2 新域=不放", not judge_source(("arxiv_search", "newdom", "generic_json", 2, 100, 1000, None, None), ctx)[0])
+    chk("P4 無 probe=不放", not judge_source(("arxiv2", "general", "generic_json", 2, 100, 1000, None, None),
                                          {**ctx, "wl": [("arxiv%", "cc_whitelist")]})[0])
-    chk("P5 pace 未設=不放", not judge_source(("arxiv_search", "general", "generic_json", None, 100, 1000, None), ctx)[0])
+    chk("P5 pace 未設=不放", not judge_source(("arxiv_search", "general", "generic_json", None, 100, 1000, None, None), ctx)[0])
     chk("P5 est_scale 超限=不放",
-        not judge_source(("arxiv_search", "general", "generic_json", 2, 100, EST_SCALE_CAP + 1, None), ctx)[0])
+        not judge_source(("arxiv_search", "general", "generic_json", 2, 100, EST_SCALE_CAP + 1, None, None), ctx)[0])
     chk("P6 tier 未接=None 不擋", judge_source(row_ok, ctx)[1]["P6_tier"] is None)
-    chk("P6 接線後 T3 必人", not judge_source(("arxiv_search", "general", "generic_json", 2, 100, 10, "T3"),
+    chk("P6 接線後 T3 必人", not judge_source(("arxiv_search", "general", "generic_json", 2, 100, 10, "T3", None),
                                           {**ctx, "tier_wired": True})[0])
     chk("metadata_only 不在 P1 放行集(納入=規則 v2 人簽)", "metadata_only" not in P1_ALLOW)
+    # ── REGIME-MAP-v1 路乙(classify_licenses;hugo 核可 2026-07-28) ──
+    chk("map:CC0 名(R1)→public_domain", classify_licenses([{"name": "CC0"}], RM) == "public_domain")
+    chk("map:/licenses/by/ URL(R2)→cc_whitelist", classify_licenses(
+        [{"name": "CC BY 4.0", "url": "https://creativecommons.org/licenses/by/4.0/"}], RM) == "cc_whitelist")
+    chk("map:-nc 一票否決(R-X)", classify_licenses(
+        [{"name": "CC BY-NC 4.0", "url": "https://creativecommons.org/licenses/by-nc/4.0/"}], RM) is None)
+    chk("map:-nd URL 否決(R-X)", classify_licenses(
+        [{"name": "custom", "url": "https://x.org/licenses/by-nd/4.0/"}], RM) is None)
+    chk("map:多授權取最嚴(CC0+CC BY→cc_whitelist)", classify_licenses(
+        [{"name": "CC0"}, {"name": "y", "url": "https://c.org/licenses/by/4.0/"}], RM) == "cc_whitelist")
+    chk("map:任一未映射=fail-closed 人閘", classify_licenses(
+        [{"name": "CC0"}, {"name": "Custom EULA"}], RM) is None)
+    chk("map:空證據=None", classify_licenses([], RM) is None)
+    chk("map:整詞匹配防誤中('Google'≠OGL)", classify_licenses([{"name": "Google Terms"}], RM) is None)
+    chk("map:OGL-Canada 詞界仍中(R3)", classify_licenses([{"name": "OGL-Canada 2.0"}], RM) == "cc_whitelist")
+    j = judge_source(("re3data_r3d1", "general", "generic_json", 2, 100, 10, None,
+                      [{"name": "CC0"}]), ctx)[1]
+    chk("judge:路乙判入時 P1=True 且留痕 via=regime_map",
+        j["P1_license"] and j["_regime_via"] == "regime_map" and j["_regime"] == "public_domain")
+    chk("judge:路甲優先於路乙(白名單先問)", judge_source(
+        ("arxiv_search", "general", "generic_json", 2, 100, 10, None, [{"name": "CC0"}]),
+        ctx)[1]["_regime_via"] == "whitelist")
     import inspect
     src = inspect.getsource(run)
     chk("熔斷先於一切(breaker 在 run 首查)", src.index("breaker_tripped") < src.index("weekly_remaining"))

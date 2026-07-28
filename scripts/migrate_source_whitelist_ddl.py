@@ -49,6 +49,26 @@ CREATE TRIGGER src_wl_row BEFORE UPDATE OR DELETE ON source_license_whitelist
 DROP TRIGGER IF EXISTS src_wl_stmt ON source_license_whitelist;
 CREATE TRIGGER src_wl_stmt BEFORE TRUNCATE ON source_license_whitelist
     FOR EACH STATEMENT EXECUTE FUNCTION src_whitelist_guard();
+
+-- REGIME-MAP-v1(hugo 2026-07-28 核可):dataLicense 名/URL pattern → regime。
+-- 只收無歧義映射(public_domain/cc_whitelist);NC/ND 否決與「未映射=人閘」為 code 側邏輯(fail-closed)。
+CREATE TABLE IF NOT EXISTS license_regime_map (
+    map_id     SERIAL PRIMARY KEY,
+    kind       TEXT NOT NULL CHECK (kind IN ('name','url')),
+    pattern    TEXT NOT NULL,
+    regime     TEXT NOT NULL CHECK (regime IN ('public_domain','cc_whitelist')),
+    rule       TEXT NOT NULL,               -- R1..R4(簽核件條號)
+    citation   TEXT NOT NULL CHECK (btrim(citation) <> ''),
+    decided_by TEXT NOT NULL CHECK (btrim(decided_by) <> ''),
+    decided_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (kind, pattern)
+);
+DROP TRIGGER IF EXISTS lic_map_row ON license_regime_map;
+CREATE TRIGGER lic_map_row BEFORE UPDATE OR DELETE ON license_regime_map
+    FOR EACH ROW EXECUTE FUNCTION src_whitelist_guard();
+DROP TRIGGER IF EXISTS lic_map_stmt ON license_regime_map;
+CREATE TRIGGER lic_map_stmt BEFORE TRUNCATE ON license_regime_map
+    FOR EACH STATEMENT EXECUTE FUNCTION src_whitelist_guard();
 """
 
 
@@ -56,9 +76,11 @@ def apply(dry):
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT to_regclass('public.source_license_whitelist')")
         have = cur.fetchone()[0] is not None
-        cur.execute("SELECT count(*) FROM pg_trigger WHERE tgname LIKE 'src_wl%' AND NOT tgisinternal")
+        cur.execute("SELECT to_regclass('public.license_regime_map')")
+        have2 = cur.fetchone()[0] is not None
+        cur.execute("SELECT count(*) FROM pg_trigger WHERE (tgname LIKE 'src_wl%' OR tgname LIKE 'lic_map%') AND NOT tgisinternal")
         trigs = cur.fetchone()[0]
-        if have and trigs >= 2:
+        if have and have2 and trigs >= 4:
             print("✓ 表與誠實閘皆在——冪等跳過")
             return 0
         if dry:
@@ -96,8 +118,13 @@ def _selftest():
     chk("citation 禁空(license 判定須可核)", "btrim(citation) <> ''" in SQL)
     chk("decided_by 禁空(人核;AI 不代填)", "btrim(decided_by) <> ''" in SQL)
     chk("誠實閘:DELETE/TRUNCATE 拒+UPDATE 須 GUC", "遭誠實閘拒絕" in SQL and GUC in SQL)
-    chk("row+stmt 雙 trigger", SQL.count("CREATE TRIGGER") == 2)
+    chk("兩表各 row+stmt 雙 trigger(共 4)", SQL.count("CREATE TRIGGER") == 4)
     chk("冪等", "IF NOT EXISTS" in SQL and "DROP TRIGGER IF EXISTS" in SQL)
+    chk("REGIME-MAP 表:regime 僅二值(無歧義映射;metadata_only/owned_local 不在此表)",
+        "regime IN ('public_domain','cc_whitelist')" in SQL)
+    chk("REGIME-MAP 表:kind ∈ name|url+UNIQUE(kind,pattern)",
+        "kind IN ('name','url')" in SQL and "UNIQUE (kind, pattern)" in SQL)
+    chk("REGIME-MAP 同閘(UPDATE 須 GUC/DELETE 拒)", "lic_map_row" in SQL and "lic_map_stmt" in SQL)
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 
