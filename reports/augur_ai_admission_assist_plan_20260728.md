@@ -1,10 +1,13 @@
 # 本地 AI 入庫預審協助（ADM-AI-ASSIST）— 建議／打分／排隊，approve／activate 唯人
 
-> **性質**：[I] 短計畫（#20 計畫先行；本輪**零實作**）  
+> **性質**：[I] 短計畫（#20 計畫先行）  
 > **日期**：2026-07-28  
 > **觸發**：Steward「如何由本地 AI 最佳化自我判定入庫」＋定錨「approve／activate 仍應唯人」  
 > **位階**：執行層／工具記憶；**不改** [N]；零 FinMind／FRED  
-> **建議拍板碼**：`ADM-AI-ASSIST-PLAN`（拍板＝可開 S0 設計＋DDL 草案；**≠**授權 AI 改審批態）
+> **Steward 拍板**：✅ **`ADM-AI-ASSIST-PLAN`**（2026-07-28）＋預設同掛 **`FZ-keep`**  
+> **效力**：採納 L1→L2（建議／打分／audit）→L3 唯人；開 **S0–S1**（DDL＋預審；預設 dry-run）；**硬禁** AI／timer 執行 approve／activate  
+> **登錄**：`audits/ADM-AI-ASSIST-PLAN-APPROVED-20260728.md` · 收官＝`audits/ADM-AI-ASSIST-S01-CLOSED-20260728.md`  
+> **S0 schema 定案**：**選項 C**＝`knowledge_admission_assist`（source／staging 共用帳本）
 
 ---
 
@@ -107,8 +110,8 @@
 
 | 階段 | 內容 | 驗收 | 停損 |
 |---|---|---|---|
-| **S0** | 拍板本檔＋定 schema 選項 A/B/C；live 池量補測（proposed／pending） | 拍板碼＋選項一字 | 未拍零 DDL |
-| **S1** | DDL＋`assist_admission_review.py` dry-run／selftest（禁 HUMAN_ONLY 紅） | selftest 綠；dry 產出分數樣本 | — |
+| **S0** | 拍板本檔＋定 schema 選項 A/B/C；live 池量補測（proposed／pending） | ✅ 選項 **C**；proposed≈3504／pending_staging≈18722（2026-07-28） | 未拍零 DDL |
+| **S1** | DDL＋`assist_admission_review.py` dry-run／selftest（禁 HUMAN_ONLY 紅） | ✅ selftest 綠；dry 分數樣本（見 CLOSED） | — |
 | **S2** | 有界 `--apply --limit`＋gov 唯讀建議列 | 抽核 20：人與建議方向一致≥閾值（另定） | 兩輪不過→關 timer、分數降級展示 |
 | **S3** | timer＋人裁工作流（copy-ready／可選一鍵仍走 TTY 身分） | 零次 AI 觸發 approve／activate（audit 掃描） | 任一違規→全域暫停 assist |
 
