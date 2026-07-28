@@ -1,26 +1,26 @@
 {
   "mcpServers": {
     "constitution": {
-      "command": "python3",
-      "args": ["-m", "tools.constitution_mcp"]
+      "command": "bash",
+      "args": ["tools/run_constitution_mcp.sh"]
     },
     "local-llm": {
-      "command": "python3",
-      "args": ["-m", "tools.local_llm_mcp"],
+      "command": "bash",
+      "args": ["tools/run_local_llm_mcp.sh"],
       "env": {
         "OLLAMA_URL": "http://127.0.0.1:11434",
-        "LLM_MODEL": "qwen3:4b",
-        "OLLAMA_NUM_CTX": "4096",
         "OLLAMA_TEMPERATURE": "0",
+        "OLLAMA_NUM_CTX": "4096",
         "OLLAMA_KEEP_ALIVE": "30s"
       }
     },
     "project-memory": {
-      "command": "python3",
-      "args": ["-m", "tools.project_memory_mcp"],
+      "command": "bash",
+      "args": ["tools/run_project_memory_mcp.sh"],
       "env": {
         "OLLAMA_URL": "http://127.0.0.1:11434",
-        "EMBED_MODEL": "nomic-embed-text"
+        "EMBED_MODEL": "nomic-embed-text",
+        "EMBED_TIMEOUT_S": "180"
       }
     }
   }
