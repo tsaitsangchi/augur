@@ -121,6 +121,25 @@ def build(days, md):
         if len(rows) > 20:
             L.append(f"  …另 {len(rows)-20} 筆(全量查 evolution_apply_log)")
 
+        h1(f"本週自動審批(SRC-AUTO;近 {days} 日;P5.W5 掃視認領)")
+        cur.execute("""SELECT created_at, source_key, reason FROM knowledge_source_review_log
+                       WHERE actor='auto_rules_v1' AND action='approve'
+                         AND created_at > now() - make_interval(days => %s)
+                       ORDER BY review_id DESC""", (days,))
+        arows = cur.fetchall()
+        L.append(f"  自動批 {len(arows)} 源" + ("" if arows else "(無)"))
+        for ts, k, _ in arows[:20]:
+            L.append(f"  · {ts:%m-%d %H:%M} {k}(留痕=逐謂詞 JSON,查 review_log)")
+        if len(arows) > 20:
+            L.append(f"  …另 {len(arows)-20} 筆")
+        n_susp = _one(cur, """SELECT count(*) FROM knowledge_source s
+            WHERE s.approval_status='suspended' AND EXISTS (
+              SELECT 1 FROM knowledge_source_review_log l
+              WHERE l.source_key=s.source_key AND l.actor='auto_rules_v1'
+                AND l.action='approve')""") or 0
+        if n_susp:
+            L.append(f"  ⛔ 熔斷中:{n_susp} 個自動批源被 suspend——自動批全域暫停待人查(SRC-AUTO §二)")
+
         h1("待你裁決(awaiting_hugo)")
         n_q = _one(cur, "SELECT count(*) FROM steward_question_ledger WHERE status='awaiting_hugo'") or 0
         L.append(f"  提問帳本 awaiting_hugo:{n_q} 題")
