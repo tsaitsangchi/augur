@@ -205,6 +205,55 @@ def _checks(cur):
     add("A12", "週儀表對 DB 零寫入且第一行為 V2-SUNSET",
         "PASS" if src and not writes and 'L.append(f"# V2-SUNSET' in src else "FAIL",
         f"儀表存在={bool(src)}、SQL 含寫入={writes}")
+
+    # A13=A′ 能力判準(EVALSET-V2 預註冊;audits/V2-RUBRIC-GO-20260728.md §七)——
+    # 任一**受測臂**於任一 capability 格 evidence_level ≥ weak(嚴格勝 floor∧mismatched∧robot),
+    # 且同臂同格 **≥2 個獨立 run 皆成立**。⚠ 語意=**成就判準非不變式**:未達成回 N/A(誠實未達),
+    # **永不回 FAIL**——「還沒變強」不是違規,把它記紅會逼出 Goodhart。
+    from collections import defaultdict
+    from augur.audit.evidence_protocol import evidence_level
+    CTRL = ("ceiling", "floor", "shuffled", "mismatched", "robot")
+    cur.execute("""SELECT DISTINCT set_id FROM local_model_eval_item
+        WHERE expect->>'cell_class'='capability'""")
+    v2_sets = [r[0] for r in cur.fetchall()]
+    ap_verdict, ap_ev = "N/A", "尚無 capability 格之凍結集"
+    if v2_sets:
+        cur.execute("""SELECT set_id, eval_code_hash, arm, detail FROM local_model_eval_run
+            WHERE set_id = ANY(%s) AND NOT is_invalid""", (v2_sets,))
+        cell = defaultdict(lambda: defaultdict(list))   # (sid,hash)->arm->[逐run之{cell:score}]
+        for sid, ch, arm, d in cur.fetchall():
+            per = defaultdict(list)
+            for it in (d or {}).get("per_item", []):
+                if it.get("f") is not None:
+                    per[it["layer"]].append(it["f"])
+            cell[(sid, ch)][arm].append({k: sum(v) / len(v) for k, v in per.items()})
+        wins, n_live_runs = [], 0
+        for scale, arms in cell.items():
+            ctrl0 = {a: (arms[a][-1] if arms.get(a) else {}) for a in CTRL}
+            if not all(arms.get(a) for a in ("floor", "mismatched", "robot")):
+                continue                                    # 缺對照=不可判(非通過)
+            for arm, runs in arms.items():
+                if arm in CTRL:
+                    continue
+                n_live_runs += len(runs)
+                cells = set().union(*[set(r) for r in runs])
+                for cname in cells:
+                    ok_runs = [r for r in runs if cname in r and evidence_level(
+                        {"ceiling": ctrl0["ceiling"].get(cname), "floor": ctrl0["floor"].get(cname),
+                         "shuffled": ctrl0["shuffled"].get(cname),
+                         "mismatched": ctrl0["mismatched"].get(cname),
+                         "robot": ctrl0["robot"].get(cname), "live": r[cname]})
+                        in ("weak", "scoped_established")]
+                    if len(ok_runs) >= 2:
+                        wins.append(f"{arm}@{cname}({len(ok_runs)} run)")
+        if wins:
+            ap_verdict, ap_ev = "PASS", f"**A′ 達成**:{wins}"
+        elif n_live_runs:
+            ap_verdict, ap_ev = "N/A", f"未達成(非違規):受測 run={n_live_runs},無 (臂,格) 有 ≥2 run ≥weak"
+        else:
+            ap_verdict, ap_ev = "N/A", "v2 集尚無有效受測 run(批跑進行中)"
+    add("A13", "A′:任一受測臂於能力格 ≥weak(勝 floor∧mismatched∧robot)且 ≥2 run 複現",
+        ap_verdict, ap_ev)
     return out
 
 
@@ -214,7 +263,7 @@ def run(only):
     if only:
         rows = [r for r in rows if r[0] in set(only)]
     n = {"PASS": 0, "FAIL": 0, "N/A": 0}
-    print("── 三軸驗收 A0–A12(v2 §7;唯讀) ──")
+    print("── 三軸驗收 A0–A13(v2 §7+A′;唯讀) ──")
     for code, desc, verdict, ev in rows:
         n[verdict] = n.get(verdict, 0) + 1
         mark = {"PASS": "✓", "FAIL": "✗", "N/A": "○"}[verdict]
