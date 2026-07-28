@@ -107,3 +107,11 @@
 | 5.1 Phase 5 契約落地 | ✅ | pytest 8 條（含 live DB 層）＋`validate_evolution_contract --scan` rc=0。寫測試時自撞兩個靜默 skip（env 變數名當旗標、`db.connect().__enter__()` 之 CM 被 GC）並修正 |
 
 **尚待臂收尾者（Ollama 車道序列化）**：1.1 LLM 三臂 → 1.2 判準 A 判讀／SUNSET(c) → 2.1 `--model` 旗標（**跑中不得改碼**，會動 `eval_code_hash`）→ 2.2 8b 三臂 → 2.3 P-A 判定 → 2.4 RUBRIC v2 換尺；另 `eval_local_model` 應接 heavy_slot（現走 flock，driver 看不見臂在跑）。
+
+## 十、D2 實記（2026-07-28；只記已驗證者）
+
+- **判準層兩案落地**：`V2-RUBRIC-go`（換尺四件＋robot 第五臂；舊尺判準 A 經對抗驗證證偽後退史料）＋`SUNSET-C-align`（(c) 逐字對齊凍結原文→誠實 ⬜）。2.4 RUBRIC 換尺**以 EVALSET-V2 超額完成**：`EVALSET-V2-go` 凍結 v2 集 `4e15a143ff4b`（132 題、對照孿生五格、zh↔en 能力格；P2 官方閘 robot/floor=0.500=盲策略上界）；孿生尺 `aeff01c18ace`。A13=A′ 接線（成就判準，永不 FAIL）。
+- **整合邊收官**：F 邊三塊全收（F3 評估：embed_cache 不採其形採其神，SOP-A 去重可省 21.7%）；G 邊完（G1 驗收＋G3 → `authority_tier` 提案，71 源逐源表待人核）；P-D digest 頁上線（console 批 hint）；P-B probe 礦工（9 則 decline 候選）；H2 advisor 半條線接通（執行待批後）。
+- **燃料線誠實修正**：hint→map **自動晉升＝違憲**（direction/principle_id NOT NULL＝有向假說憲政；I0 人＋文獻）→ 落策展佇列橋 `report_hint_curation_queue.py`。候選值 builder 需逐欄 as-of 防漏設計（revenue 發布 gate 15 日等），另篇。今晚 TWEVO r04 將 `stopped_no_gain`＝停損正確運作（R5 重啟人裁）。
+- **qledger v3**：終端貼文/指令不論長度＝片段；pending→**6 題真開**、佇列 304→208。漂移哨兵擴 v2 孿生格（132/132 零漂移）。
+- **批跑**：舊集 behavior 已收（119/120、1 題被 8b 測試撞成 INVALID，自癒尾段補）；S-5 表＋A′ 首判待批收。
