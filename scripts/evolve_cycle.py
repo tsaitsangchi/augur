@@ -351,8 +351,17 @@ def cycle(do_eval=True):
             conn.commit()
             print(f"④ eval(held-out n={len(heldout)}): pack-on={res['eval']['score_with_pack']} "
                   f"vs off={res['eval']['score_without']}")
-        print(f"\n晉升永遠人閘——hugo 檢視後親跑:\n  psql: UPDATE local_model_version SET status='serving',"
-              f" promoted_by='hugo', promoted_at=now() WHERE version_id='{vid}';")
+        # 濾終態(2026-07-28「都做」②):教材未變→pack hash 冪等重現同 vid;若該 vid 已被 hugo 判
+        # retired/superseded,重印晉升 SQL=誘導把判死 pack 復活(鐘擺自帶權威口吻),故印前查現態。
+        cur.execute("SELECT status FROM local_model_version WHERE version_id=%s", (vid,))
+        _st = (cur.fetchone() or ["?"])[0]
+        if _st == "candidate":
+            print(f"\n晉升永遠人閘——hugo 檢視後親跑:\n  psql: UPDATE local_model_version SET status='serving',"
+                  f" promoted_by='hugo', promoted_at=now() WHERE version_id='{vid}';")
+        elif _st == "serving":
+            print(f"\n候選 {vid}=現役 serving,無晉升事宜")
+        else:
+            print(f"\n候選 {vid} 已判 {_st}(人閘既決)——**不建議晉升**;教材未變故冪等重現,新材料才產新候選")
         _export_serving_pack(cur)
         conn.commit()
     return 0
