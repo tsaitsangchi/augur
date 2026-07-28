@@ -67,12 +67,36 @@ def sanitize_relpath(name):
     return os.path.join(*parts) if parts else None
 
 
-def save_upload(files):
-    """落 ~/.augur_uploads/<token>/(保夾結構、去逃逸、per-file 大小上限)。回 {updir, saved, big, bad}。"""
+def new_upload_dir():
+    """開新暫存夾 ~/.augur_uploads/<token>/（分批上傳／進度匯入用）。"""
     updir = os.path.join(UPLOAD_ROOT, secrets.token_hex(8))
     os.makedirs(updir, exist_ok=True)
-    root_abs = os.path.realpath(UPLOAD_ROOT) + os.sep
+    return updir
+
+
+def _upload_root_abs():
+    return os.path.realpath(UPLOAD_ROOT) + os.sep
+
+
+def safe_updir(updir):
+    """圍欄:updir 須為 UPLOAD_ROOT 下既有目錄(#5 拒 traversal)。回 realpath 或 None。"""
+    if not updir:
+        return None
+    root_abs = _upload_root_abs()
+    rp = os.path.realpath(updir)
+    if not (rp.startswith(root_abs) and os.path.isdir(rp)):
+        return None
+    return rp
+
+
+def append_upload(updir, files):
+    """把檔案追加寫入既有暫存夾(保夾結構、去逃逸、per-file 大小上限)。
+    回 {updir, saved, big, bad}；updir 非法則 saved=0 且 bad+=len(files)。"""
+    root_abs = _upload_root_abs()
+    safe = safe_updir(updir)
     saved = big = bad = 0
+    if not safe:
+        return {"updir": updir, "saved": 0, "big": 0, "bad": len(files or [])}
     for filename, body in files:
         if len(body) > fileparse.MAX_BYTES:
             big += 1
@@ -81,7 +105,7 @@ def save_upload(files):
         if not rel:
             bad += 1
             continue
-        dest = os.path.join(updir, rel)
+        dest = os.path.join(safe, rel)
         if not os.path.realpath(dest).startswith(root_abs):   # 再核一次不逃逸
             bad += 1
             continue
@@ -89,7 +113,15 @@ def save_upload(files):
         with open(dest, "wb") as f:
             f.write(body)
         saved += 1
-    return {"updir": updir, "saved": saved, "big": big, "bad": bad}
+    return {"updir": safe, "saved": saved, "big": big, "bad": bad}
+
+
+def save_upload(files):
+    """落 ~/.augur_uploads/<token>/(保夾結構、去逃逸、per-file 大小上限)。回 {updir, saved, big, bad}。"""
+    updir = new_upload_dir()
+    r = append_upload(updir, files)
+    r["updir"] = updir
+    return r
 
 
 def extract_texts(files):
@@ -151,6 +183,9 @@ def _selftest():
     # 常數結構斷言(SCOPES 對映 access_scope、LICENSES 承 corpus SSOT)
     chk("SCOPES 含 public/local_private", set(SCOPES) == {"public", "local_private"})
     chk("LICENSES 非空", isinstance(LICENSES, (tuple, list)) and len(LICENSES) > 0)
+    # safe_updir:空／逃逸／非目錄 → None(分批上傳 job 圍欄)
+    chk("safe_updir 空 → None", safe_updir("") is None)
+    chk("safe_updir 逃逸 → None", safe_updir("/tmp") is None)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

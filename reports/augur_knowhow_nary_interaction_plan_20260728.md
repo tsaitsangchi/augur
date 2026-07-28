@@ -16,11 +16,11 @@
 | 欄 | 內容 |
 |---|---|
 | **日期** | 2026-07-28 |
-| **狀態** | ⏳ 待拍 |
-| **建議拍板碼** | `KNI-PLAN`＋`KNI-S01`＋`RKI-keep`＋`NHC-keep`＋`FZ-keep` |
-| **效力** | 採納 n 元交互藍圖；開工 **S0 schema 擴 arity**（＋可選種子列設計）；**不解凍** API；**不**推翻 RKI S01；**不**暗開 `PME-XDOM-SOLAR`；禁三元專支／寫死答案樹 |
-| **本輪不做** | 入憲；放量 harvest；大規模 runner 新實作（除非拍板後依 S0／S1 逐步） |
-| **留痕** | 本檔；拍板後另開 `audits/KNI-PLAN-APPROVED-YYYYMMDD.md` |
+| **狀態** | ✅ **已拍並執行 S01**（`KNI-PLAN`＋`KNI-S01`＋`RKI-keep`＋`NHC-keep`＋`FZ-keep`） |
+| **拍板碼** | `KNI-PLAN`＋`KNI-S01`＋`RKI-keep`＋`NHC-keep`＋`FZ-keep` |
+| **效力** | 採納 n 元交互藍圖；**已**開工 S0＋S1（schema `arity`／`axes`＋升格 `RKI-FP-AI-SOLAR` arity=3）；**不解凍** API；**不**推翻 RKI S01；**不**暗開 `PME-XDOM-SOLAR`；禁三元專支／寫死答案樹 |
+| **本輪不做** | 入憲；放量 harvest；**`KNI-S2`／`KNI-S3`／`KNI-S4` 待另令**；≠自動 `PME-XDOM-SOLAR` |
+| **留痕** | 本檔；`audits/KNI-PLAN-APPROVED-20260728.md`；`audits/KNI-S01-CLOSED-20260728.md` |
 
 ---
 
@@ -284,7 +284,7 @@ KNI-PLAN + KNI-S01 + KNI-S2 + RKI-keep + NHC-keep + FZ-keep
 | **三元範圍一句** | 方法論＝所有 KHⁿ（n≥3，種子起自第一性×AI×太陽能研發技術核心）；實作＝擴探針表 `arity`／`axes[]`＋INSERT，相容 RKI 二元 |
 | **建議拍板** | `KNI-PLAN`＋`KNI-S01`＋`RKI-keep`＋`NHC-keep`＋`FZ-keep` |
 | **探針對齊** | `RKI-FP-AI-SOLAR`＝三元語意承載（待升 arity）；`RKI-AI-SOLAR-RD`＝缺第一性之二元對照 |
-| **本輪** | ✅ 計畫已寫；✅ 原題 advise 一例（附錄 A）；❌ 未入憲；❌ 未放量 harvest；❌ 未開 PME-SOLAR |
+| **本輪** | ✅ 計畫已寫；✅ 原題 advise 一例（附錄 A）；✅ **S01 已執行**（arity／axes＋升格 FP-AI-SOLAR）；❌ 未入憲；❌ 未放量 harvest；❌ 未開 PME-SOLAR；❌ **KNI-S2／S3 待另令** |
 
 ---
 
@@ -308,3 +308,4 @@ KNI-PLAN + KNI-S01 + KNI-S2 + RKI-keep + NHC-keep + FZ-keep
 | 日期 | 說明 |
 |---|---|
 | 2026-07-28 | 初版：n 元（≥3）相容擴充 RKI；種子三元＝第一性×AI×太陽能；拍板碼 KNI-*；附錄 A advise 缺料 |
+| 2026-07-28 | Steward 拍板 `KNI-PLAN`＋`KNI-S01`＋三 keep；S01 CLOSED（升格 `RKI-FP-AI-SOLAR` arity=3） |
