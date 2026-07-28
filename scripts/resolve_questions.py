@@ -117,6 +117,67 @@ def solve(limit):
     return 0
 
 
+ADVISOR_URL = "http://127.0.0.1:8399/v1/chat/completions"
+ADVISOR_TIMEOUT = 1800          # 慢可以、答案要準(hugo 07-27 指導;advisor think tier 可達 2400s)
+DECLINE_RE = re.compile(r"知識庫中無此內容|查無|無相關內容")
+LLM_LOCK = "/tmp/augur_llm.lock"
+
+
+def solve_knowledge(limit, dry):
+    """knowledge 題 → advisor(8399,經 guard 鏈)——INTEG-H2 之另半條線(原僅 docstring)。
+
+    誠實三態:①實答 → auto_resolved,resolution_ref 存 advisor 全答(截 1800 字;答案唯出 advisor,
+    本支零生成=不假裝)②誠實拒答 → **awaiting_hugo**(機器答不了=升人,不無限重試)③連線/逾時
+    → 保持 pending(誠實記錯不改狀態)。每題經 flock(Ollama 單槽,與評測臂/cron 序列化;
+    advisor 用 qwen3:8b=重活,**只在批跑空檔執行**)。"""
+    import fcntl
+    import json as _json
+    import os
+    import urllib.request
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("""SELECT qid, question FROM steward_question_ledger
+            WHERE status='pending' AND triage='knowledge' ORDER BY qid LIMIT %s""", (limit,))
+        rows = cur.fetchall()
+    if dry:
+        print(f"  [dry] 將送 advisor {len(rows)} 題:")
+        for qid, q in rows:
+            print(f"    q{qid}: {' '.join(q.split())[:70]}")
+        return 0
+    secret = os.environ.get("AUGUR_INTERNAL_SECRET", "")
+    n_ok = n_dec = n_err = 0
+    for qid, q in rows:
+        body = _json.dumps({"model": "augur-advisor",
+                            "messages": [{"role": "user", "content": q}]}).encode()
+        req = urllib.request.Request(ADVISOR_URL, body,
+                                     {"Content-Type": "application/json",
+                                      **({"X-Augur-Internal": secret} if secret else {})})
+        with open(LLM_LOCK, "w") as lk:                    # Ollama 單槽禮讓(阻塞等,與臂序列化)
+            fcntl.flock(lk, fcntl.LOCK_EX)
+            try:
+                with urllib.request.urlopen(req, timeout=ADVISOR_TIMEOUT) as r:
+                    ans = _json.loads(r.read())["choices"][0]["message"]["content"]
+            except Exception as ex:  # noqa: BLE001  連線/逾時:誠實記錯、狀態不動(可重試)
+                print(f"  q{qid}: ✗ {type(ex).__name__}(保持 pending)")
+                n_err += 1
+                continue
+            finally:
+                fcntl.flock(lk, fcntl.LOCK_UN)
+        declined = bool(DECLINE_RE.search(ans or ""))
+        st = "awaiting_hugo" if declined else "auto_resolved"
+        ref = ("advisor_declined:誠實拒答(知識庫無內容)→升人" if declined
+               else f"advisor[qwen3:8b]:{' '.join((ans or '').split())[:1800]}")
+        with db.connect() as conn, db.transaction(conn) as cur:
+            cur.execute("""UPDATE steward_question_ledger SET status=%s, resolution_ref=%s,
+                resolved_by='advisor', resolved_at=now() WHERE qid=%s AND status='pending'""",
+                (st, ref, qid))
+            conn.commit()
+        n_dec += declined
+        n_ok += (not declined)
+        print(f"  q{qid}: {'誠實拒答→awaiting_hugo' if declined else '已答(auto_resolved)'}")
+    print(f"  合計:實答 {n_ok}、拒答升人 {n_dec}、錯誤保持 pending {n_err}(答案唯出 advisor,零本支生成)")
+    return 0
+
+
 def status():
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("""SELECT status||coalesce('/'||triage,''), count(*)
@@ -153,6 +214,8 @@ def main():
     ap = argparse.ArgumentParser(add_help=True)
     ap.add_argument("--classify", action="store_true")
     ap.add_argument("--solve", action="store_true")
+    ap.add_argument("--solve-knowledge", action="store_true",
+                    help="knowledge 題→advisor(8b 重活;批跑空檔才跑,每題 flock 禮讓)")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--limit", type=int)
     ap.add_argument("--selftest", action="store_true")
@@ -163,6 +226,8 @@ def main():
         return classify(a.dry_run, a.limit)
     if a.solve:
         return solve(a.limit or 3)
+    if a.solve_knowledge:
+        return solve_knowledge(a.limit or 16, a.dry_run)
     print((__doc__ or "").strip())
     print()
     return status()
