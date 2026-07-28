@@ -25,6 +25,8 @@ from pathlib import Path
 
 import _bootstrap  # noqa: F401
 
+from augur.knowledge import kh4
+
 SCRIPTS = Path(__file__).resolve().parent
 PY = sys.executable
 
@@ -199,6 +201,11 @@ def main(argv=None):
             if r.returncode != 0:
                 print(f"✗ {name} exit={r.returncode}", file=sys.stderr)
                 return r.returncode
+    if args.apply:
+        from augur.core import db
+        with db.connect() as conn, db.transaction(conn) as cur:
+            n = kh4.refresh_items(cur, limit=args.limit)
+        print(f"KH4 refresh → {n} item")
     if args.dry_run:
         print("dry-run 完畢（零執行）。")
     else:

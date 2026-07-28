@@ -250,7 +250,8 @@ _ITEM_COLS = """s.sent_id, s.itext_id, i.item_id, COALESCE(i.title_zh, i.title),
            i.entity_type, s.char_start, s.char_end, x.source_url, x.license, s.sentence"""
 _ITEM_JOIN = """FROM knowledge_sentence s
         JOIN knowledge_item_text x ON x.itext_id = s.itext_id
-        JOIN knowledge_item i ON i.item_id = x.item_id"""
+        JOIN knowledge_item i ON i.item_id = x.item_id
+        JOIN knowledge_kh4_state k4 ON k4.item_id = i.item_id"""
 
 
 def _guess_language(text):
@@ -289,7 +290,7 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
         extra += " AND s.language = %s"; extra_params.append(language)
     out = []
     with db.connect() as conn, db.transaction(conn) as cur:
-        if not _tables_exist(cur, "knowledge_item", "knowledge_item_text", "knowledge_sentence"):
+        if not _tables_exist(cur, "knowledge_item", "knowledge_item_text", "knowledge_sentence", "knowledge_kh4_state"):
             return []
         terms = list({t for t, _ in textnorm.tokenize(query, language or _guess_language(query))})
         if terms and _tables_exist(cur, "knowledge_concordance"):
@@ -298,12 +299,13 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
                 JOIN knowledge_sentence s ON s.sent_id = c.sent_id
                 JOIN knowledge_item_text x ON x.itext_id = s.itext_id
                 JOIN knowledge_item i ON i.item_id = x.item_id
-                WHERE c.term = ANY(%s) AND {cfrag}{extra}
+                JOIN knowledge_kh4_state k4 ON k4.item_id = i.item_id
+                WHERE c.term = ANY(%s) AND {cfrag}{extra} AND k4.answer_status = 'eligible'
                 GROUP BY c.sent_id ORDER BY n DESC, c.sent_id LIMIT %s""",
                         (terms, *cparams, *extra_params, k))
             scores = {sid: n / len(terms) for sid, n in cur.fetchall()}
             if scores:
-                out = _item_citations(cur, f"s.sent_id = ANY(%s) AND {cfrag}",
+                out = _item_citations(cur, f"s.sent_id = ANY(%s) AND {cfrag} AND k4.answer_status = 'eligible'",
                                       (list(scores), *cparams), "s.sent_id", scores, "exact")
                 out.sort(key=lambda c: (-c.score, c.sent_id))
         need = k - len(out)
@@ -348,7 +350,7 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
                 cur.execute(f"""SELECT {_ITEM_COLS}, 1 - (e.embedding <=> %s::vector) AS score
                     {_ITEM_JOIN}
                     JOIN knowledge_sentence_embedding e ON e.sent_id = s.sent_id
-                    WHERE e.model_tag = %s AND {cfrag}{extra}{dedup}
+                    WHERE e.model_tag = %s AND {cfrag}{extra}{dedup} AND k4.answer_status = 'eligible'
                     ORDER BY e.embedding <=> %s::vector LIMIT %s""",
                             (qv, embedspec.MODEL_TAG, *cparams, *extra_params, *([seen] if seen else []), qv, need))
                 for r in cur.fetchall():

@@ -28,7 +28,7 @@ import sys
 
 import _bootstrap  # noqa: F401
 from augur.core import db
-from augur.knowledge import admission, corpus, fileparse
+from augur.knowledge import admission, corpus, fileparse, import_qualification, kh4
 
 SEG_CHARS = 8000
 MIN_CHARS = 50            # 抽出總長 < 此=殘片,不入庫(仿 fetch_oa_fulltext)
@@ -58,6 +58,7 @@ def ingest_file(cur, path, *, license, access_scope, domain, source_key, source_
     cur.execute("SELECT item_id FROM knowledge_item WHERE entity_type='document' AND external_id=%s", (ext_id,))
     row = cur.fetchone()
     if row:
+        kh4.refresh_items(cur, item_ids=[row[0]])
         return row[0], 0, "dup"                    # 內容 sha1 已在(跨本機/SFTP 通道去重於 item 層)
     cur.execute("INSERT INTO knowledge_item (domain, entity_type, title, external_id, url, source_key) "
                 "VALUES (%s,'document',%s,%s,%s,%s) RETURNING item_id",
@@ -73,6 +74,7 @@ def ingest_file(cur, path, *, license, access_scope, domain, source_key, source_
                      license, source_type, access_scope,
                      owner_user_id if access_scope == "local_private" else None))
         n += 1
+    kh4.refresh_items(cur, item_ids=[item_id])
     return item_id, n, "ok"
 
 
@@ -139,45 +141,112 @@ def main():
         if not os.path.isdir(root):
             sys.exit(f"非資料夾:{root}")
 
-        stats = {"scanned": 0, "ok": 0, "dup": 0, "short": 0, "rows": 0}
+        stats = {"scanned": 0, "ok": 0, "dup": 0, "short": 0, "rows": 0, "fail": 0}
         skips = {}
         paths = []
         for dirpath, _dirnames, filenames in os.walk(root, followlinks=False):
             for fn in filenames:
                 paths.append(os.path.join(dirpath, fn))
         total = len(paths)
+        with db.transaction(conn) as cur:
+            job_id = import_qualification.create_job(
+                cur,
+                channel="local_files",
+                source_key=args.source_key,
+                root_path=root,
+                license=license,
+                access_scope=access_scope,
+                domain=domain,
+                owner_user_id=args.owner_user_id if access_scope == "local_private" else None,
+                is_dry_run=args.dry_run,
+            )
+            import_qualification.set_job_total(cur, job_id, total)
         print(f"[progress] 0/{total} phase=scan", flush=True)
-        for i, path in enumerate(paths, 1):
-            rel = os.path.relpath(path, root)
-            stats["scanned"] += 1
-            if args.dry_run:                       # 掃描預覽:試抽取判可入否、不寫
-                text, reason = fileparse.extract_text(path)
-                if text is None:
-                    skips[reason] = skips.get(reason, 0) + 1
-                    status = "skip:" + reason
-                elif len(text.strip()) < MIN_CHARS:
+        job_status = "completed"
+        try:
+            for i, path in enumerate(paths, 1):
+                rel = os.path.relpath(path, root)
+                stats["scanned"] += 1
+                with db.transaction(conn) as cur:
+                    qid = import_qualification.create_qualification(cur, job_id=job_id, abs_path=path, rel_path=rel)
+                    pf = import_qualification.preflight(path, min_chars=MIN_CHARS)
+                    import_qualification.mark_preflight(cur, qid, pf)
+                    if args.dry_run:                       # 掃描預覽:試抽取判可入否、仍寫 qualification
+                        import_qualification.mark_dry_run(cur, qid)
+                        if pf["verdict"] == import_qualification.VERDICT_REJECT:
+                            if pf["reason_code"] == import_qualification.REASON_TOO_SHORT:
+                                stats["short"] += 1
+                                status = "short"
+                            else:
+                                reason = pf["extract_reason"] or "other"
+                                skips[reason] = skips.get(reason, 0) + 1
+                                status = "skip:" + reason
+                        else:
+                            stats["ok"] += 1
+                            status = "ok"
+                        print(f"[progress] {i}/{total} file={rel} status={status}", flush=True)
+                        continue
+                    if pf["verdict"] == import_qualification.VERDICT_REJECT:
+                        if pf["reason_code"] == import_qualification.REASON_TOO_SHORT:
+                            import_qualification.mark_ingest(cur, qid, ingest_status="short",
+                                                             item_id=None, segment_rows=0,
+                                                             reason_code=import_qualification.REASON_TOO_SHORT)
+                            status = "short"
+                        else:
+                            reason = pf["extract_reason"] or "other"
+                            import_qualification.mark_ingest(
+                                cur, qid, ingest_status="skipped", item_id=None, segment_rows=0,
+                                reason_code=import_qualification.SKIP_REASON_MAP.get(
+                                    reason, import_qualification.REASON_SKIP_OTHER))
+                            status = "skip:" + reason
+                        n = 0
+                        item_id = None
+                    else:
+                        item_id, n, status = ingest_file(
+                            cur, path, license=license, access_scope=access_scope, domain=domain,
+                            source_key=args.source_key, source_type=args.source_type,
+                            owner_user_id=args.owner_user_id)
+                        if status == "ok":
+                            import_qualification.mark_ingest(cur, qid, ingest_status="inserted",
+                                                             item_id=item_id, segment_rows=n)
+                        elif status == "dup":
+                            import_qualification.mark_ingest(cur, qid, ingest_status="duplicate",
+                                                             item_id=item_id, segment_rows=0,
+                                                             reason_code=import_qualification.REASON_DUPLICATE_CONTENT)
+                        elif status == "short":
+                            import_qualification.mark_ingest(cur, qid, ingest_status="short",
+                                                             item_id=None, segment_rows=0,
+                                                             reason_code=import_qualification.REASON_TOO_SHORT)
+                        else:
+                            reason = status.split(":", 1)[1]
+                            import_qualification.mark_ingest(
+                                cur, qid, ingest_status="skipped", item_id=None, segment_rows=0,
+                                reason_code=import_qualification.SKIP_REASON_MAP.get(
+                                    reason, import_qualification.REASON_SKIP_OTHER))
+                if status == "ok":
+                    stats["ok"] += 1; stats["rows"] += n
+                elif status == "dup":
+                    stats["dup"] += 1
+                elif status == "short":
                     stats["short"] += 1
-                    status = "short"
-                else:
-                    stats["ok"] += 1
-                    status = "ok"
+                else:                                   # skip:<reason>
+                    r = status.split(":", 1)[1]
+                    skips[r] = skips.get(r, 0) + 1
                 print(f"[progress] {i}/{total} file={rel} status={status}", flush=True)
-                continue
-            with db.transaction(conn) as cur:      # 逐檔 commit(#6 resume);ingest_file 內 sha1 冪等(#12 單一入庫)
-                item_id, n, status = ingest_file(
-                    cur, path, license=license, access_scope=access_scope, domain=domain,
-                    source_key=args.source_key, source_type=args.source_type,
-                    owner_user_id=args.owner_user_id)
-            if status == "ok":
-                stats["ok"] += 1; stats["rows"] += n
-            elif status == "dup":
-                stats["dup"] += 1
-            elif status == "short":
-                stats["short"] += 1
-            else:                                   # skip:<reason>
-                r = status.split(":", 1)[1]
-                skips[r] = skips.get(r, 0) + 1
-            print(f"[progress] {i}/{total} file={rel} status={status}", flush=True)
+        except Exception as e:
+            job_status = "failed"
+            stats["fail"] += 1
+            with db.transaction(conn) as cur:
+                import_qualification.finalize_job(
+                    cur, job_id, status=job_status, stats={**stats, "skips": skips},
+                    summary={"error": str(e)[:500], "source_type": args.source_type},
+                )
+            raise
+        with db.transaction(conn) as cur:
+            import_qualification.finalize_job(
+                cur, job_id, status=job_status, stats={**stats, "skips": skips},
+                summary={"source_type": args.source_type},
+            )
 
         tag = "[dry-run] " if args.dry_run else ""
         print(f"{tag}掃描 {stats['scanned']} 檔 → 入庫 {stats['ok']}(seg {stats['rows']})、"

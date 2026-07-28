@@ -37,7 +37,7 @@ from collections import namedtuple
 
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
-from augur.knowledge import embedspec
+from augur.knowledge import embedspec, kh4
 
 PY = sys.executable
 SCRIPTS = Path(__file__).resolve().parent
@@ -373,6 +373,14 @@ def harvest_file_channels(domain, limit):
             print(f"  通道 {sk}({adapter}):+{rows} item rc={rc}", flush=True)
 
 
+def _refresh_kh4_scope(domain, limit):
+    if not domain:
+        return
+    with db.connect() as conn, db.transaction(conn) as cur:
+        n = kh4.refresh_items(cur, domain=domain, limit=limit)
+    print(f"  KH4 refresh(domain={domain}) → {n} item", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--domain")
@@ -443,10 +451,13 @@ def main():
             sys.exit(rc or 1)
         if st.name == "harvest":                             # 件 A/G:API topic 抓完 → 迭代本機/SFTP 檔案通道(下游共用)
             harvest_file_channels(args.domain, args.limit)
+            _refresh_kh4_scope(args.domain, args.limit)
         with db.connect() as conn, db.transaction(conn) as cur:
             after = pending_lines(cur, st.name, args.domain)
         print(f"✓ {st.seg} {st.name} 完成 {time.time() - ts:.0f}s | 驗收計數(後):{'; '.join(after)}",
               flush=True)
+        if st.name in {"promote", "fulltext", "sentences", "embed"}:
+            _refresh_kh4_scope(args.domain, args.limit)
     heartbeat(len(NAMES) - 1, child_pid=0)                   # 收尾 tick(child 清零)
     os.close(lock_fd)
     print(f"\n=== 全鏈完成 {(time.time() - t0) / 60:.1f} 分(冪等驗收:連跑兩次計數不變)===", flush=True)

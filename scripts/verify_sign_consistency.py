@@ -40,9 +40,14 @@ def judge_sign(point_mean, boot_means, direction):
 
 
 def map_direction(cur, feature):
-    """principle_factor_map 之人簽方向;無列=None、多列衝突=
-
-    'conflict'(皆 fail-closed 人閘)。"""
+    """方向來源優先序:①factor_direction_ruling 裁決表(人裁正典,衝突之解)→②map 共識
+    (單一方向才用;多列衝突='conflict'、無列=None,皆 fail-closed 人閘)。"""
+    cur.execute("SELECT to_regclass('public.factor_direction_ruling')")
+    if cur.fetchone()[0] is not None:
+        cur.execute("SELECT canonical_direction FROM factor_direction_ruling WHERE feature=%s", (feature,))
+        r = cur.fetchone()
+        if r:
+            return int(r[0])
     cur.execute("SELECT DISTINCT direction FROM principle_factor_map WHERE feature=%s", (feature,))
     ds = [r[0] for r in cur.fetchall()]
     if not ds:
@@ -131,6 +136,8 @@ def _selftest():
     import inspect
     src = inspect.getsource(run) + inspect.getsource(map_direction)
     chk("無 map 列/衝突=fail-closed 人閘非 PASS", "UNJUDGEABLE" in src and "conflict" in src)
+    chk("裁決表優先於 map 共識(增列式裁決,2026-07-28)", "factor_direction_ruling" in src
+        and src.index("factor_direction_ruling") < src.index("principle_factor_map"))
     chk("複用 vcp as-of 機具(#12)", "_asof_ic_series" in src and "_asof_panels" in src)
     chk("bootstrap seed 確定性(42+k)", N_BOOT_SEEDS == 5 and SEED0 == 42)
     chk("唯讀:零 UPDATE/INSERT", "UPDATE" not in src and "INSERT" not in src)

@@ -26,6 +26,7 @@ import argparse
 
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
+from augur.knowledge import kh4
 
 
 def _year(v):
@@ -172,6 +173,13 @@ MAPPERS = {"thinker": promote_thinker, "work": promote_work, "citation": promote
            "school": promote_school, "document": promote_item, **{et: promote_item for et in ITEM_TYPES}}
 
 
+def _refresh_kh4_for_staging(cur, staging_id):
+    cur.execute("SELECT item_id FROM knowledge_item WHERE staging_id=%s ORDER BY item_id DESC LIMIT 1", (staging_id,))
+    row = cur.fetchone()
+    if row:
+        kh4.refresh_items(cur, item_ids=[row[0]])
+
+
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--entity-type", dest="etype"); ap.add_argument("--domain")
@@ -224,6 +232,8 @@ def main():
             stats[res] = stats.get(res, 0) + 1
             if res in ("ok", "dup", "item_ok", "item_dup"):
                 cur.execute("UPDATE knowledge_staging SET status='promoted', promoted_at=now() WHERE staging_id=%s", (sid,))
+                if args.etype in ITEM_TYPES or args.etype == "document" or res in ("item_ok", "item_dup"):
+                    _refresh_kh4_for_staging(cur, sid)
             elif res == "rejected":
                 cur.execute("UPDATE knowledge_staging SET status='rejected' WHERE staging_id=%s", (sid,))
         print(f"{args.etype}:掃 {len(rows)} 列 pending → {stats or '(dry-run 未寫)'}")
