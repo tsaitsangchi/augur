@@ -20,7 +20,16 @@ from augur.core import db
 
 GUC = "augur.honesty_write"
 LAYERS = ("L1_RETRIEVED", "L2_NO_RETRIEVAL", "L3_ABSENT", "L4_AMBIG")
+# v2 格名(EVALSET-V2-go,hugo 2026-07-28;對照孿生五格)——CHECK 放寬為 v1∪v2:
+# v1 舊列仍合法(P4.E3 留檔不失效),v2 新格可入。SSOT=augur_evalset_v2_rebuild_plan_20260728.md §七。
+CELLS_V2 = ("B1_FAITHFUL", "B2_NO_RETRIEVAL", "B3_AMBIGUITY", "C1_ZH_EXISTENCE", "C2P_ZH_PAIR")
 TABLES = ("local_model_eval_item", "local_model_eval_run")
+
+WIDEN_LAYER_CHECK = f"""
+ALTER TABLE local_model_eval_item DROP CONSTRAINT IF EXISTS local_model_eval_item_layer_check;
+ALTER TABLE local_model_eval_item ADD CONSTRAINT local_model_eval_item_layer_check
+  CHECK (layer = ANY (ARRAY[{", ".join(f"'{x}'" for x in LAYERS + CELLS_V2)}]));
+"""
 
 SQL = f"""
 CREATE TABLE IF NOT EXISTS local_model_eval_item (
@@ -88,12 +97,24 @@ def apply(dry):
         have = cur.fetchone()[0]
         cur.execute("SELECT count(*) FROM pg_trigger WHERE tgname LIKE 'local_model_eval%_honesty%'")
         trigs = cur.fetchone()[0]
-        if have == len(TABLES) and trigs >= 2 * len(TABLES):
-            print(f"✓ 兩表與 {trigs} 個誠實閘皆在——冪等跳過"); return 0
+        cur.execute("""SELECT pg_get_constraintdef(oid) FROM pg_constraint
+            WHERE conname='local_model_eval_item_layer_check'""")
+        r = cur.fetchone()
+        check_ok = bool(r) and all(f"'{c}'" in r[0] for c in CELLS_V2)
+        if have == len(TABLES) and trigs >= 2 * len(TABLES) and check_ok:
+            print(f"✓ 兩表、{trigs} 個誠實閘、v2 格 CHECK 皆在——冪等跳過"); return 0
         if dry:
-            print(_full_sql()); print("(--dry-run:未執行)"); return 0
-        cur.execute(_full_sql())
-        print(f"✓ 遷移完成:{', '.join(TABLES)} + 誠實閘(DELETE/TRUNCATE 拒、UPDATE 須 {GUC})")
+            if have < len(TABLES):
+                print(_full_sql())
+            if not check_ok:
+                print(WIDEN_LAYER_CHECK)
+            print("(--dry-run:未執行)"); return 0
+        if have < len(TABLES):
+            cur.execute(_full_sql())
+            print(f"✓ 遷移完成:{', '.join(TABLES)} + 誠實閘(DELETE/TRUNCATE 拒、UPDATE 須 {GUC})")
+        if not check_ok:
+            cur.execute(WIDEN_LAYER_CHECK)
+            print(f"✓ layer CHECK 放寬為 v1∪v2({len(LAYERS)}+{len(CELLS_V2)} 格;舊列仍合法)")
     return 0
 
 
@@ -130,6 +151,10 @@ def _selftest():
         "local_model_eval_item" in s and bool(re.search(r"expect\s+jsonb\s+NOT NULL", s))
         and all(k in s for k in ("set_id", "layer", "gen_code_hash")))
     chk("四層 CHECK 白名單", all(f"'{x}'" in s for x in LAYERS))
+    chk("v2 五格入 CHECK 放寬式(v1∪v2;舊列仍合法)",
+        all(f"'{x}'" in WIDEN_LAYER_CHECK for x in LAYERS + CELLS_V2))
+    chk("放寬走 DROP+ADD 同名約束(冪等、單一住所)",
+        "DROP CONSTRAINT IF EXISTS" in WIDEN_LAYER_CHECK and "ADD CONSTRAINT" in WIDEN_LAYER_CHECK)
     chk("同集同層同題 UNIQUE(冪等、防重複題)", "local_model_eval_item_uq" in s and "md5(prompt)" in s)
     chk("帳本記三軸+set_id+eval_code_hash(跨尺可辨)",
         all(k in s for k in ("axis_f", "axis_p", "axis_a", "eval_code_hash", "is_invalid")))

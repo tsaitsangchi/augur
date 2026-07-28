@@ -95,3 +95,7 @@ hugo 逐字拍板「**V2-RUBRIC-go與SUNSET-C-align 都給**」。S-1（(c) 對�
 ## 八、S-7 結案（2026-07-28，唯增列）
 
 hugo 親跑 `UPDATE evolution_prereg_gate SET note = note || ';;2026-07-28 hugo 認領:07-27 15:31 之 approved_by UPDATE 為本人親跑' …`（對話中貼回 `UPDATE 1`，經查庫驗證 note 已含認領句）。**S-7 結案**：該次 approved_by 填寫為本人親簽，檔面矛盾已補正（唯增列）。殘餘開放：S-4（計畫書起草中）、S-5（待新尺 pack 數字）、S-6（待 hugo 一句話）、S-8（併 S-4 計畫書裁）。
+
+## 九、S-6 結案（2026-07-28，唯增列）
+
+hugo 拍板「**S6-基線2-keep**」：SUNSET (b) 之比較基線**認列維持 2**（甲案）。理由錄要：R3 之 sign-refuted demote 為誠實結果，把基線改小＝放寬、違「GATE 只升不降」；基線維持 2 只是讓 (b) 誠實地變難。週報既按此口徑顯示，無碼變更。殘餘開放：S-5（待新尺 pack 數字，臂跑中）。S-4/S-8 已由 `EVALSET-V2-go` 進入執行（登錄=`reports/augur_evalset_v2_rebuild_plan_20260728.md` §七補正）。
