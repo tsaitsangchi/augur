@@ -9,9 +9,14 @@
 
 臂語意(ARMS 順序即強度階梯):
   ceiling    理想答案/滿分基準——尺可被滿足之證明(非假嚴格)
-  floor      零知識常數樣板——任何宣稱至少要贏它
+  floor      零知識**最強退化常數**——任何宣稱至少要贏它(V2-RUBRIC-go 2026-07-28 升級:
+             floor 不是隨手弱字串;它在無鑑別力之格「就該高分」,格子空不空由此曝光)
   shuffled   同層答錯內容——贏它才證明「內容」而非「行為類別」
   mismatched 跨層選錯行為——量級對、類別錯(volume_gini_60d 型失效)
+  robot      零知識**格式規則機**(S-3)——只看題幹表面格式作答之確定性機器。
+             live 未嚴格勝過它=該格「格式即可達」=零能力證據(判 none)。
+             07-27 對抗驗證:13 行規則機於四格拿 1.000 與 ceiling 打平,勝過每一 LLM 臂——
+             此臂即該失效型之常駐偵測器(可選臂:缺席時判讀同前,不溯及舊資料)。
   live       受測者本人
 TWEVO 對映(v2 §3.4 M-1;呼叫端負責換算):標籤置換臂 95 分位→floor 語意、
   隨機特徵臂 95 分位→mismatched 語意。指標一律「越高越好」;方向相反(如 Brier)呼叫端先取負。
@@ -24,7 +29,7 @@ from __future__ import annotations
 
 import sys
 
-ARMS = ("ceiling", "floor", "shuffled", "mismatched", "live")
+ARMS = ("ceiling", "floor", "shuffled", "mismatched", "robot", "live")
 LEVELS = ("none", "incomparable", "weak", "scoped_established")
 
 
@@ -50,11 +55,13 @@ def evidence_level(metric_by_arm):
 
     incomparable  live/floor/mismatched 任一缺席(缺對照=不可比,非通過);或 ceiling 在場
                   卻未同時高於 floor 與 mismatched(尺自身無鑑別力=壞尺,量什麼都無意義)
-    none          live 未同時**嚴格**勝過 floor 與 mismatched(平手不算勝——#15)
-    weak          勝 floor+mismatched 但 shuffled 在場且未勝之——只證「行為類別選對」,
-                  不證內容(A@L3/L4 shuffled=0.967 實證:此格任何分數都證不了內容)
-    scoped_established  同時勝 floor+mismatched,且 shuffled 缺席或亦被勝——證據力成立,
-                  但僅及該格(scoped;如 F@L1),不得外推為整體「更聰明」
+    none          live 未同時**嚴格**勝過 floor 與 mismatched(平手不算勝——#15);
+                  或 robot 在場且 live 未嚴格勝過它——**零知識格式機可達=零能力證據**
+                  (V2-RUBRIC-go;07-27 實證 robot 四格 1.000 勝過每一 LLM 臂)
+    weak          勝 floor+mismatched(+robot 若在場)但 shuffled 在場且未勝之——
+                  只證「行為類別選對」,不證內容(A@L3/L4 shuffled=0.967 實證)
+    scoped_established  同時勝 floor+mismatched(+robot 若在場),且 shuffled 缺席或亦被勝
+                  ——證據力成立,但僅及該格(scoped;如 F@L1),不得外推為整體「更聰明」
     """
     unknown = set(metric_by_arm) - set(ARMS)
     if unknown:
@@ -64,12 +71,15 @@ def evidence_level(metric_by_arm):
     mism = metric_by_arm.get("mismatched")
     shuf = metric_by_arm.get("shuffled")
     ceil = metric_by_arm.get("ceiling")
+    robot = metric_by_arm.get("robot")
     if live is None or floor is None or mism is None:
         return "incomparable"
     if ceil is not None and not (ceil > floor and ceil > mism):
         return "incomparable"
     if not (live > floor and live > mism):
         return "none"
+    if robot is not None and not (live > robot):
+        return "none"                       # 格式即可達之格,任何分數都不構成能力證據
     if shuf is not None and not (live > shuf):
         return "weak"
     return "scoped_established"
@@ -92,10 +102,22 @@ def _selftest():
             return False
         return False
 
-    # 實證錨:2026-07-26/27 兩機逐位元一致的四臂實測值
-    chk("F@L1 behavior 實測(live .933 vs floor 0/mism 0/shuf .167)=scoped_established",
+    # 實證錨——**逐位元一致者僅四支離線臂**(ceiling/floor/shuffled/mismatched 為確定性字串);
+    # live 臂兩機不一致(DESKTOP .933 vs 本機 .9667,同尺同模 temperature=0)=複現未成立之實證,
+    # 不得當「一致錨」引用(07-27 對抗驗證更正;原文誤書「兩機逐位元一致」係虛指)。
+    chk("F@L1 舊尺形態(live .9667 vs floor 0/mism 0/shuf .167,無 robot)=scoped_established",
         evidence_level({"ceiling": 1.0, "floor": 0.0, "shuffled": 0.167,
-                        "mismatched": 0.0, "live": 0.933}) == "scoped_established")
+                        "mismatched": 0.0, "live": 0.9667}) == "scoped_established")
+    chk("**同一組加上 robot=1.0 即翻 none**(07-27 實證:格式機該格 1.000——scoped 判定原是假的)",
+        evidence_level({"ceiling": 1.0, "floor": 0.0, "shuffled": 0.167,
+                        "mismatched": 0.0, "robot": 1.0, "live": 0.9667}) == "none")
+    chk("live 嚴格勝過 robot 才可能 established",
+        evidence_level({"ceiling": 1.0, "floor": 0.0, "shuffled": 0.1,
+                        "mismatched": 0.0, "robot": 0.3, "live": 0.9}) == "scoped_established")
+    chk("與 robot 平手=none(平手不算勝,#15)",
+        evidence_level({"floor": 0.0, "mismatched": 0.0, "robot": 0.9, "live": 0.9}) == "none")
+    chk("robot 缺席時判讀同前(可選臂;不溯及舊資料)",
+        evidence_level({"floor": 0.0, "mismatched": 0.0, "live": 0.9}) == "scoped_established")
     chk("A@L3 實測(shuffled=.967 與 live 平手)=weak——只證行為類別、不證內容",
         evidence_level({"ceiling": 1.0, "floor": 0.0, "shuffled": 0.967,
                         "mismatched": 0.0, "live": 0.967}) == "weak")

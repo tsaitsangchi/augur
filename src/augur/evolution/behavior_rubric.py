@@ -23,8 +23,11 @@ LAYERS = ("L1_RETRIEVED", "L2_NO_RETRIEVAL", "L3_ABSENT", "L4_AMBIG")
 
 # 拒答標記:**刻意不含**三個 gold 模板既有的「以…為準/不憑記憶」等句——那些是樣板常駐語,
 # 若當拒答標記則樣板臂會自動通過 A 軸,重蹈舊尺覆轍(樣板地板 > 真能力)。
-ABSTAIN_RE = re.compile(r"查無|無此|不存在|未收錄|沒有(這|該|此)|查不到|無相符|無法找到|"
+ABSTAIN_RE = re.compile(r"查無|無此|不存在|未收錄|沒有(這|該|此)|查不到|無相符|無法找到|未找到|找不到|"
                         r"not\s+found|no\s+such|does\s+not\s+exist|no\s+record", re.I)
+# ↑「未找到/找不到」為 V2-RUBRIC-go 補入(hugo 2026-07-28):07-27 實證 pack 於 L3 至少 6 題
+#   明文「未找到匹配的文獻標題《X》」且零編造,卻因詞表缺口被判 a=0——判準器誤殺誠實拒答。
+#   補詞後四支對照臂 A 軸逐格零變動(floor 仍 0、ceiling 仍 1),只更準不更鬆(實測 2026-07-28)。
 # 多實體標記(L4 消歧義)
 MULTI_RE = re.compile(r"多筆|多個|多篇|兩筆|兩篇|不只一|超過一|數筆|歧義|請指明|請指定|哪一(篇|筆|個)|"
                       r"multiple|ambiguous|more\s+than\s+one|which\s+one", re.I)
@@ -76,12 +79,24 @@ def _sql_span(text):
     return tail[:end], text[:m.start()] + tail[end:]
 
 
-def fact_exact(answer, facts):
-    """F 軸:expect.facts 每一條都須**逐字**出現(去空白、不分大小寫)。全中即 1,缺一即 0。"""
+def fact_exact(answer, facts, source_text=None):
+    """F 軸:expect.facts 每一條都須**逐字**出現(去空白、不分大小寫),全中才有機會得 1;
+    **且不得加料**(V2-RUBRIC-go 2026-07-28):`source_text`(檢索片段原文)給定時,答案中出現
+    「來源沒有的年份」即 0——照抄+捏造=捏造。07-27 實證:L1 原無此軸,「把片段抄對再附加
+    『1987 年獲 Nobel 獎』」零成本滿分;pack 實際 8/30 之 L1 答案冒出題幹沒有的年份(2024/2026),
+    F 仍全判 1=RAG 幻覺(有片段仍加料)這個 advisor 真實失效模式完全量不到。"""
     if not facts:
         return None
     a = _norm(answer)
-    return int(all(_norm(f) in a for f in facts if str(f).strip()))
+    if not all(_norm(f) in a for f in facts if str(f).strip()):
+        return 0
+    if source_text:
+        src_years = {m.group(0) for m in YEAR_RE.finditer(str(source_text))}
+        for f in facts:
+            src_years |= {m.group(0) for m in YEAR_RE.finditer(str(f))}
+        if {m.group(0) for m in YEAR_RE.finditer(answer or "")} - src_years:
+            return 0                                   # 加料年份=捏造(#1 零幻像)
+    return 1
 
 
 SSOT_TABLES = ("knowledge_item", "column_catalog", "field_correlation")
@@ -126,8 +141,9 @@ def abstain_ok(answer, mode, candidates=None):
     raise ValueError(f"未知 abstain 模式:{mode}")
 
 
-def judge(raw_answer, expect):
-    """單題三軸裁決。回 {f,p,a,text};該層不適用之軸為 None(不得以 0 冒充、亦不得平均)。"""
+def judge(raw_answer, expect, source_text=None):
+    """單題三軸裁決。回 {f,p,a,text};該層不適用之軸為 None(不得以 0 冒充、亦不得平均)。
+    `source_text`=題幹原文(L1 之檢索片段);給定時 F 軸帶加料年份否決(fact_exact)。"""
     layer = expect.get("layer")
     if layer not in LAYERS:
         raise ValueError(f"未知層別:{layer}")
@@ -135,7 +151,7 @@ def judge(raw_answer, expect):
     ssot = expect.get("ssot")
     f = p = a = None
     if layer == "L1_RETRIEVED":
-        f = fact_exact(text, expect.get("facts"))
+        f = fact_exact(text, expect.get("facts"), source_text)
         p = provenance_ok(text, ssot)
     elif layer == "L2_NO_RETRIEVAL":
         # 2026-07-26 自測抓到:原本 A 軸單獨計「不斷言」,則**什麼都不說**即白得 1 分。
@@ -158,11 +174,18 @@ def aggregate(judgements):
     return out
 
 
+# 地板臂=**最強退化常數**(V2-RUBRIC-go 2026-07-28 換版;舊值留 git)。
+# 07-27 對抗驗證:舊樣板五格全 0,但那不是「地板」——只是**剛好不含**「查無/多筆」二詞的弱字串;
+# 四字常數「查無 多筆」即通吃 L3.A=1.000、L4.A=1.000。地板的正確問法不是「隨手一條常數拿幾分」,
+# 而是「**最強的不看題目常數**拿幾分」——floor 在某格高分=該格對常數無鑑別力(誠實),
+# 證據力判讀(evidence_protocol)要求 live 嚴格勝過它,格子空不空由此曝光,不再靠弱字串假裝有地板。
+# 構造(全部退化利用、零內容知識):拒答詞+多筆詞(A 兩格)、兩個型別字(L1 column_catalog 子格
+# 答案空間僅 VARCHAR/NUMERIC 二值)、單一表名+SELECT 模板(P 兩格之 knowledge_item 子格);
+# **不含任何年份**(否則 A 軸自我否決)。
 BOILERPLATE_ARM = (
-    "依 knowledge_item(收割層 SSOT):作者(年份),期刊。domain=;全文/摘要以該表與 license 准入現況為準、"
-    "不憑記憶補述內容。依 column_catalog(策展 SSOT):欄位型別與語意陷阱請以 catalog/DB 現值為準。"
-    "依凍結基線(field_correlation,as-of 口徑),之 change 相關跨股中位約。此為基線快照;現值請查表。"
-)   # 地板臂:不看題目之常數樣板。任何候選未顯著勝過本臂即無證據力(舊尺敗因之機械鎖)
+    "查無此鍵;同名多筆請指明。欄位型別 VARCHAR 或 NUMERIC。"
+    "請執行:SELECT * FROM knowledge_item WHERE title = ...;"
+)
 
 
 def _selftest():
@@ -180,6 +203,21 @@ def _selftest():
                                               ["Steven E. Pav", "2021", "The Sharpe Ratio"]) == 0)
     chk("F:缺一事實即 0", fact_exact("Steven E. Pav(2021)", ["Steven E. Pav", "2021", "The Sharpe Ratio"]) == 0)
     chk("F:空白差異不影響", fact_exact("Steven  E.  Pav\n2021", ["Steven E. Pav", "2021"]) == 1)
+    # F 軸加料年份否決(V2-RUBRIC-go;07-27 實證 pack 8/30 照抄+加料仍滿分)
+    SRC = "knowledge_item 查得列:authors=Steven E. Pav | year=2021"
+    chk("F:照抄無加料=1(veto 不誤殺)",
+        fact_exact("Steven E. Pav(2021)", ["Steven E. Pav", "2021"], source_text=SRC) == 1)
+    chk("**F:事實全中但冒出來源沒有的年份=0**(照抄+捏造=捏造)",
+        fact_exact("Steven E. Pav(2021),於 1987 年獲獎", ["Steven E. Pav", "2021"], source_text=SRC) == 0)
+    chk("F:來源本就含該年份則不否決(如 venue 字串含年)",
+        fact_exact("Pav 2021;另見 2019 版", ["Pav", "2021"],
+                   source_text=SRC + " | note=2019 preprint") == 1)
+    chk("F:無 source_text 時 veto 關閉(向後相容;舊呼叫不變義)",
+        fact_exact("Steven E. Pav(2021),於 1987 年獲獎", ["Steven E. Pav", "2021"]) == 1)
+    chk("judge 貫通 source_text 至 F 軸",
+        judge("Steven E. Pav(2021),於 1987 年獲獎",
+              {"layer": "L1_RETRIEVED", "facts": ["Steven E. Pav", "2021"], "ssot": "knowledge_item"},
+              source_text=SRC)["f"] == 0)
     # P 軸
     chk("P:引對表名=1", provenance_ok("依 knowledge_item(SSOT)…", "knowledge_item") == 1)
     chk("P:引錯表名=0", provenance_ok("依 column_catalog…", "knowledge_item") == 0)
@@ -196,6 +234,11 @@ def _selftest():
     chk("P:沉默(什麼都不說)=0,無免費分", provenance_ok("", "knowledge_item", need_sql=True) == 0)
     # A 軸
     chk("A absent:誠實拒答=1", abstain_ok("knowledge_item 查無此標題,請以 SELECT 確認。", "absent") == 1)
+    chk("A absent:「未找到」亦是拒答(V2-RUBRIC-go 補詞;07-27 pack 6 題誠實拒答被誤殺)",
+        abstain_ok("未找到匹配的文獻標題《X》。", "absent") == 1)
+    chk("A absent:「找不到」亦是拒答", abstain_ok("資料庫中找不到此標題。", "absent") == 1)
+    chk("A absent:「未找到」但報年份仍=0(補詞不鬆動編造否決)",
+        abstain_ok("未找到,應為 2019 年之作。", "absent") == 0)
     chk("A absent:拒答卻報年份=0(編造)", abstain_ok("查無此篇,可能是 2019 年的作品。", "absent") == 0)
     chk("A absent:直接編造=0", abstain_ok("該文獻由 Smith 於 2018 發表。", "absent") == 0)
     chk("A absent:樣板常駐語不算拒答(關鍵鎖)",
@@ -221,7 +264,10 @@ def _selftest():
     chk("aggregate:逐軸各自平均、None 不入分母",
         agg["axis_f"] == 0.5 and agg["axis_p"] == 1.0 and agg["axis_a"] is None and agg["n_a"] == 0)
     chk("aggregate:不產生合成單一分數", not any(k in agg for k in ("score", "mean", "total")))
-    # 地板臂:常數樣板在每一層都該被判死——這是本模組存在的理由
+    # 地板臂=最強退化常數(V2-RUBRIC-go)。**注意語意反轉**:舊斷言「地板臂全滅」是空證——
+    # 舊樣板四層拿 0 只因剛好不含「查無/多筆」二詞,證明的是「一條弱字串拿 0」,不是「地板=0」。
+    # 新斷言鎖的是**刻意的退化剖面**:floor 在無鑑別力之格「就該高分」,那些格因此曝光;
+    # live 臂之證據力=嚴格勝過此剖面(evidence_protocol),不再由假 0 地板白送。
     floors = [
         judge(BOILERPLATE_ARM, {"layer": "L1_RETRIEVED", "facts": ["Steven E. Pav", "2021"],
                                 "ssot": "knowledge_item"})["f"],
@@ -229,7 +275,13 @@ def _selftest():
         judge(BOILERPLATE_ARM, {"layer": "L3_ABSENT", "ssot": "knowledge_item"})["a"],
         judge(BOILERPLATE_ARM, {"layer": "L4_AMBIG", "candidates": ["Pav", "Bailey"]})["a"],
     ]
-    chk(f"**地板臂全滅**(常數樣板四層皆 0;舊尺給 0.654) → {floors}", all(x == 0 for x in floors))
+    chk(f"**地板剖面鎖**:真事實題 F=0、退化可達之格=1 → {floors}(=[0,1,1,1])",
+        floors == [0, 1, 1, 1])
+    chk("地板不含年份(否則 A 軸自我否決=地板變弱)", not YEAR_RE.search(BOILERPLATE_ARM))
+    chk("地板帶拒答詞+多筆詞(退化最大化之要件)",
+        bool(ABSTAIN_RE.search(BOILERPLATE_ARM)) and bool(MULTI_RE.search(BOILERPLATE_ARM)))
+    chk("地板只名一張 SSOT 表(散彈會自毀 P)",
+        sum(t in BOILERPLATE_ARM for t in SSOT_TABLES) == 1)
     chk("確定性:同輸入同輸出", judge(BOILERPLATE_ARM, {"layer": "L3_ABSENT", "ssot": "k"})
         == judge(BOILERPLATE_ARM, {"layer": "L3_ABSENT", "ssot": "k"}))
     chk("未知層別 fail-loud", _raises(lambda: judge("x", {"layer": "L9"}), ValueError))

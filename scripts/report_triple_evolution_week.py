@@ -42,28 +42,46 @@ def sunset_status(cur):
     b_done = n_active > 2
     b_ev = f"prodset active={n_active}(基線 2;須成長且新成員過符號一致性)"
 
-    # (c) 2026-07-27 對抗驗證後改判「未判定」——**不得再自行判綠**。
-    # 凍結原文(criteria_sha 65eda893…):「LAIEVO 有任一臂在 F@L1 上同時勝過 floor 與 mismatched,
-    # 且該結論可被獨立重跑複現。」原實作寫的是 `best > shuffled`:既不比 floor 也不比 mismatched,
-    # 「可複現」整句碼裡無對應 —— 卻在報告第一行印「續命條件已達成」。
-    # 三項親驗使「判綠」無論如何站不住:
-    #   ① 前半是空門檻:F@L1 之 floor 與 mismatched **結構性恆為 0**(mismatched 之捐贈題 29/30 屬
-    #      L3、1/30 屬 L4,理想答案不含本題 facts),連負對照臂 shuffled(0.1667)自己都「同勝」。
-    #   ② 一支 13 行、不看內容只認題幹開頭格式的零知識規則機,實跑 L1.F/L1.P/L3.A/L4.A **全 1.000**
-    #      (與 ceiling 打平、勝過每一個 LLM 臂)——此格量到的是題目格式,不是能力。
-    #   ③ 後半在現行 harness **結構上不可記錄**:run_id=sha256(set_id|code_hash|arm|model|n_items)
-    #      且 ON CONFLICT DO NOTHING,同尺同臂重跑之第二次結果必被靜默丟棄。
-    # 修成對齊原文會使 (c) 由 ✅ 轉未達成＝效果上升嚴,依 V2-SUNSET「升嚴須走 GATE-raise」不由 AI 逕判;
-    # 但「目前這個 ✅ 是錯的」屬事實陳述,故此處改為 **None=未判定**(既不判綠也不代 hugo 判死)。
-    c_rows = _one(cur, """SELECT count(*) FROM local_model_eval_run
-        WHERE arm NOT IN ('ceiling','floor','shuffled','mismatched') AND NOT is_invalid""") or 0
-    best = _one(cur, """SELECT max(axis_f) FROM local_model_eval_run
-        WHERE arm NOT IN ('ceiling','floor','shuffled','mismatched') AND NOT is_invalid""")
-    c_done = None
-    c_ev = (f"**未判定(爭議)**:有效 LLM 臂={c_rows}、最佳 F@L1={best};"
-            "原判定式 best>shuffled 與凍結原文(勝 floor 與 mismatched＋可獨立重跑複現)不符,"
-            "且零知識格式規則機於該格實跑 1.000 → 門檻空洞。處置須 hugo(GATE-raise 或裁定原文讀法);"
-            "在此之前本列不得被引為續命依據。詳見 audits/V2-SUNSET-C-DISPUTED-20260727.md")
+    # (c) **SUNSET-C-align**(hugo 2026-07-28 拍板;audits/V2-RUBRIC-GO-20260728.md)——
+    # 實作逐字對齊凍結原文(criteria_sha 65eda893…):「LAIEVO 有任一臂在 F@L1 上同時勝過 floor 與
+    # mismatched,且該結論可被獨立重跑複現。」
+    #   · 「任一臂」取**受測臂**(非對照臂;字面連 shuffled 都滿足=荒謬,解釋登錄於 audit)。
+    #   · 「同時勝過」=同尺(set_id+eval_code_hash)之 axis_f **嚴格** > floor 與 > mismatched。
+    #   · 「可被獨立重跑複現」=同尺同臂 ≥2 個獨立 run **皆**成立(run_id 自 2026-07-28 起帶
+    #     attempt 序,重跑可記錄;先前結構上不可能,故此前之「達成」宣稱皆無效)。
+    # 歷史:07-27 前的實作寫 best>shuffled(不比 floor/mismatched、無複現對應)且自行印「已達成」,
+    # 經對抗驗證停用(V2-SUNSET-C-DISPUTED-20260727.md)。量尺空洞問題(robot 五格 1.000)另屬
+    # S-4/S-8 待裁——本判定忠實執行凍結文字,空洞與否之語意權在 hugo,證據句誠實附註。
+    CTRL = ('ceiling', 'floor', 'shuffled', 'mismatched', 'robot')
+    cur.execute("""SELECT set_id, eval_code_hash FROM local_model_eval_run
+        WHERE arm <> ALL(%s) AND NOT is_invalid ORDER BY created_at DESC LIMIT 1""", (list(CTRL),))
+    r = cur.fetchone()
+    c_done, c_ev = False, "無任何有效受測臂 run(對照臂不算「臂」)"
+    if r:
+        sid, ch = r
+        floor_f = _one(cur, """SELECT axis_f FROM local_model_eval_run WHERE set_id=%s
+            AND eval_code_hash=%s AND arm='floor' ORDER BY created_at DESC LIMIT 1""", (sid, ch))
+        mism_f = _one(cur, """SELECT axis_f FROM local_model_eval_run WHERE set_id=%s
+            AND eval_code_hash=%s AND arm='mismatched' ORDER BY created_at DESC LIMIT 1""", (sid, ch))
+        if floor_f is None or mism_f is None:
+            c_ev = f"同尺({sid[:8]}/{ch[:8]})缺 floor/mismatched 對照臂=不可判(缺對照非通過)"
+        else:
+            cur.execute("""SELECT arm, count(*) AS n_runs,
+                    count(*) FILTER (WHERE axis_f > %s AND axis_f > %s) AS n_win
+                FROM local_model_eval_run WHERE set_id=%s AND eval_code_hash=%s
+                  AND arm <> ALL(%s) AND NOT is_invalid GROUP BY arm""",
+                (floor_f, mism_f, sid, ch, list(CTRL)))
+            arms = cur.fetchall()
+            first = [a for a, n, w in arms if w >= 1]
+            repro = [a for a, n, w in arms if w >= 2 and w == n]
+            c_done = bool(repro)
+            robot_f = _one(cur, """SELECT axis_f FROM local_model_eval_run WHERE set_id=%s
+                AND eval_code_hash=%s AND arm='robot' ORDER BY created_at DESC LIMIT 1""", (sid, ch))
+            c_ev = (f"同尺 {sid[:8]}/{ch[:8]}:floor F={floor_f} mism F={mism_f};"
+                    f"首半(嚴格同勝)之臂={first or '無'};複現(≥2 run 皆勝)之臂={repro or '**無**'}"
+                    + (f";⚠量尺附註:robot(零知識格式機)同尺 F={robot_f}"
+                       "——(c) 凍結文字不含 robot,語意權=S-8 待裁" if robot_f is not None else ""))
+    c_done = bool(c_done)
     return [("(a) arena 結算＋方向門可讀數", a_done, a_ev),
             ("(b) prodset active 由 2 成長＋符號一致", b_done, b_ev),
             ("(c) LAIEVO 任一臂 F@L1 勝 floor 與 mismatched 且可複現", c_done, c_ev)]

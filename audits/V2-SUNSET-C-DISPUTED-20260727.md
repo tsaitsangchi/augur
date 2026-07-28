@@ -85,3 +85,9 @@
 3. 本檔登錄全部事實與待決清單。
 
 **未動**：`behavior_rubric.py`、`build_eval_set.py`、`evidence_protocol.py` 之判準本體，`eval_code_hash` 維持 `f3075238eb55`，七臂資料一列未改。
+
+---
+
+## 七、處置後記（2026-07-28，唯增列）
+
+hugo 逐字拍板「**V2-RUBRIC-go與SUNSET-C-align 都給**」。S-1（(c) 對齊凍結原文）與 S-2 三件＋S-3（robot 第五臂）已執行，登錄與新尺實測＝`audits/V2-RUBRIC-GO-20260728.md`；換尺 `f3075238eb55 → ef142e9374c1`（舊 run 留檔未刪）。§一之「⚠未判定」過渡態退場，(c) 現依凍結文字誠實顯示**未達成**（首半成立於舊尺、複現無）。**S-4／S-5／S-6／S-7／S-8 仍開放待裁**，不因本批而假關。

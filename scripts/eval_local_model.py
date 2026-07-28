@@ -11,14 +11,14 @@
 守 #1(逾時/截斷不補分)· #9/#10(分數皆出自實跑、逐題落帳)· #15(地板臂=假兆機械鎖)· #28(全本地零 token)· #29a/d。
 執行指令矩陣:
   python scripts/eval_local_model.py                          # 無參數:現況(唯讀:已跑之臂與三軸)
-  python scripts/eval_local_model.py --offline-arms           # 只跑三個離線臂(零 LLM、數秒、必跑)
+  python scripts/eval_local_model.py --offline-arms           # 離線五臂(零 LLM、數秒、必跑;含 robot 零知識格式機)
   python scripts/eval_local_model.py --arm grammar            # 跑單一臂
   python scripts/eval_local_model.py --arm behavior --limit 8 # 小樣本煙測
   python scripts/eval_local_model.py --model qwen3:8b --offline-arms   # 換檔位:先補該尺之對照臂
   python scripts/eval_local_model.py --model qwen3:8b --arm behavior   # 再跑該尺之 LLM 臂
     ⚠ 換模型即換 eval_code_hash(MODEL 在雜湊內)=**另一把尺**;跨模型比大小前,
       該尺自己的 ceiling/floor/shuffled/mismatched 四臂必須先跑齊(離線、數秒),否則無對照可判。
-  python scripts/eval_local_model.py --all                    # 離線三臂 + 四個 LLM 臂(耗時)
+  python scripts/eval_local_model.py --all                    # 離線五臂 + LLM 臂(耗時)
   python scripts/eval_local_model.py --compare                # 對照表(唯讀帳本,同 set_id 才並排)
   python scripts/eval_local_model.py --selftest               # 零 DB 零 LLM 紅綠
 """
@@ -110,7 +110,7 @@ def _ask(prompt, system=None, grammar=False):
         return None, f"error:{type(e).__name__}", 0
 
 
-ARMS_OFFLINE = ("ceiling", "floor", "shuffled", "mismatched")
+ARMS_OFFLINE = ("ceiling", "floor", "shuffled", "mismatched", "robot")
 ARMS_LLM = ("base", "grammar", "behavior")
 
 
@@ -125,6 +125,19 @@ def _answer_for(arm, items, i, pack_text=None):
         return _ideal_answer(items[(i + 1) % len(items)][3]), "offline", 0
     if arm == "mismatched":                     # **跨層**理想答案:行為類別就選錯(如對 L1 題誠實拒答)
         return _ideal_answer(items[(i + len(items) // 2 + 1) % len(items)][3]), "offline", 0
+    if arm == "robot":
+        # 零知識格式規則機(S-3,V2-RUBRIC-go 2026-07-28):**只看題幹表面格式,不看內容、不查庫**。
+        # 07-27 對抗驗證:層別由題幹開頭 100% 可推——本臂在無鑑別力之格必然滿分,live 未嚴格勝過
+        # 本臂之格=「格式即可達」=零能力證據(evidence_protocol 判 none)。本臂=可執行的量尺體檢。
+        if prompt.startswith("[檢索片段]"):
+            return prompt.split("[檢索片段]", 1)[1].split("[問題]", 1)[0], "offline", 0   # 照抄片段
+        if prompt.startswith("[無檢索片段]"):
+            # 判序:相關→FC 須先於 欄位→CC(FC 題幹同時含「欄位」;初版誤導 10/30 → L2.P 0.667)
+            t = ("knowledge_item" if ("文獻" in prompt or "《" in prompt)
+                 else "field_correlation" if "相關" in prompt
+                 else "column_catalog")         # 問句模板差異本身即洩漏(凍結集結構缺陷之實證)
+            return f"未取得檢索片段,不憑記憶作答。請執行:SELECT * FROM {t} WHERE ...;", "offline", 0
+        return "查無 多筆", "offline", 0
     if arm == "base":
         return _ask(prompt)
     if arm == "grammar":
@@ -153,12 +166,12 @@ def run_arm(arm, set_id=None, limit=None, quiet=False):
         set_id, items = _load_set(cur, set_id, limit)
         pack = _pack_text(cur, arm.split(":", 1)[1]) if arm.startswith("pack:") else None
         judgements, detail, n_valid = [], [], 0
-        for i, (iid, lay, _p, expect) in enumerate(items):
+        for i, (iid, lay, prompt, expect) in enumerate(items):
             text, done, ntok = _answer_for(arm, items, i, pack)
             if text is None or done == "length":       # 逾時或被截斷=沒答完 → 不計分(#1)
                 detail.append({"item_id": iid, "layer": lay, "invalid": done, "n_tok": ntok})
                 continue
-            j = judge(text, expect)
+            j = judge(text, expect, source_text=prompt)   # 題幹供 F 軸加料年份否決(V2-RUBRIC-go)
             judgements.append(j); n_valid += 1
             detail.append({"item_id": iid, "layer": lay, "f": j["f"], "p": j["p"], "a": j["a"],
                            "done": done, "n_tok": ntok, "head": j["text"][:200]})
@@ -166,7 +179,15 @@ def run_arm(arm, set_id=None, limit=None, quiet=False):
                 print(f"    …{i + 1}/{len(items)}")
         agg = aggregate(judgements)
         invalid = n_valid < len(items)
-        run_id = "ev_" + hashlib.sha256(f"{set_id}|{ch}|{arm}|{MODEL}|{len(items)}".encode()).hexdigest()[:14]
+        # run_id 帶 attempt 序(V2-RUBRIC-go):舊式 run_id=hash(五元組) + ON CONFLICT DO NOTHING
+        # 使同尺同臂**重跑之第二次結果被靜默丟棄**(07-27 親驗:重跑後全表列數不變)——
+        # SUNSET (c) 之「可被獨立重跑複現」因此結構上不可記錄。今起每次重跑各成一列,複現可證可否。
+        cur.execute("""SELECT count(*) FROM local_model_eval_run
+            WHERE set_id=%s AND eval_code_hash=%s AND arm=%s AND model=%s AND n_items=%s""",
+            (set_id, ch, arm, MODEL, len(items)))
+        attempt = cur.fetchone()[0]
+        run_id = "ev_" + hashlib.sha256(
+            f"{set_id}|{ch}|{arm}|{MODEL}|{len(items)}|try{attempt}".encode()).hexdigest()[:14]
         cur.execute("""INSERT INTO local_model_eval_run
             (run_id, set_id, eval_code_hash, arm, model, n_items, n_valid,
              axis_f, axis_p, axis_a, is_invalid, detail)
@@ -281,8 +302,14 @@ def _selftest():
         e = {"layer": lay, "ssot": "knowledge_item", "facts": ["A", "2021"], "candidates": ["X", "Y"]}
         j = judge(_ideal_answer(e), e)
         chk(f"上界臂 {lay} 三軸皆非 0", all(v in (None, 1) for v in (j["f"], j["p"], j["a"])))
+    # 地板剖面(V2-RUBRIC-go 語意反轉:floor=最強退化常數;舊「全滅」斷言=弱字串拿 0 之空證)
+    FLOOR_PROFILE = {"L1_RETRIEVED": (0, 1, None), "L2_NO_RETRIEVAL": (None, 1, None),
+                     "L3_ABSENT": (None, None, 1), "L4_AMBIG": (None, None, 1)}
+    for lay, want in FLOOR_PROFILE.items():
+        e = {"layer": lay, "ssot": "knowledge_item", "facts": ["A", "2021"], "candidates": ["X", "Y"]}
         jf = judge(BOILERPLATE_ARM, e)
-        chk(f"地板臂 {lay} 全滅", all(v in (None, 0) for v in (jf["f"], jf["p"], jf["a"])))
+        chk(f"地板剖面 {lay}=(f,p,a){want}(真事實 0、退化可達之格 1)",
+        (jf["f"], jf["p"], jf["a"]) == want)
     src = inspect.getsource(run_arm)
     chk("截斷/逾時記 INVALID 不計分(#1)", 'done == "length"' in src and "continue" in src)
     chk("整輪 INVALID 旗標入帳", "is_invalid" in src and "n_valid < len(items)" in src)
@@ -297,7 +324,9 @@ def _selftest():
     # ── 尺之錨(2026-07-27 七臂之基準;動到判準/產答/生成參數就會紅) ──
     # 這條紅了**不代表壞掉**,代表尺換了:舊 run 自此不可與新 run 並排。要換就換,但必須是
     # 有意識地換(改此常數並重跑全部對照臂),不能靜默漂移——否則會拿兩把尺的數字比大小。
-    PINNED = {"qwen3:4b": "f3075238eb55"}
+    # V2-RUBRIC-go(hugo 2026-07-28)有意識換尺:f3075238eb55(07-26 舊尺,七臂留檔未刪)→ 0646872fdce7(robot v1,僅離線臂)→ ef142e9374c1。
+    # 變更=ABSTAIN_RE 補詞+F 軸加料年份否決+floor 換最強退化常數+robot 第五臂+run_id attempt 序。
+    PINNED = {"qwen3:4b": "ef142e9374c1"}
     if MODEL in PINNED:
         chk(f"**尺之錨**:{MODEL} 之 eval_code_hash 仍為 {PINNED[MODEL]}(換尺須有意識)",
             _code_hash() == PINNED[MODEL])
@@ -315,8 +344,16 @@ def _selftest():
     chk("timeout 已離開 150s", TIMEOUT >= 600)
     chk("行為守則四條齊(逐字/引表/未檢索給SQL/查無拒答)",
         all(k in BEHAVIOR_PROMPT for k in ("逐字", "SSOT", "SELECT", "查無", "絕不編造")))
-    chk("離線四臂零 LLM(可零成本必跑;含跨層 mismatched 控制)",
-        set(ARMS_OFFLINE) == {"ceiling", "floor", "shuffled", "mismatched"})
+    chk("離線五臂零 LLM(可零成本必跑;含跨層 mismatched 與零知識 robot)",
+        set(ARMS_OFFLINE) == {"ceiling", "floor", "shuffled", "mismatched", "robot"})
+    asrc = inspect.getsource(_answer_for)
+    chk("robot 臂只看題幹表面(不查庫、不呼叫 _ask、不讀 expect)",
+        'arm == "robot"' in asrc and "prompt.startswith" in asrc
+        and "_ask(" not in asrc.split('arm == "robot"')[1].split('if arm == "base"')[0]
+        and "expect" not in asrc.split('arm == "robot"')[1].split('if arm == "base"')[0])
+    chk("run_id 帶 attempt 序(重跑可記錄=SUNSET(c) 複現要件之基礎)",
+        "try{attempt}" in inspect.getsource(run_arm))
+    chk("judge 收題幹(F 軸加料年份否決之貫通)", "source_text=prompt" in inspect.getsource(run_arm))
     chk("eval_code_hash 涵蓋判準模組(判準改了也換版)", "behavior_rubric" in inspect.getsource(_code_hash))
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1

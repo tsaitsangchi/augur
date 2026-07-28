@@ -44,4 +44,4 @@ metadata:
 4. **層別／答案不得由題幹格式推得**：出題模板差異本身就是洩漏。
 5. **哨兵全綠 ≠ 尺可信**：`verify_eval_set_validity.py` 0/120 漂移，但它不驗答案是否寫在題幹裡、不驗層別可否由格式推得、不驗答案空間是否退化。
 
-**處置與待決**：SUNSET (c) 之假綠已停（週報改三態記 ⚠ 未判定）；判準器修補（`ABSTAIN_RE` 漏「未找到」、L1 補 A 軸擋「照抄＋加料」、換真地板、加規則機為第五臂、凍結集是否重建）**全部待 hugo**，因改判準即換 `eval_code_hash`＝作廢既有七臂。全文＝`audits/V2-SUNSET-C-DISPUTED-20260727.md`。
+**處置（07-28 hugo 拍板 V2-RUBRIC-go＋SUNSET-C-align，已執行）**：判準器四件落地——ABSTAIN_RE 補「未找到/找不到」、L1 F 軸加「來源沒有的年份=捏造」否決（judge 貫通 source_text）、floor 換**最強退化常數**（剖面 [0,1,1,1]，「全滅斷言」正式退場）、**robot 第五對照臂**入 ARMS_OFFLINE 與 evidence_protocol（live 未嚴格勝 robot 之格=none）；run_id 帶 attempt 序=重跑可記錄。換尺 f3075238eb55→**ef142e9374c1**（舊 run 留檔未刪、PINNED 已更）。新尺離線實測：**robot 五格全 1.000**=本凍結集每格皆格式可達→任何 live 臂於本集至多 none——真訊號唯凍結集重建（S-4，待 hugo）。週報 (c) 已逐字對齊凍結原文（受測臂嚴格勝 floor∧mismatched＋≥2 run 複現）→ 誠實⬜未達成。殘餘待裁：S-4/S-5/S-6/S-7/S-8。登錄=`audits/V2-RUBRIC-GO-20260728.md`。
