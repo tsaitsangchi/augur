@@ -43,6 +43,20 @@ WAVE_ACTOR = "p4p5_wave_v1"
 PROBE_FRESH_DAYS = 30  # 與 auto_review_sources P4 同時效
 
 
+_OAI_PARAMS = {"verb", "metadataprefix", "resumptiontoken", "from", "until", "set", "identifier"}
+
+
+def normalize_oai_base(url):
+    """re3data 登錄 url 常自帶 '?verb=Identify' 等——剝 OAI 協定參數、保留其他參數,回 (base, joiner)。
+    純函式。教訓 2026-07-28:未剝直接 append verb → 雙 verb → badArgument 錯誤 XML → 47 倉假陰性。"""
+    from urllib.parse import urlsplit, urlencode, parse_qsl
+    p = urlsplit(url)
+    keep = [(k, v) for k, v in parse_qsl(p.query, keep_blank_values=True)
+            if k.lower() not in _OAI_PARAMS]
+    base = p.scheme + "://" + p.netloc + p.path + (("?" + urlencode(keep)) if keep else "")
+    return base, ("&" if keep else "?")
+
+
 def pick_oai_endpoint(apis):
     """apis=[{url,type}] → 首個 OAI-PMH http(s) 端點|None。純函式。"""
     for a in apis or []:
@@ -150,8 +164,9 @@ def _oai_get(url, timeout=30):
         return r.status, r.read(262144).decode("utf-8", "replace")  # 首頁 ≤256KB,不 bulk(#25)
 
 
-def _wave_candidates(cur, limit=None):
-    """P1 路乙判入 ∩ 具 OAI-PMH ∩ 近 30 日無 probe(resume:成敗皆算已探,過期才重探)。"""
+def _wave_candidates(cur, limit=None, retry_failed=False):
+    """P1 路乙判入 ∩ 具 OAI-PMH ∩ 近 30 日無 probe(resume:成敗皆算已探,過期才重探)。
+    retry_failed=True:http_status NULL 之新鮮 probe 不擋(雙 verb 假陰性重探;2xx 成功者仍跳過)。"""
     from auto_review_sources import classify_licenses
     cur.execute("SELECT kind, pattern, regime FROM license_regime_map")
     rm = cur.fetchall()
@@ -161,8 +176,9 @@ def _wave_candidates(cur, limit=None):
                    WHERE s.approval_status='proposed' AND s.adapter_config ? 're3data'
                      AND NOT EXISTS (SELECT 1 FROM knowledge_source_review_log l
                                      WHERE l.source_key=s.source_key AND l.action='probe'
-                                       AND l.created_at > now() - make_interval(days => %s))
-                   ORDER BY s.source_key""", (PROBE_FRESH_DAYS,))
+                                       AND l.created_at > now() - make_interval(days => %s)
+                                       AND (%s = false OR l.probe_result->>'http_status' IS NOT NULL))
+                   ORDER BY s.source_key""", (PROBE_FRESH_DAYS, retry_failed))
     out = []
     for k, lic, apis in cur.fetchall():
         url = pick_oai_endpoint(apis)
@@ -173,26 +189,28 @@ def _wave_candidates(cur, limit=None):
     return out
 
 
-def _re3data_wave(conn, cur, limit=None):
+def _re3data_wave(conn, cur, limit=None, retry_failed=False):
     """SRC-QUALIFY 步①:每倉兩最小請求(Identify 格式實證+ListIdentifiers 首頁自報數)→ review_log。
     格式實證不過者 http_status 記 None(P4 fail-closed)、原始碼保留於 raw_http_status(誠實不滅證)。"""
-    cands = _wave_candidates(cur, limit)
+    cands = _wave_candidates(cur, limit, retry_failed)
     if not cands:
         print("(無待探之合格倉——P1 判入∩OAI-PMH∩無新鮮 probe 為空)")
         return 0
-    print(f"步①證據波:{len(cands)} 倉 × 2 請求(步調 {WAVE_PACE_S}s;熔斷 {WAVE_FUSE} 連錯)")
+    print(f"步①證據波:{len(cands)} 倉 × 2 請求(步調 {WAVE_PACE_S}s;熔斷 {WAVE_FUSE} 連錯"
+          + (";重探假陰性模式" if retry_failed else "") + ")")
     n_ok = n_fail = errs = 0
     for i, (k, url) in enumerate(cands):
-        sep = "&" if "?" in url else "?"
+        base, sep = normalize_oai_base(url)
+        idf_url = base + sep + "verb=Identify"
         t0 = time.time()
         st, note, name, size, raw = None, "", None, None, None
         try:
-            raw, body = _oai_get(url + sep + "verb=Identify")
+            raw, body = _oai_get(idf_url)
             ident = parse_identify(body)
             if ident["ok"]:
                 st, name = raw, ident["repository_name"]
                 try:
-                    _, body2 = _oai_get(url + sep + "verb=ListIdentifiers&metadataPrefix=oai_dc")
+                    _, body2 = _oai_get(base + sep + "verb=ListIdentifiers&metadataPrefix=oai_dc")
                     size = parse_list_size(body2)
                 except Exception as e:  # noqa: BLE001  首頁失敗:P4 仍成立、est 誠實缺
                     note = f"list-page: {type(e).__name__}"
@@ -207,7 +225,7 @@ def _re3data_wave(conn, cur, limit=None):
             errs += 1
         ms = int((time.time() - t0) * 1000)
         pr = {"http_status": st, "raw_http_status": raw, "elapsed_ms": ms, "adapter": "generic_json",
-              "url": url[:200], "protocol": "OAI-PMH", "complete_list_size": size,
+              "url": idf_url[:200], "protocol": "OAI-PMH", "complete_list_size": size,
               "repository_name": name, "note": note}
         curation.transition(k, "probe", WAVE_ACTOR, probe_result=pr,
                             reason=f"qualify-wave http={st} size={size} {ms}ms")
@@ -248,6 +266,15 @@ def _selftest():
     chk("OAI 端點擇取(型別+http 前綴)", pick_oai_endpoint(
         [{"url": "ftp://x", "type": "FTP"}, {"url": "https://y/oai", "type": "OAI-PMH"}]) == "https://y/oai")
     chk("無 OAI=None", pick_oai_endpoint([{"url": "https://z", "type": "REST"}]) is None)
+    # ── 雙 verb 教訓鎖(2026-07-28:47 倉假陰性) ──
+    chk("base 正規化:剝自帶 ?verb=Identify", normalize_oai_base(
+        "https://borealisdata.ca/oai?verb=Identify") == ("https://borealisdata.ca/oai", "?"))
+    chk("base 正規化:剝 verb+metadataPrefix 組合", normalize_oai_base(
+        "https://share.osf.io/oai-pmh/?verb=ListRecords&metadataPrefix=oai_dc")
+        == ("https://share.osf.io/oai-pmh/", "?"))
+    chk("base 正規化:非 OAI 參數保留+joiner=&", normalize_oai_base(
+        "https://x.org/oai.php?target=repo&verb=Identify") == ("https://x.org/oai.php?target=repo", "&"))
+    chk("base 正規化:無 query 原樣", normalize_oai_base("https://y/oai") == ("https://y/oai", "?"))
     import inspect
     src = inspect.getsource(_re3data_wave)
     chk("熔斷+步調在(#24)", "WAVE_FUSE" in src and "time.sleep(WAVE_PACE_S)" in src)
@@ -277,6 +304,8 @@ def main():
     ap.add_argument("--actor", default="probe_cli")
     ap.add_argument("--re3data-wave", action="store_true")
     ap.add_argument("--re3data-probe-one", action="store_true")
+    ap.add_argument("--retry-failed", action="store_true",
+                    help="新鮮 probe 之 http_status NULL 者重探(2xx 成功者仍跳過)")
     ap.add_argument("--limit", type=int)
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
@@ -285,9 +314,9 @@ def main():
     with db.connect() as conn:
         cur = conn.cursor()
         if args.re3data_probe_one:
-            return _re3data_wave(conn, cur, limit=1)
+            return _re3data_wave(conn, cur, limit=1, retry_failed=args.retry_failed)
         if args.re3data_wave:
-            return _re3data_wave(conn, cur, limit=args.limit)
+            return _re3data_wave(conn, cur, limit=args.limit, retry_failed=args.retry_failed)
         if args.source:
             _probe_one(cur, args.source, args.query, args.actor); conn.commit(); return 0
         if args.status:
