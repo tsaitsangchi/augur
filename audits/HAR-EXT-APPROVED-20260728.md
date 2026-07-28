@@ -38,8 +38,8 @@
 | #1／#8／全文三軌 | ✅ |
 | `UNPAYWALL_EMAIL` 已載入（值不入 audit） | ✅（開工核對） |
 
-## 四、執行落點（後填 CLOSED）
+## 四、執行落點
 
-- 執行／數字：`audits/HAR-EXT-CLOSED-20260728.md`
-- HANDOFF 一句更新（FT-COV 近程列）
-- 封存：`bash scripts/archive_push.sh --slug har-ext-p2-batch`（若可）
+- 執行／數字：✅ `audits/HAR-EXT-CLOSED-20260728.md`
+- HANDOFF：✅ 已更新 FT-COV 近程列
+- 封存：`bash scripts/archive_push.sh --slug har-ext-p2-batch`
