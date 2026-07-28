@@ -50,6 +50,8 @@ FORBIDDEN_EXPLICIT = {
     "principle_domain_map",
     # NHC-S12:CJK→EN 檢索詞表(顧問 retrieve 用;素養層、預測 role 零存取;V-ISO)
     "retrieve_glossary",
+    # RKI-S01:交互探針帳本(顧問／探針用;非特徵權重;預測 role 零存取;V-ISO)
+    "knowhow_interaction_probe",
 }
 # 注:entity_type_catalog / entity_registry / entity_alias 屬 resolution 基礎設施(Phase 2 消費端須 JOIN 已解析
 #     augur_id),故不列 forbidden、留 allowed(唯讀);其 append-only/permanence 由 migrate_identity_ddl 硬化。
