@@ -30,16 +30,47 @@
   python scripts/settle_arena_labels.py                # 無參數:現況(唯讀:未結算/已結算分佈)
   python scripts/settle_arena_labels.py --run          # 冪等結算(兩閘不過=exit 1 零寫入;尾附洩漏稽核)
   python scripts/settle_arena_labels.py --check-factor # 只跑 factor 單調性檢核(唯讀診斷,零寫入)
-  python scripts/settle_arena_labels.py --scoreboard   # 官方計分板(唯讀:三基準並排+常數隊標示+洩漏稽核)
+  python scripts/settle_arena_labels.py --scoreboard   # 官方計分板(唯讀:三基準並排+常數隊標示+洩漏稽核;
+                                                       #   尾附方向門自動觸發:cluster≥60 送裁判 evaluate-all)
+  python scripts/settle_arena_labels.py --selftest     # 零 DB 紅綠(觸發器門檻/零寫門態鎖)
 """
 import argparse
+import subprocess
 import sys
 from bisect import bisect_left, bisect_right
 from datetime import timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import _bootstrap  # noqa: F401
 from augur.core import db
+
+GATE_TRIGGER_CLUSTERS = 60   # 確立門檻(口徑=已結算 pred_date 數,與計分板同源;達標自動送裁判)
+
+
+def _gate_autotrigger(n_clusters, dry=False):
+    """cluster ≥60 → 自動跑 evaluate_direction_gate --evaluate-all(該支明文機械層「AI/腳本可跑」;
+    approve 才唯人)。本支**零寫 direction_gate**、只呼叫裁判;裁判自帶可判性檢查(無料之 gate 不判)。
+    價值:防「到 60 沒人記得 evaluate」——每日計分板尾自動查(2026-07-28 hugo 核可 B 項)。"""
+    if n_clusters < GATE_TRIGGER_CLUSTERS:
+        print(f"  方向門自動觸發:未達({n_clusters}/{GATE_TRIGGER_CLUSTERS})——續等,不 evaluate")
+        return False
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SELECT count(*) FROM direction_gate "
+                    "WHERE status='approved' AND gate_id LIKE 'dgate_arena%'")
+        n_ready = cur.fetchone()[0]
+    if not n_ready:
+        print(f"  方向門自動觸發:cluster {n_clusters} 已達門檻但無 approved 之 arena gate——無事可判")
+        return False
+    print(f"🔔 cluster {n_clusters} ≥ {GATE_TRIGGER_CLUSTERS}:自動送裁判 --evaluate-all({n_ready} gate 候判)")
+    if dry:
+        return True
+    r = subprocess.run([sys.executable, str(Path(__file__).with_name("evaluate_direction_gate.py")),
+                        "--evaluate-all"], capture_output=True, text=True, timeout=1800)
+    print(r.stdout[-2000:])
+    if r.returncode != 0:
+        print(f"  ⚠ 裁判 exit={r.returncode}(誠實記錄,人工查;本支不改門態)")
+    return True
 
 TAIPEI = ZoneInfo("Asia/Taipei")
 WAIT_DAYS = 7            # 停牌觀察窗:市場日曆過 label+7 日仍無成交才進停牌分支(防資料延遲誤判)
@@ -248,7 +279,27 @@ def scoreboard():
     print("  ⚠ 觀察級鐵則:cluster<60 之前,任何「技能/排名/確立」措辭皆屬自欺;"
           "橫斷面 344 檔高度相關(首批 DEFF≈43-53、有效 n≈8)")
     print("  觀察名單(預註冊、只驗不改):audits/ARENA-WATCHLIST-PREREG-20260726.md")
+    _gate_autotrigger(n_clusters)
     return 0
+
+
+def _selftest():
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        print(("  ✓ " if cond else "  ✗ ") + name)
+        ok = ok and cond
+
+    import inspect
+    src = inspect.getsource(_gate_autotrigger)
+    chk("門檻=60 與計分板同源常數", GATE_TRIGGER_CLUSTERS == 60 and "確立門檻 60" in inspect.getsource(scoreboard))
+    chk("未達門檻=不 evaluate(續等)", _gate_autotrigger(GATE_TRIGGER_CLUSTERS - 1, dry=True) is False)
+    chk("觸發器零寫 direction_gate(只呼叫裁判)", "UPDATE" not in src and "INSERT" not in src)
+    chk("裁判失敗=誠實記錄不吞", "returncode != 0" in src)
+    chk("計分板尾掛觸發", "_gate_autotrigger(n_clusters)" in inspect.getsource(scoreboard))
+    print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
+    return 0 if ok else 1
 
 
 def status():
@@ -272,7 +323,10 @@ def main():
     ap.add_argument("--run", action="store_true", help="冪等結算(寫 ledger 結算欄)")
     ap.add_argument("--check-factor", action="store_true", dest="factor", help="只跑 factor 檢核(唯讀)")
     ap.add_argument("--scoreboard", action="store_true", help="官方計分板(唯讀;三基準並排)")
+    ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
+    if args.selftest:
+        return _selftest()
     if args.scoreboard:
         return scoreboard()
     if args.run or args.factor:
