@@ -1,10 +1,10 @@
 # 跨域 Know-how 顧問作答 ＋ gov 覆蓋率自動審批狀態機（整合計畫）
 
 **日期**：2026-07-28  
-**性質**：[I] 執行層計畫（plan-first；CLAUDE #16／#20；**本輪只出計畫、不實作**；不改治權 [N]）  
+**性質**：[I] 執行層計畫（plan-first；CLAUDE #16／#20；**Steward 已拍 `KH-XDOM-PLAN`＋`KH-XDOM-S01`＋`PME-XDOM-NO`＋`FZ-keep`（2026-07-28）**；S01＝S0＋S1＋S1b；不改治權 [N]）  
 **觸發**：Steward——「本專案所有 know-how 都不應分域，因皆具備相關性」；同輪追加——`/gov`「來源治權＋覆蓋率」審批狀態機亦做**自動審批**並與跨域作答整合  
-**結構**：單一主檔（跨域＋審批整合）；姊妹對照＝`reports/augur_knowledge_fulltext_coverage_plan_20260728.md`（FT-COV；已 DASH／EMBED／HAR-ext 近程 CLOSED）；**CJK→EN 檢索詞入 DB／入憲**＝`reports/augur_no_hardcode_db_ssot_constitution_plan_20260728.md`（NHC；落地 §3.1「query 擴展禁硬編碼大表」）  
-**實證時點**：分域／狀態機＝code 親查；覆蓋分桶數字＝FT-COV 計畫 2026-07-28 live（本檔撰寫時本機 PG 暫時離線，開工前須重跑對帳）
+**結構**：單一主檔（跨域＋審批整合）；姊妹對照＝`reports/augur_knowledge_fulltext_coverage_plan_20260728.md`（FT-COV；已 DASH／EMBED／HAR-ext 近程 CLOSED）；**CJK→EN 檢索詞入 DB／入憲**＝`reports/augur_no_hardcode_db_ssot_constitution_plan_20260728.md`（NHC；另案，S01 不偷改 [N]）  
+**實證時點**：分域／狀態機＝code 親查；覆蓋分桶＝S0 開工重跑（見 `audits/KH-XDOM-S01-CLOSED-20260728.md`）
 
 ---
 
@@ -40,11 +40,11 @@
 |---|---|
 | **解凍 FinMind／FRED**／市場 sync／Dividend 重建 | API 凍結；本計畫零市場 API（`FZ-keep`） |
 | **預測熱路徑吃 know-how**／灌因子／進 feature／panel | #8／`import_isolation`；素養層隔離 |
-| **近程異域進化閉環灌因子**（孫子↔ERP、太陽能↔儲能等） | HANDOFF 近程紅線；見 §1.4 正交說明 |
+| **近程異域進化閉環灌因子**（孫子↔ERP、太陽能↔儲能等） | HANDOFF 近程紅線；見 §1.4（`PME-XDOM-NO`） |
 | **自動 `approve`／`activate`／`resume`／`reopen` 來源** | 憲章 v1.41.0「approve 唯人」；TTY＋superuser；AI／腳本 fail-closed |
 | **把 blocked（skip_license／skip_no_oa）洗成全文** | 能抓≠該抓；FT-COV 明示 |
 | **改全文准入三軌／鬆 license CHECK** | 治權 [N]；另開案 |
-| **本輪實作 code** | Steward：只出計畫 |
+| **超出 S01**（S2 評測／S3 品質／入憲／ATA 外部放量） | 另待令；S01＝S0＋S1＋S1b |
 
 ### 1.4 與「近程不做異域進化閉環」正交（必讀）
 
@@ -285,15 +285,19 @@ query
 
 ## 9. Steward 拍板碼（建議組合）
 
+> **已拍（2026-07-28 Steward 原文）**：`KH-XDOM-PLAN`＋`KH-XDOM-S01`＋`PME-XDOM-NO`＋`FZ-keep`  
+> 登錄＝`audits/KH-XDOM-PLAN-APPROVED-20260728.md`；S01 收官＝`audits/KH-XDOM-S01-CLOSED-20260728.md`（執行後填）。  
+> **未拍／另待令**：`KH-XDOM-EVAL`（S2）／`KH-ATA-EXEC`（S2b 外部）／`KH-XDOM-QUAL`（S3＋S3b）。
+
 | 碼 | 含義 | 建議 |
 |---|---|---|
-| **`KH-XDOM-PLAN`** | 採納本整合計畫 what／非目標／正交／分階 | 必拍 |
-| **`KH-XDOM-S01`** | 開工 S0＋S1＋S1b（檢索去閘＋ATA 骨架；零市場 API） | 近程建議 |
+| **`KH-XDOM-PLAN`** | 採納本整合計畫 what／非目標／正交／分階 | ✅ **已拍** |
+| **`KH-XDOM-S01`** | 開工 S0＋S1＋S1b（檢索去閘＋ATA 骨架；零市場 API） | ✅ **已拍並執行** |
 | **`KH-XDOM-EVAL`** | S2 評測集＋跑分腳本 | 可併或次拍 |
 | **`KH-ATA-EXEC`** | S2b ATA 對準缺口之有界外部 fetch（知識 OA；**≠**解凍 FinMind／FRED） | 須明示；可沿用／延伸 HAR-ext 節奏 |
 | **`KH-XDOM-QUAL`** | S3＋S3b 品質與 gov 呈現 | 次拍 |
-| **`FZ-keep`** | 市場 API 維持凍結 | 預設附帶 |
-| **`PME-XDOM-NO`** | 確認近程**不做**異域進化閉環灌因子（正交鎖定） | 建議與 PLAN 同句 |
+| **`FZ-keep`** | 市場 API 維持凍結 | ✅ **已拍** |
+| **`PME-XDOM-NO`** | 確認近程**不做**異域進化閉環灌因子（正交鎖定） | ✅ **已拍** |
 
 **建議合併拍板句（示意）**：  
 `KH-XDOM-PLAN`＋`KH-XDOM-S01`＋`PME-XDOM-NO`＋`FZ-keep`（S2／ATA 外部另句或同包加 `KH-XDOM-EVAL`）。
@@ -309,7 +313,7 @@ query
 | **路徑** | `reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`（本檔；含審批整合章，無須另檔） |
 | **跨域一句** | know-how 作答不分域閘，追求跨域最佳回答（引用＋誠實） |
 | **自動審批一句** | 自動的是**覆蓋終態推進（ATA）**，不是來源 approve |
-| **建議拍板** | `KH-XDOM-PLAN`＋`KH-XDOM-S01`＋`PME-XDOM-NO`＋`FZ-keep` |
+| **建議拍板** | `KH-XDOM-PLAN`＋`KH-XDOM-S01`＋`PME-XDOM-NO`＋`FZ-keep` → **已拍 2026-07-28** |
 | **正交** | 跨域檢索作答 ≠ 異域進化灌預測因子 |
 
 ---
@@ -319,5 +323,6 @@ query
 | 日期 | 說明 |
 |---|---|
 | 2026-07-28 | 初版：跨域顧問＋gov ATA 整合；對照 FT-COV／omniscient／HANDOFF；本輪不實作 |
+| 2026-07-28 | Steward 拍板 `KH-XDOM-PLAN`＋`S01`＋`PME-XDOM-NO`＋`FZ-keep`；開工 S0＋S1＋S1b |
 
 **姊妹互鏈**：FT-COV＝`reports/augur_knowledge_fulltext_coverage_plan_20260728.md`；全能顧問＝`reports/augur_omniscient_advisor_plan_20260709.md`；HANDOFF 近程「不做他域進化閉環」。

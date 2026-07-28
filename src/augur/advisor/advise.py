@@ -136,14 +136,15 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     llm_fn:     prompt(str) -> response(str) 的抽象 LLM 呼叫(可接 Claude API / 本地 / mock)
     k:          檢索引文數
     lex_terms:  需查公版定義的詞(lexicon 路徑;定義引用必附 locator)
-    retrieve_fn/lexicon_fn: 檢索抽象界面(預設 philosophy.retrieval;可 mock/注入 Mode B 附加檔檢索)
+    retrieve_fn/lexicon_fn: 檢索抽象界面(預設 philosophy.retrieval.retrieve_all＝works∪items、
+                不傳策展 domain=；可 mock/注入 Mode B 附加檔檢索)
     prompt_fn:  覆寫 prompt 組裝(Mode B 附加檔用 build_attached_prompt;預設 build_prompt)——
                 guard 不變、只換人格框架與檢索語料,誠實三敵防護一致
     evolution_md: PME S4 解讀 markdown（注入則優先；None 且 include_evolution 時 fail-soft 載入）
     include_evolution: 主路徑是否附加 S4 進化解讀（Mode B／prompt_fn 覆寫時一律不附加）
     回:{response, guard, citations, lex_entries, prompt}
     """
-    from augur.philosophy.retrieval import retrieve, lexicon_lookup, verify_verbatim, is_low_content
+    from augur.philosophy.retrieval import retrieve_all, lexicon_lookup, verify_verbatim, is_low_content
     from augur.advisor.relevance import relevant_citations
     from augur.advisor.prompt import _asks_direction_or_path, build_direction_refusal
     # lock②/閘⑥:方向/逐日價格/目標價/準確率排名題 → 短路弱 LLM,直回固定誠實句(gate 狀態 SSOT=
@@ -155,7 +156,8 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     if prompt_fn is None and _asks_direction_or_path(query):
         return {"response": build_direction_refusal(), "guard": {"pass": True, "issues": []},
                 "citations": [], "lex_entries": [], "prompt": None}
-    src_fn = retrieve if retrieve_fn is None else retrieve_fn
+    # KH-XDOM-S01：預設合併檢索＝retrieve_all（works∪items；不傳策展 domain=）；服器亦可顯式注入同函。
+    src_fn = retrieve_all if retrieve_fn is None else retrieve_fn
     lex_fn = lexicon_fn or lexicon_lookup
     lex_entries = [e for t in lex_terms for e in lex_fn(t)]
     def _clean(cits):                                    # 機械攔 stale/非逐字(#1,M2)+ 濾 junk 低內容 chunk(B-1)

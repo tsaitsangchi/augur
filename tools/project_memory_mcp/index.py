@@ -320,6 +320,7 @@ def _build_incremental(
 ) -> dict:
     conn = sqlite3.connect(db_file)
     added = updated = removed = skipped = 0
+    embed_skipped: list[str] = []
     pending_text: List[str] = []
     pending_meta: List[Tuple] = []
     seen: set = set()
@@ -370,6 +371,15 @@ def _build_incremental(
                     else:
                         log(f"[project-memory] ~ 更新 {rel}")
                         updated += 1
+                except embed.EmbedError as e:
+                    # 車道忙(批跑/8b 對話佔 Ollama)之單檔失敗:跳過續跑、尾端誠實統計+rc≠0——
+                    # 舊行為=raise 炸全趟,已提交進度雖在、剩餘檔全被放棄且只留 traceback(2026-07-28 實錄)
+                    conn.rollback()
+                    pending_text.clear()
+                    pending_meta.clear()
+                    embed_skipped.append(rel)
+                    log(f"[project-memory] ⚠ 跳過 {rel}（嵌入失敗:{str(e)[:80]}…續掃其餘檔）")
+                    continue
                 except Exception:
                     conn.rollback()
                     pending_text.clear()
@@ -417,6 +427,7 @@ def _build_incremental(
     store.clear_cache()
     return {
         "mode": "incremental",
+        "embed_skipped": embed_skipped,
         "files": n_files,
         "chunks": n_chunks,
         "added": added,
@@ -499,6 +510,13 @@ def main(argv=None) -> int:
         f"skip={stats['skipped']}）"
         f" → {stats['db']}（embed={stats['embed_model']}）"
     )
+    es = stats.get("embed_skipped") or []
+    if es:
+        print(f"⚠ {len(es)} 檔因嵌入失敗跳過（Ollama 車道忙?）——進度已保留,車道空時重跑同指令即補齊:",
+              file=sys.stderr)
+        for r in es[:8]:
+            print(f"    · {r}", file=sys.stderr)
+        return 1
     return 0
 
 

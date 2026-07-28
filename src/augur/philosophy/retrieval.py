@@ -272,7 +272,10 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
     query→textnorm 全形集→(a)exact SQL 零向量優先→(c)ANN 補位→一律 PG JOIN 取原文;
     CLEAN_ITEM 閘＋RBAC 由 corpus.clean_item_sql 產 (frag, params)、**exact 計數/exact 取原文/ann 三段同帶**
     (一改三處自動同帶、關 L274 與 ANN 補位兩洩漏面);fail-closed:非 super 無授權 → AND false。
-    access_scope='public'→domain 收窄(is_super/allowed_domains);='local_private'→擁有者收窄(owner_user_id=登入者)。
+    access_scope='public'→**RBAC 授權域**收窄(is_super/allowed_domains;≠策展單域作答閘);
+    ='local_private'→擁有者收窄(owner_user_id=登入者)。
+    **`domain=`（KH-XDOM-S01）**：可選**策展標籤**硬濾；預設 None＝不作答分域閘。
+    顧問合併路 `retrieve_all` **永不傳**此參數；僅 UI「只搜某標籤」明示時才開。
     語料空/表未建 → 誠實回空 []。回 [ItemCitation](exact 先、ann 補位)。"""
     if not (query or "").strip():
         return []
@@ -280,7 +283,7 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
                                            is_super=is_super, allowed_domains=allowed_domains,
                                            owner_user_id=owner_user_id)
     extra, extra_params = "", []
-    if domain:
+    if domain:  # 策展標籤 opt-in；非顧問預設作答閘（KH-XDOM-S01）
         extra += " AND i.domain = %s"; extra_params.append(domain)
     if language:
         extra += " AND s.language = %s"; extra_params.append(language)
@@ -358,9 +361,12 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
 
 def retrieve_all(query, k=6, access_scope="public", scope=None):
     """work + item 合併檢索 ＋ RBAC scoped(P3/群組建置,§4.5、憲章 v1.29.0)。對話端唯一組合檢索器:**三路徑**各取半、
-    交錯合併、cap k——(1) works=哲學/文學公版經典**對所有登入者公開**;(2) public items 經 domain 群組收窄;
-    (3) local_private items 經**擁有者收窄**(僅本人+super)。**scope=(is_super, allowed, user_id) 或 None**;
-    None/未登入 → fail-closed 全 deny(非「不濾」)。回混合 [Citation|ItemCitation](verify/prompt/guard 型別感知相容)。
+    交錯合併、cap k——(1) works=哲學/文學公版經典**對所有登入者公開**;
+    (2) public items 經 **RBAC 授權域**收窄（群組 grant；Steward／super 不硬濾單策展 domain）;
+    (3) local_private items 經**擁有者收窄**(僅本人+super)。
+    **KH-XDOM-S01**：本函**永不**傳策展單域硬濾參數給 items 路——標籤不作答閘；跨域召回靠相關度＋授權寬度。
+    **scope=(is_super, allowed, user_id) 或 None**;None/未登入 → fail-closed 全 deny(非「不濾」)。
+    回混合 [Citation|ItemCitation](verify/prompt/guard 型別感知相容)。
     (access_scope 參數保留為簽章相容;三路徑內部固定分流、不再由此參數決定。)"""
     if not scope:
         is_super, allowed, user_id = False, frozenset(), None
@@ -370,7 +376,7 @@ def retrieve_all(query, k=6, access_scope="public", scope=None):
     half = max(2, (k + 1) // 2)
     works = retrieve(query, k=half, scope=scope)                          # 路徑1:登入者公開
     pub = retrieve_items(query, k=half, access_scope="public",
-                         is_super=is_super, allowed_domains=allowed)      # 路徑2:domain 收窄
+                         is_super=is_super, allowed_domains=allowed)      # 路徑2:RBAC（無策展單域硬濾）
     priv = []
     if is_super or user_id is not None:                                   # 路徑3:有身分才查私有(否則必 deny、省一趟)
         priv = retrieve_items(query, k=half, access_scope="local_private",
@@ -462,6 +468,15 @@ def _selftest():
         verify_verbatim(AttachedCitation(text="abc", source_text="xxabcyy", work_title="t")) is True)
     chk("verify_verbatim(AttachedCitation)非子字串為假",
         verify_verbatim(AttachedCitation(text="zzz", source_text="xxabcyy", work_title="t")) is False)
+    # KH-XDOM-S01：retrieve_all 函體（跳過 docstring）→ retrieve_items 不得硬傳策展單域 kw
+    import inspect
+    import re
+    src = inspect.getsource(retrieve_all)
+    body = src.split('"""', 2)[-1] if src.count('"""') >= 2 else src
+    call_lines = [ln for ln in body.splitlines() if "retrieve_items(" in ln]
+    bad = [ln for ln in call_lines if re.search(r"(?<![_\w])domain\s*=", ln)]
+    chk("retrieve_all→retrieve_items 呼叫無策展 domain kw",
+        bool(call_lines) and not bad)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

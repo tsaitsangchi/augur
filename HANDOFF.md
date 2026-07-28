@@ -108,7 +108,8 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 | **PME 靈魂措辭** | ✅ **G-PME-SOUL=none**（2026-07-24；`SOUL-PME-B-yes`＋採納並寫入；`audits/G-PME-SOUL-CLOSED-20260724.md`）——適用**新入 know-how**（新哲學／新研發技術／新學術論文等）閘後有界自動晉升；**自動下單仍禁**；**與 FinMind／FRED 正交（≠解凍）** |
 | **靈魂↔raw 邊界** | **[I]** raw＝觀測／結果呈現——**不**因「有 raw」升格靈魂；升到靈魂層的是 raw **交互**抽象出的**概念**與可證偽關係（相關係數等＝概念載體）。管線仍 source-pure raw→features；靈魂指導假說、不加權 runtime；禁整庫 raw 灌靈魂。API＝取 raw 通道≠靈魂。rule＝`.cursor/rules/soul-vs-raw-correlation.mdc`；留痕＝`audits/SOUL-VS-RAW-CORRELATION-20260724.md`（**未改** META-CONSTITUTION [N]） |
 | **FT-COV 近程** | ✅ **DASH＋EMBED CLOSED**（2026-07-28；`audits/FT-COV-DASH-EMBED-*`）＋✅ **`HAR-ext`＋`FT-COV-BATCH` CLOSED**（同日；拍板＝`audits/HAR-EXT-APPROVED-20260728.md`；收官＝`audits/HAR-EXT-CLOSED-20260728.md`）——8 pending 域 P2×3＋有界×50：終態帳↑（每域≈+53 blocked）、全文落地 **4**→句／嵌；**無熔斷**；**FZ-keep**（≠解凍市場 API）；計畫＝`reports/augur_knowledge_fulltext_coverage_plan_20260728.md` |
-| **不做（近程）** | 孫子↔ERP、太陽能↔儲能 等**他域進化閉環**計畫／實作；不以他域進化「灌進」台股因子 |
+| **KH-XDOM 近程** | ✅ **S01 CLOSED**（2026-07-28；`KH-XDOM-PLAN`＋`KH-XDOM-S01`＋`PME-XDOM-NO`＋`FZ-keep`；拍板＝`audits/KH-XDOM-PLAN-APPROVED-20260728.md`；收官＝`audits/KH-XDOM-S01-CLOSED-20260728.md`）——檢索去作答分域閘＋ATA 骨架；孫子×企管探針多標籤命中；**≠**異域進化灌因子／≠解凍；S2／S3／ATA 外部另碼 |
+| **不做（近程）** | 孫子↔ERP、太陽能↔儲能 等**他域進化閉環**計畫／實作；不以他域進化「灌進」台股因子（`PME-XDOM-NO` 再鎖） |
 | **落地盤點** | ✅ **已出**（2026-07-24；`audits/ROADMAP-LANDING-INVENTORY-20260724.md`）——機械近程大致齊；**產品完備＝否**；預測正交 ≠ 解凍 |
 | **INV-1「全部落地」** | ✅ **`INV1-LAND-MECH`**（2026-07-24；`audits/ROADMAP-INV1-APPROVED-20260724.md`＋定義檔）——機械近程＋另帳；附 **`INV2-THAW-STILL-REQUIRED`** → **仍凍**（無明示解凍句） |
 | **凍結** | FinMind／FRED **仍凍**（前提 (1)＝LAND-MECH 已釘；(2)＝明示解凍**仍缺**；見 §4.4）—**未**解凍；預測熱路徑見上列「預測↔API」 |

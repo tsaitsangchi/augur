@@ -52,12 +52,15 @@ def _stub_vec(text: str) -> List[float]:
 
 
 def _embed_timeout_s() -> float:
-    """單次 /api/embed HTTP timeout（秒）。可用 EMBED_TIMEOUT_S 覆寫。"""
-    raw = os.getenv("EMBED_TIMEOUT_S", "90")
+    """單次 /api/embed HTTP timeout（秒）。可用 EMBED_TIMEOUT_S 覆寫。
+
+    預設 90→300（2026-07-28）：Ollama 單槽下嵌入請求會排在生成請求（評測臂/advisor 8b）之後，
+    車道忙時 90s 純粹不夠——排隊不是故障，等就對了（慢可以、答案要準）。"""
+    raw = os.getenv("EMBED_TIMEOUT_S", "300")
     try:
         return max(5.0, float(raw))
     except ValueError:
-        return 90.0
+        return 300.0
 
 
 def _embed_retries() -> int:

@@ -48,8 +48,11 @@ def clean_item_sql(item_alias="i", itext_alias="x", access_scope=None,
     - **RBAC 收窄軸依 access_scope 分流(開放值 → 參數化不內插;`is_super=True` 一律不濾——embed/builder 非讀取路徑傳此)**:
       · `access_scope='local_private'` → **擁有者收窄**(私有＝個人文件、無部門語意、**不 domain 收窄**、跨使用者 fail-closed):
         非 super 且 `owner_user_id` 給 → `AND owner_user_id = %s`;非 super 且 owner 缺 → `AND false`(deny);super → 見全部私有。
-      · 其餘(`public`/None) → **domain 收窄**(群組 grant):非 super 且 `allowed_domains` 空(None/[]) → `AND false`(**預設 deny**);
+      · 其餘(`public`/None) → **授權域收窄**(群組 `group_domain_grant`):非 super 且 `allowed_domains` 空(None/[]) → `AND false`(**預設 deny**);
         非空 → `AND domain = ANY(%s::text[])`。
+    **語意分離（KH-XDOM-S01）**：此處 `domain = ANY(allowed)`＝**誰被授權讀哪些標籤**（產品／RBAC）；
+    **≠**顧問作答「強制單策展 domain=」閘（那條在 `retrieve_items(domain=)`、預設關閉）。
+    Steward／super／廣授顧問路徑可跨標籤召回；窄 grant 仍為產品邊界。
     讀取路徑(retrieve_*)一律傳 resolve 之 (is_super, allowed, user_id);private 側須帶 `owner_user_id`＝登入者(#5 anti-leakage)。
     """
     p = (f"{itext_alias}.license IN ({_quoted(LICENSE_WHITELIST)}) "
