@@ -6,7 +6,9 @@
 答:**邊際扛得住成本嗎?最佳 top 分位/加權?**(空方 Track D 已證無效 → 專注 long-only)。
 
 守 #8 · #12 · #14 · #15(gross/net 雙報、換手揭露)· #28(本地零 usage)。
-執行指令矩陣:python scripts/run_economic_eval.py --since 2021-01-01 --h 60 --cost 0.00585
+執行指令矩陣:
+  python scripts/run_economic_eval.py --since 2021-01-01 --h 60 --cost 0.00585
+  python scripts/run_economic_eval.py --since 2021-04-01 --h 60 --add-features lending_fee_rate_mean_20d  # A2 終關:同 --since 兩跑(有/無候選)同尺互比
 """
 import argparse
 
@@ -41,26 +43,34 @@ def main():
     ap.add_argument("--h", type=int, default=60)
     ap.add_argument("--cost", type=float, default=COST_TW, help="來回交易成本(預設台股 0.585%%)")
     ap.add_argument("--interactions", default=None, help="加入交互特徵（逗號分隔、如 inter_fh_x_p10yr；eval 層橫斷面 z 乘積、見 cross_section.INTERACTIONS）")
+    ap.add_argument("--add-features", default=None, dest="add_feats",
+                    help="生產集外加候選特徵(逗號分隔;讀 staged 值,A2 經濟終關用——同 --since 兩跑同尺互比)")
     args = ap.parse_args()
     inter = [s.strip() for s in args.interactions.split(",")] if args.interactions else None
+    adds = [s.strip() for s in args.add_feats.split(",")] if args.add_feats else None
 
     with db.connect() as conn:
         with db.transaction(conn) as cur:
             cur.execute("SELECT DISTINCT panel_date FROM feature_values WHERE panel_date>=%s ORDER BY panel_date", (args.since,))
             panels = [r[0] for r in cur.fetchall()]
         panels = _nonoverlap(panels, args.h)              # 非重疊再平衡(h=60 季度為 no-op、h=120/252 抽半年/年)
-        print(f"經濟回測:{len(panels)} 非重疊 panel（{args.since}+）× h={args.h} × 來回成本 {args.cost:.3%}（as-of、purged walk-forward）" + (f" / interactions={inter}" if inter else ""))
+        feats = None
+        if adds:
+            from augur.evaluation import baseline
+            feats = baseline.canonical_features(conn, panels) + adds
+        print(f"經濟回測:{len(panels)} 非重疊 panel（{args.since}+）× h={args.h} × 來回成本 {args.cost:.3%}（as-of、purged walk-forward）"
+              + (f" / interactions={inter}" if inter else "") + (f" / +候選={adds}" if adds else ""))
         for model in ("B2_ridge", "M1_gbdt"):
             print(f"\n══ {model}（long-only）══")
             for top in (0.1, 0.2, 0.3):
                 for wt in ("equal", "pred"):
-                    r = portfolio.run_backtest(conn, panels, args.h, model=model, top_frac=top, weight=wt, cost=args.cost, interactions=inter)
+                    r = portfolio.run_backtest(conn, panels, args.h, feats=feats, model=model, top_frac=top, weight=wt, cost=args.cost, interactions=inter)
                     if not r:
                         continue
                     tag = f"top{top:.0%}/{wt}"
                     print(f"  {tag:12s} 換手 {r['avg_turnover']:>4.0%} | gross[{_fmt(r['portfolio_gross'])}]")
                     print(f"  {'':12s}            | net  [{_fmt(r['portfolio_net'])}]")
-            rb = portfolio.run_backtest(conn, panels, args.h, model=model, top_frac=0.2, cost=args.cost, interactions=inter)
+            rb = portfolio.run_backtest(conn, panels, args.h, feats=feats, model=model, top_frac=0.2, cost=args.cost, interactions=inter)
             if rb:
                 print(f"  {'基準(淨)':12s} 換手 {rb['bench_turnover']:>4.0%} | net  [{_fmt(rb['benchmark_net'])}]  ({rb['n_periods']}期/{rb['periods_per_year']}per-yr)")
         print("\n判讀(#14):net(扣成本)Sharpe/Calmar 仍優於基準 net → 真可交易;若成本吃掉邊際 → IC 非真 alpha。最佳 top/加權看 net。")
