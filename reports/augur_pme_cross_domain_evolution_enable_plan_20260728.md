@@ -6,15 +6,15 @@
 * **姊妹／正交**：`reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`（**讀與答**）；本檔＝**寫進預測假說鏈**（見 §1.4）
 * **治權錨**：憲章 v1.47.0「跨域原理映射準則」；A.16／共同不變式②（素養不進預測 runtime）；soul-vs-raw；predict-vs-market-api；FZ-keep
 
-### Steward 拍板欄（待填）
+### Steward 拍板欄
 
 | 欄 | 內容 |
 |---|---|
-| **日期** | （待） |
-| **狀態** | ⏳ 待拍板（計畫已出；**未**開工實作） |
-| **建議碼** | `PME-XDOM-YES` ＋ `PME-XDOM-SUNZI-MGMT`（或更窄 `PME-XDOM-PILOT-1`）＋ `GATE-keep` ＋ `FZ-keep` |
-| **效力預期** | 廢止 `PME-XDOM-NO`；HANDOFF §4.0「不做他域進化」改指本計畫分階；實作另待「開 PME-XDOM-S0」或等價執行碼 |
-| **留痕預期** | 拍板後寫 `audits/PME-XDOM-PLAN-APPROVED-20260728.md`；HANDOFF 一句 |
+| **日期** | 2026-07-28 |
+| **狀態** | ✅ **已拍**；同輪執行令＝**S0＋S1 文獻橋**（S3／S4 另候 `PME-XDOM-S3`） |
+| **拍板碼** | `PME-XDOM-YES`＋`PME-XDOM-SUNZI-MGMT`＋`GATE-keep`＋`FZ-keep` |
+| **效力** | 廢止 `PME-XDOM-NO`；近程範圍＝孫子×企管文獻橋（ERP dump 不自動灌）；閘與 API 凍結維持 |
+| **留痕** | `audits/PME-XDOM-PLAN-APPROVED-20260728.md`；HANDOFF §4.0；S01 收官＝`audits/PME-XDOM-SUNZI-MGMT-S01-CLOSED-20260728.md` |
 
 ---
 
@@ -233,7 +233,7 @@ PME-XDOM-YES + PME-XDOM-SUNZI-MGMT + PME-XDOM-S0 + GATE-keep + FZ-keep
 | **正交** | KH-XDOM＝讀答（S01 已閉）；本計畫＝寫進假說鏈過市場閘 |
 | **撤銷** | `PME-XDOM-YES` 廢止 `PME-XDOM-NO`＋更新 HANDOFF |
 | **建議拍板** | `PME-XDOM-YES`＋`PME-XDOM-SUNZI-MGMT`＋`GATE-keep`＋`FZ-keep` |
-| **本輪** | **不實作** |
+| **本輪** | ✅ 已拍＋S0／S1 文獻橋；**S3 未跑**（待開 `PME-XDOM-S3`） |
 
 ---
 
@@ -242,5 +242,6 @@ PME-XDOM-YES + PME-XDOM-SUNZI-MGMT + PME-XDOM-S0 + GATE-keep + FZ-keep
 | 日期 | 說明 |
 |---|---|
 | 2026-07-28 | 初版：Steward「要開進化閉環」→ plan-first；對照 KH-XDOM／PME-Efull／憲章 v1.47.0／HANDOFF §4.0；建議首範圍孫子×企管文獻橋、排除 ERP dump 自動 map |
+| 2026-07-28 | Steward 拍板 `PME-XDOM-YES`＋`SUNZI-MGMT`＋`GATE-keep`＋`FZ-keep`；廢止 NO；開工 S0＋S1（S3 另令） |
 
 **對照索引**：PME 主計畫＝`reports/augur_philosophy_market_evolution_loop_plan_20260724.md`；MAP 擴大＝`reports/augur_pme_expand_hypothesis_map_coverage_plan_20260724.md`；KH-XDOM＝`reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`；拍板 NO 登錄＝`audits/KH-XDOM-PLAN-APPROVED-20260728.md`。

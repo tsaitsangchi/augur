@@ -40,21 +40,23 @@
 |---|---|
 | **解凍 FinMind／FRED**／市場 sync／Dividend 重建 | API 凍結；本計畫零市場 API（`FZ-keep`） |
 | **預測熱路徑吃 know-how**／灌因子／進 feature／panel | #8／`import_isolation`；素養層隔離 |
-| **近程異域進化閉環灌因子**（孫子↔ERP、太陽能↔儲能等） | HANDOFF 近程紅線；見 §1.4（`PME-XDOM-NO`） |
+| **異域進化灌因子**（PME 假說鏈） | **已由同日 `PME-XDOM-YES` 開通**（近程＝`PME-XDOM-SUNZI-MGMT` 文獻橋；ERP dump 仍禁）——見姊妹計畫；**≠**本顧問計畫範圍 |
 | **自動 `approve`／`activate`／`resume`／`reopen` 來源** | 憲章 v1.41.0「approve 唯人」；TTY＋superuser；AI／腳本 fail-closed |
 | **把 blocked（skip_license／skip_no_oa）洗成全文** | 能抓≠該抓；FT-COV 明示 |
 | **改全文准入三軌／鬆 license CHECK** | 治權 [N]；另開案 |
 | **超出 S01**（S2 評測／S3 品質／入憲／ATA 外部放量） | 另待令；S01＝S0＋S1＋S1b |
 
-### 1.4 與「近程不做異域進化閉環」正交（必讀）
+### 1.4 與 PME 異域進化正交（必讀）
 
-| | **本計畫主張** | **HANDOFF 近程紅線** |
+> **狀態更新（2026-07-28）**：原近程鎖 `PME-XDOM-NO` **已由 `PME-XDOM-YES` 廢止**；進化寫側見 `reports/augur_pme_cross_domain_evolution_enable_plan_20260728.md`（近程 `PME-XDOM-SUNZI-MGMT`）。本節正交句仍有效——**顧問作答 ≠ 過市場閘**。
+
+| | **本計畫主張（跨域作答）** | **PME-XDOM（異域進化；已開通寫側）** |
 |---|---|---|
-| 是什麼 | 顧問／素養：**跨域檢索作答**（引用孫子談企管、漿料談電子） | **不做**把他域進化結果**灌進台股預測因子**／開異域 PME 閉環計畫 |
-| 不是什麼 | 不是把孫子向量當特徵權重；不是 ERP 列進 `prediction_values` | 不是禁止顧問回答跨域問題 |
-| 機械鎖 | know-how 仍住 knowledge／advisor；`import_isolation`＋test_philosophy_isolation 不鬆 | 進化閉環／factor_map／#14 提拔另案；本計畫 **U 階段不接** |
+| 是什麼 | 顧問／素養：**跨域檢索作答**（引用孫子談企管、漿料談電子） | 異域概念→investment principle→map→閘→prodset |
+| 不是什麼 | 不是把孫子向量當特徵權重；不是 ERP 列進 `prediction_values` | 不是用顧問 cite 率當閘通過；近程仍禁 ERP dump 自動 map |
+| 機械鎖 | know-how 仍住 knowledge／advisor；`import_isolation`＋test_philosophy_isolation 不鬆 | GATE-keep／FZ-keep；本顧問計畫 **U 階段不接**進化閘 |
 
-**一句**：跨域＝**讀與答**；異域進化閉環＝**寫進預測**——正交、不衝突、本計畫不偷開後者。
+**一句**：跨域＝**讀與答**；異域進化＝**寫進假說鏈並過市場閘**——正交、不衝突；不得以顧問命中率宣稱因子已驗證。
 
 ---
 
@@ -297,7 +299,7 @@ query
 | **`KH-ATA-EXEC`** | S2b ATA 對準缺口之有界外部 fetch（知識 OA；**≠**解凍 FinMind／FRED） | 須明示；可沿用／延伸 HAR-ext 節奏 |
 | **`KH-XDOM-QUAL`** | S3＋S3b 品質與 gov 呈現 | 次拍 |
 | **`FZ-keep`** | 市場 API 維持凍結 | ✅ **已拍** |
-| **`PME-XDOM-NO`** | 確認近程**不做**異域進化閉環灌因子（正交鎖定） | ✅ **已拍** |
+| **`PME-XDOM-NO`** | （當日拍板）近程不做異域進化灌因子——**同日稍後已由 `PME-XDOM-YES` 廢止**（見 `audits/PME-XDOM-PLAN-APPROVED-20260728.md`）；本檔 KH 正交句仍有效 | 史料／已廢止寫側鎖 |
 
 **建議合併拍板句（示意）**：  
 `KH-XDOM-PLAN`＋`KH-XDOM-S01`＋`PME-XDOM-NO`＋`FZ-keep`（S2／ATA 外部另句或同包加 `KH-XDOM-EVAL`）。
@@ -324,5 +326,6 @@ query
 |---|---|
 | 2026-07-28 | 初版：跨域顧問＋gov ATA 整合；對照 FT-COV／omniscient／HANDOFF；本輪不實作 |
 | 2026-07-28 | Steward 拍板 `KH-XDOM-PLAN`＋`S01`＋`PME-XDOM-NO`＋`FZ-keep`；開工 S0＋S1＋S1b |
+| 2026-07-28 | 同日 `PME-XDOM-YES` 廢止 NO；§1.3／§1.4 互鏈更新（顧問正交句保留） |
 
-**姊妹互鏈**：FT-COV＝`reports/augur_knowledge_fulltext_coverage_plan_20260728.md`；全能顧問＝`reports/augur_omniscient_advisor_plan_20260709.md`；HANDOFF 近程「不做他域進化閉環」。
+**姊妹互鏈**：FT-COV＝`reports/augur_knowledge_fulltext_coverage_plan_20260728.md`；全能顧問＝`reports/augur_omniscient_advisor_plan_20260709.md`；PME-XDOM＝`reports/augur_pme_cross_domain_evolution_enable_plan_20260728.md`。
