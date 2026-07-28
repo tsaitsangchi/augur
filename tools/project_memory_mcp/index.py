@@ -239,6 +239,7 @@ def _build_full(
 
     conn = sqlite3.connect(db_file)
     n_files = 0
+    embed_skipped: list[str] = []
     pending_text: List[str] = []
     pending_meta: List[Tuple] = []
     try:
@@ -271,6 +272,13 @@ def _build_full(
                     _flush_pending(conn, pending_text, pending_meta)
                     conn.commit()
                     n_files += 1
+                except embed.EmbedError as e:
+                    conn.rollback()
+                    pending_text.clear()
+                    pending_meta.clear()
+                    embed_skipped.append(rel)
+                    log(f"[project-memory] ⚠ 跳過 {rel}（嵌入失敗:{str(e)[:80]}…續掃其餘檔）")
+                    continue
                 except Exception:
                     conn.rollback()
                     pending_text.clear()
@@ -301,6 +309,7 @@ def _build_full(
     store.clear_cache()
     return {
         "mode": "full",
+        "embed_skipped": embed_skipped,
         "files": n_files,
         "chunks": n_chunks,
         "added": n_files,
