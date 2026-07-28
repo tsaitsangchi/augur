@@ -3,7 +3,7 @@
 # 全本地、免 sudo（user 級 systemd）、零 Claude usage。啟動規格與 start_chat.sh 對齊（單一 SSOT）。
 #
 # 服務(6 常駐):qdrant:6333 · ollama:11434 ← advisor:8399 ← chat:8090 · admin:8500 · probability:8600
-# timers(3):embed-catchup(03:30 補嵌入積壓,冪等) · l2-deliberation(每日自審,預設 disabled) · knowhow-refresh(週日 02:00,件 A/G,預設 disabled 待 R-A-R3)
+# timers:embed-catchup(03:30) · ata-advance(04:00 庫內 ATA sentences+embed,limit=200) · l2-deliberation(06:15,預設 disabled) · knowhow-refresh(週日,預設 disabled) · audit-watchdog(30m)
 # 註:qdrant:6333=sentence_items serving 索引(hugo 2026-07-14 拍板上線;pgvector 仍 SSOT、Qdrant 可拋棄從 PG 重建)。
 #
 # ⚠ ollama 排序循環陷阱(2026-07-11 實證):user unit **不得**寫 After=default.target(與 WantedBy 成環→開機被丟棄)。
@@ -33,7 +33,7 @@ if [ "${1:-}" = "--status" ]; then
 fi
 
 if [ "${1:-}" = "--uninstall" ]; then
-  for u in augur-chat augur-advisor augur-admin augur-probability augur-ollama augur-qdrant augur-embed-catchup.timer augur-l2-deliberation.timer augur-knowhow-refresh.timer augur-audit-watchdog.timer; do
+  for u in augur-chat augur-advisor augur-admin augur-probability augur-ollama augur-qdrant augur-embed-catchup.timer augur-ata-advance.timer augur-l2-deliberation.timer augur-knowhow-refresh.timer augur-audit-watchdog.timer; do
     UC disable --now "$u" 2>/dev/null; UC stop "$u" 2>/dev/null
   done
   rm -f "$UD"/augur-*.service "$UD"/augur-*.timer
@@ -115,6 +115,33 @@ Description=augur 嵌入積壓補跑 03:30 每日
 
 [Timer]
 OnCalendar=*-*-* 03:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+# --- timer: ata-advance(KH-ATA-SCHED;04:00 庫內 sentences+embed;禁 fulltext／approve;FZ-keep) ---
+# limit=200 勿過猛;僅 --stages sentences embed(不含 fulltext＝KH-ATA-EXEC;promote 無 --entity-type＝僅印統計)
+ATA_ADVANCE_LIMIT="${ATA_ADVANCE_LIMIT:-200}"
+cat > "$UD/augur-ata-advance.service" <<EOF
+[Unit]
+Description=augur ATA in-DB advance (sentences+embed only; KH-ATA-SCHED; no HUMAN_ONLY)
+
+[Service]
+Type=oneshot
+WorkingDirectory=$ROOT
+EnvironmentFile=$ROOT/.env
+StandardOutput=append:$HOME/ata_advance.log
+StandardError=append:$HOME/ata_advance.log
+ExecStart=$VENV $ROOT/scripts/advance_knowledge_terminal.py --apply --limit $ATA_ADVANCE_LIMIT --stages sentences embed
+EOF
+cat > "$UD/augur-ata-advance.timer" <<EOF
+[Unit]
+Description=augur ATA 庫內推進 04:00 每日(KH-ATA-SCHED)
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
 Persistent=true
 
 [Install]
@@ -222,6 +249,7 @@ for u in augur-qdrant augur-ollama augur-advisor augur-chat augur-admin augur-pr
   UC enable "$u.service" 2>/dev/null; UC restart "$u.service"
 done
 UC enable augur-embed-catchup.timer 2>/dev/null; UC restart augur-embed-catchup.timer 2>/dev/null
+UC enable --now augur-ata-advance.timer 2>/dev/null; UC restart augur-ata-advance.timer 2>/dev/null  # KH-ATA-SCHED 庫內 ATA
 UC enable augur-audit-watchdog.timer 2>/dev/null; UC restart augur-audit-watchdog.timer 2>/dev/null   # audit 未綠期間監看;綠後 no-op
 UC enable augur-l2-deliberation.timer 2>/dev/null   # timer 檔就緒但不啟(--now),待開閘
 UC enable augur-knowhow-refresh.timer 2>/dev/null   # 件 A/G:timer 檔就緒不啟,待 R-A-R3 hugo 開閘(--with-refresh)

@@ -141,43 +141,59 @@ def main():
 
         stats = {"scanned": 0, "ok": 0, "dup": 0, "short": 0, "rows": 0}
         skips = {}
-        for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        paths = []
+        for dirpath, _dirnames, filenames in os.walk(root, followlinks=False):
             for fn in filenames:
-                path = os.path.join(dirpath, fn)
-                stats["scanned"] += 1
-                if args.dry_run:                       # 掃描預覽:試抽取判可入否、不寫
-                    text, reason = fileparse.extract_text(path)
-                    if text is None:
-                        skips[reason] = skips.get(reason, 0) + 1
-                    elif len(text.strip()) < MIN_CHARS:
-                        stats["short"] += 1
-                    else:
-                        stats["ok"] += 1
-                    continue
-                with db.transaction(conn) as cur:      # 逐檔 commit(#6 resume);ingest_file 內 sha1 冪等(#12 單一入庫)
-                    item_id, n, status = ingest_file(
-                        cur, path, license=license, access_scope=access_scope, domain=domain,
-                        source_key=args.source_key, source_type=args.source_type,
-                        owner_user_id=args.owner_user_id)
-                if status == "ok":
-                    stats["ok"] += 1; stats["rows"] += n
-                elif status == "dup":
-                    stats["dup"] += 1
-                elif status == "short":
+                paths.append(os.path.join(dirpath, fn))
+        total = len(paths)
+        print(f"[progress] 0/{total} phase=scan", flush=True)
+        for i, path in enumerate(paths, 1):
+            rel = os.path.relpath(path, root)
+            stats["scanned"] += 1
+            if args.dry_run:                       # 掃描預覽:試抽取判可入否、不寫
+                text, reason = fileparse.extract_text(path)
+                if text is None:
+                    skips[reason] = skips.get(reason, 0) + 1
+                    status = "skip:" + reason
+                elif len(text.strip()) < MIN_CHARS:
                     stats["short"] += 1
-                else:                                   # skip:<reason>
-                    r = status.split(":", 1)[1]
-                    skips[r] = skips.get(r, 0) + 1
+                    status = "short"
+                else:
+                    stats["ok"] += 1
+                    status = "ok"
+                print(f"[progress] {i}/{total} file={rel} status={status}", flush=True)
+                continue
+            with db.transaction(conn) as cur:      # 逐檔 commit(#6 resume);ingest_file 內 sha1 冪等(#12 單一入庫)
+                item_id, n, status = ingest_file(
+                    cur, path, license=license, access_scope=access_scope, domain=domain,
+                    source_key=args.source_key, source_type=args.source_type,
+                    owner_user_id=args.owner_user_id)
+            if status == "ok":
+                stats["ok"] += 1; stats["rows"] += n
+            elif status == "dup":
+                stats["dup"] += 1
+            elif status == "short":
+                stats["short"] += 1
+            else:                                   # skip:<reason>
+                r = status.split(":", 1)[1]
+                skips[r] = skips.get(r, 0) + 1
+            print(f"[progress] {i}/{total} file={rel} status={status}", flush=True)
 
         tag = "[dry-run] " if args.dry_run else ""
         print(f"{tag}掃描 {stats['scanned']} 檔 → 入庫 {stats['ok']}(seg {stats['rows']})、"
-              f"重複跳 {stats['dup']}、殘片跳 {stats['short']}")
+              f"重複跳 {stats['dup']}、殘片跳 {stats['short']}", flush=True)
         if skips:
-            print("  誠實跳過分類:" + "、".join(f"{r}={n}" for r, n in sorted(skips.items())))
+            parts = []
+            for r, n in sorted(skips.items()):
+                label = fileparse.SKIP_LABEL_ZH.get(r, r)
+                parts.append(f"{r}={n}（{label}）" if label != r else f"{r}={n}")
+            print("  誠實跳過分類:" + "、".join(parts), flush=True)
         print(f"  source_key={args.source_key} source_type={args.source_type} license={license} "
               f"access_scope={access_scope} domain={domain}"
               + ("" if (args.dry_run or args.acquire_only) else
-                 "  → 接 build_sentences --scope items / embed_knowledge / retrieve_all(private 需 admin 私模)"))
+                 "  → 接 build_sentences --scope items / embed_knowledge / retrieve_all(private 需 admin 私模)"),
+              flush=True)
+        print("[local_import_done]", flush=True)
 
 
 if __name__ == "__main__":

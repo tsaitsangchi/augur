@@ -143,9 +143,66 @@ def _audit(action, detail):
 _SESSIONS = {}   # token -> expiry
 _JOBS = {}       # harvest logname -> pid(背景抓取存活判定;admin 重啟後改以 log 尾標記判定)
 _JOBS_START = {}  # harvest logname -> 啟動 epoch 秒(進度頁即時計時;same-session 準,重啟後 None fallback)
+_UPLOAD_JOBS = {}  # job_id -> {updir, license, scope, total, uploaded, big, bad, phase, logname, pid, t0}
 
 # harvest 完成標記(acquire_topic/harvest 之終行 sentinel;命中即進度頁標「完成」停輪詢)
 _DONE_MARKS = ("harvest 觸發(抓入知識層", "無對應 domain", "排程空(全部已跑")
+_LOCAL_IMPORT_DONE = "[local_import_done]"
+
+
+def _upload_job(job_id):
+    """取分批上傳 job;job_id 須為 16 hex(#5)。"""
+    jid = (job_id or "").strip()
+    if len(jid) != 16 or any(c not in "0123456789abcdef" for c in jid):
+        return None, None
+    job = _UPLOAD_JOBS.get(jid)
+    return (jid, job) if job else (None, None)
+
+
+def _parse_local_import_log(text):
+    """從 acquire_local_files 進度 log 抽 {k,n,file,status,ok_n,dup_n,short_n,skip_n,fail_n,summary,done}。"""
+    k = n = 0
+    cur_file = cur_status = ""
+    ok_n = dup_n = short_n = skip_n = fail_n = 0
+    summary_lines = []
+    for line in (text or "").splitlines():
+        if line.startswith("[progress] "):
+            rest = line[len("[progress] "):]
+            # 0/541 phase=scan 或 12/541 file=a.txt status=ok
+            head, _, tail = rest.partition(" ")
+            if "/" in head:
+                a, _, b = head.partition("/")
+                try:
+                    k, n = int(a), int(b)
+                except ValueError:
+                    pass
+            cur_file = cur_status = ""
+            for tok in tail.split():
+                if tok.startswith("file="):
+                    cur_file = tok[5:]
+                elif tok.startswith("status="):
+                    cur_status = tok[7:]
+            if cur_status == "ok":
+                ok_n += 1
+            elif cur_status == "dup":
+                dup_n += 1
+            elif cur_status == "short":
+                short_n += 1
+            elif cur_status.startswith("skip:"):
+                skip_n += 1
+            elif cur_status:  # 非空且非上述 → 計失敗(勿把 phase=scan 無 status 算入)
+                fail_n += 1
+        elif line.startswith("[local_import_done]"):
+            pass
+        elif line.startswith("掃描 ") or line.startswith("[dry-run] 掃描 ") or line.startswith("  "):
+            summary_lines.append(line)
+        elif line.startswith("須 ") or "admission" in line.lower() or line.startswith("非資料夾"):
+            summary_lines.append(line)
+    done = _LOCAL_IMPORT_DONE in (text or "")
+    summary = "\n".join(summary_lines).strip()
+    return {"k": k, "n": n, "file": cur_file, "status": cur_status,
+            "ok_n": ok_n, "dup_n": dup_n, "short_n": short_n, "skip_n": skip_n, "fail_n": fail_n,
+            "summary": summary, "done_mark": done}
 
 
 def _safe_log(name):
@@ -226,32 +283,92 @@ LOGIN_HTML = """<!doctype html><html lang=zh-Hant><head><meta charset=utf-8>
 _LIC_OPTIONS = "".join(f"<option>{v}</option>" for v in _LICENSES)
 _SCOPE_OPTIONS = "".join(f"<option>{v}</option>" for v in _SCOPES)
 
-# 資料夾選取兩面板(A 頁內瀏覽器 / B 原生上傳)。純 stdlib、同源 fetch 帶 cookie;非 f-string(JS 大括號免跳脫)。
+# 資料夾選取(原生上傳 webkitdirectory)。分批上傳＋解析輪詢進度。純 stdlib、同源 fetch 帶 cookie;非 f-string(JS 大括號免跳脫)。
 PANELS = ("""
 <div class=card>
 <b>選擇檔案或資料夾入庫</b>
-<div style="font-size:13px;color:#73726c;margin-bottom:12px">點按鈕開啟檔案管理員選取(Windows 或 WSL 內的檔皆可),逐字入知識庫。license 受 DB CHECK 硬擋只准公開授權。</div>
+<div style="font-size:13px;color:#73726c;margin-bottom:12px">點按鈕開啟檔案管理員選取(Windows 或 WSL 內的檔皆可),逐字入知識庫。license 受 DB CHECK 硬擋只准公開授權。大夾會顯示上傳／解析進度(第 k／N)。</div>
 <div style="margin-bottom:12px">授權 <select id=inlic style="padding:8px;background:#faf9f5;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:6px">"""
 + _LIC_OPTIONS + """</select>
  範圍 <select id=inscope style="padding:8px;background:#faf9f5;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:6px">"""
 + _SCOPE_OPTIONS + """</select></div>
-<button type=button onclick="pick('file')" style="padding:9px 16px;background:#d97757;color:#fff;border:0;border-radius:8px;cursor:pointer;margin-right:8px">📄 選檔案</button>
-<button type=button onclick="pick('folder')" style="padding:9px 16px;background:#d97757;color:#fff;border:0;border-radius:8px;cursor:pointer">📁 選資料夾</button>
+<button type=button id=upbtnF onclick="pick('file')" style="padding:9px 16px;background:#d97757;color:#fff;border:0;border-radius:8px;cursor:pointer;margin-right:8px">📄 選檔案</button>
+<button type=button id=upbtnD onclick="pick('folder')" style="padding:9px 16px;background:#d97757;color:#fff;border:0;border-radius:8px;cursor:pointer">📁 選資料夾</button>
 <input type=file id=fpick style="display:none">
 <input type=file id=dpick webkitdirectory directory multiple style="display:none">
+<div id=upprog style="display:none;margin-top:14px">
+ <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#73726c;margin-bottom:5px">
+  <span id=upphase>準備中…</span><span id=uppct>0%</span>
+ </div>
+ <div style="height:8px;background:#e9e6dc;border-radius:4px;overflow:hidden">
+  <div id=upbar style="height:100%;width:0%;background:#d97757;transition:width .12s ease"></div>
+ </div>
+ <div id=updetail style="font-size:12px;color:#73726c;margin-top:7px;word-break:break-all"></div>
+</div>
 <pre id=upresult style="white-space:pre-wrap;color:#73726c;font-size:13px;margin-top:12px"></pre>
 </div>
 <script>
 function pick(kind){document.getElementById(kind=='folder'?'dpick':'fpick').click()}
 document.getElementById('fpick').onchange=function(){doUpload(this.files);this.value=''}
 document.getElementById('dpick').onchange=function(){doUpload(this.files);this.value=''}
+function _setBusy(b){['upbtnF','upbtnD'].forEach(function(id){var el=document.getElementById(id);if(el)el.disabled=!!b})}
+function _showProg(phase,k,n,detail){
+ var box=document.getElementById('upprog');box.style.display='block'
+ document.getElementById('upphase').textContent=phase||''
+ var pct=(n>0)?Math.min(100,Math.round(100*k/n)):0
+ document.getElementById('uppct').textContent=pct+'%'
+ document.getElementById('upbar').style.width=pct+'%'
+ document.getElementById('updetail').textContent=detail||''
+}
 async function doUpload(files){
  if(!files||!files.length)return
- var res=document.getElementById('upresult');res.textContent='上傳解析中…('+files.length+' 檔,大夾請耐心)'
- var fd=new FormData();fd.append('license',document.getElementById('inlic').value);fd.append('access_scope',document.getElementById('inscope').value)
- for(var i=0;i<files.length;i++){var f=files[i];fd.append('file',f,f.webkitRelativePath||f.name)}
- try{var r=await fetch('/api/upload',{method:'POST',body:fd});res.textContent=await r.text()}
- catch(e){res.textContent='上傳失敗:'+e}
+ var list=Array.prototype.slice.call(files)
+ var total=list.length,res=document.getElementById('upresult')
+ res.textContent=''
+ _setBusy(true)
+ _showProg('準備上傳',0,total,'共 '+total+' 檔')
+ try{
+  var bd=new URLSearchParams()
+  bd.append('license',document.getElementById('inlic').value)
+  bd.append('access_scope',document.getElementById('inscope').value)
+  bd.append('total',String(total))
+  var br=await fetch('/api/upload/begin',{method:'POST',body:bd,headers:{'Content-Type':'application/x-www-form-urlencoded'}})
+  var bj=await br.json()
+  if(!bj.ok){res.textContent='無法開始上傳:'+(bj.error||br.status);_setBusy(false);return}
+  var job=bj.job_id,uploaded=0,big=0,bad=0,BATCH=6
+  for(var i=0;i<list.length;i+=BATCH){
+   var chunk=list.slice(i,i+BATCH)
+   var cur=chunk[chunk.length-1]
+   var curName=(cur.webkitRelativePath||cur.name||'')
+   _showProg('上傳中 '+Math.min(i+chunk.length,total)+'／'+total,Math.min(i+chunk.length,total),total,'目前:'+curName)
+   var fd=new FormData();fd.append('job_id',job)
+   for(var j=0;j<chunk.length;j++){var f=chunk[j];fd.append('file',f,f.webkitRelativePath||f.name)}
+   var ur=await fetch('/api/upload/file',{method:'POST',body:fd})
+   var uj=await ur.json()
+   if(!uj.ok){res.textContent='上傳失敗@'+(i+1)+':'+(uj.error||ur.status);_setBusy(false);return}
+   uploaded=uj.uploaded;big=uj.big;bad=uj.bad
+  }
+  if(!uploaded){res.textContent='無有效檔案(過大跳 '+big+'、非法名跳 '+bad+')';_setBusy(false);_showProg('結束',total,total,'無有效檔');return}
+  _showProg('解析入庫 0／'+uploaded,0,uploaded,'上傳完成(存 '+uploaded+'、過大跳 '+big+'、非法名跳 '+bad+')…開始解析')
+  var cd=new URLSearchParams();cd.append('job_id',job)
+  var cr=await fetch('/api/upload/commit',{method:'POST',body:cd,headers:{'Content-Type':'application/x-www-form-urlencoded'}})
+  var cj=await cr.json()
+  if(!cj.ok){res.textContent='無法開始解析:'+(cj.error||cr.status);_setBusy(false);return}
+  while(true){
+   await new Promise(function(r){setTimeout(r,800)})
+   var sr=await fetch('/api/upload/status?job='+encodeURIComponent(job))
+   var sj=await sr.json()
+   if(!sj.ok){res.textContent='進度查詢失敗:'+(sj.error||'');_setBusy(false);return}
+   var k=sj.k||0,n=sj.n||uploaded,st=sj.status||'',fn=sj.file||''
+   var counts='成功 '+ (sj.ok_n||0)+' · 略過 '+((sj.skip_n||0)+(sj.dup_n||0)+(sj.short_n||0))+' · 失敗 '+(sj.fail_n||0)
+   _showProg('解析入庫 '+k+'／'+n,k,n||1,(fn?('目前:'+fn+' ('+st+') · '):'')+counts)
+   if(sj.done){
+    _showProg(sj.failed?'解析結束(有錯誤)':'解析完成',n||k,n||k||1,counts)
+    res.textContent=sj.summary||sj.log||'(完成)'
+    _setBusy(false);return
+   }
+  }
+ }catch(e){res.textContent='上傳失敗:'+e;_setBusy(false)}
 }
 </script>
 """)
@@ -870,6 +987,8 @@ class AdminHandler(BaseHTTPRequestHandler):
         if path == "/api/topic/log":
             name = parse_qs(parsed.query).get("file", [""])[0]
             return self._send(200, json.dumps(_read_harvest_log(name)), "application/json")
+        if path == "/api/upload/status":
+            return self._handle_upload_status(parse_qs(parsed.query).get("job", [""])[0])
         if path == "/api/sftp/conns":
             return self._send(200, json.dumps({"names": sftpbrowse.connection_names()}), "application/json")
         if path == "/api/sftp/list":
@@ -984,6 +1103,12 @@ class AdminHandler(BaseHTTPRequestHandler):
 
         if path == "/api/upload":
             return self._handle_upload(py)
+        if path == "/api/upload/begin":
+            return self._handle_upload_begin()
+        if path == "/api/upload/file":
+            return self._handle_upload_file()
+        if path == "/api/upload/commit":
+            return self._handle_upload_commit(py)
 
         # 表單類(urlencoded)
         n = int(self.headers.get("Content-Length") or 0)
@@ -1079,8 +1204,149 @@ class AdminHandler(BaseHTTPRequestHandler):
 
         return self._send(404, "unknown", ctype="text/plain")
 
+    def _handle_upload_begin(self):
+        """分批上傳開 job:校驗 license → 建暫存夾 → 回 job_id。"""
+        n = int(self.headers.get("Content-Length") or 0)
+        form = parse_qs(self.rfile.read(n).decode("utf-8", "replace")) if n else {}
+        g = lambda k: (form.get(k, [""])[0]).strip()
+        lic, scope = g("license"), g("access_scope") or "local_private"
+        if lic not in _LICENSES:
+            return self._send(200, json.dumps({"ok": False, "error": "license 非白名單(DB 硬擋只准公開授權)"}),
+                              "application/json")
+        if scope not in _SCOPES:
+            scope = "local_private"
+        try:
+            total = max(0, min(100000, int(g("total") or 0)))
+        except ValueError:
+            total = 0
+        job_id = secrets.token_hex(8)
+        updir = webupload.new_upload_dir()
+        _UPLOAD_JOBS[job_id] = {
+            "updir": updir, "license": lic, "scope": scope, "total": total,
+            "uploaded": 0, "big": 0, "bad": 0, "phase": "upload",
+            "logname": None, "pid": None, "t0": time.time(), "failed": False,
+        }
+        _audit("upload_begin", f"job={job_id} total={total} license={lic} scope={scope} updir={updir}")
+        return self._send(200, json.dumps({"ok": True, "job_id": job_id, "total": total}), "application/json")
+
+    def _handle_upload_file(self):
+        """分批上傳一包檔案(multipart)→ append 進 job 暫存夾。"""
+        ctype = self.headers.get("Content-Type", "")
+        n = int(self.headers.get("Content-Length") or 0)
+        if "multipart/form-data" not in ctype or "boundary=" not in ctype:
+            return self._send(200, json.dumps({"ok": False, "error": "需 multipart/form-data"}), "application/json")
+        if n > MAX_UPLOAD:
+            return self._send(200, json.dumps({"ok": False, "error": f"單批過大(上限 {MAX_UPLOAD // 1024 // 1024}MB)"}),
+                              "application/json")
+        boundary = ctype.split("boundary=", 1)[1].strip().strip('"')
+        fields, files = webupload.parse_multipart(self.rfile.read(n), boundary)
+        jid, job = _upload_job(fields.get("job_id") or "")
+        if not job:
+            return self._send(200, json.dumps({"ok": False, "error": "無效或過期 job_id"}), "application/json")
+        if job.get("phase") != "upload":
+            return self._send(200, json.dumps({"ok": False, "error": "job 已進入解析、不可再上傳"}), "application/json")
+        if not files:
+            return self._send(200, json.dumps({"ok": False, "error": "本批無檔案"}), "application/json")
+        r = webupload.append_upload(job["updir"], files)
+        job["uploaded"] = job.get("uploaded", 0) + r["saved"]
+        job["big"] = job.get("big", 0) + r["big"]
+        job["bad"] = job.get("bad", 0) + r["bad"]
+        names = [fn for fn, _ in files[:3]]
+        return self._send(200, json.dumps({
+            "ok": True, "job_id": jid, "batch_saved": r["saved"], "batch_big": r["big"], "batch_bad": r["bad"],
+            "uploaded": job["uploaded"], "big": job["big"], "bad": job["bad"],
+            "samples": names,
+        }), "application/json")
+
+    def _handle_upload_commit(self, py):
+        """上傳完畢→背景跑 acquire_local_files(-u)寫 log,前端輪詢 /api/upload/status。"""
+        n = int(self.headers.get("Content-Length") or 0)
+        form = parse_qs(self.rfile.read(n).decode("utf-8", "replace")) if n else {}
+        jid, job = _upload_job((form.get("job_id", [""])[0]).strip())
+        if not job:
+            return self._send(200, json.dumps({"ok": False, "error": "無效或過期 job_id"}), "application/json")
+        if job.get("phase") == "parse":
+            return self._send(200, json.dumps({"ok": True, "job_id": jid, "already": True}), "application/json")
+        if not job.get("uploaded"):
+            return self._send(200, json.dumps({"ok": False, "error": "無有效檔案可解析"}), "application/json")
+        sk, uid = self._local_source_key("local"), self._owner_uid()
+        logname = f"local_import_{jid}.log"
+        os.makedirs(LOG_DIR, exist_ok=True)
+        cmd = [py, "-u", os.path.join(ROOT, "scripts", "acquire_local_files.py"),
+               "--dir", job["updir"], "--source-key", sk, "--license", job["license"],
+               "--access-scope", job["scope"], "--domain", "local"]
+        if uid is not None:
+            cmd += ["--owner-user-id", str(uid)]
+        _audit("upload_commit", f"job={jid} updir={job['updir']} saved={job['uploaded']} "
+               f"big={job['big']} bad={job['bad']} license={job['license']} scope={job['scope']} src={sk} owner={uid}")
+        lf = open(os.path.join(LOG_DIR, logname), "w")
+        try:
+            proc = subprocess.Popen(cmd, cwd=ROOT, stdout=lf, stderr=subprocess.STDOUT,
+                                    stdin=subprocess.DEVNULL, start_new_session=True)
+            job["phase"] = "parse"
+            job["logname"] = logname
+            job["pid"] = proc.pid
+            job["t0_parse"] = time.time()
+            _JOBS[logname] = proc.pid
+            _JOBS_START[logname] = time.time()
+        finally:
+            lf.close()
+        return self._send(200, json.dumps({"ok": True, "job_id": jid, "log": logname}), "application/json")
+
+    def _handle_upload_status(self, job_id):
+        """輪詢分批上傳／解析進度(JSON)。"""
+        jid, job = _upload_job(job_id)
+        if not job:
+            return self._send(200, json.dumps({"ok": False, "error": "無效或過期 job_id"}), "application/json")
+        out = {
+            "ok": True, "job_id": jid, "phase": job.get("phase"),
+            "uploaded": job.get("uploaded", 0), "big": job.get("big", 0), "bad": job.get("bad", 0),
+            "total": job.get("total", 0), "done": False, "failed": False,
+            "k": 0, "n": job.get("uploaded", 0) or job.get("total", 0),
+            "file": "", "status": "", "ok_n": 0, "dup_n": 0, "short_n": 0, "skip_n": 0, "fail_n": 0,
+            "summary": "", "log": "",
+        }
+        if job.get("phase") != "parse":
+            out["k"] = job.get("uploaded", 0)
+            return self._send(200, json.dumps(out), "application/json")
+        logname = job.get("logname") or ""
+        fp = os.path.join(LOG_DIR, os.path.basename(logname)) if logname.startswith("local_import_") else None
+        data = ""
+        if fp and os.path.isfile(fp):
+            try:
+                with open(fp, "r", errors="replace") as f:
+                    data = f.read()
+            except OSError:
+                data = ""
+        parsed = _parse_local_import_log(data)
+        out.update({k: parsed[k] for k in ("k", "n", "file", "status", "ok_n", "dup_n", "short_n",
+                                           "skip_n", "fail_n", "summary")})
+        if not out["n"]:
+            out["n"] = job.get("uploaded", 0)
+        pid = job.get("pid")
+        alive = False
+        if pid:
+            try:
+                os.kill(pid, 0)
+                alive = True
+            except OSError:
+                alive = False
+        done = bool(parsed.get("done_mark") or (pid is not None and not alive))
+        out["done"] = done
+        out["log"] = "\n".join(data.splitlines()[-80:])
+        if done and not parsed.get("done_mark"):
+            out["failed"] = True
+            if not out["summary"]:
+                out["summary"] = out["log"] or "(進程結束且無完成標記—可能 admission 拒絕或異常)"
+        elif done:
+            head = (f"【原生上傳解析】暫存 {job['updir']}\n"
+                    f"存檔 {job['uploaded']}(過大跳 {job['big']}、非法名跳 {job['bad']})、"
+                    f"license={job['license']} scope={job['scope']}\n\n")
+            out["summary"] = head + (out["summary"] or out["log"])
+        return self._send(200, json.dumps(out), "application/json")
+
     def _handle_upload(self, py):
-        """B · 原生上傳:multipart 落暫存夾(webupload SSOT)→ 餵 acquire_local_files 同一入庫引擎。"""
+        """B · 原生上傳(相容舊單次 multipart):落暫存夾→同步餵 acquire_local_files。新 UI 走 begin/file/commit。"""
         ctype = self.headers.get("Content-Type", "")
         n = int(self.headers.get("Content-Length") or 0)
         if "multipart/form-data" not in ctype or "boundary=" not in ctype:

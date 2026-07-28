@@ -12,7 +12,10 @@
 
 守 #8(as-of)· #11(五鏡)· #12(label/metric/baseline SSOT)· #15(雙口徑 t、誠實)· #28(本地、零 usage)。
 
-執行指令矩陣:python scripts/verify_candidate_promotion.py --h 20,60 --seeds 3
+執行指令矩陣:
+  python scripts/verify_candidate_promotion.py --h 20,60 --seeds 3   # 內建 2 候選(重算+驗後清)
+  python scripts/verify_candidate_promotion.py --features lending_fee_rate_mean_20d,days_since_high_126d\
+      --h 20,60 --seeds 3   # 外部 staged 候選:不重算、逐候選增量、收尾不清表(A2 口徑)
 """
 import argparse
 
@@ -90,19 +93,26 @@ def main():
     ap = argparse.ArgumentParser(description="候選提拔複核(as-of + HAC + 多 seed)")
     ap.add_argument("--h", default="20,60")
     ap.add_argument("--seeds", type=int, default=3)
+    ap.add_argument("--features", help="逗號分隔候選名(已 staged 於 feature_candidate_values;"
+                                       "略過內建 2 候選之重算,增量測試逐一對生產基準)")
+    ap.add_argument("--keep", action="store_true", help="收尾不清候選表(staged 值另有主人時必帶)")
     args = ap.parse_args()
     hs = [int(x) for x in args.h.split(",")]
+    feats_ext = args.features.split(",") if args.features else None
 
     with db.connect() as conn:
         with db.transaction(conn) as cur:
             panels = _asof_panels(cur)
         print(f"as-of 複核:{len(panels)} panel（{panels[0]}..{panels[-1]}）")
-        print(f"算 as-of 候選… 寫入 {_compute_asof_candidates(conn, panels):,} 值")
+        if feats_ext is None:
+            print(f"算 as-of 候選… 寫入 {_compute_asof_candidates(conn, panels):,} 值")
+        else:
+            print(f"外部候選 {len(feats_ext)} 顆(讀既有 staged 值,不重算): {', '.join(feats_ext)}")
         cal = label_mod.full_calendar(conn)
 
         print(f"\n══ 1. as-of 單因子 rank IC:iid Eff-t vs Newey-West HAC Eff-t（去相關、審查 G8）══")
         print(f"{'candidate':26s} {'H':>3s} {'IC':>8s} {'iid-t':>7s} {'HAC-t':>7s} {'勝率':>5s} {'n':>3s}")
-        for f in CANDS:
+        for f in (feats_ext or CANDS):
             for h in hs:
                 ser = _asof_ic_series(conn, panels, h, f, cal)
                 s = metrics.summarize(ser)
@@ -112,22 +122,40 @@ def main():
                 print(f"{f:26s} {h:>3d} {s['mean_ic']:>+8.4f} {s['effective_t']:>7.2f} "
                       f"{(hac if hac is not None else float('nan')):>7.2f} {s['hit_rate']:>5.2f} {s['n_panels']:>3d}")
 
-        print(f"\n══ 2. 多 seed 增量:pb_self_pctile_252d 加入生產集(as-of、{args.seeds} seed)══")
+        inc_feats = feats_ext or ["pb_self_pctile_252d"]
+        print(f"\n══ 2. 多 seed 增量:逐候選加入生產集(as-of、{args.seeds} seed)══")
         prod = [x for x in baseline.canonical_features(conn, panels) if x not in fc.CANDIDATES]
-        print(f"   生產基準 {len(prod)} 特徵 vs +pb_self_pctile_252d")
-        for h in hs:
-            base_ic, add_ic = {"B2_ridge": [], "M1_gbdt": []}, {"B2_ridge": [], "M1_gbdt": []}
-            for k in range(args.seeds):
-                rb = baseline.run_ladder(conn, panels, h, None, feats=prod, seed=42 + k, asof=True)
-                ra = baseline.run_ladder(conn, panels, h, None, feats=prod + ["pb_self_pctile_252d"], seed=42 + k, asof=True)
+        print(f"   生產基準 {len(prod)} 特徵;逐一 +{', '.join(inc_feats)}")
+        rb_cache = {}
+        for cand in inc_feats:
+            # 覆蓋對齊(防覆蓋假象):候選有值的 panel 子集上「基準 vs +候選」同尺互比——
+            # _panel_matrix 全齊才收股,候選短史會把 +候選側截斷成不同 panel 集=假 Δ。
+            with db.transaction(conn) as cur:
+                cur.execute(f"SELECT DISTINCT panel_date FROM {fc.FEATURE_TABLE} WHERE feature=%s", (cand,))  # noqa: S608
+                p_use = sorted(set(r[0] for r in cur.fetchall()) & set(panels)) if feats_ext else panels
+            if not p_use:
+                print(f"   {cand:26s} 無重疊 panel(staged 值缺)——跳過")
+                continue
+            print(f"   {cand:26s} 比較尺={len(p_use)} panel({p_use[0]}..{p_use[-1]})")
+            for h in hs:
+                base_ic, add_ic = {"B2_ridge": [], "M1_gbdt": []}, {"B2_ridge": [], "M1_gbdt": []}
+                for k in range(args.seeds):
+                    key = (tuple(p_use), h, k)
+                    if key not in rb_cache:
+                        rb_cache[key] = baseline.run_ladder(conn, p_use, h, None, feats=prod, seed=42 + k, asof=True)
+                    rb = rb_cache[key]
+                    ra = baseline.run_ladder(conn, p_use, h, None, feats=prod + [cand], seed=42 + k, asof=True)
+                    for m in ("B2_ridge", "M1_gbdt"):
+                        if rb[m]["mean_ic"] is not None: base_ic[m].append(rb[m]["mean_ic"])
+                        if ra[m]["mean_ic"] is not None: add_ic[m].append(ra[m]["mean_ic"])
                 for m in ("B2_ridge", "M1_gbdt"):
-                    if rb[m]["mean_ic"] is not None: base_ic[m].append(rb[m]["mean_ic"])
-                    if ra[m]["mean_ic"] is not None: add_ic[m].append(ra[m]["mean_ic"])
-            for m in ("B2_ridge", "M1_gbdt"):
-                b, a = np.mean(base_ic[m]) if base_ic[m] else float('nan'), np.mean(add_ic[m]) if add_ic[m] else float('nan')
-                print(f"   H={h:>3d} {m:10s} 基準 {b:+.4f} → +候選 {a:+.4f}  Δ={a-b:+.4f}")
+                    b, a = np.mean(base_ic[m]) if base_ic[m] else float('nan'), np.mean(add_ic[m]) if add_ic[m] else float('nan')
+                    print(f"   {cand:26s} H={h:>3d} {m:10s} 基準 {b:+.4f} → +候選 {a:+.4f}  Δ={a-b:+.4f}")
 
-        print(f"\n清候選列:{fc.clear_candidates(conn)} 列刪（實驗、不入生產）")
+        if args.keep or feats_ext is not None:
+            print("\n候選表保留(--keep/外部候選=staged 值另有主人,不清)")
+        else:
+            print(f"\n清候選列:{fc.clear_candidates(conn)} 列刪（實驗、不入生產）")
         print("判讀:as-of HAC-t 仍 |≥2| + 多 seed Δ 穩定為正 → 建議提拔;否則維持候選待強化。")
 
 

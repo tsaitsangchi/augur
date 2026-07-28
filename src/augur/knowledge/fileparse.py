@@ -11,7 +11,7 @@
 
 自測（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.knowledge.fileparse              # 印用途+公開入口（唯讀）
-  python -m augur.knowledge.fileparse --selftest   # 純紅綠自測（零 IO）
+  python -m augur.knowledge.fileparse --selftest   # 結構＋暫存 PDF 加密假陽性／真密碼路徑
 """
 from __future__ import annotations
 
@@ -23,6 +23,17 @@ _TEXT_EXT = {".txt", ".md", ".markdown", ".csv", ".tsv", ".log", ".json", ".xml"
              ".py", ".js", ".ts", ".java", ".c", ".cpp", ".h", ".go", ".rs", ".sh", ".sql", ".r"}
 # skip 分類(誠實記數,計畫 §三):
 SKIP = ("oversize", "symlink", "empty", "decode_error", "parse_error", "encrypted", "unknown_ext", "no_text")
+# 人類可讀（UI／摘要；reason key 仍用 SKIP 英文碼）
+SKIP_LABEL_ZH = {
+    "oversize": "超過單檔大小上限",
+    "symlink": "符號連結已略過",
+    "empty": "空檔",
+    "decode_error": "文字解碼失敗",
+    "parse_error": "解析失敗／損壞",
+    "encrypted": "加密 PDF，需密碼／請先解密",
+    "unknown_ext": "未支援副檔名",
+    "no_text": "無可抽文字（如掃描圖）",
+}
 
 
 def _read_text(path):
@@ -44,10 +55,16 @@ def _read_text(path):
 
 
 def _read_pdf(path):
+    """PDF 逐字抽取。is_encrypted 常為「僅 owner 限制」假陽性——先試空密碼再開；真需密碼才 skip encrypted。"""
     from pypdf import PdfReader
     r = PdfReader(path)
     if getattr(r, "is_encrypted", False):
-        return None, "encrypted"
+        try:
+            # pypdf: 0=NOT_DECRYPTED（真需密碼）; 1/2=USER/OWNER（含空 user 密碼之 owner 限制檔）
+            if not r.decrypt(""):
+                return None, "encrypted"
+        except Exception:
+            return None, "encrypted"
     txt = "\n".join((p.extract_text() or "") for p in r.pages)
     return (txt, "pdf") if txt.strip() else (None, "no_text")   # 掃描檔無文字層 → no_text(P5 OCR)
 
@@ -146,7 +163,8 @@ def extract_text(path):
 
 
 def _selftest():
-    """純紅綠自測(零 IO):固化 skip 分類/文字副檔集/大小上限/抽取器入口等結構不變式。"""
+    """結構不變式＋暫存 PDF：owner 限制（空密碼）可抽；真 user 密碼 → encrypted。"""
+    import tempfile
     ok = True
     def chk(name, cond):
         nonlocal ok; ok = ok and cond
@@ -154,11 +172,42 @@ def _selftest():
     chk("MAX_BYTES=50MB", MAX_BYTES == 50 * 1024 * 1024)
     chk("SKIP 全八類齊備", set(SKIP) == {"oversize", "symlink", "empty", "decode_error",
                                         "parse_error", "encrypted", "unknown_ext", "no_text"})
+    chk("SKIP_LABEL_ZH 覆蓋 SKIP", set(SKIP_LABEL_ZH) == set(SKIP))
+    chk("encrypted 標籤含密碼提示", "密碼" in SKIP_LABEL_ZH["encrypted"])
     chk(".pdf 不在 _TEXT_EXT(走專屬抽取器)", ".pdf" not in _TEXT_EXT)
     chk(".txt/.md/.csv/.json 屬純文字集", {".txt", ".md", ".csv", ".json"} <= _TEXT_EXT)
     chk("公開入口 extract_text 存在", callable(extract_text))
     chk("各格式抽取器齊備", all(callable(f) for f in
                               (_read_text, _read_pdf, _read_docx, _read_pptx, _read_xlsx, _read_epub)))
+    try:
+        from pypdf import PdfWriter
+        with tempfile.TemporaryDirectory() as td:
+            owner_path = os.path.join(td, "owner_restrict.pdf")
+            w = PdfWriter()
+            w.add_blank_page(width=200, height=200)
+            w.encrypt(user_password="", owner_password="owner-only")
+            with open(owner_path, "wb") as f:
+                w.write(f)
+            text, reason = _read_pdf(owner_path)
+            # 空白頁無文字層 → no_text（非 encrypted）；關鍵＝不誤判 encrypted
+            chk("owner 限制空密碼不標 encrypted", reason != "encrypted")
+            chk("owner 限制回 no_text 或 pdf", reason in ("no_text", "pdf"))
+
+            locked_path = os.path.join(td, "user_locked.pdf")
+            w2 = PdfWriter()
+            w2.add_blank_page(width=200, height=200)
+            w2.encrypt(user_password="need-pwd", owner_password="owner")
+            with open(locked_path, "wb") as f:
+                w2.write(f)
+            text2, reason2 = _read_pdf(locked_path)
+            chk("真 user 密碼 → encrypted", text2 is None and reason2 == "encrypted")
+            text3, reason3 = extract_text(locked_path)
+            chk("extract_text 真加密仍 skip encrypted", text3 is None and reason3 == "encrypted")
+    except ImportError:
+        print("  · SKIP PDF 加解密測（無 pypdf）")
+    except Exception as e:
+        chk(f"PDF 加解密測無例外({type(e).__name__})", False)
+        print(f"    detail: {e}")
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 
