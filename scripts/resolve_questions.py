@@ -209,6 +209,37 @@ def sweep_queued(dry):
     return 0
 
 
+def sweep_awaiting(dry):
+    """v3 掃帚擴 awaiting_hugo(hugo 2026-07-28「順手擴到 awaiting_hugo」):
+    只降級**噪音與片段**(harness 系統事件塊/終端貼文/行程指令)——真決策題一律保留給人。
+    噪音詞彙單一住所=mine_steward_questions.NOISE_*(#12,import 重用不另抄)。"""
+    import mine_steward_questions as msq
+    n_noise = n_frag = n_keep = 0
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("""SELECT qid, question FROM steward_question_ledger
+            WHERE status='awaiting_hugo' ORDER BY qid""")
+        for qid, q in cur.fetchall():
+            s2 = " ".join((q or "").split())
+            if any(m in s2 for m in msq.NOISE_SUBSTRINGS) or                any(s2.startswith(pfx) for pfx in msq.NOISE_PREFIXES):
+                kind, ref = "noise", "noise:harness 系統事件塊誤入(v3 掃帚)"
+                n_noise += 1
+            elif is_fragment(q):
+                kind, ref = "frag", "context_bound:v3 規則(終端貼文/行程指令/拍板碼)"
+                n_frag += 1
+            else:
+                n_keep += 1
+                continue
+            if not dry:
+                cur.execute("""UPDATE steward_question_ledger SET status='superseded',
+                    resolution_ref=%s, resolved_by='rules_v3_sweep_awaiting', resolved_at=now()
+                    WHERE qid=%s AND status='awaiting_hugo'""", (ref, qid))
+        if not dry:
+            conn.commit()
+    print(f"{'[dry-run] ' if dry else ''}awaiting_hugo 掃帚:噪音 {n_noise}、片段 {n_frag} → "
+          f"**留給 hugo 的真決策題 {n_keep}**")
+    return 0
+
+
 def status():
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("""SELECT status||coalesce('/'||triage,''), count(*)
@@ -254,6 +285,8 @@ def main():
     ap = argparse.ArgumentParser(add_help=True)
     ap.add_argument("--classify", action="store_true")
     ap.add_argument("--solve", action="store_true")
+    ap.add_argument("--sweep-awaiting", action="store_true",
+                    help="v3 掃帚擴 awaiting_hugo(只降噪音/片段;真決策題保留給人)")
     ap.add_argument("--sweep-queued", action="store_true",
                     help="v3 規則掃 queued_for_claude 積壓(貼文/指令降級,不生成答案)")
     ap.add_argument("--solve-knowledge", action="store_true",
@@ -272,6 +305,8 @@ def main():
         return solve_knowledge(a.limit or 16, a.dry_run)
     if a.sweep_queued:
         return sweep_queued(a.dry_run)
+    if a.sweep_awaiting:
+        return sweep_awaiting(a.dry_run)
     print((__doc__ or "").strip())
     print()
     return status()

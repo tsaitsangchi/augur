@@ -3,7 +3,7 @@
 **日期**：2026-07-28  
 **性質**：[I] 執行層計畫（plan-first；CLAUDE #16／#20；**本輪只出計畫、不實作**；不改治權 [N]）  
 **觸發**：Steward——「本專案所有 know-how 都不應分域，因皆具備相關性」；同輪追加——`/gov`「來源治權＋覆蓋率」審批狀態機亦做**自動審批**並與跨域作答整合  
-**結構**：單一主檔（跨域＋審批整合）；姊妹對照＝`reports/augur_knowledge_fulltext_coverage_plan_20260728.md`（FT-COV；已 DASH／EMBED／HAR-ext 近程 CLOSED）  
+**結構**：單一主檔（跨域＋審批整合）；姊妹對照＝`reports/augur_knowledge_fulltext_coverage_plan_20260728.md`（FT-COV；已 DASH／EMBED／HAR-ext 近程 CLOSED）；**CJK→EN 檢索詞入 DB／入憲**＝`reports/augur_no_hardcode_db_ssot_constitution_plan_20260728.md`（NHC；落地 §3.1「query 擴展禁硬編碼大表」）  
 **實證時點**：分域／狀態機＝code 親查；覆蓋分桶數字＝FT-COV 計畫 2026-07-28 live（本檔撰寫時本機 PG 暫時離線，開工前須重跑對帳）
 
 ---
