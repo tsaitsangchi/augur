@@ -24,6 +24,7 @@ LAYERS = ("L1_RETRIEVED", "L2_NO_RETRIEVAL", "L3_ABSENT", "L4_AMBIG")
 # 拒答標記:**刻意不含**三個 gold 模板既有的「以…為準/不憑記憶」等句——那些是樣板常駐語,
 # 若當拒答標記則樣板臂會自動通過 A 軸,重蹈舊尺覆轍(樣板地板 > 真能力)。
 ABSTAIN_RE = re.compile(r"查無|無此|不存在|未收錄|沒有(這|該|此)|查不到|無相符|無法找到|未找到|找不到|"
+                        r"不含|不包含|未包含|未出現|不在|"
                         r"not\s+found|no\s+such|does\s+not\s+exist|no\s+record", re.I)
 # ↑「未找到/找不到」為 V2-RUBRIC-go 補入(hugo 2026-07-28):07-27 實證 pack 於 L3 至少 6 題
 #   明文「未找到匹配的文獻標題《X》」且零編造,卻因詞表缺口被判 a=0——判準器誤殺誠實拒答。
@@ -79,17 +80,21 @@ def _sql_span(text):
     return tail[:end], text[:m.start()] + tail[end:]
 
 
-def fact_exact(answer, facts, source_text=None):
+def fact_exact(answer, facts, source_text=None, exclude=None):
     """F 軸:expect.facts 每一條都須**逐字**出現(去空白、不分大小寫),全中才有機會得 1;
     **且不得加料**(V2-RUBRIC-go 2026-07-28):`source_text`(檢索片段原文)給定時,答案中出現
     「來源沒有的年份」即 0——照抄+捏造=捏造。07-27 實證:L1 原無此軸,「把片段抄對再附加
     『1987 年獲 Nobel 獎』」零成本滿分;pack 實際 8/30 之 L1 答案冒出題幹沒有的年份(2024/2026),
-    F 仍全判 1=RAG 幻覺(有片段仍加料)這個 advisor 真實失效模式完全量不到。"""
+    F 仍全判 1=RAG 幻覺(有片段仍加料)這個 advisor 真實失效模式完全量不到。
+    `exclude`(EVALSET-V2):干擾列之標記 token(如干擾年份)——答案含之即 0=**反 echo**
+    (整段照抄檢索結果必含干擾 token;正確抽取只含目標列)。"""
     if not facts:
         return None
     a = _norm(answer)
     if not all(_norm(f) in a for f in facts if str(f).strip()):
         return 0
+    if exclude and any(_norm(str(x)) in a for x in exclude if str(x).strip()):
+        return 0                                       # 反 echo:含 exclude token(如干擾列年份)即 0
     if source_text:
         src_years = {m.group(0) for m in YEAR_RE.finditer(str(source_text))}
         for f in facts:
@@ -143,13 +148,41 @@ def abstain_ok(answer, mode, candidates=None):
 
 def judge(raw_answer, expect, source_text=None):
     """單題三軸裁決。回 {f,p,a,text};該層不適用之軸為 None(不得以 0 冒充、亦不得平均)。
-    `source_text`=題幹原文(L1 之檢索片段);給定時 F 軸帶加料年份否決(fact_exact)。"""
-    layer = expect.get("layer")
-    if layer not in LAYERS:
-        raise ValueError(f"未知層別:{layer}")
+    `source_text`=題幹原文;給定時 F 軸帶加料年份否決(fact_exact)。
+
+    **孿生分派(EVALSET-V2)**:expect 帶 `truth` 時走真值分派——同一格內兩側**合記 F 軸**
+    (exists/unique=事實抽取;absent=誠實缺席;分軸記會讓常數各吃半格):
+      exists/unique → fact_exact(含 exclude 反 echo)∧**互斥否決**(答案含拒答詞即 0——
+                       「echo+查無」組合策略否則通吃孿生,2026-07-28 dry-run 抽驗實錄)
+      absent        → abstain_ok('absent') ∧ 不含 exclude(不在列中之真值,憑記憶說出=編造)
+      ambiguous     → abstain_ok('ambig', candidates)(B3;記 A 軸)
+      no_retrieval  → provenance_ok(need_sql)(B2;記 P 軸)
+    無 `truth` 者走 v1 層別分派(向後相容;舊集判讀不變義)。"""
+    truth = expect.get("truth")
     text = flatten_response(raw_answer)
     ssot = expect.get("ssot")
     f = p = a = None
+    if truth:
+        if truth in ("exists", "unique"):
+            f = fact_exact(text, expect.get("facts"), source_text, expect.get("exclude"))
+            if f == 1 and ABSTAIN_RE.search(text):
+                f = 0                          # 互斥否決:一邊抽取一邊喊查無=兩面下注
+            p = provenance_ok(text, ssot)
+        elif truth == "absent":
+            f = abstain_ok(text, "absent")     # 合記 F 軸(joint cell;見 docstring)
+            if f == 1 and any(_norm(str(x)) in _norm(text)
+                              for x in expect.get("exclude", []) if str(x).strip()):
+                f = 0                          # 憑記憶說出不在列中之值=編造
+        elif truth == "ambiguous":
+            a = abstain_ok(text, "ambig", expect.get("candidates"))
+        elif truth == "no_retrieval":
+            p = provenance_ok(text, ssot, need_sql=True)
+        else:
+            raise ValueError(f"未知 truth:{truth}")
+        return {"f": f, "p": p, "a": a, "text": text}
+    layer = expect.get("layer")
+    if layer not in LAYERS:
+        raise ValueError(f"未知層別:{layer}")
     if layer == "L1_RETRIEVED":
         f = fact_exact(text, expect.get("facts"), source_text)
         p = provenance_ok(text, ssot)
@@ -218,6 +251,27 @@ def _selftest():
         judge("Steven E. Pav(2021),於 1987 年獲獎",
               {"layer": "L1_RETRIEVED", "facts": ["Steven E. Pav", "2021"], "ssot": "knowledge_item"},
               source_text=SRC)["f"] == 0)
+    # ── 孿生分派(EVALSET-V2)──
+    EX = {"truth": "exists", "facts": ["close", "VARCHAR"], "ssot": "column_catalog"}
+    AB = {"truth": "absent", "exclude": ["0.03"], "ssot": "field_correlation"}
+    chk("孿生 exists:正確抽取=F1", judge("「收盤價」=close,型別 VARCHAR(依 column_catalog)", EX)["f"] == 1)
+    chk("**孿生互斥否決:抽對但同時喊查無=0**(echo+查無組合策略之機械鎖)",
+        judge("close VARCHAR;另查無其他", EX)["f"] == 0)
+    chk("孿生 exists:反 echo(exclude 命中=0)",
+        judge("close VARCHAR NUMERIC", {**EX, "exclude": ["NUMERIC"]})["f"] == 0)
+    chk("孿生 absent:誠實缺席=F1(合記 F 軸)", judge("檢索結果中不含該配對。", AB)["f"] == 1)
+    chk("孿生 absent:「不在」亦命中(補詞)", judge("該欄不在檢索結果中。", AB)["f"] == 1)
+    chk("**孿生 absent:憑記憶說出真值=0**(exclude 否決)",
+        judge("查無;其中位數應為 0.03。", AB)["f"] == 0)
+    chk("孿生 absent:拒答詞缺席=0(沉默/硬答皆不過)", judge("中位數是 0.5。", AB)["f"] == 0)
+    chk("孿生 no_retrieval → P 軸(=v1 L2 語意)",
+        judge("請執行 SELECT * FROM knowledge_item WHERE title='X';",
+              {"truth": "no_retrieval", "ssot": "knowledge_item"})["p"] == 1)
+    chk("孿生 ambiguous → A 軸", judge("有 Pav 與 Bailey 兩筆,請指明",
+        {"truth": "ambiguous", "candidates": ["Pav", "Bailey"]})["a"] == 1)
+    chk("未知 truth fail-loud", _raises(lambda: judge("x", {"truth": "maybe"}), ValueError))
+    chk("無 truth 走 v1 層別分派(向後相容)",
+        judge("查無此鍵。", {"layer": "L3_ABSENT", "ssot": "k"})["a"] == 1)
     # P 軸
     chk("P:引對表名=1", provenance_ok("依 knowledge_item(SSOT)…", "knowledge_item") == 1)
     chk("P:引錯表名=0", provenance_ok("依 column_catalog…", "knowledge_item") == 0)

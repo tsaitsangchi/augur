@@ -68,8 +68,20 @@ def _code_hash():
 
 
 def _ideal_answer(expect):
-    """由 expect 直接組出理想答案(上界臂用)。它拿不到滿分=尺壞了,不是模型不行。"""
-    lay, ssot = expect["layer"], expect.get("ssot", "")
+    """由 expect 直接組出理想答案(上界臂用)。它拿不到滿分=尺壞了,不是模型不行。
+    EVALSET-V2:expect 帶 truth 者走孿生理想答;無 truth 走 v1 層別(向後相容)。"""
+    ssot = expect.get("ssot", "")
+    truth = expect.get("truth")
+    if truth in ("exists", "unique"):
+        return f"依 {ssot}:" + "、".join(str(f) for f in expect.get("facts", []))
+    if truth == "no_retrieval":
+        return f"未取得檢索片段,不憑記憶作答。請執行:SELECT * FROM {ssot} WHERE ...;"
+    if truth == "absent":
+        return "目標未出現於檢索結果,誠實缺席、不憑記憶補值;請擴大檢索或以 SELECT 確認。"
+    if truth == "ambiguous":
+        cands = expect.get("candidates", [])[:2]
+        return f"此題名對應多筆紀錄(歧義),候選:{'、'.join(str(c) for c in cands)};請指明是哪一筆。"
+    lay = expect["layer"]
     if lay == "L1_RETRIEVED":
         return f"依 {ssot}:" + "、".join(str(f) for f in expect.get("facts", []))
     if lay == "L2_NO_RETRIEVAL":
@@ -126,16 +138,38 @@ def _answer_for(arm, items, i, pack_text=None):
     if arm == "mismatched":                     # **跨層**理想答案:行為類別就選錯(如對 L1 題誠實拒答)
         return _ideal_answer(items[(i + len(items) // 2 + 1) % len(items)][3]), "offline", 0
     if arm == "robot":
-        # 零知識格式規則機(S-3,V2-RUBRIC-go 2026-07-28):**只看題幹表面格式,不看內容、不查庫**。
-        # 07-27 對抗驗證:層別由題幹開頭 100% 可推——本臂在無鑑別力之格必然滿分,live 未嚴格勝過
-        # 本臂之格=「格式即可達」=零能力證據(evidence_protocol 判 none)。本臂=可執行的量尺體檢。
+        # 零知識格式規則機(S-3,V2-RUBRIC-go;v3=EVALSET-V2 統一殼)——**只看題幹表面,不看內容、不查庫**。
+        # 角色=可執行的量尺體檢:live 未嚴格勝過本臂之格=「格式即可達」=零能力證據(evidence 判 none);
+        # 建集閘 G-R 亦以本臂實跑為據(能力格 ≤0.60 才准凍結)。v3 策略=各格**最強**表面規則:
+        #   《title》題→行比對(匹配 1 列=抽該列;≥2 列=喊多筆並列候選)——B1/B3 行為格,設計上可解;
+        #   (未執行檢索)→SELECT 模板(表名由問句 token 推)——B2 行為格;
+        #   「zh」題(能力格)→**echo 全列+查無 多筆**組合(dry-run 抽驗實錄之最強盲策略;
+        #     互斥否決使其 exists 側必 0,理論上界=缺席半格 0.5)。
+        if prompt.startswith("[檢索結果]"):
+            body = prompt.split("[檢索結果]", 1)[1].split("[問題]", 1)
+            rows_txt, q = body[0], (body[1] if len(body) > 1 else "")
+            if "(未執行檢索)" in rows_txt:
+                t = ("knowledge_item" if ("文獻" in q or "《" in q)
+                     else "field_correlation" if "相關" in q
+                     else "column_catalog")
+                return f"未取得檢索片段,不憑記憶作答。請執行:SELECT * FROM {t} WHERE ...;", "offline", 0
+            if "《" in q and "》" in q:
+                title = q.split("《", 1)[1].split("》", 1)[0]
+                hits = [ln for ln in rows_txt.splitlines() if title and title in ln]
+                if len(hits) >= 2:
+                    auths = [ln.split("authors=", 1)[1].split(" | ", 1)[0]
+                             for ln in hits if "authors=" in ln]
+                    return ("此題名對應多筆(歧義),候選:" + "、".join(auths[:2]) + ";請指明。",
+                            "offline", 0)
+                if len(hits) == 1:
+                    return hits[0], "offline", 0          # 抽該列(僅目標列=不含干擾 exclude token)
+            return rows_txt + "\n查無 多筆", "offline", 0   # zh 能力格:最強盲策略(echo+查無)
         if prompt.startswith("[檢索片段]"):
-            return prompt.split("[檢索片段]", 1)[1].split("[問題]", 1)[0], "offline", 0   # 照抄片段
+            return prompt.split("[檢索片段]", 1)[1].split("[問題]", 1)[0], "offline", 0   # v1 相容
         if prompt.startswith("[無檢索片段]"):
-            # 判序:相關→FC 須先於 欄位→CC(FC 題幹同時含「欄位」;初版誤導 10/30 → L2.P 0.667)
             t = ("knowledge_item" if ("文獻" in prompt or "《" in prompt)
                  else "field_correlation" if "相關" in prompt
-                 else "column_catalog")         # 問句模板差異本身即洩漏(凍結集結構缺陷之實證)
+                 else "column_catalog")
             return f"未取得檢索片段,不憑記憶作答。請執行:SELECT * FROM {t} WHERE ...;", "offline", 0
         return "查無 多筆", "offline", 0
     if arm == "base":
@@ -324,9 +358,9 @@ def _selftest():
     # ── 尺之錨(2026-07-27 七臂之基準;動到判準/產答/生成參數就會紅) ──
     # 這條紅了**不代表壞掉**,代表尺換了:舊 run 自此不可與新 run 並排。要換就換,但必須是
     # 有意識地換(改此常數並重跑全部對照臂),不能靜默漂移——否則會拿兩把尺的數字比大小。
-    # V2-RUBRIC-go(hugo 2026-07-28)有意識換尺:f3075238eb55(07-26 舊尺,七臂留檔未刪)→ 0646872fdce7(robot v1,僅離線臂)→ ef142e9374c1。
+    # V2-RUBRIC-go(hugo 2026-07-28)有意識換尺:f3075238eb55(07-26)→ 0646872fdce7/ef142e9374c1(07-28 中繼)→ 35aeffc3e160(EVALSET-V2 孿生尺)。
     # 變更=ABSTAIN_RE 補詞+F 軸加料年份否決+floor 換最強退化常數+robot 第五臂+run_id attempt 序。
-    PINNED = {"qwen3:4b": "ef142e9374c1"}
+    PINNED = {"qwen3:4b": "35aeffc3e160"}
     if MODEL in PINNED:
         chk(f"**尺之錨**:{MODEL} 之 eval_code_hash 仍為 {PINNED[MODEL]}(換尺須有意識)",
             _code_hash() == PINNED[MODEL])
