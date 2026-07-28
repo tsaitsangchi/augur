@@ -222,6 +222,33 @@ def _write_assist(cur, cand: dict, scored: dict) -> None:
                  scored.get("model"), scored.get("prompt_hash")))
 
 
+def _write_source_audit(cur, cand: dict, scored: dict) -> bool:
+    """S2: assist 建議另留 source review_log，方便 /gov 唯讀掃視；永不改狀態。"""
+    source_key = cand["target_id"] if cand["target_kind"] == "source" else cand["meta"].get("source_key")
+    if not source_key:
+        return False
+    cur.execute("SELECT approval_status FROM knowledge_source WHERE source_key=%s", (source_key,))
+    row = cur.fetchone()
+    if not row:
+        return False
+    old = new = row[0]
+    reason = json.dumps({
+        "target_kind": cand["target_kind"],
+        "target_id": cand["target_id"],
+        "recommend_score": scored["score"],
+        "reason": scored["reason"],
+        "flags": scored["flags"],
+        "model": scored.get("model"),
+        "prompt_hash": scored.get("prompt_hash"),
+    }, ensure_ascii=False)
+    cur.execute("""
+        INSERT INTO knowledge_source_review_log
+          (source_key, action, old_status, new_status, actor, os_user, reason, probe_result)
+        VALUES (%s,'assist',%s,%s,%s,%s,%s,NULL)""",
+                (source_key, old, new, ACTOR, ACTOR, reason))
+    return True
+
+
 def _assert_no_upgrade_in_source():
     src = Path(__file__).read_text(encoding="utf-8")
     tree = ast.parse(src)
@@ -355,6 +382,7 @@ def main(argv=None) -> int:
             return 1
 
         results = []
+        audit_rows = 0
         for kind in kinds:
             cands = _load_candidates(cur, kind=kind, limit=args.limit)
             for cand in cands:
@@ -365,9 +393,12 @@ def main(argv=None) -> int:
                       f"reason={scored['reason'][:80]}")
                 if args.apply:
                     _write_assist(cur, cand, scored)
+                    if _write_source_audit(cur, cand, scored):
+                        audit_rows += 1
         if args.apply:
             conn.commit()
-            print(f"✓ 已寫 {len(results)} 列 → knowledge_admission_assist（actor={ACTOR}；未觸升級）")
+            print(f"✓ 已寫 assist={len(results)} 列、source_audit={audit_rows} 列"
+                  f"（actor={ACTOR}；未觸升級）")
         else:
             print(f"dry-run 樣本 {len(results)} 筆（零寫）；人裁仍走 "
                   "review_knowledge_source.py --approve/--activate（TTY）")

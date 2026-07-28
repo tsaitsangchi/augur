@@ -793,6 +793,53 @@ def _gov_data():
             LEFT JOIN legacy l ON l.item_id = i.item_id
             GROUP BY 1 ORDER BY 2 DESC LIMIT 12""")
         d["coverage"] = cur.fetchall()
+        d["assist_summary"] = {"table": False, "latest_targets": 0, "audit_rows": 0}
+        d["assist_rows"] = []
+        cur.execute("SELECT to_regclass('public.knowledge_admission_assist')")
+        if cur.fetchone()[0]:
+            d["assist_summary"]["table"] = True
+            cur.execute("""
+                WITH latest AS (
+                  SELECT DISTINCT ON (target_kind, target_id)
+                         assist_id, target_kind, target_id, score, reason, flags, model, created_at
+                  FROM knowledge_admission_assist
+                  ORDER BY target_kind, target_id, created_at DESC, assist_id DESC
+                )
+                SELECT count(*)::bigint FROM latest""")
+            d["assist_summary"]["latest_targets"] = cur.fetchone()[0]
+            cur.execute("""
+                SELECT count(*)::bigint
+                FROM knowledge_source_review_log
+                WHERE action='assist'""")
+            d["assist_summary"]["audit_rows"] = cur.fetchone()[0]
+            cur.execute("""
+                WITH latest AS (
+                  SELECT DISTINCT ON (a.target_kind, a.target_id)
+                         a.assist_id, a.target_kind, a.target_id, a.score, a.reason,
+                         a.flags, a.model, a.created_at
+                  FROM knowledge_admission_assist a
+                  ORDER BY a.target_kind, a.target_id, a.created_at DESC, a.assist_id DESC
+                )
+                SELECT l.target_kind,
+                       l.target_id,
+                       CASE WHEN l.target_kind='source' THEN l.target_id ELSE coalesce(st.source_key,'') END AS source_key,
+                       CASE WHEN l.target_kind='source' THEN coalesce(src.domain,'') ELSE coalesce(st.domain,'') END AS domain,
+                       round(l.score::numeric, 3)::text AS recommend_score,
+                       coalesce((l.flags->>'hold_for_human')::boolean, false) AS hold_for_human,
+                       coalesce((l.flags->>'license_risk')::boolean, false) AS license_risk,
+                       coalesce((l.flags->>'dup_suspect')::boolean, false) AS dup_suspect,
+                       coalesce(l.flags->>'suggested_domain', '') AS suggested_domain,
+                       left(coalesce(l.reason,''), 140) AS reason,
+                       coalesce(l.model,'') AS model,
+                       to_char(l.created_at,'MM-DD HH24:MI') AS created_at
+                FROM latest l
+                LEFT JOIN knowledge_staging st
+                  ON l.target_kind='staging' AND st.staging_id::text = l.target_id
+                LEFT JOIN knowledge_source src
+                  ON l.target_kind='source' AND src.source_key = l.target_id
+                ORDER BY l.created_at DESC, l.assist_id DESC
+                LIMIT 20""")
+            d["assist_rows"] = cur.fetchall()
         cur.execute("SELECT source_key, action, old_status, new_status, actor, os_user, "
                     "to_char(created_at,'MM-DD HH24:MI') FROM knowledge_source_review_log "
                     "ORDER BY review_id DESC LIMIT 15")
@@ -822,6 +869,13 @@ def gov_dashboard_html(d):
         f"<td style=text-align:right>{_pct(ans + blk, it)}%</td>"
         f"<td style=text-align:right;color:#888>{legacy}</td></tr>"
         for dm, it, ans, blk, pend, legacy in d["coverage"])
+    assist = d.get("assist_summary", {})
+    assist_rows = "".join(
+        f"<tr><td>{e(kind)}</td><td><code>{e(tid)}</code></td><td><code>{e(sk or '')}</code></td>"
+        f"<td>{e(dom or '')}</td><td style=text-align:right>{e(score)}</td>"
+        f"<td>{'hold' if hold else ''}{' license' if lic else ''}{' dup' if dup else ''}"
+        f"{(' → ' + e(sdom)) if sdom else ''}</td><td>{e(reason)}</td><td>{e(model or '')}</td><td>{e(ts)}</td></tr>"
+        for kind, tid, sk, dom, score, hold, lic, dup, sdom, reason, model, ts in d.get("assist_rows", []))
     rl = "".join(f"<tr><td>{e(k)}</td><td>{e(a)}</td><td>{e(o or '')}→{e(nw or '')}</td>"
                  f"<td>{e(ac or '')}</td><td>{e(ou or '')}</td><td>{e(ts or '')}</td></tr>"
                  for k, a, o, nw, ac, ou, ts in d["reviewlog"])
@@ -849,6 +903,15 @@ pending＝無全文且無 status（未嘗試）；blocked＝skip_license／skip_
 <th>可答%</th><th>終態%</th><th>舊&gt;200</th></tr>{covr}</table>
 <h2>Fulltext 終態分佈</h2><table><tr><th>status</th><th>數</th></tr>{ft}</table>
 <p style=color:#999>skip_license/skip_no_oa = license 阻擋之 metadata-only（終態、非漏做）；skip_fetch_error = 可重試。</p>
+<h2>AI 預審建議（ADM-AI-ASSIST；唯讀）</h2>
+<div class=note>
+<b>recommend_score</b> 只供人排隊與掃視；<b>不是</b> approve／activate 依據。
+<code>--apply</code> 只會寫 <code>knowledge_admission_assist</code> 與 source review audit(action=<code>assist</code>)，
+<b>不改任何審批終態</b>。
+目前：assist 表={'yes' if assist.get('table') else 'no'} · 最新 target={assist.get('latest_targets', 0)} · source audit={assist.get('audit_rows', 0)}
+</div>
+<table><tr><th>kind</th><th>target</th><th>source</th><th>domain</th><th>score</th><th>風險/提示</th><th>理由</th><th>model</th><th>時間</th></tr>
+{assist_rows or '<tr><td colspan=9>（尚無 assist 建議）</td></tr>'}</table>
 <h2>審批稽核軌跡（近 15）</h2>
 <table><tr><th>source</th><th>action</th><th>轉移</th><th>actor</th><th>os_user</th><th>時間</th></tr>{rl or '<tr><td colspan=6>（無留痕）</td></tr>'}</table>
 </div></body></html>"""

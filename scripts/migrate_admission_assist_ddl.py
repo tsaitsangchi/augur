@@ -42,6 +42,12 @@ CREATE INDEX IF NOT EXISTS idx_kaa_score
   ON knowledge_admission_assist (score DESC, created_at DESC);
 COMMENT ON TABLE knowledge_admission_assist IS
   'ADM-AI-ASSIST: L2 本地 AI 預審建議帳本（score/reason/flags；禁改審批態；actor=local_ai_v1）';
+ALTER TABLE knowledge_source_review_log
+  DROP CONSTRAINT IF EXISTS knowledge_source_review_log_action_check;
+ALTER TABLE knowledge_source_review_log
+  ADD CONSTRAINT knowledge_source_review_log_action_check
+  CHECK (action IN ('propose','probe','approve','activate','suspend','resume',
+                    'exhaust','reject','reopen','edit','ratify','assist'));
 """
 
 FORBIDDEN_SQL_FRAGMENTS = (
@@ -64,6 +70,7 @@ def selftest() -> int:
     chk("target_kind 含 source/staging", "'source'" in DDL and "'staging'" in DDL)
     chk("score CHECK 0..1", "score >= 0.0" in DDL and "score <= 1.0" in DDL)
     chk("actor 預設 local_ai_v1", "local_ai_v1" in DDL)
+    chk("review_log action 含 assist", "'assist'" in DDL)
     for frag in FORBIDDEN_SQL_FRAGMENTS:
         chk(f"DDL 不含 {frag!r}", frag not in DDL)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
@@ -90,6 +97,17 @@ def check_live() -> int:
         print(f"  columns={cols}")
         if missing:
             print(f"  ✗ 缺欄 {missing}")
+            return 1
+        cur.execute("""
+            SELECT pg_get_constraintdef(oid)
+            FROM pg_constraint
+            WHERE conrelid = 'knowledge_source_review_log'::regclass
+              AND conname = 'knowledge_source_review_log_action_check'""")
+        action_ck = (cur.fetchone() or [None])[0] or ""
+        has_assist = "'assist'" in action_ck
+        print(f"  review_log_action_check_has_assist={has_assist}")
+        if not has_assist:
+            print("  ✗ review_log action check 尚未納入 assist")
             return 1
         print("  ✓ 必要欄齊")
         return 0

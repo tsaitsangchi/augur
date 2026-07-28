@@ -1,4 +1,5 @@
 # Memory Index
+- [git add 只逐檔明列](git-add-scoped-only.md) — 07-28 實犯:add -A 掃進並行 session 未提交檔;commit 逐檔列+status 先查+--allow-empty 零 add
 
 - [慢可以、提升要精準](slow-but-precise.md) — hugo 07-27 指導原則:速度讓位正確性;驗收用精確計數/凍結尺實測不用估;timeout 放寬不猶豫(advisor 900s);不為快降 draws/seeds
 - [兩台電腦同時進行](machines-two-concurrent.md) — 07-27:PC002+DESKTOP 並行非接力;**乙案=本機當家**(進化+arena 正典;DESKTOP 僅週末開=週間 cron 物理不可當家);週末待辦:停 DESKTOP cron+私有通道搬 07-26 增量;GB10 不存在再確認

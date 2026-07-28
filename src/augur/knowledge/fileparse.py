@@ -16,13 +16,19 @@
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
+import tempfile
 
 MAX_BYTES = 50 * 1024 * 1024      # 單檔上限 50MB(防 OOM/zip bomb 解壓;超過=oversize skip)
 _TEXT_EXT = {".txt", ".md", ".markdown", ".csv", ".tsv", ".log", ".json", ".xml",
              ".yaml", ".yml", ".rst", ".ini", ".toml",
              ".py", ".js", ".ts", ".java", ".c", ".cpp", ".h", ".go", ".rs", ".sh", ".sql", ".r"}
+_IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".tif", ".tiff", ".bmp"}
+_OLE_OFFICE_EXT = {".doc", ".xls", ".ppt"}
 # skip 分類(誠實記數,計畫 §三):
-SKIP = ("oversize", "symlink", "empty", "decode_error", "parse_error", "encrypted", "unknown_ext", "no_text")
+SKIP = ("oversize", "symlink", "empty", "decode_error", "parse_error",
+        "encrypted", "unknown_ext", "no_text", "missing_ocr", "missing_parser")
 # 人類可讀（UI／摘要；reason key 仍用 SKIP 英文碼）
 SKIP_LABEL_ZH = {
     "oversize": "超過單檔大小上限",
@@ -33,6 +39,8 @@ SKIP_LABEL_ZH = {
     "encrypted": "加密 PDF，需密碼／請先解密",
     "unknown_ext": "未支援副檔名",
     "no_text": "無可抽文字（如掃描圖）",
+    "missing_ocr": "缺 OCR 引擎（需 pytesseract+tesseract）",
+    "missing_parser": "缺解析器或系統轉檔器",
 }
 
 
@@ -103,6 +111,77 @@ def _read_xlsx(path):
     return (txt, "xlsx") if txt.strip() else (None, "no_text")
 
 
+def _soffice_bin():
+    return shutil.which("soffice") or shutil.which("libreoffice")
+
+
+def _read_via_soffice(path, out_ext, method):
+    soffice = _soffice_bin()
+    if not soffice:
+        return None, "missing_parser"
+    with tempfile.TemporaryDirectory() as td:
+        cmd = [soffice, "--headless", "--convert-to", out_ext.lstrip("."), "--outdir", td, path]
+        try:
+            subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=True)
+        except (OSError, subprocess.SubprocessError):
+            return None, "parse_error"
+        out = os.path.join(td, os.path.splitext(os.path.basename(path))[0] + out_ext)
+        if not os.path.isfile(out):
+            return None, "parse_error"
+        if out_ext == ".txt":
+            txt, status = _read_text(out)
+            if txt is None:
+                return None, status
+            return (txt, method) if txt.strip() else (None, "no_text")
+        return extract_text(out)
+
+
+def _read_doc(path):
+    return _read_via_soffice(path, ".txt", "doc")
+
+
+def _read_ppt(path):
+    return _read_via_soffice(path, ".txt", "ppt")
+
+
+def _read_xls(path):
+    try:
+        import xlrd
+    except Exception:
+        return _read_via_soffice(path, ".txt", "xls")
+    book = xlrd.open_workbook(path, on_demand=True)
+    lines = []
+    try:
+        for sheet in book.sheets():
+            for rx in range(sheet.nrows):
+                cells = [str(v) for v in sheet.row_values(rx) if str(v).strip()]
+                if cells:
+                    lines.append("\t".join(cells))
+    finally:
+        book.release_resources()
+    txt = "\n".join(lines)
+    return (txt, "xls") if txt.strip() else (None, "no_text")
+
+
+def _read_image(path):
+    try:
+        import pytesseract
+        from PIL import Image, ImageOps
+    except Exception:
+        return None, "missing_ocr"
+    try:
+        with Image.open(path) as im:
+            im = ImageOps.exif_transpose(im)
+            if im.mode not in ("L", "RGB"):
+                im = im.convert("RGB")
+            text = pytesseract.image_to_string(im)
+    except pytesseract.TesseractNotFoundError:
+        return None, "missing_ocr"
+    except Exception:
+        return None, "parse_error"
+    return (text, "image_ocr") if text.strip() else (None, "no_text")
+
+
 def _read_epub(path):
     import re
     import html as _html
@@ -136,10 +215,18 @@ def extract_text(path):
             return _read_pdf(path)
         if ext == ".docx":
             return _read_docx(path)
+        if ext == ".doc":
+            return _read_doc(path)
         if ext == ".pptx":
             return _read_pptx(path)
+        if ext == ".ppt":
+            return _read_ppt(path)
         if ext == ".xlsx":
             return _read_xlsx(path)
+        if ext == ".xls":
+            return _read_xls(path)
+        if ext in _IMAGE_EXT:
+            return _read_image(path)
         if ext == ".epub":
             return _read_epub(path)
         if ext in (".html", ".htm"):
@@ -170,15 +257,25 @@ def _selftest():
         nonlocal ok; ok = ok and cond
         print(f"  {'✓' if cond else '✗FAIL'} {name}")
     chk("MAX_BYTES=50MB", MAX_BYTES == 50 * 1024 * 1024)
-    chk("SKIP 全八類齊備", set(SKIP) == {"oversize", "symlink", "empty", "decode_error",
-                                        "parse_error", "encrypted", "unknown_ext", "no_text"})
+    chk("SKIP 全十類齊備", set(SKIP) == {"oversize", "symlink", "empty", "decode_error",
+                                        "parse_error", "encrypted", "unknown_ext", "no_text",
+                                        "missing_ocr", "missing_parser"})
     chk("SKIP_LABEL_ZH 覆蓋 SKIP", set(SKIP_LABEL_ZH) == set(SKIP))
     chk("encrypted 標籤含密碼提示", "密碼" in SKIP_LABEL_ZH["encrypted"])
     chk(".pdf 不在 _TEXT_EXT(走專屬抽取器)", ".pdf" not in _TEXT_EXT)
     chk(".txt/.md/.csv/.json 屬純文字集", {".txt", ".md", ".csv", ".json"} <= _TEXT_EXT)
+    chk("常見 image 副檔名納入 OCR 集", {".jpg", ".png", ".webp", ".gif", ".tiff", ".bmp"} <= _IMAGE_EXT)
+    chk("舊版 Office 副檔名納入辨識", {".doc", ".xls", ".ppt"} <= _OLE_OFFICE_EXT)
     chk("公開入口 extract_text 存在", callable(extract_text))
     chk("各格式抽取器齊備", all(callable(f) for f in
-                              (_read_text, _read_pdf, _read_docx, _read_pptx, _read_xlsx, _read_epub)))
+                              (_read_text, _read_pdf, _read_docx, _read_doc, _read_pptx,
+                               _read_ppt, _read_xlsx, _read_xls, _read_image, _read_epub)))
+    with tempfile.TemporaryDirectory() as td:
+        png = os.path.join(td, "broken.png")
+        with open(png, "wb") as f:
+            f.write(b"not-an-image")
+        _text, why = extract_text(png)
+        chk("image 不誤落 unknown_ext", why in ("missing_ocr", "parse_error"))
     try:
         from pypdf import PdfWriter
         with tempfile.TemporaryDirectory() as td:
