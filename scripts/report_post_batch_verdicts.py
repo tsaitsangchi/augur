@@ -83,8 +83,13 @@ def build_report():
             b = _latest_run(cur, OLD_SET, "behavior")
             if b:
                 L.append(f"對照 behavior 同集:F={b[2]} P={b[3]} A={b[4]}" + ("(INVALID)" if b[5] else ""))
-            l1f = lam.get("L1", {}).get("f")
-            l3a = lam.get("L3", {}).get("a")
+            def _ly(prefix, ax):  # 層名帶後綴(L1_RETRIEVED/L3_ABSENT)——前綴取
+                for ly, axs in lam.items():
+                    if ly.startswith(prefix) and ax in axs:
+                        return axs[ax]
+                return None
+            l1f = _ly("L1", "f")
+            l3a = _ly("L3", "a")
             verdict, why = s5_rule(l1f, l3a)
             L.append(f"**規則判:建議 {verdict}**——{why}")
             L.append("執行唯 hugo 親跑(二選一):")
@@ -150,10 +155,12 @@ def _selftest():
     chk("S-5 R2:L3.A 回升僅記錄不翻 R1", "不翻 R1" in s5_rule(0.733, 0.6)[1])
     chk("S-5:L1.F=1.0=建議 keep", s5_rule(1.0, 0.3)[0] == "keep")
     chk("S-5:無資料=待資料非亂判", s5_rule(None, None)[0] == "待資料")
-    lam = layer_axis_means([{"layer": "L1", "f": 1, "a": None}, {"layer": "L1", "f": 0},
-                            {"layer": "L3", "f": 1, "a": 0.5}])
-    chk("分層聚合:None 軸不計/均值正確", lam["L1"]["f"] == 0.5 and "a" not in lam["L1"]
-        and lam["L3"]["a"] == 0.5)
+    lam = layer_axis_means([{"layer": "L1_RETRIEVED", "f": 1, "a": None}, {"layer": "L1_RETRIEVED", "f": 0},
+                            {"layer": "L3_ABSENT", "f": 1, "a": 0.5}])
+    chk("分層聚合:None 軸不計/均值正確(帶後綴層名)", lam["L1_RETRIEVED"]["f"] == 0.5
+        and "a" not in lam["L1_RETRIEVED"] and lam["L3_ABSENT"]["a"] == 0.5)
+    import inspect as _i
+    chk("層名前綴取(L1 裸鍵誤報教訓 2026-07-28)", 'startswith(prefix)' in _i.getsource(build_report))
     import inspect
     src = inspect.getsource(build_report)
     chk("唯讀:零 UPDATE/INSERT 帳本(SQL 僅字串印給人)", "cur.execute(\"UPDATE" not in src
