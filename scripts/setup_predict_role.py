@@ -48,6 +48,8 @@ FORBIDDEN_EXPLICIT = {
     # 憲章 v1.47.0 素養層表(前綴 principle_ 非 philosophy_ 而漏網;與 principle_factor_map 同理
     # ——應用注記軸非量化資格 I8,預測 role 零存取;V2 Phase 2.2 補封 2026-07-26)
     "principle_domain_map",
+    # NHC-S12:CJK→EN 檢索詞表(顧問 retrieve 用;素養層、預測 role 零存取;V-ISO)
+    "retrieve_glossary",
 }
 # 注:entity_type_catalog / entity_registry / entity_alias 屬 resolution 基礎設施(Phase 2 消費端須 JOIN 已解析
 #     augur_id),故不列 forbidden、留 allowed(唯讀);其 append-only/permanence 由 migrate_identity_ddl 硬化。

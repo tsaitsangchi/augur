@@ -3,7 +3,7 @@
 * **性質**：[I] plan-first 計畫書（CLAUDE #16／#20；憲章第六部計畫完整性 v1.39.0）— **不創設 [N]**；**本輪只出計畫＋拍板碼，不實作放量**
 * **授權觸發**：Steward 明示「**要開進化閉環**」＝撤銷／取代同日 `PME-XDOM-NO`，開通異域 know-how → PME 灌預測因子路徑
 * **前置**：既有 PME ✅ `PME-Efull-yes`／AUTO-B／KILL／PRODSET／P2H；MAP-E012 CLOSED；KH-XDOM S01 CLOSED（顧問跨域作答）；HANDOFF §4.0 近程「不做他域進化閉環」＝本計畫待撤銷對象
-* **姊妹／正交**：`reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`（**讀與答**）；本檔＝**寫進預測假說鏈**（見 §1.4）
+* **姊妹／正交**：`reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`（**讀與答**）；`reports/augur_no_hardcode_db_ssot_constitution_plan_20260728.md`（NHC：顧問**產生**＝檢索＋組答＋DB 策展、禁領域 hardcode；**≠**本檔灌因子；A0 太陽能材料題不暗示 `PME-XDOM-SOLAR`）；本檔＝**寫進預測假說鏈**（見 §1.4；近程僅 `SUNZI-MGMT`）
 * **治權錨**：憲章 v1.47.0「跨域原理映射準則」；A.16／共同不變式②（素養不進預測 runtime）；soul-vs-raw；predict-vs-market-api；FZ-keep
 
 ### Steward 拍板欄

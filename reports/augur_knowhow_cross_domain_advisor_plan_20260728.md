@@ -3,7 +3,7 @@
 **日期**：2026-07-28  
 **性質**：[I] 執行層計畫（plan-first；CLAUDE #16／#20；**Steward 已拍 `KH-XDOM-PLAN`＋`KH-XDOM-S01`＋`PME-XDOM-NO`＋`FZ-keep`（2026-07-28）**；S01＝S0＋S1＋S1b；不改治權 [N]）  
 **觸發**：Steward——「本專案所有 know-how 都不應分域，因皆具備相關性」；同輪追加——`/gov`「來源治權＋覆蓋率」審批狀態機亦做**自動審批**並與跨域作答整合  
-**結構**：單一主檔（跨域＋審批整合）；姊妹對照＝`reports/augur_knowledge_fulltext_coverage_plan_20260728.md`（FT-COV；已 DASH／EMBED／HAR-ext 近程 CLOSED）；**CJK→EN 檢索詞入 DB／入憲**＝`reports/augur_no_hardcode_db_ssot_constitution_plan_20260728.md`（NHC；另案，S01 不偷改 [N]）  
+**結構**：單一主檔（跨域＋審批整合）；姊妹對照＝`reports/augur_knowledge_fulltext_coverage_plan_20260728.md`（FT-COV；已 DASH／EMBED／HAR-ext 近程 CLOSED）；**CJK→EN 檢索詞入 DB／入憲＋know-how 產生禁 hardcode**＝`reports/augur_no_hardcode_db_ssot_constitution_plan_20260728.md`（NHC；待 `NHC-PLAN`／`NHC-S12`；**產生**＝本檔跨域檢索＋LLM 組答＋DB 策展，**≠**領域專用分支；S01 不偷改 [N]）  
 **實證時點**：分域／狀態機＝code 親查；覆蓋分桶＝S0 開工重跑（見 `audits/KH-XDOM-S01-CLOSED-20260728.md`）
 
 ---
@@ -139,7 +139,7 @@
 
 ```
 query
-  →（可選）query 擴展：原文 + 譯文 + 輕量別名（DB topic_alias 類，#29b；禁硬編碼大表）
+  →（可選）query 擴展：原文 + 譯文 + 輕量別名（DB `retrieve_glossary`／topic_alias 類，#29b；禁硬編碼大表——落地見 NHC；A0 探針「第一性原理×太陽能材料」亦同管線、禁領域專支）
   → hybrid：exact concordance ∪ ANN（pgvector／factory）
   → RRF／交錯合併（works ∪ public items ∪ private）
   → RBAC（D4：授權邊界保留；Steward／super 預設跨域）

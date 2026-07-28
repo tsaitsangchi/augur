@@ -1,10 +1,15 @@
 # 策展映射禁 hardcode → PostgreSQL SSOT ＋ 入憲計畫
 
-**日期**：2026-07-28  
-**性質**：[I] 執行層計畫（plan-first；CLAUDE #16／#20；**本輪只出計畫＋草案＋清冊，不改治權 [N] 正文、不大規模改碼**）  
-**觸發**：Steward——(1) `_GLOSSARY` 類 CJK→EN 檢索詞硬編碼；(2)「此專案所有程式都不能 hard code，都需進 PostgreSQL 17 table」；(3) **請入憲**；(4) 優化已 hardcode 程式（遷 DB＋改讀表）  
-**姊妹互鏈**：`reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`（跨域檢索已寫「query 擴展＝DB topic_alias 類、#29b、禁硬編碼大表」——本計畫落地該句之 **retrieve glossary** 半邊）  
-**實證時點**：2026-07-28 code 親查（Grep＋讀檔）；數字／列數以開工前 `SELECT` 複驗為準
+**日期**：2026-07-28（同日補強：**know-how 產生**覆蓋＋A0 探針）  
+**性質**：[I] 執行層計畫（plan-first；CLAUDE #16／#20）  
+**Steward 拍板（2026-07-28）**：✅ **`NHC-PLAN`＋`NHC-S12`＋`FZ-keep`**（登錄＝`audits/NHC-PLAN-APPROVED-20260728.md`；收官＝`audits/NHC-S12-CLOSED-20260728.md`）  
+**未拍**：`NHC-CONSTITUTE`（**禁止改 [N]**）／`NHC-S3`（其餘 hardcode 待遷）  
+**觸發**：Steward——(1) `_GLOSSARY` 類 CJK→EN 檢索詞硬編碼；(2)「此專案所有程式都不能 hard code，都需進 PostgreSQL 17 table」；(3) **請入憲**；(4) 優化已 hardcode 程式（遷 DB＋改讀表）；(5) **同日補充**：know-how **產生**不要 hard code——例「第一性原理在太陽能材料研發如何應用？」應由**一般機制＋DB 策展／檢索**作答，禁寫死詞表／領域模板／Q&A  
+**姊妹互鏈**：
+- `reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`（KH-XDOM；S01 **CLOSED**——跨域檢索／去作答閘；本計畫落地其「query 擴展＝DB、禁硬編碼大表」＋**組答不得再 hardcode 領域分支**）
+- `reports/augur_pme_cross_domain_evolution_enable_plan_20260728.md`（PME-XDOM；已拍 YES＋**僅** `SUNZI-MGMT` 文獻橋——**異域進化灌因子**與顧問產生正交；太陽能材料題**不**因此開 `PME-XDOM-SOLAR`）
+- `reports/augur_knowledge_fulltext_coverage_plan_20260728.md`（FT-COV——終態覆蓋；產生 consumable 語料）  
+**實證時點**：2026-07-28 code 親查＋S12 apply（`retrieve_glossary` active=13）
 
 ---
 
@@ -12,14 +17,32 @@
 
 | | |
 |---|---|
-| **結論** | Steward 定錨＝**策展的、會增減、決定行為的資料性映射／詞表／別名 → 住 PostgreSQL；禁 Python／JSON 當 SSOT**。首要標的＝`query_translation._GLOSSARY`（漿料／光伏等）→ 新表 `retrieve_glossary`；其餘 hardcode 分「必遷／已 DB／豁免／待裁」分階。 |
-| **本輪做** | 清冊＋完整計畫＋DDL／遷移／改碼範圍＋憲章修訂**草案**＋分離拍板碼 |
-| **本輪不做** | 改憲章 [N] 正文；`ALTER`／seed apply；大規模改碼（含 S2 讀表）。**拍板後**才執行。 |
-| **非目標** | 解凍 FinMind／FRED；預測熱路徑吃 glossary；把「所有字面量」解讀成禁常數／禁 regex／禁演算法閾值 |
+| **結論** | Steward 定錨＝**策展的、會增減、決定行為的資料性映射／詞表／別名 → 住 PostgreSQL；禁 Python／JSON 當 SSOT**。首要標的＝`query_translation._GLOSSARY`→`retrieve_glossary`。**擴充定錨（同日）**：know-how **產生**＝一般管線（跨域檢索＋LLM 組答＋DB 原則／map／別名／glossary）——**禁止**為單一領域（太陽能／第一性原理…）寫死 Q&A、prompt 分支、詞表專用 if。 |
+| **S12 已做** | DDL＋13 種子＋`query_translation` 讀表；A0 四探針驗收尺；predict FORBIDDEN；advisor 重啟 |
+| **仍不做（本輪）** | 改憲章 [N]（無 `NHC-CONSTITUTE`）；S3 其餘 hardcode；為探針加領域 hardcode |
+| **非目標** | 解凍 FinMind／FRED；預測熱路徑吃 glossary；把「所有字面量」解讀成禁常數／禁 regex／禁演算法閾值；把顧問產生題誤開成 PME 太陽能灌因子 |
 
 **建議原則表述（入憲草案要旨）**：  
-> 凡策展的、會增減、決定行為的資料性映射／詞表／別名／分類對照 → 住 PostgreSQL；runtime 只讀表；新增＝admin INSERT、零改碼。Python／repo JSON 僅得作一次性 bootstrap 種子，不得為 runtime SSOT。邏輯／安全閘詞表若憲章已裁「執行層、安全繫於機械閘」→ 明示豁免清單（見 §2）。
+> 凡策展的、會增減、決定行為的資料性映射／詞表／別名／分類對照 → 住 PostgreSQL；runtime 只讀表；新增＝admin INSERT、零改碼。Python／repo JSON 僅得作一次性 bootstrap 種子，不得為 runtime SSOT。know-how **產生**（顧問組答）不得以領域專用 hardcode 模板／Q&A 取代「DB 策展＋統一檢索＋LLM」。邏輯／安全閘詞表若憲章已裁「執行層、安全繫於機械閘」→ 明示豁免清單（見 §2）。
 
+---
+
+## 0.5 A0 探針診斷（短；2026-07-28）
+
+**A0／S12 驗收探針清單**（與漿料組句回歸並存；**禁**為任一題加 code 專支）：
+
+| ID | 探針句 |
+|---|---|
+| **A0-app** | 第一性原理在太陽能材料研發如何應用？ |
+| **A0-core** | 依第一性原理列出在太陽能材料研發技術核心？ |
+| **A0-phys** | 依第一性原理列出在太陽能材料研發物理學技術核心？ |
+| **A0-chem** | 依第一性原理列出在太陽能材料研發在化學上技術核心？ |
+
+| 軸 | 現況（S12 後） | 判讀 |
+|---|---|---|
+| **glossary 命中** | 四探針 `_glossary_en_query` → **None**（表無「第一性原理／太陽能材料」列） | 不走詞表路徑；**不得**靠加死詞「修」產生；可選日後 **INSERT** 擴詞零改碼 |
+| **產生路徑** | 統一 `advise`：CJK 檢索 →（可）LLM `translate_for_retrieval` → EN 檢索 → relevance → prompt＋guard | 化學／物理／材料／應用變體**同一路徑**；差在 DB 語料命中，不靠 if-domain |
+| **S12 驗收** | 翻譯／組答路徑**不崩**；模組無 `_GLOSSARY`；repo **無**太陽能／第一性／物理／化學專用組答分支 | 答案深度＝語料／原則策展（FT-COV／harvest），缺料→誠實 decline |
 ---
 
 ## 1. What／Why／非目標
@@ -31,14 +54,21 @@
 3. **PG17 表設計**（首推新表 `retrieve_glossary`；不擴 `knowledge_topic_alias` 混職責）——§4。  
 4. **改碼範圍**（S2：`query_translation` 讀表；S3：其餘必遷項）——§5–6。  
 5. **入憲草案落點**（第一部 PG 系統記錄＋知識層表 roster；CLAUDE #29b／原則精華交叉對齊在 S4）——§7。  
-6. **分階＋驗收＋拍板碼**（入憲採納 ≠ 開 S1–S2）——§8–10。
+6. **分階＋驗收＋拍板碼**（入憲採納 ≠ 開 S1–S2）——§8–10。  
+7. **know-how 產生軸（同日補強）**——覆蓋三入口，皆走「一般機制＋DB」，禁領域 hardcode：  
+   | 入口 | 一般機制 | DB 策展（SSOT） | 禁 |
+   |---|---|---|---|
+   | **query 擴展** | `translate_for_retrieval`（詞表∨LLM） | `retrieve_glossary`；可選 `knowledge_topic_alias` | 寫死漿料／太陽能／第一性原理大表於 `.py` |
+   | **顧問組答** | `advise`：跨域 hybrid／RRF → relevance → prompt → guard（KH-XDOM） | 可答語料＝item／sentence／embed／`philosophy_principle`／`principle_domain_map`（人撰注記） | `if "太陽能" in q` 專用模板／寫死 Q&A／領域 prompt 分支 |
+   | **原則／map 策展** | admin／腳本 INSERT；PME 另鏈 | `philosophy_principle`＋`principle_factor_map`＋`principle_domain_map` | AI 造原則；顧問產生題順便灌預測因子 |
 
 ### 1.2 Why
 
 - **實證痛點**：`advise()` CJK 問句（如「太陽能電池導電漿料」）靠 `_GLOSSARY` 組英文檢索；詞表寫死在 code → 增漿料／半導體術語須改碼＋重部署，違 #29b「策展映射住 DB」。  
+- **產生痛點（同日）**：跨域／方法論題（第一性原理×太陽能材料）若靠寫死詞表或領域模板「補洞」，會把 know-how 產生鎖死在 code——與「一般機制＋DB 策展」對立；正確槓桿＝INSERT glossary／harvest query／終態覆蓋＋統一 `advise`。  
 - **現行註解過期**：`query_translation.py:40` 自稱「執行層品質工程、非 #29b 資料鎖」——與 Steward 本輪定錨**衝突**；應改歸 **資料側**（安全仍繫於 relevance＋guard，詞表本身＝策展映射）。  
 - **既有先例已證路徑**：`knowledge_topic_alias`（TOPIC_ALIAS 遷庫）、`knowledge_domain_map`（DOMAIN_MAP_OVERRIDES 種子）、`judgestop_threshold`、`principle_domain_map`——同一 #29b 模式。  
-- **跨域計畫依賴**：KH-XDOM §3.1「query 擴展：DB 別名、禁硬編碼大表」——無 `retrieve_glossary` 則跨域漿料×材料題仍卡死在 code 詞表。
+- **跨域計畫依賴**：KH-XDOM §3.1「query 擴展：DB 別名、禁硬編碼大表」——無 `retrieve_glossary` 則跨域漿料×材料題仍卡死在 code 詞表；產生軸與 KH-XDOM 組答**同一出口**（`advise`），NHC 不另造編排器。
 
 ### 1.3 非目標（硬紅線）
 
@@ -49,6 +79,8 @@
 | 把 `safe_general`／`relevance._EN_GENERIC`／guard 正則遷 DB | 憲章 v1.35.0 已裁「詞表不鎖＝執行層、安全繫於 guard」 |
 | 把演算法常數／超時／模型 tag／prompt 全文當「資料」遷庫 | 邏輯／設定，非策展映射 |
 | 本輪改 [N] 或 apply DDL | 須分離拍板碼 |
+| 為 A0 探針新增太陽能／第一性原理 **code 分支／死 Q&A** | 違產生軸定錨；改 INSERT／harvest／FT-COV |
+| 因顧問產生題開通 `PME-XDOM-SOLAR` | PME 近程僅已拍 `SUNZI-MGMT`；產生≠進化灌因子 |
 
 ---
 
@@ -59,7 +91,8 @@
 
 | 類 | 定義 | 例子 | 處置 |
 |---|---|---|---|
-| **A. 資料性映射（本原則覆蓋）** | 策展詞對／別名／domain 對照／主題清單；增減改變檢索或管線行為；非安全閘本體 | `_GLOSSARY`、`knowledge_topic_alias`、`knowledge_domain_map`、distill 策展題表 | **住 PG**；runtime 讀表 |
+| **A. 資料性映射（本原則覆蓋）** | 策展詞對／別名／domain 對照／主題清單；增減改變檢索或管線行為；非安全閘本體 | `_GLOSSARY`、`knowledge_topic_alias`、`knowledge_domain_map`、distill 策展題表；**未來**為 A0 探針可 INSERT 之「第一性原理→first principles」「太陽能材料→solar materials」等列（**表內策展，非 code**） | **住 PG**；runtime 讀表 |
+| **A′. know-how 產生行為（本原則覆蓋·禁 hardcode 形態）** | 組答／擴展／策展入口的**行為資料**須 DB 或統一管線；領域差異只反映在列與語料 | 跨域題靠 `advise`＋語料；原則注記靠 `principle_domain_map` | **禁**領域專用 Q&A／模板／if-domain 分支當「產生」 |
 | **B. Bootstrap 種子（允許在 code／migrate）** | 一次性 INSERT；之後 SSOT＝DB | `migrate_topic_alias_ddl.SEED`、`DOMAIN_MAP_OVERRIDES` | 維持；禁 runtime 再讀 code dict 當權威 |
 | **C. 邏輯／安全閘詞表（明示豁免）** | 安全繫於機械閘、非資料鎖；憲章已裁執行層 | `safe_general` B/A 詞表、`relevance._EN_GENERIC`／`_STOP`、`guard` 正則、`LICENSE_WHITELIST`／`SOURCE_TYPE_WHITELIST`（封閉枚舉＋DB CHECK 同步） | **留 code**；擴充＝改碼＋（若有）CHECK 同步，**不**假稱 #29b 違規 |
 | **D. 演算法／運維常數（豁免）** | 閾值、超時、視窗、型別 FORCE 集、物理分類後備 | `RELEVANCE_FLOOR`、`_MAX_LEN`、`FORCE_STR`、`INTRADAY` fail-safe 後備 | 留 code；**operational 閾值**若已走 #29b（如 `judgestop_threshold`／`risk_policy`）則維持 DB |
@@ -78,8 +111,11 @@
 |---|---|---|---|---|---|
 | **G1** | `src/augur/advisor/query_translation.py:41-55` | `_GLOSSARY` | CJK→EN 檢索詞表（長詞優先；`漿料` 過寬須共現） | **runtime hardcode**；docstring 誤標非 #29b | **S1 種子 → S2 改讀 `retrieve_glossary`** |
 | G1-call | `src/augur/advisor/advise.py:~181` | `translate_for_retrieval` | 消費端 | 間接 | S2 後自動受益；可選接 DB 別名擴展（互鏈 KH-XDOM） |
+| **G-A0** | （行為·非單檔） | A0 探針組答 | 產生軸 | 見 §0.5：詞表未命中；無領域分支 | **S2／U 驗收**：機制可答或誠實 decline；**禁止**為探針加 code 專支；缺口用 INSERT glossary／harvest／FT-COV |
 
-**G1 現行詞對（種子來源＝code 親查）**：
+**G1 現行詞對（種子來源＝code 親查；S1 bootstrap＝此 13 列）**：
+
+> **A0 可選後續 INSERT（非 S1 必種、禁預寫進 `.py` 常數）**：`第一性原理→first principles`、`第一性原理思考→first principles thinking`、`太陽能材料→solar materials`、`太陽能→solar`（若採納須設 `require_cooccur` 或夠長片語，避免過寬）——僅 admin／migrate 補列於 `retrieve_glossary`，證明「零改碼加詞」。
 
 | src_cjk | tgt_en | require_cooccur | 備註 |
 |---|---|---|---|
@@ -218,12 +254,12 @@ COMMENT ON TABLE retrieve_glossary IS
 |---|---|---|---|---|
 | **S0** | 清冊 | 本報告 §3；可複驗 Grep | 無 | 清冊與 code 一致 |
 | **S1** | DDL＋種子 | `retrieve_glossary` 建表＋13 列漿料／光伏種子 | S0；**開碼** | `\d`＋`SELECT count(*)=13`；`--show` 列齊 |
-| **S2** | retrieve 讀表 | `query_translation` 改讀 DB；刪 runtime hardcode；自測綠 | S1 | 「太陽能電池導電漿料」→ 同現行英文組句；裸漿料→None；無改碼可 INSERT 新詞 |
+| **S2** | retrieve 讀表 | `query_translation` 改讀 DB；刪 runtime hardcode；自測綠 | S1 | 「太陽能電池導電漿料」→ 同現行英文組句；裸漿料→None；無改碼可 INSERT 新詞；**A0**：repo diff **無**太陽能／第一性原理專用分支 |
 | **S3** | 其餘 hardcode | §3.3 逐件遷或結案豁免 | S2；逐件碼 | 無殘留 A 類 clear 違規 |
-| **S4** | 入憲＋工具層對齊 | [N] 草案寫入＋CLAUDE #29b 明示 glossary＋豁免清單；原則精華交叉 | **入憲採納碼** | 憲章升版＋CS；lint／合規聲明 |
-| **U** | 凍結回歸 | 與 KH-XDOM 漿料題聯測；isolation 綠；FZ-keep | S2+ | 跨域題可擴詞不改碼 |
+| **S4** | 入憲＋工具層對齊 | [N] 草案寫入＋CLAUDE #29b 明示 glossary＋**產生禁領域 hardcode**＋豁免清單；原則精華交叉 | **入憲採納碼** | 憲章升版＋CS；lint／合規聲明 |
+| **U** | 凍結回歸＋產生探針 | 與 KH-XDOM 聯測（漿料題＋**A0 第一性×太陽能材料**）；isolation 綠；FZ-keep；PME 仍僅 SUNZI-MGMT | S2+；KH-XDOM S01 已 CLOSED | 跨域題可擴詞不改碼；A0 走統一 `advise`（可答或誠實 decline，皆可接受若無幻造） |
 
-**建議近程一次開實作**：`NHC-S12`＝S1＋S2（極小、對齊 Steward「優化 hardcode」最強痛點）。S3／S4 分離。
+**建議近程一次開實作**：`NHC-S12`＝S1＋S2（極小、對齊 Steward「優化 hardcode」最強痛點）。S3／S4 分離。A0 探針屬 **S2／U 驗收尺**，非另開實作階段。
 
 ---
 
@@ -243,28 +279,35 @@ COMMENT ON TABLE retrieve_glossary IS
 
 > **策展映射住 PostgreSQL（curated-mapping SSOT）〔草案 · 待 Steward `NHC-CONSTITUTE`〕**  
 > 凡**策展的、會增減、決定 runtime 行為**之資料性映射／詞表／別名／分類對照（含但不限：主題→domain 別名、OpenAlex field→augur domain、**CJK→EN 檢索詞表 `retrieve_glossary`**、原理×應用域注記），其 **runtime SSOT＝本地 PostgreSQL**；新增或調整＝決策層／admin **INSERT／UPDATE 表列**、**零改碼**。Python dict／tuple／repo JSON **不得**作為上述映射之 runtime 權威；僅允許遷移腳本內之**一次性 bootstrap 種子**（種子寫入後以 DB 為準）。  
+> **know-how 產生**：顧問／素養組答須經**統一檢索＋組答管線**消費上列 DB 策展與可答語料；**禁止**以領域專用 hardcode 詞表、Q&A、或 prompt／控制流分支代替策展列與一般機制（例：不得為「第一性原理×太陽能材料」另寫死答案路徑）。  
 > **明示豁免（執行層／邏輯側）**：安全繫於機械閘、憲章已裁「詞表不鎖」者——含 `advisor.safe_general` 通識白名單、`relevance` 泛用停詞、`guard` 正則與誠實閉集、全文／來源 **封閉枚舉白名單**（`LICENSE_WHITELIST`／`SOURCE_TYPE_WHITELIST` 與 DB CHECK 同步）、以及純演算法常數／型別 FORCE 集／運維超時。豁免項之擴充仍受既有治權（三敵、§8.2）約束，**不得**藉豁免回寫策展大表於 code。  
-> **邊界**：本條從屬第一部 PostgreSQL 系統記錄與 CLAUDE #29b；**不解凍**市場 API；**不**使 know-how／glossary 進入預測熱路徑。
+> **邊界**：本條從屬第一部 PostgreSQL 系統記錄與 CLAUDE #29b；**不解凍**市場 API；**不**使 know-how／glossary 進入預測熱路徑；顧問產生 **≠** 異域 PME 灌因子（後者另受 PME-XDOM 拍板範圍約束）。
 
 ### 7.3 修訂歷程列（升版時）
 
 | 版本 | 日期 | 摘要 | 狀態 |
 |---|---|---|---|
-| v1.48.0（建議） | （拍板日） | 第一部補策展映射 SSOT；知識層表加 `retrieve_glossary`；消歧 ≠ safe_general 豁免 | **DRAFT** |
+| v1.48.0（建議） | （拍板日） | 第一部補策展映射 SSOT＋know-how 產生禁領域 hardcode；知識層表加 `retrieve_glossary`；消歧 ≠ safe_general 豁免 | **DRAFT** |
 
 ---
 
-## 8. 與跨域 Know-how 計畫之關係
+## 8. 與 KH-XDOM／PME-XDOM 之關係（產生軸）
 
-| | 本計畫（NHC） | KH-XDOM（20260728） |
-|---|---|---|
-| 共同痛點 | 漿料／光伏 CJK 檢索詞 | 孫子×企管、漿料×材料跨域作答 |
-| 接線 | `retrieve_glossary` 餵 `translate_for_retrieval` | §3.1 query 擴展「DB 別名、禁硬編碼大表」 |
-| 依賴 | NHC S2 完成 → KH-XDOM 評測漿料題**不依賴改碼加詞** | KH-XDOM S1 去 domain 作答閘；終態仍靠 FT-COV／ATA |
-| 正交 | 不碰 approve 唯人；不碰異域進化灌因子 | 同 |
-| 拍板 | 可與 `KH-XDOM-PLAN` **並採**；實作可 `NHC-S12` 先於或並行 KH-XDOM S1 |
+**產生等式（定錨）**：  
+**know-how 產生** ＝ **跨域檢索（KH-XDOM）** ＋ **LLM 組答（統一 `advise`）** ＋ **DB 原則／map／glossary／語料策展**  
+**≠** 再 hardcode 太陽能（或任一領域）專用分支  
+**≠** 異域進化灌因子（PME；近程僅已拍 **SUNZI-MGMT**）
 
-**一句**：跨域要「答得出」＝終態＋去閘＋**可擴的檢索詞**；本計畫專責第三項入 DB／入憲。
+| | 本計畫（NHC） | KH-XDOM（20260728） | PME-XDOM（20260728） |
+|---|---|---|---|
+| 職責 | 策展映射 SSOT（glossary 等）入 DB／入憲；**禁產生 hardcode** | 跨域**讀與答**；去作答 `domain=` 閘；ATA 終態 | 異域概念→**investment** 假說→map→閘 |
+| 共同痛點 | 漿料／光伏 CJK 詞仍 code；產生易被誤修成死模板 | 孫子×企管、漿料×材料、**第一性×太陽能材料（A0）** | 孫子×企管文獻橋（首條） |
+| 接線 | `retrieve_glossary`→`translate_for_retrieval`；A0＝S2／U 尺 | §3.1 query 擴展「DB、禁硬編碼大表」；S01 **CLOSED** | `philosophy_principle`／map；**不含**顧問 Q&A |
+| 依賴 | NHC S2 → 加詞不改碼 | 組答消費 NHC 詞表＋FT-COV 終態 | **不**依賴 NHC glossary；不因 A0 開 SOLAR |
+| 正交 | 不碰 approve 唯人；不開 PME-SOLAR | 同；產生≠進化 | 灌因子僅 `SUNZI-MGMT`；太陽能材料＝次條候選另碼 |
+| 拍板 | ✅ `NHC-PLAN`＋`NHC-S12`＋`FZ-keep`；**待** `NHC-S3`／`NHC-CONSTITUTE` | 已拍 PLAN＋S01 | 已拍 YES＋SUNZI-MGMT |
+
+**一句**：跨域要「答得出」＝終態＋去閘＋**可擴檢索詞**＋統一組答；NHC 專責詞表／映射入 DB 與「產生不 hardcode」入憲草案；KH-XDOM 專責檢索空間；PME 專責已拍範圍之假說鏈——三軸勿混。
 
 ---
 
@@ -276,10 +319,13 @@ COMMENT ON TABLE retrieve_glossary IS
 | V-S1 | 表存在；種子 13 列；`漿料.require_cooccur=true` | 只建空表 |
 | V-S2 | runtime 無 `_GLOSSARY` 常數；讀表結果與遷前組句等價；INSERT 新詞免改碼 | 仍 `from _GLOSSARY` |
 | V-S2b | `--selftest` 零外部可綠（fixture）；live 路徑可另測 | selftest 強制連 DB 且無 fixture |
+| **V-A0** | 探針「第一性原理在太陽能材料研發如何應用？」走統一 `advise`；S2 diff **無**該題／該域專用 hardcode；可選 INSERT glossary 後擴詞**零改碼**；可答或誠實 decline 皆可（禁幻造） | 為探針新增 `if`／Q&A／領域 prompt 分支；或把 `reports/` 研究檔當 citation 權威灌進答案 |
+| **V-GEN** | 文件與實作維持產生等式（§8）；無太陽能專用組答模組 | 「產生」＝新 hardcode 模板宣稱完成 |
 | V-SCOPE | 文件明示豁免清單；未誤遷 safe_general | 把 B 概念表搬進 PG 當本原則「完成」 |
 | V-CONST | 僅在 `NHC-CONSTITUTE` 後改 [N] | 未拍板改憲章 |
 | V-FZ | 零 FinMind／FRED | 借機 sync |
 | V-ISO | predict 不 import glossary | isolation 紅 |
+| V-PME | A0／NHC 實作**不**觸發 `PME-XDOM-SOLAR` 或未拍異域 map | 顧問題順便灌預測因子 |
 
 ---
 
@@ -287,19 +333,22 @@ COMMENT ON TABLE retrieve_glossary IS
 
 | 碼 | 含義 | 建議 |
 |---|---|---|
-| **`NHC-PLAN`** | 採納本計畫 what／覆蓋範圍§2／清冊／分階／非目標 | **必拍** |
-| **`NHC-S12`** | 開工 S1＋S2（DDL＋種子＋`query_translation` 讀表） | **近程建議**（對齊「優化 hardcode」） |
+| **`NHC-PLAN`** | 採納本計畫 what／§0.5 A0／§2 覆蓋（含產生軸）／清冊／分階／非目標／§8 互鏈 | **必拍** |
+| **`NHC-S12`** | 開工 S1＋S2（DDL＋種子＋`query_translation` 讀表；A0＝驗收尺非另開支） | **近程建議**（對齊「優化 hardcode」＋產生不 hardcode） |
 | **`NHC-S3`** | 開工其餘 A 類遷徙（逐件或整包） | 次拍 |
-| **`NHC-CONSTITUTE`** | **入憲採納**：將 §7.2 寫入憲章正文並升版＋S4 工具層對齊 | **與 S12 分離**；可晚於實作驗收 |
+| **`NHC-CONSTITUTE`** | **入憲採納**：將 §7.2（含產生句）寫入憲章正文並升版＋S4 工具層對齊 | **與 S12 分離**；可晚於實作驗收 |
 | **`FZ-keep`** | 市場 API 維持凍結 | 預設附帶 |
-| **`PME-XDOM-NO`** | 確認不做異域進化灌因子（與 KH-XDOM 同鎖） | 建議附帶 |
+| **（PME 範圍）** | 異域灌因子仍僅已拍 `PME-XDOM-SUNZI-MGMT`；A0 **不**暗示 `PME-XDOM-SOLAR` | 附帶確認即可（無需重拍 YES） |
 
 **建議合併拍板句（示意）**：  
-`NHC-PLAN`＋`NHC-S12`＋`FZ-keep`（實作先跑）。  
-入憲另句：`NHC-CONSTITUTE`（驗收 V-S2 綠後或同日亦可，但**碼面分離**）。  
-跨域並採：可加 `KH-XDOM-PLAN`／`KH-XDOM-S01`。
+`NHC-PLAN`＋`NHC-S12`＋`FZ-keep`（實作先跑；A0＝S2／U 驗收探針）。  
+入憲另句（可同日或驗收後）：`NHC-CONSTITUTE`（**碼面分離**；含 §7.2 產生禁 hardcode）。  
 
-**禁止解讀**：單獨說「入憲」≠授權改 [N] 檔案——須見 **`NHC-CONSTITUTE`** 或等價明示「採納並寫入憲章」。
+**一行可複製**：  
+`NHC-PLAN`＋`NHC-S12`＋`FZ-keep`（±另句 `NHC-CONSTITUTE`）
+
+**禁止解讀**：單獨說「入憲」≠授權改 [N] 檔案——須見 **`NHC-CONSTITUTE`** 或等價明示「採納並寫入憲章」。  
+**本輪狀態**：已拍 `NHC-PLAN`＋`NHC-S12`＋`FZ-keep`；**未拍** `NHC-CONSTITUTE`／`NHC-S3`。
 
 ---
 
@@ -311,7 +360,9 @@ COMMENT ON TABLE retrieve_glossary IS
 | S2 讀表破壞零 IO selftest | fixture 注入；DB 路徑與純函式分離 |
 | 表空／連線失敗拖垮顧問 | fail-closed：空表→跳過詞表走 LLM／None（同現行未命中） |
 | 與 topic_alias 混淆 | 兩表職責表 §4.1；admin 文件分開 |
-| 未拍板改 [N] | 本輪只草案；機械上不碰 `docs/系統架構大憲章_*.md` |
+| 未拍板改 [N] | 無 `NHC-CONSTITUTE` 則機械上不碰 `docs/系統架構大憲章_*.md` |
+| 用 hardcode「修好」A0 探針 | V-A0／V-GEN；缺口走 INSERT／FT-COV／harvest |
+| 顧問產生與 PME 灌因子混談 | §8 等式；V-PME；近程僅 SUNZI-MGMT |
 
 ---
 
@@ -319,13 +370,23 @@ COMMENT ON TABLE retrieve_glossary IS
 
 | 交付 | 路徑／狀態 |
 |---|---|
-| 本計畫 | `reports/augur_no_hardcode_db_ssot_constitution_plan_20260728.md`（**本檔**） |
-| 清冊 | §3 |
-| DDL／種子 | §4（**未 apply**） |
-| 憲章草案 | §7.2（**未寫入 [N]**） |
-| 改碼 | **未做**；待 `NHC-S12` |
-| migrate 腳本 | **未建檔**；待 S1 |
+| 本計畫（含產生軸＋A0×4） | `reports/augur_no_hardcode_db_ssot_constitution_plan_20260728.md`（**本檔**） |
+| 拍板／CLOSED | `audits/NHC-PLAN-APPROVED-20260728.md`／`audits/NHC-S12-CLOSED-20260728.md` |
+| DDL／種子 | `scripts/migrate_retrieve_glossary_ddl.py`（**已 apply**；active=13） |
+| 改碼 | `query_translation` 讀表；`setup_predict_role` FORBIDDEN |
+| 憲章草案 | §7.2（**未寫入 [N]**；待 `NHC-CONSTITUTE`） |
+| S3 | **待** `NHC-S3` |
 
 ---
 
-*位階：[I] 計畫。效力＝Steward 拍板後執行。治理原文仍以憲章 [N] 與 constitution-mcp 為準。*
+## 13. 修訂紀要（本檔 [I]）
+
+| 日 | 摘要 |
+|---|---|
+| 2026-07-28 | 初版：G1→`retrieve_glossary`；清冊；入憲草案；拍板碼 |
+| 2026-07-28（同日） | 補強 know-how **產生**覆蓋；A0 探針診斷；互鏈 KH-XDOM／PME |
+| 2026-07-28（S12） | 拍板執行 CLOSED；A0 擴為 app／core／phys／chem 四探針；標待 NHC-S3／NHC-CONSTITUTE |
+
+---
+
+*位階：[I] 計畫。S12 已執行；入憲仍待 `NHC-CONSTITUTE`。治理原文仍以憲章 [N] 與 constitution-mcp 為準。*
