@@ -111,3 +111,12 @@ VALUES ('arxiv%','cc_whitelist','arXiv API ToU: metadata CC0','hugo');
 - `license_regime_map` 表（`migrate_source_whitelist_ddl.py` 同支擴充；kind∈name|url、regime 僅二值、UNIQUE(kind,pattern)、同誠實閘 lic_map_row/lic_map_stmt）；**10 列 seed**（R1×5/R2×2/R3×2/R4×1），`decided_by='hugo(對話拍板)'`、citation 註繕打鏈（§8.1 不冒充親簽）。
 - `auto_review_sources.py` P1 擴為**兩路**：路甲=source_key 白名單（原）；路乙=`classify_licenses()` 純函式吃 `adapter_config->'re3data'->'licenses'` 證據查映射表——**NC/ND code 側一票否決先於映射、name 整詞匹配（防 'OGL' 誤中 'Google'）、url 子字串、多授權取最嚴、任一未映射=None 人閘**。selftest 26 條全綠（含 11 條路乙新鎖）。
 - **首輪 dry（enrich 進行中 601/3,507 已充實）**：路乙判入 **61** 源（~10%，與抽樣估 12% 同量級）——如設計移入 `P4_probe` 桶，**不會因映射落地就繞過 probe/pacing**。enrich 全量收槍後全量重分桶；P4/P5 通路（對映射倉之 probe＋pacing 預設）＝下一提案、另簽。
+
+---
+
+## 九、P2 通過＋P3 首批實錄（2026-07-28，`P2-16-核可＋P7-go`）
+
+- **P7 落地**：`pick_endpoint_winners()` 純函式（每 normalized base 取 min(source_key) 代表、已 active 端點封鎖、無端點證據 pass-through）＋4 鎖；dry 分桶=「七謂詞全過 16／P7 重複端點 16」。
+- **首批實批 16/16**：與 P2 核可表**逐列完全一致**（機械對帳）。途中撞 `chk_ks_active_needs_approval` 閘＝**正確教訓**——裸 UPDATE 繞不過 approved_by 要求；改走正規 `curation.transition` 兩步（approve→activate、各自留痕），HUMAN_ONLY 之授權鏈=SRC-AUTO-go＋P2-16-核可，`approved_by='auto_rules_v1'` 誠實機器名不冒人簽（curation.py 零改動）。
+- **不變式終驗**：16 列全 `enabled=False` 休眠池；入 harvest 排程數=0；週餘額 34/50；熔斷 clear。
+- 未簽項不動：`R2-錨定` 未給=R2 pattern 照舊。

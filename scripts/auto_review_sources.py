@@ -13,6 +13,8 @@
      P4 probe:近 30 日 review_log probe 之 http_status ∈ 2xx(#25 最小探測先行)
      P5 限速前置:pace_seconds/quota_limit/est_scale 皆已設 且 est_scale ≤ 50,000(#24)
      P6 tier ∉ {T3,T4}(AUTHORITY-TIER 落地後生效;欄未在=記「另案未接」不擋)
+     P7 端點唯一(P7-go,hugo 2026-07-28):P1-P6 通過者中每 normalized OAI base 僅 min(source_key)
+        代表可批;已 active 端點封鎖;其餘同端點列留 proposed(重複來源防呆,非拒絕)
    **護欄**:週上限 50 源;熔斷=任一 auto 批之源被事後 suspend → 拒絕再跑待人查;
    留痕=review_log(actor='auto_rules_v1', reason=逐謂詞 JSON)→ R6 digest 週掃視(P5.W5 監督不降)。
 守 #26(規則內自動、碰線停)· #15(fail-closed;dry 分桶誠實)· #24/#25 · #29a/b/d。
@@ -31,6 +33,7 @@ import sys
 
 import _bootstrap  # noqa: F401
 from augur.core import db
+from augur.knowledge import curation
 
 WEEKLY_CAP = 50            # 首月週上限(提額=規則修訂,人簽)
 EST_SCALE_CAP = 50000      # P5 放量上限
@@ -147,6 +150,34 @@ def _tier_wired(cur):
     return cur.fetchone() is not None
 
 
+def endpoint_bases(cur, status):
+    """{source_key: normalized base}——某審批狀態源之最新新鮮 2xx probe 端點(P7 資料側)。"""
+    cur.execute("""SELECT DISTINCT ON (l.source_key) l.source_key,
+                          split_part(l.probe_result->>'url','?',1)
+                   FROM knowledge_source_review_log l
+                   JOIN knowledge_source s ON s.source_key = l.source_key
+                   WHERE s.approval_status = %s AND l.action='probe'
+                     AND l.probe_result->>'http_status' IS NOT NULL
+                     AND (l.probe_result->>'http_status')::int BETWEEN 200 AND 299
+                     AND l.created_at > now() - make_interval(days => %s)
+                   ORDER BY l.source_key, l.review_id DESC""", (status, PROBE_FRESH_DAYS))
+    return dict(cur.fetchall())
+
+
+def pick_endpoint_winners(passing, ep_of, active_bases):
+    """P7(P7-go,hugo 2026-07-28):端點唯一——P1-P6 通過者中,每端點唯一代表(min source_key)可批;
+    已 active 端點封鎖全部;無端點證據者不適用(pass-through)。純函式,回 (winners, dups)。"""
+    by_base = {}
+    for k in sorted(passing):
+        b = ep_of.get(k)
+        if b is None or b in active_bases:
+            continue
+        by_base.setdefault(b, k)
+    winners = {k for k in passing
+               if ep_of.get(k) is None or by_base.get(ep_of.get(k)) == k}
+    return winners, set(passing) - winners
+
+
 def breaker_tripped(cur):
     """熔斷:任一 auto 批之源現為 suspended → True(拒跑待人查)。"""
     cur.execute("""SELECT count(*) FROM knowledge_source s
@@ -169,13 +200,15 @@ def dry_run():
     with db.connect() as conn, db.transaction(conn) as cur:
         ctx = load_context(cur)
         rows = _rows(cur)
-        first_fail, n_pass, meta_only_gain = Counter(), 0, 0
-        p1_via_map = 0
+        ep_of = endpoint_bases(cur, "proposed")
+        active_eps = set(endpoint_bases(cur, "active").values())
+        first_fail, meta_only_gain = Counter(), 0
+        p1_via_map, passing = 0, []
         for row in rows:
             ok, checks = judge_source(row, ctx)
             p1_via_map += (checks["_regime_via"] == "regime_map")
             if ok:
-                n_pass += 1
+                passing.append(row[0])
                 continue
             for c in ("P1_license", "P2_domain", "P3_adapter", "P4_probe", "P5_pacing", "P6_tier"):
                 if checks.get(c) is False:
@@ -186,9 +219,12 @@ def dry_run():
                 c2["P1_license"] = True
                 if all(v for c, v in c2.items() if c.startswith("P") and v is not None):
                     meta_only_gain += 1
+    winners, dups = pick_endpoint_winners(passing, ep_of, active_eps)
     print(f"── SRC-AUTO dry 分桶(proposed {len(rows)} 源;白名單 {len(ctx['wl'])} 列/"
           f"REGIME-MAP {len(ctx['regime_map'])} 列) ──")
-    print(f"  ✅ 六謂詞全過(可自動):{n_pass}")
+    print(f"  ✅ 七謂詞全過(可自動):{len(winners)}")
+    if dups:
+        print(f"  ✗ P7_endpoint 重複端點(留 proposed,每端點唯一代表已在可自動桶):{len(dups)}")
     print(f"  ⓘ P1 由 REGIME-MAP(路乙)判入:{p1_via_map}(仍受 P4 probe/P5 pacing 閘)")
     for c, n in first_fail.most_common():
         print(f"  ✗ 首個未過={c}:{n}")
@@ -210,27 +246,37 @@ def run(limit):
             return 0
         ctx = load_context(cur)
         rows = _rows(cur)
+        ep_of = endpoint_bases(cur, "proposed")
+        active_eps = set(endpoint_bases(cur, "active").values())
+        pre = {r[0] for r in rows if judge_source(r, ctx)[0]}
+        winners, _ = pick_endpoint_winners(pre, ep_of, active_eps)
         n = 0
         for row in rows:
             if n >= min(limit, rem):
                 break
             ok, checks = judge_source(row, ctx)
-            if not ok:
+            if not ok or row[0] not in winners:
                 continue
             k = row[0]
+            checks["P7_endpoint"] = True
+            checks["_endpoint"] = ep_of.get(k)
             regime = checks.pop("_regime")
-            cur.execute("""UPDATE knowledge_source
-                SET approval_status='active', license_regime=coalesce(license_regime, %s)
+            # 正規路=curation.transition 兩步(approve→activate),非裸 UPDATE——
+            # 尊重 chk_ks_active_needs_approval 閘與狀態機;HUMAN_ONLY 之授權鏈=
+            # SRC-AUTO-go+P2-16-核可(hugo 2026-07-28 簽),actor 誠實掛機器名不冒人簽。
+            cur.execute("""UPDATE knowledge_source SET license_regime=coalesce(license_regime, %s)
                 WHERE source_key=%s AND approval_status='proposed'""", (regime, k))
-            if cur.rowcount:
-                cur.execute("""INSERT INTO knowledge_source_review_log
-                    (source_key, action, old_status, new_status, actor, os_user, reason)
-                    VALUES (%s,'approve','proposed','active',%s,%s,%s)""",
-                    (k, AUTO_ACTOR, AUTO_ACTOR,
-                     json.dumps({"rule": "SRC-AUTO v1", "checks": checks}, ensure_ascii=False)))
-                n += 1
-                print(f"  ✓ auto-approve {k}(regime={regime})")
-        conn.commit()
+            conn.commit()
+            try:
+                curation.transition(k, "approve", AUTO_ACTOR, reason=json.dumps(
+                    {"rule": "SRC-AUTO v1", "checks": checks}, ensure_ascii=False))
+                curation.transition(k, "activate", AUTO_ACTOR,
+                                    reason="SRC-AUTO v1 auto-activate(P2-16-核可;enabled=False 休眠池)")
+            except (ValueError, PermissionError) as e:
+                print(f"  ⚠ {k}: 狀態機拒絕——{e}(誠實跳過,不硬改)")
+                continue
+            n += 1
+            print(f"  ✓ auto-approve {k}(regime={regime})")
     print(f"合計自動批 {n}(週餘額 {rem};留痕 review_log actor={AUTO_ACTOR} → R6 digest 掃視)")
     return 0
 
@@ -306,6 +352,15 @@ def _selftest():
     chk("judge:路甲優先於路乙(白名單先問)", judge_source(
         ("arxiv_search", "general", "generic_json", 2, 100, 10, None, [{"name": "CC0"}]),
         ctx)[1]["_regime_via"] == "whitelist")
+    # ── P7 端點唯一(P7-go 2026-07-28) ──
+    ep = {"a1": "https://x/oai", "a2": "https://x/oai", "b1": "https://y/oai", "c1": None}
+    w, d = pick_endpoint_winners({"a1", "a2", "b1"}, ep, set())
+    chk("P7:同端點 min(source_key) 代表勝", w == {"a1", "b1"} and d == {"a2"})
+    w2, d2 = pick_endpoint_winners({"a1", "a2"}, ep, {"https://x/oai"})
+    chk("P7:已 active 端點封鎖全部", w2 == set() and d2 == {"a1", "a2"})
+    w3, _ = pick_endpoint_winners({"c1"}, ep, set())
+    chk("P7:無端點證據=pass-through 不擋", w3 == {"c1"})
+    chk("P7:winners∪dups=全集不漏列", (w | d) == {"a1", "a2", "b1"})
     import inspect
     src = inspect.getsource(run)
     chk("熔斷先於一切(breaker 在 run 首查)", src.index("breaker_tripped") < src.index("weekly_remaining"))
