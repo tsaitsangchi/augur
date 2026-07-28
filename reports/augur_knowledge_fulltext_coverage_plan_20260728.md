@@ -1,9 +1,9 @@
-# 知識層全文覆蓋率提升計畫（plan-first #20；待 Steward 拍板）
+# 知識層全文覆蓋率提升計畫（plan-first #20）
 
 **日期**：2026-07-28  
 **性質**：[I] 執行層計畫（不動治權 [N] 判準；全文准入三軌／能抓≠該抓／素養層不進預測管線原樣）  
 **觸發**：admin `http://localhost:8500/gov`「來源治權 + 覆蓋率」per-domain 覆蓋極低（用戶觀測）  
-**本輪範圍**：**只寫計畫、不實作**放量 harvest／fetch（用戶明示）  
+**近程採納**：2026-07-28 Steward **`FT-COV-DASH`＋`FT-COV-EMBED`**（P0＋P1 已 CLOSED；**不含** `HAR-ext`／pending 放量）——`audits/FT-COV-DASH-EMBED-APPROVED-20260728.md`／`CLOSED`  
 **實證時點**：2026-07-28 本機 PostgreSQL 唯讀查詢（下表數字皆 live，非估算）
 
 ---
@@ -245,7 +245,8 @@
 - [x] DB 唯讀分桶實證（§2）  
 - [x] gov 公式對照 code（§2.1）  
 - [x] 本計畫書落地  
-- [ ] 實作／放量——**明示不做，待拍板碼**
+- [x] P0 DASH／P1 EMBED（2026-07-28 CLOSED；見 audits）  
+- [ ] P2–P3／`HAR-ext` pending 放量——**另句**
 
 ---
 

@@ -20,6 +20,7 @@
   python scripts/embed_knowledge.py --layer sentence --language en --scope items --limit 1000 --smoke
   python scripts/embed_knowledge.py --layer sentence --language en --scope items   # items 側(P4 拍板後)
   python scripts/embed_knowledge.py --layer sentence --scope items --model <tag>   # 換模(P6 遷移後,SOP-A)
+  python scripts/embed_knowledge.py --layer sentence --language en --scope items --gap-fill
   python scripts/embed_knowledge.py --build-index                    # 灌完後建 HNSW
 """
 import re
@@ -102,8 +103,9 @@ def ensure_scope(cur, scope, layer, side, language):
                     "ON CONFLICT (scope) DO NOTHING", (scope,))
 
 
-def fetch_batch(cur, layer, language, side, cursor, n=2000):
-    """CLEAN 閘=corpus SSOT(三端同閘;fail-closed,NULL 不放行)。"""
+def fetch_batch(cur, layer, language, side, cursor, n=2000, gap_fill=False):
+    """CLEAN 閘=corpus SSOT(三端同閘;fail-closed,NULL 不放行)。
+    gap_fill=True：只取尚未有 embedding 之句（不依游標前進；FT-COV-EMBED 補洞，免重嵌全庫）。"""
     if layer == "lexicon":
         cur.execute(f"""SELECT l.lex_id, COALESCE(l.term_display, l.term), left(l.definition, 1000)
             FROM knowledge_lexicon l JOIN philosophy_work w ON w.work_id = l.source_work_id
@@ -111,17 +113,35 @@ def fetch_batch(cur, layer, language, side, cursor, n=2000):
         return [(r[0], f"{PASSAGE_PREFIX}{r[1]}: {r[2]}") for r in cur.fetchall()]
     if side == "items":
         item_clean, _ = corpus.clean_item_sql('i', 'x', is_super=True)   # 嵌入端＝非讀取路徑,不做 RBAC domain 收窄(嵌全部 CLEAN 內容)
-        cur.execute(f"""SELECT s.sent_id, s.sentence FROM knowledge_sentence s
-            JOIN knowledge_item_text x ON x.itext_id = s.itext_id
-            JOIN knowledge_item i ON i.item_id = x.item_id
-            WHERE s.language = %s AND {item_clean}
-              AND s.sent_id > %s ORDER BY s.sent_id LIMIT %s""", (language, cursor, n))
+        if gap_fill:
+            cur.execute(f"""SELECT s.sent_id, s.sentence FROM knowledge_sentence s
+                JOIN knowledge_item_text x ON x.itext_id = s.itext_id
+                JOIN knowledge_item i ON i.item_id = x.item_id
+                WHERE s.language = %s AND {item_clean}
+                  AND s.sent_id > %s
+                  AND NOT EXISTS (SELECT 1 FROM knowledge_sentence_embedding e WHERE e.sent_id = s.sent_id)
+                ORDER BY s.sent_id LIMIT %s""", (language, cursor, n))
+        else:
+            cur.execute(f"""SELECT s.sent_id, s.sentence FROM knowledge_sentence s
+                JOIN knowledge_item_text x ON x.itext_id = s.itext_id
+                JOIN knowledge_item i ON i.item_id = x.item_id
+                WHERE s.language = %s AND {item_clean}
+                  AND s.sent_id > %s ORDER BY s.sent_id LIMIT %s""", (language, cursor, n))
     else:
-        cur.execute(f"""SELECT s.sent_id, s.sentence FROM knowledge_sentence s
-            JOIN philosophy_work_text t ON t.text_id = s.text_id
-            JOIN philosophy_work w ON w.work_id = t.work_id
-            WHERE s.language = %s AND {corpus.clean_work_sql('w')}
-              AND s.sent_id > %s ORDER BY s.sent_id LIMIT %s""", (language, cursor, n))
+        if gap_fill:
+            cur.execute(f"""SELECT s.sent_id, s.sentence FROM knowledge_sentence s
+                JOIN philosophy_work_text t ON t.text_id = s.text_id
+                JOIN philosophy_work w ON w.work_id = t.work_id
+                WHERE s.language = %s AND {corpus.clean_work_sql('w')}
+                  AND s.sent_id > %s
+                  AND NOT EXISTS (SELECT 1 FROM knowledge_sentence_embedding e WHERE e.sent_id = s.sent_id)
+                ORDER BY s.sent_id LIMIT %s""", (language, cursor, n))
+        else:
+            cur.execute(f"""SELECT s.sent_id, s.sentence FROM knowledge_sentence s
+                JOIN philosophy_work_text t ON t.text_id = s.text_id
+                JOIN philosophy_work w ON w.work_id = t.work_id
+                WHERE s.language = %s AND {corpus.clean_work_sql('w')}
+                  AND s.sent_id > %s ORDER BY s.sent_id LIMIT %s""", (language, cursor, n))
     return [(r[0], r[1]) for r in cur.fetchall()]
 
 
@@ -150,8 +170,11 @@ def main():
     ap.add_argument("--scope", choices=("works", "items"), default="works", dest="side")
     ap.add_argument("--model", default=None)
     ap.add_argument("--limit", type=int); ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--gap-fill", action="store_true", dest="gap_fill",
+                    help="FT-COV-EMBED:只補尚未 embedding 之 CLEAN 句(不重嵌全庫游標尾)")
     ap.add_argument("--build-index", action="store_true", dest="build_index")
     args, _ = ap.parse_known_args()
+
     import time
     try:
         model_tag = args.model or embedspec.MODEL_TAG
@@ -176,19 +199,25 @@ def main():
         scope = "embed_lexicon" if args.layer == "lexicon" else f"embed_sentence_{args.side}_{args.language}"
         table, idcol = (("knowledge_lexicon_embedding", "lex_id") if args.layer == "lexicon"
                         else ("knowledge_sentence_embedding", "sent_id"))
+        gap_fill = bool(args.gap_fill) and args.layer == "sentence"
         with db.transaction(conn) as cur:
             check_dim(cur, table, dim)
             conflict_cols = resolve_write_target(cur, table, idcol, model_tag)
-            ensure_scope(cur, scope, args.layer, args.side, args.language)
-        model = load_model(model_tag)
+            if not gap_fill:
+                ensure_scope(cur, scope, args.layer, args.side, args.language)
+        # gap-fill：可能全 junk→0 新嵌屬預期；勿載模浪費（僅當有非 junk 才 load）
         done = skipped = kept_total = inserted = 0
         t0 = time.time()
         limit = 10 if args.smoke else (args.limit or 10**9)
+        cursor = 0  # gap-fill 自 0 掃未嵌句；常規路徑每批讀 build_meta
+        model = None
         while done < limit:
             with db.transaction(conn) as cur:
-                cur.execute("SELECT cursor_sent_id FROM knowledge_build_meta WHERE scope=%s", (scope,))
-                cursor = cur.fetchone()[0]
-                rows = fetch_batch(cur, args.layer, args.language, args.side, cursor, min(2000, limit - done))
+                if not gap_fill:
+                    cur.execute("SELECT cursor_sent_id FROM knowledge_build_meta WHERE scope=%s", (scope,))
+                    cursor = cur.fetchone()[0]
+                rows = fetch_batch(cur, args.layer, args.language, args.side, cursor,
+                                   min(2000, limit - done), gap_fill=gap_fill)
             if not rows:
                 break
             keep = [(i, tx) for i, tx in rows
@@ -197,6 +226,8 @@ def main():
             kept_total += len(keep)
             texts = [tx if tx.startswith(PASSAGE_PREFIX) else f"{PASSAGE_PREFIX}{tx}" for _, tx in keep]
             if texts:
+                if model is None:
+                    model = load_model(model_tag)
                 vecs = model.encode(texts, batch_size=BATCH, normalize_embeddings=True, show_progress_bar=False)
                 with db.transaction(conn) as cur:
                     for (rid, _), v in zip(keep, vecs):
@@ -204,15 +235,22 @@ def main():
                                     f"ON CONFLICT ({conflict_cols}) DO NOTHING",
                                     (rid, list(map(float, v)), model_tag))
                         inserted += cur.rowcount
-            with db.transaction(conn) as cur:
-                cur.execute("UPDATE knowledge_build_meta SET cursor_sent_id=%s, updated_at=now() WHERE scope=%s",
-                            (rows[-1][0], scope))
+            if gap_fill:
+                cursor = rows[-1][0]
+            else:
+                with db.transaction(conn) as cur:
+                    cur.execute("UPDATE knowledge_build_meta SET cursor_sent_id=%s, updated_at=now() WHERE scope=%s",
+                                (rows[-1][0], scope))
             done += len(rows)
             if done <= 2000 or done % 10000 < 2000:
                 rate = done / max(time.time() - t0, 1)
-                print(f"  {scope}: {done:,} 筆(skip {skipped})、{rate:.1f} 筆/s(首千列實測重投影 #15)", flush=True)
-        suspect = done > 0 and kept_total > 0 and inserted == 0   # SOP-A ③:整跑 0 新列=疑靜默假成功
+                tag = "gap-fill" if gap_fill else "cursor"
+                print(f"  {scope}[{tag}]: {done:,} 筆(skip {skipped})、{rate:.1f} 筆/s", flush=True)
+        # gap-fill 全 junk→0 新嵌＝誠實終態，非 SOP-A 換模假成功
+        suspect = (not gap_fill) and done > 0 and kept_total > 0 and inserted == 0
         note = "smoke" if args.smoke else None
+        if gap_fill:
+            note = f"FT-COV-EMBED-gap-fill junk={skipped} embedded={inserted}"
         if suspect:
             note = "ZERO_INSERT_SUSPECT(SOP-A ③)"
         with db.transaction(conn) as cur:   # 排除帳落庫非 stdout(P6 既定契約)

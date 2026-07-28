@@ -635,8 +635,9 @@ def _health():
 
 
 def _gov_data():
-    """唯讀:來源治權 + 覆蓋率面板資料(審批分佈/治理覆蓋率/fulltext 終態/domain 覆蓋/近期 review_log)。
-    零寫路徑:純 SELECT;升級動作(approve 唯人)不經 web,只印 copy-ready CLI(#14)。"""
+    """唯讀:來源治權 + 覆蓋率面板資料(審批分佈/治理覆蓋率/fulltext 終態/domain 分桶/近期 review_log)。
+    零寫路徑:純 SELECT;升級動作(approve 唯人)不經 web,只印 copy-ready CLI(#14)。
+    domain 分桶對齊 FT-COV §3.2：answerable／terminal_blocked／pending（非 length>200 假覆蓋）。"""
     d = {}
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT approval_status, count(*) FROM knowledge_source GROUP BY 1 ORDER BY 2 DESC")
@@ -647,13 +648,33 @@ def _gov_data():
                     "WHERE action IN ('approve','activate','ratify')")
         d["governed"] = cur.fetchone()[0]
         d["fulltext"] = []
-        if cur.execute("SELECT to_regclass('public.knowledge_fulltext_status')") or cur.fetchone()[0]:
+        cur.execute("SELECT to_regclass('public.knowledge_fulltext_status')")
+        if cur.fetchone()[0]:
             cur.execute("SELECT status, count(*) FROM knowledge_fulltext_status GROUP BY 1 ORDER BY 2 DESC LIMIT 10")
             d["fulltext"] = cur.fetchall()
-        cur.execute("SELECT i.domain, count(DISTINCT i.item_id), "
-                    "count(DISTINCT t.item_id) FILTER (WHERE length(t.content)>200) "
-                    "FROM knowledge_item i LEFT JOIN knowledge_item_text t ON i.item_id=t.item_id "
-                    "GROUP BY 1 ORDER BY 2 DESC LIMIT 12")
+        # FT-COV-DASH：可答／blocked／pending 四欄（legacy_ft_gt200 僅對照，不作 headline）
+        cur.execute("""
+            WITH ans AS (
+              SELECT DISTINCT t.item_id
+              FROM knowledge_item_text t
+              JOIN knowledge_sentence s ON s.itext_id = t.itext_id
+              JOIN knowledge_sentence_embedding e ON e.sent_id = s.sent_id
+            ),
+            txt AS (SELECT DISTINCT item_id FROM knowledge_item_text),
+            blk AS (SELECT DISTINCT item_id FROM knowledge_fulltext_status),
+            legacy AS (SELECT DISTINCT item_id FROM knowledge_item_text WHERE length(content) > 200)
+            SELECT i.domain,
+              count(*)::bigint AS items,
+              count(*) FILTER (WHERE a.item_id IS NOT NULL)::bigint AS answerable,
+              count(*) FILTER (WHERE b.item_id IS NOT NULL AND t.item_id IS NULL)::bigint AS terminal_blocked,
+              count(*) FILTER (WHERE t.item_id IS NULL AND b.item_id IS NULL)::bigint AS pending,
+              count(*) FILTER (WHERE l.item_id IS NOT NULL)::bigint AS legacy_ft_gt200
+            FROM knowledge_item i
+            LEFT JOIN ans a ON a.item_id = i.item_id
+            LEFT JOIN txt t ON t.item_id = i.item_id
+            LEFT JOIN blk b ON b.item_id = i.item_id
+            LEFT JOIN legacy l ON l.item_id = i.item_id
+            GROUP BY 1 ORDER BY 2 DESC LIMIT 12""")
         d["coverage"] = cur.fetchall()
         cur.execute("SELECT source_key, action, old_status, new_status, actor, os_user, "
                     "to_char(created_at,'MM-DD HH24:MI') FROM knowledge_source_review_log "
@@ -672,18 +693,27 @@ def gov_dashboard_html(d):
                 "（須 TTY+superuser、走 CLI，web/AI 結構上不能觸發）。") if governed < active else "健康"
     ap = " · ".join(f"{e(s)}={n}" for s, n in d["approval"])
     ft = "".join(f"<tr><td>{e(s)}</td><td style=text-align:right>{n}</td></tr>" for s, n in d["fulltext"])
-    covr = "".join(f"<tr><td>{e(dm or '')}</td><td style=text-align:right>{it}</td>"
-                   f"<td style=text-align:right>{fx}</td>"
-                   f"<td style=text-align:right>{(100*fx//it) if it else 0}%</td></tr>"
-                   for dm, it, fx in d["coverage"])
+    def _pct(n, den):
+        return (100 * n // den) if den else 0
+    covr = "".join(
+        f"<tr><td>{e(dm or '')}</td>"
+        f"<td style=text-align:right>{it}</td>"
+        f"<td style=text-align:right>{ans}</td>"
+        f"<td style=text-align:right>{blk}</td>"
+        f"<td style=text-align:right>{pend}</td>"
+        f"<td style=text-align:right>{_pct(ans, it)}%</td>"
+        f"<td style=text-align:right>{_pct(ans + blk, it)}%</td>"
+        f"<td style=text-align:right;color:#888>{legacy}</td></tr>"
+        for dm, it, ans, blk, pend, legacy in d["coverage"])
     rl = "".join(f"<tr><td>{e(k)}</td><td>{e(a)}</td><td>{e(o or '')}→{e(nw or '')}</td>"
                  f"<td>{e(ac or '')}</td><td>{e(ou or '')}</td><td>{e(ts or '')}</td></tr>"
                  for k, a, o, nw, ac, ou, ts in d["reviewlog"])
     return f"""<!doctype html><html><head><meta charset=utf-8><title>來源治權 · augur admin</title>
 <style>body{{font-family:system-ui,sans-serif;background:#14140f;color:#e8e6df;margin:0}}
-.w{{max-width:960px;margin:0 auto;padding:16px}}h2{{border-bottom:1px solid #444;padding-bottom:4px}}
+.w{{max-width:1100px;margin:0 auto;padding:16px}}h2{{border-bottom:1px solid #444;padding-bottom:4px}}
 table{{border-collapse:collapse;width:100%;font-size:.9em}}td,th{{border-bottom:1px solid #333;padding:4px 8px;text-align:left}}
 .hl{{background:#2a1d1d;border:1px solid #a33;border-radius:8px;padding:12px;margin:10px 0}}
+.note{{background:#1a2220;border:1px solid #355;border-radius:8px;padding:10px;margin:10px 0;color:#9ab;font-size:.9em}}
 code{{background:#222;padding:2px 5px;border-radius:4px}}a{{color:#8bf}}</style></head><body><div class=w>
 <p><a href="/">← 後台首頁</a></p><h1>來源治權 + 覆蓋率（唯讀）</h1>
 <div class=hl><b>治理覆蓋率（governed_active/active）＝ {cov}</b><br>{gap_warn}</div>
@@ -691,14 +721,20 @@ code{{background:#222;padding:2px 5px;border-radius:4px}}a{{color:#8bf}}</style>
 <p style=color:#999>升級動作一律走 CLI（web 零寫路徑）：<br>
 <code>python scripts/review_knowledge_source.py --approve KEY --actor NAME</code>（須互動 TTY + app_user.is_superuser）<br>
 <code>python scripts/probe_knowledge_source.py --source KEY</code>（前置最小探測、唯一 web 外之寫 review_log）</p>
-<h2>內容抓取覆蓋率至可檢索終態（per domain）</h2>
-<table><tr><th>domain</th><th>items</th><th>fulltext</th><th>覆蓋</th></tr>{covr}</table>
+<h2>知識終態分桶（per domain；FT-COV-DASH）</h2>
+<div class=note>
+<b>覆蓋（可答）</b>＝answerable／items（至少一句已 embed）。
+<b>終態完成率</b>＝(answerable＋terminal_blocked)／items（含誠實不可答）。
+pending＝無全文且無 status（未嘗試）；blocked＝skip_license／skip_no_oa 等終態帳（<b>非漏做、不得灌成全文</b>）。
+「舊 length&gt;200」僅歷史對照——erp 短文會假低，勿當可檢索 headline。
+</div>
+<table><tr><th>domain</th><th>items</th><th>answerable</th><th>blocked</th><th>pending</th>
+<th>可答%</th><th>終態%</th><th>舊&gt;200</th></tr>{covr}</table>
 <h2>Fulltext 終態分佈</h2><table><tr><th>status</th><th>數</th></tr>{ft}</table>
 <p style=color:#999>skip_license/skip_no_oa = license 阻擋之 metadata-only（終態、非漏做）；skip_fetch_error = 可重試。</p>
 <h2>審批稽核軌跡（近 15）</h2>
 <table><tr><th>source</th><th>action</th><th>轉移</th><th>actor</th><th>os_user</th><th>時間</th></tr>{rl or '<tr><td colspan=6>（無留痕）</td></tr>'}</table>
 </div></body></html>"""
-
 
 class AdminHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
