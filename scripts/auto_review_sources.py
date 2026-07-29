@@ -329,6 +329,9 @@ def _selftest():
     chk("P6 tier 未接=None 不擋", judge_source(row_ok, ctx)[1]["P6_tier"] is None)
     chk("P6 接線後 T3 必人", not judge_source(("arxiv_search", "general", "generic_json", 2, 100, 10, "T3", None),
                                           {**ctx, "tier_wired": True})[0])
+    chk("P6:未評(NULL)放行=簽核原文(hugo 2026-07-29「依 P6 簽核原文」;收緊須另簽)",
+        judge_source(("arxiv_search", "general", "generic_json", 2, 100, 10, None, None),
+                     {**ctx, "tier_wired": True})[1]["P6_tier"] is True)
     chk("metadata_only 不在 P1 放行集(納入=規則 v2 人簽)", "metadata_only" not in P1_ALLOW)
     # ── REGIME-MAP-v1 路乙(classify_licenses;hugo 核可 2026-07-28) ──
     chk("map:CC0 名(R1)→public_domain", classify_licenses([{"name": "CC0"}], RM) == "public_domain")

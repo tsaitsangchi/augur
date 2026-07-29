@@ -120,3 +120,7 @@ VALUES ('arxiv%','cc_whitelist','arXiv API ToU: metadata CC0','hugo');
 - **首批實批 16/16**：與 P2 核可表**逐列完全一致**（機械對帳）。途中撞 `chk_ks_active_needs_approval` 閘＝**正確教訓**——裸 UPDATE 繞不過 approved_by 要求；改走正規 `curation.transition` 兩步（approve→activate、各自留痕），HUMAN_ONLY 之授權鏈=SRC-AUTO-go＋P2-16-核可，`approved_by='auto_rules_v1'` 誠實機器名不冒人簽（curation.py 零改動）。
 - **不變式終驗**：16 列全 `enabled=False` 休眠池；入 harvest 排程數=0；週餘額 34/50；熔斷 clear。
 - 未簽項不動：`R2-錨定` 未給=R2 pattern 照舊。
+
+## 十、P6 語意確認（2026-07-29，唯增列）
+
+hugo 拍板「**依 P6 簽核原文**」：未評（`authority_tier` NULL）之源 P6 **放行**、唯 T3/T4 必人——維持 §二簽核文字原樣，不收緊。已釘 selftest 機械鎖（收緊須另簽才可改測試）。authority_tier 欄＋71 列 backfill 依「TIER-全表-核可」執行（apply 因 #30 長交易護欄排臂後）。
