@@ -168,11 +168,10 @@ COMMENT ON TABLE knowhow_eval_suite_case IS
 
 ## 5. 與「過 KH10 自動入庫入憲」之關係
 
-本拍板 **明示不入憲、不自動 approve**。  
-先前 Steward「三通道過 10 層 KH 即可自動入庫」提案：
+本拍板（KH7）**明示不入憲、不自動 approve**。  
 
-- **前置**：至少 KH7（本層）＋後續 KH8–10 機械完備後，另開修憲案  
-- **本輪**：`HUMAN-APPROVE-keep` —— AI／timer／KH7 pass **皆不得** `transition(approve|activate)`
+**另案已開**：[`augur_kh10_auto_admit_plan_20260729.md`](augur_kh10_auto_admit_plan_20260729.md)（`KH10-AUTO-ADMIT`；預設 C＋X＋**RAW-FLOOR**；升格 gate 預設關）。  
+KH7 為**升格層**前置之一（ungrounded→擋 eligible／activate，**不**擋原文入庫）；升格 overall pass 尚需 KH8／KH9／ENABLE。
 
 ---
 

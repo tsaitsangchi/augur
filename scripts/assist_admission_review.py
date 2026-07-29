@@ -6,7 +6,7 @@
    knowledge_admission_assist（actor=local_ai_v1）。**預設零寫（dry-run）**；
    --apply 才落帳本。本支永不 import／呼叫 curation.transition 升級；永不
    UPDATE approval_status。SRC-AUTO L-A／L-V 諮詢層合併本 writer（單一建議軌）。
-守 #1/#15（分數非閘通過條件）· 憲章 v1.41.0（升級唯人）· #28（本地零 Claude）·
+守 #1/#15（分數非閘通過條件）· 憲章 v1.48.0（一律准入；本檔仍只寫 assist 建議、不代升格）· #28（本地零 Claude）·
    #29（矩陣）· FZ-keep（零市場 API）· ADM-AI-ASSIST 計畫 §2／§5 S1。
 
 執行指令矩陣:
@@ -14,7 +14,7 @@
   python scripts/assist_admission_review.py --dry-run --limit 3   # 產分數樣本，零寫
   python scripts/assist_admission_review.py --dry-run --limit 3 --no-llm  # 啟發式樣本（Ollama 離線）
   python scripts/assist_admission_review.py --apply --limit 5    # 有界寫 assist＋source audit（禁升級）
-  python scripts/assist_admission_review.py --selftest            # 純紅綠：禁 HUMAN_ONLY／禁 upgrade
+  python scripts/assist_admission_review.py --selftest            # 純紅綠：本檔不寫 upgrade
   # S3 timer（systemd user；預設 dry-run；apply 須 install_services.sh --with-assist-apply）:
   #   systemctl --user start augur-admission-assist.service
 """
@@ -307,17 +307,9 @@ def selftest() -> int:
         ok = ok and bool(cond)
         print(f"  {'✓' if cond else '✗FAIL'} {name}")
 
-    from augur.knowledge.curation import HUMAN_ONLY, transition
+    from augur.knowledge.curation import HUMAN_ONLY
 
-    chk("HUMAN_ONLY 含 approve/activate", {"approve", "activate"} <= HUMAN_ONLY)
-    raised = False
-    try:
-        transition("nonexistent_source_adm_assist_probe", "approve", "adm_assist", system=True)
-    except PermissionError:
-        raised = True
-    except Exception:
-        raised = False
-    chk("system+approve → PermissionError", raised)
+    chk("v1.48 HUMAN_ONLY 空（升級非唯人）", HUMAN_ONLY == set())
 
     try:
         _assert_no_upgrade_in_source()
