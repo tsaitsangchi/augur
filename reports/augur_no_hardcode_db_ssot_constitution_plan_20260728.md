@@ -306,7 +306,7 @@ COMMENT ON TABLE retrieve_glossary IS
 | 接線 | `retrieve_glossary`→`translate_for_retrieval`；A0＝S2／U 尺 | §3.1 query 擴展「DB、禁硬編碼大表」；S01 **CLOSED** | `philosophy_principle`／map；**不含**顧問 Q&A |
 | 依賴 | NHC S2 → 加詞不改碼 | 組答消費 NHC 詞表＋FT-COV 終態 | **不**依賴 NHC glossary；不因 A0 開 SOLAR |
 | 正交 | 不碰 approve 唯人；不開 PME-SOLAR | 同；產生≠進化 | 灌因子僅 `SUNZI-MGMT`；太陽能材料＝次條候選另碼 |
-| 拍板 | ✅ `NHC-PLAN`＋`NHC-S12`＋`FZ-keep`；**待** `NHC-S3`／`NHC-CONSTITUTE` | 已拍 PLAN＋S01 | 已拍 YES＋SUNZI-MGMT |
+| 拍板 | ✅ `NHC-PLAN`＋`NHC-S12`＋`NHC-S3`＋`FZ-keep`；**待** `NHC-CONSTITUTE` | 已拍 PLAN＋S01 | 已拍 YES＋SUNZI-MGMT |
 
 **一句**：跨域要「答得出」＝終態＋去閘＋**可擴檢索詞**＋統一組答；NHC 專責詞表／映射入 DB 與「產生不 hardcode」入憲草案；KH-XDOM 專責檢索空間；PME 專責已拍範圍之假說鏈——三軸勿混。
 
@@ -349,7 +349,7 @@ COMMENT ON TABLE retrieve_glossary IS
 `NHC-PLAN`＋`NHC-S12`＋`FZ-keep`（±另句 `NHC-CONSTITUTE`）
 
 **禁止解讀**：單獨說「入憲」≠授權改 [N] 檔案——須見 **`NHC-CONSTITUTE`** 或等價明示「採納並寫入憲章」。  
-**本輪狀態**：已拍 `NHC-PLAN`＋`NHC-S12`＋`FZ-keep`；**未拍** `NHC-CONSTITUTE`／`NHC-S3`。
+**本輪狀態**：已拍／開跑 `NHC-PLAN`＋`NHC-S12`＋`NHC-S3`＋`FZ-keep`；**未拍** `NHC-CONSTITUTE`。
 
 ---
 
@@ -376,7 +376,7 @@ COMMENT ON TABLE retrieve_glossary IS
 | DDL／種子 | `scripts/migrate_retrieve_glossary_ddl.py`（**已 apply**；active=13） |
 | 改碼 | `query_translation` 讀表；`setup_predict_role` FORBIDDEN |
 | 憲章草案 | §7.2（**未寫入 [N]**；待 `NHC-CONSTITUTE`） |
-| S3 | **待** `NHC-S3` |
+| S3 | ✅ CLOSED（2026-07-29；`audits/NHC-S3-CLOSED-20260729.md`） |
 
 ---
 
@@ -387,6 +387,7 @@ COMMENT ON TABLE retrieve_glossary IS
 | 2026-07-28 | 初版：G1→`retrieve_glossary`；清冊；入憲草案；拍板碼 |
 | 2026-07-28（同日） | 補強 know-how **產生**覆蓋；A0 探針診斷；互鏈 KH-XDOM／PME |
 | 2026-07-28（S12） | 拍板執行 CLOSED；A0 擴為 app／core／phys／chem 四探針；標待 NHC-S3／NHC-CONSTITUTE |
+| 2026-07-29（S3） | 「所有 working 開始跑」＝開 NHC-S3＋FZ-keep；Q1/Q2 遷 DB；A1/C1/L1 豁免；I1 欄交棒；**待** NHC-CONSTITUTE |
 
 ---
 
