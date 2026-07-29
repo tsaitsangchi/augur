@@ -35,7 +35,7 @@
 | `CLAUDE.md`（版本見檔頭） | AI 協作工具規則（Read-before-Edit、clean-room #16、plan-first #20、一支一支檢視 #19、常駐服務改碼須重啟實測 #7、最小 usage #28、DB 備份慣例 #30） |
 | `reports/augur_construction_understanding_20260710.md` | **⭐建構作法完整理解 v3（code-verified 16 子系統、supersede 20260709 版）**：兩半系統框架、逐層 how-built、跨系統 meta-pattern、治權→code 接線——**接手必讀「這專案怎麼建的」** |
 | `reports/augur_omniscient_advisor_plan_20260709.md` | **活躍計畫①**：全能全知顧問端到端（know-how→DB→逐字理解→Qdrant→qwen→web UI）——**未執行、待拍板** |
-| `reports/augur_prediction_short_horizon_model_plan_20260709.md` | **活躍計畫②**：H20/H40/H60「30/60 天」誠實 horizon 模型——**未執行、待拍板+釐清日曆日/交易日** |
+| `reports/augur_prediction_short_horizon_model_plan_20260709.md` | **短 horizon（原計畫②）**：執行鏈已結案（closure 07-11）；**2026-07-29 採納 `SH-CAL-yes`＋`SH-CLOSE-yes`**（P30←H20、P60←H40；H60≠「60 天」）＋**WAVE2 `SH-ASOF-REFRESH-yes` CLOSED**（universe＋predict dry-run @2026-06-30；見 `audits/SH-ASOF-REFRESH-CLOSED-20260729.md`）——**`SH-REVAL` 仍未開**；GBDT registry 未拍；clarify＝`reports/augur_short_horizon_timeliness_clarify_20260729.md`／`audits/SH-CAL-CLOSE-APPROVED-20260729.md` |
 | `reports/augur_prediction_sop_master_20260706.md` | 股市預測 SOP 主計劃（端到端、階段、拍板點） |
 
 > **紀律**：clean-room（零 stock_backend 參考）、plan-first（**所有計畫書須附 table schema + python 程式規畫、v1.39.0**）、一支一支檢視、改常駐服務後重啟再實測、#15 親驗 code 非「我以為」。
@@ -191,7 +191,7 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 ### 4.5 待人類 vs 待 AI
 **待 hugo 拍板**（全部非阻塞開賽）：
 1. **PDF 抽取計畫 P0**＝`reports/knowledge_pdf_extraction_plan_20260712.md`（D2 後續;pypdf+五道機械品質閘 fail-closed;OAPEN 61+skip_pdf 976）
-2. 短 horizon 模型計畫②＋全能顧問計畫①：**hugo 已裁「開賽後 AI 先做時效性複核再拍」**（2026-07-12;兩案早於解凍/擂台設計,恐部分被超越）
+2. ~~短 horizon 模型計畫②~~：**已釐清／結案採納**（2026-07-29 `SH-CAL-yes`＋`SH-CLOSE-yes`＋`FZ-keep`；複核＝`reports/augur_short_horizon_timeliness_clarify_20260729.md`）＋**`SH-ASOF-REFRESH` CLOSED**（M2；as-of=`2026-06-30`；`audits/SH-ASOF-REFRESH-CLOSED-20260729.md`）——**`SH-REVAL`（M3）仍未開**。全能顧問計畫①仍：**hugo 已裁「開賽後 AI 先做時效性複核再拍」**（2026-07-12；早於解凍/擂台,恐部分被超越）——短 horizon 與顧問正交，顧問案另拍
 3. ~~舊專案 stock_backend 的平日 16:00 FinMind cron 去留~~ **已裁定（2026-07-13 hugo）：4 條 cron 全部取消**（同 IP 疊加解除；備份=`~/crontab_stock_backend_backup_20260713.txt` 可復原）
 4. **件 A 三通道公民化 DDL apply + 源活化**（code 已完成、非阻塞開賽）：`python scripts/migrate_local_admission_ddl.py --apply` ＋ `python scripts/migrate_sftp_sync_ddl.py --apply`（**須 audit 綠 + harvest 靜止後**，#30 dump 期禁 DDL）→ **憲章 v1.48.0 起來源可機械准入／activate**（不必 TTY 逐源；硬閘仍守）→ `systemctl --user restart augur-admin` → `bash install_services.sh --with-refresh`。SFTP/apk 另需 §3 人工前置（`augur-sftp.json`+私鑰 / jadx+JRE）。
 5. **R-H 修憲（OCR/ASR 轉錄≠AI + 本機/SFTP 明文豁免）**：v3 提案＝`reports/augur_rh_amendment_transcription_exemption_v3_20260714.md`；T2 CLAUDE #29b 條文（Fable 5 檔位、治權檔）待 hugo 確認後才動筆改治權檔。

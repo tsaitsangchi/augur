@@ -79,6 +79,7 @@ def _row_to_summary(row: dict) -> dict:
             "gap_flags": raw.get("gap_flags") or gap,
             "spurious_risk": raw.get("spurious_risk") or row.get("spurious_risk"),
             "top_hits": raw.get("top_hits") or tops,
+            "grounding_hits": raw.get("grounding_hits") or raw.get("top_hits") or tops,
             "axes": raw.get("axes") or axes,
             "queries": raw.get("queries") or [],
         }
@@ -90,6 +91,7 @@ def _row_to_summary(row: dict) -> dict:
         "gap_flags": gap if isinstance(gap, list) else [],
         "spurious_risk": row.get("spurious_risk"),
         "top_hits": tops if isinstance(tops, list) else [],
+        "grounding_hits": tops if isinstance(tops, list) else [],
         "axes": axes if isinstance(axes, list) else [],
     }
 

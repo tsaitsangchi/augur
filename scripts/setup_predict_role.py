@@ -186,7 +186,8 @@ def apply(cur):
     for t in allowed:
         cur.execute(f'GRANT SELECT ON public."{t}" TO {PREDICT_ROLE}')
         if t in WRITABLE:
-            cur.execute(f'GRANT INSERT, UPDATE ON public."{t}" TO {PREDICT_ROLE}')
+            # DELETE：predict_asof 冪等為 DELETE+INSERT（僅 INSERT/UPDATE → InsufficientPrivilege）
+            cur.execute(f'GRANT INSERT, UPDATE, DELETE ON public."{t}" TO {PREDICT_ROLE}')
     # 5. default privileges:未來素養表自動對 predict 關(僅 owner=augur 建的)
     cur.execute(f"ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM {PREDICT_ROLE}")
     # 6. ttai_import(自有 ERP staging)亦不給 predict

@@ -112,25 +112,25 @@ def _axis_labels(summary: Mapping[str, Any]) -> list[str]:
     return labels
 
 
-def _hit_text_blob(summary: Mapping[str, Any]) -> str:
-    tops = summary.get("top_hits")
+def _grounding_hits(summary: Mapping[str, Any]) -> list:
+    """優先 grounding_hits（軸清單∪合併 top）；否則 top_hits。"""
+    tops = summary.get("grounding_hits")
+    if tops is None:
+        tops = summary.get("top_hits")
     if isinstance(tops, str):
         try:
             tops = json.loads(tops)
         except json.JSONDecodeError:
             tops = []
-    parts: list[str] = []
-    for h in tops or []:
-        if not isinstance(h, dict):
-            continue
-        parts.append(str(h.get("title") or ""))
-        parts.append(str(h.get("snippet") or ""))
-    return "\n".join(parts)
+    if not isinstance(tops, list):
+        return []
+    return [h for h in tops if isinstance(h, dict)]
 
 
 def detect_ungrounded(summary: Mapping[str, Any]) -> bool:
-    """軸 label 皆未出現於任一 top-hit title／snippet → True（確定性字串包含）。
+    """軸 label 錨點皆未落地命中 title／snippet → True。
 
+    與 interaction_probe.axis_labels_ungrounded 同判準（錨點 n-gram 校準）。
     無 label 可校 → False；merged=0 交由 no_corpus 規則，此處 False。
     """
     if _merged_hits(summary) <= 0:
@@ -138,11 +138,13 @@ def detect_ungrounded(summary: Mapping[str, Any]) -> bool:
     labels = _axis_labels(summary)
     if not labels:
         return False
-    blob = _hit_text_blob(summary).lower()
-    if not blob.strip():
-        # 有 merged 卻無 top 摘要可校 → 視為未落地
+    hits = _grounding_hits(summary)
+    if not hits:
         return True
-    return all(lab.lower() not in blob for lab in labels)
+    # 延遲 import：避免與 probe 循環；兩邊同函式＝單一住所
+    from augur.knowledge.interaction_probe import axis_labels_ungrounded
+
+    return axis_labels_ungrounded(labels, hits)
 
 
 def decide_eligibility(summary: Mapping[str, Any]) -> dict:
@@ -338,6 +340,18 @@ def _selftest() -> int:
         "merged_hits": 2,
         "axes": [{"label": "第一性原理"}],
         "top_hits": [{"title": "談第一性原理", "snippet": "x"}],
+    }))
+    check("detect 錨點 n-gram→False", not detect_ungrounded({
+        "merged_hits": 2,
+        "axes": [{"label": "太陽能材料研發技術核心"}],
+        "grounding_hits": [
+            {"title": "rdai_全球太陽能資料來源探測報告", "snippet": "polysilicon"},
+        ],
+    }))
+    check("detect ZZZZ 仍 True", detect_ungrounded({
+        "merged_hits": 2,
+        "axes": [{"label": "ZZZZ-NONEXISTENT-AXIS-ALPHA-KNI-EVAL"}],
+        "top_hits": [{"title": "Donatist", "snippet": "philosophy"}],
     }))
 
     grey = decide_eligibility({

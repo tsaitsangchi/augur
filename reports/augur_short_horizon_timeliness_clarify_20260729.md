@@ -130,22 +130,20 @@
 | §1 活躍計畫② | 「**未執行、待拍板+釐清日曆日/交易日**」 | 執行鏈已完成（closure）；待＝**正式 SH-CAL**＋是否 as-of 前推 |
 | §4.5 #2 | 時效複核再拍 | **本檔＝複核交付**；拍板點見 §6 |
 
-**本檔不擅自改 HANDOFF**（屬接續 SSOT；改寫等 M0 拍板後另動）。
+**HANDOFF 已於 2026-07-29 Steward 拍板後改標**（`SH-CAL-yes`＋`SH-CLOSE-yes`；見 `audits/SH-CAL-CLOSE-APPROVED-20260729.md`）。
 
 ---
 
-## 6. 待 hugo 拍板點清單
+## 6. 拍板點清單（2026-07-29 更新）
 
-1. **SH-CAL-yes／no**——採納 §1.2 日曆語意對映（P30←H20、P60←H40；H60≠「60 天」）？  
-2. **SH-CLOSE-yes／no**——採納 closure「原計畫已結案」＋追溯 yes（史料），HANDOFF 改標？  
-3. **SH-ASOF-REFRESH-yes／no**——是否授權 M2（宇宙＋predict @ G1-PIN／更新 as-of）？預設建議 **no／延後**（驗證釘 05-31 仍可複現；前推是產品 freshness，非正確性債）。  
-4. **SH-REVAL-yes／no**——是否授權 M3 重跑四關刷新標籤？預設建議 **no**（預期方向不變；省算力）。  
-5. **SH-GBDT-REG-yes／no**——是否補 RankGBDT 入 registry（closure 殘留 #1）？預設 **no**（headline 仍 RankRidge）。
+1. ~~**SH-CAL-yes／no**~~ → **已採 `SH-CAL-yes`**（§1.2 日曆對映：P30←H20、P60←H40；H60≠「60 天」）。  
+2. ~~**SH-CLOSE-yes／no**~~ → **已採 `SH-CLOSE-yes`**（closure 結案＋HANDOFF 改標）。  
+3. **SH-ASOF-REFRESH-yes／no**——是否授權 M2？**本輪未拍（預設 no／延後）**。  
+4. **SH-REVAL-yes／no**——是否授權 M3？**本輪未拍（預設 no）**。  
+5. **SH-GBDT-REG-yes／no**——是否補 RankGBDT registry？**本輪未拍（預設 no）**。
 
-**建議立刻開哪個 slice？**  
-→ **只開決策切片：SH-CAL＋SH-CLOSE**（文件／對映認可）。  
-→ **不建議**立刻開 train／revalidate slice。  
-→ 若「所有 working」要有短 horizon **可跑工程步**：唯一合理的小工程是 **另令後的 M2**，且須先有宇宙 @ 目標 as-of。
+**本輪已開**：決策切片 SH-CAL＋SH-CLOSE（文件／對映認可）。  
+**本輪不開**：train／revalidate／as-of 前推（須另令）。
 
 ---
 

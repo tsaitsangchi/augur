@@ -562,7 +562,7 @@ def dashboard_html(status, uname="admin", role=""):
 <button onclick="nav(this,'local')">本機匯入</button>
 <button onclick="nav(this,'remote')">遠端 SFTP</button>
 <div class=sep></div>
-<a href="/gov" style="display:block;padding:8px 12px;color:#8bf;text-decoration:none;font-size:14px">🔐 來源治權 · 覆蓋率</a>
+<a href="/gov" style="display:block;padding:8px 12px;color:#8bf;text-decoration:none;font-size:14px">🔐 來源治權 · 匯入合格</a>
 <div class=sep></div>
 <a href="http://localhost:8090" target=_blank>誠實博學的我 ↗</a>
 <a href=/logout>登出</a>
@@ -752,11 +752,12 @@ def _health():
     return h
 
 
-def _gov_data():
-    """唯讀:來源治權 + 覆蓋率面板資料(審批分佈/治理覆蓋率/fulltext 終態/domain 分桶/近期 review_log)。
+def _gov_data(job_id=None):
+    """唯讀:來源治權 + 覆蓋率 + 匯入合格帳本(IMPORT-QUAL-S2)。
     零寫路徑:純 SELECT;升級動作(approve 唯人)不經 web,只印 copy-ready CLI(#14)。
-    domain 分桶對齊 FT-COV §3.2：answerable／terminal_blocked／pending（非 length>200 假覆蓋）。"""
-    d = {}
+    domain 分桶對齊 FT-COV §3.2：answerable／terminal_blocked／pending（非 length>200 假覆蓋）。
+    job_id 可選：篩該 job 之檔案級 qualification（?job=N）。"""
+    d = {"filter_job_id": job_id}
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT approval_status, count(*) FROM knowledge_source GROUP BY 1 ORDER BY 2 DESC")
         d["approval"] = cur.fetchall()
@@ -845,11 +846,66 @@ def _gov_data():
                     "to_char(created_at,'MM-DD HH24:MI') FROM knowledge_source_review_log "
                     "ORDER BY review_id DESC LIMIT 15")
         d["reviewlog"] = cur.fetchall()
+        # IMPORT-QUAL-S2：本機匯入 job＋檔案級 qualification（唯讀；無 approve/activate）
+        d["import_table"] = False
+        d["import_jobs"] = []
+        d["import_quals"] = []
+        d["import_summary"] = {"jobs": 0, "quals": 0, "by_verdict": [], "by_ingest": []}
+        cur.execute("SELECT to_regclass('public.knowledge_import_job')")
+        if cur.fetchone()[0]:
+            d["import_table"] = True
+            cur.execute("SELECT count(*)::bigint FROM knowledge_import_job")
+            d["import_summary"]["jobs"] = cur.fetchone()[0]
+            cur.execute("SELECT count(*)::bigint FROM knowledge_import_qualification")
+            d["import_summary"]["quals"] = cur.fetchone()[0]
+            cur.execute("""
+                SELECT verdict, count(*)::bigint
+                FROM knowledge_import_qualification
+                GROUP BY 1 ORDER BY 2 DESC""")
+            d["import_summary"]["by_verdict"] = cur.fetchall()
+            cur.execute("""
+                SELECT coalesce(ingest_status,'(unset)'), count(*)::bigint
+                FROM knowledge_import_qualification
+                GROUP BY 1 ORDER BY 2 DESC""")
+            d["import_summary"]["by_ingest"] = cur.fetchall()
+            cur.execute("""
+                SELECT j.job_id, j.status, j.is_dry_run, j.source_key, j.domain,
+                       j.declared_license, j.access_scope,
+                       j.total_files, j.scanned_files, j.ok_files, j.dup_files,
+                       j.short_files, j.skip_files, j.fail_files,
+                       to_char(j.started_at,'MM-DD HH24:MI') AS started,
+                       to_char(j.finished_at,'MM-DD HH24:MI') AS finished,
+                       left(coalesce(j.root_path,''), 80) AS root_path
+                FROM knowledge_import_job j
+                ORDER BY j.job_id DESC
+                LIMIT 30""")
+            d["import_jobs"] = cur.fetchall()
+            if job_id is not None:
+                cur.execute("""
+                    SELECT q.qualification_id, q.job_id, q.verdict, q.reason_code,
+                           coalesce(q.ingest_status,''), coalesce(q.item_id::text,''),
+                           q.segment_rows, left(q.rel_path, 100),
+                           to_char(coalesce(q.ingested_at, q.preflight_at, q.created_at),'MM-DD HH24:MI')
+                    FROM knowledge_import_qualification q
+                    WHERE q.job_id = %s
+                    ORDER BY q.qualification_id DESC
+                    LIMIT 200""", (job_id,))
+            else:
+                cur.execute("""
+                    SELECT q.qualification_id, q.job_id, q.verdict, q.reason_code,
+                           coalesce(q.ingest_status,''), coalesce(q.item_id::text,''),
+                           q.segment_rows, left(q.rel_path, 100),
+                           to_char(coalesce(q.ingested_at, q.preflight_at, q.created_at),'MM-DD HH24:MI')
+                    FROM knowledge_import_qualification q
+                    ORDER BY q.qualification_id DESC
+                    LIMIT 80""")
+            d["import_quals"] = cur.fetchall()
     return d
 
 
 def gov_dashboard_html(d):
-    """server-render 治權頁(比照 progress 樣式,獨立頁、唯讀)。治理缺口誠實當 headline、不謊稱留痕。"""
+    """server-render 治權頁(比照 progress 樣式,獨立頁、唯讀)。治理缺口誠實當 headline、不謊稱留痕。
+    IMPORT-QUAL-S2：加匯入 job／檔案級 qualification 唯讀表；零 approve／activate 按鈕。"""
     from html import escape as e
     active, governed = d["active"], d["governed"]
     cov = f"{governed}/{active}" + (f"（{100*governed//active}%）" if active else "")
@@ -880,6 +936,33 @@ def gov_dashboard_html(d):
     rl = "".join(f"<tr><td>{e(k)}</td><td>{e(a)}</td><td>{e(o or '')}→{e(nw or '')}</td>"
                  f"<td>{e(ac or '')}</td><td>{e(ou or '')}</td><td>{e(ts or '')}</td></tr>"
                  for k, a, o, nw, ac, ou, ts in d["reviewlog"])
+    isum = d.get("import_summary") or {}
+    verdict_s = " · ".join(f"{e(v)}={n}" for v, n in isum.get("by_verdict") or []) or "（無）"
+    ingest_s = " · ".join(f"{e(s)}={n}" for s, n in isum.get("by_ingest") or []) or "（無）"
+    fj = d.get("filter_job_id")
+    job_rows = "".join(
+        f"<tr{' style=background:#1e2a1a' if fj == jid else ''}>"
+        f"<td><a href='/gov?job={jid}'>#{jid}</a></td>"
+        f"<td>{e(st)}</td><td>{'dry' if dry else 'live'}</td>"
+        f"<td><code>{e(sk)}</code></td><td>{e(dom)}</td>"
+        f"<td style=text-align:right>{tot}</td><td style=text-align:right>{scan}</td>"
+        f"<td style=text-align:right>{ok}</td><td style=text-align:right>{dup}</td>"
+        f"<td style=text-align:right>{short}</td><td style=text-align:right>{skip}</td>"
+        f"<td style=text-align:right>{fail}</td>"
+        f"<td>{e(started or '')}</td><td>{e(finished or '')}</td>"
+        f"<td style='font-size:.8em;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'"
+        f" title='{e(root)}'>{e(root)}</td></tr>"
+        for (jid, st, dry, sk, dom, _lic, _ascope, tot, scan, ok, dup, short, skip, fail,
+             started, finished, root) in d.get("import_jobs") or [])
+    qual_rows = "".join(
+        f"<tr><td>{qid}</td><td><a href='/gov?job={jid}'>#{jid}</a></td>"
+        f"<td>{e(vd)}</td><td><code>{e(rc)}</code></td><td>{e(ing or '')}</td>"
+        f"<td>{e(iid or '')}</td><td style=text-align:right>{segs}</td>"
+        f"<td style='font-size:.85em;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'"
+        f" title='{e(rel)}'>{e(rel)}</td><td>{e(ts or '')}</td></tr>"
+        for qid, jid, vd, rc, ing, iid, segs, rel, ts in d.get("import_quals") or [])
+    filt_note = (f"目前篩選 job=<b>#{fj}</b> · <a href='/gov'>清除篩選</a>"
+                 if fj is not None else "近 80 筆跨 job · 點 job 列可篩該批")
     return f"""<!doctype html><html><head><meta charset=utf-8><title>來源治權 · augur admin</title>
 <style>body{{font-family:system-ui,sans-serif;background:#14140f;color:#e8e6df;margin:0}}
 .w{{max-width:1100px;margin:0 auto;padding:16px}}h2{{border-bottom:1px solid #444;padding-bottom:4px}}
@@ -887,8 +970,25 @@ table{{border-collapse:collapse;width:100%;font-size:.9em}}td,th{{border-bottom:
 .hl{{background:#2a1d1d;border:1px solid #a33;border-radius:8px;padding:12px;margin:10px 0}}
 .note{{background:#1a2220;border:1px solid #355;border-radius:8px;padding:10px;margin:10px 0;color:#9ab;font-size:.9em}}
 code{{background:#222;padding:2px 5px;border-radius:4px}}a{{color:#8bf}}</style></head><body><div class=w>
-<p><a href="/">← 後台首頁</a></p><h1>來源治權 + 覆蓋率（唯讀）</h1>
+<p><a href="/">← 後台首頁</a> · <a href="/gov{'?job='+str(fj) if fj is not None else ''}">⟳ 重新整理</a></p>
+<h1>來源治權 + 覆蓋率 + 匯入合格（唯讀）</h1>
 <div class=hl><b>治理覆蓋率（governed_active/active）＝ {cov}</b><br>{gap_warn}</div>
+<h2 id=import-qual>本機匯入合格帳本（IMPORT-QUAL-S2）</h2>
+<div class=note>
+<b>唯讀</b>：只列 <code>knowledge_import_job</code>／<code>knowledge_import_qualification</code>。
+本頁<strong>無</strong> approve／activate 按鈕——不改 license gate／admission gate。
+writer 已由 S1 <code>acquire_local_files</code> 落庫；此處只掃真相。
+目前：表={'yes' if d.get('import_table') else 'no'} · jobs={isum.get('jobs', 0)} · quals={isum.get('quals', 0)}
+<br>verdict 分佈：{verdict_s}<br>ingest 分佈：{ingest_s}<br>{filt_note}
+</div>
+<table><tr><th>job</th><th>status</th><th>mode</th><th>source</th><th>domain</th>
+<th>total</th><th>scan</th><th>ok</th><th>dup</th><th>short</th><th>skip</th><th>fail</th>
+<th>開始</th><th>結束</th><th>root</th></tr>
+{job_rows or '<tr><td colspan=15>（尚無匯入 job；跑 acquire_local_files 或後台本機匯入）</td></tr>'}</table>
+<h3>檔案級 qualification</h3>
+<table><tr><th>qid</th><th>job</th><th>verdict</th><th>reason</th><th>ingest</th>
+<th>item</th><th>segs</th><th>rel_path</th><th>時間</th></tr>
+{qual_rows or '<tr><td colspan=9>（尚無 qualification）</td></tr>'}</table>
 <h2>審批狀態機分佈</h2><p>{ap}</p>
 <p style=color:#999>升級動作一律走 CLI（web 零寫路徑）：<br>
 <code>python scripts/review_knowledge_source.py --approve KEY --actor NAME</code>（須互動 TTY + app_user.is_superuser）<br>
@@ -916,6 +1016,7 @@ pending＝無全文且無 status（未嘗試）；blocked＝skip_license／skip_
 <h2>審批稽核軌跡（近 15）</h2>
 <table><tr><th>source</th><th>action</th><th>轉移</th><th>actor</th><th>os_user</th><th>時間</th></tr>{rl or '<tr><td colspan=6>（無留痕）</td></tr>'}</table>
 </div></body></html>"""
+
 
 def _digest_data():
     """唯讀:R6 digest 資料——本週全部 gate_ref='V2-AUTOADVANCE' 自動決策 + pending hints(H3 佇列)。
@@ -1077,9 +1178,13 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return self._send(404, json.dumps({"ok": False, "error": "檔案不存在或非法路徑"}), "application/json")
             return self._send(200, json.dumps({"ok": True, "path": rel, "html": _md_to_html(txt)}), "application/json")
         if path == "/api/gov":
-            return self._send(200, json.dumps(_gov_data(), default=str), "application/json")
+            jid_raw = parse_qs(parsed.query).get("job", [None])[0]
+            jid = int(jid_raw) if jid_raw and str(jid_raw).isdigit() else None
+            return self._send(200, json.dumps(_gov_data(job_id=jid), default=str), "application/json")
         if path == "/gov":                          # 來源治權唯讀頁(零寫路徑;升級走 CLI #14)
-            return self._send(200, gov_dashboard_html(_gov_data()))
+            jid_raw = parse_qs(parsed.query).get("job", [None])[0]
+            jid = int(jid_raw) if jid_raw and str(jid_raw).isdigit() else None
+            return self._send(200, gov_dashboard_html(_gov_data(job_id=jid)))
         if path == "/api/digest":
             return self._send(200, json.dumps(_digest_data(), default=str), "application/json")
         if path == "/digest":                       # R6 digest 唯讀頁(P-D;批覆走 POST /api/hint/decide)

@@ -31,7 +31,8 @@ LAYER_NAMES = {
 }
 
 # 尚未 LAND 的層：評估為 skipped，不抬 depth（不擋較淺）
-UNBUILT_LAYERS = {8, 9}
+# KH8/KH9 min-LAND 2026-07-29 → 可評估；KH10 進化治理仍另層
+UNBUILT_LAYERS: set[int] = set()
 
 
 def _table_exists(cur, name: str) -> bool:
@@ -57,7 +58,7 @@ def load_gate(cur) -> dict:
             "enabled": True,
             "raw_floor_enabled": True,
             "progressive_enabled": True,
-            "max_auto_depth": 7,
+            "max_auto_depth": 9,
             "require_kh8": True,
             "require_kh9": True,
         }
@@ -65,7 +66,7 @@ def load_gate(cur) -> dict:
         """
         SELECT enabled, raw_floor_enabled,
                COALESCE(progressive_enabled, true),
-               COALESCE(max_auto_depth, 7),
+               COALESCE(max_auto_depth, 9),
                require_kh8, require_kh9
         FROM knowhow_auto_admit_gate WHERE gate_id='auto_admit_v1'
         """
@@ -76,7 +77,7 @@ def load_gate(cur) -> dict:
             "enabled": True,
             "raw_floor_enabled": True,
             "progressive_enabled": True,
-            "max_auto_depth": 7,
+            "max_auto_depth": 9,
             "require_kh8": True,
             "require_kh9": True,
         }
@@ -284,21 +285,51 @@ def evaluate_layer(cur, depth: int, snap: dict) -> dict:
     if depth == 7:
         if not _table_exists(cur, "knowhow_kh7_eligibility"):
             return {"verdict": "skipped", "note": "KH7 表未建"}
+        # 以「最新 probe run_id」庫級裁決為準（非全域任意一列 decided_at）：
+        # decline 探針本應 fail，不得因同批／回放舊列覆蓋掉同 run 已存在的 pass。
+        cur.execute("SELECT max(run_id) FROM knowhow_kh7_eligibility")
+        mx = cur.fetchone()
+        if not mx or mx[0] is None:
+            return {"verdict": "fail", "note": "尚 KH7 裁決"}
+        run_id = int(mx[0])
+        cur.execute(
+            """
+            SELECT 1 FROM knowhow_kh7_eligibility
+             WHERE run_id=%s AND status='eligibility_pass'
+             LIMIT 1
+            """,
+            (run_id,),
+        )
+        if cur.fetchone():
+            return {
+                "verdict": "pass",
+                "note": f"run_id={run_id} 有 eligibility_pass（庫級；≠approve）",
+            }
         cur.execute(
             """
             SELECT status FROM knowhow_kh7_eligibility
-            ORDER BY decided_at DESC LIMIT 1
-            """
+             WHERE run_id=%s
+             ORDER BY eligibility_id DESC LIMIT 1
+            """,
+            (run_id,),
         )
         row = cur.fetchone()
-        if row and row[0] == "eligibility_pass":
-            return {"verdict": "pass", "note": "最近 KH7 eligibility_pass（庫級）"}
         if row:
             return {
                 "verdict": "fail",
-                "note": f"最近 KH7={row[0]}（誠實；不擋較淺）",
+                "note": f"run_id={run_id} 無 pass；最近={row[0]}（誠實；不擋較淺）",
             }
         return {"verdict": "fail", "note": "尚 KH7 裁決"}
+
+    if depth == 8:
+        from augur.knowledge import evidence as kh8
+
+        return kh8.evaluate_item_evidence(cur, snap)
+
+    if depth == 9:
+        from augur.knowledge import synthesis as kh9
+
+        return kh9.evaluate_item_synthesis(cur, snap)
 
     if depth == 10:
         gate = load_gate(cur)
@@ -526,19 +557,27 @@ def _selftest() -> int:
         print(f"  {'✓' if cond else '✗FAIL'} {name}")
 
     chk("LAYER_NAMES 0..10", set(LAYER_NAMES) == set(range(11)))
-    chk("UNBUILT 含 8/9", UNBUILT_LAYERS == {8, 9})
+    chk("UNBUILT 空（8/9 LAND）", UNBUILT_LAYERS == set())
     chk("channel local", channel_for_adapter("local_files") == "local_files")
     chk("channel topic", channel_for_adapter("openalex_works") == "topic_harvest")
     chk("ACTOR", ACTOR == "system:kh10_auto_admit")
-    # 模擬 evaluate 邏輯：無 DB 時 depth 8 skipped
+
     class _Cur:
-        def execute(self, *a, **k):
-            return None
+        """模擬：表未建 → evaluate 8/9 誠實 skipped。"""
+
+        def __init__(self):
+            self._last = None
+
+        def execute(self, sql, params=None):
+            s = str(sql)
+            if "to_regclass" in s:
+                self._last = (None,)
+            else:
+                self._last = None
 
         def fetchone(self):
-            return None
+            return self._last
 
-    # evaluate_layer depth 8 without needing real snap fields beyond structure
     snap = {
         "item_id": 1,
         "source_key": "x",
@@ -551,11 +590,18 @@ def _selftest() -> int:
         "protocol": "local_file",
         "entity_type": "doc",
     }
-    # depth 8 uses UNBUILT — no cur calls needed
     ev8 = evaluate_layer(_Cur(), 8, snap)
-    chk("depth8 skipped", ev8["verdict"] == "skipped")
+    chk("depth8 表未建→skipped", ev8["verdict"] == "skipped")
+    ev9 = evaluate_layer(_Cur(), 9, snap)
+    chk("depth9 表未建→skipped", ev9["verdict"] == "skipped")
     ev0 = evaluate_layer(_Cur(), 0, snap)
     chk("depth0 pass with text", ev0["verdict"] == "pass")
+
+    from augur.knowledge import evidence as kh8
+    from augur.knowledge import synthesis as kh9
+
+    chk("kh8 selftest", kh8._selftest() == 0)
+    chk("kh9 selftest", kh9._selftest() == 0)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

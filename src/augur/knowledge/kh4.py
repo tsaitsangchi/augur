@@ -146,8 +146,13 @@ def derive_states(row):
 
 
 def _select_sql(*, has_fulltext_status, has_import_qualification):
+    # terminal_blocked＝有 status 終態帳且仍無全文（FT-COV：有 text≠不可答；
+    # 僅因曾 skip_no_oa 等而留 status、後來已有 abstract/全文者不得誤擋 KH4）
     blocked_expr = (
-        "EXISTS (SELECT 1 FROM knowledge_fulltext_status f WHERE f.item_id=i.item_id)"
+        """(
+          EXISTS (SELECT 1 FROM knowledge_fulltext_status f WHERE f.item_id=i.item_id)
+          AND NOT EXISTS (SELECT 1 FROM knowledge_item_text x WHERE x.item_id=i.item_id)
+        )"""
         if has_fulltext_status else "false"
     )
     qual_expr = (
@@ -308,6 +313,37 @@ def _selftest():
         "source_key": "openalex_demo",
     })
     chk("完整語意材料 → eligible", sample["answer_status"] == ANSWER_ELIGIBLE)
+    # 有全文時 status 列不得當 terminal block（呼叫端應傳 has_terminal_block=False）
+    unblocked = derive_states({**{
+        "approval_status": "active",
+        "has_text": True,
+        "has_sentence": True,
+        "has_embedding": True,
+        "has_terminal_block": False,
+        "entity_type": "paper",
+        "license": "cc0",
+        "domain": "economics_econometrics_and_finance",
+        "adapter": "openalex_works",
+        "qual_verdict": None,
+        "staging_promoted": True,
+        "source_key": "crossref_works",
+    }})
+    chk("有 text 時不因舊 skip status 擋 eligible", unblocked["answer_status"] == ANSWER_ELIGIBLE)
+    still_blocked = derive_states({
+        "approval_status": "active",
+        "has_text": False,
+        "has_sentence": False,
+        "has_embedding": False,
+        "has_terminal_block": True,
+        "entity_type": "paper",
+        "license": "unknown",
+        "domain": "economics_econometrics_and_finance",
+        "adapter": "openalex_works",
+        "qual_verdict": None,
+        "staging_promoted": False,
+        "source_key": "crossref_works",
+    })
+    chk("無 text＋status → terminal_blocked", still_blocked["status_reason"] == "terminal_blocked")
     chk("本機 channel map 穩定", CHANNEL_BY_ADAPTER["local_files"] == "local" and CHANNEL_BY_ADAPTER["sftp"] == "sftp")
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1

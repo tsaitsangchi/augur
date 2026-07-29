@@ -18,8 +18,9 @@
   python scripts/run_knowhow_auto_admit.py --apply-up-to 4 --item-id 277861
   python scripts/run_knowhow_auto_admit.py --selftest
 
-誠實天花板（2026-07-29）: gate.max_auto_depth=7；KH7 庫級 eligibility_fail；
-KH8/9 UNBUILT skipped → 實務最高 admit_depth=6。--apply-up-to 10 仍止於 6。
+誠實天花板（2026-07-29 KH8-KH9-min-LAND）: gate.max_auto_depth=9；
+KH8/9 可評估（權重／合成帳；≠approve≠tradable）；KH10 仍屬治理列帳。
+--apply-up-to 10 受 gate.max_auto_depth 夾（現 9）。
 """
 from __future__ import annotations
 
@@ -59,7 +60,7 @@ def check() -> int:
         )
         print(f"items_with_text={cur.fetchone()[0]}")
         print(
-            "ceiling_note=實務最高 depth 6（KH7 fail／KH8-9 未 LAND；"
+            "ceiling_note=實務最高 depth 9（KH8/9 min-LAND；≠approve≠tradable；"
             f"max_auto_depth={g['max_auto_depth']}）"
         )
     return 0
@@ -125,13 +126,12 @@ def run_batch(*, up_to: int, limit: int, apply: bool, item_id: int | None,
 def run_until_empty(*, up_to: int, limit: int, activate_source: bool,
                     min_depth: int | None, max_rounds: int) -> int:
     """連續批次直到候選耗盡或本輪 advanced=0。"""
-    # 實務 cap：gate 會再夾；此處對齊「能抬的最高層」避免空轉 6→6
-    effective = min(up_to, 6) if up_to >= 6 else up_to
-    if up_to > 6:
+    # 實務 cap：gate 再夾；KH8/9 min-LAND → 最高 9（≠tradable／≠PME）
+    effective = min(up_to, 9) if up_to >= 9 else up_to
+    if up_to > 9:
         print(
-            f"note: 請求 up_to={up_to}，但 KH7 fail／KH8-9 未 LAND → "
-            f"drain 用 effective={effective}（清完 depth0）；"
-            "真推 7–10 須另開 KH7／KH8／KH9"
+            f"note: 請求 up_to={up_to}，drain 用 effective={effective} "
+            f"（gate／KH10 治理列另議）；≠approve≠tradable"
         )
     total_adv = 0
     for rnd in range(1, max_rounds + 1):

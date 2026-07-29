@@ -17,7 +17,12 @@ import re
 from typing import Any, Mapping, Sequence
 
 _SLOT_RE = re.compile(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}")
+_CJK_RUN_RE = re.compile(r"[\u4e00-\u9fff]+")
+_LATIN_WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9_-]{2,}")
+_LABEL_SEP_RE = re.compile(r"[·／/｜|\s]+")
 RRF_K = 60
+# exact 命中額外加權（≈再投一票於 rank≈1），避免 RRF 被哲學近鄰淹沒字面命中
+RRF_EXACT_BONUS = 1.0 / (RRF_K + 1)
 
 
 def expand_prompt(template: str, params: Mapping[str, Any] | None) -> str:
@@ -117,6 +122,8 @@ def rrf_merge(
         for rank, obj in enumerate(ranked, start=1):
             oid = id_fn(obj)
             scores[oid] = scores.get(oid, 0.0) + 1.0 / (k + rank)
+            if getattr(obj, "via", None) == "exact":
+                scores[oid] += RRF_EXACT_BONUS
             sources.setdefault(oid, set()).add(qkey)
             items[oid] = obj
     merged = [
@@ -151,15 +158,53 @@ def gap_flags(*, axis_hit_counts: Mapping[str, int], total_hits: int,
     return flags
 
 
+def label_anchor_tokens(label: str) -> list[str]:
+    """從軸 label 抽出落地錨點（確定性；非領域 hardcode）。
+
+    含：原字串／去分隔符字串；CJK run 之 3–4 字 n-gram＋整段(≥3)；
+    短 CJK run(≤2)整段；拉丁詞 ≥3 字。避免單用「原理」等 2 字泛詞誤綠。
+    """
+    lab = str(label or "").strip()
+    if not lab:
+        return []
+    anchors: list[str] = [lab]
+    cleaned = _LABEL_SEP_RE.sub("", lab)
+    if cleaned and cleaned != lab:
+        anchors.append(cleaned)
+    for run in _CJK_RUN_RE.findall(cleaned or lab):
+        if len(run) <= 2:
+            anchors.append(run)
+            continue
+        anchors.append(run)
+        for n in (3, 4):
+            if len(run) < n:
+                continue
+            for i in range(0, len(run) - n + 1):
+                anchors.append(run[i : i + n])
+    for m in _LATIN_WORD_RE.finditer(lab):
+        anchors.append(m.group(0))
+    out: list[str] = []
+    seen: set[str] = set()
+    for a in anchors:
+        key = a.lower()
+        if len(a) < 2 or key in seen:
+            continue
+        seen.add(key)
+        out.append(a)
+    return out
+
+
 def axis_labels_ungrounded(
     axis_labels: Sequence[str],
     top_hits: Sequence[Mapping[str, Any]],
     *,
     min_label_len: int = 2,
 ) -> bool:
-    """軸 label 是否「全部」未出現於任一命中 title／snippet（字串包含、大小寫不敏感）。
+    """軸 label 錨點是否「全部」未出現於命中 title／snippet／repr（大小寫不敏感）。
 
     True＝ungrounded（語意 top‑k 假命中常見）。空 label 清單→False。
+    校準：複合軸標（如「太陽能…核心」）可用 ≥3 字 CJK 錨點落地，
+    不放寬到無錨點的近鄰假綠（ZZZZ-NONEXISTENT 仍 fail）。
     """
     labels = [str(x).strip() for x in (axis_labels or []) if str(x).strip()]
     labels = [x for x in labels if len(x) >= min_label_len]
@@ -167,13 +212,18 @@ def axis_labels_ungrounded(
         return False
     if not top_hits:
         return True
+    anchors: list[str] = []
+    for lab in labels:
+        anchors.extend(label_anchor_tokens(lab))
+    if not anchors:
+        return False
     blob_parts: list[str] = []
     for h in top_hits:
         blob_parts.append(str(h.get("title") or ""))
         blob_parts.append(str(h.get("snippet") or ""))
         blob_parts.append(str(h.get("repr") or ""))
     blob = "\n".join(blob_parts).lower()
-    return not any(lab.lower() in blob for lab in labels)
+    return not any(a.lower() in blob for a in anchors)
 
 
 def spurious_risk(*, axis_hit_counts: Mapping[str, int], multi_source_hits: int, total_hits: int) -> str:
@@ -240,10 +290,24 @@ def summarize_probe_result(
     total = len(merged)
     tops = []
     for m in list(merged)[:top_n]:
-        brief = citation_brief(m["item"])
+        brief = citation_brief(m["item"], text_max=160)
         brief["rrf"] = round(float(m["score"]), 6)
         brief["sources"] = list(m.get("sources") or [])
         tops.append(brief)
+    # 證據路徑：合併 top ∪ 各軸 ranked 命中（防 RRF 淹沒字面 exact）
+    grounding_hits: list[dict] = list(tops)
+    seen_g: set[tuple] = set()
+    for h in grounding_hits:
+        seen_g.add((h.get("kind"), h.get("sent_id") or h.get("chunk_id") or h.get("title")))
+    for role in axis_roles:
+        for obj in list(ranked_lists.get(f"axis:{role}", []) or [])[:top_n]:
+            brief = citation_brief(obj, text_max=160)
+            key = (brief.get("kind"), brief.get("sent_id") or brief.get("chunk_id") or brief.get("title"))
+            if key in seen_g:
+                continue
+            seen_g.add(key)
+            brief["sources"] = [f"axis:{role}"]
+            grounding_hits.append(brief)
     # 軸落地校驗：優先用 axis:* query 字串，否則用 axis label
     axis_labels = [
         str(q.get("query") or "").strip()
@@ -252,7 +316,7 @@ def summarize_probe_result(
     ]
     if not axis_labels:
         axis_labels = [str(a.get("label") or "").strip() for a in axes]
-    ungrounded = axis_labels_ungrounded(axis_labels, tops)
+    ungrounded = axis_labels_ungrounded(axis_labels, grounding_hits)
     flags = gap_flags(
         axis_hit_counts=axis_hit_counts, total_hits=total, ungrounded=ungrounded,
     )
@@ -278,6 +342,7 @@ def summarize_probe_result(
         "gap_flags": flags,
         "spurious_risk": risk,
         "top_hits": tops,
+        "grounding_hits": grounding_hits[:32],
         "ungrounded_hits": ungrounded,
         "advise_ok": None,
         "pme_candidate": False,
@@ -363,6 +428,21 @@ def _selftest() -> int:
             [{"title": "第一性原理筆記", "snippet": "…"}],
         ) is False,
     )
+    check(
+        "錨點校準：複合 label 靠 3 字 n-gram",
+        axis_labels_ungrounded(
+            ["太陽能材料研發技術核心"],
+            [{"title": "rdai_全球太陽能資料來源探測報告", "snippet": "polysilicon"}],
+        ) is False,
+    )
+    check(
+        "錨點不假綠：僅「原理」不落地第一性原理",
+        axis_labels_ungrounded(
+            ["第一性原理"],
+            [{"title": "取得當月第一天", "snippet": "原理同取得最後一天"}],
+        ) is True,
+    )
+    check("anchor 含 太陽能", "太陽能" in label_anchor_tokens("太陽能材料研發技術核心"))
     empty_axes = [{"role": "a", "label": "ZZZZ-NONEXISTENT-AXIS-ALPHA"},
                   {"role": "b", "label": "ZZZZ-NONEXISTENT-AXIS-BETA"}]
     empty_qs = build_queries(
