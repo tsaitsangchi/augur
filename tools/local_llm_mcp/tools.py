@@ -274,9 +274,16 @@ def _generate_ollama(prompt: str, timeout: int, profile: str = "default") -> str
     req = urllib.request.Request(
         url, data=body, headers={"Content-Type": "application/json"}, method="POST"
     )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode())
+    # LANE-GOV(hugo 2026-07-30):所有 ollama 消費者經同一 flock 序列化——防雙 session 排隊使
+    # 評測臂單題延遲無上界(T1200 仍 9 題敗之根因)。鎖包「單次請求」非常駐行程;等鎖上限=timeout。
+    import fcntl
+    with open("/tmp/augur_llm.lock", "a") as _lk:
+        fcntl.flock(_lk, fcntl.LOCK_EX)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read().decode())
+        finally:
+            fcntl.flock(_lk, fcntl.LOCK_UN)
     except urllib.error.HTTPError as exc:
         detail = ""
         try:
