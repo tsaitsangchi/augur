@@ -47,13 +47,15 @@ def label_guarded_train(panels_k, next_p, h):
     return [p for p in panels_k if p + timedelta(days=int(h * 1.45)) <= next_p]
 
 
-def compute_proc_sha(pool, map_snap):
+def compute_proc_sha(pool, map_snap, panels):
+    """程序身分=碼+參數+池+map 快照+**panel 網格**(網格變=另一家族;GRID-A 加密後自動分家,防混帳)。"""
     h = hashlib.sha256()
     for fn in (gate1_hac, label_guarded_train, run_cutoffs):
         h.update(inspect.getsource(fn).encode())
     h.update(json.dumps(PROC_PARAMS, sort_keys=True).encode())
     h.update(json.dumps(sorted(pool)).encode())
     h.update(json.dumps({k: str(v) for k, v in sorted(map_snap.items())}).encode())
+    h.update(json.dumps([str(p) for p in panels]).encode())
     return h.hexdigest()[:12]
 
 
@@ -103,7 +105,7 @@ def run_cutoffs(cutoffs, probe=False):
         cur.execute("SELECT DISTINCT feature FROM feature_values ORDER BY 1")
         pool = [r[0] for r in cur.fetchall()]
         map_snap = {f: vss.map_direction(cur, f) for f in pool}
-        psha = compute_proc_sha(pool, map_snap)
+        psha = compute_proc_sha(pool, map_snap, panels)
         cal = label_mod.full_calendar(conn)
         print(f"proc_sha={psha} 池={len(pool)} 特徵 panels={len(panels)}")
         ic_cache = {}
@@ -218,7 +220,9 @@ def _selftest():
     chk("bootstrap 規則記錄於 decisions", "_bootstrap" in src)
     chk("sign-refuted 現任剔除(同 R3 精神)", '"g3"] is False' in src)
     chk("靜態基準=首 cutoff 集(帳本讀,非重算)", "ORDER BY cutoff_date LIMIT 1" in src)
-    chk("proc_sha 含程序碼+參數+池+map 快照", "map_snap" in inspect.getsource(compute_proc_sha))
+    chk("proc_sha 含程序碼+參數+池+map 快照+panel 網格(網格變=分家)",
+        "map_snap" in inspect.getsource(compute_proc_sha)
+        and "panels" in inspect.getsource(compute_proc_sha))
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 
