@@ -3,7 +3,7 @@
 # 全本地、免 sudo（user 級 systemd）、零 Claude usage。啟動規格與 start_chat.sh 對齊（單一 SSOT）。
 #
 # 服務(6 常駐):qdrant:6333 · ollama:11434 ← advisor:8399 ← chat:8090 · admin:8500 · probability:8600
-# timers:embed-catchup(03:30) · ata-advance(04:00 庫內 ATA sentences+embed,limit=200) · l2-deliberation(06:15,預設 disabled) · knowhow-refresh(週日,預設 disabled) · audit-watchdog(30m)
+# timers:embed-catchup(03:30) · ata-advance(04:00 庫內 ATA sentences+embed,limit=200) · admission-assist(05:00 dry-run 預設;ADM-AI-ASSIST S3) · l2-deliberation(06:15,預設 disabled) · knowhow-refresh(週日,預設 disabled) · audit-watchdog(30m)
 # 註:qdrant:6333=sentence_items serving 索引(hugo 2026-07-14 拍板上線;pgvector 仍 SSOT、Qdrant 可拋棄從 PG 重建)。
 #
 # ⚠ ollama 排序循環陷阱(2026-07-11 實證):user unit **不得**寫 After=default.target(與 WantedBy 成環→開機被丟棄)。
@@ -13,6 +13,7 @@
 #   bash install_services.sh              # 生成 unit + enable-linger + enable/start 5 服務 + embed timer;實測端口
 #   bash install_services.sh --with-l2    # 另 enable l2-deliberation timer(僅 hugo 開閘後)
 #   bash install_services.sh --with-refresh  # 另 enable know-how 週更 timer(件 A/G;R-A-R3 開閘後;保守純下游)
+#   bash install_services.sh --with-assist-apply  # admission-assist 改 --apply（仍禁 approve/activate；預設 dry-run）
 #   bash install_services.sh --status     # 只印現況,不動
 #   bash install_services.sh --uninstall  # 停用+移除所有 augur-* unit(保留 .env/資料)
 set -u
@@ -33,7 +34,7 @@ if [ "${1:-}" = "--status" ]; then
 fi
 
 if [ "${1:-}" = "--uninstall" ]; then
-  for u in augur-chat augur-advisor augur-admin augur-probability augur-ollama augur-qdrant augur-embed-catchup.timer augur-ata-advance.timer augur-l2-deliberation.timer augur-knowhow-refresh.timer augur-audit-watchdog.timer; do
+  for u in augur-chat augur-advisor augur-admin augur-probability augur-ollama augur-qdrant augur-embed-catchup.timer augur-ata-advance.timer augur-admission-assist.timer augur-l2-deliberation.timer augur-knowhow-refresh.timer augur-audit-watchdog.timer; do
     UC disable --now "$u" 2>/dev/null; UC stop "$u" 2>/dev/null
   done
   rm -f "$UD"/augur-*.service "$UD"/augur-*.timer
@@ -148,6 +149,42 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+# --- timer: admission-assist(ADM-AI-ASSIST S3;05:00;預設 --dry-run 安全;apply 須顯式) ---
+# 禁 timer 呼叫 review_knowledge_source.py --approve/--activate；只跑 assist_admission_review。
+# flock -n /tmp/augur_llm.lock：與 L2／演化鏈共用 LLM 單槽；搶不到即跳過本輪。
+ADM_ASSIST_LIMIT="${ADM_ASSIST_LIMIT:-20}"
+if [ "${ADM_ASSIST_APPLY:-0}" = "1" ] || [ "${1:-}" = "--with-assist-apply" ]; then
+  ADM_ASSIST_ARGS="--apply --limit ${ADM_ASSIST_LIMIT} --kind both"
+  ADM_ASSIST_MODE_NOTE="apply(有界寫帳本;仍禁升級)"
+else
+  ADM_ASSIST_ARGS="--dry-run --limit ${ADM_ASSIST_LIMIT} --kind both"
+  ADM_ASSIST_MODE_NOTE="dry-run(預設安全;零寫)"
+fi
+cat > "$UD/augur-admission-assist.service" <<EOF
+[Unit]
+Description=augur ADM-AI-ASSIST L2 預審 (${ADM_ASSIST_MODE_NOTE}; no HUMAN_ONLY)
+
+[Service]
+Type=oneshot
+WorkingDirectory=$ROOT
+EnvironmentFile=$ROOT/.env
+StandardOutput=append:$HOME/admission_assist.log
+StandardError=append:$HOME/admission_assist.log
+# flock -n：鎖忙→軟跳過 exit 0（不標 failed）；真腳本失敗仍非 0
+ExecStart=/bin/bash -c 'if /usr/bin/flock -n /tmp/augur_llm.lock $VENV $ROOT/scripts/assist_admission_review.py $ADM_ASSIST_ARGS; then exit 0; fi; if ! /usr/bin/flock -n /tmp/augur_llm.lock -c true; then echo "[admission-assist] skip: /tmp/augur_llm.lock busy"; exit 0; fi; exit 1'
+EOF
+cat > "$UD/augur-admission-assist.timer" <<EOF
+[Unit]
+Description=augur ADM-AI-ASSIST 預審 05:00 每日(預設 dry-run;S3)
+
+[Timer]
+OnCalendar=*-*-* 05:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
 # --- timer: knowhow-refresh(件 A/G;每週日 02:00;預設 disabled,待 R-A-R3 hugo 開閘;保守 --from-stage promote 純下游不觸外部 API) ---
 KNOWHOW_REFRESH_ARGS="${KNOWHOW_REFRESH_ARGS:---from-stage promote --domain finance}"
 cat > "$UD/augur-knowhow-refresh.service" <<EOF
@@ -250,11 +287,13 @@ for u in augur-qdrant augur-ollama augur-advisor augur-chat augur-admin augur-pr
 done
 UC enable augur-embed-catchup.timer 2>/dev/null; UC restart augur-embed-catchup.timer 2>/dev/null
 UC enable --now augur-ata-advance.timer 2>/dev/null; UC restart augur-ata-advance.timer 2>/dev/null  # KH-ATA-SCHED 庫內 ATA
+UC enable --now augur-admission-assist.timer 2>/dev/null; UC restart augur-admission-assist.timer 2>/dev/null  # ADM-AI-ASSIST S3（預設 dry-run）
 UC enable augur-audit-watchdog.timer 2>/dev/null; UC restart augur-audit-watchdog.timer 2>/dev/null   # audit 未綠期間監看;綠後 no-op
 UC enable augur-l2-deliberation.timer 2>/dev/null   # timer 檔就緒但不啟(--now),待開閘
 UC enable augur-knowhow-refresh.timer 2>/dev/null   # 件 A/G:timer 檔就緒不啟,待 R-A-R3 hugo 開閘(--with-refresh)
 [ "${1:-}" = "--with-l2" ] && { UC start augur-l2-deliberation.timer; echo "✓ L2 timer 已啟(--with-l2)"; }
 [ "${1:-}" = "--with-refresh" ] && { UC start augur-knowhow-refresh.timer; echo "✓ know-how refresh timer 已啟(--with-refresh;保守 --from-stage promote)"; }
+[ "${1:-}" = "--with-assist-apply" ] && echo "✓ admission-assist unit 已寫為 --apply（limit=${ADM_ASSIST_LIMIT};仍禁 approve/activate）"
 
 echo "── 端口實測(各服務啟動需數秒;advisor 待 ollama+模型) ──"
 sleep 6

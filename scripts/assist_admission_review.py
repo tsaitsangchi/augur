@@ -13,8 +13,10 @@
   python scripts/assist_admission_review.py                      # 無參數:印矩陣＋池量（唯讀）
   python scripts/assist_admission_review.py --dry-run --limit 3   # 產分數樣本，零寫
   python scripts/assist_admission_review.py --dry-run --limit 3 --no-llm  # 啟發式樣本（Ollama 離線）
-  python scripts/assist_admission_review.py --apply --limit 5    # 有界寫 assist 帳本（S2 另拍後常用）
+  python scripts/assist_admission_review.py --apply --limit 5    # 有界寫 assist＋source audit（禁升級）
   python scripts/assist_admission_review.py --selftest            # 純紅綠：禁 HUMAN_ONLY／禁 upgrade
+  # S3 timer（systemd user；預設 dry-run；apply 須 install_services.sh --with-assist-apply）:
+  #   systemctl --user start augur-admission-assist.service
 """
 from __future__ import annotations
 

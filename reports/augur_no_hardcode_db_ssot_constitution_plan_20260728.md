@@ -2,8 +2,9 @@
 
 **日期**：2026-07-28（同日補強：**know-how 產生**覆蓋＋A0 探針）  
 **性質**：[I] 執行層計畫（plan-first；CLAUDE #16／#20）  
-**Steward 拍板（2026-07-28）**：✅ **`NHC-PLAN`＋`NHC-S12`＋`FZ-keep`**（登錄＝`audits/NHC-PLAN-APPROVED-20260728.md`；收官＝`audits/NHC-S12-CLOSED-20260728.md`）  
-**未拍**：`NHC-CONSTITUTE`（**禁止改 [N]**）／`NHC-S3`（其餘 hardcode 待遷）  
+**Steward 拍板（2026-07-28）**：✅ **`NHC-PLAN`＋`NHC-S12`＋`FZ-keep`**（登錄＝`audits/NHC-PLAN-APPROVED-20260728.md`；收官＝`audits/NHC-S12-CLOSED-20260728.md`）
+**Steward 開跑（2026-07-29）**：✅ **`NHC-S3`＋`FZ-keep`**（「所有 working 開始跑」；收官＝`audits/NHC-S3-CLOSED-20260729.md`）
+**未拍**：`NHC-CONSTITUTE`（**禁止改 [N]**）
 **觸發**：Steward——(1) `_GLOSSARY` 類 CJK→EN 檢索詞硬編碼；(2)「此專案所有程式都不能 hard code，都需進 PostgreSQL 17 table」；(3) **請入憲**；(4) 優化已 hardcode 程式（遷 DB＋改讀表）；(5) **同日補充**：know-how **產生**不要 hard code——例「第一性原理在太陽能材料研發如何應用？」應由**一般機制＋DB 策展／檢索**作答，禁寫死詞表／領域模板／Q&A  
 **姊妹互鏈**：
 - `reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`（KH-XDOM；S01 **CLOSED**——跨域檢索／去作答閘；本計畫落地其「query 擴展＝DB、禁硬編碼大表」＋**組答不得再 hardcode 領域分支**）
@@ -19,7 +20,7 @@
 |---|---|
 | **結論** | Steward 定錨＝**策展的、會增減、決定行為的資料性映射／詞表／別名 → 住 PostgreSQL；禁 Python／JSON 當 SSOT**。首要標的＝`query_translation._GLOSSARY`→`retrieve_glossary`。**擴充定錨（同日）**：know-how **產生**＝一般管線（跨域檢索＋LLM 組答＋DB 原則／map／別名／glossary）——**禁止**為單一領域（太陽能／第一性原理…）寫死 Q&A、prompt 分支、詞表專用 if。 |
 | **S12 已做** | DDL＋13 種子＋`query_translation` 讀表；A0 四探針驗收尺；predict FORBIDDEN；advisor 重啟 |
-| **仍不做（本輪）** | 改憲章 [N]（無 `NHC-CONSTITUTE`）；S3 其餘 hardcode；為探針加領域 hardcode |
+| **仍不做（本輪）** | 改憲章 [N]（無 `NHC-CONSTITUTE`）；為探針加領域 hardcode |
 | **非目標** | 解凍 FinMind／FRED；預測熱路徑吃 glossary；把「所有字面量」解讀成禁常數／禁 regex／禁演算法閾值；把顧問產生題誤開成 PME 太陽能灌因子 |
 
 **建議原則表述（入憲草案要旨）**：  

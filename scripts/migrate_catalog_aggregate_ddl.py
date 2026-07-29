@@ -9,6 +9,10 @@ ingest.aggregate_method() 即以 DB 為權威(欄未建前自動退 code seed,�
   python scripts/migrate_catalog_aggregate_ddl.py --migrate  # 冪等建欄+seed 回填(ADD COLUMN IF NOT EXISTS)
   python scripts/migrate_catalog_aggregate_ddl.py --check    # 同無參數(唯讀)
 ⚠ DDL 於 audit/長跑對帳進行中勿跑(#30 鎖風暴);audit 綠後執行。
+NHC-S3(I1):欄建成後 runtime SSOT＝DB;code dict 僅 bootstrap／fail-safe 後備。
+
+執行指令矩陣(續):
+  python scripts/migrate_catalog_aggregate_ddl.py --selftest  # 零 DB 結構斷言
 """
 import sys
 
@@ -29,7 +33,27 @@ def status(cur):
     return has, vals
 
 
+def selftest():
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        print(("  ✓ " if cond else "  ✗ ") + name)
+        ok = ok and cond
+
+    chk("seed 含 GoldPrice=close", _AGGREGATE_DAILY.get("GoldPrice") == "close")
+    chk("seed 含 TaiwanStockNews=all", _AGGREGATE_DAILY.get("TaiwanStockNews") == "all")
+    chk("seed 僅 2 列(封閉)", len(_AGGREGATE_DAILY) == 2)
+    chk("aggregate_method helper 存在", callable(getattr(
+        __import__("augur.ingestion.ingest", fromlist=["aggregate_method"]),
+        "aggregate_method", None)))
+    print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
+    return 0 if ok else 1
+
+
 def main():
+    if "--selftest" in sys.argv:
+        return selftest()
     migrate = "--migrate" in sys.argv or "--run" in sys.argv
     with db.connect() as conn:
         with db.transaction(conn) as cur:
@@ -46,7 +70,7 @@ def main():
         with db.transaction(conn) as cur:
             has, vals = status(cur)
             print(f"完成:欄={'存在' if has else '未建'}; 值={vals}")
-    return 0
+            return 0 if has and vals.get("GoldPrice") == "close" and vals.get("TaiwanStockNews") == "all" else 1
 
 
 if __name__ == "__main__":

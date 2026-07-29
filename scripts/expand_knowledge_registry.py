@@ -109,6 +109,8 @@ AWARDS = ['Turing_Award_laureates', 'Fields_Medalists', 'Abel_Prize_laureates',
           'Wolf_Prize_in_Physics_laureates', 'Wolf_Prize_in_Chemistry_laureates',
           'Copley_Medal_recipients', 'Pritzker_Architecture_Prize_winners',
           'Kyoto_Prize_winners', 'Lasker_Award_recipients', 'Millennium_Technology_Prize_winners']
+# ↑ NHC-S3 A1：bootstrap-seed 豁免(#29b／同 DOMAIN_MAP_OVERRIDES)——本清單僅 expand 一次性
+#   INSERT knowledge_source;runtime SSOT＝DB 列。新增獎項＝admin INSERT 或補 SEED 後重跑 expand。
 SPARQL = ('SELECT DISTINCT ?name ?zh ?birth ?death WHERE { ?p dct:subject dbc:%s ; rdfs:label ?name . '
           'FILTER(LANG(?name)="en") OPTIONAL { ?p rdfs:label ?zh . FILTER(LANG(?zh)="zh") } '
           'OPTIONAL { ?p dbo:birthYear ?birth } OPTIONAL { ?p dbo:deathYear ?death } } LIMIT {limit}')

@@ -44,6 +44,7 @@ LICENSE_MAP = {       # Unpaywall license → DB CHECK 白名單四值;其餘(nc
     "cc-by": "cc-by", "cc-by-sa": "cc-by-sa", "cc0": "cc0",
     "pd": "public_domain", "public-domain": "public_domain", "publicdomain": "public_domain",
 }
+# ↑ NHC-S3 L1：結案豁免——封閉枚舉對映(邏輯側;與 LICENSE_WHITELIST／DB CHECK 同命運),非策展會增減別名表。
 CJK = re.compile(r"[一-鿿㐀-䶿豈-﫿]")
 DOI_PREFIX = re.compile(r"(?i)^(https?://(dx\.)?doi\.org/|doi:)")
 

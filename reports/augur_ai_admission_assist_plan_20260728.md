@@ -6,7 +6,7 @@
 > **位階**：執行層／工具記憶；**不改** [N]；零 FinMind／FRED  
 > **Steward 拍板**：✅ **`ADM-AI-ASSIST-PLAN`**（2026-07-28）＋預設同掛 **`FZ-keep`**  
 > **效力**：採納 L1→L2（建議／打分／audit）→L3 唯人；開 **S0–S1**（DDL＋預審；預設 dry-run）；**硬禁** AI／timer 執行 approve／activate  
-> **登錄**：`audits/ADM-AI-ASSIST-PLAN-APPROVED-20260728.md` · 收官＝`audits/ADM-AI-ASSIST-S01-CLOSED-20260728.md`  
+> **登錄**：`audits/ADM-AI-ASSIST-PLAN-APPROVED-20260728.md` · S01＝`audits/ADM-AI-ASSIST-S01-CLOSED-20260728.md` · S2＝`audits/ADM-AI-ASSIST-S2-CLOSED-20260729.md` · S3＝`audits/ADM-AI-ASSIST-S3-CLOSED-20260729.md`  
 > **S0 schema 定案**：**選項 C**＝`knowledge_admission_assist`（source／staging 共用帳本）
 
 ---
@@ -112,8 +112,8 @@
 |---|---|---|---|
 | **S0** | 拍板本檔＋定 schema 選項 A/B/C；live 池量補測（proposed／pending） | ✅ 選項 **C**；proposed≈3504／pending_staging≈18722（2026-07-28） | 未拍零 DDL |
 | **S1** | DDL＋`assist_admission_review.py` dry-run／selftest（禁 HUMAN_ONLY 紅） | ✅ selftest 綠；dry 分數樣本（見 CLOSED） | — |
-| **S2** | 有界 `--apply --limit`＋gov 唯讀建議列 | 抽核 20：人與建議方向一致≥閾值（另定） | 兩輪不過→關 timer、分數降級展示 |
-| **S3** | timer＋人裁工作流（copy-ready／可選一鍵仍走 TTY 身分） | 零次 AI 觸發 approve／activate（audit 掃描） | 任一違規→全域暫停 assist |
+| **S2** | 有界 `--apply --limit`＋gov 唯讀建議列 | ✅ 2026-07-29：`--apply --limit 3` 寫 assist＋audit；approval 零變；`/gov` 唯讀列（見 S2 CLOSED）；人與建議方向抽核閾值仍另定 | 兩輪不過→關 timer、分數降級展示 |
+| **S3** | timer＋人裁工作流（copy-ready／可選一鍵仍走 TTY 身分） | ✅ 2026-07-29：`augur-admission-assist` 05:00 預設 dry-run；apply 顯式；AI approve／activate＝0（見 S3 CLOSED） | 任一違規→全域暫停 assist |
 
 **明確不做**：LLM 放行權；AI 改 license／新域自動 active；繞 probe；解凍市場 API；改憲章 [N]；把 assist_score 寫進 admission_gate。
 

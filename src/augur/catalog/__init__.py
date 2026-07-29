@@ -197,6 +197,7 @@ def seed_table_zh(conn, path=_DATASETS_ZH):
 # 對映 reports/augur_datasource_finmind_fred_20260615（A2/A3/A5/A8/A9）+ finmind-fetch-methods 記憶。
 QUOTA_EXPIRY = "2026-06-24"           # FinMind sponsor token 到期；sponsor-only 抓法到期後抓不到（趕到期前）
 _DEDICATED_URL = {                    # 分點/券商聚合走專屬 URL（非 /data），報告 A2——「難抓」之正確 endpoint
+    # NHC-S3 C1：07-13 裁定維持結案——catalog build 種子寫 dedicated_url 欄;runtime 消費 DB 列。
     "TaiwanStockTradingDailyReport": "/taiwan_stock_trading_daily_report",
     "TaiwanStockTradingDailyReportSecIdAgg": "/taiwan_stock_trading_daily_report_secid_agg",
     "TaiwanStockWarrantTradingDailyReport": "/taiwan_stock_warrant_trading_daily_report",   # 權證分點（2026-06-16 實證 200-success）
