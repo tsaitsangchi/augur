@@ -6,3 +6,7 @@
 - **SUNSET (b)**：prodset active 1→2（門檻 >2、還差 1；新成員符號一致 ✓）。
 - **連帶修復**：孤 panel 2026-06-30（生產僅此特徵有值）→ 以 build_feature_panel 補全該月面板（毒化風險除）；經濟終關重名炸空已定位（canonical 已含之特徵不得再 --add）。
 - **殘餘債**：`feature_values` 無誠實閘（本次事件之所以無帳可查的根因）——上閘提案待 hugo 一字。
+
+## 補記（同日）
+
+全鏈入帳完成：`evolution_run=10`（human_promotion 事件列）→ `promotion_queue=311`（decided_by='hugo(對話拍板)〔claude 繕打 §8.1〕'）→ `evolution_apply_log=24`（gate_ref='HUMAN-PROMOTION'）→ prodset `last_action='promote'`。**四次 NOT NULL／CHECK 拒絕全記錄在案**——schema 誠實機械逼完整記帳，如設計。孤 panel 2026-06-30 補全建置已放；經濟終關改雙跑「canonical−lending vs canonical 全集」（`--drop-features` 新參數＋重名防呆）。prodset active=2。

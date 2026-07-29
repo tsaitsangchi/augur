@@ -45,9 +45,12 @@ def main():
     ap.add_argument("--interactions", default=None, help="加入交互特徵（逗號分隔、如 inter_fh_x_p10yr；eval 層橫斷面 z 乘積、見 cross_section.INTERACTIONS）")
     ap.add_argument("--add-features", default=None, dest="add_feats",
                     help="生產集外加候選特徵(逗號分隔;讀 staged 值,A2 經濟終關用——同 --since 兩跑同尺互比)")
+    ap.add_argument("--drop-features", default=None, dest="drop_feats",
+                    help="自 canonical 剔除特徵(逗號分隔)——已入 canonical 之成員做終關對照時用(vs 全集兩跑)")
     args = ap.parse_args()
     inter = [s.strip() for s in args.interactions.split(",")] if args.interactions else None
     adds = [s.strip() for s in args.add_feats.split(",")] if args.add_feats else None
+    drops = set(s.strip() for s in args.drop_feats.split(",")) if args.drop_feats else None
 
     with db.connect() as conn:
         with db.transaction(conn) as cur:
@@ -55,9 +58,13 @@ def main():
             panels = [r[0] for r in cur.fetchall()]
         panels = _nonoverlap(panels, args.h)              # 非重疊再平衡(h=60 季度為 no-op、h=120/252 抽半年/年)
         feats = None
-        if adds:
+        if adds or drops:
             from augur.evaluation import baseline
-            feats = baseline.canonical_features(conn, panels) + adds
+            feats = baseline.canonical_features(conn, panels)
+            if drops:
+                feats = [f for f in feats if f not in drops]
+            if adds:
+                feats = feats + [a for a in adds if a not in feats]   # 防重名(2026-07-29 齊=0 教訓)
         print(f"經濟回測:{len(panels)} 非重疊 panel（{args.since}+）× h={args.h} × 來回成本 {args.cost:.3%}（as-of、purged walk-forward）"
               + (f" / interactions={inter}" if inter else "") + (f" / +候選={adds}" if adds else ""))
         for model in ("B2_ridge", "M1_gbdt"):
