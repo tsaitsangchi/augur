@@ -132,7 +132,8 @@ def rrf_merge(
     return merged
 
 
-def gap_flags(*, axis_hit_counts: Mapping[str, int], total_hits: int) -> list[str]:
+def gap_flags(*, axis_hit_counts: Mapping[str, int], total_hits: int,
+              ungrounded: bool = False) -> list[str]:
     """依各軸／總命中產出缺口旗標（機械、可複現）。"""
     flags: list[str] = []
     if total_hits <= 0:
@@ -140,12 +141,39 @@ def gap_flags(*, axis_hit_counts: Mapping[str, int], total_hits: int) -> list[st
     for role, n in axis_hit_counts.items():
         if n <= 0:
             flags.append(f"no_axis:{role}")
-    if not flags and total_hits > 0:
+    if ungrounded and total_hits > 0:
+        flags.append("ungrounded_hits")
+    if "no_corpus" not in flags and "ungrounded_hits" not in flags and total_hits > 0:
         # 有命中但僅單軸覆蓋 → 交互橋薄弱
         covered = sum(1 for n in axis_hit_counts.values() if n > 0)
         if covered == 1 and len(axis_hit_counts) >= 2:
             flags.append("single_axis_only")
     return flags
+
+
+def axis_labels_ungrounded(
+    axis_labels: Sequence[str],
+    top_hits: Sequence[Mapping[str, Any]],
+    *,
+    min_label_len: int = 2,
+) -> bool:
+    """軸 label 是否「全部」未出現於任一命中 title／snippet（字串包含、大小寫不敏感）。
+
+    True＝ungrounded（語意 top‑k 假命中常見）。空 label 清單→False。
+    """
+    labels = [str(x).strip() for x in (axis_labels or []) if str(x).strip()]
+    labels = [x for x in labels if len(x) >= min_label_len]
+    if not labels:
+        return False
+    if not top_hits:
+        return True
+    blob_parts: list[str] = []
+    for h in top_hits:
+        blob_parts.append(str(h.get("title") or ""))
+        blob_parts.append(str(h.get("snippet") or ""))
+        blob_parts.append(str(h.get("repr") or ""))
+    blob = "\n".join(blob_parts).lower()
+    return not any(lab.lower() in blob for lab in labels)
 
 
 def spurious_risk(*, axis_hit_counts: Mapping[str, int], multi_source_hits: int, total_hits: int) -> str:
@@ -216,12 +244,26 @@ def summarize_probe_result(
         brief["rrf"] = round(float(m["score"]), 6)
         brief["sources"] = list(m.get("sources") or [])
         tops.append(brief)
-    flags = gap_flags(axis_hit_counts=axis_hit_counts, total_hits=total)
+    # 軸落地校驗：優先用 axis:* query 字串，否則用 axis label
+    axis_labels = [
+        str(q.get("query") or "").strip()
+        for q in queries
+        if str(q.get("qkey") or "").startswith("axis:")
+    ]
+    if not axis_labels:
+        axis_labels = [str(a.get("label") or "").strip() for a in axes]
+    ungrounded = axis_labels_ungrounded(axis_labels, tops)
+    flags = gap_flags(
+        axis_hit_counts=axis_hit_counts, total_hits=total, ungrounded=ungrounded,
+    )
     risk = spurious_risk(
         axis_hit_counts=axis_hit_counts,
         multi_source_hits=multi,
         total_hits=total,
     )
+    # 無落地字串卻「低假相關」＝誤導；升為 high（與 KH7 fail 對齊）
+    if ungrounded and risk == "low":
+        risk = "high"
     return {
         "probe_id": probe_id,
         "arity": arity,
@@ -236,6 +278,7 @@ def summarize_probe_result(
         "gap_flags": flags,
         "spurious_risk": risk,
         "top_hits": tops,
+        "ungrounded_hits": ungrounded,
         "advise_ok": None,
         "pme_candidate": False,
     }
@@ -305,6 +348,49 @@ def _selftest() -> int:
     check("summary 有 probe_id", summary["probe_id"] == "RKI-FP-AI-SOLAR")
     check("summary 禁寫死答案樹欄", "answer_tree" not in summary and summary.get("pme_candidate") is False)
     check("citation_brief item", citation_brief(_H(7))["kind"] == "item")
+
+    check(
+        "ungrounded：無意義軸+無關命中",
+        axis_labels_ungrounded(
+            ["ZZZZ-NONEXISTENT-AXIS-ALPHA"],
+            [{"title": "論衡", "snippet": "古之傳文"}],
+        ) is True,
+    )
+    check(
+        "grounded：label 出現於 title",
+        axis_labels_ungrounded(
+            ["第一性原理"],
+            [{"title": "第一性原理筆記", "snippet": "…"}],
+        ) is False,
+    )
+    empty_axes = [{"role": "a", "label": "ZZZZ-NONEXISTENT-AXIS-ALPHA"},
+                  {"role": "b", "label": "ZZZZ-NONEXISTENT-AXIS-BETA"}]
+    empty_qs = build_queries(
+        expanded_prompt="「ZZZZ-NONEXISTENT-AXIS-ALPHA」與「ZZZZ-NONEXISTENT-AXIS-BETA」",
+        axes=empty_axes,
+    )
+
+    class _Junk:
+        def __init__(self):
+            self.sent_id = 99
+            self.text = "論衡篇章"
+            self.item_title = "論衡"
+            self.score = 0.9
+
+    junk_merged = rrf_merge({"axis:a": [_Junk()], "axis:b": [_Junk()]})
+    empty_sum = summarize_probe_result(
+        probe_id="KNI-EVAL-EMPTY-CORPUS",
+        arity=2,
+        interaction_kind="kh_x_kh",
+        expanded_prompt=empty_qs[-1]["query"] if empty_qs else "",
+        axes=empty_axes,
+        queries=empty_qs,
+        ranked_lists={"axis:a": [_Junk()], "axis:b": [_Junk()]},
+        merged=junk_merged,
+    )
+    check("empty corpus → ungrounded_hits∈gap",
+          "ungrounded_hits" in empty_sum["gap_flags"])
+    check("empty corpus → spurious 不維持 low", empty_sum["spurious_risk"] != "low")
 
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1

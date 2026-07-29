@@ -287,7 +287,7 @@ _SCOPE_OPTIONS = "".join(f"<option>{v}</option>" for v in _SCOPES)
 PANELS = ("""
 <div class=card>
 <b>選擇檔案或資料夾入庫</b>
-<div style="font-size:13px;color:#73726c;margin-bottom:12px">點按鈕開啟檔案管理員選取(Windows 或 WSL 內的檔皆可),逐字入知識庫。license 受 DB CHECK 硬擋只准公開授權。大夾會顯示上傳／解析進度(第 k／N)。</div>
+<div style="font-size:13px;color:#73726c;margin-bottom:12px">點按鈕開啟檔案管理員選取(Windows 或 WSL 內的檔皆可),逐字入知識庫。license 白名單：公版／CC／<code>owned_local</code>（自有私有須配 <code>local_private</code>）。同內容再匯＝重複（已在庫、非失敗）。圖檔需 tesseract；舊 .doc/.ppt 需 libreoffice。大夾顯示上傳／解析進度(第 k／N)。</div>
 <div style="margin-bottom:12px">授權 <select id=inlic style="padding:8px;background:#faf9f5;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:6px">"""
 + _LIC_OPTIONS + """</select>
  範圍 <select id=inscope style="padding:8px;background:#faf9f5;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:6px">"""
@@ -360,7 +360,8 @@ async function doUpload(files){
    var sj=await sr.json()
    if(!sj.ok){res.textContent='進度查詢失敗:'+(sj.error||'');_setBusy(false);return}
    var k=sj.k||0,n=sj.n||uploaded,st=sj.status||'',fn=sj.file||''
-   var counts='成功 '+ (sj.ok_n||0)+' · 略過 '+((sj.skip_n||0)+(sj.dup_n||0)+(sj.short_n||0))+' · 失敗 '+(sj.fail_n||0)
+   // 重複＝內容 sha1 已在庫（冪等，非失敗）；略過＝無法抽取／缺 OCR／未支援副檔名等
+   var counts='成功 '+(sj.ok_n||0)+' · 重複 '+(sj.dup_n||0)+' · 略過 '+((sj.skip_n||0)+(sj.short_n||0))+' · 失敗 '+(sj.fail_n||0)
    _showProg('解析入庫 '+k+'／'+n,k,n||1,(fn?('目前:'+fn+' ('+st+') · '):'')+counts)
    if(sj.done){
     _showProg(sj.failed?'解析結束(有錯誤)':'解析完成',n||k,n||k||1,counts)
@@ -589,7 +590,7 @@ rounds <input name=rounds value=1 type=number min=1 max=20 style="width:60px;pad
 </div>
 </section>
 <section id=sec-local class=sec>
-<h1>本機匯入</h1><div class=desc>把本機或已掛載(/mnt、SSHFS)的資料夾/檔案逐字入知識庫。license 受 DB CHECK 硬擋只准公開授權。</div>"""
+<h1>本機匯入</h1><div class=desc>把本機或已掛載(/mnt、SSHFS)的資料夾/檔案逐字入知識庫。license 白名單含公版／CC／owned_local；同內容再匯記為「重複」（已在庫）。</div>"""
     + PANELS +
     f"""</section>
 <section id=sec-remote class=sec>
