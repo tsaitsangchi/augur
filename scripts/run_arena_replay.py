@@ -175,6 +175,27 @@ def status():
     return 0
 
 
+def scoreboard():
+    """replay 計分板(觀察級;口徑鏡射 live:平手 0.5、恆跌/恆 0.5 基準並排)。唯讀。"""
+    print("═══ replay 計分板(作用域=歷史重演;replay-確立唯經 dgate_replay_*;live 門另軌)═══")
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("""SELECT model_key, count(DISTINCT pred_date) AS ncl, count(*) AS n,
+            avg(CASE WHEN p_up=0.5 THEN 0.5 ELSE ((p_up>0.5)::int = y_up)::int END) AS hit,
+            avg((p_up - y_up)^2) AS brier, avg(y_up::float8) AS my
+            FROM direction_arena_replay WHERE settle_mode IN ('normal','last_trade')
+            GROUP BY 1 ORDER BY 1""")
+        rows = cur.fetchall()
+        if not rows:
+            print("(無已結列)")
+            return 0
+        print(f"  {'隊':<20}{'cluster':>8}{'n':>10}{'命中':>8}{'恆跌命中':>9}{'Brier':>8}{'Δ恆0.5':>9}")
+        for mk, ncl, n, hit, br, my in rows:
+            print(f"  {mk:<20}{ncl:>8,}{n:>10,}{float(hit):>8.4f}{1 - float(my):>9.4f}"
+                  f"{float(br):>8.4f}{float(br) - 0.25:>+9.4f}")
+        print("  口徑:平手計 0.5;Δ<0 才是贏;unsettleable 已除外;cluster<60 之門不在此表判(evaluate 另跑)")
+    return 0
+
+
 def _selftest():
     ok = True
 
@@ -213,10 +234,13 @@ def main(argv=None):
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--probe-one", action="store_true", dest="probe")
     ap.add_argument("--allow-pretrained", action="store_true")
+    ap.add_argument("--scoreboard", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
     if a.selftest:
         return _selftest()
+    if a.scoreboard:
+        return scoreboard()
     if a.probe:
         return run("majority", date(2026, 5, 1), date(2026, 6, 30), probe=True)
     if a.run and a.model and a.w_from and a.w_to:

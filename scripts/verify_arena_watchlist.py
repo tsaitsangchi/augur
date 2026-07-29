@@ -123,6 +123,54 @@ def status():
     return 0
 
 
+def replay_adjunct():
+    """W1/W2 之 replay 旁證(REPLAY-go R2):同口徑日內排列於歷史窗——**旁證/不計批次/不觸發 W2-a**。
+    批=每隔 5 交易日取一 pred_date(標籤窗不重疊);seed=該日 YYYYMMDD(旁證專用口徑,落註)。唯讀。"""
+    print(f"═══ W1/W2 replay 旁證(不計入 {PREREG} 批次、不觸發修復;live 凍結判準另軌)═══")
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SELECT date FROM \"TaiwanStockTotalReturnIndex\" WHERE stock_id='TAIEX' ORDER BY date")
+        cal = [r[0] for r in cur.fetchall()]
+        for team, tag, side in ((W1_TEAM, "W1 正排序", "low"), (W2_TEAM, "W2 反排序紅旗", "high")):
+            cur.execute("""SELECT DISTINCT pred_date FROM direction_arena_replay
+                WHERE model_key=%s AND settle_mode IN ('normal','last_trade') ORDER BY pred_date""", (team,))
+            pds = [r[0] for r in cur.fetchall()]
+            if not pds:
+                print(f"  {team}: 無 replay 列(待重演)")
+                continue
+            idx = {d: i for i, d in enumerate(cal)}
+            picked, last_i = [], -10
+            for d in pds:
+                i = idx.get(d, -1)
+                if i >= last_i + 5:
+                    picked.append(d)
+                    last_i = i
+            hits = []
+            for d in picked:
+                cur.execute("""SELECT p_up::float8, y_up FROM direction_arena_replay
+                    WHERE model_key=%s AND pred_date=%s AND settle_mode IN ('normal','last_trade')""",
+                    (team, d))
+                sub = cur.fetchall()
+                if len(sub) < 30:
+                    continue
+                arr = np.array(sub, dtype=float)
+                r = perm_percentile([(arr[:, 0], arr[:, 1])], int(d.strftime("%Y%m%d")))
+                hits.append(r["percentile"])
+            if not hits:
+                print(f"  {team}: 樣本不足")
+                continue
+            h = np.array(hits)
+            if side == "low":
+                n_sig = int((h < 100 * ALPHA_BONF).mean() * len(h))
+                print(f"  {tag}({team}):{len(h)} 批——百分位中位 {np.median(h):.1f};"
+                      f"落 α_Bonf 低端批數 {n_sig}/{len(h)}({n_sig / len(h):.1%})")
+            else:
+                n_red = int((h > 95).sum())
+                print(f"  {tag}({team}):{len(h)} 批——百分位中位 {np.median(h):.1f};"
+                      f">95 紅旗批 {n_red}/{len(h)}({n_red / len(h):.1%})"
+                      f"——持續病理判讀供人閱,W2-a 觸發仍唯 live 批 2")
+    return 0
+
+
 def _selftest():
     from datetime import date
     ok = True
@@ -160,10 +208,13 @@ def _selftest():
 def main(argv=None):
     ap = argparse.ArgumentParser(description="arena 觀察名單凍結檢定(只驗不改)")
     ap.add_argument("--run", action="store_true")
+    ap.add_argument("--replay-adjunct", action="store_true", dest="adjunct")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
     if a.selftest:
         return _selftest()
+    if a.adjunct:
+        return replay_adjunct()
     if a.run:
         return run()
     print(__doc__)
