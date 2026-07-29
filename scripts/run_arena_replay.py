@@ -185,7 +185,7 @@ def _selftest():
 
     ds = [date(2026, 1, d) for d in (5, 6, 7, 8, 9, 12)]
     cl = {d: 10.0 + i for i, d in enumerate(ds)}
-    chk("結算 normal", settle_one(ds, cl, date(2026, 1, 5), date(2026, 1, 9)) == ("normal", 13.0, date(2026, 1, 9)))
+    chk("結算 normal", settle_one(ds, cl, date(2026, 1, 5), date(2026, 1, 9)) == ("normal", 14.0, date(2026, 1, 9)))
     chk("結算 last_trade(停牌回溯 ≤30d)",
         settle_one(ds, cl, date(2026, 1, 5), date(2026, 1, 10))[0] == "last_trade")
     chk("結算 unsettleable(label 前無 >pred 成交)",
