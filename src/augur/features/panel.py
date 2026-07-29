@@ -172,6 +172,7 @@ def build_panel(conn, panel_date, stock_ids, *, progress=None):
             continue
         data = [(panel_date, sid, f, v) for f, v in feats.items()]
         with db.transaction(conn) as cur:
+            cur.execute("SET LOCAL augur.honesty_write = 'on'")   # FV-GUARD 通行證(合法 writer;閘=fv_guard trigger)
             execute_values(
                 cur,
                 f"INSERT INTO {FEATURE_TABLE} (panel_date, stock_id, feature, value) VALUES %s "
