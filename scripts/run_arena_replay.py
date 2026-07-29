@@ -22,7 +22,7 @@ import bisect
 import hashlib
 import subprocess
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import _bootstrap  # noqa: F401
@@ -141,15 +141,16 @@ def run(model, w_from, w_to, allow_pretrained=False, probe=False):
                     continue
                 mode, lc, _ = settle_one(sd[tgt], sc[tgt], t, label_market)
                 base = sc[tgt][t]
+                stamp = None if mode == "unsettleable" else datetime.now()   # settled_at:unsettleable 留 NULL(settled_only 過濾語意)
                 if mode == "unsettleable":
-                    rows.append((rid, model, tgt, t, H_TD, float(p), t, None, None, mode))
+                    rows.append((rid, model, tgt, t, H_TD, float(p), t, None, None, mode, stamp))
                 else:
                     ret = lc / base - 1
-                    rows.append((rid, model, tgt, t, H_TD, float(p), t, int(ret > 0), round(ret, 6), mode))
+                    rows.append((rid, model, tgt, t, H_TD, float(p), t, int(ret > 0), round(ret, 6), mode, stamp))
             if rows:
                 execute_values(cur, """INSERT INTO direction_arena_replay
                     (replay_run_id, model_key, target_id, pred_date, horizon_td, p_up,
-                     train_data_max_date, y_up, realized_ret, settle_mode)
+                     train_data_max_date, y_up, realized_ret, settle_mode, settled_at)
                     VALUES %s ON CONFLICT DO NOTHING""", rows)
                 conn.commit()
                 n += len(rows)

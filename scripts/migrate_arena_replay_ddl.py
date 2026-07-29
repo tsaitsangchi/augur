@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS direction_arena_replay (
     y_up                INT CHECK (y_up IN (0, 1)),
     realized_ret        NUMERIC,
     settle_mode         TEXT NOT NULL CHECK (settle_mode IN ('normal', 'last_trade', 'unsettleable')),
+    settled_at          TIMESTAMPTZ,        -- estimand settled_only 慣例(unsettleable=NULL)
     CHECK (train_data_max_date <= pred_date),           -- #8 洩漏硬 CHECK
     PRIMARY KEY (replay_run_id, model_key, target_id, pred_date, horizon_td)
 );
