@@ -10,3 +10,8 @@
 ## 補記（同日）
 
 全鏈入帳完成：`evolution_run=10`（human_promotion 事件列）→ `promotion_queue=311`（decided_by='hugo(對話拍板)〔claude 繕打 §8.1〕'）→ `evolution_apply_log=24`（gate_ref='HUMAN-PROMOTION'）→ prodset `last_action='promote'`。**四次 NOT NULL／CHECK 拒絕全記錄在案**——schema 誠實機械逼完整記帳，如設計。孤 panel 2026-06-30 補全建置已放；經濟終關改雙跑「canonical−lending vs canonical 全集」（`--drop-features` 新參數＋重名防呆）。prodset active=2。
+
+## 補記二（同日）：經濟終關順序與首雙跑作廢
+
+- 首次 econ 雙跑**作廢**：GRID-A 月頻加密於兩跑之間持續灌入 ≥2021-04 panel → 期數 17 vs 14、基準淨 12.6% vs 19.0%＝不同尺（claude 自查發現、未採信任何一側數字）。重跑排 GRID-A 收槍後之凍定網格。
+- **順序誠實註記**：lending 已先promoted（人搬）→ econ 屬**事後補證**而非前置閘；若重跑判負，誠實路徑＝demote 提案呈 hugo（不迴避）。
