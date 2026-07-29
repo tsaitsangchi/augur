@@ -1,41 +1,54 @@
 # KNI-S3 CLOSED（2026-07-29）
 
 > **性質**：[I] 執行收官；不創設 [N]。  
-> **拍板**：`KNI-S3 + KH7-PLAN + KH7-S1 + RKI-keep + NHC-keep + FZ-keep + HUMAN-APPROVE-keep`  
-> **計畫**：`reports/augur_knowhow_nary_interaction_plan_20260728.md` §S3；對齊 `reports/augur_kh7_adversarial_eligibility_plan_20260729.md`  
-> **報告**：`reports/augur_kni_s3_eval_20260729.md`
+> **拍板**：`audits/KH7-PLAN-APPROVED-20260729.md`（含 `KNI-S3`）  
+> **計畫**：`reports/augur_kh7_adversarial_eligibility_plan_20260729.md` §2.3／§3／§7（含 live 教訓修訂）  
+> **不含**：approve／activate／KH8–10／PME-XDOM-SOLAR／FinMind／FRED／入憲
 
-## 做了什麼
+## 一、做了什麼
 
-| 產物 | 狀態 |
+| 項 | 狀態 | 摘要 |
+|---|---|---|
+| DDL＋種子 | ✅ | `migrate_knowhow_eval_suite_ddl.py --apply`；`knowhow_eval_suite_case`×4；探針 `KNI-EVAL-EMPTY-CORPUS` |
+| Eval CLI | ✅ | `eval_knowhow_interaction_probes.py`（複用 `run_probe`；live＋ungrounded／KH7 decline） |
+| Live 評測 | ✅ | `--run --write-ledger --report …`；**run_id=5**；decline **PASS**（`ungrounded_hits`） |
+| Live 教訓 | ✅ | e5 top‑k 對無意義軸仍有近鄰 → decline≠裸 `no_corpus`；改 ungrounded 字串校驗 |
+| FZ／NHC／HUMAN-APPROVE | ✅ | 零市場 API；無專題答案樹；不碰 approve |
+
+## 二、Live 指標摘要（run_id=5）
+
+| case_id | role | merged | multi_src | spurious | gap |
+|---|---|---:|---:|---|---|
+| KNI-S3-FULL-FP-AI-SOLAR | full_triple | 23 | 1 | high | ungrounded_hits |
+| KNI-S3-ABL-NO-FP | ablation_no_principle | 18 | 0 | medium | ungrounded_hits |
+| KNI-S3-ABL-NO-AI | ablation_no_ai | 16 | 2 | high | ungrounded_hits |
+| KNI-S3-EXPECT-DECLINE | expect_decline | 16 | 2 | high | ungrounded_hits → **PASS** |
+
+消融：no-FP multi_src 相對 full **−1**；decline 靠 ungrounded 機械綠（非假裝 KNN 空）。
+
+報告：`reports/augur_kni_s3_eval_20260729.md`
+
+## 三、驗證
+
+| 檢查 | 結果 |
 |---|---|
-| `knowhow_eval_suite_case`＋4 case 種子 | ✅ |
-| `KNI-EVAL-EMPTY-CORPUS` decline 探針 | ✅ |
-| `scripts/eval_knowhow_interaction_probes.py` | ✅ live＋ledger |
-| `ungrounded_hits` 軸落地旗標（`interaction_probe`） | ✅ 修假 decline／假綠 |
-| decline 機械斷言 | ✅ **PASS**（`ungrounded_hits`） |
+| migrate／eval `--selftest` | ✅ |
+| `check_cmd_matrix.py` | ✅ NEED=0 |
+| Live decline assert | ✅ PASS（ungrounded_hits） |
 
-## Live 指標（run_id=4）
+## 四、變更檔
 
-| role | probe | merged | multi | spur | gap | kh7 |
-|---|---|---:|---:|---|---|---|
-| full_triple | RKI-FP-AI-SOLAR | 23 | 1 | high | ungrounded_hits | fail |
-| ablation_no_principle | RKI-AI-SOLAR-RD | 18 | 0 | medium | ungrounded_hits | fail |
-| ablation_no_ai | RKI-FP-SOLAR-CORE | 16 | 2 | high | ungrounded_hits | fail |
-| expect_decline | KNI-EVAL-EMPTY-CORPUS | 16 | 2 | high | ungrounded_hits | fail |
+- `scripts/migrate_knowhow_eval_suite_ddl.py` — **新**
+- `scripts/eval_knowhow_interaction_probes.py` — **新**
+- `src/augur/knowledge/interaction_probe.py` — ungrounded gap／spurious 校驗（與 KH7 對齊）
+- `reports/augur_kni_s3_eval_20260729.md`
+- 本 CLOSED
 
-說明：語料對太陽能／第一性軸字面未落地命中 title／snippet → **誠實全 fail**（非答案 SSOT）；decline 案例正確辨識假近鄰。
+## 五、硬邊界
 
-## 驗收
-
-| ID | 結果 |
+| 項 | 結果 |
 |---|---|
-| V-TRACE | ✅ 數字出自 stdout／ledger run_id=4 |
-| V-NHC | ✅ 無專支答案樹 |
-| V-FZ | ✅ 零 FinMind／FRED |
-| decline assert | ✅ PASS（ungrounded_hits） |
-| selftest | ✅ interaction_probe／eval |
-
-## 非範圍
-
-- 不開 PME-XDOM-SOLAR；不自動 approve；不入憲
+| 零 FinMind／FRED | ✅ |
+| 無專題答案樹 | ✅ |
+| 不改 approval_status | ✅ |
+| 不改 [N] | ✅ |

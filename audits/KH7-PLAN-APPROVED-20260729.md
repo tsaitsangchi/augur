@@ -25,7 +25,7 @@
 
 2026-07-29：**KNI-S3／KH7-S1 CLOSED**（含 ungrounded 假綠修補）。  
 - 修訂：軸 label 未落地命中 → `ungrounded_hits` → KH7 **fail**；decline assert 認此旗標（**不用** dry_run 假裝空庫）  
-- live：`run_id=4`；decline **PASS**（ungrounded_hits）；四探針 KH7 皆 `eligibility_fail`（語料字面未落地＝誠實）  
+- live：`run_id=5`；decline **PASS**（ungrounded_hits）；四探針 KH7 皆 `eligibility_fail`（語料字面未落地＝誠實）  
 - 收官：`audits/KNI-S3-CLOSED-20260729.md`、`audits/KH7-S1-CLOSED-20260729.md`  
 - **HUMAN-APPROVE-keep**：未碰 approve／activate／`approval_status`  
-- 封存：若需 push，手動 `bash archive_push.sh --slug kni-s3-kh7-s1-ungrounded`
+- 封存：`bash scripts/archive_push.sh --slug kni-s3-kh7-s1`（scoped，略過無關髒檔）
