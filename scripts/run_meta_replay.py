@@ -147,9 +147,10 @@ def run_cutoffs(cutoffs, probe=False):
                           "dir": d if d in (1, -1) else str(d), "g3": ok3}
                 if ok1 and ok3:
                     passers13.append(f)
-            if incumbent is None:
+            if not incumbent:   # None 或空集皆 bootstrap——空集無從測增量;且 run_ladder(feats=[]) 會
+                                # falsy 退回全 canonical 當基準(2026-07-29 preview 抓到的卡空雷)
                 prodset = sorted(passers13)
-                dec["_bootstrap"] = "首 cutoff 跳 gate2(凍結規則)"
+                dec["_bootstrap"] = "無現任(None/空)跳 gate2 直收 passers(凍結規則)"
             else:
                 drop = [f for f in incumbent if f in dec and dec[f]["g3"] is False]
                 keep = [f for f in incumbent if f not in drop]
@@ -218,6 +219,7 @@ def _selftest():
     chk("panels≤cutoff 斷言", "assert all(p <= cutoff" in src)
     chk("resume:同 (sha,cutoff) 跳過", "SELECT 1 FROM meta_replay_cutoff" in src)
     chk("bootstrap 規則記錄於 decisions", "_bootstrap" in src)
+    chk("空現任=bootstrap(run_ladder 空列表 falsy 雷,preview 2026-07-29)", "if not incumbent:" in src)
     chk("sign-refuted 現任剔除(同 R3 精神)", '"g3"] is False' in src)
     chk("靜態基準=首 cutoff 集(帳本讀,非重算)", "ORDER BY cutoff_date LIMIT 1" in src)
     chk("proc_sha 含程序碼+參數+池+map 快照+panel 網格(網格變=分家)",
