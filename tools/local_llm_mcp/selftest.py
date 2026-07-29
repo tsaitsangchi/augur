@@ -93,6 +93,12 @@ def _test_no_write_tool() -> None:
                     for kw in node.keywords:
                         if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
                             mode = str(kw.value.value)
+                    # LANE-GOV 唯一例外(hugo 2026-07-30):flock 檔 'a' 開檔=車道序列化,非資料寫入。
+                    # 僅豁免此一常數路徑;其他任何寫入照擋(純度鎖不鬆動)。
+                    target = (str(node.args[0].value)
+                              if node.args and isinstance(node.args[0], ast.Constant) else "")
+                    if target == "/tmp/augur_llm.lock" and mode == "a":
+                        continue
                     if any(c in mode for c in "wax+"):
                         raise AssertionError(f"{py.name} 出現寫入 open(mode={mode!r})")
 
