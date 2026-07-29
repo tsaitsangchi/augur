@@ -33,6 +33,9 @@ PREDICT_ROLE = "augur_predict"
 # local_model_/local_ai_/raw_evolution_:LAIEVO/RAWEVO 帳本(V2 Phase 2.2/I3,2026-07-26)——
 #   三軸隔離 A9:predict 對之零授權;raw_evolution_/local_ai_ 為 Phase 5 未來表、先封前綴
 FORBIDDEN_PREFIXES = ("philosophy_", "knowledge_", "advisor_distill_",
+                      "advisor_probe_",  # P-B chat 進化燃料;非預測輸入
+                      "knowhow_",        # KH／RKI／admit 帳本;素養／策展側
+                      "meta_replay_",    # meta replay 帳本;非 serve 熱路徑
                       "local_model_", "local_ai_", "raw_evolution_")
 FORBIDDEN_EXPLICIT = {
     "chat_session", "chat_message",                                    # 對話原文
@@ -51,7 +54,16 @@ FORBIDDEN_EXPLICIT = {
     # NHC-S12:CJK→EN 檢索詞表(顧問 retrieve 用;素養層、預測 role 零存取;V-ISO)
     "retrieve_glossary",
     # RKI-S01:交互探針帳本(顧問／探針用;非特徵權重;預測 role 零存取;V-ISO)
+    # （knowhow_ 前綴已蓋 probe_result／run;本列保留明示）
     "knowhow_interaction_probe",
+    # 2026-07-29 ASOF 寫庫補登:19 未登錄表全歸禁(非預測熱路徑)→ --apply 可放行 DELETE GRANT
+    "arena_replay_run",              # arena 回放帳本;非 serve
+    "factor_direction_ruling",       # 人裁方向;驗證／advisor 側(與 principle_factor_map 同拒)
+    "license_regime_map",            # 全文／來源許可;素養抓取側
+    "source_license_whitelist",      # 同上
+    "source_pacing_policy",          # ingestion 步調;預測⊥API 仍禁讀
+    "raw_table_coverage_snapshot",   # RAWEVO 覆蓋快照;非特徵
+    "steward_question_ledger",       # Steward 提問佇列;治權側
 }
 # 注:entity_type_catalog / entity_registry / entity_alias 屬 resolution 基礎設施(Phase 2 消費端須 JOIN 已解析
 #     augur_id),故不列 forbidden、留 allowed(唯讀);其 append-only/permanence 由 migrate_identity_ddl 硬化。

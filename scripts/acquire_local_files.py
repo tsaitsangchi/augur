@@ -264,6 +264,43 @@ def main():
               flush=True)
         print("[local_import_done]", flush=True)
 
+        # ── 入庫即跑 KH：對本 job 新入庫項做 progressive admit（v1.48.0）──
+        if not args.dry_run and not args.acquire_only and stats["ok"] > 0:
+            try:
+                from augur.knowledge import auto_admit as aa
+
+                with db.connect() as kh_conn, kh_conn.cursor() as kh_cur:
+                    gate = aa.load_gate(kh_cur)
+                    if gate["enabled"] and gate["progressive_enabled"]:
+                        # 取本 job 成功入庫的 item_id
+                        kh_cur.execute(
+                            "SELECT DISTINCT q.item_id "
+                            "FROM knowledge_import_qualification q "
+                            "WHERE q.job_id=%s AND q.ingest_status='inserted' "
+                            "AND q.item_id IS NOT NULL",
+                            (job_id,),
+                        )
+                        new_ids = [r[0] for r in kh_cur.fetchall()]
+                        cap = gate["max_auto_depth"]
+                        adv = 0
+                        for iid in new_ids:
+                            r = aa.progressive_item(
+                                kh_cur, iid, up_to=cap, apply=True,
+                                activate_source=True,
+                            )
+                            if r.get("ok") and r["admit_depth_after"] > r.get("admit_depth_before", -1):
+                                adv += 1
+                        kh_conn.commit()
+                        print(
+                            f"[kh_progressive] {len(new_ids)} items → "
+                            f"advanced={adv} cap={cap}",
+                            flush=True,
+                        )
+                    else:
+                        print("[kh_progressive] gate disabled; skipped", flush=True)
+            except Exception as e:
+                print(f"[kh_progressive] warn: {e}", flush=True)
+
 
 if __name__ == "__main__":
     main()

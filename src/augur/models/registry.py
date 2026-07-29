@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from pathlib import Path
 
 from augur.core import db
 
@@ -43,17 +44,24 @@ def register(model_id, family, horizon, train_span, asof_snapshot, feats_hash, s
 
 
 def latest(family, horizon, asof_snapshot):
-    """查 ≤as_of 之最新同 family/horizon 模型(predict/resume 載入);無則 None。回 dict。"""
+    """查 ≤as_of 之最新同 family/horizon 模型(predict/resume 載入);無則 None。回 dict。
+
+    跳過 artifact 檔不存在之 ghost 登錄列(真兆:registry 有列、disk 無 joblib)——
+    仍依 asof_snapshot DESC, created_at DESC 選下一可用者;全缺則 None。
+    """
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute(
             """SELECT model_id, artifact_path, feats_hash, metrics::text, git_sha
                FROM model_registry
                WHERE family=%s AND horizon=%s AND asof_snapshot<=%s
-               ORDER BY asof_snapshot DESC, created_at DESC LIMIT 1""",
+               ORDER BY asof_snapshot DESC, created_at DESC""",
             (family, horizon, asof_snapshot))
-        r = cur.fetchone()
-        return None if not r else {"model_id": r[0], "artifact_path": r[1],
-                                   "feats_hash": r[2], "metrics": r[3], "git_sha": r[4]}
+        for r in cur.fetchall():
+            path = r[1]
+            if path and Path(path).is_file():
+                return {"model_id": r[0], "artifact_path": path,
+                        "feats_hash": r[2], "metrics": r[3], "git_sha": r[4]}
+        return None
 
 
 def exists(model_id):
@@ -85,6 +93,9 @@ def _selftest():
                               "feats_hash", "seed", "metrics", "artifact_path")))
     chk("latest 簽名=(family,horizon,asof_snapshot)",
         list(inspect.signature(m.latest).parameters) == ["family", "horizon", "asof_snapshot"])
+    # ghost skip：docstring／實作須含 is_file 護欄(缺 joblib 不選)
+    src = inspect.getsource(m.latest)
+    chk("latest 跳過缺檔 artifact(is_file)", "is_file" in src)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

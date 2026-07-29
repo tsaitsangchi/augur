@@ -19,6 +19,6 @@
 
 | 軌 | CLOSED |
 |---|---|
-| admit→9 | started 2026-07-29T15:47:18+08:00 · PID=2565122 · log=/tmp/knowhow_admit_until_empty.log · cmd=`--until-empty --apply-up-to 9 --limit 5000 --max-rounds 200` · gate.max_auto_depth=9 · starting buckets={3:501,7:145770,9:3}（UNBUILT empty）· round1 `candidates=5000 up_to=9 apply=True` · FZ-keep |
-| ASOF 寫庫 | （待） |
-| SOLAR-S0 | （待） |
+| admit→9 | **CLOSED** 2026-07-29T16:31:13+08:00 · exit=`no advance (stuck queue) after round 34` · `total_advanced=145771` · final buckets=`{3: 502, 9: 145773}` · `items_with_text=157972` · rounds=34/200 · PID=2565122 · log=/tmp/knowhow_admit_until_empty.log · cmd=`--until-empty --apply-up-to 9 --limit 5000 --max-rounds 200` · start 15:47:18 buckets={3:501,7:145770,9:3} · post-`--check` buckets={3:506,9:145773} items_with_text=157975 · FZ-keep · ≠approve≠tradable |
+| ASOF 寫庫 | `audits/SH-ASOF-WRITE-CLOSED-20260729.md` — H20/40/60 @ 2026-06-30 各 226 列寫入 `prediction_values`（合計 678）；GRANT DELETE＋ghost skip 已落；≠確立級／禁 reval／FZ-keep |
+| SOLAR-S0 | `audits/PME-XDOM-SOLAR-S0-CLOSED-20260729.md` — S0 範圍＋三桶（`reports/augur_pme_xdom_solar_s0_20260729.md`）；H1–H6 可對映／H7 缺特徵／H8 拒（RKI·embedding·配方·AI-PREDICT 混軸）；桶 A 14 feature 真列數；FV distinct=38／maps=89／`xdom_loop=solar`=0；零 map INSERT／零閘／零 APPLY；GATE-keep＋FZ-keep |
