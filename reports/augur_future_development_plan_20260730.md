@@ -31,7 +31,7 @@
 | **語意側套件** | sentence-transformers 5.6.0・transformers 5.12.1・torch 2.4.1・accelerate 1.14.0・datasets 2.17.1 | `pip list` |
 | **微調棧** | ⚠ **無 peft／trl／bitsandbytes／gguf／dspy** ——LoRA 路線環境**尚未備**（記憶曾誤記為已裝，本日親驗推翻） | `pip list` |
 | **服務（user-level systemd）** | 11 unit＋5 timer：`augur-{chat,advisor,admin,probability,qdrant,ollama}.service`、`augur-{admission-assist,ata-advance,audit-watchdog,embed-catchup,l2-deliberation}.service+.timer` | `~/.config/systemd/user/` |
-| **程式** | `src/augur/` **18 package**：advisor・arena・audit・catalog・core・deliberation・evaluation・evolution・execution・features・identity・ingestion・knowledge・models・philosophy・universe（＋`__init__`） | `ls` |
+| **程式** | `src/augur/` **16 package**：advisor・arena・audit・catalog・core・deliberation・evaluation・evolution・execution・features・identity・ingestion・knowledge・models・philosophy・universe | `ls -d src/augur/*/ \| grep -v __pycache__` |
 | **硬體上限** | GTX 1650 4GB（無 tensor core）→ **1.7b QLoRA 可行、4b no-go**；單通道記憶體（hugo 已拍板不修） | `ops/machines/PC002-S1800.md` |
 
 ## 三、核心實測發現：「一條路」目前是六條並行的路
@@ -276,7 +276,7 @@ END $$ LANGUAGE plpgsql;
 | ③思想原理 | `principle_domain_map`(8 列)→factor 映射 | 映射→假說→四關之接線閉合；跨域擴張 | 零 schema 變動 |
 | ④AI 能力 | `eval_local_model` 凍結集＋能力格 v2；A′ 待判 | **P0 環境前置**（peft/trl/bitsandbytes＋4-bit smoke）→1.7b QLoRA→權重鏈 | 環境；訓練資料落點表 |
 | ⑤模擬方法 | 四法對照已結案（arch/GARCH-FHS） | 第二輪：episode 五窗＋copula-t／EVT／跨市場；參數 commit 即凍結 | 方法登錄列＋門 |
-| ⑥模型／隊伍 | `arena_admission_gate`／`direction_gate`(29)／`arena_replay_run`／`direction_arena_replay` | TSFM 三隊 replay；live 60 clusters（約十月底）；門評待樹乾淨 | `scope_label` 機械化（A-3） |
+| ⑥模型／隊伍 | `arena_admission_gate`／`direction_gate`(29)／`arena_replay_run`／`direction_arena_replay` | TSFM 三隊 replay；**live 2/250 clusters**（凍結門 `dgate_arena_own_daily_5` 等 11 門實查＝250；own_stack H 門＝36；治權檔「≥60」不符、呈裁）；門評待樹乾淨 | `scope_label` 機械化（A-3） |
 | ⑦迭代程序 | `meta_replay_cutoff`／`meta_replay_perf`；proc_sha 家族 | M2 月頻掃完→門評；n<60 誠實 undecidable | 零 schema 變動 |
 | ⑧法律自己 | `governance_proposal`(3)／`governance_queue`；honesty triggers | 乙批五案待裁；提案自動投遞（進化迴圈→人閘） | `walker='law'` 接線 |
 

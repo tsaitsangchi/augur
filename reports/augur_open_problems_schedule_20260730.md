@@ -15,7 +15,7 @@
 | P7 | D | 門評可判性顯示層 estimand-盲（誤示 OOS=0） | 化妝債 | 低批：判器檔非急務不動，記錄於此 |
 | P8 | D | eval_local_model 進度 flush（hash 內不可輕改） | -u 已繞 | 低批：僅在下次合法換尺時捎帶 |
 | P9 | P | INTEG-H2：513 pending 題未接線 | LLM 道長期被佔 | 事件批③：A′ 批後排入 llama 道 |
-| P10 | R | SUNSET (a) 日曆風險：live 60 clusters ≈ 10 月底才到 | 2/60 | 無人為槓桿（replay 不得餵 live 門）；如實陳列 |
+| P10 | R | **SUNSET (a) 已判物理不可達**：凍結門實查 min_clusters=**250**（非 60），live 2 個已結算 cluster、每交易日 ~1 枚、距 2026-10-31 僅約 65 交易日 | 2/250 | (a) 路不可能達標→**SUNSET 唯 (b) 路**（prodset 促升）；「60」與凍結值不符已列呈裁 |
 | P11 | D | 教訓未固化記憶（尺陷阱 6 連發、便宜尺寸先行) | 本檔執行段 | 即時批：2 則記憶落檔 |
 | P12 | P | advisor guard_pass 接線（chip 舊案） | hugo 側 chip | 積壓不阻塞 |
 | P13 | D | HANDOFF.md 未涵本週（跨機 SSOT 舊化） | 並行 session 常改 | 低批：週末封存時一併 |

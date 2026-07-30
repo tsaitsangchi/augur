@@ -8,7 +8,7 @@
 |---|---|---|
 | **L1 LAIEVO**（本地 AI） | behavior×2@新尺跑中（round 1 過半）；pack 軸凍結；LoRA 復活記分卡 3/4 亮 | **今傍 A′ 首判＋三件裁決包** |
 | **L2 (b) 特徵線** | prodset active=2（lending 人促升全鏈帳）；INTERACT 7 顆已材料化；econ 待凍網格 | 明午 econ 重跑＋wave-2 四關 |
-| **L3 Arena live** | 每日 cron 健康；cluster 2/60；W2 紅旗 1 批 | 08-03 第二批（W2-a 條件觸發） |
+| **L3 Arena live** | 每日 cron 健康；**cluster 2/250**（凍結門實查；原記 2/60 為誤）；W2 紅旗 1 批 | 08-03 第二批（W2-a 條件觸發） |
 | **L4 REPLAY**（模型重演） | 輕量三隊全窗 2,798 clusters ✅；門評待樹淨；own_daily 待道 | 今晚 own_daily＋三門終評 |
 | **L5 META-REPLAY**（程序重演） | M1 ✅；preview 23-cutoff 試掃中；M3 裁判已建 | 明晨密網格 M2（60+ cutoff）→ 門評 |
 | **L6 GRID-A**（網格地基） | 76 月頻 panel 建置中（IO 道、FV-GUARD 下） | 明晨收槍＋宇宙快照＋驗證 |
