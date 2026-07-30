@@ -265,7 +265,9 @@ def build_prompt(query, payload, citations, lex_entries=()):
         kind_hint += DIRECTION_SIM_HONESTY
     if any(getattr(c, "item_id", None) is not None for c in (citations or ())):
         kind_hint += ("\n【Know-how 水印】若多則本地知識引文，優先依據較深 Know-how 水印"
-                      "（KH9＞KH8＞KH7）之材料作答，勿用較淺引文覆蓋較深結論。")
+                      "（KH9＞KH8＞KH7）之材料作答，勿用較淺引文覆蓋較深結論。"
+                      "即使僅達 KH0（原文在庫），仍須依檢索引文作基本理解作答，"
+                      "不得在已有內文引文時改口稱知識庫中無此內容。")
     return f"""{SYSTEM_PROMPT}
 
 {_payload_block(payload)}

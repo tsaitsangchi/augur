@@ -135,6 +135,31 @@ def best_overlap(query, citations):
     return best
 
 
+def kh0_floor_citations(query, citations):
+    """KH0 底線：ItemCitation 原文在庫，且與問句有 CJK n-gram 或拉丁專詞（如 ERP）共現 → 保留。
+    僅在 relevant_citations／譯英 fallback 已空時由 advise 呼叫。不放行純 works 離題哲學假命中。
+    語意＝「本地 AI 對內文的最基本理解」材料下限，≠通識無引文瞎答。"""
+    if not citations:
+        return []
+    q = query or ""
+    q_ng = _cjk_ngrams(q)
+    q_lat = {t.lower() for t in re.findall(r"[A-Za-z][A-Za-z0-9_-]{1,31}", q)}
+    q_lat = {t for t in q_lat if t not in _EN_GENERIC and len(t) >= 2}
+    out = []
+    for c in citations:
+        if getattr(c, "item_id", None) is None:
+            continue
+        ct = _cite_text(c)
+        if q_ng and (q_ng & _cjk_ngrams(ct)):
+            out.append(c)
+            continue
+        if q_lat:
+            c_lat = {t.lower() for t in re.findall(r"[A-Za-z][A-Za-z0-9_-]{1,31}", ct)}
+            if q_lat & c_lat:
+                out.append(c)
+    return out
+
+
 def relevant_citations(query, citations, min_terms=1):
     """回 citations 之子集:只留與 query 共享 ≥min_terms 個**夠強**辨識性專詞者(泛用字/單 CJK 字不算)。保序。
     query 無夠強辨識詞(全泛用字如「能源效率的研究」、或全單 CJK 字)→ 回 [](無從確認 → 全剔 → decline)。
@@ -220,6 +245,18 @@ def _selftest():
         query_relevant("ERP災難還原演練",
                        [S(text="王陽明全集知行合一", work_title="王陽明全集", thinker="王陽明")])
         is False)
+    # KH0 底線：item 原文共現可保留；works／無共現不放行
+    raw_mix = [
+        S(item_id=1, text="國碩 DR演練 備份還原 ERP-GP", item_title="國碩-ERP", domain="local"),
+        S(text="論衡 王充", work_title="論衡", thinker="王充"),  # no item_id
+    ]
+    kh0 = kh0_floor_citations("ERP災難還原演練", raw_mix)
+    chk("KH0 保留 ERP item", len(kh0) == 1 and kh0[0].item_id == 1)
+    chk("KH0 不收 works", all(getattr(c, "item_id", None) is not None for c in kh0))
+    chk("KH0 MBB↔王陽明 item 仍空",
+        kh0_floor_citations("多主柵MBB核心技術",
+                            [S(item_id=9, text="王陽明知行合一", item_title="傳習錄", domain="phil")])
+        == [])
     # picking_intent:選股意圖 True、知識/定義題 False(純正則)
     chk("picking_intent 選股題→True", picking_intent("該買什麼股票") and picking_intent("which stocks to buy"))
     chk("picking_intent 知識題→False", not picking_intent("什麼是知行合一"))
