@@ -10,6 +10,7 @@
   python scripts/compute_knowhow_evidence_weight.py --item-id 1     # dry
   python scripts/compute_knowhow_evidence_weight.py --item-id 1 --apply
   python scripts/compute_knowhow_evidence_weight.py --limit 3 --apply
+  python scripts/compute_knowhow_evidence_weight.py --widen --limit 600 --apply   # 擴大母體(使鑑別力閘自解)
   python scripts/compute_knowhow_evidence_weight.py --selftest
 """
 from __future__ import annotations
@@ -36,6 +37,9 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="KH8 evidence weighting")
     ap.add_argument("--item-id", type=int, default=None)
     ap.add_argument("--limit", type=int, default=3)
+    ap.add_argument("--widen", action="store_true",
+
+                    help="擴大加權母體:取 depth<7 有原文者(使三分量出現變異、鑑別力閘自解)")
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
@@ -52,9 +56,19 @@ def main(argv=None) -> int:
         if args.item_id is not None:
             ids = [args.item_id]
         else:
-            ids = aa.list_candidate_item_ids(cur, limit=args.limit, min_depth=7)
-            if not ids:
-                ids = aa.list_candidate_item_ids(cur, limit=args.limit)
+            if args.widen:
+                # ── 母體擴大（hugo 拍板 2026-07-30「把 KH8 母體擴大」）
+                # 病灶：原僅對 min_depth=7 之 item 加權 ⇒ terminal／embed／kh4_ok 對全母體恆 1.0
+                #（母體選擇效應）⇒ score 底線恆 0.72、必落 high ⇒ 指標**結構上不可能鑑別**。
+                # 治本＝把「未終態／未嵌入／非 eligible」者一併納入加權母體，使三分量出現變異；
+                # 鑑別力閘（evidence.population_discriminates）隨之自動解除——非放寬判準，
+                # 而是讓判準所需之變異真實存在。
+                ids = aa.list_candidate_item_ids(cur, limit=args.limit, max_depth_lt=7)
+                print(f"[--widen] 取 depth<7 有原文者 {len(ids)} 顆（擴大加權母體）")
+            else:
+                ids = aa.list_candidate_item_ids(cur, limit=args.limit, min_depth=7)
+                if not ids:
+                    ids = aa.list_candidate_item_ids(cur, limit=args.limit)
         print(f"n={len(ids)} apply={args.apply}")
         for iid in ids:
             snap = aa._item_snapshot(cur, iid)
