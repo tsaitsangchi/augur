@@ -12,13 +12,13 @@ compliance-statement:
   spec-version: v1.32
   layer: 6
   mc-version: AUGUR-MC v1.6
-  upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0, AUGUR-KS v1.1, AUGUR-L5 v1.0]
+  upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0, AUGUR-KS v1.1, AUGUR-L5 v1.0, AUGUR-L6 v1.2]
   statement-format: AUGUR-WM v1.0 §WM.39–45
   principles: [PA, P1, P2, P3, P4, P5, EV-chain]
   waivers: []
-  open-tensions: [T-CLAUDE-WM44-MATRIX]
+  open-tensions: [T-CLAUDE-WM44-MATRIX, T-CLAUDE-1, T-CLAUDE-2]
   defers-in: [MC.RULING-026]
-  defers-out: [D-CLAUDE-1]
+  defers-out: []   # D-CLAUDE-1 已移除(2026-07-30):其目標為同層 L6 正式規格,非下放下層,且 AUGUR-L6 之承接表/Annex LDI 未承接=懸空掛鉤;改以「同層不重定義」表記,見 CS.1-P5 註
   date: 2026-07-23
   author: Steward 授權執行層（P2）
   archive-path: docs/compliance/CS-CLAUDE.md
@@ -41,7 +41,7 @@ compliance-statement:
 > **CS.1-P4**〔細化〕
 > 引 `§P4`。#8 anti-leakage 工具對映；#11 提拔／經濟終關；計畫先行（#20）防未證結論入憲。判準揭示：IC≠可交易；經濟驗證為終關。
 
-> **CS.1-P5**〔細化〕
+> **CS.1-P5**〔細化〕〔**同層不重定義註（v1.32 續批）**：Action 六元組／OCV／Risk Tier 之形式定義權屬 `AUGUR-L6 v1.2`（同層正式規格，L6.23）；**本檔僅消費、不重定義、不設下放掛鉤**——原 `defers-out: [D-CLAUDE-1]` 之分類與 `§WM.43(b)`「下放下層」語意不符且無下層承接，已移除。〕
 > 引 `§P5.E1`、`§P5.W2`、`§P5.W5`。執行指令矩陣（#18／#29；RULING-2026-026）＝可個別驗證；#28 usage 經濟不降低監督。
 > **判準揭示（三段；v1.32 對齊，原以單一 script 承載三條 P5 義務為不足）**：
 > **(a) `§P5.E1`／`§P5.W2`**＝授權要件四項（範圍／期限／可撤銷／計畫參照）與**人類簽核不得代打**之明文存在性；逐次授權留痕可稽核（本檔 #14／#26 之「碰護欄即停」與 `never-type-human-signature` 紀律為其落點）。
@@ -66,6 +66,12 @@ compliance-statement:
   | d-id | 事項 | 目標 | 說明 |
   |---|---|---|---|
   | D-CLAUDE-1 | Action／OCV／RT 形式條款 | Layer 6 `AUGUR-AR` | 正式規格為權威；CLAUDE＝工具層短半衰期 |
+
+## CS.2 補列：已知緊張關係（`§WM.42`）[N]〔v1.32 續批，2026-07-30〕
+
+> **T-CLAUDE-1（`§8.1`／`AUGUR-L6 v1.2` L6.18）自我起草之利益衝突揭露**：本檔（CLAUDE.md）**由 Agent 日常增修，而其內容正是規範 Agent 自身之護欄**——與 `AUGUR-L6 v1.2`【地位】節所揭露之同型結構性自我交易誘因一致（該規格明文「本層由 Agent 起草而規範人類對 Agent 之權威，存在結構性自我交易誘因」）。本檔原宣稱 `open-tensions: none`，係**同型風險未揭露**。**緩解**：#19／#26「變更治權判準→停下問」＋Steward 親簽＋**本檔任何弱化條之修訂須附 OCV 六分量前後對照**（L6.16–17 單向棘輪）＋新增之 #26 授權四要件與自動鏈上限。
+>
+> **T-CLAUDE-2（`§P5.W5`／L6.16 T／D 分量）省 usage 與監督強度之現實張力**：#28「回報精簡／不 fan-out／背景不輪詢／模型檔位降階」在**降低 token 成本**之同時，客觀上**降低揭露比例（T）與逐案可介入點密度（D）**。**緩解**：#28 明定優先序（本地零 usage ＞ 背景不輪詢 ＞ 不 fan-out ＞ 模型檔位）且**理解層為保留區不得為省 usage 打折**；本次另增自動鏈上限之四項未弱化聲明義務。**本張力不主張已消解**——列為 open-tension、不假關。
 
 ## CS.4 形式充分性＋跨層標注 [N]
 

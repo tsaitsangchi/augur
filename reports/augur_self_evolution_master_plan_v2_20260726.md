@@ -3,7 +3,7 @@
 - **檔案**：`reports/augur_self_evolution_master_plan_v2_20260726.md`
 - **日期**：2026-07-26（本檔所有「實查」數字皆為當日親驗，時戳見附錄 A）
 - **性質**：三軸自進化之**交互契約與執行序** SSOT v2。對 `reports/augur_triple_self_evolution_master_plan_20260726.md`（下稱 TRI-v1）作**增量修訂**：本檔明列「保留／修訂／撤回」三類處置，未被本檔提及之 TRI-v1 條文續行。
-- **拍板狀態**：本檔為**計畫書**，尚未採納。採納碼 `V2-P-yes`。採納 ≠ 執行；所有執行仍需各自 `*-go`。
+- **拍板狀態**：**已採納**——`V2-P-yes` 由 hugo 於 2026-07-26 拍板，本檔自即刻起為三軸自進化總控／介面契約 **SSOT v2**（登錄 `audits/V2-ADOPTED-SUNSET-20260726.md` §一；隨拍另授 `V2-ISO-go`＋`V2-HONESTY-go`）。採納 ≠ 執行；其餘執行仍需各自 `*-go`。（2026-07-30 對齊：原文「尚未採納」為 07-26 草擬當下狀態，已被同日拍板登錄取代。）
 - **既有命名一律逐字沿用**：`RAWEVO`／`TWEVO`／`LAIEVO`、三軸 `*-P-yes`／`*-Sx-go`／`*-Bx-go`、`FZ-keep`／`GATE-keep`／`PME-AUTO-B`／`APPROVED-NO-EXEC`。新增者一律以 `V2-` 或 `GATE-raise` 前綴，不覆用舊碼。
 
 **閱讀導引（30 分鐘）**：趕時間只讀 §0（三分鐘判斷要不要重拍板）＋ §2（成敗定義）＋ §6.0/§6.1（今天要做什麼）＋ §8（人閘）＋ §11（誠實天花板）。§3 是本次修訂的主體（交互優化），§4／§5 是 v1.39.0 要求的表與程式落實，§10 是被砍掉的條目。
@@ -11,6 +11,8 @@
 ---
 
 ## §0 本次修訂之地基級更正（三分鐘判讀）
+
+> **判讀鐵則之現行版本（2026-07-30 對齊：`audits/V2-RUBRIC-GO-20260728.md` §二④＋`src/augur/audit/evidence_protocol.py:32,79-82`）**：本檔 07-26 原文之「**兩臂鐵則**」（勝 floor＋mismatched）**已於 2026-07-28 `V2-RUBRIC-go` 升為五臂**——`ARMS` 增列 `robot`（零知識格式規則機），**live 未嚴格勝過 robot 之格一律判 `none`**（`evidence_protocol.py:81`；robot 缺席時判讀同前、不溯及舊資料）。自本次對齊起，**本檔任何段落不再自述鐵則字面；判讀一律以 `evidence_protocol.evidence_level()` 之回值為準**（唯一住所，#12），以免文件與判準器再次分叉（分叉的具體危害＝依文件放行的 `gain=true` 會被判準器判 `none`）。尺亦已數次換錨（系譜 `f3075238eb55`→`0646872fdce7`→`ef142e9374c1`→`35aeffc3e160`→`aeff01c18ace`→`b6e5208ef821`，見同 audit §一/§七/§八）：凡本檔引用 `f3075238eb55` 之四臂數字者**一律為 07-26 史料**，不得與現行尺並排。
 
 ### 0.1 一句話
 
@@ -43,7 +45,7 @@
 | shuffled（同層答錯內容） | 0.167 | 0.900 | 0.967 | **P/A 測的是行為類別選對，不測內容** |
 | mismatched（跨層選錯行為） | 0.000 | 0.267 | 0.000 | 行為選錯即全滅 |
 
-- **判讀鐵則（事前預註冊）**：任何臂須**同時勝過 floor 與 mismatched** 才有證據力。
+- **判讀鐵則（事前預註冊）**：受測臂須**同時嚴格勝過 floor、mismatched 與 robot（robot 在場時）**才有證據力；**判讀一律引用 `src/augur/audit/evidence_protocol.py` 之 `evidence_level()` 回值，不得在文件內另述鐵則**。（2026-07-30 對齊：原文為 07-26 之兩臂版；依 `V2-RUBRIC-go`（2026-07-28 生效）robot 第五臂，`evidence_protocol.py:32` 之 ARMS 已含 `robot`、:81 明定 live 未嚴格勝 robot 即回 `none`。）
 - **誠實限制**：A 軸進步只能宣稱「更會選對行為」，**不得**宣稱「答得更準」；唯 F 軸對內容敏感。
 
 ### 0.4 新尺的**新發現**（本檔首次記載，五份計畫與 TRI audit 皆未載）
@@ -161,6 +163,8 @@
 
 建議期限：**2026-10-31**（三個月，涵蓋 arena 首批結算後兩個月的觀察窗）。指標與期限一經 hugo 簽入即 `criteria_sha` 凍結，**升嚴須走 `GATE-raise`、放寬一律不許**。
 
+> **（2026-07-30 對齊註——只記載落差、不改凍結字面）**：上列 (a)(b)(c) 已由 hugo 於 2026-07-26 簽入凍結（期限 2026-10-31，`criteria_sha256=65eda893…`，登錄 `audits/V2-ADOPTED-SUNSET-20260726.md` §二），**本檔不得改其字面**（挪門柱紀律）。惟 2026-07-28 `V2-RUBRIC-go` 已將鐵則升為含 `robot` 臂（`evidence_protocol.py:81`），使 (c) 之「同時勝過 floor 與 mismatched」兩臂字面與**現行判準器不一致**；補上 robot 屬**升嚴**、且「門檻語意」(S-8) 已列為待 hugo 裁決項（`audits/V2-RUBRIC-GO-20260728.md` §五）。故此處**僅記載落差，不逕改判準**；(c) 之判定式現況以 `audits/V2-RUBRIC-GO-20260728.md` §四之逐字對齊版為準（受測臂＋同臂 ≥2 獨立 run 複現），是否納入 robot 呈 Steward 走 `GATE-raise`。
+
 ### 2.2 週儀表第一行
 
 `scripts/report_triple_evolution_week.py` 的**第一行**固定印 `V2-SUNSET` 之三項條件現況與剩餘天數；iteration／hint／coverage 計數一律排在其後，且標為「吞吐指標，非成功指標」。
@@ -207,7 +211,7 @@
   2. 跨 `eval_code_hash` 或跨 `set_id` 之比較一律 **fail-loud 拒比**（已實作，維持）。
   3. eval item 須記錄來源表當時的 `attestation_result` 狀態（最新 id=9 為 `passed=false`，不得被讀成「已對帳的乾淨基線」）。
 - **禁**：RAW 的任何產出寫進 `local_model_gold_sample`（§3.5 I5）。
-- **已知限制（必須寫在契約裡）**：RAW 的機械缺口證據天生適合產 L3_ABSENT、catalog 同名多實體適合產 L4_AMBIG，**而那兩層目前無內容鑑別力**（§0.4）。故在 A 軸補上內容敏感子判準（`V2-RUBRIC-go`）之前，這條邊的貢獻**不可量測**，任何「RAW 讓模型更誠實」的宣稱一律不得成立。
+- **已知限制（必須寫在契約裡）**：RAW 的機械缺口證據天生適合產 L3_ABSENT、catalog 同名多實體適合產 L4_AMBIG，**而那兩層目前無內容鑑別力**（§0.4）。故在 A 軸補上內容敏感子判準（`V2-RUBRIC-go`）之前，這條邊的貢獻**不可量測**，任何「RAW 讓模型更誠實」的宣稱一律不得成立。**（2026-07-30 對齊：`V2-RUBRIC-go` 已於 07-28 落地，但「不可量測」未解除**——新尺於本凍結集 robot 五格全 1.000；解除條件與現行判讀口徑見 §11.2 第 2 點。）
 
 #### 邊 3：TW → LAI（`prediction_brief`）
 
@@ -256,9 +260,9 @@
 #### C4 證據協定（跨軸方法移植的載體）
 
 - `src/augur/audit/evidence_protocol.py`（純函式、零 DB、含 `--selftest`）：
-  - `ARMS = ('ceiling','floor','shuffled','mismatched','live')`
+  - `ARMS = ('ceiling','floor','shuffled','mismatched','robot','live')`（2026-07-30 對齊：`evidence_protocol.py:32` 之實際值；`robot` 由 `V2-RUBRIC-go` 2026-07-28 增列，順序即強度階梯）
   - `same_scale(suite_id, code_hash)` → 跨尺 fail-loud
-  - `evidence_level(metric_by_arm) -> {'none','incomparable','weak','scoped_established'}`，鐵則「live 臂須**同時**勝過 floor 與 mismatched 才有證據力」**寫成程式而非註解**。
+  - `evidence_level(metric_by_arm) -> {'none','incomparable','weak','scoped_established'}`，鐵則「live 臂須**同時嚴格勝過 floor、mismatched 與 robot（robot 在場時）**才有證據力」**寫成程式而非註解**；**本檔與三軸子計畫一律引用該函式回值判讀，不得在文件內另述鐵則字面**（2026-07-30 對齊：`evidence_protocol.py:75-85`；原文之兩臂敘述為 07-26 版，已被 robot 臂取代）。
 - **落表**：TW／RAW 用**新表** `evolution_evidence_run`；**LAI 繼續用 `local_model_eval_run`**（不對一天大的 append-only 表做長格式改造，只加兩欄，見 §4.3）。兩者共用同一份純函式判讀 —— 這是本檔對兩面鏡的裁決：拿到方法移植的全部價值，不付 schema churn 的代價。
 
 #### C5 誠實閘：**只做 DELETE/TRUNCATE 拒，不做 UPDATE-GUC**
@@ -448,7 +452,8 @@ CREATE TABLE IF NOT EXISTS evolution_evidence_run (
     axis            TEXT NOT NULL CHECK (axis IN ('tw','raw')),
     suite_id        TEXT NOT NULL,     -- 凍結測試集/組態之內容雜湊
     code_hash       TEXT NOT NULL,     -- 判準程式版本
-    arm             TEXT NOT NULL CHECK (arm IN ('ceiling','floor','shuffled','mismatched','live')),
+    arm             TEXT NOT NULL CHECK (arm IN ('ceiling','floor','shuffled','mismatched','robot','live')),
+        -- 2026-07-30 對齊：與 evidence_protocol.ARMS 逐字同集（:32）；'robot' 由 V2-RUBRIC-go 2026-07-28 增列
     metric_name     TEXT NOT NULL,
     metric_value    DOUBLE PRECISION,
     n_items         INTEGER NOT NULL,
@@ -540,6 +545,8 @@ CREATE TRIGGER prereg_gate_no_goalpost BEFORE UPDATE OR DELETE ON evolution_prer
 ```
 
 > **注意（對抗意見已採納）**：LAI 之判讀鐵則**暫不入此表凍結**——尺才一天大、S1 未出，而 `no_goalpost` 擋的是任何終態改動**包含升嚴**，凍早了會從「不能放鬆」變成「不能修」。先以計畫書＋audit 留痕，待新尺經 ≥1 次完整分叉後再凍結（Phase 6）。首批只凍 `V2-SUNSET`（program 軸）。
+>
+> **（2026-07-30 對齊／法源補註）**：本項＝「**AI 能力宣稱**」這類行走者之**預先凍結判準節點目前空懸**。依**大憲章 v1.50.0 第四部「普遍晉升路徑（總則）」**，任何行走者之晉升須三節點齊備——**預先凍結判準／人閘／判死留檔**；故此空懸期間 LAI 能力宣稱**不得晉升為確立級**，僅得以「計畫書＋audit 留痕」記錄（現行判讀 SSOT＝`evidence_protocol.evidence_level()` 回值，非本檔文字）。另原文之「待新尺經 ≥1 次完整分叉後」條件**已成立**（07-28 `V2-RUBRIC-go` 換尺 `f3075238eb55→ef142e9374c1`、07-29 `T1200-go`→`b6e5208ef821`），是否入表凍結屬人裁項，呈 hugo（見 §8 H6 之後續）。
 
 ### 4.3 既有表之增補（ALTER，冪等）
 
@@ -636,6 +643,8 @@ UNION ALL SELECT ... FROM local_ai_iteration_ledger;
 - **事前預註冊判讀規則（先寫下，不得事後改）**：
   - **判準 A（LAI 軸是否存在）**：behavior 之 **F@L1 > 0.167**（shuffled 實測值）且 > 0（floor）→ 才算 LAIEVO 首次有非空、可複現的能力數字。
   - **判準 B（RAW→LAI 這條唯一活邊是否成立）**：看 A@L3／A@L4 —— **已知 shuffled 在該格＝0.967**，故無論 behavior 拿多少都**證不了事**；結論必須寫成「三軸交互目前**不可量測**」，不得寫成「成立」或「不成立」。
+  - **（2026-07-30 對齊）判準 A 已於 2026-07-28 正式退史料**：其數值門檻通過為真（behavior F@L1 0.933／0.9667 > 0.167 > 0，留檔不塗改），但**能力語意經對抗驗證不成立**（常數字串 0.2333、零知識規則機 1.000 皆越過同一門檻）——**此後任何能力宣稱不得引判準 A**，一律走 **A′**＝v2 能力格之 `evidence_level() ≥ weak`（＝嚴格勝 floor ∧ mismatched ∧ robot）**且同臂 ≥2 個獨立 run 皆成立**（依據：`audits/V2-RUBRIC-GO-20260728.md` §七2＋`evidence_protocol.py:79-85`）。
+- **（2026-07-30 對齊／法源補註）本階段之「事前預註冊判讀規則」即「迭代程序本身」這類行走者之晉升判準**，依**大憲章 v1.50.0 第四部「普遍晉升路徑（總則）」**須三節點齊備：**預先凍結判準**（落點 `evolution_prereg_gate`；Phase 5 建表前以計畫書＋audit 代之＝**節點空懸，須補**）／**人閘**（`V2-*-go` 拍板碼，§8）／**判死留檔**（未過之分叉須寫入 `audits/` 且不塗改，先例＝`audits/V2-RUBRIC-GO-20260728.md` §七2 之判準 A 退史料）。任一節點缺席時，本階段結果**不得作為晉升依據**。
 - **分叉**：
   - F@L1 過 → 進 Phase 2，並把 `V2-RUBRIC-go`（A 軸內容敏感子判準）排為下一個人裁項；**不開任何 ledger／DDL**。
   - F@L1 不過 → LAIEVO 退回 S0，三軸總控延後；RAWEVO 仍可獨立唯讀先行（Phase 3）。
@@ -694,7 +703,7 @@ UNION ALL SELECT ... FROM local_ai_iteration_ledger;
 | **A1** | `iteration_uid` 格式合法且跨三表唯一；跨軸引用一律用 uid，`rg` 無裸 PK 引用 | T-V1 |
 | **A2** | `DEFAULT_GATE_CONFIG` 八個閘值與人簽 baseline `config_sha256` 相符；SKIP≠PASS；ECON-only 禁晉升 | GATE-keep／V1 |
 | **A3** | 三 ledger 之 `steps_json` 每步有 `rc`＋`started`＋`finished`；`closed_at`／`closed_by` 非空才算結輪 | V2／L-V2 |
-| **A4** | `gain=true` ⇒ `gain_evidence` 指向存在的 `evolution_evidence_run` 或 `local_model_eval_run` 列，且該列**同時勝過 floor 與 mismatched**；`gain=NULL` 不計停損亦不晉升 | V3／L-V3 |
+| **A4** | `gain=true` ⇒ `gain_evidence` 指向存在的 `evolution_evidence_run` 或 `local_model_eval_run` 列，且該列經 `evidence_protocol.evidence_level()` 回 **`weak` 以上**（＝同尺下**同時嚴格勝過 floor、mismatched 與 robot〔robot 在場時〕**）；驗收程式一律**呼叫該函式取回值**，不得自行實作或在文件內另述鐵則（2026-07-30 對齊：原文兩臂字面為 07-26 版，已被 `V2-RUBRIC-go` 2026-07-28 之 robot 第五臂取代——`evidence_protocol.py:32` ARMS 含 robot、:81 未嚴格勝 robot 即回 `none`）；`gain=NULL` 不計停損亦不晉升 | V3／L-V3 |
 | **A5** | APPLY 紀律：`apply_allowed=true` ⇒ `gate_ref` 非空且指向 `governance_proposal` 之 enacted 列 | V4 |
 | **A6** | 人閘完整：`hints_in` 每個 `hint_id` 在 hint 表皆 `decision='approved'` ∧ `decided_by`／`decision_code` 非空；`local_model_version` 無「serving 而 `promoted_by` 為空」之列 | T-V4／L-V1 |
 | **A7** | 通知不連鎖：`rg` 三軸 driver 無任何依 `cross_notify_json` 之分支（停機除外，且停機讀的是 `evolution_kill_switch`） | T-V3 |
@@ -704,7 +713,7 @@ UNION ALL SELECT ... FROM local_ai_iteration_ledger;
 | **A11** | 停損各自：達 N ⇒ `status='stopped_no_gain'` ∧ `stop_reason` 非空 ∧ 不改 serving／prodset | T-V9／L-V8 |
 | **A12** | 儀表唯讀：`report_triple_evolution_week.py` 對 DB 零寫入；第一行為 `V2-SUNSET` 現況 | T-V7 |
 
-> **凡驗收涉及「分數提升」，一律要求附 ceiling／floor／mismatched 對照臂**（A4）—— 這是今日教訓的制度化。
+> **凡驗收涉及「分數提升」，一律要求附 ceiling／floor／shuffled／mismatched／robot 五臂對照**（A4），且判讀取 `evidence_protocol.evidence_level()` 之回值 —— 這是今日教訓的制度化。（2026-07-30 對齊：`robot` 第五臂由 `V2-RUBRIC-go` 2026-07-28 生效，`evidence_protocol.py:32`。）
 
 **驗收落點**：`scripts/verify_evolution_acceptance.py --check`（SQL＋rg，零 usage，納入 `check_cmd_matrix`）。
 **不接審議引擎（本輪）**：前置二條 —— (1) 現存 82 件未解 escalation（2026-07-12 起零解決）結清；(2) 取 10 條驗收做端到端試點，**≥80% 須由 5 oracle 真正裁出 confirmed/refuted**（非 escalated）。未達成則驗收就是腳本，並在計畫中誠實標明「本條為腳本驗收，非引擎裁決」。理由：把 30 條倒進一個 14 天零解決的佇列，是把機械驗收轉成人工積壓 —— 那是 D 分量下降包裝成上升。
@@ -716,11 +725,11 @@ UNION ALL SELECT ... FROM local_ai_iteration_ledger;
 | # | 閘點 | 為何機器不能代 | 落點 |
 |---|---|---|---|
 | **H1** | `V2-P-yes`（採納本檔）／`V2-SUNSET`（成敗指標與期限） | 定義「什麼算成功」是價值判斷，不是執行 | `evolution_prereg_gate`(axis='program') |
-| **H2** | LAIEVO serving 晉升（`promoted_by`） | P5.W2；且現役 `pp_3ab2efebb04e` 之晉升依據已作廢，重評／retire 之處置須人裁 | `local_model_version` |
+| **H2** | LAIEVO serving 晉升（`promoted_by`） | P5.W2；且現役 `pp_3ab2efebb04e` 之晉升依據已作廢，重評／retire 之處置須人裁。**（2026-07-30 對齊／法源）**本閘＝**大憲章 v1.50.0 第四部「普遍晉升路徑（總則）」**之**人閘**節點；同條另二節點——**預先凍結判準**（落點 `evolution_prereg_gate`(axis='lai')，**現為空懸**，見 §4.2.8 註）與**判死留檔**（`audits/`）——須同時齊備方得晉升，空懸期間**不得**以任何能力數字晉升 serving | `local_model_version` |
 | **H3** | `RAWEVO-HINT-approve <ids>`（hint 升級） | 決定哪條假說進入量化鏈＝判準層 | `evolution_hypothesis_hint.decision` |
 | **H4** | `GATE-raise`（升嚴程序本身）＋ G-PROM 符號一致性與多重比較閾值 | GATE-keep 只禁降未定升嚴；改閘＝治權層 | `evolution_prereg_gate`(axis='tw') |
 | **H5** | `volume_gini_60d` 之回溯處置（demote／標註／保留但註記） | 涉及已 APPLY 之生產狀態與 P4.E3 | `evolution_apply_log` 追加註記列 |
-| **H6** | `V2-RUBRIC-go`（A 軸內容敏感子判準） | 判準變更，且會換 `eval_code_hash`、使既有 12 列 run 退出可比範圍 | `behavior_rubric.py` |
+| **H6** | `V2-RUBRIC-go`（A 軸內容敏感子判準） | 判準變更，且會換 `eval_code_hash`、使既有 12 列 run 退出可比範圍。**（2026-07-30 對齊：已履行）**——hugo 2026-07-28 拍板「都給」並執行，實得四件（`ABSTAIN_RE` 補詞／L1 F 軸加料年份否決／floor 換最強退化常數／**robot 第五臂＋鐵則升級**），尺換為 `ef142e9374c1`（後續 `T1200-go` 至 `b6e5208ef821`）；登錄 `audits/V2-RUBRIC-GO-20260728.md` | `behavior_rubric.py`＋`evidence_protocol.py` |
 | **H7** | 補一份 S0 audit 登錄（今日 DDL＋四新檔＋新 package） | P4.E3 留痕；TRI audit 之「本輪零 DDL、零新腳本」須修正射程 | `audits/` |
 | **H8** | `TRI-CADENCE-yes` 或任何 cron 新增／自動化升級 | **P5.W5**：須 Steward 書面裁決「未實質降低人類監督」 | `audits/`＋OCV 快照 |
 | **H9** | `V2-FZ-scope`（FZ-keep 豁免清單） | 凍結範圍屬治權判準 | `.cursor/rules/finmind-fred-api-freeze.mdc`＋計畫條文 |
@@ -771,7 +780,7 @@ UNION ALL SELECT ... FROM local_ai_iteration_ledger;
 | **把 30 條驗收接進審議引擎** | 82 件 escalation 自 07-12 零解決；倚重的 `file_grep`(n=11)／`pytest`(n=4) 是最少被行使的 oracle | §7 之兩條前置達成 |
 | **FZ-keep 表級寫入 trigger** | 會殺掉 07-27 arena 結算，而該 SOP 資料未到時 `exit 0`、cron 不自拆 → 永久靜默重試 | arena 首批結算完成後，且改以 driver 白名單＋列數上限為維度 |
 | **predict role 改 fail-closed 白名單** | 把「無聲放寬」換成「無聲收緊」，爆點落在換機當下（hugo 上下文最少時） | 不復活（改 fail-loud on unknown，效果相同、失敗形態安全） |
-| **凍結 LAI 判讀鐵則進 no_goalpost gate** | 尺才一天大、S1 未出；`no_goalpost` 擋任何終態改動**包含升嚴** | 新尺經 ≥1 次完整分叉後 |
+| **凍結 LAI 判讀鐵則進 no_goalpost gate** | 尺才一天大、S1 未出；`no_goalpost` 擋任何終態改動**包含升嚴** | 新尺經 ≥1 次完整分叉後（**2026-07-30 對齊：復活條件已成立**——07-28 `V2-RUBRIC-go` 換尺 `f3075238eb55→ef142e9374c1`、07-29 `T1200-go`→`b6e5208ef821`，見 `audits/V2-RUBRIC-GO-20260728.md` §一/§八；是否入表凍結屬人裁，呈 hugo） |
 | **`local_model_eval_run` 長格式改造 ＋ 加 UNIQUE** | 對一天大的 append-only 表動刀；且重複列問題不存在（`run_id` 已是決定性雜湊），真正的病是 `DO NOTHING` 靜默 | 不復活（改 fail-loud＋兩欄） |
 | **`field_correlation` 全表 history 快照** | 65.7 萬列×每輪的體積不划算 | 不復活（改 hint 層級差分） |
 | **RAW 缺口寫進 gold** | gold verdict 1103/1103 常數、舊尺失效、每日成長 —— 死渠道 | 永不 |
@@ -785,7 +794,7 @@ UNION ALL SELECT ... FROM local_ai_iteration_ledger;
 
 ### 11.1 這份計畫**能**達成什麼
 
-- 讓「有沒有變好」這個問題在三軸上**都有一把可被否證的尺**（LAI 已有；TW 經 Phase 4 補對照臂與符號一致性後有；RAW 經 Phase 3 有覆蓋帳但**尺仍最弱**）。
+- 讓「有沒有變好」這個問題在三軸上**都有一把可被否證的尺**（LAI 已有；TW 經 Phase 4 補對照臂與符號一致性後有；RAW 經 Phase 3 有覆蓋帳但**尺仍最弱**）。**（2026-07-30 對齊）**判讀一律取 `evidence_protocol.evidence_level()` 之回值（現行鐵則＝嚴格勝 floor、mismatched 與 robot〔在場時〕），本檔不另述鐵則字面；且須連帶承認：07-26 凍結集（`set_id=4183475c5089`）在新尺下 **robot 五格全 1.000**，故該集**任何格之 live 臂至多 `none`**——「LAI 已有一把尺」指的是**尺誠實可否證**，不等於該集存在可證能力之格（首批可證能力格出自 v2 集 `set_id=4e15a143ff4b`／孿生尺 `aeff01c18ace`，robot=0.500／floor=0.500／ceiling=1.000）。依據：`audits/V2-RUBRIC-GO-20260728.md` §三/§七＋`evidence_protocol.py:32,81`。
 - 讓三軸的**燃料鏈有機械落點**：hint 走一張有 UNIQUE 與人閘 CHECK 的表，而不是三份 JSONB 裡的約定。
 - 讓**隔離從文字變成閘**：`augur.evolution` 進入 AST 與字面雙掃描、predict 角色對未登錄表拒跑。
 - 讓**帳本不可刪**（P4.E3 在 PME 側第一次有機械落點）。
@@ -794,7 +803,7 @@ UNION ALL SELECT ... FROM local_ai_iteration_ledger;
 ### 11.2 這份計畫**不能**達成什麼（誠實限制）
 
 1. **不能證明模型「答得更準」**：P 與 A 只測行為類別（shuffled 在 A@L3/L4 拿 0.967）；唯 F 軸對內容敏感，而 F 僅在 L1 有鑑別力。任何跨軸 brief 引用 A 軸進步一律受措辭閘擋。
-2. **不能量測 RAW→LAI 這條唯一活邊的貢獻**（在 `V2-RUBRIC-go` 落地之前）。這是本檔最誠實也最不好看的一句。
+2. **不能量測 RAW→LAI 這條唯一活邊的貢獻**（在 `V2-RUBRIC-go` 落地之前）。這是本檔最誠實也最不好看的一句。**（2026-07-30 對齊：`V2-RUBRIC-go` 已於 07-28 落地，但本條之限制未解除）**——新尺於 07-26 凍結集上 **robot 五格全 1.000**（每一格皆零知識格式可達），故該集仍無可證格；限制之解除條件改為 **S-4 凍結集重建／改用 v2 集 `4e15a143ff4b` 之能力格**，且判讀須達 A′（`evidence_level() ≥ weak` ∧ 同臂 ≥2 獨立 run）。依據：`audits/V2-RUBRIC-GO-20260728.md` §三/§五/§七。
 3. **不能在機器上區分 AI 與 hugo 的簽名**（§8.1）。
 4. **不能保證 `prodset` 會成長**：實證顯示擴大 map 覆蓋（17→35）之後雙綠仍 2、active 仍 2；瓶頸是**訊號強度**而非覆蓋數量。本檔不重走已被本機證偽的路。
 5. **不能解凍、不開 API、不降閘**：`FZ-keep`／`GATE-keep` 全程維持；缺口帳、假說燃料、預測需求**均不得**作為解凍論據（`INV2` 須 Steward 明示）。
@@ -831,7 +840,7 @@ UNION ALL SELECT ... FROM local_ai_iteration_ledger;
 | `V2-SUNSET` | 凍結 program-level 成敗指標與期限（hugo 填內容） | `V2-P-yes` |
 | `V2-S0-go` | Phase 0 止血批（含改 cron，屬 #6 破壞性） | `V2-P-yes` |
 | `V2-EXP1` | Phase 1 實驗（已在跑；判讀規則已預註冊） | — |
-| `V2-RUBRIC-go` | A 軸內容敏感子判準（判準變更、換 `eval_code_hash`） | Phase 1 結果 |
+| `V2-RUBRIC-go` | A 軸內容敏感子判準（判準變更、換 `eval_code_hash`） | Phase 1 結果（**2026-07-30 對齊：已於 2026-07-28 由 hugo 拍板並執行**，含 robot 第五臂＋鐵則升級；登錄 `audits/V2-RUBRIC-GO-20260728.md`。後續換尺碼 `T1200-go`（07-29）非本檔新增） |
 | `V2-ISO-go` | 隔離守衛＋predict role fail-loud | `V2-P-yes` |
 | `V2-HONESTY-go` | PME 六表 DELETE 拒閘 | `V2-P-yes` |
 | `V2-CTRL-go` | TWEVO 對照臂 | `V2-P-yes` |
@@ -890,3 +899,7 @@ UNION ALL SELECT ... FROM local_ai_iteration_ledger;
 ---
 
 **本檔到此為止之全部主張，均可回溯至附錄 A 之實查來源或計畫原文引用；凡未實查者一律標為「計畫中」或「須人裁」。本檔不含任何未經來源支撐的量化數字。**
+
+> **V2-RUBRIC-go 射程逐字更新〔2026-07-30 對齊：P11 續批〕**：原計畫把其射程界定為「A 軸內容敏感子判準」，**實際生效之變更為五項**（`scripts/eval_local_model.py:366` 自陳）：ABSTAIN_RE 補詞、F 軸加料年份否決、floor 換最強退化常數、**robot 第五臂**、run_id attempt 序。**已知後果（必須併載）**：新 floor 使 **A 軸實測 floor＝1.000**（ef14／0646／aeff 三尺一致）⇒ **A 軸無可證格，禁以 A 軸主張任何進步**。若 Steward 認為射程擴張未經簽核，應**另開範圍擴充留痕**（`§P4.E3`）而非回改既有 audit。
+> **四 registry 之跨表清單替代義務〔2026-07-30 對齊：P11 續批〕**：本檔新增 `evolution_prereg_gate` 後，全系統已有**四張判準凍結登錄簿**（`direction_gate`／`arena_admission_gate`／`prediction_unfreeze_gate`／`evolution_prereg_gate`），且明文無限期不合併——致「全系統已凍判準與其家族」**無法單一查詢**。**實錄後果**：六門 `dgate_replay_*` 之 `family_disclosure` 仍逐字寫「v1 六門＋v2 四門＋arena 六門＝16 門一律全列」，**漏計 replay 自身六門與 meta 兩門（實為 24）**。**替代義務（不合併但須有清單）**：新增一支唯讀腳本（或 `verify_evolution_acceptance` 增一 check）列印四張 registry 全部 `gate_id／status／family`，且**任何新門之 `family_disclosure` 一律由該清單生成、禁逐字沿用他家族之揭露句**。（此為統一層 `path_gate` 落地前之過渡義務；見 `reports/augur_future_development_plan_20260730.md` §四 A-1。）
+> **new_gap 之定義與其獨立錨〔2026-07-30 對齊：P3 第四則〕**：`new_gap` 之定義＝**以 `raw_table_coverage_snapshot` 之 `gap_class` 逐輪比對**（該表有 `iteration_uid` 維度、可支撐真差分）為準；**hint 層級快照僅為 provenance，不得作為 `new` 之判據**（概念先行、不以下游工件反推定義；`§0.6(b)`）。§4.2.2 raw 軸 `gain_basis` 之說明同此口徑。
