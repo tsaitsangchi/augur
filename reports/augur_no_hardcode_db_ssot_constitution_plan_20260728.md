@@ -4,7 +4,7 @@
 **性質**：[I] 執行層計畫（plan-first；CLAUDE #16／#20）  
 **Steward 拍板（2026-07-28）**：✅ **`NHC-PLAN`＋`NHC-S12`＋`FZ-keep`**（登錄＝`audits/NHC-PLAN-APPROVED-20260728.md`；收官＝`audits/NHC-S12-CLOSED-20260728.md`）
 **Steward 開跑（2026-07-29）**：✅ **`NHC-S3`＋`FZ-keep`**（「所有 working 開始跑」；收官＝`audits/NHC-S3-CLOSED-20260729.md`）
-**未拍**：`NHC-CONSTITUTE`（**禁止改 [N]**）
+**已拍（2026-07-29）**：✅ **`NHC-CONSTITUTE`＋`FZ-keep`**（收官＝`audits/NHC-CONSTITUTE-CLOSED-20260729.md`；憲章 v1.48.0→v1.49.0）
 **觸發**：Steward——(1) `_GLOSSARY` 類 CJK→EN 檢索詞硬編碼；(2)「此專案所有程式都不能 hard code，都需進 PostgreSQL 17 table」；(3) **請入憲**；(4) 優化已 hardcode 程式（遷 DB＋改讀表）；(5) **同日補充**：know-how **產生**不要 hard code——例「第一性原理在太陽能材料研發如何應用？」應由**一般機制＋DB 策展／檢索**作答，禁寫死詞表／領域模板／Q&A  
 **姊妹互鏈**：
 - `reports/augur_knowhow_cross_domain_advisor_plan_20260728.md`（KH-XDOM；S01 **CLOSED**——跨域檢索／去作答閘；本計畫落地其「query 擴展＝DB、禁硬編碼大表」＋**組答不得再 hardcode 領域分支**）

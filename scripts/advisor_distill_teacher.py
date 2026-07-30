@@ -70,7 +70,8 @@ def _call_teacher(messages):
     if ":" not in model or model.startswith("claude"):
         raise NotImplementedError("非本地 teacher 機制未接線(A/B/C)。")
     from augur.advisor.ollama import make_llm_fn
-    fn = make_llm_fn(model=model, think=True, timeout=600,
+    _timeout = int(os.environ.get("DISTILL_TEACHER_TIMEOUT", "1800"))
+    fn = make_llm_fn(model=model, think=True, timeout=_timeout,
                      options={"temperature": 0.2, "num_predict": 900})
     prompt = messages[0]["content"] + "\n\n" + messages[1]["content"]
     return fn(prompt)
@@ -113,6 +114,7 @@ def run(conn, confirm):
             cur.execute("UPDATE advisor_distill_context SET target_response=%s, teacher_model=%s, "
                         "teacher_at=now() WHERE context_id=%s", (gold, model, cid))
         done += 1
+        print(f"  [{done}/{len(pending)}] gold 已生(cid={cid})", flush=True)
     print(f"  生成 {done} gold(model={model})。下一步 S5 硬校驗。")
 
 

@@ -63,7 +63,7 @@
 
 ## 六、下一步（待人拍）
 
-1. **`NHC-CONSTITUTE`** — 見文末建議拍板句（§7.2 草案入 [N]＋CLAUDE #29b 對齊）  
+1. ~~**`NHC-CONSTITUTE`**~~ → ✅ **已執行**（`audits/NHC-CONSTITUTE-CLOSED-20260729.md`；憲章 v1.48.0→v1.49.0）  
 2. 可選：蒸餾重啟 `--batch-tag` 新批（消費 DB 種子；非本輪必跑）  
 3. A0 加深答題 → INSERT glossary／知識管線／FT-COV，**勿**改碼專支  
 

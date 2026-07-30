@@ -86,7 +86,7 @@
 
 | 物件 | 現況 |
 |---|---|
-| `model_registry` RankRidge | H20／40／60／120 各 2（feats `ce62866b`／`3a4e66fa`）；H82×1 |
+| `model_registry` RankRidge | H20／40／60／120 各 2（ghost `3a4e66fa` 已修正→指向 canonical `ce62866b`，見 `audits/GHOST-ARTIFACT-FIX-CLOSED-20260729.md`）；H82×1（ghost 標記 `GHOST_NO_ARTIFACT`，無 canonical） |
 | `prediction_values` | 五 horizon × 339 列；**max panel＝2026-05-31**；in_portfolio≈33／horizon |
 | `prediction_probability` | H20 `dead` cal=29；H40／60／82／120 `thin_unestablished` cal=58／87／119／174；panel **僅 2026-05-31** |
 | `revalidation_ledger` | H20／40／60／120 有 B／D／R（H60 另有 C）；as_of **2026-05-31** |

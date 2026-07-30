@@ -29,11 +29,11 @@
 
 | 軌 | CLOSED |
 |---|---|
-| KH10-ENABLE-PLAN | （待） |
-| PME-XDOM-SOLAR-S1 | （待） |
-| NHC-CONSTITUTE | （待） |
-| NHC-distill-S3-teacher | （待） |
-| n2-econ-eval | （待） |
-| ghost-artifact-fix | （待） |
-| FT-COV-embed | （待） |
-| archive-push | （待） |
+| KH10-ENABLE-PLAN | ✅ CLOSED — `reports/augur_kh10_enable_plan_20260729.md` + `audits/KH10-ENABLE-PLAN-APPROVED-20260729.md` |
+| PME-XDOM-SOLAR-S1 | ✅ CLOSED — `audits/PME-XDOM-SOLAR-S1-CLOSED-20260729.md`；school_id=160／6 principles／15 maps |
+| NHC-CONSTITUTE | ✅ CLOSED — `audits/NHC-CONSTITUTE-CLOSED-20260729.md`；憲章 v1.49.0 |
+| NHC-distill-S3-teacher | ✅ CLOSED — `audits/NHC-DISTILL-S3-TEACHER-CLOSED-20260729.md`；S3 context 31/31；S4 teacher **60/60 gold 已生**（qwen3:4b；log 終行「下一步 S5」） |
+| n2-econ-eval | ✅ CLOSED — `audits/N2-ECON-EVAL-CLOSED-20260729.md`；n=2 prodset 14期 walk-forward；GBDT 最佳 net Sharpe 0.79／CAGR +10.6%；Ridge 最佳 net 0.81／+8.5%；皆優於基準 0.45／+4.8%；≠direction_gate |
+| ghost-artifact-fix | ✅ CLOSED — `audits/GHOST-ARTIFACT-FIX-CLOSED-20260729.md`；H20/40/60/120→canonical `ce62866b`；H82=`GHOST_NO_ARTIFACT` |
+| FT-COV-embed | ✅ CLOSED — `audits/FT-COV-EMBED-WAVE3-CLOSED-20260729.md`；60 新句／42 新嵌／Qdrant upsert 887 |
+| archive-push | ✅ CLOSED — commit `0b4009c`；tag `archive-20260729-net8-wave-20260729` → origin/main |
