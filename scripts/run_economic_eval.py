@@ -41,6 +41,8 @@ def main():
     ap = argparse.ArgumentParser(description="經濟價值回測 + 交易成本(#14)")
     ap.add_argument("--since", default="2021-01-01")
     ap.add_argument("--until", default=None, help="panel 上限(釘網格;防建置中網格飄移=2026-07-29 雙跑作廢教訓)")
+    ap.add_argument("--panels-list", default=None, dest="panels_list",
+                    help="顯式 panel 清單(逗號日期)——覆蓋稀疏特徵之同尺比較用(如 lending 22 枚)")
     ap.add_argument("--h", type=int, default=60)
     ap.add_argument("--cost", type=float, default=COST_TW, help="來回交易成本(預設台股 0.585%%)")
     ap.add_argument("--interactions", default=None, help="加入交互特徵（逗號分隔、如 inter_fh_x_p10yr；eval 層橫斷面 z 乘積、見 cross_section.INTERACTIONS）")
@@ -55,7 +57,11 @@ def main():
 
     with db.connect() as conn:
         with db.transaction(conn) as cur:
-            if args.until:
+            if args.panels_list:
+                from datetime import date as _d
+                cur.execute("SELECT DISTINCT panel_date FROM feature_values WHERE panel_date = ANY(%s::date[]) ORDER BY panel_date",
+                            ([s.strip() for s in args.panels_list.split(",")],))
+            elif args.until:
                 cur.execute("SELECT DISTINCT panel_date FROM feature_values WHERE panel_date>=%s AND panel_date<=%s ORDER BY panel_date",
                             (args.since, args.until))
             else:
