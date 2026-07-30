@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+"""🎯 KH0→KH9 單一驅動器——把「資料製造」與「層級推進」串成一條可續跑的鏈。
+
+守原則 #12（單一權威家：本支**只編排**既有 script，不重寫其邏輯）、#15（誠實：每段印真實待辦量與 rc）、
+#25（首輪最小）、#28（本地零 Claude usage）。
+
+**為何需要本支**：先前需人工記住兩支各管一半——
+  ① `refresh_knowledge_pipeline.py`＝資料製造（harvest→promote→fulltext→sentences→…→embed→kip）
+  ② `run_knowhow_auto_admit.py`＝層級推進（`evaluate_layer(0..N)`）
+二者無共同入口、順序靠記憶，且 `drain_knowhow_admit_to_ceiling.sh` 之 `ceiling=7` 已過時（KH8/KH9 早已 LAND）。
+
+**KH10 明確不納入（非遺漏）**：depth-10 評估器僅查 `gate.enabled` 即 pass ——
+獨立核驗判定其為**自我背書**（KH10 用自己的組態證明自己），違 `AUGUR-MC v1.6 §P4.E7`
+（不得僅以系統自身產出為據）。故本支上限硬釘 9；欲開至 10 須先改該評估器並經人閘。
+
+執行指令矩陣
+------------
+    python3 scripts/run_kh_chain.py                          # 無參數＝--check（唯讀：前置檢查＋各段待辦量）
+    python3 scripts/run_kh_chain.py --check                  # 同上
+    python3 scripts/run_kh_chain.py --dry-run --domain quant_finance
+    python3 scripts/run_kh_chain.py --run --domain quant_finance --limit 1000        # 全鏈（資料製造→層級推進）
+    python3 scripts/run_kh_chain.py --run --phase data --domain medicine --limit 500 # 只做資料製造
+    python3 scripts/run_kh_chain.py --run --phase advance --limit 5000               # 只做層級推進
+    python3 scripts/run_kh_chain.py --run --up-to 7                                  # 保守只推到 7
+    python3 scripts/run_kh_chain.py --selftest                                       # 紅綠自測（免 DB 免 API）
+"""
+
+from __future__ import annotations
+
+import argparse
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+import _bootstrap  # noqa: F401  # #29(a) 個別可執行
+
+REPO = Path(__file__).resolve().parent.parent
+PY = str(REPO / "venv" / "bin" / "python3")
+CEILING = 9  # KH10 不納入（自我背書；見 docstring）
+CONCURRENT_MARKERS = ("scripts/run_knowhow_auto_admit.py", "scripts/refresh_knowledge_pipeline.py")
+
+
+def phase_cmds(phase: str, domain: str | None, limit: int | None, up_to: int) -> list[list[str]]:
+    """回傳待執行之子指令序（純函式，可自測）。"""
+    cmds: list[list[str]] = []
+    if phase in ("data", "all"):
+        c = [PY, "scripts/refresh_knowledge_pipeline.py"]
+        if domain:
+            c += ["--domain", domain]
+        if limit:
+            c += ["--limit", str(limit)]
+        cmds.append(c)
+    if phase in ("advance", "all"):
+        cmds.append([
+            PY, "scripts/run_knowhow_auto_admit.py",
+            "--until-empty", "--apply-up-to", str(up_to),
+            "--limit", str(limit or 5000), "--max-rounds", "200",
+        ])
+    return cmds
+
+
+def clamp_up_to(requested: int, gate_cap: int | None) -> tuple[int, str]:
+    """上限夾制（純函式）：min(requested, CEILING, gate_cap)。"""
+    eff = min(int(requested), CEILING)
+    why = []
+    if requested > CEILING:
+        why.append(f"請求 {requested} → 夾至 {CEILING}（KH10 自我背書、本支不納入）")
+    if gate_cap is not None and gate_cap < eff:
+        why.append(f"再受 gate.max_auto_depth={gate_cap} 夾")
+        eff = int(gate_cap)
+    return eff, "；".join(why) or "未夾制"
+
+
+def preflight(cur) -> dict:
+    """唯讀前置檢查：gate 組態、鑑別力、各段待辦量。"""
+    from augur.knowledge import auto_admit as aa, evidence as kh8
+
+    out: dict = {}
+    gate = aa.load_gate(cur)
+    out["gate"] = {k: gate.get(k) for k in ("enabled", "progressive_enabled", "raw_floor_enabled",
+                                            "max_auto_depth", "require_kh8", "require_kh9")}
+    disc = kh8.population_discriminates(cur)
+    out["kh8_discriminates"] = {"ok": disc["ok"], "bands": disc["bands"], "n": disc["n"]}
+    # 欄名以 information_schema 實查為準（#2 API/DB 即權威；2026-07-30 實查 knowledge_staging
+    # 之欄為 status／promoted_at，**無 review_flag**——該名屬他表）
+    cur.execute("SELECT status, count(*) FROM knowledge_staging GROUP BY 1 ORDER BY 2 DESC")
+    st = cur.fetchall()
+    out["staging_by_status"] = st
+    out["pending_staging"] = sum(int(n) for s_, n in st if s_ in ("pending", None))
+    cur.execute("""SELECT coalesce(admit_depth,0) d, count(*) FROM knowhow_auto_admit_state
+                    WHERE target_kind='item' GROUP BY 1 ORDER BY 1""")
+    out["depth_dist"] = cur.fetchall()
+    cur.execute("""SELECT count(*) FROM knowledge_item i
+                     JOIN knowledge_item_text x ON x.item_id=i.item_id
+                     LEFT JOIN knowhow_auto_admit_state st
+                       ON st.target_kind='item' AND st.target_id=i.item_id::text
+                    WHERE coalesce(st.admit_depth,0) < %s""", (CEILING,))
+    out["advance_pool"] = int(cur.fetchone()[0])
+    return out
+
+
+def concurrent_running() -> list[str]:
+    try:
+        r = subprocess.run(["pgrep", "-af", "|".join(CONCURRENT_MARKERS)],
+                           capture_output=True, text=True, timeout=10)
+    except Exception:
+        return []
+    hits = []
+    for line in (r.stdout or "").splitlines():
+        if any(m in line for m in CONCURRENT_MARKERS) and "run_kh_chain" not in line:
+            hits.append(line.strip()[:120])
+    return hits
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description="KH0→KH9 單一驅動器（編排既有 script、不重寫邏輯）")
+    ap.add_argument("--check", action="store_true", help="唯讀：前置檢查＋各段待辦量")
+    ap.add_argument("--dry-run", action="store_true", help="印將執行之子指令，零副作用")
+    ap.add_argument("--run", action="store_true", help="實際執行")
+    ap.add_argument("--phase", choices=("data", "advance", "all"), default="all")
+    ap.add_argument("--domain", default=None, help="資料製造段之域（實值見 knowledge_query.domain）")
+    ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--up-to", type=int, default=CEILING, help=f"層級上限（硬頂 {CEILING}；KH10 不納入）")
+    ap.add_argument("--selftest", action="store_true")
+    a = ap.parse_args(argv)
+
+    if a.selftest:
+        return _selftest()
+
+    from augur.core import db
+
+    with db.connect() as conn, conn.cursor() as cur:
+        pf = preflight(cur)
+        eff, why = clamp_up_to(a.up_to, pf["gate"].get("max_auto_depth"))
+
+    print("══ KH0→KH9 驅動器 前置檢查（唯讀）══")
+    print(f"  gate：{pf['gate']}")
+    print(f"  KH8 鑑別力：{pf['kh8_discriminates']}"
+          + ("" if pf["kh8_discriminates"]["ok"] else "  ⚠ 不具鑑別力 → KH8 一律 fail、推進將止於 7"))
+    print(f"  staging：{pf['staging_by_status']}｜待促升(pending)={pf['pending_staging']:,}")
+    print(f"  admit_depth 分佈：{pf['depth_dist']}")
+    print(f"  可推進池（有原文且 depth<{CEILING}）：{pf['advance_pool']:,}")
+    print(f"  層級上限：{eff}（{why}）")
+    busy = concurrent_running()
+    if busy:
+        print("  ⚠ 偵測到並行 runner（避免同表競態，--run 將拒絕執行）：")
+        for b in busy:
+            print(f"     {b}")
+
+    cmds = phase_cmds(a.phase, a.domain, a.limit, eff)
+    if not a.run:
+        print(f"\n將執行 {len(cmds)} 段（--phase {a.phase}）：")
+        for c in cmds:
+            print("  " + " ".join(shlex.quote(x) for x in c))
+        print("\n（唯讀／dry-run；跑 --run 實作。斷點續跑＝各子段皆冪等，重跑同指令即續）")
+        return 0
+
+    if busy:
+        print("\nABORT：已有並行 runner，先等其收槍（守同表競態紀律）")
+        return 3
+
+    for i, c in enumerate(cmds, 1):
+        print(f"\n── [{i}/{len(cmds)}] {' '.join(shlex.quote(x) for x in c)}")
+        rc = subprocess.call(c, cwd=str(REPO))
+        print(f"── rc={rc}")
+        if rc != 0:
+            print(f"ABORT：第 {i} 段 rc={rc}（不續跑後段；修好後重跑同指令即從該段續）")
+            return rc
+    print("\n全鏈完成（各段 rc=0）。建議收尾：python3 scripts/run_kh_chain.py --check 覆核分佈")
+    return 0
+
+
+def _selftest() -> int:
+    fails: list[str] = []
+
+    def chk(name: str, cond: bool) -> None:
+        print(f"  {'✓' if cond else '✗'} {name}")
+        if not cond:
+            fails.append(name)
+
+    e, w = clamp_up_to(10, None)
+    chk("請求 10 → 夾至 9（KH10 不納入）", e == 9 and "自我背書" in w)
+    e, _ = clamp_up_to(9, 7)
+    chk("gate.max_auto_depth=7 再夾 → 7", e == 7)
+    e, w = clamp_up_to(9, 9)
+    chk("請求 9 且 gate=9 → 9 未夾制", e == 9 and w == "未夾制")
+    e, _ = clamp_up_to(5, 9)
+    chk("請求 5 → 保守值不被抬高", e == 5)
+    c = phase_cmds("all", "quant_finance", 1000, 9)
+    chk("phase=all → 兩段", len(c) == 2)
+    chk("第一段為資料製造", "refresh_knowledge_pipeline.py" in c[0][1])
+    chk("第二段為層級推進且帶 --apply-up-to 9", "run_knowhow_auto_admit.py" in c[1][1] and "9" in c[1])
+    chk("domain 有傳遞", "quant_finance" in c[0])
+    chk("phase=data → 僅一段", len(phase_cmds("data", None, None, 9)) == 1)
+    chk("phase=advance → 僅一段且為推進", len(phase_cmds("advance", None, None, 9)) == 1
+        and "run_knowhow_auto_admit.py" in phase_cmds("advance", None, None, 9)[0][1])
+    chk("CEILING 硬釘 9", CEILING == 9)
+    print("selftest: " + ("RED" if fails else "GREEN"))
+    return 1 if fails else 0
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        print(__doc__.split("執行指令矩陣")[1].strip())
+        print("\n--- 無參數＝--check（唯讀）---\n")
+        sys.exit(main(["--check"]))
+    sys.exit(main())
