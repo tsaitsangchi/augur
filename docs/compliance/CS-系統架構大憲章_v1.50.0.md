@@ -10,7 +10,7 @@
 ```
 compliance-statement:
   spec: Augur Domain Architecture Charter（系統架構大憲章）
-  spec-version: v1.49.0
+  spec-version: v1.50.0
   layer: 7
   mc-version: AUGUR-MC v1.6
   upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0, AUGUR-KS v1.1, AUGUR-L5 v1.0, AUGUR-L6 v1.2]
@@ -50,4 +50,4 @@ compliance-statement:
 
 ## CS.2 誠實界限
 
-本 CS 僅覆蓋領域憲章 v1.48.0；不關閉 META 其他 10-14 日曆項。
+本 CS 覆蓋領域憲章 **v1.50.0**〔2026-07-30 機械軌：原誤寫 v1.48.0〕；不關閉 META 其他 10-14 日曆項。
