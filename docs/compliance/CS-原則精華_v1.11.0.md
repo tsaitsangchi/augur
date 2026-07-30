@@ -1,15 +1,17 @@
-# Constitutional Compliance Statement — 原則精華 v1.10.0
+# Constitutional Compliance Statement — 原則精華 v1.11.0
 
 * **性質**：領域治權檔之 Constitutional Compliance Statement（[N] 聲明；**不上收** docs 進 META）
 * **依據**：`AUGUR-MC v1.6 §8.3`；`AUGUR-WM v1.0 §WM.39–45`；RULING-2026-002 主文二（補正期至 **2026-10-14**）；§0.5（跨層條款由本聲明逐條標注）；**RULING-2026-041**（P3／#7↔P4.E5）
 * **登錄 Layer**：4（Knowledge System 領域治權）
-* **正文 SSOT**：`docs/原則精華_v1.10.0.md`
+* **正文 SSOT**：`docs/原則精華_v1.11.0.md`
 * **誠實界限**：履行本檔補正義務；**不**假關 039 殘留；**T-PRIN-7-P4E5 規範緊張已閉**（RULING-2026-041）；AUD-02 **code** 操作閉合仍 defer（非豁免 P4.E5）。
+* **本版增量（v1.11.0）**：#1 WHAT 去供應商依賴——「真實 FinMind/FRED API 值」→「經登錄觀測通道之真實值」＋「真實性繫於通道之登錄、不繫於供應商名」＋現行通道清單降 [I]＋新通道經 World Concept Registry 登錄（`§WM.35–36`）。**判準內涵零變動、ENFORCE 一字未動**；目的＝使 #1 過 `AUGUR-KS v1.1 §KS.4` 刪名測試，並使本條不因新登錄域之值非由該二通道供應而字面失覆蓋。依據：hugo 對話拍板 2026-07-30「乙-2」〔claude 繕打，不冒充親簽 `§8.1`〕；計畫書 `reports/augur_treaty_core_alignment_plan_20260730.md` §四 乙-2；留痕 `audits/PRIN-B2-DENAME-20260730.md`。
+* **刪名測試（`§KS.4`）自陳**：#1 刪去「FinMind／FRED」後條款內涵不變（所指為「經登錄觀測通道之真實值」）＝合法指名；#17 原已寫「（及任何 API）」＝合法例示；#18 之 `/datalist` 為 [I] 操作指引（現行通道之取得程序），非「真實」之定義依據。**本次僅改 #1，其餘不動**（最小邊界）。
 
 ```
 compliance-statement:
   spec: Augur Domain Principles（原則精華）
-  spec-version: v1.10.0
+  spec-version: v1.11.0
   layer: 4
   mc-version: AUGUR-MC v1.6
   upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0]
@@ -19,9 +21,9 @@ compliance-statement:
   open-tensions: []
   defers-in: []
   defers-out: [D-PRIN-1, D-PRIN-2]
-  date: 2026-07-23
-  author: Steward 授權執行層（P3／RULING-2026-041）
-  archive-path: docs/compliance/CS-原則精華_v1.10.0.md
+  date: 2026-07-30
+  author: Steward 授權執行層（v1.11.0＝hugo 對話拍板「乙-2」繕打；前版 P3／RULING-2026-041）
+  archive-path: docs/compliance/CS-原則精華_v1.11.0.md
 ```
 
 ## CS.1 逐原則論證（七節）[N]

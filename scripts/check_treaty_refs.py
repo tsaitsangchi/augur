@@ -75,13 +75,20 @@ def _is_ignorable(ref: str, line_text: str) -> bool:
 
 
 def scan_dead_refs(root: Path) -> list[Finding]:
-    """被引用之治權檔路徑不存在（排除散文通配符與明標史料者）。"""
+    """被引用之治權檔路徑不存在（排除散文通配符、明標史料者、與已凍結之 SUPERSEDED 檔）。
+
+    SUPERSEDED 檔為凍結史料：其正文引用當時之現行版屬忠實記錄，改之即竄改記錄，故豁免；
+    但其 SUPERSEDED 橫幅所指之後繼檔仍受 check_superseded_banners() 檢（導航不得斷）。
+    """
     out: list[Finding] = []
     for path in _iter_files(root):
         try:
-            lines = path.read_text(encoding="utf-8").splitlines()
+            text_all = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
+        if "SUPERSEDED" in text_all[:600]:
+            continue
+        lines = text_all.splitlines()
         for i, text in enumerate(lines, 1):
             for ref in REF_RE.findall(text):
                 if _is_ignorable(ref, text):
