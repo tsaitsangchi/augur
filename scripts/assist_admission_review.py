@@ -9,12 +9,27 @@
 守 #1/#15（分數非閘通過條件）· 憲章 v1.48.0（一律准入；本檔仍只寫 assist 建議、不代升格）· #28（本地零 Claude）·
    #29（矩陣）· FZ-keep（零市場 API）· ADM-AI-ASSIST 計畫 §2／§5 S1。
 
+**2026-07-30 Steward 兩項拍板**：
+  ① **逾時 90 → 9000 秒**（`LLM_TIMEOUT_SEC`）——原 90s 於本機（CPU-only）實測必逾時
+     （`_ask_ollama` 90.3s TimeoutError），連鎖成「啟發式 fallback → 無法判斷 →
+     hold_for_human → **待人裁**」。故「待人裁」原是**逾時產物、非治權結果**。
+  ② **dry-run 亦留「執行事實」**（`admission_assist_run`，run 級非審批級）——
+     今日 05:00 timer 跑 58 分鐘、exit 0 卻零留痕，致無法分辨
+     「沒東西可審」與「根本沒跑」。**「零寫」指零寫審批，非零留執行痕跡。**
+
 執行指令矩陣:
   python scripts/assist_admission_review.py                      # 無參數:印矩陣＋池量（唯讀）
   python scripts/assist_admission_review.py --dry-run --limit 3   # 產分數樣本，零寫
   python scripts/assist_admission_review.py --dry-run --limit 3 --no-llm  # 啟發式樣本（Ollama 離線）
   python scripts/assist_admission_review.py --apply --limit 5    # 有界寫 assist＋source audit（禁升級）
+  python scripts/assist_admission_review.py --dry-run --limit 1 --llm-timeout 60  # 當次覆寫逾時
+  python scripts/assist_admission_review.py --dry-run --limit 3 --no-run-ledger    # 除錯：不留執行事實
+  python scripts/assist_admission_review.py --dry-run --limit 20 --max-wall-sec 3600  # 有界：總時限 1 小時
   python scripts/assist_admission_review.py --selftest            # 純紅綠：本檔不寫 upgrade
+  # 看執行事實（run 級帳本；dry-run 亦留痕）:
+  #   psql -d augur -c "SELECT run_id,mode,outcome,examined,llm_ok,llm_fallback,
+  #     round(elapsed_sec) el,latency_median_sec FROM admission_assist_run
+  #     ORDER BY started_at DESC LIMIT 10"
   # S3 timer（systemd user；預設 dry-run；apply 須 install_services.sh --with-assist-apply）:
   #   systemctl --user start augur-admission-assist.service
 """
@@ -26,9 +41,11 @@ import hashlib
 import json
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 import _bootstrap  # noqa: F401
 
@@ -37,6 +54,157 @@ MODEL = "qwen3:4b"
 ACTOR = "local_ai_v1"
 REASON_MAX = 400
 PROMPT_VERSION = "adm_assist_v1"
+
+# 本地 LLM 逾時（秒）。**Steward 拍板 2026-07-30：90 → 9000**。
+# 起因（實證，非推測）：`_ask_ollama` 在本機（CPU-only i5-10500、無獨顯）實測
+# **90.3s TimeoutError**；且 `think` 早已為 False、`num_predict=220`，故非 thinking 拖累，
+# 是 CPU 推論本身就慢。原 90s 之連鎖後果＝逾時→啟發式 fallback→無法判斷→
+# `hold_for_human=True` ⇒ 印出「待人裁」。**故「待人裁」原為逾時產物、非治權結果**，
+# 本地 AI 從未答成過一次。放寬後方能讓「本地 AI 對原文語意之基本理解」真正產生。
+# 承 #27：此為 operational 值、得逐級逼近；真實延遲由 `admission_assist_run` 帳本量出，
+# 不憑估算寫死判準。可以 `--llm-timeout` 當次覆寫。
+LLM_TIMEOUT_SEC = 9000
+
+# ── 執行事實帳本（Steward 拍板 2026-07-30「讓 dry-run 也留一筆執行事實」）──
+# 起因：`augur-admission-assist.timer` 今日 05:00 觸發、跑 **58 分鐘**、exit 0/SUCCESS，
+# 卻因單元為 `--dry-run` 而**零留痕** ⇒ 問「今天為什麼沒有審批稽核軌跡」時，
+# **無法分辨「沒東西可審」與「根本沒跑」**——過程黑箱，違 #21「不靜默」。
+# 本帳本為 **run 級（非審批級）**：記跑了幾筆、耗時、延遲分佈、分數分佈、
+# LLM 成功/fallback 計數、池量快照。**不含任何放行語意**，故 dry-run 寫它
+# 不違「預設零寫（dry-run）」之本意——零寫指**零寫審批**，非零留執行痕跡。
+RUN_LEDGER = "admission_assist_run"
+RUN_LEDGER_DDL = f"""
+CREATE TABLE IF NOT EXISTS {RUN_LEDGER} (
+    run_id           TEXT PRIMARY KEY,
+    mode             TEXT NOT NULL CHECK (mode IN ('dry-run','apply')),
+    actor            TEXT NOT NULL,
+    started_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    finished_at      TIMESTAMPTZ,
+    elapsed_sec      NUMERIC(12,3),
+    outcome          TEXT NOT NULL DEFAULT 'running'
+                     CHECK (outcome IN ('running','completed','failed')),
+    kind             TEXT NOT NULL,
+    limit_n          INTEGER NOT NULL,
+    use_llm          BOOLEAN NOT NULL,
+    model            TEXT NOT NULL,
+    prompt_version   TEXT NOT NULL,
+    llm_timeout_sec  INTEGER NOT NULL,
+    examined         INTEGER NOT NULL DEFAULT 0,
+    llm_ok           INTEGER NOT NULL DEFAULT 0,
+    llm_fallback     INTEGER NOT NULL DEFAULT 0,
+    heuristic_only   INTEGER NOT NULL DEFAULT 0,
+    score_min        NUMERIC(6,4),
+    score_median     NUMERIC(6,4),
+    score_max        NUMERIC(6,4),
+    latency_median_sec NUMERIC(12,3),
+    latency_max_sec  NUMERIC(12,3),
+    pool_proposed    INTEGER,
+    pool_pending_staging INTEGER,
+    assist_written   INTEGER NOT NULL DEFAULT 0,
+    audit_written    INTEGER NOT NULL DEFAULT 0,
+    error            TEXT,
+    detail           JSONB NOT NULL DEFAULT '{{}}'::jsonb
+);
+CREATE INDEX IF NOT EXISTS adm_assist_run_started_idx ON {RUN_LEDGER} (started_at DESC);
+CREATE INDEX IF NOT EXISTS adm_assist_run_outcome_idx ON {RUN_LEDGER} (outcome);
+"""
+
+
+def _run_stats(samples: list[dict]) -> dict:
+    """由逐筆結果算 run 級統計（純函式、可自測；空集回 None 不回 0）。
+
+    #15：空集之統計為 **None（無可算）**，不得以 0 充數——0 會被誤讀為「全員零分」。
+    """
+    import statistics
+
+    scores = [float(x["score"]) for x in samples if x.get("score") is not None]
+    lats = [float(x["elapsed_sec"]) for x in samples if x.get("elapsed_sec") is not None]
+    models = [str(x.get("model") or "") for x in samples]
+    errs: dict[str, int] = {}
+    for x in samples:
+        e = (x.get("flags") or {}).get("llm_error")
+        if e:
+            errs[str(e)] = errs.get(str(e), 0) + 1
+    return {
+        "examined": len(samples),
+        "llm_ok": sum(1 for m in models if m == MODEL),
+        "llm_fallback": sum(1 for m in models if m.startswith("heuristic_fallback:")),
+        "heuristic_only": sum(1 for m in models if m == "heuristic"),
+        "score_min": min(scores) if scores else None,
+        "score_median": statistics.median(scores) if scores else None,
+        "score_max": max(scores) if scores else None,
+        "latency_median_sec": statistics.median(lats) if lats else None,
+        "latency_max_sec": max(lats) if lats else None,
+        "llm_errors": errs,
+    }
+
+
+def _run_open(mode: str, *, kind: str, limit_n: int, use_llm: bool,
+              timeout: int, pools: dict) -> tuple[Any, str] | tuple[None, str]:
+    """以**獨立連線**開一筆執行事實並立即 commit——即使本 run 之後崩潰/被殺，痕跡已在。
+
+    獨立連線之理由：`--apply` 之主交易若失敗，同連線寫帳本會被一起 rollback ⇒
+    「失敗」這個最該留痕的事實反而不留痕。
+
+    ⚠ `db.connect()` 是 **@contextmanager generator**、非連線物件——直接 `.cursor()`
+    會得 `AttributeError: '_GeneratorContextManager' object has no attribute 'cursor'`
+    （2026-07-30 實跑抓到；自測無 DB 故未攔到）。故以 `ExitStack` 持有，
+    沿用專案 `db.connect()` 之 params，不另接 psycopg2。回傳之 handle 即該 stack。
+    """
+    try:
+        import contextlib
+
+        from augur.core import db
+
+        stack = contextlib.ExitStack()
+        conn = stack.enter_context(db.connect())
+        cur = conn.cursor()
+        cur.execute(RUN_LEDGER_DDL)
+        cur.execute("SELECT 'adm-assist-' || to_char(now(),'YYYYMMDDHH24MISS') || '-' "
+                    "|| substr(md5(random()::text),1,6)")
+        run_id = cur.fetchone()[0]
+        cur.execute(
+            f"""INSERT INTO {RUN_LEDGER}
+                  (run_id, mode, actor, kind, limit_n, use_llm, model, prompt_version,
+                   llm_timeout_sec, pool_proposed, pool_pending_staging)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            (run_id, mode, ACTOR, kind, limit_n, use_llm, MODEL, PROMPT_VERSION,
+             timeout, pools.get("proposed"), pools.get("pending_staging")))
+        conn.commit()
+        return (stack, conn), run_id
+    except Exception as e:  # noqa: BLE001 — 帳本不可用不得阻斷主作業（誠實印出）
+        print(f"⚠ 執行事實帳本開帳失敗（主作業繼續）: {type(e).__name__}: {e}")
+        return None, ""
+
+
+def _run_close(handle, run_id: str, *, outcome: str, samples: list[dict],
+               assist_written: int = 0, audit_written: int = 0, error: str | None = None) -> None:
+    """收帳（含失敗路徑）；帳本不可用時只印警告、不阻斷。`handle`＝`_run_open` 之 (stack, conn)。"""
+    if handle is None or not run_id:
+        return
+    stack, conn = handle
+    try:
+        st = _run_stats(samples)
+        cur = conn.cursor()
+        cur.execute(
+            f"""UPDATE {RUN_LEDGER} SET
+                  finished_at=now(),
+                  elapsed_sec=EXTRACT(EPOCH FROM (now()-started_at)),
+                  outcome=%s, examined=%s, llm_ok=%s, llm_fallback=%s, heuristic_only=%s,
+                  score_min=%s, score_median=%s, score_max=%s,
+                  latency_median_sec=%s, latency_max_sec=%s,
+                  assist_written=%s, audit_written=%s, error=%s, detail=%s::jsonb
+                WHERE run_id=%s""",
+            (outcome, st["examined"], st["llm_ok"], st["llm_fallback"], st["heuristic_only"],
+             st["score_min"], st["score_median"], st["score_max"],
+             st["latency_median_sec"], st["latency_max_sec"],
+             assist_written, audit_written, error,
+             json.dumps({"llm_errors": st["llm_errors"]}, ensure_ascii=False), run_id))
+        conn.commit()
+    except Exception as e:  # noqa: BLE001
+        print(f"⚠ 執行事實帳本收帳失敗: {type(e).__name__}: {e}")
+    finally:
+        stack.close()  # 由 db.connect() 之 contextmanager 負責關連線
 
 SYSTEM = (
     "你是入庫預審助理。只輸出一行 JSON："
@@ -142,13 +310,20 @@ def _heuristic_score(summary: str, l1: dict) -> dict:
         score -= 0.15
         flags["hold_for_human"] = True
     score = max(0.0, min(1.0, round(score, 3)))
+    # 措辭校正（Steward 2026-07-30 指出「不應再出現待人裁」）：
+    # 來源放行**有兩條路**——實查 `knowledge_source_review_log`：
+    # 機器批 `auto_rules_v1` **48 列** vs `admin` **3 列**，**機器批才是主路徑**。
+    # 故原「待人裁」暗示唯一出口是人＝與事實不符。
+    # 惟來源層人簽要件（DB CHECK `chk_ks_active_needs_approval`）**仍在、非過時條款**：
+    # 憲章 v1.48.0 之「一律准入」只解除 **item 層**，且 **P8「甲成立」正繫於此來源層
+    # 代償介入點**——故不得逕行移除，只校正措辭。
     reason = ("啟發式預審：L1=" + ("ok" if l1.get("l1_ok") else "弱")
               + ("；license 風險" if flags["license_risk"] else "")
-              + "；待人裁（AI 無放行權）")
+              + "；待放行（機器批 SRC-AUTO 七謂詞／或人簽）；本預審無放行權")
     return {"score": score, "reason": reason[:REASON_MAX], "flags": flags}
 
 
-def _ask_ollama(prompt: str, timeout: int = 90) -> str:
+def _ask_ollama(prompt: str, timeout: int = LLM_TIMEOUT_SEC) -> str:
     body = {
         "model": MODEL,
         "prompt": prompt,
@@ -187,13 +362,13 @@ def _parse_llm_json(text: str) -> dict | None:
     return {"score": score, "reason": reason or "（無理由）", "flags": flags}
 
 
-def _score_one(cand: dict, *, use_llm: bool) -> dict:
+def _score_one(cand: dict, *, use_llm: bool, timeout: int = LLM_TIMEOUT_SEC) -> dict:
     l1 = _l1_flags(cand["meta"], cand["target_kind"])
     prompt = f"候選:\n{cand['summary']}\nL1={json.dumps(l1, ensure_ascii=False)}"
     ph = hashlib.sha256((PROMPT_VERSION + prompt).encode()).hexdigest()[:16]
     if use_llm:
         try:
-            raw = _ask_ollama(prompt)
+            raw = _ask_ollama(prompt, timeout=timeout)
             parsed = _parse_llm_json(raw)
             if parsed:
                 parsed["flags"] = {**l1, **parsed["flags"]}
@@ -321,11 +496,104 @@ def selftest() -> int:
                          {"l1_ok": True, "l1_notes": []})
     chk("啟發式 score∈[0,1]", 0.0 <= h["score"] <= 1.0)
     chk("啟發式 hold_for_human", h["flags"].get("hold_for_human") is True)
+    chk("理由不再稱「待人裁」（機器批 48 列 vs 人簽 3 列，機器批才是主路徑）",
+        "待人裁" not in h["reason"] and "待放行" in h["reason"])
+    chk("理由仍明示本預審無放行權（AI 不得放行之界線不因措辭改動而鬆）",
+        "無放行權" in h["reason"])
     chk("ACTOR=local_ai_v1", ACTOR == "local_ai_v1")
     chk("MODEL=qwen3:4b", MODEL == "qwen3:4b")
 
     parsed = _parse_llm_json('雜訊 {"score":0.7,"reason":"可審","flags":{"hold_for_human":true}} 尾')
     chk("LLM JSON 解析", parsed is not None and abs(parsed["score"] - 0.7) < 1e-6)
+
+    # ── 逾時（Steward 2026-07-30 拍板 90→9000）：驗**實際送進 urlopen 的值**，非讀常數
+    import urllib.request as _u
+    seen: dict = {}
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return json.dumps({"response": '{"score":0.5,"reason":"x","flags":{}}'}).encode()
+
+    _orig = _u.urlopen
+    _u.urlopen = lambda req, timeout=None: (seen.update(timeout=timeout), _Resp())[1]
+    try:
+        _ask_ollama("p")
+        chk(f"_ask_ollama 預設實傳 timeout={LLM_TIMEOUT_SEC}", seen.get("timeout") == LLM_TIMEOUT_SEC)
+        _ask_ollama("p", timeout=42)
+        chk("timeout 可覆寫（實傳 42）", seen.get("timeout") == 42)
+        seen.clear()
+        _score_one({"summary": "s", "meta": {}, "target_kind": "source"},
+                   use_llm=True, timeout=1234)
+        chk("_score_one 之 timeout 確實透傳至 urlopen", seen.get("timeout") == 1234)
+    finally:
+        _u.urlopen = _orig
+    chk("逾時已由 90 放寬（Steward 拍板值）", LLM_TIMEOUT_SEC == 9000)
+
+    # ── 執行事實統計：#15 空集回 None 不回 0（0 會被誤讀為「全員零分」）
+    e = _run_stats([])
+    chk("空集：examined=0 且統計為 None（非 0）",
+        e["examined"] == 0 and e["score_median"] is None and e["latency_median_sec"] is None)
+    smp = [
+        {"score": 0.9, "elapsed_sec": 1.0, "model": MODEL, "flags": {}},
+        {"score": 0.1, "elapsed_sec": 5.0, "model": f"heuristic_fallback:{MODEL}",
+         "flags": {"llm_error": "TimeoutError"}},
+        {"score": 0.5, "elapsed_sec": 3.0, "model": "heuristic", "flags": {}},
+    ]
+    st2 = _run_stats(smp)
+    chk("三型模型分類正確（llm_ok/fallback/heuristic 各 1）",
+        (st2["llm_ok"], st2["llm_fallback"], st2["heuristic_only"]) == (1, 1, 1))
+    chk("分數 min/median/max 正確",
+        (st2["score_min"], st2["score_median"], st2["score_max"]) == (0.1, 0.5, 0.9))
+    chk("延遲 median/max 正確", (st2["latency_median_sec"], st2["latency_max_sec"]) == (3.0, 5.0))
+    chk("LLM 錯誤型別有聚合", st2["llm_errors"] == {"TimeoutError": 1})
+    chk("帳本 DDL 為冪等且不含 DELETE",
+        "IF NOT EXISTS" in RUN_LEDGER_DDL and "DELETE" not in RUN_LEDGER_DDL.upper())
+    chk("帳本 mode 受 CHECK 約束為 dry-run/apply 二值",
+        "mode IN ('dry-run','apply')" in RUN_LEDGER_DDL)
+
+    # ── 連線契約之行為驗證：`db.connect()` 是 contextmanager 而非連線物件。
+    # 前版直接 `db.connect().cursor()` ⇒ 實跑 AttributeError（自測無 DB 故未攔到）。
+    # 本測以 fake contextmanager 取代之，若 _run_open 誤把 CM 當連線用即 RED。
+    import contextlib as _c
+
+    from augur.core import db as _db
+
+    class _FakeConn:
+        def __init__(self):
+            self.committed = 0
+
+        def cursor(self):
+            outer = self
+
+            class _C:
+                def execute(self, sql, args=()):
+                    self._sql = sql
+
+                def fetchone(self):
+                    return ("run-fake-1",)
+            return _C()
+
+        def commit(self):
+            self.committed += 1
+
+    fc = _FakeConn()
+    _orig_connect = _db.connect
+    _db.connect = lambda *a, **k: _c.nullcontext(fc)
+    try:
+        handle, rid = _run_open("dry-run", kind="source", limit_n=1, use_llm=False,
+                                timeout=LLM_TIMEOUT_SEC, pools={"proposed": 1, "pending_staging": 2})
+        chk("_run_open 正確使用 contextmanager（非把 CM 當連線）", handle is not None and rid)
+        chk("_run_open 開帳即 commit（崩潰前已留痕）", fc.committed >= 1)
+        _run_close(handle, rid, outcome="completed", samples=[])
+        chk("_run_close 收帳亦 commit", fc.committed >= 2)
+    finally:
+        _db.connect = _orig_connect
 
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
@@ -338,6 +606,15 @@ def main(argv=None) -> int:
     ap.add_argument("--limit", type=int, default=5, help="每池上限（預設 5）")
     ap.add_argument("--kind", choices=("source", "staging", "both"), default="both")
     ap.add_argument("--no-llm", action="store_true", help="跳過 Ollama，只用啟發式")
+    ap.add_argument("--llm-timeout", type=int, default=LLM_TIMEOUT_SEC,
+                    help=f"本地 LLM 逾時秒數（預設 {LLM_TIMEOUT_SEC}；Steward 2026-07-30 由 90 放寬）")
+    ap.add_argument("--max-wall-sec", type=int, default=None,
+                    help="整個 run 之總時限（秒）；達限即停並收帳（**預設 None＝不設限**，"
+                         "照 Steward 之 9000s 逾時原意）。算術風險：timer 為 "
+                         "--limit 20 --kind both ＝最多 40 候選，每個吃滿 9000s "
+                         "⇒ 最壞 100 小時佔用 LLM 車道")
+    ap.add_argument("--no-run-ledger", action="store_true",
+                    help="不寫執行事實帳本（僅供除錯；預設一律留痕，含 dry-run）")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
 
@@ -366,6 +643,7 @@ def main(argv=None) -> int:
     use_llm = not args.no_llm
     kinds = ["source", "staging"] if args.kind == "both" else [args.kind]
 
+    mode = "apply" if args.apply else "dry-run"
     with db.connect() as conn:
         cur = conn.cursor()
         pools = _pool_counts(cur)
@@ -375,27 +653,72 @@ def main(argv=None) -> int:
             print("✗ 缺表：先 python scripts/migrate_admission_assist_ddl.py --apply", file=sys.stderr)
             return 1
 
-        results = []
+        # 執行事實：**開帳即 commit**（獨立連線），故即使後續崩潰/被殺亦已留痕
+        lconn, run_id = (None, "") if args.no_run_ledger else _run_open(
+            mode, kind=args.kind, limit_n=args.limit, use_llm=use_llm,
+            timeout=args.llm_timeout, pools=pools)
+        if run_id:
+            print(f"執行事實 run_id={run_id}（mode={mode}；逾時={args.llm_timeout}s）")
+
+        results: list[tuple[dict, dict]] = []
+        samples: list[dict] = []
         audit_rows = 0
-        for kind in kinds:
-            cands = _load_candidates(cur, kind=kind, limit=args.limit)
-            for cand in cands:
-                scored = _score_one(cand, use_llm=use_llm)
-                results.append((cand, scored))
-                print(f"[{cand['target_kind']}] {cand['target_id']} "
-                      f"score={scored['score']:.3f} model={scored.get('model')} "
-                      f"reason={scored['reason'][:80]}")
-                if args.apply:
-                    _write_assist(cur, cand, scored)
-                    if _write_source_audit(cur, cand, scored):
-                        audit_rows += 1
+        wall_t0 = time.monotonic()
+        wall_stopped = False
+        try:
+            for kind in kinds:
+                cands = _load_candidates(cur, kind=kind, limit=args.limit)
+                for cand in cands:
+                    # `is not None`（非 truthy）：0 須解為「立刻停」而非「未設限」
+                    if (args.max_wall_sec is not None
+                            and (time.monotonic() - wall_t0) >= args.max_wall_sec):
+                        wall_stopped = True
+                        print(f"⏱ 達總時限 {args.max_wall_sec}s，停止取件"
+                              f"（已處理 {len(samples)} 筆；本支冪等、重跑即續）")
+                        break
+                    t0 = time.monotonic()
+                    scored = _score_one(cand, use_llm=use_llm, timeout=args.llm_timeout)
+                    scored["elapsed_sec"] = round(time.monotonic() - t0, 3)
+                    results.append((cand, scored))
+                    samples.append(scored)
+                    print(f"[{cand['target_kind']}] {cand['target_id']} "
+                          f"score={scored['score']:.3f} model={scored.get('model')} "
+                          f"{scored['elapsed_sec']}s reason={scored['reason'][:80]}")
+                    if args.apply:
+                        _write_assist(cur, cand, scored)
+                        if _write_source_audit(cur, cand, scored):
+                            audit_rows += 1
+                if wall_stopped:
+                    break
+        except BaseException as exc:  # 含 KeyboardInterrupt／SystemExit：失敗亦須留痕
+            _run_close(lconn, run_id, outcome="failed", samples=samples,
+                       assist_written=0, audit_written=0,
+                       error=f"{type(exc).__name__}: {exc}"[:2000])
+            raise
+
         if args.apply:
             conn.commit()
             print(f"✓ 已寫 assist={len(results)} 列、source_audit={audit_rows} 列"
                   f"（actor={ACTOR}；未觸升級）")
         else:
-            print(f"dry-run 樣本 {len(results)} 筆（零寫）；人裁仍走 "
+            print(f"dry-run 樣本 {len(results)} 筆（零寫審批）；人裁仍走 "
                   "review_knowledge_source.py --approve/--activate（TTY）")
+
+        st = _run_stats(samples)
+        print(f"執行事實：examined={st['examined']} llm_ok={st['llm_ok']} "
+              f"fallback={st['llm_fallback']} heuristic={st['heuristic_only']}"
+              + (f" 分數 min/median/max={st['score_min']:.3f}/{st['score_median']:.3f}"
+                 f"/{st['score_max']:.3f}" if st["score_median"] is not None else " 分數=無可算（空集）")
+              + (f" 延遲 median/max={st['latency_median_sec']:.1f}s/{st['latency_max_sec']:.1f}s"
+                 if st["latency_median_sec"] is not None else ""))
+        if st["llm_errors"]:
+            print(f"  LLM 錯誤分佈：{st['llm_errors']}")
+        _run_close(lconn, run_id, outcome="completed", samples=samples,
+                   assist_written=len(results) if args.apply else 0,
+                   audit_written=audit_rows,
+                   error=(f"wall_limit_reached:{args.max_wall_sec}s" if wall_stopped else None))
+        if wall_stopped:
+            print(f"（本 run 因總時限收尾；帳本 error 欄記 wall_limit_reached）")
     return 0
 
 

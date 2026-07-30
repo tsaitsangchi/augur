@@ -158,7 +158,7 @@ if [ "${ADM_ASSIST_APPLY:-0}" = "1" ] || [ "${1:-}" = "--with-assist-apply" ]; t
   ADM_ASSIST_MODE_NOTE="apply(有界寫帳本;仍禁升級)"
 else
   ADM_ASSIST_ARGS="--dry-run --limit ${ADM_ASSIST_LIMIT} --kind both"
-  ADM_ASSIST_MODE_NOTE="dry-run(預設安全;零寫)"
+  ADM_ASSIST_MODE_NOTE="dry-run(零寫審批;留執行事實 admission_assist_run)"
 fi
 cat > "$UD/augur-admission-assist.service" <<EOF
 [Unit]

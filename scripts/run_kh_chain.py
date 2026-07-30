@@ -91,7 +91,10 @@ def preflight(cur) -> dict:
     cur.execute("""SELECT coalesce(admit_depth,0) d, count(*) FROM knowhow_auto_admit_state
                     WHERE target_kind='item' GROUP BY 1 ORDER BY 1""")
     out["depth_dist"] = cur.fetchall()
-    cur.execute("""SELECT count(*) FROM knowledge_item i
+    # count(DISTINCT i.item_id)：`knowledge_item_text` 以 (item_id, seq) 存多列原文
+    # （實查 158,064 列 / 146,348 distinct item，4,860 個 item 有多列）——
+    # 用 count(*) 會數成原文列數而非 item 數，曾使本行印出 158,064 > 有原文者總數 146,348。
+    cur.execute("""SELECT count(DISTINCT i.item_id) FROM knowledge_item i
                      JOIN knowledge_item_text x ON x.item_id=i.item_id
                      LEFT JOIN knowhow_auto_admit_state st
                        ON st.target_kind='item' AND st.target_id=i.item_id::text
@@ -99,16 +102,21 @@ def preflight(cur) -> dict:
     out["advance_pool"] = int(cur.fetchone()[0])
     # KH0 底線不變式（大憲章 v1.52.0 第三部 philosophy／知識節；本支為其指定機械落點）：
     # 「有原文 ∧ 無 admit_state 列」之計數須恆為 0；非 0 即底線破口，須先補齊方得推進上層。
-    cur.execute("""SELECT count(*) FROM knowledge_item i
+    cur.execute("""SELECT count(DISTINCT i.item_id) FROM knowledge_item i
                      JOIN knowledge_item_text x ON x.item_id=i.item_id
                      LEFT JOIN knowhow_auto_admit_state st
                        ON st.target_kind='item' AND st.target_id=i.item_id::text
                     WHERE st.target_id IS NULL""")
     out["kh0_breach"] = int(cur.fetchone()[0])
-    cur.execute("""SELECT count(*) FROM knowledge_item i
+    cur.execute("""SELECT count(DISTINCT i.item_id) FROM knowledge_item i
                     LEFT JOIN knowledge_item_text x ON x.item_id=i.item_id
                    WHERE x.item_id IS NULL""")
     out["no_fulltext"] = int(cur.fetchone()[0])  # 誠實例外（metadata-only，KH0 不適用）
+    cur.execute("SELECT count(DISTINCT item_id) FROM knowledge_item_text")
+    out["with_fulltext"] = int(cur.fetchone()[0])
+    # 同尺自檢：可推進池（子集）不得大於有原文者總數（母集）。
+    # 此不變式正是抓出 count(*) 膨脹之處——兩數相鄰印出、矛盾即現形。
+    out["scale_consistent"] = out["advance_pool"] <= out["with_fulltext"]
     return out
 
 
@@ -152,7 +160,9 @@ def main(argv: list[str] | None = None) -> int:
           + ("" if pf["kh8_discriminates"]["ok"] else "  ⚠ 不具鑑別力 → KH8 一律 fail、推進將止於 7"))
     print(f"  staging：{pf['staging_by_status']}｜待促升(pending)={pf['pending_staging']:,}")
     print(f"  admit_depth 分佈：{pf['depth_dist']}")
-    print(f"  可推進池（有原文且 depth<{CEILING}）：{pf['advance_pool']:,}")
+    print(f"  可推進池（有原文且 depth<{CEILING}）：{pf['advance_pool']:,}"
+          f" / 有原文者 {pf['with_fulltext']:,}"
+          + ("" if pf["scale_consistent"] else "  ✗ **同尺矛盾：子集大於母集，計數有誤**"))
     print(f"  層級上限：{eff}（{why}）")
     if pf["kh0_breach"] == 0:
         print(f"  KH0 底線不變式：✓ 破口 0（有原文者 100% 已評）"
@@ -219,7 +229,56 @@ def _selftest() -> int:
     chk("phase=advance → 僅一段且為推進", len(phase_cmds("advance", None, None, 9)) == 1
         and "run_knowhow_auto_admit.py" in phase_cmds("advance", None, None, 9)[0][1])
     chk("CEILING 硬釘 9", CEILING == 9)
-    chk("KH0 底線不變式已入前置檢查", "kh0_breach" in open(__file__, encoding="utf-8").read())
+    # 行為驗證（非字面斷言）：以 fake cursor 實跑 preflight()，攔它**實際送出**之 SQL。
+    # 前版用 grep 本檔原始碼，結果斷言字串自己被掃到（計數 3→4）、
+    # 且 `"count(*) …" not in _src` 恆假 ⇒ 保證 RED。此即字面斷言之病，改為驗行為。
+    class _Cur:
+        """記錄所送 SQL 並回可用形狀；不連 DB。"""
+
+        def __init__(self):
+            self.sqls: list[str] = []
+            self._n = 0
+
+        def execute(self, sql, args=()):
+            self.sqls.append(" ".join(str(sql).split()))
+            self._n += 1
+
+        def fetchall(self):
+            last = self.sqls[-1]
+            if "knowledge_staging" in last:
+                return [("promoted", 10), ("pending", 3)]
+            return [(7, 5)]
+
+        def fetchone(self):
+            return (5,)
+
+    import types
+    fake = _Cur()
+    stub = types.SimpleNamespace(
+        load_gate=lambda c: {"enabled": True, "progressive_enabled": True,
+                             "raw_floor_enabled": True, "max_auto_depth": 9,
+                             "require_kh8": True, "require_kh9": True})
+    stub8 = types.SimpleNamespace(
+        population_discriminates=lambda c, **k: {"ok": True, "bands": ["high"], "n": 1})
+    import sys as _sys
+    _saved = {k: _sys.modules.get(k) for k in ("augur.knowledge.auto_admit", "augur.knowledge.evidence")}
+    _sys.modules["augur.knowledge.auto_admit"] = stub
+    _sys.modules["augur.knowledge.evidence"] = stub8
+    try:
+        pf = preflight(fake)
+    finally:
+        for k, v in _saved.items():
+            if v is None:
+                _sys.modules.pop(k, None)
+            else:
+                _sys.modules[k] = v
+
+    joins = [q for q in fake.sqls if "JOIN knowledge_item_text" in q]
+    chk("preflight 確實查了 item_text（3 條 JOIN）", len(joins) == 3)
+    chk("每條 item_text JOIN 皆以 count(DISTINCT) 計 item、不數原文列",
+        all("count(DISTINCT i.item_id)" in q for q in joins))
+    chk("KH0 底線破口有被算出", "kh0_breach" in pf)
+    chk("同尺自檢有被算出且成立（5<=5）", pf.get("scale_consistent") is True)
     print("selftest: " + ("RED" if fails else "GREEN"))
     return 1 if fails else 0
 
