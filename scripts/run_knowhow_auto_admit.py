@@ -54,8 +54,11 @@ def check() -> int:
         else:
             print("state 表未建——先 migrate --apply")
             return 1
+        # count(DISTINCT)：`knowledge_item_text` 以 (item_id, seq) 一 item 多列存原文
+        # （158,064 列／146,348 distinct item）。用 count(*) 會印原文列數而非 item 數，
+        # 使本支與同鏈之 run_kh_chain.py --check 印出兩個互相矛盾的數字。
         cur.execute(
-            "SELECT count(*) FROM knowledge_item i "
+            "SELECT count(DISTINCT i.item_id) FROM knowledge_item i "
             "JOIN knowledge_item_text x ON x.item_id=i.item_id"
         )
         print(f"items_with_text={cur.fetchone()[0]}")

@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS {RUN_LEDGER} (
     finished_at      TIMESTAMPTZ,
     elapsed_sec      NUMERIC(12,3),
     outcome          TEXT NOT NULL DEFAULT 'running'
-                     CHECK (outcome IN ('running','completed','failed')),
+                     CHECK (outcome IN ('running','completed','failed','truncated')),
     kind             TEXT NOT NULL,
     limit_n          INTEGER NOT NULL,
     use_llm          BOOLEAN NOT NULL,
@@ -665,6 +665,13 @@ def main(argv=None) -> int:
         audit_rows = 0
         wall_t0 = time.monotonic()
         wall_stopped = False
+        # 第四次獨立核驗（2026-07-30）抓到：前版 `_run_close` 在 try 射程**外**——
+        # 主交易 commit 或收尾列印一失敗，帳本完全不收帳，硬失敗之 run 永久停在
+        # outcome='running'、examined=0 ⇒ **最該留痕的「失敗」被記成「還在跑」**。
+        # 故改 try/finally：outcome **預設 'failed'**，唯走到底才升 'completed'；
+        # finally 保證任何路徑（含 commit 失敗、列印失敗、訊號）都收帳。
+        run_outcome = "failed"
+        run_error: str | None = None
         try:
             for kind in kinds:
                 cands = _load_candidates(cur, kind=kind, limit=args.limit)
@@ -690,35 +697,38 @@ def main(argv=None) -> int:
                             audit_rows += 1
                 if wall_stopped:
                     break
+            if args.apply:
+                conn.commit()
+                print(f"✓ 已寫 assist={len(results)} 列、source_audit={audit_rows} 列"
+                      f"（actor={ACTOR}；未觸升級）")
+            else:
+                print(f"dry-run 樣本 {len(results)} 筆（零寫審批）；人裁仍走 "
+                      "review_knowledge_source.py --approve/--activate（TTY）")
+
+            st = _run_stats(samples)
+            print(f"執行事實：examined={st['examined']} llm_ok={st['llm_ok']} "
+                  f"fallback={st['llm_fallback']} heuristic={st['heuristic_only']}"
+                  + (f" 分數 min/median/max={st['score_min']:.3f}/{st['score_median']:.3f}"
+                     f"/{st['score_max']:.3f}" if st["score_median"] is not None
+                     else " 分數=無可算（空集）")
+                  + (f" 延遲 median/max={st['latency_median_sec']:.1f}s"
+                     f"/{st['latency_max_sec']:.1f}s"
+                     if st["latency_median_sec"] is not None else ""))
+            if st["llm_errors"]:
+                print(f"  LLM 錯誤分佈：{st['llm_errors']}")
+            run_outcome = "truncated" if wall_stopped else "completed"
+            if wall_stopped:
+                print("（本 run 因總時限收尾；帳本 outcome=truncated）")
         except BaseException as exc:  # 含 KeyboardInterrupt／SystemExit：失敗亦須留痕
-            _run_close(lconn, run_id, outcome="failed", samples=samples,
-                       assist_written=0, audit_written=0,
-                       error=f"{type(exc).__name__}: {exc}"[:2000])
+            run_error = f"{type(exc).__name__}: {exc}"[:2000]
             raise
-
-        if args.apply:
-            conn.commit()
-            print(f"✓ 已寫 assist={len(results)} 列、source_audit={audit_rows} 列"
-                  f"（actor={ACTOR}；未觸升級）")
-        else:
-            print(f"dry-run 樣本 {len(results)} 筆（零寫審批）；人裁仍走 "
-                  "review_knowledge_source.py --approve/--activate（TTY）")
-
-        st = _run_stats(samples)
-        print(f"執行事實：examined={st['examined']} llm_ok={st['llm_ok']} "
-              f"fallback={st['llm_fallback']} heuristic={st['heuristic_only']}"
-              + (f" 分數 min/median/max={st['score_min']:.3f}/{st['score_median']:.3f}"
-                 f"/{st['score_max']:.3f}" if st["score_median"] is not None else " 分數=無可算（空集）")
-              + (f" 延遲 median/max={st['latency_median_sec']:.1f}s/{st['latency_max_sec']:.1f}s"
-                 if st["latency_median_sec"] is not None else ""))
-        if st["llm_errors"]:
-            print(f"  LLM 錯誤分佈：{st['llm_errors']}")
-        _run_close(lconn, run_id, outcome="completed", samples=samples,
-                   assist_written=len(results) if args.apply else 0,
-                   audit_written=audit_rows,
-                   error=(f"wall_limit_reached:{args.max_wall_sec}s" if wall_stopped else None))
-        if wall_stopped:
-            print(f"（本 run 因總時限收尾；帳本 error 欄記 wall_limit_reached）")
+        finally:
+            _run_close(lconn, run_id, outcome=run_outcome, samples=samples,
+                       assist_written=(len(results) if args.apply
+                                       and run_outcome != "failed" else 0),
+                       audit_written=audit_rows,
+                       error=run_error or (f"wall_limit_reached:{args.max_wall_sec}s"
+                                           if wall_stopped else None))
     return 0
 
 

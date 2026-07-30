@@ -110,6 +110,10 @@ DEEP_KH_FLOOR = 7
 # 乙：KH8 證據有效性之進程內快取（由呼叫端以 set_kh_evidence_validity() 灌入；
 # 未灌入時預設 None＝未知，深度優先照舊套用以免無 DB 連線時全面退化）。
 _kh_evidence_valid_cache: dict[str, Any] = {}
+# 判準快取之存活期：成功者較長（母體變動慢）；**失敗者極短**——fail-closed 不得與成功同壽，
+# 否則一次 DB 瞬斷即永久關閘（第四次核驗實證：advisor 常駐、無自癒路徑）。
+_OK_TTL_SEC = 900.0
+_FAIL_TTL_SEC = 30.0
 
 
 def set_kh_evidence_validity(cur) -> dict[str, Any]:
@@ -132,8 +136,19 @@ def kh_evidence_valid() -> dict[str, Any]:
     故本函式改為：**呼叫端零配合**（自開唯讀連線）＋**進程級記憶化**（只算一次）
     ＋**fail-closed**（算不出＝視同不具鑑別力、不套深度優先；不確定不得放行）。
     """
-    if _kh_evidence_valid_cache:
-        return dict(_kh_evidence_valid_cache)
+    # TTL（第四次獨立核驗 2026-07-30 抓到本函式引入之新洞）：advisor 為**常駐服務**
+    # （實測進程存活 1h28m），前版快取永不失效 ⇒ **DB 一次瞬斷即永久 fail-closed、無自癒**，
+    # 等於把 fail-open 換成永久關閘。故：
+    #   成功之判準快取 TTL 較長（母體變動慢）；**fail-closed 之快取 TTL 極短**
+    #   ——不確定不得放行，但也不得讓一次瞬斷永久生效。
+    import time as _t
+
+    _now = _t.monotonic()
+    _at = _kh_evidence_valid_cache.get("_at")
+    if _kh_evidence_valid_cache and _at is not None:
+        _ttl = _OK_TTL_SEC if _kh_evidence_valid_cache.get("ok") else _FAIL_TTL_SEC
+        if (_now - _at) < _ttl:
+            return {k: v for k, v in _kh_evidence_valid_cache.items() if k != "_at"}
     try:
         from augur.core import db
         from augur.knowledge import evidence as ev
@@ -150,6 +165,7 @@ def kh_evidence_valid() -> dict[str, Any]:
         }
     _kh_evidence_valid_cache.clear()
     _kh_evidence_valid_cache.update(disc)
+    _kh_evidence_valid_cache["_at"] = _now
     return dict(disc)
 
 
