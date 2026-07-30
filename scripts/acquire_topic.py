@@ -5,8 +5,8 @@
    查詢詞,**確認頁**(印 N 域 / M query / 首輪 --batch 建議)後,以既有 harvest_knowledge 引擎背景抓取。
    **不重造抓取管線**——只做 topic→domain 薄映射 + subprocess 觸發既有引擎(限速/熔斷/resume 全在該引擎)。
    **CLAUDE #29 v1.20 端到端**:harvest 只到 metadata=advisor 檢索不到;故 --run 後**自動接下游完成器**
-   (逐域呼叫既有 refresh_knowledge_pipeline.py --from-stage fulltext --until embed)——fulltext(license-gated
-   OA 全文)→ sentences(切句)→ concordance(逐字索引)→ embed(嵌入)→ advisor 撈得到。逐域獨立
+   (逐域呼叫既有 refresh_knowledge_pipeline.py --from-stage fulltext --until kip)——fulltext(license-gated
+   OA 全文)→ sentences(切句)→…→ embed→ kip(KH4/admit≤9)→ advisor 撈得到。逐域獨立
    (check=False:一域失敗不擋其餘,誠實續)、resume-safe(下游各段冪等 DB-driven);--no-complete 只 harvest。
    fulltext 段 license 未過者由 fetch 落 knowledge_fulltext_status 終態帳(誠實記「阻擋非漏做」)。
    治權:抓入知識層(素養、非預測管線)、真實來源 provenance、禁 AI 生成(既有 promote 閘);#25 首輪最小驗證。
@@ -127,8 +127,8 @@ def main():
                 # 復用既有端到端驅動器(#12 不重造):promote 已在 harvest 輪末完成,故自 fulltext 起;
                 # 下游各段冪等 DB-driven(NOT EXISTS/游標),殺掉重跑續;fulltext license 未過落終態帳。
                 ccmd = [py, "scripts/refresh_knowledge_pipeline.py", "--domain", d,
-                        "--from-stage", "fulltext", "--until", "embed"]
-                print(f"▶ 接下游完成器 --domain {d}(fulltext→sentences→concordance→stats→embed) …", flush=True)
+                        "--from-stage", "fulltext", "--until", "kip"]
+                print(f"▶ 接下游完成器 --domain {d}(fulltext→…→embed→kip) …", flush=True)
                 rc = subprocess.run(ccmd, check=False).returncode   # check=False:某段/某域失敗不擋其餘域
                 if rc != 0:
                     print(f"  ⚠ {d} 下游完成器 exit={rc}(誠實記:可能 UNPAYWALL_EMAIL 缺或該域 OA/license 阻擋;"

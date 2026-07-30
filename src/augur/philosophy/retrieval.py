@@ -339,12 +339,12 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
                             _rows.sort(key=lambda c: _order.get(c.sent_id, 9e9))
                             out.extend(_rows[:need])
                         if len(out) >= k:                   # 填滿→回;未滿(public 域收窄後不足)→落 pgvector 補
-                            return out
+                            return _finalize_items_kh_first(cur, out, k)
                     except Exception as e:                  # server 掛 → 降級走下方 pgvector SQL
                         print(f"[vectorstore] qdrant 故障降級 pgvector:{type(e).__name__}: {str(e)[:80]}")
                 need = k - len(out)                          # Qdrant 已補部分→重算,pgvector 只補剩餘(缺口④)
                 if need <= 0:
-                    return out
+                    return _finalize_items_kh_first(cur, out, k)
                 seen = [c.sent_id for c in out]
                 dedup = " AND s.sent_id != ALL(%s)" if seen else ""
                 cur.execute(f"""SELECT {_ITEM_COLS}, 1 - (e.embedding <=> %s::vector) AS score
@@ -358,7 +358,18 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
                                             domain=r[4], entity_type=r[5], char_start=r[6], char_end=r[7],
                                             source_url=r[8], license=r[9], text=r[10],
                                             score=float(r[11]), via="ann"))
+        return _finalize_items_kh_first(cur, out, k)
     return out
+
+
+def _finalize_items_kh_first(cur, out, k):
+    """KH9-first：依 admit_depth 重排後截 k（相關度仍由 advise 閘）。"""
+    if not out:
+        return out
+    from augur.knowledge.auto_admit import load_admit_depths, rank_item_citations
+
+    depths = load_admit_depths(cur, [c.item_id for c in out])
+    return rank_item_citations(out, depths)[:k]
 
 
 def retrieve_all(query, k=6, access_scope="public", scope=None):
@@ -384,7 +395,9 @@ def retrieve_all(query, k=6, access_scope="public", scope=None):
         priv = retrieve_items(query, k=half, access_scope="local_private",
                               is_super=is_super, owner_user_id=user_id)   # 擁有者收窄
     merged = [c for trio in zip_longest(works, pub, priv) for c in trio if c is not None]
-    return merged[:k]
+    # KH9-first：合併後再依 admit_depth 排（深度本地 know-how 先於公版 works）
+    from augur.knowledge.auto_admit import rank_citations_kh_first
+    return rank_citations_kh_first(merged)[:k]
 
 def verify_verbatim_item(citation):
     """item_text 定位基準他證(§3-S7):citation.text 須==content 之 substring(FROM char_start+1

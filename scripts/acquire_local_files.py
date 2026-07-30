@@ -20,6 +20,8 @@
   python scripts/acquire_local_files.py --dir ~/erp --license owned_local --owner-user-id 1      # 自有私有(強制 local_private)
   python scripts/acquire_local_files.py --dir ~/docs --license public_domain --access-scope local_private  # 明示私有(蓋過源 cfg)
   python scripts/acquire_local_files.py --dir ~/docs --license public_domain --dry-run           # 掃描預覽不寫
+  python scripts/acquire_local_files.py --dir ~/docs --license public_domain --source-key KEY --no-kip  # 只入庫、明示跳過 KIP(D9)
+  # 預設入庫後跑 KIP(切句→嵌→KH4→admit≤9);--acquire-only 交 DAG 下游
 """
 import argparse
 import hashlib
@@ -88,11 +90,16 @@ def main():
     ap.add_argument("--license", choices=list(corpus.LICENSE_WHITELIST))
     ap.add_argument("--access-scope", choices=["public", "local_private"], default=None,
                     help="明示優先;未給→adapter_config.access_scope→local_private(勿把預設當可覆寫為 public)")
-    ap.add_argument("--domain", default="local")
+    ap.add_argument("--domain", default=None,
+                    help="策展 domain；未給→adapter_config.domain→local")
     ap.add_argument("--owner-user-id", type=int, default=None,
                     help="local_private 擁有者 app_user.user_id(RBAC 擁有者收窄;僅本人+super 可檢索)")
     ap.add_argument("--acquire-only", action="store_true",
-                    help="僅入庫、不自鏈下游(C3;本 script 本即 acquire-only,此為 no-op-safe 之契約旗標)")
+                    help="僅入庫、不自鏈 KIP(交 refresh DAG／C3)")
+    ap.add_argument("--no-kip", action="store_true",
+                    help="明示跳過入庫管線(KIP);落 kip_run=skipped_explicit(D9)")
+    ap.add_argument("--kip-qdrant-url", default=None,
+                    help="KIP 段匯出 Qdrant URL;未給則 skip_qdrant(私有預設)")
     ap.add_argument("--dry-run", action="store_true")
     args, _ = ap.parse_known_args()
 
@@ -122,7 +129,8 @@ def main():
         # CLI 明示 > 源 cfg > local_private(R6:禁「預設 private」被源 cfg public 靜默蓋掉→假私有實公開)
         access_scope = (args.access_scope if args.access_scope is not None
                         else cfg.get("access_scope", "local_private"))
-        domain = args.domain if args.domain != "local" else cfg.get("domain", "local")
+        # CLI／admin 明示 domain 優先；僅未給 --domain 時才吃源 cfg（舊碼把 default=local 當「未給」→誤吞成 smoke_test）
+        domain = args.domain if args.domain is not None else cfg.get("domain", "local")
         if not args.source_key:                            # 寫入必填(#29b provenance;缺→本機通道非治理公民)
             sys.exit("須 --source-key(件 A1:本機通道須註冊 knowledge_source 列並經 admission 源-active 閘;"
                      "無源列時先跑 migrate_local_admission_ddl.py --apply 註冊 proposed、再 TTY activate)")
@@ -259,47 +267,34 @@ def main():
             print("  誠實跳過分類:" + "、".join(parts), flush=True)
         print(f"  source_key={args.source_key} source_type={args.source_type} license={license} "
               f"access_scope={access_scope} domain={domain}"
-              + ("" if (args.dry_run or args.acquire_only) else
-                 "  → 接 build_sentences --scope items / embed_knowledge / retrieve_all(private 需 admin 私模)"),
+              + ("" if (args.dry_run or args.acquire_only or args.no_kip) else
+                 "  → 接 KIP(sentences→resplit→embed→kh4→admit≤9)"),
               flush=True)
-        print("[local_import_done]", flush=True)
 
-        # ── 入庫即跑 KH：對本 job 新入庫項做 progressive admit（v1.48.0）──
-        if not args.dry_run and not args.acquire_only and stats["ok"] > 0:
+        # ── LSR-INGRESS-S2：入庫後強制 KIP（含 dup＝已在庫但仍可能缺句／缺嵌）──
+        if not args.dry_run and not args.acquire_only and (stats["ok"] > 0 or stats["dup"] > 0):
             try:
-                from augur.knowledge import auto_admit as aa
+                from augur.knowledge import ingress_kip as kip
 
-                with db.connect() as kh_conn, kh_conn.cursor() as kh_cur:
-                    gate = aa.load_gate(kh_cur)
-                    if gate["enabled"] and gate["progressive_enabled"]:
-                        # 取本 job 成功入庫的 item_id
-                        kh_cur.execute(
-                            "SELECT DISTINCT q.item_id "
-                            "FROM knowledge_import_qualification q "
-                            "WHERE q.job_id=%s AND q.ingest_status='inserted' "
-                            "AND q.item_id IS NOT NULL",
-                            (job_id,),
-                        )
-                        new_ids = [r[0] for r in kh_cur.fetchall()]
-                        cap = gate["max_auto_depth"]
-                        adv = 0
-                        for iid in new_ids:
-                            r = aa.progressive_item(
-                                kh_cur, iid, up_to=cap, apply=True,
-                                activate_source=True,
-                            )
-                            if r.get("ok") and r["admit_depth_after"] > r.get("admit_depth_before", -1):
-                                adv += 1
-                        kh_conn.commit()
-                        print(
-                            f"[kh_progressive] {len(new_ids)} items → "
-                            f"advanced={adv} cap={cap}",
-                            flush=True,
-                        )
-                    else:
-                        print("[kh_progressive] gate disabled; skipped", flush=True)
+                if stats["ok"] == 0 and stats["dup"] > 0:
+                    print("[kip_note] 本批皆 dup——仍跑 KIP 補切句／嵌／KH4／admit（防半截入庫）",
+                          flush=True)
+                kip.run_kip_hook(
+                    channel="local_files",
+                    job_id=job_id,
+                    trigger_ref=f"job:{job_id}",
+                    no_kip=bool(args.no_kip),
+                    skip_qdrant=not bool(args.kip_qdrant_url),
+                    qdrant_url=args.kip_qdrant_url,
+                    actor="system:acquire_local_files",
+                )
             except Exception as e:
-                print(f"[kh_progressive] warn: {e}", flush=True)
+                print(f"[kip_warn] {e}", flush=True)
+                print("[kip_done] status=failed", flush=True)
+        elif not args.dry_run and not args.acquire_only and args.no_kip:
+            print("[kip_skip] explicit (no items ok/dup this job)", flush=True)
+
+        print("[local_import_done]", flush=True)
 
 
 if __name__ == "__main__":

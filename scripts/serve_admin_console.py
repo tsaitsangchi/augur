@@ -160,11 +160,12 @@ def _upload_job(job_id):
 
 
 def _parse_local_import_log(text):
-    """從 acquire_local_files 進度 log 抽 {k,n,file,status,ok_n,dup_n,short_n,skip_n,fail_n,summary,done}。"""
+    """從 acquire_local_files 進度 log 抽 {k,n,file,status,ok_n,...,kip_*,done}。"""
     k = n = 0
     cur_file = cur_status = ""
     ok_n = dup_n = short_n = skip_n = fail_n = 0
     summary_lines = []
+    kip_status = kip_run_id = ""
     for line in (text or "").splitlines():
         if line.startswith("[progress] "):
             rest = line[len("[progress] "):]
@@ -192,6 +193,15 @@ def _parse_local_import_log(text):
                 skip_n += 1
             elif cur_status:  # 非空且非上述 → 計失敗(勿把 phase=scan 無 status 算入)
                 fail_n += 1
+        elif line.startswith("[kip_done]") or line.startswith("[kip_skip]"):
+            summary_lines.append(line)
+            for tok in line.split():
+                if tok.startswith("status="):
+                    kip_status = tok[7:]
+                elif tok.startswith("kip_run_id="):
+                    kip_run_id = tok[11:]
+        elif line.startswith("[kip_start]") or line.startswith("[kip_warn]"):
+            summary_lines.append(line)
         elif line.startswith("[local_import_done]"):
             pass
         elif line.startswith("掃描 ") or line.startswith("[dry-run] 掃描 ") or line.startswith("  "):
@@ -202,6 +212,7 @@ def _parse_local_import_log(text):
     summary = "\n".join(summary_lines).strip()
     return {"k": k, "n": n, "file": cur_file, "status": cur_status,
             "ok_n": ok_n, "dup_n": dup_n, "short_n": short_n, "skip_n": skip_n, "fail_n": fail_n,
+            "kip_status": kip_status, "kip_run_id": kip_run_id,
             "summary": summary, "done_mark": done}
 
 
@@ -291,7 +302,8 @@ PANELS = ("""
 <div style="margin-bottom:12px">授權 <select id=inlic style="padding:8px;background:#faf9f5;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:6px">"""
 + _LIC_OPTIONS + """</select>
  範圍 <select id=inscope style="padding:8px;background:#faf9f5;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:6px">"""
-+ _SCOPE_OPTIONS + """</select></div>
++ _SCOPE_OPTIONS + """</select>
+ <label style="font-size:13px;margin-left:8px"><input type=checkbox id=inkip checked> 跑入庫管線 KIP（切句→嵌→KH4→admit；不勾＝--no-kip）</label></div>
 <button type=button id=upbtnF onclick="pick('file')" style="padding:9px 16px;background:#d97757;color:#fff;border:0;border-radius:8px;cursor:pointer;margin-right:8px">📄 選檔案</button>
 <button type=button id=upbtnD onclick="pick('folder')" style="padding:9px 16px;background:#d97757;color:#fff;border:0;border-radius:8px;cursor:pointer">📁 選資料夾</button>
 <input type=file id=fpick style="display:none">
@@ -331,6 +343,7 @@ async function doUpload(files){
   var bd=new URLSearchParams()
   bd.append('license',document.getElementById('inlic').value)
   bd.append('access_scope',document.getElementById('inscope').value)
+  bd.append('run_kip', document.getElementById('inkip').checked ? 'on' : '')
   bd.append('total',String(total))
   var br=await fetch('/api/upload/begin',{method:'POST',body:bd,headers:{'Content-Type':'application/x-www-form-urlencoded'}})
   var bj=await br.json()
@@ -362,6 +375,7 @@ async function doUpload(files){
    var k=sj.k||0,n=sj.n||uploaded,st=sj.status||'',fn=sj.file||''
    // 重複＝內容 sha1 已在庫（冪等，非失敗）；略過＝無法抽取／缺 OCR／未支援副檔名等
    var counts='成功 '+(sj.ok_n||0)+' · 重複 '+(sj.dup_n||0)+' · 略過 '+((sj.skip_n||0)+(sj.short_n||0))+' · 失敗 '+(sj.fail_n||0)
+   if(sj.kip_status){counts+=' · KIP '+sj.kip_status+(sj.kip_run_id?('#'+sj.kip_run_id):'')}
    _showProg('解析入庫 '+k+'／'+n,k,n||1,(fn?('目前:'+fn+' ('+st+') · '):'')+counts)
    if(sj.done){
     _showProg(sj.failed?'解析結束(有錯誤)':'解析完成',n||k,n||k||1,counts)
@@ -397,6 +411,7 @@ SFTP_PANEL = ("""
 + _LIC_OPTIONS + """</select>
 <select name=access_scope style="padding:8px;background:#faf9f5;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:6px">"""
 + _SCOPE_OPTIONS + """</select>
+<label style="font-size:13px;margin-left:6px"><input type=checkbox name=run_kip checked> KIP</label>
 <button style="padding:8px 14px;background:#d97757;color:#fff;border:0;border-radius:6px">選此遠端資料夾解析</button></form></div>
 <script>
 (async function(){try{var r=await fetch('/api/sftp/conns');var j=await r.json();var s=document.getElementById('sconn');(j.names||[]).forEach(function(n){var o=document.createElement('option');o.textContent=n;s.appendChild(o)})}catch(e){}})()
@@ -586,7 +601,7 @@ batch <input name=batch value=10 type=number min=1 max=2000 style="width:72px;pa
 rounds <input name=rounds value=1 type=number min=1 max=20 style="width:60px;padding:8px;background:#faf9f5;border:1px solid #dcd8cc;color:#1f1e1d;border-radius:6px">
 <label style=font-size:13px><input type=checkbox name=run> 放量抓取(不勾=只看確認頁)</label>
 <button style="padding:8px 14px;background:#d97757;color:#fff;border:0;border-radius:6px">送出</button></form>
-<div style="font-size:12px;color:#73726c;margin-top:8px">首次建議 batch 10/rounds 1 小量探(#25);IP 健康再放大。放量後開即時進度頁(每 2 秒更新),關頁不中斷。</div>
+<div style="font-size:12px;color:#73726c;margin-top:8px">首次建議 batch 10/rounds 1 小量探(#25);IP 健康再放大。放量後開即時進度頁(每 2 秒更新),關頁不中斷。<b>放量預設接下游至 KIP</b>（切句→嵌→KH4→admit≤9；CLI <code>--no-complete</code> 可只停 metadata）。</div>
 </div>
 </section>
 <section id=sec-local class=sec>
@@ -850,6 +865,7 @@ def _gov_data(job_id=None):
         d["import_table"] = False
         d["import_jobs"] = []
         d["import_quals"] = []
+        d["kip_runs"] = []
         d["import_summary"] = {"jobs": 0, "quals": 0, "by_verdict": [], "by_ingest": []}
         cur.execute("SELECT to_regclass('public.knowledge_import_job')")
         if cur.fetchone()[0]:
@@ -900,6 +916,16 @@ def _gov_data(job_id=None):
                     ORDER BY q.qualification_id DESC
                     LIMIT 80""")
             d["import_quals"] = cur.fetchall()
+        cur.execute("SELECT to_regclass('public.knowledge_ingress_kip_run')")
+        if cur.fetchone()[0]:
+            cur.execute("""
+                SELECT kip_run_id, channel, status, cardinality(item_ids),
+                       coalesce(trigger_ref,''),
+                       to_char(created_at,'MM-DD HH24:MI'),
+                       to_char(finished_at,'MM-DD HH24:MI')
+                FROM knowledge_ingress_kip_run
+                ORDER BY kip_run_id DESC LIMIT 20""")
+            d["kip_runs"] = cur.fetchall()
     return d
 
 
@@ -963,6 +989,11 @@ def gov_dashboard_html(d):
         for qid, jid, vd, rc, ing, iid, segs, rel, ts in d.get("import_quals") or [])
     filt_note = (f"目前篩選 job=<b>#{fj}</b> · <a href='/gov'>清除篩選</a>"
                  if fj is not None else "近 80 筆跨 job · 點 job 列可篩該批")
+    kip_rows = "".join(
+        f"<tr><td>#{kid}</td><td>{e(ch)}</td><td>{e(st)}</td>"
+        f"<td style=text-align:right>{n}</td><td><code>{e(trig)}</code></td>"
+        f"<td>{e(started or '')}</td><td>{e(finished or '')}</td></tr>"
+        for kid, ch, st, n, trig, started, finished in d.get("kip_runs") or [])
     return f"""<!doctype html><html><head><meta charset=utf-8><title>來源治權 · augur admin</title>
 <style>body{{font-family:system-ui,sans-serif;background:#14140f;color:#e8e6df;margin:0}}
 .w{{max-width:1100px;margin:0 auto;padding:16px}}h2{{border-bottom:1px solid #444;padding-bottom:4px}}
@@ -985,6 +1016,10 @@ writer 已由 S1 <code>acquire_local_files</code> 落庫；此處只掃真相。
 <th>total</th><th>scan</th><th>ok</th><th>dup</th><th>short</th><th>skip</th><th>fail</th>
 <th>開始</th><th>結束</th><th>root</th></tr>
 {job_rows or '<tr><td colspan=15>（尚無匯入 job；跑 acquire_local_files 或後台本機匯入）</td></tr>'}</table>
+<h3>KIP 入庫管線帳（knowledge_ingress_kip_run）</h3>
+<div class=note>三通道強制收束帳：channel／status／item 數／trigger。skipped_explicit＝後台或 CLI 明示 --no-kip。</div>
+<table><tr><th>kip</th><th>channel</th><th>status</th><th>items</th><th>trigger</th><th>開始</th><th>結束</th></tr>
+{kip_rows or '<tr><td colspan=7>（尚無 kip_run；先跑 migrate_knowledge_ingress_kip_ddl 或入庫觸發 KIP）</td></tr>'}</table>
 <h3>檔案級 qualification</h3>
 <table><tr><th>qid</th><th>job</th><th>verdict</th><th>reason</th><th>ingest</th>
 <th>item</th><th>segs</th><th>rel_path</th><th>時間</th></tr>
@@ -1105,18 +1140,30 @@ class AdminHandler(BaseHTTPRequestHandler):
 
     def _local_source_key(self, domain):
         """本機通道 source_key(件 A1:白名單校驗、防任意 FK)。預設 local_files_<domain 或 local>;
-        須為已 active 之本機源(否則 acquire admission 閘拒、回明確訊息)。不信任 client 值。"""
+        須為已 active 之本機源(否則 acquire admission 閘拒、回明確訊息)。不信任 client 值。
+        不靜默落到無關的 smoke_test 等第一個 active 源——優先同名 key，其次 domain 相符。"""
         sk = "local_files_" + (domain or "local")
         try:
             with db.connect() as conn, db.transaction(conn) as cur:
-                cur.execute("SELECT 1 FROM knowledge_source WHERE source_key=%s AND adapter IN "
-                            "('local_files','manual_file')", (sk,))
+                cur.execute(
+                    "SELECT 1 FROM knowledge_source WHERE source_key=%s "
+                    "AND adapter IN ('local_files','manual_file') "
+                    "AND approval_status='active'",
+                    (sk,),
+                )
                 if cur.fetchone():
                     return sk
-                cur.execute("SELECT source_key FROM knowledge_source WHERE adapter='local_files' "
-                            "AND approval_status='active' ORDER BY source_key LIMIT 1")
+                # 次選：同 domain 的 active local_files（勿 ORDER BY source_key 誤吃 smoke_test）
+                cur.execute(
+                    "SELECT source_key FROM knowledge_source "
+                    "WHERE adapter='local_files' AND approval_status='active' "
+                    "AND domain=%s ORDER BY source_key LIMIT 1",
+                    (domain or "local",),
+                )
                 r = cur.fetchone()
-                return r[0] if r else sk       # 無 active 本機源→回預設,由 acquire admission 閘擋+明確訊息
+                if r:
+                    return r[0]
+                return sk  # 無 active → 回預設，由 acquire admission 閘擋
         except Exception:
             return sk
 
@@ -1346,6 +1393,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         if path == "/api/sftp/ingest":
             conn, rpath, lic = g("conn"), g("path"), g("license")
             scope = g("access_scope") or "local_private"
+            run_kip = g("run_kip") == "on"
             if lic not in _LICENSES:
                 return self._send(400, "license 非白名單", ctype="text/plain")
             if scope not in _SCOPES:
@@ -1358,17 +1406,21 @@ class AdminHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._send(200, f"{pre}SFTP 下載失敗:{html.escape(str(e))}</pre><a href=/>← 返回</a>")
             sk, uid = self._local_source_key("local"), self._owner_uid()
-            _audit("sftp_ingest", f"{conn}:{rpath} saved={st['saved']} license={lic} scope={scope} src={sk} owner={uid}")
+            _audit("sftp_ingest", f"{conn}:{rpath} saved={st['saved']} license={lic} scope={scope} "
+                   f"src={sk} owner={uid} run_kip={run_kip}")
             if not st["saved"]:
                 return self._send(200, f"{pre}遠端無可下載檔(過大跳 {st['skipped_big']})</pre><a href=/>← 返回</a>")
             cmd = [py, os.path.join(ROOT, "scripts", "acquire_local_files.py"),
                    "--dir", updir, "--source-key", sk, "--license", lic, "--access-scope", scope, "--domain", "local"]
             if uid is not None:
                 cmd += ["--owner-user-id", str(uid)]
-            rr = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=600)
+            if not run_kip:
+                cmd.append("--no-kip")
+            rr = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=3600)
             out = rr.stdout + (("\n[admission/錯誤]\n" + rr.stderr) if rr.returncode != 0 else "")
             head = (f"【SFTP 下載+解析】{conn}:{rpath}\n下載 {st['saved']} 檔"
-                    f"(過大跳 {st['skipped_big']}{'、截斷' if st['truncated'] else ''})、license={lic} scope={scope}\n\n")
+                    f"(過大跳 {st['skipped_big']}{'、截斷' if st['truncated'] else ''})、"
+                    f"license={lic} scope={scope} KIP={'on' if run_kip else 'off'}\n\n")
             return self._send(200, f"{pre}{html.escape(head + out)}</pre><a href=/>← 返回</a>")
 
         return self._send(404, "unknown", ctype="text/plain")
@@ -1379,6 +1431,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         form = parse_qs(self.rfile.read(n).decode("utf-8", "replace")) if n else {}
         g = lambda k: (form.get(k, [""])[0]).strip()
         lic, scope = g("license"), g("access_scope") or "local_private"
+        run_kip = g("run_kip") == "on"
         if lic not in _LICENSES:
             return self._send(200, json.dumps({"ok": False, "error": "license 非白名單(DB 硬擋只准公開授權)"}),
                               "application/json")
@@ -1394,8 +1447,10 @@ class AdminHandler(BaseHTTPRequestHandler):
             "updir": updir, "license": lic, "scope": scope, "total": total,
             "uploaded": 0, "big": 0, "bad": 0, "phase": "upload",
             "logname": None, "pid": None, "t0": time.time(), "failed": False,
+            "run_kip": run_kip,
         }
-        _audit("upload_begin", f"job={job_id} total={total} license={lic} scope={scope} updir={updir}")
+        _audit("upload_begin", f"job={job_id} total={total} license={lic} scope={scope} "
+               f"run_kip={run_kip} updir={updir}")
         return self._send(200, json.dumps({"ok": True, "job_id": job_id, "total": total}), "application/json")
 
     def _handle_upload_file(self):
@@ -1446,8 +1501,11 @@ class AdminHandler(BaseHTTPRequestHandler):
                "--access-scope", job["scope"], "--domain", "local"]
         if uid is not None:
             cmd += ["--owner-user-id", str(uid)]
+        if not job.get("run_kip", True):
+            cmd.append("--no-kip")
         _audit("upload_commit", f"job={jid} updir={job['updir']} saved={job['uploaded']} "
-               f"big={job['big']} bad={job['bad']} license={job['license']} scope={job['scope']} src={sk} owner={uid}")
+               f"big={job['big']} bad={job['bad']} license={job['license']} scope={job['scope']} "
+               f"src={sk} owner={uid} run_kip={job.get('run_kip', True)}")
         lf = open(os.path.join(LOG_DIR, logname), "w")
         try:
             proc = subprocess.Popen(cmd, cwd=ROOT, stdout=lf, stderr=subprocess.STDOUT,
@@ -1489,7 +1547,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                 data = ""
         parsed = _parse_local_import_log(data)
         out.update({k: parsed[k] for k in ("k", "n", "file", "status", "ok_n", "dup_n", "short_n",
-                                           "skip_n", "fail_n", "summary")})
+                                           "skip_n", "fail_n", "summary", "kip_status", "kip_run_id")})
         if not out["n"]:
             out["n"] = job.get("uploaded", 0)
         pid = job.get("pid")

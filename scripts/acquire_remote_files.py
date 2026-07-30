@@ -19,6 +19,8 @@
   python scripts/acquire_remote_files.py --source sftp_docs --dry-run    # 列將抓之新增/變更檔,零寫入
   python scripts/acquire_remote_files.py --source sftp_docs --limit 3    # 首輪最小(#25)
   python scripts/acquire_remote_files.py --source sftp_docs --acquire-only   # 只入庫、下游交驅動 DAG(C3)
+  python scripts/acquire_remote_files.py --source sftp_docs --no-kip        # 入庫但明示跳過 KIP(D9)
+  # 預設(非 --acquire-only):入庫後跑 KIP(LSR-INGRESS-S2)
 """
 import argparse
 import os
@@ -58,6 +60,8 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--limit", type=int, default=5000)
     ap.add_argument("--acquire-only", action="store_true", help="只入庫、不自鏈下游(C3;驅動 DAG 模式)")
+    ap.add_argument("--no-kip", action="store_true", help="明示跳過 KIP;落 skipped_explicit")
+    ap.add_argument("--kip-qdrant-url", default=None)
     args, _ = ap.parse_known_args()
 
     if not args.source:                                    # graceful:先印用法(免 DB)、再試列 sftp 源(#29a)
@@ -97,6 +101,7 @@ def main():
         owner = cfg.get("owner_user_id")
         client = sftpbrowse.open_client(client_cfg, strict=True)    # headless:RejectPolicy+known_hosts(#5)
         stats = {"new": 0, "changed": 0, "skip": 0, "dup": 0, "short": 0, "rows": 0, "err": 0}
+        new_item_ids = []
         import tempfile
         dest = tempfile.mkdtemp(prefix="sftp_" + args.source + "_")
         try:
@@ -126,6 +131,8 @@ def main():
                     _upsert(cur, args.source, sf, item_id=item_id, superseded=sup)
                     if status2 == "ok":
                         stats["new" if sf.change == "new" else "changed"] += 1; stats["rows"] += n
+                        if item_id is not None:
+                            new_item_ids.append(item_id)
                     elif status2 == "dup":
                         stats["dup"] += 1
                     elif status2 == "short":
@@ -139,9 +146,25 @@ def main():
         tag = "[dry-run] " if args.dry_run else ""
         print(f"{tag}SFTP {args.source}:new {stats['new']}、changed {stats['changed']}、skip {stats['skip']}、"
               f"dup {stats['dup']}、short {stats['short']}(seg {stats['rows']})")
-        if not args.dry_run and not args.acquire_only and (stats["new"] or stats["changed"]):
-            print("  → 接下游(build_sentences→embed):建議交驅動 DAG(refresh_knowledge_pipeline);"
-                  "本 CLI 保留 --acquire-only 供 DAG 模式跳過")
+        if not args.dry_run and not args.acquire_only and new_item_ids:
+            try:
+                from augur.knowledge import ingress_kip as kip
+
+                kip.run_kip_hook(
+                    channel="sftp",
+                    item_ids=new_item_ids,
+                    source_key=args.source,
+                    trigger_ref=f"source:{args.source}",
+                    no_kip=bool(args.no_kip),
+                    skip_qdrant=not bool(args.kip_qdrant_url),
+                    qdrant_url=args.kip_qdrant_url,
+                    actor="system:acquire_remote_files",
+                )
+            except Exception as e:
+                print(f"[kip_warn] {e}", flush=True)
+                print("[kip_done] status=failed", flush=True)
+        elif not args.dry_run and args.acquire_only and (stats["new"] or stats["changed"]):
+            print("  → --acquire-only:KIP 交 refresh_knowledge_pipeline kip 段", flush=True)
     return 0
 
 

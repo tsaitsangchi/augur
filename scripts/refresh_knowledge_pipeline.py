@@ -20,10 +20,11 @@
   python scripts/refresh_knowledge_pipeline.py --from-stage sentences --until embed --limit 1000
   python scripts/refresh_knowledge_pipeline.py --domain finance --stage-limit embed=5000 --stage-limit stats=20000   # D7 per-stage 量
   python scripts/refresh_knowledge_pipeline.py --reap                        # D7:殭屍收斂(心跳逾時/driver 亡→終止孤兒 process group+清 stale 鎖)
-  # 段名封閉集(依序): harvest promote fulltext sentences concordance stats stats_items bridge embed vector_export
-  #   (stats_items/bridge=K 計畫 §4 2026-07-14 加段:新語料落地後 items 統計軌+語意橋自動重建)
+  # 段名封閉集(依序): harvest promote fulltext sentences resplit concordance stats stats_items bridge embed vector_export kip
+  #   (stats_items/bridge=K 計畫 §4 2026-07-14 加段;resplit/kip=LSR-INGRESS-S2)
   # fulltext 段需環境變數 UNPAYWALL_EMAIL;--limit 映射為各 CLI 之有界旗標(promote 無界旗標=不適用)
   # vector_export 讀 knowledge_vectorstore_config(scope=sentence_items):backend=pgvector→skip(SSOT 即 serving);qdrant_*→export_qdrant_index.py
+  # kip=入庫強制收束(scoped embed/kh4/admit；--needs-kip)
 """
 import fcntl
 import os
@@ -53,8 +54,11 @@ STAGES = (
           "冪等去重全量(真實旗標無界量,--limit 不適用)"),
     Stage("fulltext", "S3", "fetch_oa_fulltext.py", (), True, "--limit", None,
           "需 UNPAYWALL_EMAIL;NC/ND/license 未明=誠實 skip 停 metadata"),
-    Stage("sentences", "S3", "build_sentences.py", ("--scope", "items"), False, "--limit", None,
-          "NOT EXISTS 冪等"),
+    Stage("sentences", "S3", "build_sentences.py", ("--scope", "items", "--max-chars", "800"), False, "--limit", None,
+          "NOT EXISTS 冪等;LSR max_chars=800"),
+    Stage("resplit", "S3", "resplit_long_sentences.py",
+          ("--apply", "--side", "items", "--max-chars", "800", "--note", "LSR-INGRESS-DAG"),
+          False, "--limit", None, "殘長句硬切(無則空跑)"),
     Stage("concordance", "S3", "build_concordance.py", ("--scope", "items", "--language", "en", "--run"),
           False, "--limit", None, "items 側 en;zh 側個別跑 build_concordance.py"),
     Stage("stats", "S4", "build_cross_school_stats.py", ("--phase", "groupstats", "--run"),
@@ -69,6 +73,10 @@ STAGES = (
           ("--side", "items", "--language", "en"), False, "--limit", None,
           "讀 knowledge_vectorstore_config 選匯出器(A-34):backend=pgvector→skip(pgvector 即 serving SSOT、"
           "無外部索引需匯出);qdrant_*→export_qdrant_index.py(export_milvus_index 退役列冊)"),
+    Stage("kip", "S7", "run_knowledge_ingress_kip.py",
+          ("--channel", "topic_harvest", "--apply", "--skip-qdrant", "--needs-kip"),
+          True, "--limit", None,
+          "LSR-INGRESS-S2:域內待補 item 跑 KIP 收束(kh4+admit≤9;sentences/embed 多為冪等空跑)"),
 )
 NAMES = tuple(s.name for s in STAGES)
 
@@ -241,6 +249,32 @@ def pending_lines(cur, name, domain):
                     "WHERE NOT EXISTS (SELECT 1 FROM knowledge_sentence s WHERE s.itext_id = t.itext_id)"
                     + (" AND i.domain = %s" if domain else ""), p)
         return [f"item_text 未切句 {n:,}"]
+    if name == "resplit":
+        n = _n(cur, "SELECT count(DISTINCT s.itext_id) FROM knowledge_sentence s "
+                    + (item_join if domain else "")
+                    + "WHERE s.itext_id IS NOT NULL AND length(s.sentence)>800"
+                    + (" AND i.domain = %s" if domain else ""), p)
+        return [f"items 超長句 parent {n:,}"]
+    if name == "kip":
+        # 與 ingress_kip.resolve needs_kip 同精神之概數
+        n = _n(cur, """
+            SELECT count(*) FROM knowledge_item i
+            WHERE EXISTS (SELECT 1 FROM knowledge_item_text t WHERE t.item_id=i.item_id)
+            """ + (" AND i.domain = %s" if domain else "") + """
+            AND (
+              NOT EXISTS (
+                SELECT 1 FROM knowledge_sentence s
+                JOIN knowledge_item_text t ON t.itext_id=s.itext_id WHERE t.item_id=i.item_id)
+              OR NOT EXISTS (
+                SELECT 1 FROM knowledge_kh4_state k
+                WHERE k.item_id=i.item_id AND k.answer_status='eligible')
+              OR NOT EXISTS (
+                SELECT 1 FROM knowhow_auto_admit_state a
+                WHERE a.target_kind='item' AND a.target_id=i.item_id::text
+                  AND a.admit_depth >= 9)
+            )
+            """, p)
+        return [f"待 KIP 收束 item {n:,}"]
     if name == "concordance":
         langs = _rows(cur, f"SELECT s.language, count(*) FROM knowledge_sentence s {item_join}"
                            "WHERE s.itext_id IS NOT NULL"
@@ -456,7 +490,7 @@ def main():
             after = pending_lines(cur, st.name, args.domain)
         print(f"✓ {st.seg} {st.name} 完成 {time.time() - ts:.0f}s | 驗收計數(後):{'; '.join(after)}",
               flush=True)
-        if st.name in {"promote", "fulltext", "sentences", "embed"}:
+        if st.name in {"promote", "fulltext", "sentences", "resplit", "embed", "kip"}:
             _refresh_kh4_scope(args.domain, args.limit)
     heartbeat(len(NAMES) - 1, child_pid=0)                   # 收尾 tick(child 清零)
     os.close(lock_fd)

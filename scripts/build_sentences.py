@@ -16,6 +16,7 @@
   python scripts/build_sentences.py --scope items                 # item 側(knowledge_item_text)
   python scripts/build_sentences.py --scope all                   # 兩側全跑
   python scripts/build_sentences.py --text-id 247                 # 指定單段(如道德經第一章)
+  python scripts/build_sentences.py --scope items --max-chars 800 # LSR-S1.1:新段硬切上限(≤1000)
 """
 import re
 import sys
@@ -53,8 +54,9 @@ def _trim_span(content, start, end):
     return start + left, end - right
 
 
-def split_sentences(content, language):
-    """回傳 [(char_start, char_end), ...];content[s:e] 即句子(offset 相對原 content,可切回)。"""
+def split_sentences(content, language, max_chars=None):
+    """回傳 [(char_start, char_end), ...];content[s:e] 即句子(offset 相對原 content,可切回)。
+    max_chars 設時（LSR-S1.1）對超長 span 再硬切，禁止 >1000。"""
     spans, prev = [], 0
     if language == "zh":
         for m in ZH_END_RE.finditer(content):
@@ -72,6 +74,9 @@ def split_sentences(content, language):
         s, e = _trim_span(content, prev, len(content))
         if e > s:
             spans.append((s, e))
+    if max_chars:
+        from augur.knowledge import sent_resplit as sr
+        spans = sr.expand_spans(content, spans, max_chars=max_chars)
     return spans
 
 
@@ -125,7 +130,7 @@ def backfill_language(conn):
     return result
 
 
-def build_side(conn, side, limit=None, text_id=None):
+def build_side(conn, side, limit=None, text_id=None, max_chars=None):
     """切一側(philosophy/items);批 500 段/commit;回傳統計 dict。"""
     table, idcol, base_sql = SIDES[side]
     with db.transaction(conn) as cur:
@@ -151,7 +156,7 @@ def build_side(conn, side, limit=None, text_id=None):
             rows = []
             for tid, content, lang in batch:
                 lang = lang or detect_language(content)   # 兜底:跑間新插入之 NULL,同一確定性規則
-                spans = split_sentences(content, lang)
+                spans = split_sentences(content, lang, max_chars=max_chars)
                 if not spans:
                     stats["empty"] += 1
                 for seq, (s, e) in enumerate(spans):
@@ -201,7 +206,11 @@ def main():
     ap.add_argument("--scope", choices=["philosophy", "items", "all"])
     ap.add_argument("--limit", type=int)
     ap.add_argument("--text-id", dest="text_id", type=int)
+    ap.add_argument("--max-chars", dest="max_chars", type=int, default=None,
+                    help="LSR-S1.1: 超長句硬切上限（建議 800；禁止 >1000）")
     args, _ = ap.parse_known_args()
+    if args.max_chars is not None and args.max_chars > 1000:
+        sys.exit("--max-chars 禁止 >1000（embed en junk 線）")
     with db.connect() as conn:
         if not (args.scope or args.limit or args.text_id):
             print_info(conn)
@@ -219,7 +228,8 @@ def main():
             sides = ["philosophy"]                     # --text-id 僅哲學側定址
         grand = {"texts": 0, "sentences": 0, "inserted": 0, "empty": 0}
         for side in sides:
-            st = build_side(conn, side, limit=args.limit, text_id=args.text_id)
+            st = build_side(conn, side, limit=args.limit, text_id=args.text_id,
+                            max_chars=args.max_chars)
             for k in grand:
                 grand[k] += st[k]
         el = time.time() - t0

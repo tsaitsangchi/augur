@@ -263,6 +263,9 @@ def build_prompt(query, payload, citations, lex_entries=()):
                      "(加引號會被引文閘當成非逐字引文而攔掉整則);(c) 只出視角與限制、不下「買/賣」指令(系統建議、人決策)。")
     if _asks_direction_or_path(query):   # 閘⑥ prompt 側:方向/逐日價格題強制注入誠實硬規則(lock②)
         kind_hint += DIRECTION_SIM_HONESTY
+    if any(getattr(c, "item_id", None) is not None for c in (citations or ())):
+        kind_hint += ("\n【Know-how 水印】若多則本地知識引文，優先依據較深 Know-how 水印"
+                      "（KH9＞KH8＞KH7）之材料作答，勿用較淺引文覆蓋較深結論。")
     return f"""{SYSTEM_PROMPT}
 
 {_payload_block(payload)}

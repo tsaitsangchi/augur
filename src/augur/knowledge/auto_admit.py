@@ -3,6 +3,7 @@
 🎯 這支在做什麼(白話):對已在庫的 knowledge_item（原文已准入）逐層評估／UPDATE
    KH1→KH10 精準度水印；每過一層立刻寫 knowhow_auto_admit_state，深層 fail／未建
    則停在當前 depth、不回滾原文。可選機械 activate 來源（system=True）。
+   另供顧問／檢索：依 admit_depth 作答排序（KH9＞KH8＞KH7…；≥7 本地 know-how 優於公版 works）。
 守 憲章 v1.48.0(一律准入)· #12· #15(誠實 skip／fail)· FZ-keep· PME-GATE-keep· NHC-keep。
 
 執行指令矩陣(本檔=library #18；免 DB 可個別驗證):
@@ -101,6 +102,82 @@ def get_admit_depth(cur, target_kind: str, target_id: str) -> int:
     )
     row = cur.fetchone()
     return int(row[0]) if row else 0
+
+
+# 作答帶：KH7／8／9 視為「深水印本地 know-how」（KH9-first 計畫）
+DEEP_KH_FLOOR = 7
+
+
+def load_admit_depths(cur, item_ids: list[int] | tuple[int, ...]) -> dict[int, int]:
+    """批量讀 item → admit_depth；無列／表缺 → 0。"""
+    ids = sorted({int(i) for i in item_ids if i is not None})
+    if not ids:
+        return {}
+    if not _table_exists(cur, "knowhow_auto_admit_state"):
+        return {i: 0 for i in ids}
+    cur.execute(
+        """
+        SELECT target_id::bigint, admit_depth
+        FROM knowhow_auto_admit_state
+        WHERE target_kind='item' AND target_id = ANY(%s::text[])
+        """,
+        ([str(i) for i in ids],),
+    )
+    found = {int(tid): int(d) for tid, d in cur.fetchall()}
+    return {i: found.get(i, 0) for i in ids}
+
+
+def rank_item_citations(cites: list, depths: dict[int, int] | None = None,
+                        *, deep_floor: int = DEEP_KH_FLOOR) -> list:
+    """顧問／檢索排序：KH9＞KH8＞KH7…；depth≥deep_floor 的 items 先於 works／Attached；
+    同帶內 -score、-sent_id。不丟引文、不放寬相關度（呼叫端已濾）。"""
+    if not cites:
+        return []
+    depths = depths or {}
+
+    def _item_id(c):
+        return getattr(c, "item_id", None)
+
+    def _score(c):
+        try:
+            return float(getattr(c, "score", 0) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _sent_id(c):
+        sid = getattr(c, "sent_id", None)
+        return int(sid) if sid is not None else 0
+
+    deep_items, shallow_items, others = [], [], []
+    for c in cites:
+        iid = _item_id(c)
+        if iid is None:
+            others.append(c)
+            continue
+        d = int(depths.get(int(iid), 0))
+        bucket = deep_items if d >= deep_floor else shallow_items
+        bucket.append(c)
+
+    def _item_key(c):
+        iid = int(_item_id(c))
+        return (-int(depths.get(iid, 0)), -_score(c), _sent_id(c))
+
+    deep_items.sort(key=_item_key)
+    shallow_items.sort(key=_item_key)
+    # others（works／Attached）保持相對次序，插在 deep 與 shallow 之間
+    return deep_items + others + shallow_items
+
+
+def rank_citations_kh_first(cites: list, *, deep_floor: int = DEEP_KH_FLOOR) -> list:
+    """無 cur 時自連 DB 載 depth 後排序（advise 主路徑用）。"""
+    ids = [int(getattr(c, "item_id")) for c in cites if getattr(c, "item_id", None) is not None]
+    if not ids:
+        return list(cites)
+    from augur.core import db
+
+    with db.connect() as conn, db.transaction(conn) as cur:
+        depths = load_admit_depths(cur, ids)
+    return rank_item_citations(cites, depths, deep_floor=deep_floor)
 
 
 def upsert_state(cur, *, target_kind, target_id, channel, admit_depth,
@@ -610,6 +687,27 @@ def _selftest() -> int:
     ev0 = evaluate_layer(_Cur(), 0, snap)
     chk("depth0 pass with text", ev0["verdict"] == "pass")
 
+    from types import SimpleNamespace as S
+
+    cites = [
+        S(item_id=1, score=0.9, sent_id=10),   # depth 3 shallow
+        S(item_id=2, score=0.5, sent_id=20),   # depth 9 deep
+        S(item_id=3, score=0.8, sent_id=30),   # depth 7 deep
+        S(work_title="論語", score=0.99),      # works — no item_id
+        S(item_id=4, score=0.95, sent_id=40),  # depth 8 deep, high score
+    ]
+    depths = {1: 3, 2: 9, 3: 7, 4: 8}
+    ranked = rank_item_citations(cites, depths)
+    ids_order = [getattr(c, "item_id", None) for c in ranked]
+    chk("KH9-first 序 9→8→7→works→shallow",
+        ids_order == [2, 4, 3, None, 1])
+    chk("同 depth 較高 score 在前",
+        rank_item_citations(
+            [S(item_id=9, score=0.1, sent_id=1), S(item_id=9, score=0.9, sent_id=2)],
+            {9: 9},
+        )[0].sent_id == 2)
+    chk("DEEP_KH_FLOOR=7", DEEP_KH_FLOOR == 7)
+
     from augur.knowledge import evidence as kh8
     from augur.knowledge import synthesis as kh9
 
@@ -625,5 +723,6 @@ if __name__ == "__main__":
     if "--selftest" in sys.argv:
         sys.exit(_selftest())
     print((__doc__ or "").split("🎯")[0].strip())
-    print("公開: progressive_item / list_candidate_item_ids / load_gate / evaluate_layer")
+    print("公開: progressive_item / list_candidate_item_ids / load_gate / evaluate_layer / "
+          "load_admit_depths / rank_item_citations / rank_citations_kh_first")
     print("(自測: python -m augur.knowledge.auto_admit --selftest)")
