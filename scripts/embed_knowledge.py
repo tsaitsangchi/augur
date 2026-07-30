@@ -210,6 +210,7 @@ def main():
         t0 = time.time()
         limit = 10 if args.smoke else (args.limit or 10**9)
         cursor = 0  # gap-fill 自 0 掃未嵌句；常規路徑每批讀 build_meta
+        already_same_model = 0  # kept 中已以**同一 model_tag** 嵌過者（用於分辨冪等重走 vs 假成功）
         model = None
         while done < limit:
             with db.transaction(conn) as cur:
@@ -235,6 +236,14 @@ def main():
                                     f"ON CONFLICT ({conflict_cols}) DO NOTHING",
                                     (rid, list(map(float, v)), model_tag))
                         inserted += cur.rowcount
+                    # 「0 新列」有兩種截然不同的成因，必須分開（2026-07-31 實證）：
+                    #   (a) **冪等重走**——這些句早已用**同一 model_tag** 嵌過 ⇒ 0 新列是對的；
+                    #   (b) 換模未遷 PK／游標錯位之靜默假成功 ⇒ 才該停手。
+                    # 前版只看 `inserted == 0` 故把 (a) 誤判為 (b)，使全鏈在正常情況下被攔。
+                    cur.execute(f"SELECT count(*) FROM {table} "
+                                f"WHERE {idcol} = ANY(%s) AND model_tag = %s",
+                                ([rid for rid, _ in keep], model_tag))
+                    already_same_model += int(cur.fetchone()[0])
             if gap_fill:
                 cursor = rows[-1][0]
             else:
@@ -247,8 +256,13 @@ def main():
                 tag = "gap-fill" if gap_fill else "cursor"
                 print(f"  {scope}[{tag}]: {done:,} 筆(skip {skipped})、{rate:.1f} 筆/s", flush=True)
         # gap-fill 全 junk→0 新嵌＝誠實終態，非 SOP-A 換模假成功
-        suspect = (not gap_fill) and done > 0 and kept_total > 0 and inserted == 0
+        # 冪等重走（kept 全數已以同模型嵌過）亦非假成功——見上方 (a)/(b) 之界分
+        idempotent_rewalk = kept_total > 0 and already_same_model >= kept_total
+        suspect = ((not gap_fill) and done > 0 and kept_total > 0
+                   and inserted == 0 and not idempotent_rewalk)
         note = "smoke" if args.smoke else None
+        if idempotent_rewalk and inserted == 0:
+            note = f"IDEMPOTENT_REWALK kept={kept_total} already_same_model={already_same_model}"
         if gap_fill:
             note = f"FT-COV-EMBED-gap-fill junk={skipped} embedded={inserted}"
         if suspect:

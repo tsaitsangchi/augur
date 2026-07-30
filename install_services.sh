@@ -153,11 +153,14 @@ EOF
 # 禁 timer 呼叫 review_knowledge_source.py --approve/--activate；只跑 assist_admission_review。
 # flock -n /tmp/augur_llm.lock：與 L2／演化鏈共用 LLM 單槽；搶不到即跳過本輪。
 ADM_ASSIST_LIMIT="${ADM_ASSIST_LIMIT:-20}"
+# 額外參數直通（Steward 2026-07-31 以此掛總時限；空值＝不加，維持原行為）
+# 例：ADM_ASSIST_EXTRA_ARGS="--max-wall-sec 3600" bash install_services.sh
+ADM_ASSIST_EXTRA_ARGS="${ADM_ASSIST_EXTRA_ARGS:-}"
 if [ "${ADM_ASSIST_APPLY:-0}" = "1" ] || [ "${1:-}" = "--with-assist-apply" ]; then
-  ADM_ASSIST_ARGS="--apply --limit ${ADM_ASSIST_LIMIT} --kind both"
+  ADM_ASSIST_ARGS="--apply --limit ${ADM_ASSIST_LIMIT} --kind both${ADM_ASSIST_EXTRA_ARGS:+ ${ADM_ASSIST_EXTRA_ARGS}}"
   ADM_ASSIST_MODE_NOTE="apply(有界寫帳本;仍禁升級)"
 else
-  ADM_ASSIST_ARGS="--dry-run --limit ${ADM_ASSIST_LIMIT} --kind both"
+  ADM_ASSIST_ARGS="--dry-run --limit ${ADM_ASSIST_LIMIT} --kind both${ADM_ASSIST_EXTRA_ARGS:+ ${ADM_ASSIST_EXTRA_ARGS}}"
   ADM_ASSIST_MODE_NOTE="dry-run(零寫審批;留執行事實 admission_assist_run)"
 fi
 cat > "$UD/augur-admission-assist.service" <<EOF
