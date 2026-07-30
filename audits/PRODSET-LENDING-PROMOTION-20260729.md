@@ -15,3 +15,7 @@
 
 - 首次 econ 雙跑**作廢**：GRID-A 月頻加密於兩跑之間持續灌入 ≥2021-04 panel → 期數 17 vs 14、基準淨 12.6% vs 19.0%＝不同尺（claude 自查發現、未採信任何一側數字）。重跑排 GRID-A 收槍後之凍定網格。
 - **順序誠實註記**：lending 已先promoted（人搬）→ econ 屬**事後補證**而非前置閘；若重跑判負，誠實路徑＝demote 提案呈 hugo（不迴避）。
+
+## 結案（2026-07-30，hugo「有三件，全部處理」授權收案）
+
+經濟終關補證**成立**（同尺實錘：`--panels-list` 釘 lending 覆蓋 21 枚、panel hash 雙側一致 d448a67c41）：四配置淨值三升一平減（ridge top10 Calmar 1.59→1.75；gbdt top10 CAGR 23.4→27.7%；唯 ridge top20 −0.03 Sharpe）、兩側皆遠勝基準淨 0.83。**維持促升、無 demote 依據**。lending_fee_rate_mean_20d 四關全譜閉環：HAC ✅（2.63）→ 增量 ✅（四格正）→ 符號 ✅（5/5）→ 經濟 ✅（本節）。促升順序債（先搬後證）至此清償。**本 audit 全案結。**
