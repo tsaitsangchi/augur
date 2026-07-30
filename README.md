@@ -27,7 +27,7 @@ Augur 從已登錄之觀測通道（現行 [I]：FinMind／FRED）抓進可溯�
 
 它的每一條紀律都在防三個敵人：**① 假資料 · ② 偷看未來 · ③ 自我欺騙**。
 
-> 🚧 **狀態**：開發中。治權已立（靈魂 v1.9.0・原則精華 v1.12.0〔20 條法律；#7 supersede／RULING-2026-041〕・憲章 v1.50.0・CLAUDE v1.32——歷次入憲演進之明細見憲章「修訂歷程」，不在此複列防漂移）；`core / ingestion / audit / features / universe` 已建並實跑，特徵層三鏡頭 8 特徵＋康波毛利循環相位入生產、剪共線 volatility_20d（27→35）、經濟回測基礎(`evaluation/portfolio.py`)已建；raw 全市場全史 sync 已完成至 as-of 2026-05-31（84/84 逐表完整性定案）；**FREEZE 已於 2026-07-12 解除、轉 live 增量維運（原則精華解凍子條；live 准入依 arena 前置 G1-G5 機制〔`arena_admission_gate`，unfreeze gate 已退史料 2026-07-16〕；arena 已開賽）**；`models`（F3）未建（規劃中）；知識素養層三部曲（registry 窮舉 → harvest 常規批 → text 逐字理解）已上線、`knowledge / philosophy / advisor` 橫切已建（三粒度向量檢索嵌入已建；「誠實博學的我」顧問角色層續建中，詳 `reports/augur_knowledge_text_understanding_plan_20260702.md`）。
+> 🚧 **狀態**：開發中。治權已立（靈魂 v1.9.0・原則精華 v1.12.0〔20 條法律；#7 supersede／RULING-2026-041〕・憲章 v1.51.0・CLAUDE v1.32——歷次入憲演進之明細見憲章「修訂歷程」，不在此複列防漂移）；`core / ingestion / audit / features / universe` 已建並實跑，特徵層三鏡頭 8 特徵＋康波毛利循環相位入生產、剪共線 volatility_20d（27→35）、經濟回測基礎(`evaluation/portfolio.py`)已建；raw 全市場全史 sync 已完成至 as-of 2026-05-31（84/84 逐表完整性定案）；**FREEZE 已於 2026-07-12 解除、轉 live 增量維運（原則精華解凍子條；live 准入依 arena 前置 G1-G5 機制〔`arena_admission_gate`，unfreeze gate 已退史料 2026-07-16〕；arena 已開賽）**；`models`（F3）未建（規劃中）；知識素養層三部曲（registry 窮舉 → harvest 常規批 → text 逐字理解）已上線、`knowledge / philosophy / advisor` 橫切已建（三粒度向量檢索嵌入已建；「誠實博學的我」顧問角色層續建中，詳 `reports/augur_knowledge_text_understanding_plan_20260702.md`）。
 
 ---
 
@@ -39,7 +39,7 @@ Augur 從已登錄之觀測通道（現行 [I]：FinMind／FRED）抓進可溯�
 |---|---|
 | [`docs/系統核心思想_v1.9.0.md`](docs/系統核心思想_v1.9.0.md) | **靈魂**：系統是什麼、為什麼、什麼絕不能違反 |
 | [`docs/原則精華_v1.12.0.md`](docs/原則精華_v1.12.0.md) | **20 條不可違反原則**（三條基石：#1 / #8 / #15）＋ 資料完整性判準（as-of · FREEZE） |
-| [`docs/系統架構大憲章_v1.50.0.md`](docs/系統架構大憲章_v1.50.0.md) | **憲法**：三個敵人 × 管線 + 12-PHASE 維運 + 升版規則；歷次架構/判準演進明細＝檔內「修訂歷程」（單一權威家 #12，此處不複列） |
+| [`docs/系統架構大憲章_v1.51.0.md`](docs/系統架構大憲章_v1.51.0.md) | **憲法**：三個敵人 × 管線 + 12-PHASE 維運 + 升版規則；歷次架構/判準演進明細＝檔內「修訂歷程」（單一權威家 #12，此處不複列） |
 | [`CLAUDE.md`](CLAUDE.md) | AI 協作工具規則 |
 
 ## 管線
@@ -51,8 +51,12 @@ raw (FinMind/FRED) → feature (source-pure) → universe (核心股) → model 
 ## 目錄
 
 ```
-src/augur/   ingestion / features / universe / models(F3 未建) / evaluation / audit / catalog（預測管線 7 pkg）
+src/augur/   ingestion / features / universe / models(F3 未建；已有 ranker/registry/artifact) / evaluation / audit / catalog（預測管線 7 pkg）
              core（兩側共用 infra 橫切）；knowledge / philosophy / advisor（素養橫切，AST 強制隔離、預測管線零 import）
+             deliberation（本地審議引擎）/ arena（擂台賽局帳本）/ evolution（本地 AI 演化層）；
+             identity（世界實體身份，Layer 3 結構補正身份側）/ execution（P5.E1 行動留痕＋部署前風控 overlay）
+             ——治理·審議·賽局·載具橫切，皆不在預測管線 7 pkg 內；全 package 共 16
+             （2026-07-30 機械軌：依 `ls -d src/augur/*/` 實測 16 個 package 與 `audit/import_isolation.py:32` PIPELINE 定義補列原漏之 5 個）
 scripts/     薄 CLI entrypoints（呼叫 src，不放邏輯；個別可執行 + 資料驅動不 hardcode，CLAUDE #29；
              知識擷取=DB 三層管線 knowledge_source→acquire→staging→promote，新增領域=INSERT 來源列零 code）
 docs/        治權三件套 + datasets_zh.md(資料源逐欄 catalog) + finmind-references(FinMind 官方 dataset 抓法權威源) + archive(考古索引)

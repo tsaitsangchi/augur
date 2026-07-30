@@ -4,9 +4,11 @@
 
 > **這份文件是什麼**：augur 會在**另一台電腦接續開發**。這是「新機 clone 後第一份該讀的文件」——
 > 告訴你**從哪接、怎麼跑起來、哪些不在 git、進度到哪、紅線是什麼**。
-> 快照時點：**2026-07-26**（最新封存 tag＝`archive-20260726-evo-ruler-v2plan-phase0`；HEAD 以 `git log -1`／該 tag 為準）。
+> 快照時點：**2026-07-30**（最新封存 tag＝`archive-20260730-net8-tail-closed`，一覽＝`git tag -l 'archive-*' | tail -3`；HEAD 以 `git log -1` 為準——**HEAD 每日多次前進，勿以本行推斷現況**）。（2026-07-30 機械軌：依實跑 `git tag -l 'archive-*'`／`git log -1` 重戳；原戳＝2026-07-26／`archive-20260726-evo-ruler-v2plan-phase0`）
 >
 > **2026-07-26 地基級更正（接續者必讀）**：本地 AI 演化的舊評測尺經親驗失效——一條不看題目的常數樣板得 0.654、高於當時現役 pack 的 0.492；竄改金標數字仍得 1.000（事實敏感度 0%）；`think:false` 對 qwen3:4b 無效致評到的是被截斷的思考鏈。**今日之前所有 LAIEVO 能力數字（0.492/0.567/0.521…）無證據力**。新尺已建（凍結集 `local_model_eval_item`＋三軸 0/1 `src/augur/evolution/behavior_rubric.py`＋多臂 `scripts/eval_local_model.py`），首個有證據力的數字＝behavior 臂 **F@L1 0.933**（floor 0.000／mismatched 0.000／shuffled 0.167）。新一代總控計畫＝`reports/augur_self_evolution_master_plan_v2_20260726.md`。
+>
+> **⚠ 2026-07-30 機械軌補註（本段為 07-26 當日史述、其值不改）**：尺已於 **07-28 再換一次**——`V2-RUBRIC-go`（`audits/V2-RUBRIC-GO-20260728.md`）加 robot 第五對照臂＋L1「加料年份否決」＋換真地板，`eval_code_hash` `f3075238eb55`→**`ef142e9374c1`**。新尺離線實測 **robot 五格全 1.000**＝本凍結集每一格皆「零知識格式即可達」，依同檔鐵則 **live 臂於本集任何格至多判 `none`**；故上句 **0.933 不得再作為「有證據力之能力數字」引用**（尺誠實說出本集無可證格；可證能力之格待 S-4 凍結集重建拍板）。
 
 ---
 
@@ -31,9 +33,9 @@
 |---|---|
 | `docs/系統核心思想_v1.9.0.md` | **靈魂**：預測**相對強弱**＋預言機軸(絕對方向機率,唯過 direction_gate;v1.6.0;v1.8.0 三度堅持刪「不是預測絕對漲跌幅」句,E[r] 升格幅度級得逐股(GATE/econ 同源/揭露硬綁不動))（非絕對漲跌機率）、成功=經濟價值非 IC、系統建議人決策、禁 AI 占卜大師 |
 | `docs/原則精華_v1.12.0.md` | **20 條不可違反法律** + 資料完整性判準（**FREEZE 已解凍→live 增量維運**;live 准入=arena 前置 G1-G5 機制；**#7 supersede／RULING-2026-041**） |
-| `docs/系統架構大憲章_v1.50.0.md` | **憲法**：三敵×管線、12-PHASE、升版規則、**知識一律准入＋漸進 KH（v1.48.0 入憲，現行 v1.49.0）**、第六部計畫先行、修訂歷程 |
+| `docs/系統架構大憲章_v1.51.0.md` | **憲法**：三敵×管線、12-PHASE、升版規則、**知識一律准入＋漸進 KH（v1.48.0 入憲，現行 v1.51.0）**、第六部計畫先行、修訂歷程（2026-07-30 機械軌：14:33 親跑 `ls -1 docs/系統架構大憲章_*.md` ＋ `head -1` 實查現行＝**v1.51.0**〔同日 `4dae4bb` 升 v1.50.0、`24f020a` 再升 v1.51.0，一日兩升〕；原寫「現行 v1.49.0」與同列檔名自相矛盾故更正；「v1.48.0 入憲」為史述、未動。**本行版號一日內可再變——引用前一律 `ls docs/`**） |
 | `CLAUDE.md`（版本見檔頭） | AI 協作工具規則（Read-before-Edit、clean-room #16、plan-first #20、一支一支檢視 #19、常駐服務改碼須重啟實測 #7、最小 usage #28、DB 備份慣例 #30） |
-| `reports/augur_construction_understanding_20260710.md` | **⭐建構作法完整理解 v3（code-verified 16 子系統、supersede 20260709 版）**：兩半系統框架、逐層 how-built、跨系統 meta-pattern、治權→code 接線——**接手必讀「這專案怎麼建的」** |
+| `reports/augur_construction_understanding_20260713.md` | **⭐建構作法完整理解 v4（code-verified；58-agent 多視角深讀＋12 條承重宣稱 REFUTED 後採更正版；該檔自陳 supersede `20260710.md`＝v3）**：兩半系統＋第三塊審議引擎、逐層 how-built、治權→code 接線、§11 債/斷線/埋雷、§12 對 v3 差異——**接手必讀「這專案怎麼建的」**；`20260710.md`（v3）／`20260709.md` 降為史料（2026-07-30 機械軌：`ls reports/augur_construction_understanding_*` 實查 v4 在檔，原索引指 v3） |
 | `reports/augur_omniscient_advisor_plan_20260709.md` | **活躍計畫①**：全能全知顧問端到端（know-how→DB→逐字理解→Qdrant→qwen→web UI）——**未執行、待拍板** |
 | `reports/augur_prediction_short_horizon_model_plan_20260709.md` | **短 horizon（原計畫②）**：執行鏈已結案（closure 07-11）；**2026-07-29 採納 `SH-CAL-yes`＋`SH-CLOSE-yes`**（P30←H20、P60←H40；H60≠「60 天」）＋**WAVE2 `SH-ASOF-REFRESH-yes` CLOSED**（universe＋predict dry-run @2026-06-30；見 `audits/SH-ASOF-REFRESH-CLOSED-20260729.md`）——**`SH-REVAL` 仍未開**；GBDT registry 未拍；clarify＝`reports/augur_short_horizon_timeliness_clarify_20260729.md`／`audits/SH-CAL-CLOSE-APPROVED-20260729.md` |
 | `reports/augur_prediction_sop_master_20260706.md` | 股市預測 SOP 主計劃（端到端、階段、拍板點） |
@@ -71,7 +73,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 >
 > 兩支的排程內容是各自檔內的單一 SSOT（改排程改檔、跑一次即生效、隨 git 走）。**共用一把 LLM 單槽鎖 `/tmp/augur_llm.lock`**——ollama `-np 1` 全域序列化，不鎖則多支互搶、全部變慢且結果不可比。
 
-- **DB**（靠 dump 搬、#30):最新 = **`augur_pgdump_20260713_Fd`**（換機用;本地 ext4 `~/db_dumps/` 目錄版 + `D:\database\augur_pgdump_20260713_Fd.tar` 單檔版;含 07-12 全日成果=擂台九門簽核/三鏡頭月頻/491 件公版全文+469,551 句/K 計畫橋表/**audit 增量 658,911 列**;⚠ dump 取於 audit 尾段對帳中——新機還原後 audit 須續跑至綠,見 §4）。還原一律用 `bash import_database.sh`（自動判 tar/-Fd/-Fc、平行還原;新機庫不存在直接建、取代既有須 `--force`）。舊 dump（20260712_Fd 9.9GB/20260711_Fd 7.0GB）可備援。56GB 庫=35GB 資料+21GB 索引,dump ~10GB 屬正常。**dump 不進 git**,用外接碟/雲端搬。
+- **DB**（靠 dump 搬、#30;**本條＝dump 之單一住所 SSOT**，別處只許留指針、不得各自宣稱「最新」）:**最新＝`~/db_dumps/augur_20260726_Fd`**（2026-07-30 機械軌：本機 PC002-S1800 實跑 `ls -la ~/db_dumps/` ＋ `du -sh` ＋ `ls .../toc.dat`——-Fd 目錄版、含 `toc.dat`、10 GB、mtime 2026-07-26 09:00）。備援：`augur_pgdump_20260718_Fd`（9.9 GB；**PriceAdj 錨修復後之乾淨快照**，即 §4.1b ⑤ 所指那份）／`augur_pgdump_20260714_Fd`（9.9 GB）／`augur_pgdump_20260712_Fd.tar`（9.9 GB 單檔）。⚠ 同目錄 `augur_pg17_20260722.dump` **實查 0 byte＝空檔、不可用**;⚠ 本機**無 `/mnt/d`**（舊文所載 `D:\database\…tar` 單檔版於本機不可及;若在外接碟須先掛載並實查，勿假設存在）。**史註**：原文「最新＝`augur_pgdump_20260713_Fd`（含 07-12 全日成果＝擂台九門簽核／三鏡頭月頻／491 件公版全文＋469,551 句／K 計畫橋表／**audit 增量 658,911 列**;取於 audit 尾段對帳中）」係 **07-13 當時值**、已被 07-18／07-26 取代——**換機勿再取 07-13 庫**（其 headline 口徑早於 PriceAdj 錨修復）;audit 續跑之 API 面受 §4.4 凍結約束，見該條。還原一律用 `bash import_database.sh`（自動判 tar/-Fd/-Fc、平行還原;新機庫不存在直接建、取代既有須 `--force`）。56GB 庫=35GB 資料+21GB 索引,dump ~10GB 屬正常。**dump 不進 git**,用外接碟/雲端搬。
 - **`.env`**（手動重建、值不入 git;**按通道分組——漏鍵=對應通道靜默失效**):
   | 通道/層 | 鍵 | 漏了會怎樣 |
   |---|---|---|
@@ -91,7 +93,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 
 ## 4. 現況 STATE（取代式：每次封存點整段重寫；歷史＝`git log -p HANDOFF.md`）
 
-> 更新於 **2026-07-23**（lint P1–P3＋執行指令矩陣入憲封存）、tag `archive-20260723-lint-p1p3-cmd-matrix`；最新 tag 見 `git tag -l 'archive-*'`。
+> 更新於 **2026-07-30**（機械軌事實對齊：§4.0 三軸自進化列改實態、新增 §4.0b「07-27～07-30 落地」、§4.2／§4.5 arena 由「待開賽」改常態運轉）、最新封存 tag `archive-20260730-net8-tail-closed`；最新 tag 一律 `git tag -l 'archive-*' | tail -3` 實查。**上一次整段重寫＝2026-07-23**（lint P1–P3＋執行指令矩陣入憲封存、tag `archive-20260723-lint-p1p3-cmd-matrix`）——**本區下方各列之日期即其各自時效，勿以本行日期當全區時效**。
 > **紀律：本區每個宣稱都可能過期——待辦一律先跑附帶的驗證指令實查（#15），勿直接信。**
 
 ### 4.0 近程優先（2026-07-24 Steward 拍板）
@@ -123,7 +125,22 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 | **凍結** | FinMind／FRED **仍凍**（前提 (1)＝LAND-MECH 已釘；(2)＝明示解凍**仍缺**；見 §4.4）—**未**解凍；預測熱路徑見上列「預測↔API」 |
 | **API 洞另帳** | Dividend resume／全量 `build_catalog`／當日 attestation audit·heal — **解凍＋明示後**；G-CAT-1／G-DIV-1／G-ATTEST／G-HAR／10-14／evaluated_pass=0／R6 S3a 等 **另帳**（LAND-MECH 接受） |
 | **庫內證據** | `reports/augur_data_foundation_db_only_20260724.md` · `audits/ROADMAP-DATA-FOUNDATION-DB-ONLY-20260724.md` · tag `archive-20260724-data-foundation-db-only` |
-| **三軸自進化** | ✅ **採納／未開執行**（2026-07-26；Steward「計畫書先拍板不執行」＝`TRI-P-yes`＋`TRI-IFACE-yes`＋`RAWEVO-P-yes`＋`TWEVO-P-yes`＋`LAIEVO-P-yes`＋`FZ-keep`＋`GATE-keep`；`DUAL-IFACE-yes`⊂`TRI-IFACE-yes`）——audit＝`audits/TRI-SELF-EVO-PLANS-APPROVED-NO-EXEC-20260726.md`；master＝`reports/augur_triple_self_evolution_master_plan_20260726.md`；**仍否**任何 go／DDL／新腳本／iteration／解凍 |
+| **三軸自進化** | ✅ **V2 總控生效、執行已開**（**2026-07-30 機械軌取代前述「採納／未開執行」**——原列以 07-26「不執行」為終態，但同日 commit `396944b` 起 go／DDL／新腳本／iteration 四項均已發生；依據＝`audits/V2-ADOPTED-SUNSET-20260726.md`＋commit `396944b`＋本機 live DB 實查）。**①拍板**＝`V2-P-yes`：`reports/augur_self_evolution_master_plan_v2_20260726.md` 為總控／介面契約 **SSOT v2**；TRI-v1（`augur_triple_self_evolution_master_plan_20260726.md`）降**前身史料**、`TRI-P-yes`／`TRI-IFACE-yes` 由 `V2-P-yes` 承接；隨拍 **`V2-ISO-go`＋`V2-HONESTY-go`**（Phase 2 焊死）。**②SUNSET 已入表**：`evolution_prereg_gate` 實查 `V2-SUNSET`／axis=`program`／`status=approved`／`approved_by=hugo`／`criteria_sha=65eda893…`／deadline **2026-10-31**（`preregistered_at` 2026-07-27 15:30、`approved_at` 15:31；note 載 hugo 07-28 認領該 UPDATE 為本人親跑）。**③帳本落地**：`evolution_*` 族實查 **10 表**在庫（`iteration_ledger`／`hypothesis_hint`／`evidence_run`／`coverage_snapshot`／`deferred_work`／`prereg_gate`／`kill_switch`／`production_feature_set`／`apply_log`／`run`）；`evolution_kill_switch〔F6 更正：四列非同一 seed 時點——`tw`／`lai`／`raw` 為 2026-07-27 12:03，**`global` 列早於 v2、set_at 2026-07-24 21:11**〕` 4 列**全 `clear`**（scope `global`／`tw`／`lai`／`raw`；本機 v2 DDL seed 時戳 **2026-07-27 12:03**＝Phase 2／5 於本機 live 生效日）。**④已跑之輪（本機實查）**：TWEVO `tw-20260727-r01` `halted`（`--partial`、不完整之輪不計增益/停損）／`r02`·`r03` `succeeded`／**`tw-20260728-r01` 仍 `running` 且 `closed_at` NULL（07-30 實查——勿逕當「還在跑」，先查行程）**；RAWEVO 僅 `raw-20260727-r01` `succeeded`（其 hint 10 列全 `approved`、`decided_by='hugo(對話拍板)'`）。**⚠ 差異揭露**：commit `396944b` 訊息另載「RAWEVO r01–r03 三輪＋H3 人閘首循環（6 approved／14 rejected）」，**本機 DB 查無該三輪、亦無 6:14 分佈**——DB 不隨 git 跨機（疑落在並行載體 `DESKTOP-8MQPFS8` 之獨立庫），**引用前實查、勿當本機事實**。**⑤SUNSET 續命三條現況**：(a) arena 首批已結算、方向門 clusters 遠不足（見 §4.0b／§4.2）；(b) `evolution_production_feature_set` active **仍＝2**（`inst_cumflow_position_120d`／`lending_fee_rate_mean_20d`；`removed` 7 含 `volume_gini_60d`）→ **未**成長；(c) 尺 07-28 已換（`V2-RUBRIC-go`），新尺 robot 五格全 1.000＝本凍結集無可證格 → **未**達成（見檔頭補註）。**仍否**＝解凍市場 API（§4.4）／自動下單／AI 代簽人閘／挪門柱（放寬一律不許、升嚴唯 `GATE-raise`） |
+
+### 4.0b 2026-07-27～07-30 落地（2026-07-30 新增段：原 §4 停在 07-23／檔頭停在 07-26，此四日成果全未收）
+
+> **性質**：索引段——只列「已落地什麼＋去哪查」，數字一律標明來源（live DB 實查 vs 封存訊息）；細節見所引 `audits/`／`reports/`／commit。
+
+* **arena 已常態運轉**（07-26 起）：見 §4.2（本輪已由「待開賽」改寫）。live 實查（2026-07-30，`direction_arena_prediction`）：**8 隊**、`pred_date` 2026-07-15～07-29 共 **5 個**、**11,440 列**，其中**已結算 4,128 列／已結算 cluster＝2**。
+* **重演三軌（REPLAY／META-REPLAY／GRID-A）**：`direction_gate` 實查 `dgate_replay_*` **6 門**——`momentum_20_5`／`mc_bootstrap_5` ＝ **`evaluated_fail`（兩面門終判雙死）**，`own_daily_rolling_5`／`chronos_bolt_small_5`／`moirai2_small_5_5`／`timesfm_25_200m_5` ＝ `approved`；另 `dgate_meta_replay_M1_gbdt`／`B2_ridge` **2 門** `approved`。首讀報告＋11.5y 計分板＋W1 全窗（陣發性）＝commit `954a35a`；三軌全鏈封存＝`2877ce2`（07-29）。
+* **FV-GUARD 誠實閘上線**（commit `1ec2438`，07-29）：`feature_values` 之 INSERT/UPDATE/DELETE 須帶 GUC 通行證、TRUNCATE 拒；writer 側已帶證。**live 實查**：`feature_values` 上 `fv_row`＋`fv_stmt` 兩 trigger 在庫且 enabled；`evolution_iteration_ledger`／`raw_evolution_iteration_ledger` 各有 `*_no_delete_row`＋`*_no_truncate`。
+* **LANE-GOV 序列化**（commits `5a4e473`→`80102ed`→`90b810b`，07-30）：MCP **每請求** flock（鎖包單次請求、非常駐行程）＋`self_seek` cron 補 flock＋純度鎖開唯一明示例外（`/tmp/augur_llm.lock`）。⚠ 該串含**兩次「未實測即推」之自省在案**（`80102ed` 修 `5a4e473` 之 except 懸空語法破壞）——改共用閘後**先 ast＋selftest 再推**。
+* **TIER／P6＋econ 尺陷阱三攔**（commits `995c38b`／`3a9d842`，07-30）：TIER 71 列 backfill＋P6 活化（分佈＝簽核表）；econ 尺三道自攔＝`--until` 釘網格 ＋ panel hash 同尺自證 ＋ `--panels-list` 顯式清單（覆蓋稀疏特徵之同尺比較）。**教訓＝同尺四查**（A/B 前查覆蓋／查網格 hash 自證／查重名／查 falsy 空集；第三度尺陷阱自攔）；另 `e0aa0e8` 修 meta-replay 靜態錨（空 prodset 無 IC＝靜態 None）與 `754e268` 修 `run_ladder(feats=[])` falsy 退回全 canonical 之卡空雷。
+* **prodset 促升（lending）**：`audits/PRODSET-LENDING-PROMOTION-20260729.md`＋經濟補證全譜收案（`37a7446`）；**live active 仍＝2**（`inst_cumflow_position_120d`／`lending_fee_rate_mean_20d`）——SUNSET (b) 「active 由 2 成長」**尚未**成立。
+* **知識線（LSRS／LSR-INGRESS／KH10／KH7／RKI-S2／NET8）**：`audits/LSRS-S01-CLOSED-20260730.md`＋`LSRS-S23-CLOSED-20260730.md`（S2 embed en 新嵌 **35,584**／zh **1,970**、Qdrant upsert 差＝0；S3 KH4 `eligible` 885→**997**、`provisional` 112→**0**、`admit_depth=3` 508→**396** 且明示「殘留＝永久 non-semantic、誠實不抬」）；`LSR-INGRESS-S01/S2-CLOSED-20260730`；`KH10-AUTO-ADMIT-CONSTITUTED-20260729`＋`KH10-ENABLE-S0-CLOSED-20260730`；`KH7-S1-CLOSED-20260729`；`RKI-S2-CLOSED-20260730`；`ARCHIVE-PUSH-NET8-TAIL-CLOSED-20260730`。
+* **治權批次（07-30，一日內多批）**：14:33 逐檔親跑（`ls -1 docs/系統架構大憲章_*.md`／`head -1 docs/*.md`／`head -3 CLAUDE.md`／`grep -m1 'v1\.' constitution/GOVERNANCE-ANNEX.md`）實查現行＝**靈魂 v1.9.0／原則精華 v1.12.0／大憲章 v1.51.0／CLAUDE v1.32／`constitution/GOVERNANCE-ANNEX.md` v1.1**（`403ac97` 原則精華 v1.11.0 中繼 → `4dae4bb` 六包批次〔大憲章 v1.50.0＋靈魂 v1.9.0＋原則精華 v1.12.0＋CLAUDE v1.32＋ANNEX v1.1〕 → `24f020a` 大憲章再升 **v1.51.0**〔二通則入憲〕）。§1／§4.7 表已同步。⚠ **同日多 session 並行改治權檔，版號小時級變動——引用前一律 `ls docs/` 實查，勿抄本行**。
+* **兩則誠實更正（07-30，均為他人 commit、此處只登錄）**：①**硬體載具錯置**（`81aedb8`）——**GB10／AI TOP ATOM 該機不存在**（hugo 2026-07-25 宣告、2026-07-27 再確認、2026-07-30 重申）；`GTX 1650 4GB／driver 560.94` 屬**並行第二載體 `DESKTOP-8MQPFS8`**。當家機＝`ops/machines/PC002-S1800.md`（本輪親跑 `hostname`／`lscpu`／`free -h`：`PC002-S1800`、Intel Core i5-10500（6C/12T）、WSL 可見記憶體 11 GiB、`nvidia-smi` **不存在＝無 GPU**）；第二載體＝`ops/machines/DESKTOP-8MQPFS8.md`（AMD Ryzen 5 3600、GTX 1650 4GB）。②**cluster 門檻誤述**（`9a45fca`）——live 確立門實查 `min_clusters` ＝ **250**（`dgate_arena_own_daily_5`／`chronos_5`／`timesfm_5`／`a4_chronos2_5`／`a4_moirai2_5` 及 replay 諸門；`own_stack` 三門＝36），**無任何門為 60**；已結算 cluster=2 → **live 路距 2026-10-31 物理不可達**。⚠ **治權檔三處仍寫「≥60」與凍結值不符＝判準級矛盾，已列呈 Steward 裁，本機械軌不擅改**。
+* **全域重讀與排程文件**：`reports/augur_full_reread_facts_20260730.md`（全專案重讀 339 事實入 repo，`794a4ee`）；`reports/augur_open_problems_schedule_20260730.md`（開放問題總表×三批制行程，`561b680`）。
 
 ### 4.1 一句話現況（2026-07-23；取代前版）
 
@@ -136,11 +153,11 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 * **執行指令矩陣**：可執行入口 docstring 補齊 canonical「執行指令矩陣」；CLAUDE.md 從屬改引 **AUGUR-MC v1.4**；MC §0.5 L6／Appendix G 留痕（§8 [N] 本文未動、102 母集不變）。
 * **機器**：本機 PC002-S1800（WSL2）；MCP `qwen3:4b` 釘死見前 commit `ac0fa35`。
 
-**仍有效之上一錨（07-17～07-22，細節見 git／舊 STATE）**：arena 8 隊 live；alpha Phase 1 落定；monorepo 治權合併；GB10／DESKTOP 環境基準。歷史 STATE 全文＝`git log -p HANDOFF.md`。
+**仍有效之上一錨（07-17～07-22，細節見 git／舊 STATE）**：arena 8 隊 live；alpha Phase 1 落定；monorepo 治權合併；~~GB10／DESKTOP 環境基準~~ → **雙機環境基準**（2026-07-30 機械軌：Steward 同日宣告 **GB10／AI TOP ATOM 該機不存在**，凡以 GB10 為硬體基線之規劃於現行載體不可照用；現行雙載體＝當家機 `ops/machines/PC002-S1800.md`〔Intel Core i5-10500／**無 GPU**〕＋並行第二載體 `ops/machines/DESKTOP-8MQPFS8.md`〔AMD Ryzen 5 3600／GTX 1650 4GB〕；原字樣以刪除線留史、不抹除）。歷史 STATE 全文＝`git log -p HANDOFF.md`。
 
 ### 4.1b 上一大進度日摘要（2026-07-17；保留索引，細節以 git 為準）
 
-**① arena 8 隊 live（A4 波次 07-17 加入）**：07-16 開賽（gate `arena_adm_5305655ad1cd` evaluated_pass ∧ 閘一 approved；cron 三行 22:30/23:10/月初）。**07-17 加 A4 兩隊**（Chronos-2 `chronos2_market_5` + Moirai-2.0 `moirai2_small_5`；dgate_a4 K=2/α=0.025/21 門全序列揭露；hugo TTY approve×2——**憲章 v1.42.0 TTY 閘實證擋 AI 代跑**）。**8 隊全員 live**（4 本地+4 TSFM）；chronos/timesfm 套件已補（uni2ts 降級 numpy/torch、四關驗綠）。review_observation_only tier、確立唯門二（≥60 clusters）。license 白名單擴 cc-by-nc-4.0（Moirai NC、**商業化前須清算**）。
+**① arena 8 隊 live（A4 波次 07-17 加入）**：07-16 開賽（gate `arena_adm_5305655ad1cd` evaluated_pass ∧ 閘一 approved；cron 三行 22:30/23:10/月初）。**07-17 加 A4 兩隊**（Chronos-2 `chronos2_market_5` + Moirai-2.0 `moirai2_small_5`；dgate_a4 K=2/α=0.025/21 門全序列揭露；hugo TTY approve×2——**憲章 v1.42.0 TTY 閘實證擋 AI 代跑**）。**8 隊全員 live**（4 本地+4 TSFM）；chronos/timesfm 套件已補（uni2ts 降級 numpy/torch、四關驗綠）。review_observation_only tier、確立唯門二（≥60 clusters）。（⚠ 2026-07-30 機械軌註：此「≥60」係 **07-17 當時記載**；**live 門內凍結值實查＝`min_clusters` 250**〔`dgate_arena_own_stack_*` 三門＝36〕，治權檔三處「≥60」與凍結值不符＝**判準級矛盾已呈 Steward 裁**——本註只揭露、**不改數**、亦不代裁。）license 白名單擴 cc-by-nc-4.0（Moirai NC、**商業化前須清算**）。
 
 **② 治權批次（07-17 hugo「全批照案」）**：原則精華 **v1.9.1**／憲章 **v1.46.0**／CLAUDE **v1.29**／README／HANDOFF——live 准入 unfreeze gate(退史料)→arena 前置 G1-G5 機制；判準值零變動。**+平行 meta-憲章體系**（你另一會話：`augur-constitution` AUGUR-MC v1.3 Layer 0 lex superior、5 治權檔已加從屬聲明檔頭、AUD 審計；rebase 整合乾淨）。
 
@@ -148,7 +165,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 
 **④ alpha 提升計畫（07-17 拍板開工）**：`reports/taiwan_alpha_improvement_plan_20260717.md`（三軸 D/P/M、51 項對抗審查、11 拍板點）。**Phase 1 進度**：1-0 P0 診斷 ✅→**§0 驚雷=headline 錨 1.1972 不可再現**→修復鏈（見⑤）；1-1 recipe DDL ✅（trial_ledger +recipe 欄/UNIQUE 8）；1-2 P2 turnover 半和量尺 ✅（headline→1.1302）；1-3 P1 buffer **判死**（雙宇宙判準攔 asof 假象、ledger N=33）；1-4 P4 vol-target **無靶不啟用**（能力清償）；1-5 全鏈刷新 ✅；**1-6~1-9 完成**（opus-4-8 resume；**D2+D3 共 7 候選全滅、無一抵經濟終關**——預診放棄 3〔size/vol 代理〕、死於 IC 3〔x_foreign_streak_60d=iid −2.22 越線但 HAC −1.78 崩線=G8 教科書〕、死於增量 1〔x_limitup_reversal_5d Δ−0.049，帶稀疏宇宙混淆→S1〕；**N 維持 33、headline 1.1302 不動、生產表全淨**）。1-8 D1 前置=純盤點（BS 15 系統性缺季/~2.4–3.1k calls 待授權、去累計 32+2、金融股 60d 分支設計）；1-9 live OOS 承接=草案（排程歸屬+R1–R8 預註冊+**DSR N 陳舊斷鏈發現**）。報告=`reports/alpha_phase1_tail_verdict_20260717.md`；**9 拍板點待 hugo**（重點 C2=DSR 重算涵蓋修 N=32/33 陳舊）。**→ Phase 1 全 9 項落定（1-3/1-4/1-6~1-7 全誠實紅=功能非缺陷）**。
 
-**⑤ 錨修復鏈（hugo A/(a)/(i) 三裁）**：PriceAdj 修復（41 真損傷/175=除息跳點誤標定案）→新錨 **net 1.1302／超額+0.372／HAC-t 6.70／DSR 47.9%**（KPI SSOT=N=32 保守口徑）→`revalidation_baseline` re-freeze→**judgestop 相對式條款**（`deflated_decay_margin=0.10` frozen 取代絕對零線；絕對線在 N=32 下 baseline 自身為負=恆觸發失鑑別力）→verdict state=`deploying_unestablished`。econ_verdict 全程 thin 未變向。**DB dump=`C:\database\augur_pgdump_20260718_Fd.tar`（修復後乾淨快照）**。
+**⑤ 錨修復鏈（hugo A/(a)/(i) 三裁）**：PriceAdj 修復（41 真損傷/175=除息跳點誤標定案）→新錨 **net 1.1302／超額+0.372／HAC-t 6.70／DSR 47.9%**（KPI SSOT=N=32 保守口徑）→`revalidation_baseline` re-freeze→**judgestop 相對式條款**（`deflated_decay_margin=0.10` frozen 取代絕對零線；絕對線在 N=32 下 baseline 自身為負=恆觸發失鑑別力）→verdict state=`deploying_unestablished`。econ_verdict 全程 thin 未變向。**DB dump＝`augur_pgdump_20260718_Fd`（修復後乾淨快照）**；原文另載單檔路徑 `C:\database\augur_pgdump_20260718_Fd.tar`——本機無 `/mnt/d`／未能實查（2026-07-30 機械軌）。**最新 dump 一律以 §3 為單一住所**（#12；此處只留指針、不另宣稱「最新」）。
 
 **舊狀態（07-16 及前，仍有效）**：unfreeze gate 路徑退役+G1-PIN+G1-G5 七元件+撤列容忍——詳 git `f851742`/`1ac820c` 版本段。件 A DDL 待 apply+TTY 活化；件 B harvest 停 ~99,229 abstracts 待續；Qdrant serving 運行中。
 **unfreeze gate 路徑退役（hugo 拍板 07-16）**：`preregister_unfreeze_gate.evaluate()` 實測=純唯讀診斷（守門1-4 過但 G1-G5 標「本計畫內不可達」未實作、不改 status）→ 接受解凍已由 07-12 入憲完成、`unfreeze_06dcb178267d` **superseded 史料**（evaluation_ref 雙向鏈指新 gate）；**arena 前置改 G1-G5 實質驗證機制**（計畫+決策紀錄＝`reports/arena_g1g5_admission_gate_plan_20260716.md`：D-1~D-6/D-11 全拍板、D-2=Reading A 方向確立走門二、G3/G4 歸相對強度部署）。
@@ -163,15 +180,29 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 > **⚠ 同日三次微調（hugo 拍板 2026-07-14）**：①外盤 `finalize_lag_days` 2→**3**（UK/EU/JP/US Price；全球化+天災延遲發布餘裕；期貨夜盤/T+1 維持 2）——hugo 原提滯後 10 天，裁後採 3：偵測延遲代價（10 天未 attest 資料入管線）> 收益，且晚修正由滾動再驗視窗（每夜重驗 14 天）+heal 承接、非 lag 職責。②對帳窗改**滾動 `--audit-days 14`**（since=today−14；取代寫死 2026-07-01——寫死窗隨時間膨脹重演 IP throttle；**滾出窗之日以最後一次 attest 定案**，同 05-31 凍結先例）。③selfheal 改用 `--audit-days 14 --audit-all --heal`。
 
 ### 4.2 下一步（可直接執行，含前置條件）
+
+> **⚠ 2026-07-30 機械軌取代（勿與舊句並存）**：本節原以「① 開賽（hugo 拍板時點）」為待辦——**arena 實已於 2026-07-26 開賽**、首批已結算、計分板誠實化並重掛每日出單排程（commits `afef5d7`／`e61eabc`／`9eb3399`），故**開賽步已刪**，改為「常態運轉中＋如何實查」。live 實查（2026-07-30）＝8 隊／5 個 `pred_date`（07-15～07-29）／11,440 列／已結算 4,128 列／**已結算 cluster＝2**。
+
 ```bash
-# 前置已全達成(07-16):E1/strict 19 綠、arena_admission_gate evaluated_pass、雙閘開。驗現況:
+# arena 常態運轉中(每日出單 cron + settle_arena_labels + arena_scoreboard)。唯讀查閘:
 python scripts/run_arena_daily_pipeline.py --dry-run     # 應印「機械閘一…(開) | 機械閘二…✓(開)」
 python scripts/evaluate_arena_admission.py --check arena_adm_5305655ad1cd   # 唯讀預演、應 rc=0
-# ① 開賽(hugo 拍板時點):掛 A2 已核 cron 三行(arena launch plan §5;10 23 * * 1-5 等)+首日手動陪跑:
-python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才真跑
-# ② 開賽後常態:每日管線+settle_arena_labels+arena_scoreboard(cron);方向確立=門二 evaluate(≥60 clusters)
-# ③ 治權修訂批次(§8 提案待 hugo,見 4.5-6)
+# 排程本身(換機必跑;檔內即單一 SSOT):
+bash install_cron.sh                                     # 無參數=唯讀 diff
+bash install_services.sh                                 # systemd user 服務棧+timers
 ```
+**出單／結算現況（跑 SQL，勿信本檔數字；本輪係以 `venv/bin/python` ＋ `augur.core.db` 實跑）**：
+```sql
+-- 隊數/出單日/總列/已結算列/已結算 cluster:
+SELECT count(DISTINCT model_key) AS teams, count(DISTINCT pred_date) AS dates, count(*) AS n_rows,
+       count(*) FILTER (WHERE y_up IS NOT NULL) AS settled,
+       count(DISTINCT pred_date) FILTER (WHERE y_up IS NOT NULL) AS settled_clusters
+  FROM direction_arena_prediction;
+-- 方向確立唯門二 evaluate;**門檻以門內凍結值為準、一律實查不憑記憶**(治權檔「≥60」與凍結值不符已呈裁):
+SELECT gate_id, status, criteria->>'min_clusters' AS min_clusters
+  FROM direction_gate WHERE gate_id LIKE 'dgate_arena%' OR gate_id LIKE 'dgate_a4%' ORDER BY gate_id;
+```
+* **仍待**：治權修訂批次與其餘待拍項見 §4.5；**API 凍結未解**（§4.4）——arena 運轉屬庫內作業，**≠** FinMind／FRED 解凍。
 
 ### 4.3 正在跑的東西（殺掉前先看這裡）
 | 工作 | 觀察方式 | 存活檢查 |
@@ -189,13 +220,13 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 - ⚠ **PDF 抽取未經 P0 拍板前不啟動**（含 OAPEN 61/skip_pdf 976）——OCR 維持不啟動（P8 原裁定）;IA 掃蕩已完成(491 抓/其餘誠實終態)、勿重複放量。
 
 ### 4.5 待人類 vs 待 AI
-**待 hugo 拍板**（全部非阻塞開賽）：
+**待 hugo 拍板**（全部**非阻塞 arena 運轉**——arena 已於 2026-07-26 開賽，見下第 6 項；2026-07-30 機械軌）：
 1. **PDF 抽取計畫 P0**＝`reports/knowledge_pdf_extraction_plan_20260712.md`（D2 後續;pypdf+五道機械品質閘 fail-closed;OAPEN 61+skip_pdf 976）
 2. ~~短 horizon 模型計畫②~~：**已釐清／結案採納**（2026-07-29 `SH-CAL-yes`＋`SH-CLOSE-yes`＋`FZ-keep`；複核＝`reports/augur_short_horizon_timeliness_clarify_20260729.md`）＋**`SH-ASOF-REFRESH` CLOSED**（M2；as-of=`2026-06-30`；`audits/SH-ASOF-REFRESH-CLOSED-20260729.md`）——**`SH-REVAL`（M3）仍未開**。全能顧問計畫①仍：**hugo 已裁「開賽後 AI 先做時效性複核再拍」**（2026-07-12；早於解凍/擂台,恐部分被超越）——短 horizon 與顧問正交，顧問案另拍
 3. ~~舊專案 stock_backend 的平日 16:00 FinMind cron 去留~~ **已裁定（2026-07-13 hugo）：4 條 cron 全部取消**（同 IP 疊加解除；備份=`~/crontab_stock_backend_backup_20260713.txt` 可復原）
 4. **件 A 三通道公民化 DDL apply + 源活化**（code 已完成、非阻塞開賽）：`python scripts/migrate_local_admission_ddl.py --apply` ＋ `python scripts/migrate_sftp_sync_ddl.py --apply`（**須 audit 綠 + harvest 靜止後**，#30 dump 期禁 DDL）→ **憲章 v1.48.0 起來源可機械准入／activate**（不必 TTY 逐源；硬閘仍守）→ `systemctl --user restart augur-admin` → `bash install_services.sh --with-refresh`。SFTP/apk 另需 §3 人工前置（`augur-sftp.json`+私鑰 / jadx+JRE）。
 5. **R-H 修憲（OCR/ASR 轉錄≠AI + 本機/SFTP 明文豁免）**：v3 提案＝`reports/augur_rh_amendment_transcription_exemption_v3_20260714.md`；T2 CLAUDE #29b 條文（Fable 5 檔位、治權檔）待 hugo 確認後才動筆改治權檔。
-6. **arena 開賽 cron 掛載時點**（雙閘已開、機械前置全綠;掛載＝開賽＝hugo 決策）。
+6. ~~**arena 開賽 cron 掛載時點**（雙閘已開、機械前置全綠;掛載＝開賽＝hugo 決策）~~ **已完成（2026-07-26 開賽）**：每日出單排程已（重）掛、首批已結算、計分板誠實化——commits `9eb3399`（arena 鐘重啟：每日出單排程＋FZ 有界豁免成文）／`afef5d7`（首批結算＋觀察級覆盤＋計分板誠實化）／`e61eabc`（cron／systemd drop-in／arena 腳本三缺口入 git）；現況實查見 §4.2 SQL（2026-07-30 機械軌）。
 7. ~~G1-G5 治權修訂批次~~ **已完成（2026-07-17 hugo「全批照案」）**：原則精華 v1.9.1／憲章 v1.46.0／CLAUDE v1.29／README／HANDOFF 全鏈級聯（判準值零變動、僅機制指向;詳憲章修訂歷程 v1.46.0）。
 8. **alpha 計畫 11 拍板點**（`reports/taiwan_alpha_improvement_plan_20260717.md` §七）——大部分候選待逐支 productionize 拍板;Phase 1 已執行 1-0~1-5+1-6 部分。
 9. **alpha 1-6~1-9 之 9 拍板點**（`reports/alpha_phase1_tail_verdict_20260717.md`）：S1 稀疏公平測、D1-放量(BS 缺季 API)、D1-lag(金融法源)、A1 systemd timer、A2 季頻續建、A3 告警檢視、B(R1–R8 凍結)、C1 dsr provenance、**C2 DSR 重算涵蓋(修 N=32/33 陳舊斷鏈,最實質)**。
@@ -209,7 +240,12 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 ```bash
 # 門的現況:      SELECT gate_id,status,approved_by FROM direction_gate WHERE gate_id LIKE 'dgate_a%' OR gate_id LIKE 'dgate_arena%';
 # 證據帳本:      python scripts/verify_validation_evidence.py --list   # 07-12 晚:14/15 綠、唯 E1 紅
-# 擂台選手/對局: SELECT count(*) FROM direction_arena_candidate; SELECT count(*) FROM direction_arena_prediction;  # 9 / 0(未開賽)
+# 擂台選手/對局: SELECT count(*) FROM direction_arena_candidate; SELECT count(*) FROM direction_arena_prediction;
+#                (2026-07-30 機械軌:原註「9 / 0(未開賽)」已過期——arena 07-26 起常態出單;本行只留指令、不附值,值一律跑 §4.2 SQL 實查)
+# 三軸自進化:    SELECT axis,iteration_uid,status,opened_at::date,closed_at::date FROM evolution_iteration_ledger ORDER BY opened_at;
+#                SELECT iteration_uid,status FROM raw_evolution_iteration_ledger ORDER BY iteration_id;
+#                SELECT gate_id,status,approved_by,criteria->>'deadline' AS deadline FROM evolution_prereg_gate;
+#                SELECT feature,set_status FROM evolution_production_feature_set ORDER BY set_status,feature;  -- SUNSET(b) 看 active 是否 >2
 ```
 
 ### 4.6 已知陷阱（本專案特有假象，踩過的）
@@ -231,8 +267,8 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 | 要什麼 | 去哪 |
 |---|---|
 | 規則/工具紀律 | `CLAUDE.md`（版本見檔頭；#31＝接續慣例） |
-| 判準/憲法 | `docs/系統架構大憲章_v1.50.0.md`＋`docs/原則精華_v1.12.0.md`＋`docs/系統核心思想_v1.9.0.md` |
-| 這專案怎麼建的 | `reports/augur_construction_understanding_20260710.md`（v3 code-verified） |
+| 判準/憲法 | `docs/系統架構大憲章_v1.51.0.md`＋`docs/原則精華_v1.12.0.md`＋`docs/系統核心思想_v1.9.0.md` |
+| 這專案怎麼建的 | `reports/augur_construction_understanding_20260713.md`（**v4** code-verified；20260710＝v3 史料。2026-07-30 機械軌：與 §1 同步） |
 | 擂台規格 | `reports/augur_direction_live_arena_plan_20260711.md` |
 | arena 前置 G1-G5 gate（現行開賽機制+Phase 0 決策紀錄） | `reports/arena_g1g5_admission_gate_plan_20260716.md` |
 | 已完成功能清單/演變史 | `git log`＋封存 tag 序列（`git tag -l 'archive-*'`） |
@@ -248,4 +284,4 @@ python scripts/run_arena_daily_pipeline.py --run          # 雙閘 AND 放行才
 
 ---
 
-**續建入口**:讀 §1 治權 + 建構理解 v3 → **§4 現況 STATE**（一句話現況→下一步→紅線→待辦附驗證指令）→ plan-first 實作、實測、誠實記錄。**現況一律實查**（§4 每個宣稱都可能過期,先跑其驗證指令;跨機各自獨立、勿照抄假設 #15）。
+**續建入口**:讀 §1 治權 + 建構理解 **v4**（2026-07-30 機械軌：與 §1／§4.7 同步） → **§4 現況 STATE**（一句話現況→下一步→紅線→待辦附驗證指令）→ plan-first 實作、實測、誠實記錄。**現況一律實查**（§4 每個宣稱都可能過期,先跑其驗證指令;跨機各自獨立、勿照抄假設 #15）。

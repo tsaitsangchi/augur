@@ -1,7 +1,8 @@
 # 元憲章落地地圖（GROUNDING-MAP）[I]
 
 - **快照日**：2026-07-17（生產庫資料至 2026-07-16——此值未附產生指令＝**未驗**，僅與審查現實錨定相符；本審禁連 DB 無法補跑）
-- **性質**：資訊性 [I]。本文件不創設任何義務，權威悉依各 [N] 條款原文（AUGUR-MC v1.3、AUGUR-WM v1.0、AUGUR-ID v1.0、AUGUR-KS v1.0）。本文件不宣稱任何充任或生效；一切 apply／生效認定屬 Constitution Steward（MC §8.1）。
+- **性質**：資訊性 [I]。本文件不創設任何義務，權威悉依各 [N] 條款原文（AUGUR-MC v1.3〔**盤點時有效版**；現行 **v1.6**，Steward 裁決第 2026-040 號／AL-2026-044、2026-07-23〕、AUGUR-WM v1.0、AUGUR-ID v1.0、AUGUR-KS v1.0〔**盤點時有效版**；現行 **v1.1**，RULING-2026-016／AL-2026-019〕）。本文件不宣稱任何充任或生效；一切 apply／生效認定屬 Constitution Steward（MC §8.1）。（2026-07-30 機械軌：版號標注依各規格檔頭原文更正；**盤點所依之版本不改**，以免竄改 2026-07-17 盤點之時序記錄。）
+- **盤點涵蓋範圍之誠實揭露（2026-07-30 機械軌補列）**：本圖三路盤點以 **MC P1–P5＋§8** 為抽出母體；下列**已生效規格之規格級條款未逐條涵蓋＝未盤點（非「已合規」）**——**AUGUR-ONT v1.0**（Layer 2；分類與同一性判準、刪名測試等）、**AUGUR-L5 v1.0**（Layer 5）、**AUGUR-L6 v1.2**（Layer 6）、**AUGUR-L7 v1.0**（Layer 7）；§六-4 原僅揭露 L7 未涵蓋。**產生指令與輸出（於本段寫入前於本檔實跑）**：`grep -c 'ONT\.'` → **0**、`grep -c 'AUGUR-ONT'` → **0**、`grep -c 'L5\.'` → **0**、`grep -c 'L6\.'` → **0**、`grep -c 'L7\.'` → **0**。⚠ **自我掃描告誡**：本段自身即提及上開規格名，故重跑該 grep 將命中本段；複驗須以本段寫入前之 git 版本為準。**快照日（2026-07-17）與一切生產數字維持原值不動**——本次僅補列涵蓋範圍與現行版號，未連 DB 重驗。
 - **產生方法**：三路獨立盤點（義務官：憲章條文逐條抽出 44 項物理義務＋3 項程序性歸併；現實官：生產 schema 唯讀抽出物逐表比對；載具官：已寫成但未 apply 之 migration／程式盤點）之統整。衝突以現實官之 schema 行號證據為準。
 - **證據紀律**：凡數字必附產生指令；凡「已存在」必附 schema 行證據；凡「不存在」必附 grep 零命中證明；不確定者明標「不確定」。**未採信任何文件自陳**（本專案已五度實證文件自陳不可信，含 ENVIRONMENT-SPEC 整份描述另一台機器、HANDOFF 鐵證數字全錯——凡引 HANDOFF/審計處均另附獨立實跑證據或明標未驗）。
 - **抽出物**（唯讀，未連 DB；`$SP` ≡ `/tmp/claude-1001/-home-giga-augur/c804a0f7-f5fe-40c6-98ea-d200c3a65c0b/scratchpad`）：
@@ -27,6 +28,8 @@
 | 環境缺件 | ✅ **已補（2026-07-18）**：augur-code/venv/（psycopg2 2.9.12、pytest 9.1.1、requests、python-dotenv） | `venv/bin/python -c 'import psycopg2, pytest'` |
 
 > ⚠️ **infrastructure/ENVIRONMENT-SPEC.md 描述的是另一台不可達的 GB10 機器——與本機實測全面不符，屬主動誤導文件，本圖全程未引用，待重寫（見 §六-5）。**
+>
+> **（2026-07-30 機械軌補註，不改上開 2026-07-17 快照之原記述）**：上開「待重寫」已辦妥——`infrastructure/ENVIRONMENT-SPEC.md` 於 **2026-07-18 重寫為本機實測版**，GB10 版歸檔為 `infrastructure/ENVIRONMENT-SPEC-GB10-20260716-superseded.md`（產生指令：`ls infrastructure/` 實查二檔並存；`git log --oneline -- infrastructure/` → `8853c55`「ENVIRONMENT-SPEC 重寫（GB10 版歸檔 superseded）」、`c1a9571`「GPU 事實更正」）。**hugo 2026-07-25 宣告、2026-07-27 再確認、2026-07-30 重申：GB10 該機不存在**；現行載體為雙機並行——當家機 `ops/machines/PC002-S1800.md`（Intel Core i5-10500、CPU-only 無 GPU）與第二載體 `ops/machines/DESKTOP-8MQPFS8.md`（AMD Ryzen 5 3600、GTX 1650 4GB、driver 560.94），硬體詳值以該二 [I] 實測快照為準；現行 `ENVIRONMENT-SPEC.md` 所載即 `DESKTOP-8MQPFS8`，非當家機。§六-5 之決策點是否已消滅屬 §8.1 裁量，本補註不代為認定。
 
 ---
 
@@ -181,7 +184,7 @@
 
 | 項 | 憲章關聯 | 不可落地原因（實測） | 最小解法 |
 |---|---|---|---|
-| 本機 LLM 推論（L5 類義務之算力前提） | ⛔ | 無 GPU：`command -v nvidia-smi` → not found；`ls /dev/nvidia*` → 無；12 核/15GB（`nproc`、`free -g`）不足以本地推論實用規模模型 | 外部 API 推論＋一切 AI 產出依 KS.74 永久攜 synthetic 標記、受信任天花板；或待可達之 GPU 硬體到位後遷移（注意：ENVIRONMENT-SPEC 所述 GB10 不可達，不得作為規劃依據） |
+| 本機 LLM 推論（L5 類義務之算力前提） | ⛔ | 無 GPU：`command -v nvidia-smi` → not found；`ls /dev/nvidia*` → 無；12 核/15GB（`nproc`、`free -g`）不足以本地推論實用規模模型 | 外部 API 推論＋一切 AI 產出依 KS.74 永久攜 synthetic 標記、受信任天花板；或待可達之 GPU 硬體到位後遷移（注意：ENVIRONMENT-SPEC 所述 GB10 不可達，不得作為規劃依據）〔**2026-07-30 機械軌更正**：GB10 **該機不存在**（hugo 2026-07-25 宣告、2026-07-27 再確認、2026-07-30 重申）；`ENVIRONMENT-SPEC.md` 現版已改述 `DESKTOP-8MQPFS8`——見 §一補註。本列 ⛔ 之判定沿 2026-07-17 原快照，本次未重評〕 |
 | kill-switch 實體獨立 | ⛔ | 單機：DB、應用、審計載體同在一台 WSL2（本圖 §一全部實測同機產生）——不存在可獨立斷電/斷網之第二實體 | 程序級替代：獨立 OS 帳號持有之 revoke 腳本＋DB 角色權限收斂＋異地備份；並依 §8.4 登錄為豁免（附到期日與補正計畫）；建議 Steward 裁定：豁免登錄不宜宣稱等效實體獨立（裁量屬 §8.1） |
 | 雙人核准（two-person rule） | ⛔ | 單一自然人：Steward 與操作者為同一人（治理文件在卷；人數屬物理事實非文件自陳） | 時間延遲核准（cooling-off 期）＋不可回改留痕（append-only 表）替代第二人在場；依 §8.4 明記豁免與 Evidence 缺口標記 |
 | ~~PR #2「PG 16.14 全綠」之獨立重驗~~ | ✅ **已解消（2026-07-18）** | 原不可重驗（micromamba 環境查無）；已依 §四步 3 於 augur_sandbox（生產同版 PG 17.9、55GB 複本）重跑 → **15/15 passed**，宣稱由新鮮實證取代 | — |
@@ -198,7 +201,7 @@
 2. **步 11 九表沙盒實測後 apply**：六 identity 表＋二行動表＋一 serving 表；本機四支 `--selftest` 已綠，沙盒 `--check` 與行為測試為硬閘。附帶裁決：authorization_ref 是否 NOT NULL（升裁決項 C）；apply ≠ 落實——ID.11/P5.E1 之 runtime 接線（Phase 1/2/4/5）各為獨立後續案。
 3. **#22 audit_lint 與 CI 接線**：現為 120 行檔案掃描骨架（零 DB）。**#22 之由來即 4 份生效規格 151 個誤標＋L2 真值未知**（HANDOFF.md:161 錨定，依鐵律本圖未重驗；見 §五末列）——裁決前應令 gate 重跑出證、確認數值已收斂。決策：是否授權新增 `--db` 模式（驗收判準＝能對 augur_sandbox 重現 12 條 gate trigger 在位檢查）＋DB 面 legacy 豁免清單之建立。
 4. **L7 六阻斷**：本三路盤點未涵蓋其細節（**不確定**——僅列為既有議程項）；建議 Steward 以與本圖同等之證據紀律（每數字附指令）要求其盤點後再議。
-5. **ENVIRONMENT-SPEC.md 重寫**：現版整份描述另一台不可達之 GB10——主動誤導。決策：作廢並以本圖 §一實測基線（含產生指令）重寫；建議裁定：重寫前凍結該文件之引用（是否凍結屬 §8.1 裁量）。
+5. **ENVIRONMENT-SPEC.md 重寫**：現版整份描述另一台不可達之 GB10——主動誤導。決策：作廢並以本圖 §一實測基線（含產生指令）重寫；建議裁定：重寫前凍結該文件之引用（是否凍結屬 §8.1 裁量）。〔**2026-07-30 機械軌補註**：本項所述之重寫**已於 2026-07-18 辦妥**（GB10 版歸檔 superseded，證據見 §一補註）、且 hugo 2026-07-25 宣告、2026-07-27 再確認、2026-07-30 重申 GB10 該機不存在；**本決策點是否因此消滅屬 §8.1 裁量，本補註不代為認定、不予關閉**。〕
 6. **既有缺口之快速接線裁決**（低成本高收益，均有 schema 證據）：(a) trg_item_source_gate 函式在庫未掛表（$S L288-312、CREATE TRIGGER 零命中）；(b) pipeline_execution_log 表在零列（rowcounts\|0）；(c) model_registry 無 immutability trigger；(d) 84 張 FinMind 鏡像無 transaction-time（補正方向與 as-of tier 宣告 KS.42 一併議）。
 
 ---

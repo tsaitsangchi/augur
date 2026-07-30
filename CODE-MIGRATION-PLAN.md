@@ -1,8 +1,8 @@
 # augur-code 憲章化移轉暨擴張計畫書 [I]（v1.0——2026-07-18 經 RULING-2026-012 採認生效；五決策點處置見該裁決主文二）
 
-* **性質**：[I] 計畫書（不創設義務；一切 apply／併 main／充任屬 Steward，`AUGUR-MC v1.3 §8.1`／P5.W2）。依 augur-code CLAUDE.md #20（計畫先行）與大憲章「計畫完整性」紀律（附 DDL＋python 程式規畫）作成。
+* **性質**：[I] 計畫書（不創設義務；一切 apply／併 main／充任屬 Steward，`AUGUR-MC v1.6 §8.1`／`§P5.W2`）。依 augur-code CLAUDE.md #20（計畫先行）與大憲章「計畫完整性」紀律（附 DDL＋python 程式規畫）作成。（2026-07-30 機械軌：元憲章現行版為 v1.6，原記 v1.3 為採認當時版；`§8.1`／`§P5.W2` 條號與規範內涵歷 v1.4–v1.6 皆未改——v1.4／v1.5／v1.6 修訂摘要均載「§8 及構成性依據之 [N] 本文一律不動、五原則本文零改」）
 * **目標**：把活的台股系統（tsaitsangchi/augur）**逐步移轉到元憲章治理之下**，並使**一切後續擴張自動生於憲章之內**——不推倒重來、不讓 F1 遺產定義未來。
-* **法源與素材**：`AUGUR-MC v1.3` 五原則；`AUGUR-WM/ONT/ID/KS v1.0` 生效規格；`GROUNDING-MAP.md`（44 條物理義務對映）；`CONSTITUTIONAL-ROLLOUT-PLAN.md` 軌道 B/C 與 strangler-fig 三接縫；合憲審計（critical 3／major 11／minor 12，54 亮點）。
+* **法源與素材**：`AUGUR-MC v1.6` 五原則（採認時為 v1.3；**五原則本文零改**，見 MC 修訂摘要 v1.3→v1.6）；生效規格全七層＝`AUGUR-WM v1.0`／`ONT v1.0`／`ID v1.0`／`KS v1.1`／`L5 CK v1.0`／`L6 AR v1.2`／`L7 Infra v1.0`（產生指令：各 `specs/*-SPECIFICATION.md` 檔頭版本行；原僅列 WM/ONT/ID/KS v1.0＝L1–L4 時代基線）；`GROUNDING-MAP.md`（44 條物理義務對映）；`CONSTITUTIONAL-ROLLOUT-PLAN.md` 軌道 B/C 與 strangler-fig 三接縫；合憲審計（critical 3／major 11／minor 12，54 亮點）。
 * **快照日**：2026-07-18。數字紀律：凡數字附產生指令；未驗者明標。
 * ✅ **審查狀態**：本計畫書已經對抗審查（2026-07-18，wf_91983484-608，go=false→8 issues 全採納）：修訂 owner 分離斷線風險（major）、Phase 5/1 閘機器可判性、新增 Phase 8 誠實揭露 AUD-09/21 等未涵蓋發現、亮點不可動區改非閉集聲明。事實基線經審查官親驗（250 表/十表零列/37 檔/420 verdict/247 表 owner 皆命中）。
 
@@ -13,12 +13,18 @@
 | 項 | 狀態 | 證據 |
 |---|---|---|
 | 結構層 | ✅ **十張憲章表已 apply 生產**（250 表、18 護欄 trigger、SECURITY DEFINER×2、predict 隔離全拒） | GROUNDING-MAP §四步 5（commit aa8bb61）；`psql -d augur -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'"` → 250 |
-| 行為層 | ⬜ 新表**全零列**——code 未接線（heal 快照 code 在分支未併 main；mint/action_log 零呼叫端） | 各表 `SELECT count(*)` → 0 |
+| 行為層 | ⚠️ **部分接線（原記「全零列、code 未接線」已不成立）**：Phase 2 分支已依 **RULING-2026-015** 併 main（merge `4c6d3b6`，2026-07-18，併後測試 **27/27 綠**＝Phase 2 十二測＋supersede 十五測）；retire→mint 補件亦已併 main（`ed7718c`，2026-07-22——四支 backfill script 現皆在 main）。identity 鏈已於 2026-07-22 實跑落地＝registry **3,491**／alias **3,491**／provisional **235**／lifecycle retire **342**／attr_version **9,258**。**⚠ 該實跑機器＝`aitopatom-b96e`（GB10），hugo 已於 2026-07-25 宣告該機不存在——上列列數屬已不存在之機器，不得當作當家機現況**；當家機 `PC002-S1800` 2026-07-30 實查＝**identity 四表皆不存在**，須建表後 `SELECT count(*)` 實查回填。`prediction_serving_log`／`automation_action_log` 仍**零呼叫端**、`lc_mapping` **尚未建置**。 | GB10 史料＝`ops/phase2/ENTITY-BACKFILL-20260722.md`；併 main＝`git log -1 4c6d3b6`／`git log -1 ed7718c`；當家機＋零呼叫端＝下列產生指令 |
 | 規格層 | L0–L6 生效；L7 修復中（D1–D6）；#22 標籤更正中（RULING-2026-010） | AL-2026-001…013 |
 | 治權檔 | 檔頭從屬聲明✓；完整合規聲明**未作**（期限 2026-10-14） | RULING-2026-002 主文二 |
 | 沙盒 | ✅ augur_sandbox（55GB 複本＋十表）＝常設驗證閘 | build_sandbox [4/4] |
 | 節拍器 | ✅ 已實證之移轉節拍：**沙盒實測 → P5 拍板 → 生產 apply → 唯讀驗證** | 2026-07-18 首輪全程走通 |
 | 未涵蓋發現 | ⚠️ AUD-09/21（MAJOR）＋多項 minor 前七期未涵蓋——列 **Phase 8**（誠實揭露、不沉默） | 審查官親驗；REMEDIATION-ROADMAP 第二波 |
+
+> **行為層列之產生指令（2026-07-30 機械軌，於當家機 `PC002-S1800` 實跑；快照日 2026-07-18 之原值為 GB10 時代基線，故本列重戳）**
+> * identity 四表：`psql -h 127.0.0.1 -U augur -d augur -tAc "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND (table_name LIKE 'entity%' OR table_name LIKE 'identity%') ORDER BY 1"` → **零列**（四表尚未建；同庫 public schema 292 BASE TABLE＋3 VIEW）
+> * 零呼叫端：`grep -rn "log_action(" --include=*.py src scripts | grep -v "def log_action"` → 零命中；`grep -rln "prediction_serving_log" --include=*.py src scripts` → 僅 `scripts/setup_predict_role.py`／`scripts/migrate_prediction_serving_ddl.py`（DDL 與授權，非消費端）；`grep -rln "lc_mapping" --include=*.py src scripts` → 零命中
+> * Phase 2(a) 未接線：`grep -n "resolve_or_mint" src/augur/ingestion/ingest.py` → 零命中（`resolve_or_mint` 僅定義於 `src/augur/identity/resolve.py`，准入點尚未呼叫）
+> * **誠實界限**：本註僅重戳「現況基線」之行為層列；其餘各列（250 表／420 verdict／37 檔等）仍為 2026-07-18 快照原值，**未於本輪重驗**。
 
 ## 一、移轉原則（自憲章導出，全程不變）
 
@@ -43,6 +49,7 @@
 **〔2026-07-18 P5 已准、生產施作完畢 ✅：備份 10.04GB＋還原實測 5/5 吻合→手術→閘 A 全綠（十表 owner=augur_owner、augur_app 可寫、augur DELETE 42501 拒、資料零觸動）→augur_app 登入實測成功。殘餘＝hugo 側 .env 切換＋服務重啟（Steward 側，過渡橋零斷線）。執行記錄 ops/phase1/EXECUTION-RECORD-2026-07-18.md。〕**
 
 ### Phase 2 — Identity 接縫：mint-on-admission ＋ 存量鑄造 🪨（AUD-04/05/06/07 行為面；ID.11 義務結清）
+> **狀態（2026-07-30 機械軌重戳）**：**(b) 存量鑄造 ✅ 已實跑**、**(d) 下市→retire ✅ 已實跑**（342 事件）、**(c) 寫入面 ✅ 已實跑**（attr_version 9,258）**但 `core_gate` as-of 讀取面待驗**（`grep -n "entity_attribute_version" src/augur/universe/core_gate.py` → 零命中）、**(a) 准入點接 `resolve_or_mint` ⬜ 未接線**（`ingest.py` 零命中）。分支已依 **RULING-2026-015** 併 main（`4c6d3b6`／27/27 綠）、補件 `ed7718c`。**⚠ (b)(c)(d) 之實跑與列數均在 `aitopatom-b96e`（GB10）上作成，該機 hugo 2026-07-25 宣告不存在——當家機 `PC002-S1800` 之 identity 四表尚未建（2026-07-30 實查零列），故本期於當家機仍待重跑；【閘】之機器可判判準未於當家機滿足。**
 **內容**：(a) `ingestion/ingest.py::store` 准入點接 `resolve_or_mint`（外部碼→entity_alias→augur_id；查無→mint＋alias 登錄；`detect_code_reuse` 紅旗→provisional 不縫合）；(b) **存量鑄造 backfill**：對現有名冊實體一次性 mint（Security ≈3,114、Index、FredSeries——數量以 `core_gate` 名冊實跑為準，勿轉抄）；(c) TaiwanStockInfo 屬性快照開始寫 `entity_attribute_version`（daily sync 差異偵測 → SCD-2 append），`core_gate` 產業判定改讀 as-of（AUD-07 解）；(d) 下市事件消費：TaiwanStockDelisting → `identity_lifecycle_event(retire)`（AUD-05 解）。
 **【閘】**：`SELECT count(*) FROM entity_registry` ≈ 名冊實體數；`SELECT count(*) FROM entity_alias WHERE alias_status='provisional'` 之解析存量指標可查（ID.51）；code-reuse 紅旗測試（沙盒重演歷史重用案例）通過；`core_gate --selftest` as-of 模式綠。
 **【規畫】**：python——`src/augur/identity/resolve.py`（新，resolve_or_mint 入口）、`scripts/backfill_entity_registry.py`（新，冪等、分批、記 mint evidence=名冊來源列）、`scripts/sync_attribute_versions.py`（新或併入 daily_maintenance）；ingest.py/store 增一參數化 hook（比照 snapshot_reason gate 模式：預設不動、逐通道開啟）。DDL：無新表（六表已 apply）。
@@ -114,11 +121,14 @@ Phase 1 是唯一全域前置（code 不部署，一切行為面不動）。Phas
 
 ## 五、Steward 決策點（本計畫書之待批）
 
-1. **本計畫書採認**與各期排程節奏（幕僚建議：Phase 1 立即、2/3/4/5 兩週窗、6 一個月窗、7 期限驅動）。
-2. Phase 1 之 **PR 併 main**（#19 檢視）＋ owner 分離方案。
-3. Phase 3 之升裁決 C（authorization_ref 是否 NOT NULL）。
-4. 原則精華 #7 條文改（Phase 7）。
-5. 擴張軌之 CI merge-gate 時點（俟 #22 驗收）。
+> **本節狀態（2026-07-30 機械軌重戳；「待批」不得含已結項）**
+
+1. ~~本計畫書採認~~ → **✅ 已採認**（**RULING-2026-012 主文一**，2026-07-18；五決策點逐點處置見同裁決**主文二**）。
+2. ~~Phase 1 之 PR 併 main（#19 檢視）＋ owner 分離方案~~ → **✅ 已完成**（Phase 1 段自記 2026-07-18 P5 已准、生產施作完畢；Phase 2 分支另依 **RULING-2026-015** 併 main `4c6d3b6`）。
+3. **⏳ 仍待批**：Phase 3 之升裁決 C（`authorization_ref` 是否 NOT NULL）。
+4. **⏳ 部分**：原則精華 #7 條文改（Phase 7）——RULING-2026-012 主文二(d) 已「**方向採認**」，**條文實改仍待執行**（排入 Phase 7 批次）。
+5. **⏳ 仍待批**：擴張軌之 CI merge-gate 時點（俟 #22 驗收）。
 
 ---
-*[I] 計畫書 v0.1-draft。統整自 GROUNDING-MAP（44 條義務對映）、ROLLOUT-PLAN 軌道 B/C、審計 26 發現與 54 亮點、augur-code 九路全讀。凡數字附產生指令或明標未驗；一切 apply／併 main／充任屬 Steward。*
+*[I] 計畫書 **v1.0**（2026-07-18 經 **RULING-2026-012 主文一**採認生效、地位由 draft 轉生效 [I] 計畫；AL 登錄見該裁決）。統整自 GROUNDING-MAP（44 條義務對映）、ROLLOUT-PLAN 軌道 B/C、審計 26 發現與 54 亮點、augur-code 九路全讀。凡數字附產生指令或明標未驗；一切 apply／併 main／充任屬 Steward。*
+*（2026-07-30 機械軌：檔尾原記 `v0.1-draft` 與檔頭「v1.0——2026-07-18 經 RULING-2026-012 採認生效」互斥，依 `constitution/RULING-2026-012-*.md` 主文一原文對齊；「v0.1-draft」一詞在裁決主文中為**採認當時之標的版本名**，該史述不改。）*

@@ -2,7 +2,7 @@
 
 * **立於**：2026-07-19（Steward 指示「排行程、L0–L6 一層一層逐步完成」）
 * **原則**：不採信自陳、對抗審查方為關卡（定律已 12 度應驗，12/12 皆獨立審查捕獲、建造者自查零攔截）。每層走完整條管線才蓋章，不抄捷徑。
-* **權威狀態**：本檔隨進度更新；真實狀態以 gate／selftest／git 為準。
+* **權威狀態**：蓋章與生效之權威**唯 Steward 書面裁決＋Amendment Log 登錄**（`AUGUR-MC v1.6 §8.1`／`§8.6`）；gate／selftest／git 僅為**證據與回歸鎖**，**綠燈非合憲依據**（ULTRACODE-SCHEDULE 共用鐵律 3）。本檔為 [I] 進度看板，與裁決不符時**以裁決為準**。〔**核驗 F7 之處置**：本行係 [I] 之**對齊陳述**，其規範依據為既有 `§8.1`／`§8.6` 與 ULTRACODE 共用鐵律 3，**本行不創設任何義務**；原文「真實狀態以 gate／selftest／git 為準」把生效權威錨在執行層工具，與上開條文相違故對齊之。**措辭仍呈 Steward 認可**；不認可時退回原句並保留末句「與裁決不符時以裁決為準」即足。〕（2026-07-30 機械軌：原文「真實狀態以 gate／selftest／git 為準」把生效權威錨在執行層工具，與 ULTRACODE 共用鐵律 3 及本檔下方自記「linter 三度綠燈與實質錯誤並存」衝突）
 
 ## 蓋章五關（L0/L1 實際達到者，為標準）
 
@@ -62,12 +62,16 @@
 | 維度 | L1–4 概念層 | L5–7 執行層 |
 |---|---|---|
 | **完整（蓋章）** | **L1✅ L2✅ L3✅ L4✅** | **L5✅§8.2條件通過(RULING-2026-029，v1.0) L6✅ L7✅§8.2條件通過——執行層 G5 形式全蓋章、§8.2 全結（L5/L7 附條件、復審 2026-10-14）** |
-| **可運作（真跑）** | 資料在庫、可查（3,491 實體/知識/身份） | 模型載入、advisor 跑、服務起（PG/ollama/qdrant） |
+| **可運作（真跑）** | 判準＝registry／knowledge／identity 三面**非空且一致**。**實測值須附機器＋日期＋產生指令**（見表下註）：`aitopatom-b96e` 2026-07-22＝3,491（`ops/phase2/ENTITY-BACKFILL-20260722.md`）——**已為史料，該機 hugo 2026-07-25 宣告不存在**；當家機 `PC002-S1800` 2026-07-30 實查＝**identity 四表皆不存在**，故本格於當家機**未驗證通過**（「未通過」≠「已通過」）。 | 模型載入、advisor 跑、服務起（PG/ollama/qdrant） |
 | **可移機** | （概念層本就技術中立） | ✅ PORTABILITY.md 已立；待實機驗證隔離縫 |
+
+> **「可運作」格之產生指令（2026-07-30 機械軌，於當家機 `PC002-S1800` 實跑）**：
+> `psql -h 127.0.0.1 -U augur -d augur -tAc "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND (table_name LIKE 'entity%' OR table_name LIKE 'identity%') ORDER BY 1"` → **零列**（`entity_registry`／`entity_alias`／`identity_lifecycle_event`／`entity_attribute_version` 四表在當家機**尚未建**）；同庫 public schema 總計 292 BASE TABLE＋3 VIEW。
+> 3,491 一組數字之唯一已知出處為 `aitopatom-b96e`（GB10）2026-07-22 實跑，該機已宣告不存在（`ops/machines/PC002-S1800.md` 尾段）；另 `ops/phase2/SMOKE-aitopatom-b96e-20260722.md:13` 記該 dump 還原後 identity 層為 0 列。**建表並實查後方得回填當家機值。**
 
 ## 第二階段工項（governance 蓋章後）
 1. **可運作探測**：PG/augur DB、ollama(11434)/qdrant(6333) 服務、GPU/VRAM、核心模組 import、advisor/core_gate 短連線通、審議引擎跑通一輪。
-2. **概念層資料完整性**：entity_registry(3,491)、knowledge、identity lifecycle 可查且一致。
+2. **概念層資料完整性**：entity_registry、knowledge、identity lifecycle 可查且一致——**當家機 `PC002-S1800` 尚未建 identity 四表**（2026-07-30 實查零列，指令見上表註）；原記之 `(3,491)` 屬 `aitopatom-b96e`（已宣告不存在之機器）史料值，**不得當作當家機現況**。（2026-07-30 機械軌：同上表註之實跑）
 3. **可移機驗證**：確認機器特定性真隔離在 .env＋DB config＋探測（PORTABILITY.md 之縫），核心碼零硬編碼（已初掃、待實機再驗）。
 
 
@@ -81,7 +85,8 @@
 * 5 接縫＋4 橫貫維度＋major 雙反駁＋完備性批評（26 代理）。
 * **結果：41 findings、4 存活 cross-layer major**（單層 G5 全未見）——
   (1) P5.W4 最小權限於 WM 全篇無承接（核心 [N] 無家）；(2) ID/KS 之 WM Annex D 處置表用廢棄舊編號、兩層互斥；(3) KS 誤標 9 列 D 編號；(4) KS 誤認 D19 為 RBAC、斷鏈。
-* **處置**：→ **RULING-2026-022**（cross-layer patch）待作成。**「單層完整」成立、「整合完整」差此 4 條**。
+* **處置**：✅ **RULING-2026-022（cross-layer patch）已作成並執行完竣**（2026-07-19；**AL-2026-025**）——M1＝WM.28 hook 補 `§P5.W4`（commit `c915e2a`）；M2／M3＝以 WM Annex D 權威表逐列重編 KS／ID 之 D 處置表（wf_e732832b，棄廢棄舊編號；複核官糾正重編官誤標 D19）；M4＝KS D19 改**承接**（L4 slice）＋CS.2 收斂揭露。觸及之 WM／ID／KS 各重跑 G5、gate PASS、selftest 綠＝**封印未破**。**「單層完整」與「整合完整」皆成立**（該裁決結語）。（2026-07-30 機械軌：依 `constitution/RULING-2026-022-CONCEPT-TIER-CROSS-LAYER.md`〈執行完竣〉節＋`constitution/AMENDMENT-LOG.md` AL-2026-025）
+* **⚠ 殘餘待 Steward 確認（不假關）**：RULING-2026-022 處置欄於 M1 另記「B.1／C.10 同步補記」，惟其〈執行完竣〉節僅載 WM.28 hook 一項；實查 `grep -n 'P5\.W4' specs/WORLD-MODEL-SPECIFICATION.md` 僅命中 L265（WM.28 hook）與 L869（WM.44 覆蓋清單），**Annex B.1／C.10 未查得 `§P5.W4` 字樣**——本 [I] 看板**不代為判定已結**。（2026-07-30 機械軌：實 grep 結果，非文件自陳）
 
 ## 3b. 執行層 L5–7 交互檢查 — ✅ 已執行（2026-07-23；全棧＋L5–7 專項覆核）
 * **前置**（3/3 齊，2026-07-19）：L6 G5 蓋章 **✅**；L5 重採認 **✅**（RULING-2026-023 乙）；L7 §8.2 **✅條件通過**（RULING-2026-025）。

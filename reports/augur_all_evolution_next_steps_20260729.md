@@ -67,4 +67,16 @@
 - econ 判負 → demote 提案（促升順序債已入 audit，不迴避）；
 - 機器單點：全部 resume-safe，斷電/重啟後照 §三觸發條件逐步重入。
 
-**一句話**：今天之內三個「首判」（A′、replay 門、W1 全窗）、明天兩個（程序增益門、econ 補證）——五把尺全是預先簽凍的，接下來只是讓資料通過它們。
+**一句話**：今天之內三個「首判」（A′、replay 門、W1 全窗）、明天兩個（程序增益門、econ 補證）——**凍結狀態逐尺不同（原句「五把尺全是預先簽凍」為對自身證據力之過度宣稱，已刪全稱語）**：
+
+| 尺 | 凍結狀態（2026-07-30 實查） |
+|---|---|
+| replay 門 | **已凍**六列 `dgate_replay_{own_daily_rolling,chronos_bolt_small,moirai2_small_5,timesfm_25_200m,momentum_20,mc_bootstrap}_5`（`direction_gate`，hugo approve；其中 momentum_20／mc_bootstrap 已 evaluated_fail）；**窗長未入判準**（`criteria.estimand.panel_window=null`） |
+| 程序增益門 | **已凍**兩列 `dgate_meta_replay_{M1_gbdt,B2_ridge}`；criteria 無窗長／取樣頻率鍵（`--step month` 屬執行參數、不在判準內） |
+| A′ 行為尺 | **尚無 prereg 列**——`evolution_prereg_gate` 僅 `V2-SUNSET` 一列（axis='program'），無 axis='lai' 列；依 master plan v2 §4.2.8 註「LAI 判讀鐵則暫不入此表凍結」，現僅計畫書＋audit 留痕 |
+| econ 補證 | **待凍網格**（見 §一 L2） |
+| W1 全窗 | 旁證揭露，`direction_gate` 無對應門列 |
+
+接下來是讓資料通過**已凍八門中尚待評之六門**（`momentum_20`／`mc_bootstrap` 兩門已 evaluated_fail 判死留檔）；未凍者（A′、econ 網格）之首判無預註冊列可依，僅計畫書＋audit 留痕。
+
+（2026-07-30 機械軌：依 `evolution_prereg_gate`／`direction_gate` live 實查與 master plan v2 §4.2.8 註更正原全稱宣稱；不動任何判準。）
