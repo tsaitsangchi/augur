@@ -40,6 +40,7 @@ def _fmt(m):
 def main():
     ap = argparse.ArgumentParser(description="經濟價值回測 + 交易成本(#14)")
     ap.add_argument("--since", default="2021-01-01")
+    ap.add_argument("--until", default=None, help="panel 上限(釘網格;防建置中網格飄移=2026-07-29 雙跑作廢教訓)")
     ap.add_argument("--h", type=int, default=60)
     ap.add_argument("--cost", type=float, default=COST_TW, help="來回交易成本(預設台股 0.585%%)")
     ap.add_argument("--interactions", default=None, help="加入交互特徵（逗號分隔、如 inter_fh_x_p10yr；eval 層橫斷面 z 乘積、見 cross_section.INTERACTIONS）")
@@ -54,9 +55,16 @@ def main():
 
     with db.connect() as conn:
         with db.transaction(conn) as cur:
-            cur.execute("SELECT DISTINCT panel_date FROM feature_values WHERE panel_date>=%s ORDER BY panel_date", (args.since,))
+            if args.until:
+                cur.execute("SELECT DISTINCT panel_date FROM feature_values WHERE panel_date>=%s AND panel_date<=%s ORDER BY panel_date",
+                            (args.since, args.until))
+            else:
+                cur.execute("SELECT DISTINCT panel_date FROM feature_values WHERE panel_date>=%s ORDER BY panel_date", (args.since,))
             panels = [r[0] for r in cur.fetchall()]
         panels = _nonoverlap(panels, args.h)              # 非重疊再平衡(h=60 季度為 no-op、h=120/252 抽半年/年)
+        import hashlib as _hl
+        print(f"panel 清單 hash={_hl.sha256(','.join(map(str, panels)).encode()).hexdigest()[:10]}"
+              f"(兩跑同 hash=同尺自證)")
         feats = None
         if adds or drops:
             from augur.evaluation import baseline
