@@ -128,6 +128,17 @@ def evaluate_item_synthesis(cur, snap: Mapping[str, Any]) -> dict[str, Any]:
     from augur.knowledge import evidence as ev
 
     item_id = int(snap["item_id"])
+    # 丙-3（核驗 F-6）：原僅查「有無權重列」，而 KH8 之 fail 路徑**仍先寫該列**，
+    # 故 KH8 判 fail 之 item 亦具備本層 pass 之全部前提（KH9 無條件放行）。
+    # 現改為：KH8 之**裁決**須有效——母體須具鑑別力，否則本層一併 fail-closed。
+    _disc = ev.population_discriminates(cur, exclude_item_id=item_id)
+    if not _disc["ok"]:
+        return {
+            "verdict": "fail",
+            "note": f"KH8 裁決無效（母體無鑑別力）：{_disc['note']}——KH9 不得以無效之 KH8 為前提",
+            "action": "kh9_blocked_by_invalid_kh8",
+            "discrimination": _disc,
+        }
     weight = ev.latest_weight_for_item(cur, item_id)
     if not weight:
         return {

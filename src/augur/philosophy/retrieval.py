@@ -366,7 +366,13 @@ def _finalize_items_kh_first(cur, out, k):
     """KH9-first：依 admit_depth 重排後截 k（相關度仍由 advise 閘）。"""
     if not out:
         return out
-    from augur.knowledge.auto_admit import load_admit_depths, rank_item_citations
+    from augur.knowledge.auto_admit import (load_admit_depths, rank_item_citations,
+                                             set_kh_evidence_validity)
+    # 乙（2026-07-30）：深度優先須先驗 KH8 證據有效性——不具鑑別力時 rank 退回相似度序
+    try:
+        set_kh_evidence_validity(cur)
+    except Exception:
+        pass
 
     depths = load_admit_depths(cur, [c.item_id for c in out])
     return rank_item_citations(out, depths)[:k]
@@ -396,7 +402,12 @@ def retrieve_all(query, k=6, access_scope="public", scope=None):
                               is_super=is_super, owner_user_id=user_id)   # 擁有者收窄
     merged = [c for trio in zip_longest(works, pub, priv) for c in trio if c is not None]
     # KH9-first：合併後再依 admit_depth 排（深度本地 know-how 先於公版 works）
-    from augur.knowledge.auto_admit import rank_citations_kh_first
+    from augur.knowledge.auto_admit import (rank_citations_kh_first,
+                                             set_kh_evidence_validity)
+    try:
+        set_kh_evidence_validity(cur)
+    except Exception:
+        pass
     return rank_citations_kh_first(merged)[:k]
 
 def verify_verbatim_item(citation):

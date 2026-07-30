@@ -107,6 +107,20 @@ def get_admit_depth(cur, target_kind: str, target_id: str) -> int:
 # 作答帶：KH7／8／9 視為「深水印本地 know-how」（KH9-first 計畫）
 DEEP_KH_FLOOR = 7
 
+# 乙：KH8 證據有效性之進程內快取（由呼叫端以 set_kh_evidence_validity() 灌入；
+# 未灌入時預設 None＝未知，深度優先照舊套用以免無 DB 連線時全面退化）。
+_kh_evidence_valid_cache: dict[str, Any] = {}
+
+
+def set_kh_evidence_validity(cur) -> dict[str, Any]:
+    """由有 DB 連線之呼叫端呼叫，設定本進程之 KH8 證據有效性（乙之口徑閘）。"""
+    from augur.knowledge import evidence as ev
+
+    disc = ev.population_discriminates(cur)
+    _kh_evidence_valid_cache.clear()
+    _kh_evidence_valid_cache.update(disc)
+    return disc
+
 
 def load_admit_depths(cur, item_ids: list[int] | tuple[int, ...]) -> dict[int, int]:
     """批量讀 item → admit_depth；無列／表缺 → 0。"""
@@ -131,6 +145,13 @@ def rank_item_citations(cites: list, depths: dict[int, int] | None = None,
                         *, deep_floor: int = DEEP_KH_FLOOR) -> list:
     """顧問／檢索排序：KH9＞KH8＞KH7…；depth≥deep_floor 的 items 先於 works／Attached；
     同帶內 -score、-sent_id。不丟引文、不放寬相關度（呼叫端已濾）。"""
+    # ── 乙（hugo 拍板「乙＋丙並行」2026-07-30）：深度須**經有效證據**方得優先。
+    # 核驗實證：現存 145,949 件之 depth 9 係以「結構上不可能鑑別」之 band=high 取得
+    # （母體選擇效應致三分量恆 1.0）。若逕以 admit_depth 為首要排序鍵，等於讓
+    # 橡皮章深度排在公版原典之前。故排序前先驗 KH8 母體鑑別力；不具鑑別力時
+    # **一律不套用深度優先**（fail-closed），退回既有相似度序。
+    if depths and _kh_evidence_valid_cache.get("ok") is False:
+        return list(cites)
     if not cites:
         return []
     depths = depths or {}

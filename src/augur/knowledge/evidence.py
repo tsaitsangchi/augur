@@ -114,36 +114,51 @@ def compute_evidence_weight(
 MIN_DISCRIMINATING_BANDS = 2
 
 
-def population_discriminates(cur) -> dict[str, Any]:
-    """KH8 母體是否具鑑別力：band 至少兩種、且非 cite_norm 單一分量在動。
+def population_discriminates(cur, *, exclude_item_id: int | None = None) -> dict[str, Any]:
+    """KH8 母體是否具鑑別力——**兩道判準皆須過**（2026-07-30 獨立核驗 FAIL 後強化）。
 
-    回傳 {"ok": bool, "bands": [...], "n": int, "note": str}。
-    表未建或空表 → ok=False（無從證明鑑別力，保守）。
+    (1) `confidence_band` 至少兩種；
+    (2) **三分量 `terminal`／`embed`／`kh4_ok` 至少其一在母體有變異**
+        ——原僅檢 (1) 之弱判準可被「加一列 band='low'」一句解除（**降級母體即解閘**，
+        與設計意圖相反；核驗實證 F-bypass-1）；真因在三分量恆 1.0（母體選擇效應），
+        故 (2) 才是結構判準。
+
+    `exclude_item_id`：排除**正在受判之 item**——原實作先 `record_weight()` 再查，
+    致判準被受判列自證污染（核驗實證：同一交易內 ok=False 立即翻 ok=True）。
+
+    表未建／空表／僅剩受判列 → ok=False（無從證明鑑別力，保守 fail-closed）。
     """
     cur.execute("SELECT to_regclass(%s)", ("public.knowhow_evidence_weight",))
     if not cur.fetchone()[0]:
         return {"ok": False, "bands": [], "n": 0, "note": "KH8 表未建"}
+    where = "" if exclude_item_id is None else "WHERE item_id <> %s"
+    args: tuple = () if exclude_item_id is None else (exclude_item_id,)
     cur.execute(
-        "SELECT confidence_band, count(*) FROM knowhow_evidence_weight GROUP BY 1 ORDER BY 2 DESC"
+        f"SELECT confidence_band, count(*) FROM knowhow_evidence_weight {where} GROUP BY 1 ORDER BY 2 DESC",
+        args,
     )
     rows = cur.fetchall()
     bands = [r[0] for r in rows]
     n = sum(int(r[1]) for r in rows)
     if n == 0:
-        return {"ok": False, "bands": [], "n": 0, "note": "KH8 母體為空"}
+        return {"ok": False, "bands": [], "n": 0, "note": "KH8 母體為空（排除受判列後）"}
     if len(bands) < MIN_DISCRIMINATING_BANDS:
-        return {
-            "ok": False,
-            "bands": bands,
-            "n": n,
-            "note": (
-                f"零變異：{n} 列僅 {bands} 一種 band——母體選擇效應（只對已終態/已嵌入/"
-                f"已 eligible 者加權）致 terminal/embed/kh4_ok 恆 1.0、score 底線恆 0.72。"
-                "不具鑑別力之量測不得充當證據（fail-closed）"
-            ),
-        }
-    return {"ok": True, "bands": bands, "n": n, "note": f"band 變異 {bands}（n={n}）"}
-
+        return {"ok": False, "bands": bands, "n": n,
+                "note": f"判準(1)不過：{n} 列僅 {bands} 一種 band"}
+    cur.execute(
+        f"""SELECT count(DISTINCT components->>'terminal'),
+                   count(DISTINCT components->>'embed'),
+                   count(DISTINCT components->>'kh4_ok')
+              FROM knowhow_evidence_weight {where}""",
+        args,
+    )
+    t, e, k = (int(x or 0) for x in cur.fetchone())
+    if max(t, e, k) < 2:
+        return {"ok": False, "bands": bands, "n": n,
+                "note": (f"判準(2)不過：三分量皆無變異（terminal={t}／embed={e}／kh4_ok={k} 種值）"
+                         "——母體選擇效應未解，band 變異不足以證明鑑別力")}
+    return {"ok": True, "bands": bands, "n": n,
+            "note": f"band {bands}；三分量變異數 terminal={t}／embed={e}／kh4_ok={k}（n={n}）"}
 
 def gather_item_inputs(cur, item_id: int, snap: Mapping[str, Any]) -> dict[str, Any]:
     """從庫讀 item 可數輸入（句數／KH4 答態）。"""
@@ -255,6 +270,9 @@ def evaluate_item_evidence(cur, snap: Mapping[str, Any]) -> dict[str, Any]:
     if not snap.get("has_text"):
         return {"verdict": "fail", "note": "無 item_text＝無法加權", "action": "kh8_no_text"}
 
+    # 丙-1（核驗 F-bypass-1）：鑑別力檢定必須在 record_weight **之前**、且排除受判 item，
+    # 否則判準被本次寫入之列自證污染（實證：同一交易內 ok=False 立翻 ok=True）。
+    disc = population_discriminates(cur, exclude_item_id=item_id)
     inputs = gather_item_inputs(cur, item_id, snap)
     weight = compute_evidence_weight(**inputs)
     wid = record_weight(cur, item_id=item_id, weight=weight)
@@ -263,7 +281,6 @@ def evaluate_item_evidence(cur, snap: Mapping[str, Any]) -> dict[str, Any]:
         f"weight_id={wid} band={band} score={weight['evidence_score']} "
         f"cite={weight['citation_count']}（≠approve／≠tradable）"
     )
-    disc = population_discriminates(cur)
     if not disc["ok"]:
         # C-2 fail-closed：帳仍寫（可溯源），但**不得**回 pass——否則等同以零變異指標充當證據
         return {
@@ -320,6 +337,37 @@ def _selftest() -> int:
     )
     chk("thin absent", thin["confidence_band"] == "absent")
     chk("thin not pass-band", thin["confidence_band"] not in PASS_BANDS)
+
+    # ── 丙-4（核驗 F-7：新碼零自測覆蓋，而留痕曾以舊項綠燈當佐證）
+    class _FakeCur:
+        """純邏輯 fake：依 scripted 回傳序模擬 population_discriminates 之三次查詢。"""
+
+        def __init__(self, bands, distincts):
+            self._bands, self._distincts, self._i = bands, distincts, 0
+
+        def execute(self, sql, args=()):
+            self._sql = sql
+
+        def fetchone(self):
+            if "to_regclass" in self._sql:
+                return ("public.knowhow_evidence_weight",)
+            return self._distincts
+
+        def fetchall(self):
+            return self._bands
+
+    # (1) 單一 band → 判準(1)不過
+    d1 = population_discriminates(_FakeCur([("high", 100)], (1, 1, 1)))
+    chk("disc: single band → not ok", d1["ok"] is False and "判準(1)" in d1["note"])
+    # (2) 兩種 band 但三分量恆定 → 判準(2)不過（鎖住「加一列 low 即解閘」之洞）
+    d2 = population_discriminates(_FakeCur([("high", 100), ("low", 1)], (1, 1, 1)))
+    chk("disc: 2 bands but flat components → not ok", d2["ok"] is False and "判準(2)" in d2["note"])
+    # (3) 兩種 band 且三分量有變異 → ok
+    d3 = population_discriminates(_FakeCur([("high", 100), ("low", 30)], (2, 1, 1)))
+    chk("disc: 2 bands + varying component → ok", d3["ok"] is True)
+    # (4) 空母體（排除受判列後）→ not ok
+    d4 = population_discriminates(_FakeCur([], (0, 0, 0)))
+    chk("disc: empty population → not ok", d4["ok"] is False)
 
     # 風險答態降權
     risky = compute_evidence_weight(

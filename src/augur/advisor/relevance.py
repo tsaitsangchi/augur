@@ -94,9 +94,24 @@ def _is_strong(tok):
     return 2 <= len(tok) <= 8
 
 
+def _cjk_ngrams(text, lo=2, hi=4):
+    """連續 CJK 段之 2..hi 字窗（補 jieba 未切開之連寫問句，如「ERP災難還原演練」）。"""
+    out = set()
+    for m in re.finditer(r"[\u4e00-\u9fff]+", text or ""):
+        s = m.group(0)
+        n = len(s)
+        for length in range(lo, min(hi, n) + 1):
+            for i in range(n - length + 1):
+                out.add(s[i : i + length])
+    return out
+
+
 def _strong_distinctive(text):
-    """夠強之辨識性專詞集:內容詞剔 _EN_GENERIC 泛用字、再過 _is_strong(排單 CJK 字)——相關判定唯一信號。"""
-    return {t for t in (_content_tokens(text) - _EN_GENERIC) if _is_strong(t)}
+    """夠強之辨識性專詞集:內容詞剔 _EN_GENERIC、過 _is_strong；並**一律**併入 CJK 2..4 字窗。
+    連寫問句／引文常被切成單字或過長黏詞，缺窗則「災難」「還原」無法共現 → 假 decline。"""
+    toks = {t for t in (_content_tokens(text) - _EN_GENERIC) if _is_strong(t)}
+    toks |= {t for t in _cjk_ngrams(text) if _is_strong(t)}
+    return toks
 
 
 def _cite_text(cite):
@@ -194,6 +209,17 @@ def _selftest():
     cite_off = [S(text="論衡 王充 疾虛妄", work_title="論衡", thinker="王充")]
     chk("query_relevant 離題哲學引文→False", query_relevant("perovskite solar cell", cite_off) is False)
     chk("relevant_citations 只留相關子集", relevant_citations("perovskite solar", cite_on + cite_off) == cite_on)
+    # 連寫 CJK＋拉丁混寫：不得因單字切詞令 qd=[] 假 decline（ERP 災難還原）
+    cite_erp = [S(text="國碩科技每年一次 DR演練，透過備份還原，確保ERP-GP系統",
+                  item_title="國碩-ERP-GP_DR說明", domain="local")]
+    chk("連寫 CJK 問句有強詞(災難/還原/演練)",
+        bool(_strong_distinctive("ERP災難還原演練") & {"災難", "還原", "演練"}))
+    chk("ERP災難還原演練↔ERP 引文→True",
+        query_relevant("ERP災難還原演練", cite_erp) is True)
+    chk("ERP災難還原演練↔王陽明→False",
+        query_relevant("ERP災難還原演練",
+                       [S(text="王陽明全集知行合一", work_title="王陽明全集", thinker="王陽明")])
+        is False)
     # picking_intent:選股意圖 True、知識/定義題 False(純正則)
     chk("picking_intent 選股題→True", picking_intent("該買什麼股票") and picking_intent("which stocks to buy"))
     chk("picking_intent 知識題→False", not picking_intent("什麼是知行合一"))
