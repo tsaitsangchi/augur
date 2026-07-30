@@ -116,6 +116,8 @@ def run_cutoffs(cutoffs, probe=False):
             return ic_cache[f]
 
         h = PROC_PARAMS["h"]
+        ladder_cache = {}   # (tuple(feats), tuple(panels_k), seed) -> run_ladder 結果(跨 cutoff 重用;
+                            # incumbent 常數段免重算——preview 44 分/cutoff 之主刀)
         for ci, cutoff in enumerate(cutoffs):
             cur.execute("SELECT 1 FROM meta_replay_cutoff WHERE proc_sha=%s AND cutoff_date=%s", (psha, cutoff))
             if cur.fetchone():
@@ -155,11 +157,18 @@ def run_cutoffs(cutoffs, probe=False):
                 drop = [f for f in incumbent if f in dec and dec[f]["g3"] is False]
                 keep = [f for f in incumbent if f not in drop]
                 add = []
+                def _ladder(feats_l, seed):
+                    key = (tuple(feats_l), tuple(panels_k), seed)
+                    if key not in ladder_cache:
+                        ladder_cache[key] = baseline.run_ladder(conn, panels_k, h, None,
+                                                                feats=feats_l, seed=seed, asof=True)
+                    return ladder_cache[key]
+
                 for f in [x for x in passers13 if x not in incumbent]:
                     deltas = []
                     for seed in PROC_PARAMS["gate2_seeds"]:
-                        rb = baseline.run_ladder(conn, panels_k, h, None, feats=keep, seed=seed, asof=True)
-                        ra = baseline.run_ladder(conn, panels_k, h, None, feats=keep + [f], seed=seed, asof=True)
+                        rb = _ladder(keep, seed)
+                        ra = _ladder(keep + [f], seed)
                         dv = [(ra[m]["mean_ic"] or 0) - (rb[m]["mean_ic"] or 0) for m in ("B2_ridge", "M1_gbdt")]
                         deltas.append(float(np.mean(dv)))
                     dec[f]["g2_deltas"] = [round(x, 5) for x in deltas]
@@ -170,9 +179,12 @@ def run_cutoffs(cutoffs, probe=False):
             cur.execute("""INSERT INTO meta_replay_cutoff (proc_sha, cutoff_date, prodset, decisions)
                 VALUES (%s,%s,%s,%s)""", (psha, cutoff, json.dumps(prodset), json.dumps(dec, ensure_ascii=False)))
             conn.commit()
+            # 靜態基準=首個**非空** prodset 凍住(空集無 IC,不能當基準——preview 家族二之 靜態=None 教訓;
+            # 「起點集」之唯一合理操作化,落註)
             cur.execute("""SELECT prodset FROM meta_replay_cutoff WHERE proc_sha=%s
-                           ORDER BY cutoff_date LIMIT 1""", (psha,))
-            static_set = list(cur.fetchone()[0])
+                           AND jsonb_array_length(prodset) > 0 ORDER BY cutoff_date LIMIT 1""", (psha,))
+            row_s = cur.fetchone()
+            static_set = list(row_s[0]) if row_s else []
             tr = label_guarded_train(panels_k, next_p, h)
             perf = next_panel_ic(conn, tr, next_p, prodset, 42) if prodset else {}
             perf_s = next_panel_ic(conn, tr, next_p, static_set, 42) if static_set else {}
