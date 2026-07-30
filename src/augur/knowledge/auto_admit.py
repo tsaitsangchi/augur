@@ -443,6 +443,19 @@ def progressive_item(
         if ev["verdict"] == "pass":
             depth = max(depth, d)
         elif ev["verdict"] == "skipped":
+            # ── C-3 補正（2026-07-30；hugo「甲成立」＋自毀條款當日到期）
+            # 病灶：require_kh8／require_kh9 讀入 gate 後**無任何路徑消費**＝空轉閘；
+            # 且本迴圈之 skipped 會**繼續往上推**，故 KH8 若因「表未建」回 skipped，
+            # depth 9 一過即升至 9＝**證據要件被繞過**（帳面有要件、實際無）。
+            # 處置：該層若被 gate 要求，skipped **視同 fail、不得繞過**（fail-closed）。
+            if (d == 8 and gate.get("require_kh8")) or (d == 9 and gate.get("require_kh9")):
+                layer_scores[str(d)]["note"] = (
+                    f"{ev.get('note')}｜require_kh{d}=true：skipped 視同 fail"
+                    "（fail-closed；不得以「表未建」繞過證據要件）"
+                )
+                layer_scores[str(d)]["verdict"] = "fail"
+                actions.append({"layer": d, "action": f"require_kh{d}_fail_closed"})
+                break
             continue
         else:
             # fail／escalate：不抬本層；較淺 depth 保留

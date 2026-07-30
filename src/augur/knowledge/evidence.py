@@ -104,6 +104,47 @@ def compute_evidence_weight(
     }
 
 
+# ── C-2 補正（2026-07-30；hugo「甲成立」＋自毀條款當日到期）────────────────
+# 病灶：knowhow_evidence_weight 145,949 列 100% band='high'（score 0.72–1.0）。
+# 根因**非**寫死——公式為真，但 terminal／embed／kh4_ok 三分量對全母體恆 1.0，
+# 因為權重只算在「已終態＋已嵌入＋已 eligible」之 item 上＝**母體選擇效應**，
+# 故 score 底線恆 0.72、必落 high。結論：本指標**結構上不可能鑑別**。
+# 處置：**零變異之指標不得充當證據**（承 `AUGUR-MC v1.6 §P4.E7`／KS 反自我背書之精神：
+# 不具鑑別力之量測不構成獨立證據）。以下檢定使該情形 **fail-closed**、不再靜默 pass。
+MIN_DISCRIMINATING_BANDS = 2
+
+
+def population_discriminates(cur) -> dict[str, Any]:
+    """KH8 母體是否具鑑別力：band 至少兩種、且非 cite_norm 單一分量在動。
+
+    回傳 {"ok": bool, "bands": [...], "n": int, "note": str}。
+    表未建或空表 → ok=False（無從證明鑑別力，保守）。
+    """
+    cur.execute("SELECT to_regclass(%s)", ("public.knowhow_evidence_weight",))
+    if not cur.fetchone()[0]:
+        return {"ok": False, "bands": [], "n": 0, "note": "KH8 表未建"}
+    cur.execute(
+        "SELECT confidence_band, count(*) FROM knowhow_evidence_weight GROUP BY 1 ORDER BY 2 DESC"
+    )
+    rows = cur.fetchall()
+    bands = [r[0] for r in rows]
+    n = sum(int(r[1]) for r in rows)
+    if n == 0:
+        return {"ok": False, "bands": [], "n": 0, "note": "KH8 母體為空"}
+    if len(bands) < MIN_DISCRIMINATING_BANDS:
+        return {
+            "ok": False,
+            "bands": bands,
+            "n": n,
+            "note": (
+                f"零變異：{n} 列僅 {bands} 一種 band——母體選擇效應（只對已終態/已嵌入/"
+                f"已 eligible 者加權）致 terminal/embed/kh4_ok 恆 1.0、score 底線恆 0.72。"
+                "不具鑑別力之量測不得充當證據（fail-closed）"
+            ),
+        }
+    return {"ok": True, "bands": bands, "n": n, "note": f"band 變異 {bands}（n={n}）"}
+
+
 def gather_item_inputs(cur, item_id: int, snap: Mapping[str, Any]) -> dict[str, Any]:
     """從庫讀 item 可數輸入（句數／KH4 答態）。"""
     cite_n = 0
@@ -222,6 +263,17 @@ def evaluate_item_evidence(cur, snap: Mapping[str, Any]) -> dict[str, Any]:
         f"weight_id={wid} band={band} score={weight['evidence_score']} "
         f"cite={weight['citation_count']}（≠approve／≠tradable）"
     )
+    disc = population_discriminates(cur)
+    if not disc["ok"]:
+        # C-2 fail-closed：帳仍寫（可溯源），但**不得**回 pass——否則等同以零變異指標充當證據
+        return {
+            "verdict": "fail",
+            "note": f"{note}｜**KH8 無鑑別力**：{disc['note']}",
+            "action": "kh8_non_discriminating",
+            "weight_id": wid,
+            "evidence": weight,
+            "discrimination": disc,
+        }
     if band in PASS_BANDS:
         return {
             "verdict": "pass",
