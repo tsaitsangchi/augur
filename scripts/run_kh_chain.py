@@ -97,6 +97,18 @@ def preflight(cur) -> dict:
                        ON st.target_kind='item' AND st.target_id=i.item_id::text
                     WHERE coalesce(st.admit_depth,0) < %s""", (CEILING,))
     out["advance_pool"] = int(cur.fetchone()[0])
+    # KH0 底線不變式（大憲章 v1.52.0 第三部 philosophy／知識節；本支為其指定機械落點）：
+    # 「有原文 ∧ 無 admit_state 列」之計數須恆為 0；非 0 即底線破口，須先補齊方得推進上層。
+    cur.execute("""SELECT count(*) FROM knowledge_item i
+                     JOIN knowledge_item_text x ON x.item_id=i.item_id
+                     LEFT JOIN knowhow_auto_admit_state st
+                       ON st.target_kind='item' AND st.target_id=i.item_id::text
+                    WHERE st.target_id IS NULL""")
+    out["kh0_breach"] = int(cur.fetchone()[0])
+    cur.execute("""SELECT count(*) FROM knowledge_item i
+                    LEFT JOIN knowledge_item_text x ON x.item_id=i.item_id
+                   WHERE x.item_id IS NULL""")
+    out["no_fulltext"] = int(cur.fetchone()[0])  # 誠實例外（metadata-only，KH0 不適用）
     return out
 
 
@@ -142,6 +154,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  admit_depth 分佈：{pf['depth_dist']}")
     print(f"  可推進池（有原文且 depth<{CEILING}）：{pf['advance_pool']:,}")
     print(f"  層級上限：{eff}（{why}）")
+    if pf["kh0_breach"] == 0:
+        print(f"  KH0 底線不變式：✓ 破口 0（有原文者 100% 已評）"
+              f"｜誠實例外：無原文 {pf['no_fulltext']:,} 件 metadata-only（KH0 不適用）")
+    else:
+        print(f"  KH0 底線不變式：✗ **破口 {pf['kh0_breach']:,} 件**"
+              f"（有原文卻未評 KH0）——憲章 v1.52.0 命須先補齊方得推進上層")
     busy = concurrent_running()
     if busy:
         print("  ⚠ 偵測到並行 runner（避免同表競態，--run 將拒絕執行）：")
@@ -159,6 +177,11 @@ def main(argv: list[str] | None = None) -> int:
     if busy:
         print("\nABORT：已有並行 runner，先等其收槍（守同表競態紀律）")
         return 3
+
+    if pf["kh0_breach"] > 0 and a.phase in ("advance", "all"):
+        print(f"\nABORT：KH0 底線破口 {pf['kh0_breach']:,} 件（憲章 v1.52.0）"
+              "——須先補齊 KH0 方得推進上層；可跑 --phase data 或 run_knowhow_auto_admit --apply-raw")
+        return 4
 
     for i, c in enumerate(cmds, 1):
         print(f"\n── [{i}/{len(cmds)}] {' '.join(shlex.quote(x) for x in c)}")
@@ -196,6 +219,7 @@ def _selftest() -> int:
     chk("phase=advance → 僅一段且為推進", len(phase_cmds("advance", None, None, 9)) == 1
         and "run_knowhow_auto_admit.py" in phase_cmds("advance", None, None, 9)[0][1])
     chk("CEILING 硬釘 9", CEILING == 9)
+    chk("KH0 底線不變式已入前置檢查", "kh0_breach" in open(__file__, encoding="utf-8").read())
     print("selftest: " + ("RED" if fails else "GREEN"))
     return 1 if fails else 0
 

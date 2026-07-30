@@ -113,13 +113,44 @@ _kh_evidence_valid_cache: dict[str, Any] = {}
 
 
 def set_kh_evidence_validity(cur) -> dict[str, Any]:
-    """由有 DB 連線之呼叫端呼叫，設定本進程之 KH8 證據有效性（乙之口徑閘）。"""
+    """由已有 DB 連線之呼叫端灌入本進程之 KH8 證據有效性（乙之口徑閘）。"""
     from augur.knowledge import evidence as ev
 
     disc = ev.population_discriminates(cur)
     _kh_evidence_valid_cache.clear()
     _kh_evidence_valid_cache.update(disc)
     return disc
+
+
+def kh_evidence_valid() -> dict[str, Any]:
+    """本進程之 KH8 證據有效性——**自足取得、每進程只算一次、取不到時 fail-closed**。
+
+    三次獨立核驗（2026-07-30）證明前版之兩病：
+      (1) 呼叫端須自己正確傳 `cur`，錯了會被 `except: pass` 吞成靜默 fail-open（死碼）；
+      (2) `population_discriminates` 為 146k 列全表掃（實測 4.9–7.7s），
+          原逐 item／逐問答各呼一次 ⇒ 批次 ~17 天、常駐 advisor 每答 +10s。
+    故本函式改為：**呼叫端零配合**（自開唯讀連線）＋**進程級記憶化**（只算一次）
+    ＋**fail-closed**（算不出＝視同不具鑑別力、不套深度優先；不確定不得放行）。
+    """
+    if _kh_evidence_valid_cache:
+        return dict(_kh_evidence_valid_cache)
+    try:
+        from augur.core import db
+        from augur.knowledge import evidence as ev
+
+        with db.connect() as conn, conn.cursor() as cur:
+            disc = ev.population_discriminates(cur)
+    except Exception as exc:  # noqa: BLE001 — 任何取不到皆走 fail-closed，不得靜默放行
+        disc = {
+            "ok": False,
+            "bands": [],
+            "n": 0,
+            "note": f"fail-closed：無法判定 KH8 母體鑑別力（{type(exc).__name__}）"
+                    "——不套深度優先排序",
+        }
+    _kh_evidence_valid_cache.clear()
+    _kh_evidence_valid_cache.update(disc)
+    return dict(disc)
 
 
 def load_admit_depths(cur, item_ids: list[int] | tuple[int, ...]) -> dict[int, int]:
@@ -150,8 +181,8 @@ def rank_item_citations(cites: list, depths: dict[int, int] | None = None,
     # （母體選擇效應致三分量恆 1.0）。若逕以 admit_depth 為首要排序鍵，等於讓
     # 橡皮章深度排在公版原典之前。故排序前先驗 KH8 母體鑑別力；不具鑑別力時
     # **一律不套用深度優先**（fail-closed），退回既有相似度序。
-    if depths and _kh_evidence_valid_cache.get("ok") is False:
-        return list(cites)
+    if depths and not kh_evidence_valid().get("ok"):
+        return list(cites)  # fail-closed：KH8 母體不具鑑別力／未能判定 ⇒ 不套深度優先
     if not cites:
         return []
     depths = depths or {}

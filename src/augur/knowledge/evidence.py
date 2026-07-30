@@ -114,6 +114,22 @@ def compute_evidence_weight(
 MIN_DISCRIMINATING_BANDS = 2
 
 
+# 批次級凍結快照：判準於「批次／進程開頭算一次」即凍結，之後不隨批內寫入而變。
+# 三次獨立核驗（2026-07-30）證兩病同源：(a) `record_weight` 在判準消費前無條件寫列 ⇒
+# 批中第一個 fail 就替後面所有 item 開閘（同交易 peer 污染，`exclude_item_id` 擋不到）；
+# (b) 每 item 每層各重算一次 146k 全表掃（4.9–7.7s）⇒ 145,949 件約 17 天。
+# 凍結同時解掉兩者：判準不被受判資料污染，且每進程只掃一次。
+_frozen_population: dict[str, Any] = {}
+
+
+def frozen_population_verdict(cur, *, refresh: bool = False) -> dict[str, Any]:
+    """取本批次凍結之母體鑑別力判準（首呼計算並凍結；`refresh=True` 明示重取）。"""
+    if refresh or not _frozen_population:
+        _frozen_population.clear()
+        _frozen_population.update(population_discriminates(cur))
+    return dict(_frozen_population)
+
+
 def population_discriminates(cur, *, exclude_item_id: int | None = None) -> dict[str, Any]:
     """KH8 母體是否具鑑別力——**兩道判準皆須過**（2026-07-30 獨立核驗 FAIL 後強化）。
 
@@ -272,7 +288,7 @@ def evaluate_item_evidence(cur, snap: Mapping[str, Any]) -> dict[str, Any]:
 
     # 丙-1（核驗 F-bypass-1）：鑑別力檢定必須在 record_weight **之前**、且排除受判 item，
     # 否則判準被本次寫入之列自證污染（實證：同一交易內 ok=False 立翻 ok=True）。
-    disc = population_discriminates(cur, exclude_item_id=item_id)
+    disc = frozen_population_verdict(cur)  # 批次開頭凍結：不受本批寫入污染
     inputs = gather_item_inputs(cur, item_id, snap)
     weight = compute_evidence_weight(**inputs)
     wid = record_weight(cur, item_id=item_id, weight=weight)
@@ -367,6 +383,13 @@ def _selftest() -> int:
     chk("disc: 2 bands + varying component → ok", d3["ok"] is True)
     # (4) 空母體（排除受判列後）→ not ok
     d4 = population_discriminates(_FakeCur([], (0, 0, 0)))
+    _frozen_population.clear()
+    f1 = frozen_population_verdict(_FakeCur([("high", 100)], (1, 1, 1)))
+    f2 = frozen_population_verdict(_FakeCur([("high", 100), ("low", 30)], (2, 1, 1)))
+    chk("凍結後不隨批內變化（第二次呼叫仍回首次判準）", f1["ok"] is False and f2["ok"] is False)
+    f3 = frozen_population_verdict(_FakeCur([("high", 100), ("low", 30)], (2, 1, 1)), refresh=True)
+    chk("refresh=True 得明示重取", f3["ok"] is True)
+    _frozen_population.clear()
     chk("disc: empty population → not ok", d4["ok"] is False)
 
     # 風險答態降權
