@@ -23,3 +23,5 @@ metadata:
 - **調優／硬體參數不可跨機照抄**（兩台 RAM 差一倍、一台有 GPU 一台沒有）。
 - 本機 stash 裡若有未上游的本機成果（如 `stash@{1}` panel 優化），並行下更容易被遠端覆寫，須主動確認去留。
 - **擂台／進化歸屬已拍板（2026-07-27 乙案）**：**PC002-S1800（本機）＝進化三軸＋arena 之正典帳本機**；DESKTOP＝**只在週六日開機**的 GPU 實驗機（此即決定性理由：週間 22:30 cron 它不在線）。本機 arena cron 保留＝正典擂台鐘；**週末待辦**（DESKTOP 下次開機）：停它的 arena/evolution cron＋timer、以私有通道（不入 git）搬 07-26 增量（gold sample_id≥281 之 824 列、RAWEVO ledger 3 輪、hints 含 H3 approved、coverage snapshot、LLM 臂 eval runs）至本機；此後 DESKTOP 只消費本機 dump。登錄＝`audits/V2-PHASE4-RUBRIC-H2-APPROVED-20260727.md` §六。相關：本機 kill_switch 缺 `scope` 欄（repo 級缺口、無 migration 承載，見 [[augur-self-evolution-plan-map]] 07-27 增補）。
+
+**⚠ 2026-07-30 Steward 更正**：「**GPU = GTX 1650 4GB / CUDA 12.6 / driver 560.94 是 DESKTOP 的。這台是存在的，同時進行此專案用**」——故本檔原「DESKTOP 僅週末開＝週間 cron 物理不可當家」之**可用性描述已過期**：二機**並行使用於本專案**。須區分兩件事：**「當家（canonical bearer）」＝治權配置**（現行＝PC002，承載進化與 arena 正典）；**「可用性」＝實體事實**（二機皆在用）——不得以前者推論後者。我 2026-07-30 曾據舊描述把「僅週末開」寫進 L7.50 登錄與計畫書，已更正。硬體歸屬：**GPU/CUDA 唯 DESKTOP 有**（PC002 為 CPU-only、Intel i5-10500；DESKTOP 為 Ryzen 5 3600）——見 [[venv-finetune-stack-absent]]。

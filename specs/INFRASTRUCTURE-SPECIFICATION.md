@@ -3,22 +3,22 @@
 Augur Enterprise AI Operating System
 Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執行層末層**）
 引用縮寫：**AUGUR-L7**｜版本：**v1.0**（前版：v0.1-draft）
-受 **AUGUR-MC v1.4** 全文約束（`AUGUR-MC v1.4 §0.6(a)` lex superior、`§0.5` 對照表 Layer 7 欄）
-並受 **AUGUR-WM v1.0**（Layer 1）、**AUGUR-ONT v1.0**（Layer 2）、**AUGUR-ID v1.0**（Layer 3）、**AUGUR-KS v1.1**（Layer 4）、**AUGUR-L5 v1.0**（Layer 5）、**AUGUR-L6 v1.2**（Layer 6）全文約束（`AUGUR-MC v1.4 §0.6(a)`）
+受 **AUGUR-MC v1.6** 全文約束（`AUGUR-MC v1.6 §0.6(a)` lex superior、`§0.5` 對照表 Layer 7 欄）
+並受 **AUGUR-WM v1.0**（Layer 1）、**AUGUR-ONT v1.0**（Layer 2）、**AUGUR-ID v1.0**（Layer 3）、**AUGUR-KS v1.1**（Layer 4）、**AUGUR-L5 v1.0**（Layer 5）、**AUGUR-L6 v1.2**（Layer 6）全文約束（`AUGUR-MC v1.6 §0.6(a)`）
 
 ---
 
 > ## 【地位】[N]
 >
-> 本文件為 **v1.0 生效版本**（§8.2 條件通過，RULING-2026-025，2026-07-19；provisional 已解除）。Constitution Steward（tsaitsangchi）已於 2026-07-18 依 `AUGUR-MC v1.4 §0.5`、`§8.6` 作成**充任認定**（Steward 裁決第 2026-011 號，Amendment Log AL-2026-014）：本文件充任 `§0.5` 對照表 Layer 7「External Interface / Infrastructure」欄所轄規格，**自 2026-07-18 起生效**——惟為**形式關卡充任＋`§8.2` 誠實保留之 provisional 地位**（比照 RULING-2026-006 先例）：`§8.2` 深度實質合憲人類審查（L7.90(d) 七項必審）已於 2026-07-19 條件通過（RULING-2026-025）。`v0.1-draft` 原文歸檔於 `specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md`；draft→v1.0 之變更**僅限**：版本欄、本【地位】節生效記錄、Annex CS front-matter `spec-version`、文末地位段，**無任何 [N] 條款實質變更、條款編號不重排**。
+> 本文件為 **v1.0 生效版本**（§8.2 條件通過，RULING-2026-025，2026-07-19；provisional 已解除）。Constitution Steward（tsaitsangchi）已於 2026-07-18 依 `AUGUR-MC v1.4〔當時有效版；現行 v1.6〕 §0.5`、`§8.6` 作成**充任認定**（Steward 裁決第 2026-011 號，Amendment Log AL-2026-014）：本文件充任 `§0.5` 對照表 Layer 7「External Interface / Infrastructure」欄所轄規格，**自 2026-07-18 起生效**——惟為**形式關卡充任＋`§8.2` 誠實保留之 provisional 地位**（比照 RULING-2026-006 先例）：`§8.2` 深度實質合憲人類審查（L7.90(d) 七項必審）已於 2026-07-19 條件通過（RULING-2026-025）。`v0.1-draft` 原文歸檔於 `specs/INFRASTRUCTURE-SPECIFICATION-v0.1-draft.md`；draft→v1.0 之變更**僅限**：版本欄、本【地位】節生效記錄、Annex CS front-matter `spec-version`、文末地位段，**無任何 [N] 條款實質變更、條款編號不重排**。
 >
-> * **上層地位**：`AUGUR-MC v1.4`（L0）、`AUGUR-WM v1.0`（L1）、`AUGUR-ONT v1.0`（L2）、`AUGUR-ID v1.0`（L3）、`AUGUR-KS v1.1`（L4）、`AUGUR-L5 v1.0`（L5）、`AUGUR-L6 v1.2`（L6）**七上層全部生效**，對本規格有完整規範效力（`§0.6(a)` lex superior）。
-> * **末層地位（本層之特殊性一）**：Layer 7 為 `AUGUR-MC v1.4 §0.5` 對照表之**末列**，其下**無 Layer 8**。一切上層之 DEFER 於本層**終局落地**：本層**不得**再下放，凡承接不能者**必須**登錄為 OPEN 待決並走保守預設（L7.3、L7.70）。「這是實作細節」於本層**不構成**任何義務之免除理由——本層即為實作層。
-> * **物理性（本層之特殊性二）**：`AUGUR-MC v1.4 §5` 六架構角色、kill-switch、憑證、備份於本層由概念變為**可被權限主體繞過之具體物**。故上層之不變式，於本層只剩下**「誰持有能撤銷該不變式的權限」**一個問題：`AUGUR-L6 v1.2` L6.21 之阻卻若無部署縱深（單一出口、fail-closed、權限主體分離），僅為紙上義務；append-only 若以應用角色自身即可解除之機制維持，`§P4.E3` 之強制性等同自願性（L7.16，承接審計 AUD-02 之 owner 殘餘風險）。
+> * **上層地位**：`AUGUR-MC v1.6`（L0）、`AUGUR-WM v1.0`（L1）、`AUGUR-ONT v1.0`（L2）、`AUGUR-ID v1.0`（L3）、`AUGUR-KS v1.1`（L4）、`AUGUR-L5 v1.0`（L5）、`AUGUR-L6 v1.2`（L6）**七上層全部生效**，對本規格有完整規範效力（`§0.6(a)` lex superior）。
+> * **末層地位（本層之特殊性一）**：Layer 7 為 `AUGUR-MC v1.6 §0.5` 對照表之**末列**，其下**無 Layer 8**。一切上層之 DEFER 於本層**終局落地**：本層**不得**再下放，凡承接不能者**必須**登錄為 OPEN 待決並走保守預設（L7.3、L7.70）。「這是實作細節」於本層**不構成**任何義務之免除理由——本層即為實作層。
+> * **物理性（本層之特殊性二）**：`AUGUR-MC v1.6 §5` 六架構角色、kill-switch、憑證、備份於本層由概念變為**可被權限主體繞過之具體物**。故上層之不變式，於本層只剩下**「誰持有能撤銷該不變式的權限」**一個問題：`AUGUR-L6 v1.2` L6.21 之阻卻若無部署縱深（單一出口、fail-closed、權限主體分離），僅為紙上義務；append-only 若以應用角色自身即可解除之機制維持，`§P4.E3` 之強制性等同自願性（L7.16，承接審計 AUD-02 之 owner 殘餘風險）。
 > * **技術中立張力（本層之特殊性三）**：本層雖必須指名產品，仍**不得**使憲章依賴產品（`§7`、`F2`）。選型一律降為**參考實作之登錄（系統狀態）**（L7.4、L7.30）；本規格**全部 [N] 條款須通過刪名測試**（`AUGUR-WM v1.0 §WM.4`）——刪去一切產品名、供應商名、協定名、模型名、硬體平台名後，條款規範內涵不變。
 > * **自我起草之利益衝突揭露（誠實揭露、歷史保留）**：本稿由 Agent 起草，而其內容（L7.40 kill-switch、L7.16 owner 分離、L7.42／L7.49 憑證、L7.17 沙盒隔離、L7.41 H_max）正是**限制起草者自身權能之物理機制**。誘因較 `AUGUR-L6 v1.2` §1.2 所揭露者**更直接**：L6 之自我交易需改條文（有跡可循），本層之自我交易只需**改一個數字**或**登錄一個載體**，即可在完全不觸動任何 [N] 文字之情形下抽空 P5。本稿以 L7.5（`AUGUR-L6 v1.2` L6.18 全面準用）＋可執行測試證明（非文件宣稱）回應；**其充分性專屬 Steward `§8.2` 判斷，本稿不自為認定**（T-L7-7）。
 > * **不可豁免核心之承載**：本規格落實之 `§P4.E1`、`§P4.E6`（Evidence 追溯）、`§P5.W2`（人類權威／隨時否決）、`§P5.W5`（不得降低監督否決能力）為 `§8.4` **不可豁免核心，連履行時程亦不得豁免**。本層就單機無備援（T-L7-2）與 kill-switch 實體層獨立性（T-L7-3）之處置，嚴格區分**義務本身**（不得豁免）與**特定補正措施之履行時程**（非核心條款之履行時程，得依 `§8.4` 核發有到期日之書面豁免）。
-> * **條款編號穩定性**（`AUGUR-MC v1.4 §8.6`、`AUGUR-WM v1.0 §WM.46`）：一經發布永不重用、永不重排；廢止條款保留編號並標 `(repealed)`。
+> * **條款編號穩定性**（`AUGUR-MC v1.6 §8.6`、`AUGUR-WM v1.0 §WM.46`）：一經發布永不重用、永不重排；廢止條款保留編號並標 `(repealed)`。
 >
 > 本【地位】節與 §0 全部約定為 [N] 規範內容，其效力與正文條款同（準用 `AUGUR-WM v1.0 §WM.53`）。
 
@@ -55,33 +55,33 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 ### 0.1 名稱、層級與版本 [N]
 
 * 名稱：Augur Infrastructure Specification（下層引用簡稱 **AUGUR-L7**；**惟本層為末層，無下層引用者**）
-* 層級：Layer 7 — Infrastructure／External Interface（`AUGUR-MC v1.4 §0.5` 對照表第 7 列；所轄：External Interface Layer、Database Architecture、Infrastructure Deployment、系統架構大憲章、datasets 參考文件；`§5` 角色六 Controlled External Interface）
+* 層級：Layer 7 — Infrastructure／External Interface（`AUGUR-MC v1.6 §0.5` 對照表第 7 列；所轄：External Interface Layer、Database Architecture、系統架構大憲章、datasets 參考文件；`§5` 角色六 Controlled External Interface）
 * 版本：v1.0（前版：v0.1-draft；充任 RULING-2026-011／AL-2026-014）
-* 上層規格（upper-specs）：`AUGUR-MC v1.4`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v1.0`（Layer 2）、`AUGUR-ID v1.0`（Layer 3）、`AUGUR-KS v1.1`（Layer 4）、`AUGUR-L5 v1.0`（Layer 5）、`AUGUR-L6 v1.2`（Layer 6）
+* 上層規格（upper-specs）：`AUGUR-MC v1.6`（Layer 0）、`AUGUR-WM v1.0`（Layer 1）、`AUGUR-ONT v1.0`（Layer 2）、`AUGUR-ID v1.0`（Layer 3）、`AUGUR-KS v1.1`（Layer 4）、`AUGUR-L5 v1.0`（Layer 5）、`AUGUR-L6 v1.2`（Layer 6）
 * 生效要件：見【地位】節——已於 2026-07-18 全部成就（RULING-2026-011）；`§8.2` 深度實質審查已於 2026-07-19 條件通過（RULING-2026-025／AL-2026-028）。
 
 ### 0.2 規範用語約定 [N]
 
-沿用 `AUGUR-MC v1.4 §0.2`：**必須**（MUST，絕對義務）／**不得**（MUST NOT，絕對禁止）／**應**（SHOULD，偏離須書面說明理由）／**得**（MAY，允許而不構成義務），全文一致，不重定義。
+沿用 `AUGUR-MC v1.6 §0.2`：**必須**（MUST，絕對義務）／**不得**（MUST NOT，絕對禁止）／**應**（SHOULD，偏離須書面說明理由）／**得**（MAY，允許而不構成義務），全文一致，不重定義。
 
 ### 0.3 條文效力標注與編號穩定性 [N]
 
-* 每章標題標注 **[N]（Normative）** 或 **[I]（Informative）**。[N] 與 [I] 不一致時依 `AUGUR-MC v1.4 §8.2` 以 Normative 為準；章標題標注為該章預設，子節另有標注者以子節為準。
+* 每章標題標注 **[N]（Normative）** 或 **[I]（Informative）**。[N] 與 [I] 不一致時依 `AUGUR-MC v1.6 §8.2` 以 Normative 為準；章標題標注為該章預設，子節另有標注者以子節為準。
 * **本層特有之 [N]／[I] 分界（技術中立之形式保證）**：一切**具體選型、產品名、供應商名、型號、版本、硬體事實、容量數值、環境快照內容**於本規格中一律為 **[I]（登錄簿之現行值）**；規範效力恆源於**角色語義欄 [N]**。[I] 現行值之變更為 patch 級登錄變更（`§8.6`），**不觸動任何 [N] 條款**（L7.4、L7.40 之逆命題，L7.30(c)）。
-* 正文條款編號採 **L7.{n}**（區塊配置見目錄）；空號為保留、非跳號，保留號之啟用亦永不重用、永不重排。廢止條款保留編號並標注 **(repealed)**（`AUGUR-MC v1.4 §8.6`、`AUGUR-WM v1.0 §WM.46`）。
+* 正文條款編號採 **L7.{n}**（區塊配置見目錄）；空號為保留、非跳號，保留號之啟用亦永不重用、永不重排。廢止條款保留編號並標注 **(repealed)**（`AUGUR-MC v1.6 §8.6`、`AUGUR-WM v1.0 §WM.46`）。
 * **附屬表列 [N] 內容之義務承載規則**：附屬於某治理條款（如 LDI.0、LDO.0、OPEN.0、L7B.0、TR.0、CS.1 各節、EO.1）之表列 [N] 內容，其義務主體與可判定判準由該治理（父）條款統一承載，不另逐列重複標注（體例落實，非豁免）。
 
 ### 0.4 權威語言聲明 [N]
 
-本規格以**繁體中文版為權威版本**；規範性術語於正文中一律使用英文原詞（Reality、Observation、Representation、Identity、Evidence、Knowledge、Confidence、Action、Agent、Intelligence、Plan；及上層機制術語 Observation Channel、Observation Store、World Concept Registry、Completeness Level、L_C、Risk Tier、OCV、Human Authority Gate、Controlled External Interface、Actor Identity、Authorization、Expected／Observed Effect、self-reported、synthetic、tombstone、supersede、as-of、Plan-scoped、least privilege、halt、degrade、veto；及本層記錄構件術語 Bearer Registry、Threshold Registry、Selection Registry、controlled egress、fail-closed、fail-open、bypass、owner 角色、故障域分離、pre-commit hold、capability token、H_max、C_max），與 `AUGUR-MC v1.4 §0.4`、上層各規格 `§0.4` 保持術語同一性；不另立中文譯名為規範對象。
+本規格以**繁體中文版為權威版本**；規範性術語於正文中一律使用英文原詞（Reality、Observation、Representation、Identity、Evidence、Knowledge、Confidence、Action、Agent、Intelligence、Plan；及上層機制術語 Observation Channel、Observation Store、World Concept Registry、Completeness Level、L_C、Risk Tier、OCV、Human Authority Gate、Controlled External Interface、Actor Identity、Authorization、Expected／Observed Effect、self-reported、synthetic、tombstone、supersede、as-of、Plan-scoped、least privilege、halt、degrade、veto；及本層記錄構件術語 Bearer Registry、Threshold Registry、Selection Registry、controlled egress、fail-closed、fail-open、bypass、owner 角色、故障域分離、pre-commit hold、capability token、H_max、C_max），與 `AUGUR-MC v1.6 §0.4`、上層各規格 `§0.4` 保持術語同一性；不另立中文譯名為規範對象。
 
 ### 0.5 引用格式與元規則 [N]
 
-* 引用格式：`AUGUR-MC v1.4 §{條款}`／`AUGUR-WM v1.0 §{條款}`／`AUGUR-ONT v1.0 §{條款}`／`AUGUR-ID v1.0 §{條款}`／`AUGUR-KS v1.1 §{條款}`／`AUGUR-L5 v1.0 §{條款}`／`AUGUR-L6 v1.2 §{條款}`。
+* 引用格式：`AUGUR-MC v1.6 §{條款}`／`AUGUR-WM v1.0 §{條款}`／`AUGUR-ONT v1.0 §{條款}`／`AUGUR-ID v1.0 §{條款}`／`AUGUR-KS v1.1 §{條款}`／`AUGUR-L5 v1.0 §{條款}`／`AUGUR-L6 v1.2 §{條款}`。
 * 本規格每一 [N] 條款標注其**憲章／上層錨定**與**三態型態**：**refines**（細化上位條款）／**carries**（承接上位不變式並給予物理落地位置）／**hooks**（DEFER 掛鉤——**本層為末層，故 hooks 僅得指向 Annex OPEN 之待決登錄或系統狀態登錄，不得指向任何下層**）；複合模式以「＋」連接。每一 [N] 條款並標注**義務主體**與**可判定判準**，使其可機器稽核（承接 `AUGUR-WM v1.0 §WM.34`）。
-* **不重定義元規則**：本規格**不得**重新定義 `AUGUR-MC v1.4 §2` 之十一個初始概念，亦**不得**重定義上層既有構件（World Concept、World Concept Registry、Observation Channel、Observation Store、Domain Profile、Type、Identity Criterion、identity claim、Confidence Lattice L_C 之序與語義、Evidence 分類法、Trust Rank、Completeness Level、Risk Tier RT-0–RT-4、OCV、Human Authority Gate、Controlled External Interface 等）；本規格對其**僅為物理落地**。
+* **不重定義元規則**：本規格**不得**重新定義 `AUGUR-MC v1.6 §2` 之十一個初始概念，亦**不得**重定義上層既有構件（World Concept、World Concept Registry、Observation Channel、Observation Store、Domain Profile、Type、Identity Criterion、identity claim、Confidence Lattice L_C 之序與語義、Evidence 分類法、Trust Rank、Completeness Level、Risk Tier RT-0–RT-4、OCV、Human Authority Gate、Controlled External Interface 等）；本規格對其**僅為物理落地**。
 * **本層新造術語之地位限制**：本規格新造術語限於 **Bearer Registry**（`§5` 抽象架構角色與其物理承載構件之對映登錄）、**Threshold Registry**（`AUGUR-L6 v1.2` LDO.5 所下放之各 RT 級數值門檻之系統狀態載體）、**Selection Registry**（`AUGUR-L5 v1.0` LDO.1／`AUGUR-L6 v1.2` LDO.6 所下放之選型登錄）。三者均為**記錄構件，不具語義創設力**（L7.2）。
-* **末層紀律**（`AUGUR-MC v1.4 §0.5`、`§0.6(b)`）：本層之下無層可承接，故本規格**不得**設任何以「下層定義」為由之 DEFER 掛鉤（L7.1、L7.70）。
+* **末層紀律**（`AUGUR-MC v1.6 §0.5`、`§0.6(b)`）：本層之下無層可承接，故本規格**不得**設任何以「下層定義」為由之 DEFER 掛鉤（L7.1、L7.70）。
 
 ---
 
@@ -89,7 +89,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ### 1.1 Layer 7 定位 [I]
 
-上層七份已宣告世界有何物（`AUGUR-WM v1.0`）、其類屬與同一性判準（`AUGUR-ONT v1.0`）、個體之永久參照（`AUGUR-ID v1.0`）、繫結該參照之斷言之信度與欄位（`AUGUR-KS v1.1`）、合法推理與 Confidence 傳播（`AUGUR-L5 v1.0`）、行動之問責結構與人類權威（`AUGUR-L6 v1.2`）。**本層＝Infrastructure／External Interface**：依 `AUGUR-MC v1.4 §5` 角色六負責 **Controlled External Interface（World Model 與外部系統之受控介面）**，並為 `§5` 全部六角色之**物理載體所在**。本層之唯一任務：把七上層以「不變式＋DEFER」形式懸置之全部物理事項（載體、引擎、機制、硬體、憑證、UI、數值閾值）逐一收編為**可稽核之登錄與可判定判準**，且在收編之同時**不使憲章依賴任何具名產品**。
+上層七份已宣告世界有何物（`AUGUR-WM v1.0`）、其類屬與同一性判準（`AUGUR-ONT v1.0`）、個體之永久參照（`AUGUR-ID v1.0`）、繫結該參照之斷言之信度與欄位（`AUGUR-KS v1.1`）、合法推理與 Confidence 傳播（`AUGUR-L5 v1.0`）、行動之問責結構與人類權威（`AUGUR-L6 v1.2`）。**本層＝Infrastructure／External Interface**：依 `AUGUR-MC v1.6 §5` 角色六負責 **Controlled External Interface（World Model 與外部系統之受控介面）**，並為 `§5` 全部六角色之**物理載體所在**。本層之唯一任務：把七上層以「不變式＋DEFER」形式懸置之全部物理事項（載體、引擎、機制、硬體、憑證、UI、數值閾值）逐一收編為**可稽核之登錄與可判定判準**，且在收編之同時**不使憲章依賴任何具名產品**。
 
 ### 1.2 本層方法論三支柱 [I]
 
@@ -97,30 +97,30 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ---
 
-> **L7.1（從屬與末層地位〔Terminal Layer〕）[N｜carries｜`AUGUR-MC v1.4 §0.5`、`§0.6(a)`、`§8.2`]**
-> 本規格全部內容從屬並**不得**違反 `AUGUR-MC v1.4`、`AUGUR-WM v1.0`、`AUGUR-ONT v1.0`、`AUGUR-ID v1.0`、`AUGUR-KS v1.1`、`AUGUR-L5 v1.0`、`AUGUR-L6 v1.2`；牴觸部分無效，經違憲認定之條款自認定日起無效（`§0.6(a)` lex superior）。本規格為 Layer 7 唯一所轄規格（`§0.5` 對照表 Layer 7 欄：External Interface Layer、Database Architecture、Infrastructure Deployment、系統架構大憲章、datasets 參考文件），並為**執行層之末層**：本層之下無 Layer 8，故本層**不得**以 DEFER 形式將任何事項下放。
+> **L7.1（從屬與末層地位〔Terminal Layer〕）[N｜carries｜`AUGUR-MC v1.6 §0.5`、`§0.6(a)`、`§8.2`]**
+> 本規格全部內容從屬並**不得**違反 `AUGUR-MC v1.6`、`AUGUR-WM v1.0`、`AUGUR-ONT v1.0`、`AUGUR-ID v1.0`、`AUGUR-KS v1.1`、`AUGUR-L5 v1.0`、`AUGUR-L6 v1.2`；牴觸部分無效，經違憲認定之條款自認定日起無效（`§0.6(a)` lex superior）。本規格為 Layer 7 唯一所轄規格（`§0.5` 對照表 Layer 7 欄：External Interface Layer、Database Architecture、系統架構大憲章、datasets 參考文件），並為**執行層之末層**：本層之下無 Layer 8，故本層**不得**以 DEFER 形式將任何事項下放。
 > **義務主體**：本規格自身及其後續修訂者。**可判定判準**：本規格任一條款含「下放」「DEFER」「由下層定義」或等義措辭而未指向 L7.3(b) 之 OPEN 登錄或 L7.70(c) 之系統狀態登錄者，違反本條（末層落空）；Annex CS front-matter `defers-out` 欄非空集者，違反本條。
 
-> **L7.2（細化不重定義）[N｜carries｜`AUGUR-MC v1.4 §2` 元規則；refines｜`AUGUR-L6 v1.2` L6.23]**
-> 本規格對 `AUGUR-MC v1.4 §2` 之十一個初始概念，及上層各規格所造構件（`§0.5` 所列），**僅為物理落地，不重新定義、不變更內涵、不另創同義歧稱**。本規格新造術語限於 **Bearer Registry**、**Threshold Registry**、**Selection Registry** 三者，均為**記錄構件**，**不具語義創設力**：其欄位承載上層語義之引用，不得反用以界定該語義。
+> **L7.2（細化不重定義）[N｜carries｜`AUGUR-MC v1.6 §2` 元規則；refines｜`AUGUR-L6 v1.2` L6.23]**
+> 本規格對 `AUGUR-MC v1.6 §2` 之十一個初始概念，及上層各規格所造構件（`§0.5` 所列），**僅為物理落地，不重新定義、不變更內涵、不另創同義歧稱**。本規格新造術語限於 **Bearer Registry**、**Threshold Registry**、**Selection Registry** 三者，均為**記錄構件**，**不具語義創設力**：其欄位承載上層語義之引用，不得反用以界定該語義。
 > **義務主體**：本規格自身。**可判定判準**：本規格任一術語定義文句刪除後，不影響上層任一定義之字面適用者為落地；反之為重定義（禁止）。三登錄簿之任一欄位定義若使某上層構件之內涵改變者，違反本條。
 
-> **L7.3（末層收編紀律：全承接義務、OPEN 登錄與保守預設）[N｜carries｜`AUGUR-MC v1.4 §8.3`、`§8.2`；refines｜`AUGUR-WM v1.0 §D0`、`§WM.44`]**
+> **L7.3（末層收編紀律：全承接義務、OPEN 登錄與保守預設）[N｜carries｜`AUGUR-MC v1.6 §8.3`、`§8.2`；refines｜`AUGUR-WM v1.0 §D0`、`§WM.44`]**
 > (a) **全承接義務**：上層 Annex（`AUGUR-WM v1.0` Annex D、`AUGUR-ONT v1.0` Annex DO、`AUGUR-ID v1.0` Annex DO、`AUGUR-KS v1.1` Annex DO、`AUGUR-L5 v1.0` Annex LDO、`AUGUR-L6 v1.2` Annex LDO）中目標 Layer 含 L7 之**每一列**，本規格**必須**於 Annex LDI（defers-in 承接表）逐列承接，並指明本規格之落點條款。
 > (b) **OPEN 登錄**：承接時尚無法作成實質定義者，**必須**登錄為顯式 OPEN 待決條目（Annex OPEN），載明：所懸置事項、上層掛鉤編號、**保守預設之內容**、解決義務主體、期限。OPEN 期間一律採**保守解釋（存疑即不允許）**——涉 Action 者走 `AUGUR-L6 v1.2` L6.10 缺位最高級預設（**RT-4**、人類事前逐案核准），涉 Knowledge 者走 `AUGUR-KS v1.1` KS.38 保守推定（⊓Conf 推定為 **INSUF**）。
-> (c) **不得靜默落空**：任一 L7 目標掛鉤既未落點、亦未 OPEN 登錄者，構成本層之**違憲不作為**，依 `AUGUR-MC v1.4 §8.2` 採較嚴格解讀處理至補正為止，且該事項所涉之 Action 一律推定不允許（`§8.3`）。
+> (c) **不得靜默落空**：任一 L7 目標掛鉤既未落點、亦未 OPEN 登錄者，構成本層之**違憲不作為**，依 `AUGUR-MC v1.6 §8.2` 採較嚴格解讀處理至補正為止，且該事項所涉之 Action 一律推定不允許（`§8.3`）。
 > (d) **OPEN 登錄為揭露，非豁免**：涉 `§8.4` 不可豁免核心者，**不得**以 OPEN 列示替代履行。
 > **義務主體**：本規格自身、Steward。**可判定判準**：Annex LDI 之列數與上層六份 Annex 中目標含 L7 之列數逐列雙向可解析（機器對表），差集非空者違反本條；每一 OPEN 條目具五欄（事項／掛鉤／保守預設／義務主體／期限）者為合規。
 
-> **L7.4（技術中立紀律與刪名測試：參考實作之登錄不得為定義依據）[N｜carries｜`AUGUR-MC v1.4 §7`、`F2`；refines｜`AUGUR-WM v1.0 §WM.4`]**
+> **L7.4（技術中立紀律與刪名測試：參考實作之登錄不得為定義依據）[N｜carries｜`AUGUR-MC v1.6 §7`、`F2`；refines｜`AUGUR-WM v1.0 §WM.4`]**
 > 本層雖為物理載體之所在，仍**不得**使憲章或任何上層規格依賴特定產品、供應商或雲端服務（`§7`）。一切具體選型（含關聯式儲存、圖儲存、向量儲存、統計庫、AI model、容器執行環境、排程器、Agent 框架、對外介面協定、硬體平台）於本規格中之地位一律為**參考實作之登錄（registered reference implementation）**：其登錄形式為登錄簿之**現行值欄 [I]**；其規範效力來源恆為**角色語義欄 [N]**（`§5` 六角色之語義）。
 > (a) **產品名之三種合法地位（閉集）**：(i) **登錄之指名**（L7.10／L7.30 之系統狀態內容，非規範文本）；(ii) **Observation Channel 之指名**（`AUGUR-WM v1.0 §WM.4`）；(iii) **明標 [I] 之例示**（並明標刪名測試適用）。**三者以外之產品名出現於 [N] 條款者，違反本條。**
 > (b) **義務之表述紀律**：本層義務**必須**以**角色語義與權能語義**表述（如「具結構變更權能之角色」「不依賴被控 Agent 之強制手段」「故障域分離之副本」），**不得**以特定產品之機制名作為義務之內容。
-> (c) **`AUGUR-MC v1.4 Appendix A`（v1.x 參考技術選型對照）為非約束性資訊**：**不得**作為本層任何登錄之依據，亦**不得**反用以限制本層之登錄；本層登錄簿與 Appendix A 分歧時，以**本層登錄簿為單一權威、以角色語義為準**（T-L7-8）。
+> (c) **`AUGUR-MC v1.6 Appendix A`（v1.x 參考技術選型對照）為非約束性資訊**：**不得**作為本層任何登錄之依據，亦**不得**反用以限制本層之登錄；本層登錄簿與 Appendix A 分歧時，以**本層登錄簿為單一權威、以角色語義為準**（T-L7-8）。
 > (d) **違反之處置**：違反者依 `§8.2` 為文件缺陷，修正前採**較嚴格解讀**（對系統許可較少、義務較重），並依 L7.14 處置順序辦理。
 > **義務主體**：本規格自身、全部登錄簿之維護者、系統維運者、Steward（`§8.2` 審查）。**可判定判準（刪名測試）**：刪去本規格任一條款中之產品名／供應商名／協定名／模型名／硬體平台名後，該條款之規範內涵不變者為登錄（合法）；內涵改變者為定義依據（禁止）。本測試為機器可輔助之逐條盤點：枚舉本規格 [N] 條款中之全部具名，逐一檢核其地位屬 (a)(i)–(iii) 之何者；不屬者違反本條。
 
-> **L7.5（本層之反自我交易準用：Agent 起草者登錄自身之 kill-switch）[N｜carries｜`AUGUR-MC v1.4 §P5.W5`、`§8.4`；refines｜`AUGUR-L6 v1.2` L6.18]**
+> **L7.5（本層之反自我交易準用：Agent 起草者登錄自身之 kill-switch）[N｜carries｜`AUGUR-MC v1.6 §P5.W5`、`§8.4`；refines｜`AUGUR-L6 v1.2` L6.18]**
 > 本規格由 Agent 起草，而其內容包含**約束該 Agent 之物理停止機制、憑證機制與監督數值**，自我交易誘因於本層達到頂點。故 `AUGUR-L6 v1.2` L6.18（反自我交易、guard-the-guard、定義窄化防線、度量不可自我洗白）**全部準用於本層之一切登錄與變更**：
 > (a) Agent **不得**為任何弱化 L7.41（H_max）、L7.45（Threshold Registry）、L7.40（kill-switch）、L7.46（OCV 擷取）、L7.16（owner 分離）之變更之**核准主體**；核准鏈根節點非人類者，該變更無效。
 > (b) 對本層任一登錄簿之**欄位定義、判準或閾值**之變更，其變更本身為 Action，一律至少 **RT-3**；凡使 OCV 任一分量朝弱化方向移動、或窄化 I3／高影響之量值認定者，一律 **RT-4 且須事前雙人類獨立核准**（L6.18(b-1) 準用），**不因其形式上未「移除既有介入點」而降為 RT-3**。
@@ -130,10 +130,10 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ---
 
-## §2 `§5` 六架構角色之物理載體與角色分離 [N]（`AUGUR-MC v1.4 §5`、`§P4.E3`、`§7`）
+## §2 `§5` 六架構角色之物理載體與角色分離 [N]（`AUGUR-MC v1.6 §5`、`§P4.E3`、`§7`）
 
-> **L7.10（Bearer Registry〔角色—載體對映登錄簿〕之設立與最低欄集）[N｜carries｜`AUGUR-MC v1.4 §5`、`§7`、`§P1.E2`；refines｜`AUGUR-WM v1.0 §WM.36`、`§WM.13(iii)`]**
-> 本層**必須**設立並維護單一 **Bearer Registry**，為 `AUGUR-MC v1.4 §5` 六個抽象架構角色之物理載體對映之**唯一權威登錄**。每一登錄條目**必須**具備下列七欄且各欄可機器解析：
+> **L7.10（Bearer Registry〔角色—載體對映登錄簿〕之設立與最低欄集）[N｜carries｜`AUGUR-MC v1.6 §5`、`§7`、`§P1.E2`；refines｜`AUGUR-WM v1.0 §WM.36`、`§WM.13(iii)`]**
+> 本層**必須**設立並維護單一 **Bearer Registry**，為 `AUGUR-MC v1.6 §5` 六個抽象架構角色之物理載體對映之**唯一權威登錄**。每一登錄條目**必須**具備下列七欄且各欄可機器解析：
 > (1) **角色識別**（`§5` 角色一至六之編號與語義引用）[N]；
 > (2) **角色語義判準**——該載體必須滿足之上層不變式清單（**引用具體條款編號**）[N]；
 > (3) **現行載體值**（產品名／版本／部署形式）[I]；
@@ -144,7 +144,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > **缺任一欄者，該登錄不成立**，該角色視為**未登錄**，其上一切依賴該載體之 Action 走保守預設（L7.3(b)：RT-4）。
 > **義務主體**：本規格、Bearer Registry 維護者、系統維運者。**可判定判準**：六角色各恰解析至一組七欄俱全之登錄條目者為合規；解析至零個、或欄位不全、或解析至多個而無權威裁決者，違反本條。
 
-> **L7.11（六架構角色之物理載體對映：角色語義 [N]／現行登錄值 [I]）[N｜carries｜`AUGUR-MC v1.4 §5` 角色一–六、`§P4.E2/E3/E6/E7`、`§P2.E2`、`§P5.E2`、`§2.9`；承接｜`AUGUR-L5 v1.0` LDO.1、`AUGUR-L6 v1.2` LDO.6]**
+> **L7.11（六架構角色之物理載體對映：角色語義 [N]／現行登錄值 [I]）[N｜carries｜`AUGUR-MC v1.6 §5` 角色一–六、`§P4.E2/E3/E6/E7`、`§P2.E2`、`§P5.E2`、`§2.9`；承接｜`AUGUR-L5 v1.0` LDO.1、`AUGUR-L6 v1.2` LDO.6]**
 > Bearer Registry 之六列，其**角色語義欄 [N]** 依 `§5` 逐條固定如下；**現行載體值欄 [I]** 為可隨時替換之登錄（其變更為 patch 級登錄變更，不觸動本條 [N] 內容）：
 >
 > | # | `§5` 角色 | 角色語義欄 [N]（該載體必須滿足之上層不變式） | 現行載體值欄 [I] |
@@ -158,7 +158,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 >
 > **義務主體**：本規格、Bearer Registry 維護者。**可判定判準**：現行值欄之任一項全部刪除後，角色語義欄之規範內涵不變（刪名測試，L7.4）；且角色語義欄之每一不變式可解析至上層具體條款編號。現行值待定者依 Annex OPEN 之保守預設處置。
 
-> **L7.12（可替換性與退出程序：角色語義為準之判準）[N｜carries｜`AUGUR-MC v1.4 §7`、`§5`；refines｜`AUGUR-WM v1.0 §WM.13`]**
+> **L7.12（可替換性與退出程序：角色語義為準之判準）[N｜carries｜`AUGUR-MC v1.6 §7`、`§5`；refines｜`AUGUR-WM v1.0 §WM.13`]**
 > 每一登錄之載體**必須可替換**。「可替換」之可判定判準：Bearer Registry 該列之可替換性欄載明——
 > (a) **退出程序**（資料匯出格式與完整性驗證方法）；
 > (b) **角色語義映射表**（該載體之何種構件承載角色語義欄之何項不變式）；
@@ -166,11 +166,11 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > 三項缺任一者，**推定不可替換**，該登錄不成立（保守）。系統**不得**採用任何使上開四不變式無法成立之載體或其專屬功能；**不得**以載體之**專屬語義（proprietary semantics）**承載任何角色語義欄之不變式。**可替換性論證缺席之登錄無效**——無論證即推定不可替換，即構成 `§7` 所禁之依賴（`§8.3`）。
 > **義務主體**：本規格、Bearer Registry 維護者、一切遷移之提案者。**可判定判準**：(a)(b)(c) 三欄俱全且 (c) 之四不變式逐項可驗證者為可替換；判準未能適用者採保守解釋——推定不可替換。
 
-> **L7.13（Observation Store 與 System of Record 之載體分立與對帳紀律）[N｜carries｜`AUGUR-MC v1.4 §2.2`、`§P2.E4`、`§P4.E6`、`§5` 角色一；refines｜`AUGUR-WM v1.0 §WM.10`、`§WM.12`]**
+> **L7.13（Observation Store 與 System of Record 之載體分立與對帳紀律）[N｜carries｜`AUGUR-MC v1.6 §2.2`、`§P2.E4`、`§P4.E6`、`§5` 角色一；refines｜`AUGUR-WM v1.0 §WM.10`、`§WM.12`]**
 > Observation Store（`AUGUR-WM v1.0 §WM.10`：保存 Observation 原始形、**逐值可追溯至某次來源回應**、具**與來源之對帳（attestation）驗證紀錄**之儲存層）於本層**必須**具備顯式登錄之物理載體，且其忠實性紀律**必須全部保留、不得因共同表徵層之建立而拆除或削弱**（承接審計 AUD-01）。共同表徵層（System of Record，L7.11 角色一）**必須**建立於 Observation Store 之上，**不得**取而代之。二者**得**共用同一物理引擎，惟**必須**於 Bearer Registry 中**分立登錄**，其分立**必須**可機器判定（不同 schema／命名空間／保留政策），並各自具備獨立之保留與備份策略（L7.25）。**禁止**任何以「表徵層已建立」為由縮短或停止 Observation Store 保留、或停止對帳驗證之組態。
 > **義務主體**：本規格、Bearer Registry 維護者、系統維運者、Layer 4 消費構件。**可判定判準**：存在一儲存層滿足「逐值可追溯至某次來源回應」且「具與來源之對帳驗證紀錄」二特徵並經登錄者為合規；任一組態使該二特徵之一不再成立者，違反本條。
 
-> **L7.14（F2／F1 反向防線：登錄程序以角色語義為輸入、選型為輸出；選型不得反噬義務）[N｜carries｜`AUGUR-MC v1.4 §6 F1`、`F2`、`§7`、`§8.2`、`§8.4`；refines｜`AUGUR-L6 v1.2` L6.18(b-1)]**
+> **L7.14（F2／F1 反向防線：登錄程序以角色語義為輸入、選型為輸出；選型不得反噬義務）[N｜carries｜`AUGUR-MC v1.6 §6 F1`、`F2`、`§7`、`§8.2`、`§8.4`；refines｜`AUGUR-L6 v1.2` L6.18(b-1)]**
 > 一切登錄程序**必須**以角色語義（L7.11 [N] 欄）為**輸入**、以選型為**輸出**；**禁止**反向——即禁止先選定產品、再由該產品之 schema／API 行為／能力反推導角色語義或上層條款（`F1` Data First、`F2` Model First 於部署層之變體：「先看資料庫／模型／硬體能做什麼，再決定憲章要求什麼」，禁止）。
 > (a) 任一新載體之登錄提案**必須**先載明其所欲承載之角色語義欄不變式清單（引用上層條款編號），後載現行值；
 > (b) 提案**必須**附**刪名測試通過紀錄**（L7.4）與**至少一個替代候選之並列評估**（證明角色語義非為單一產品量身訂做）；
@@ -182,7 +182,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > **豁免期間之義務**：豁免期間產生之 Knowledge **必須**標記豁免狀態與 Evidence 缺口（`§8.4`）。
 > **義務主體**：本規格、一切登錄提案者、選型決策者、部署者、Steward。**可判定判準**：登錄提案文件之 (a)(b) 欄俱全且刪名測試通過者為合規；缺任一者，登錄不成立。存在任一上層義務之範圍或門檻，其論證引用現行選型之能力界限為理由者，違反本條；處置未依 (i)→(ii) 之序、或落入 (iii) 者，違反本條。
 
-> **L7.15（`§5` 角色分離不變式〔權限主體層〕）[N｜carries｜`AUGUR-MC v1.4 §5`、`§P4.E3`、`§P4.E6`；refines｜`AUGUR-L6 v1.2` L6.18(b)、L6.21]**
+> **L7.15（`§5` 角色分離不變式〔權限主體層〕）[N｜carries｜`AUGUR-MC v1.6 §5`、`§P4.E3`、`§P4.E6`；refines｜`AUGUR-L6 v1.2` L6.18(b)、L6.21]**
 > `§5` 六角色之物理載體，其**權限主體**（該載體運行時所使用之身分與其權能集合）**必須**滿足下列分離不變式：
 > (a) **角色一之不變式不得被角色四／五／六破壞**：角色一 World State System of Record 之 append-only 與 provenance 性質（`§P4.E3`、`§P4.E6`），**不得**由角色四（Understanding Engine）、角色五（Action Layer）或角色六（Controlled External Interface）所使用之權限主體所能解除——即此三者**不得**具備解除 System of Record 不變式強制機制之權能（其操作化見 L7.16）。
 > (b) **執法點獨立性（guard-the-guard）**：角色六**必須**與其所管制之角色五為**分離之權限主體**，且角色五**不得**具備變更角色六之組態、驗證邏輯或受控出口集合之權能——否則執法點受被執法者支配，違 `AUGUR-L6 v1.2` L6.18(b) 並使 L6.21 之 F6 阻卻落空。
@@ -190,7 +190,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (d) **共置不解除分離**：角色**得**共置於同一節點（見 L7.18），惟 (a)(b)(c) 之權限主體分離**不得**因共置而免除。
 > **義務主體**：本規格、部署者。**可判定判準**：(i) 六角色之載體登錄齊備且可機器解析；(ii) 就每一角色之權限主體，其權能集合可枚舉；(iii) 存在任一角色四／五／六之權限主體具解除角色一不變式之權能、或角色五具變更角色六組態之權能者，違反本條——**該檢核必須以該權限主體實際嘗試之可執行測試驗證**（L7.5(d)）。
 
-> **L7.16（不變式強制之權限錨定：受保護儲存物件之 owner ≠ 應用運行角色）[N｜carries｜`AUGUR-MC v1.4 §P4.E3`、`§P3.E2`、`§P5.W4`、`§8.3`；承接｜審計 AUD-02 之 owner 殘餘風險、`AUGUR-KS v1.1` KDO.7、`AUGUR-ID v1.0` IDO.3]**
+> **L7.16（不變式強制之權限錨定：受保護儲存物件之 owner ≠ 應用運行角色）[N｜carries｜`AUGUR-MC v1.6 §P4.E3`、`§P3.E2`、`§P5.W4`、`§8.3`；承接｜審計 AUD-02 之 owner 殘餘風險、`AUGUR-KS v1.1` KDO.7、`AUGUR-ID v1.0` IDO.3]**
 > 凡承載 **Observation、Evidence、Knowledge、identifier、identity claim、lifecycle 事件、tombstone、Action 六元組留痕、阻卻留痕、OCV 快照、Threshold Registry 數值**之儲存物件（合稱**受保護儲存物件**），其 **append-only／只失效不刪除**（`§P4.E3`）、**identifier 永不刪除**（`§P3.E2`）、**抹除留痕**（`§P4.E3` 但書、`§P3.E2` 準用）等不變式，**不得**僅以「可由使用該物件之應用運行角色自行解除之機制」維持。
 > (a) **角色二分與分離**：**具結構變更權能之角色**（＝得移除或停用不變式強制機制、得整批清除物件內容、得變更物件結構、或得重新授予已被撤銷之權能者；下稱 **owner 角色**）與**應用運行角色**（＝執行構件、Agent、查詢與寫入路徑於運行時所使用之權限主體）**必須**為**相異之權限主體**。
 > (b) **應用運行角色之權能上界**：應用運行角色**不得**具備：結構變更權能、整批清除權能、不變式強制機制之移除或停用權能、或**權限自授**之權能。其寫入權能**必須**限於各受保護儲存物件所允許之**新增與標記**（supersede／retract／invalidate）語義。
@@ -200,7 +200,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > 〔**[I] 例示，刪名測試適用**（`AUGUR-WM v1.0 §WM.4`）：於關聯式載體，(a) 之 owner 權能典型體現為 DDL、TRUNCATE、DROP／ALTER…DISABLE TRIGGER、SECURITY DEFINER、以及對已 REVOKE 權限之重新授予；刪去此等具名機制後，本條內涵不變。〕
 > **義務主體**：本規格、部署者、Layer 4／Layer 3 規格作者（其物理欄位 slice 之承接，KDO.7、IDO.3）。**可判定判準**：以應用運行角色之身分，對任一受保護儲存物件嘗試刪除、整批清除、結構變更或停用不變式強制機制，**必須**被儲存層拒絕；**該拒絕必須可由可執行之回歸測試逐項驗證（拒絕之可執行證明為合規要件，文件宣稱不構成證明）**——局部覆蓋掛點＝`tests/test_raw_supersede_log.py`（AUD-02 append-only trigger；全受保護儲存物件矩陣俟擴充）。應用運行角色與 owner 角色為同一角色者、或 owner 憑證為 Agent 可支配者，違反本條。
 
-> **L7.17（prod／沙盒隔離不變式）[N｜carries｜`AUGUR-MC v1.4 §2.9`、`§2.11`、`§P2.W2`、`§P4.E7`、`§P5.W4`、`§8.3`；refines｜`AUGUR-L5 v1.0` L5.7]**
+> **L7.17（prod／沙盒隔離不變式）[N｜carries｜`AUGUR-MC v1.6 §2.9`、`§2.11`、`§P2.W2`、`§P4.E7`、`§P5.W4`、`§8.3`；refines｜`AUGUR-L5 v1.0` L5.7]**
 > **生產部署**（其 Action 可致 Reality 變更、其 Representation 具權威地位）與**沙盒／測試／評估／開發部署**（合稱沙盒）**必須**隔離：
 > (a) **憑證不共用**：沙盒**不得**持有生產之受控出口憑證、owner 憑證、或人類權威憑證（L7.42）。
 > (b) **出口不共用**：沙盒**不得**具備對生產所通向之外部系統發出 Action 之可達性；沙盒之受控出口集合與生產者**必須**分離登錄（L7.44）。
@@ -210,7 +210,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (f) **隔離之解除或跨界授權為 RT-4 Action**，須人類事前逐案核准並留痕。
 > **義務主體**：本規格、部署者、Agent Runtime。**可判定判準**：(i) 兩部署之憑證集合、受控出口集合、對受保護儲存物件之寫入／結構變更權能，三者之交集均為空，且可機器盤點；(ii) 存在任一沙盒構件可對生產權威儲存寫入或經生產出口發出者，違反本條（**須以可執行測試驗證**）。
 
-> **L7.18（共置〔co-location〕不解除分離義務——單一節點部署之保守處置）[N｜carries｜`AUGUR-MC v1.4 §P5.W5`、`§P5.W2`、`§8.3`、`§8.4`、`§8.2`；refines｜`AUGUR-L6 v1.2` L6.17、L6.18]**
+> **L7.18（共置〔co-location〕不解除分離義務——單一節點部署之保守處置）[N｜carries｜`AUGUR-MC v1.6 §P5.W5`、`§P5.W2`、`§8.3`、`§8.4`、`§8.2`；refines｜`AUGUR-L6 v1.2` L6.17、L6.18]**
 > 現行部署為單一物理節點（**[I] 現況**：`infrastructure/ENVIRONMENT-SPEC.md` 第五節第 5 點；其地位見 L7.52）。多個 `§5` 角色、多個權限主體、生產與沙盒共置於同一節點者：
 > (a) **不因共置而免除**：L7.15（角色分離）、L7.16（owner 分離）、L7.17（prod／沙盒隔離）、L7.40(a)（否決通道之獨立性）之義務**不因共置而減免**；分離**得**以邏輯手段落實（相異權限主體、程序隔離、憑證分離、命名空間隔離），惟**必須可稽核**（可枚舉、可由可執行測試驗證）。
 > (b) **物理上無法成立時之保守處置**：某分離義務於現行部署在物理上無法成立者（例如否決之強制手段與被控構件共享同一控制主體），該範圍內之 Action **依保守解釋不得執行**（`§8.3`），並依 L7.14 之處置順序辦理（更換／補強選型，或依 `§8.2`／`§8.4` 就**履行時程**申請有到期日之書面豁免——核心條款之**義務本身**不得豁免）。
@@ -219,9 +219,9 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ---
 
-## §3 Database Architecture（資料庫架構）[N]（`AUGUR-MC v1.4 §P4.E2`、`§P4.E3`、`§P3.E2`、`§0.6(b)`）
+## §3 Database Architecture（資料庫架構）[N]（`AUGUR-MC v1.6 §P4.E2`、`§P4.E3`、`§P3.E2`、`§0.6(b)`）
 
-> **L7.20（as-of 重建引擎之物理載體：雙時間查詢與 As-of Tier 宣告之落地）[N｜carries｜`AUGUR-MC v1.4 §P4.E2`；承接｜`AUGUR-KS v1.1` KDO.6、KS.41、KS.42、KS.45、KS.46、`AUGUR-L5 v1.0` LDO.5]**
+> **L7.20（as-of 重建引擎之物理載體：雙時間查詢與 As-of Tier 宣告之落地）[N｜carries｜`AUGUR-MC v1.6 §P4.E2`；承接｜`AUGUR-KS v1.1` KDO.6、KS.41、KS.42、KS.45、KS.46、`AUGUR-L5 v1.0` LDO.5]**
 > 〔**承接錨定之更正說明（DRAFT）**：`AUGUR-ID v1.0` **IDO.6 之目標 Layer 為 L4**（見 ID Annex DO：「as-of 重建引擎與能力等級、雙時間查詢操作化｜目標 L4」），**非 L7**；其已由 `AUGUR-KS v1.1` §5（KS.40–KS.46）承接，並經 **KS KDO.6** 再下放至 L5／L7 而抵本層。故本條**不得**直接錨定 IDO.6（本層之上游為 KDO.6／LDO.5，非 IDO.6）——原稿之 IDO.6 錨定為目標 Layer 誤植，於此更正。〕
 > 本層承接 as-of 重建引擎之**物理載體與雙時間查詢操作化**。物理載體**必須**滿足下列不變式，且其滿足為**可機器驗證之放行條件**：
 > (a) 每一 Observation 與 Knowledge 之 **valid time** 與 **transaction time** 各具**獨立、不可空、不可事後靜默改寫**之儲存位置（`§P4.E2`）。
@@ -239,7 +239,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 >   (v) **宣告之地位**：Tier 之宣告為**登錄（系統狀態）**，其變更為登錄變更並留痕；**朝較低等級之重新宣告**為 as-of 能力弱化，適用 L7.45 單向棘輪之同型處置（其使既有 (a) 類表降至 A2 以下者，一律為弱化向變更）。
 > **義務主體**：本規格、資料庫維運者、查詢引擎、Bearer Registry 與 Channel 登錄之維護者、Layer 4–6 消費構件。**可判定判準**：存在任一查詢路徑可取得 transaction_time > t 之紀錄而未被 gate 阻卻者，違反本條；as-of 重建之能力等級（`AUGUR-KS v1.1 §5`）之聲稱與實測不符者，違反本條；**每一 Knowledge／Observation 承載表與每一 Observation Channel 各恰解析至一組〔Tier 宣告＋KS.42 分類〕欄且 Tier ∈ {A0, A1, A2, A3}（可機器盤點）——存在任一表無宣告、宣告為 A0 而仍供 as-of 推理或仍供 RT ≥ 1 Action 之 Knowledge Basis、(a) 類表實測未達 A2、(b) 類表無凍結輸入或重算程序之引用、或跨通道查詢之等級逾參與通道之最低等級而未被查詢層阻卻者，違反 (f)**。
 
-> **L7.21（append-only／supersede／tombstone 之儲存落地；Knowledge 承載欄之不可空性）[N｜carries｜`AUGUR-MC v1.4 §P4.E3`、`§P4.E5`、`§P4.E6`、`§P4.E1`、`§P4.W1`、`§P3.E1`、`§P3.E2`、`§P3.E3`、`§6` `F4`、`§0.6(b)`；承接｜`AUGUR-KS v1.1` KDO.7、KS.20、`AUGUR-ID v1.0` IDO.3]**
+> **L7.21（append-only／supersede／tombstone 之儲存落地；Knowledge 承載欄之不可空性）[N｜carries｜`AUGUR-MC v1.6 §P4.E3`、`§P4.E5`、`§P4.E6`、`§P4.E1`、`§P4.W1`、`§P3.E1`、`§P3.E2`、`§P3.E3`、`§6` `F4`、`§0.6(b)`；承接｜`AUGUR-KS v1.1` KDO.7、KS.20、`AUGUR-ID v1.0` IDO.3]**
 > 本層承接 Knowledge／Evidence／lifecycle／tombstone 之**物理欄位、索引、序列化與儲存**。落地**必須**滿足：
 > (a) **物理禁刪**：承載 Knowledge、Evidence、Observation、lifecycle 事件之儲存**必須**於**引擎權限層**禁止刪除與破壞性覆寫（**非僅應用層自律**；其權限錨定見 L7.16）；狀態變更僅得以 superseded／retracted／invalidated 之**新版列**表達，全歷史保留（`§P4.E3`）。
 > (b) **不可竄改性**：歷史**必須**具可驗證之不可竄改保證（雜湊鏈或等效機制），任一歷史列之事後改動可被機器偵測。
@@ -254,7 +254,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 >   〔**體例依據**：L7.20(a)（雙時間欄「獨立、不可空」）、L7.20(f)(i)（Tier 與 KS.42 分類「二欄不可空」）、L7.32(a)、L7.31（Computational Evidence「三欄不可空」）均已明定不可空義務；本款依同一體例補齊 **F4 於本層之欄位落地**。〔**補正說明（DRAFT）**：原稿 TR.C-F 之 F4 列掛 L7.21，惟 L7.21 (a)–(e) **無一款課予欄位可空性義務**——該落點為**幽靈引用**（引一條不含該義務之條款以宣稱承接）。本款為其實質補正；TR.C-F F4 列之落點已改引 L7.21(f)。〕〕
 > **義務主體**：本規格、資料庫維運者、schema 設計者。**可判定判準**：以引擎權限清單與 schema 定義機器查核 (a)；以雜湊鏈驗證程序查核 (b)；以抹除事件之四項欄位查核 (c)；以遷移／還原後之標記存續測試查核 (d)；以覆寫語句掃描查核 (e)；**(f) 以 schema 之 NOT NULL 約束盤點（Source／Identity／Evidence／instance-type 四欄逐欄可解析）＋每欄各一則之引擎層拒絕回歸測試之存在與通過查核（掛點＝`tests/test_l7_knowledge_not_null.py`）——存在任一承載 Knowledge 之儲存，其四欄任一可空、或缺該欄之寫入未於引擎權限層被拒絕、或無對應之可執行回歸測試者，違反 (f)**。任一不成立者違反本條。
 
-> **L7.22（轉指〔redirect〕機制之物理載體）[N｜carries｜`AUGUR-MC v1.4 §P3.E2`、`§2.4`、`§P4.E2`；承接｜`AUGUR-ID v1.0` ID.40、ID.44、IDO.3]**
+> **L7.22（轉指〔redirect〕機制之物理載體）[N｜carries｜`AUGUR-MC v1.6 §P3.E2`、`§2.4`、`§P4.E2`；承接｜`AUGUR-ID v1.0` ID.40、ID.44、IDO.3]**
 > 本層承接 `AUGUR-ID v1.0` 所定 identifier 轉指語義（merge／split／retire／relist 後之指向變更）之**物理載體**。落地**必須**滿足：
 > (a) **永不刪除**：被轉指之來源 identifier 於物理儲存中**必須**續存，其解析**必須**成功並回傳目標 identifier 與轉指事件之引用，**不得**回傳「不存在」（`§P3.E2`）。
 > (b) **全程可追溯**：每一次轉指**必須**具獨立之事件列，攜其 Evidence 引用與 provenance；轉指鏈（含多跳）**必須**可遞迴解析且**必須**偵測並拒斥環。
@@ -263,7 +263,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > 轉指之**語義**屬 Layer 3，本層**僅**落地、不重定義。
 > **義務主體**：本規格、資料庫維運者、解析服務維運者。**可判定判準**：來源 identifier 解析回傳「不存在」、或轉指鏈含環而未被拒斥、或 as-of 查詢回傳現時指向者，違反本條。
 
-> **L7.23（identifier 命名空間之物理序列化與儲存編碼）[N｜carries｜`AUGUR-MC v1.4 §0.6(b)`、`§P3.E2`、`§P1.E2`；承接｜`AUGUR-ID v1.0` IDO.5、ID.12（間接上游：`AUGUR-ONT v1.0` ONT.31）；審計 AUD-04]**
+> **L7.23（identifier 命名空間之物理序列化與儲存編碼）[N｜carries｜`AUGUR-MC v1.6 §0.6(b)`、`§P3.E2`、`§P1.E2`；承接｜`AUGUR-ID v1.0` IDO.5、ID.12（間接上游：`AUGUR-ONT v1.0` ONT.31）；審計 AUD-04]**
 > 本層承接 identifier 命名空間之**物理序列化與儲存編碼**。編碼**必須**滿足：
 > (a) **命名空間互斥之物理保證**：`AUGUR-ID v1.0` ID.12 所定之概念命名空間互斥（不同頂層範疇與不同 Type 之個體命名空間互斥）**必須**於**物理編碼層機器強制**，使 AUD-04 禁止型態（將產業分類名或指數代號混入個股個體命名空間；將指標序列之 series 空間與個股之 stock 空間視為同一命名空間）**在物理上不可表達**。
 > (b) **不透明性**：identifier 之編碼**不得**使任何語義（如市場別、產業別、日期）可由其字面反推導而為消費端所依賴；凡消費端解析 identifier 字面以取得屬性者，為**直綁**（L7.24(c)），禁止。
@@ -272,7 +272,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > **技術中立**：本條規範編碼之**性質**（互斥、不透明、穩定、跨部署可解析），**不規範任何具體編碼格式**；現行編碼格式為 Bearer Registry 之現行值欄 [I]。
 > **義務主體**：本規格、identifier 鑄造構件之維運者、資料庫維運者。**可判定判準**：(a) 以命名空間交集測試機器查核；(b) 以消費端程式碼之 identifier 字面解析掃描查核；(c) 以編碼重用／變更掃描查核；(d) 以跨部署解析測試查核。
 
-> **L7.24（部署拓撲、Registry 實作載體與直綁消除）[N｜carries｜`AUGUR-MC v1.4 §P1.E2`、`§2.3`、`§0.6(b)`、`§7`；承接｜`AUGUR-WM v1.0 §D18`、`AUGUR-KS v1.1` KDO.5；審計 AUD-01、AUD-06]**
+> **L7.24（部署拓撲、Registry 實作載體與直綁消除）[N｜carries｜`AUGUR-MC v1.6 §P1.E2`、`§2.3`、`§0.6(b)`、`§7`；承接｜`AUGUR-WM v1.0 §D18`、`AUGUR-KS v1.1` KDO.5；審計 AUD-01、AUD-06]**
 > 本層承接 `AUGUR-WM v1.0 §D18` 之 **L7 機制 slice**（部署拓撲、Registry 實作載體、直綁消除技術手段）及 `AUGUR-KS v1.1` KDO.5。
 > (a) **部署拓撲**：拓撲（集中式／聯邦式）為本層之部署決策；無論所採拓撲為何，**必須**保證 `§P1.E2` 之語義：每一世界事實有**唯一權威**表徵（`AUGUR-WM v1.0 §WM.14`）——「唯一」指**權威地位唯一，不指儲存份數**；多副本、快取、讀本、備份**不得**取得權威地位，其於 Registry 之權威表徵欄**必須**恰解析至一個載體——且 **Identity 可跨部署邊界解析與對齊**。**現行登錄值 [I]**：單節點集中式部署（容器編排）。
 > (b) **World Concept Registry 之實作載體**：`AUGUR-WM v1.0 §WM.36` 所定七欄 Registry **必須**具備顯式登錄之機器可盤點載體，其每一世界概念之**權威表徵欄恰解析至一個表徵載體**；解析至零個或多個而無裁決者，違反本條。unmapped 存量**必須**為**可查詢之顯式清單**（`§WM.35`）。
@@ -281,7 +281,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (e) **拓撲登錄**：現行拓撲（節點、故障域、各 `§5` 角色之部署落點、邊界與其間之通道）**必須**登錄為系統狀態（非規範文本內嵌），其變更為登錄變更（並觸發 L7.52(a) 之盤點更新義務）。
 > **義務主體**：本規格、Registry 維護者、系統維運者、一切消費模組之作者、Layer 4 規格作者（登錄結構 slice）。**可判定判準**：(a) 以權威表徵唯一性測試查核；(b) 以 Registry 七欄完備性與 unmapped 清單可查詢性查核；(c) 以字面直綁之靜態掃描（命中即違反）查核；(d) 存在任一 [N] 不變式之論證引用現行拓撲特性為必要條件者，違反之。
 
-> **L7.25（Evidence 不滅失之物理保證：故障域分離副本、還原目標登錄、還原實測）[N｜carries｜`AUGUR-MC v1.4 §P4.E1`、`§P4.E3`、`§P4.E6`、`§P2.E5`、`§2.1`、`§8.3`、`§8.4`；refines｜`AUGUR-WM v1.0 §WM.13(i)`]**
+> **L7.25（Evidence 不滅失之物理保證：故障域分離副本、還原目標登錄、還原實測）[N｜carries｜`AUGUR-MC v1.6 §P4.E1`、`§P4.E3`、`§P4.E6`、`§P2.E5`、`§2.1`、`§8.3`、`§8.4`；refines｜`AUGUR-WM v1.0 §WM.13(i)`]**
 > `§P4.E3`（只失效不刪除）與 `§P4.E6`（遞迴溯源）於單節點部署下之物理成就，**必須**由本條保證。**現行部署為單節點、無備援**（[I] 現況，L7.51、L7.28），故：
 > (a) **故障域分離**：承載受保護儲存物件（L7.16）之全部儲存**必須**至少存在一份與主載體**故障域分離**之副本。**故障域分離之判準**＝該副本不與主載體共享同一失效原因：不同儲存裝置、不同節點、不同供電／機房，或異地之物件儲存／版本控制承載；**同一裝置之不同目錄、同一節點之不同分割區不構成故障域分離**。
 > (b) **還原目標之數值登錄**：可容忍之最大資料損失時窗（**登錄基線：≤ 24 小時**）與最大還原時長（**登錄基線：≤ 72 小時**）**必須**以數值登錄為系統狀態（非規範文本內嵌），並就每一類受保護儲存物件分別登錄；**其調整僅得朝更嚴格方向**（放寬為弱化向變更，準用 L7.45 棘輪）。
@@ -291,7 +291,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (f) **保證不成立期間**：任一保證不成立期間，受影響範圍**必須**降級為觀測與建議模式（`§P2.E5`），**不得**執行任何 RT ≥ 1 之 Action。
 > **義務主體**：本規格、部署者、系統維運者、Steward。**可判定判準**：(i) 每一類受保護儲存物件之副本清單與其故障域可機器盤點；(ii) 存在任一受保護儲存物件無故障域分離之副本者違反 (a)；(iii) 存在任一還原程序逾登錄週期未經實測、或最近一次實測未達成一致狀態者，違反 (c)；(iv) 任一保證不成立而系統仍放行 RT ≥ 1 Action 者，違反 (f)。
 
-> **L7.26（未解析存量與待決同一性存量之量測落地）[N｜carries｜`AUGUR-MC v1.4 §P3.E1`、`§P4.E7`、`§P2.E3`；承接｜`AUGUR-KS v1.1` KDO.4、`AUGUR-L5 v1.0` LDO.4、`AUGUR-ID v1.0` IDO.4]**
+> **L7.26（未解析存量與待決同一性存量之量測落地）[N｜carries｜`AUGUR-MC v1.6 §P3.E1`、`§P4.E7`、`§P2.E3`；承接｜`AUGUR-KS v1.1` KDO.4、`AUGUR-L5 v1.0` LDO.4、`AUGUR-ID v1.0` IDO.4]**
 > 本層承接未解析存量指標（provisional identity 未解析存量、解析時效、`AUGUR-WM v1.0 §WM.35` unmapped 存量、`§WM.15` 顯式待決同一性存量）之**物理量測、擷取與快照儲存**。落地**必須**滿足：
 > (a) 四類存量各具**可查詢之顯式清單**與時間序列快照，其**擷取路徑不得由被量測之構件自身支配**（準用 L7.5(c) 度量不可自我洗白）。
 > (b) 快照留痕為 Observation，攜 provenance。
@@ -299,13 +299,13 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > **門檻值之登錄**屬 Threshold Registry（L7.45）；**指標之語義**屬 Layer 3／4，本層僅落地、不重定義。
 > **義務主體**：本規格、量測構件維運者。**可判定判準**：四類清單各可查詢且具時間序列快照者為合規；擷取路徑受被量測構件支配、或量測失效期間仍放行升級／合併者，違反本條。
 
-> **L7.27（備份與還原不得成為 `§P4.E3` 之旁路；法規抹除必須涵蓋全部副本）[N｜carries｜`AUGUR-MC v1.4 §P4.E3`、`§P3.E2`、`§P1.E3`、`§P4.E6`、`§8.2`、`§8.1`]**
+> **L7.27（備份與還原不得成為 `§P4.E3` 之旁路；法規抹除必須涵蓋全部副本）[N｜carries｜`AUGUR-MC v1.6 §P4.E3`、`§P3.E2`、`§P1.E3`、`§P4.E6`、`§8.2`、`§8.1`]**
 > (a) **還原為新增之表徵狀態變更，非時光倒流**：自備份還原一舊狀態，其效果**必須**留痕（何時、由誰之已解析 Identity、因何理由、還原至何時點之狀態、影響範圍），並以**新增紀錄**之形式落地；**不得**作為使既有 Knowledge／Evidence 靜默消失之手段。還原**不得**使 tombstone、supersede／retract／invalidate 標記或抹除留痕**回退**——回退此等標記者，其效果**等同刪除**，違 `§P4.E3`、`§P3.E2`。還原本身為 Action，且因其影響範圍涵蓋權威表徵，**至少為 RT-3**；**使任一 supersede 標記或抹除留痕回退之還原為 RT-4**（實質為刪除）。
 > (b) **法規強制抹除之副本涵蓋**：`§P4.E3` 之唯一例外於部署層之落地——抹除**必須**涵蓋**該內容之全部副本**（含備份、快照、異地副本、快取、索引與衍生物）；**未涵蓋全部副本之抹除不成立**，不得登記為已抹除。抹除事件自身**必須**留痕並具完整 provenance；identifier 以 tombstone 形式存續、identity lineage 保留（L7.21(c)）。**副本涵蓋之技術不可能不構成抹除義務之減免**：不能涵蓋者，該副本體制即為設計缺陷，依 L7.14 處置。
 > (c) **抹除不得以備份為由拖延、備份不得以抹除為由停用**：二者衝突時依 `§8.2` 採**較嚴格解讀**，並升 Steward 裁決（`§8.1`）。
 > **義務主體**：本規格、部署者、維運者、Layer 3／Layer 4 規格作者（tombstone 語義 slice）。**可判定判準**：(i) 每一次還原具留痕且可解析其理由與範圍；(ii) 存在任一還原後 supersede／tombstone 標記回退者違反 (a)；(iii) 存在任一法規抹除未涵蓋某副本者違反 (b)（副本清單依 L7.25(a) 可盤點）。
 
-> **L7.28（單機無備援之已知風險：登錄、保守處置與非豁免宣示）[N｜carries｜`AUGUR-MC v1.4 §P4.E1`、`§P4.E6`、`§P4.E3`、`§8.4`、`§8.3`、`§8.2`、`§7`；承接｜`infrastructure/ENVIRONMENT-SPEC.md` 第五節第 5 點；審計 AUD-02]**
+> **L7.28（單機無備援之已知風險：登錄、保守處置與非豁免宣示）[N｜carries｜`AUGUR-MC v1.6 §P4.E1`、`§P4.E6`、`§P4.E3`、`§8.4`、`§8.3`、`§8.2`、`§7`；承接｜`infrastructure/ENVIRONMENT-SPEC.md` 第五節第 5 點；審計 AUD-02]**
 > 現行部署為單一節點、無備援（**[I] 現況**，其地位見 L7.52）。此構成 `§P4`（Evidence 不可滅失）之**已知結構性風險**，本層**必須**如下處置：
 > (a) **揭露義務**：本風險**必須**登錄為本規格 Compliance Statement 之公開緊張關係（`§8.3` 揭露義務、`AUGUR-WM v1.0 §WM.42`），附**補正計畫與到期日**（`§8.2`）。
 > (b) **保守處置（於 L7.25(a) 故障域分離副本成立前）**：(i) **不可再取得之 Observation**（來源已不再供應該版本者——AUD-02 所示之 heal 覆寫致舊值不可回復情境即其一）**不得**以單一副本承載，**必須**優先取得故障域分離之副本；(ii) 新增之受保護儲存物件**不得**在無分離副本之情況下取得權威地位；(iii) 存疑時推定為**不可再取得**（`§8.3`）。
@@ -315,9 +315,9 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ---
 
-## §4 選型登錄（Selection Registry）[N]（`AUGUR-MC v1.4 §7`、`F2`、Appendix A〔非約束性〕）
+## §4 選型登錄（Selection Registry）[N]（`AUGUR-MC v1.6 §7`、`F2`、Appendix A〔非約束性〕）
 
-> **L7.30（Selection Registry：AI model／向量庫／統計庫／框架選定之登錄機制）[N｜carries｜`AUGUR-MC v1.4 §7`、`§6 F2`、`§5` 角色三／四／五／六、`§P2.E2`、`§1.3`；承接｜`AUGUR-L5 v1.0` LDO.1、`AUGUR-L6 v1.2` LDO.6]**
+> **L7.30（Selection Registry：AI model／向量庫／統計庫／框架選定之登錄機制）[N｜carries｜`AUGUR-MC v1.6 §7`、`§6 F2`、`§5` 角色三／四／五／六、`§P2.E2`、`§1.3`；承接｜`AUGUR-L5 v1.0` LDO.1、`AUGUR-L6 v1.2` LDO.6]**
 > 本層承接 `AUGUR-L5 v1.0` LDO.1 所下放之 **具體 AI model／向量庫／統計庫等物理構件之選定**，及 `AUGUR-L6 v1.2` LDO.6 所下放之 **Agent 框架／Planner／Orchestrator／Scheduler／LLM／Controlled External Interface 之選型**。二者合併登錄於單一 **Selection Registry**。每一登錄條目**必須**具備下列七欄且各欄可機器解析：
 > (1) **所承載之角色語義**（引用 Bearer Registry 列與上層條款編號）[N]；
 > (2) **構件識別**（名稱、**版本**、權重雜湊或建置雜湊）[I]；
@@ -333,7 +333,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > **現行登錄值 [I]**：全部欄位待定（**OPEN-L7-05**）；候選之硬體約束見 L7.50、L7.51。
 > **義務主體**：本規格、Selection Registry 維護者、Layer 5–6 構件維運者。**可判定判準**：任一參與運算之 model／庫可解析至一組七欄俱全之登錄條目者為合規；缺登錄、或版本欄與實際載入之權重／建置雜湊不符者，違反本條。
 
-> **L7.31（model 版本為 Evidence provenance 之構成部分；版本漂移禁令）[N｜carries｜`AUGUR-MC v1.4 §P4.E6`、`§P4.W1`、`§P2.E2`、`§8.3`；refines｜`AUGUR-WM v1.0 §WM.13(ii)`、`AUGUR-L5 v1.0` L5.7]**
+> **L7.31（model 版本為 Evidence provenance 之構成部分；版本漂移禁令）[N｜carries｜`AUGUR-MC v1.6 §P4.E6`、`§P4.W1`、`§P2.E2`、`§8.3`；refines｜`AUGUR-WM v1.0 §WM.13(ii)`、`AUGUR-L5 v1.0` L5.7]**
 > `§P4.E6` 要求 Evidence 記錄「斷言主體（agent，**含版本**）、產生活動（含輸入與參數）、上游依據」。本層之物理落地：凡任何 Computational Evidence 之產生，其紀錄**必須**攜帶下列且各欄不可空：
 > (a) 產生該 Evidence 之構件之 **Selection Registry 登錄引用**（含版本與權重／建置雜湊）；
 > (b) **產生活動之參數快照**（含隨機種子、取樣參數、上下文構成）；
@@ -341,7 +341,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > **版本漂移禁令**：構件之版本、權重或任何影響其輸出之參數變更，**必須**先於 Selection Registry 登錄新版本條目，方得投入運算；**禁止**任何自動更新（浮動標籤、自動升級、浮動端點）使實際運算之構件與登錄版本分歧。**技術手段 [I]（刪名測試適用）**：容器映像以**摘要（digest）**而非標籤釘選、模型權重以雜湊驗證、外部端點以版本化路徑呼叫並記錄回應之版本標頭。
 > **義務主體**：本規格、Layer 5–6 構件維運者、部署編排者。**可判定判準**：抽任一 Computational Evidence，其 (a)(b)(c) 三欄俱全且 (a) 之雜湊與運算時實際載入者相符，為合規；存在任一浮動標籤／自動更新路徑者，違反本條（版本漂移）。
 
-> **L7.32（synthetic／self-reported 標記之物理落地與不可脫落性；receipt 與外部確認訊號之來源區隔）[N｜carries｜`AUGUR-MC v1.4 §P4.E7`、`§P2.E3`、`§P2.E4`、`§P4.E6`、`§P5.E1`、`§5` 角色三／六；refines｜`AUGUR-WM v1.0 §WM.33`、`AUGUR-KS v1.1` KS.77、`AUGUR-L6 v1.2` L6.4、L6.19]**
+> **L7.32（synthetic／self-reported 標記之物理落地與不可脫落性；receipt 與外部確認訊號之來源區隔）[N｜carries｜`AUGUR-MC v1.6 §P4.E7`、`§P2.E3`、`§P2.E4`、`§P4.E6`、`§P5.E1`、`§5` 角色三／六；refines｜`AUGUR-WM v1.0 §WM.33`、`AUGUR-KS v1.1` KS.77、`AUGUR-L6 v1.2` L6.4、L6.19]**
 > **(一) 標記之物理落地**：`§P4.E7`（AI 生成／合成內容永久攜帶 synthetic 標記，不因轉引而消失）與 `§P2.E3`（execution receipt 永久攜帶 self-reported 標記）之落地——
 > (a) 二標記**必須**為儲存 schema 之**不可空欄位**，其預設值為**保守側**（來源不明者推定為 synthetic）；
 > (b) **不因轉引而消失之物理保證**：凡引用攜標記之物件所產生之新物件，其標記**必須**由**儲存層或解析層自動繼承**（不得倚賴應用層自律）；標記之**清除**於引擎權限層禁止（L7.16）；
@@ -353,7 +353,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (g) **介面不得洗白**：介面**不得**將 (e) 改寫、合成或升格為 (f)；**不得**以介面自身之送出成功推定外部狀態已變更。二者於儲存上**必須**可經 provenance 區分（`§P4.E6`）；**Observed Effect**（`§P5.E1` 第六元）之填入**必須**標明其係由 (e) 或 (f) 何者供應。
 > **義務主體**：本規格、資料庫維運者、Semantic Memory 維運者、Controlled External Interface、Agent Runtime、UI 維運者。**可判定判準**：以 schema 之欄位可空性查核 (a)；以轉引後之標記繼承測試查核 (b)；以序列化／嵌入／遷移往返測試查核 (c)；以呈現路徑掃描查核 (d)；任一 Observed Effect 記錄可機器解析其 Source 類別與 self-reported 標記，存在任一以 receipt 充作外部確認、或 self-reported 標記於轉引後消失者，違反 (e)–(g)。
 
-> **L7.33（語料隔離之機器強制與本地部署）[N｜carries｜`AUGUR-MC v1.4 §P4.E7`、`§P1.E3`、`§P2.E2`、`§7`、`§8.3`；承接｜`AUGUR-WM v1.0 §D25`（`§A.16`、`§A.44`）]**
+> **L7.33（語料隔離之機器強制與本地部署）[N｜carries｜`AUGUR-MC v1.6 §P4.E7`、`§P1.E3`、`§P2.E2`、`§7`、`§8.3`；承接｜`AUGUR-WM v1.0 §D25`（`§A.16`、`§A.44`）]**
 > 本層承接 `AUGUR-WM v1.0 §D25`（語料隔離之機器強制；自有私有內容授權邊界之部署落實，含本地部署拓撲）之 **L7 面向**。
 > 〔**承接錨定之更正說明（DRAFT）**：`AUGUR-ID v1.0` **IDO.7 之目標 Layer 為 L6**（見 ID Annex DO：「自然人法規對應表本體與其授權（`AUGUR-WM v1.0 §D17` 之 L6 slice）｜目標 L6」），**非 L7**；本條所落地者為 WM `§D25` 之**部署面**（含對自然人 Observation〔`§P1.E3`〕之語料隔離之物理強制），其上游為 WM，非 IDO.7。**法規對應表之本體與其授權屬 Layer 6，本層不代定、不代行**（L7.48(d)、L7B.0）；本條僅就其部署面課物理隔離義務。原稿之 IDO.7 錨定為目標 Layer 誤植，於此更正。〕
 > 〔**承接錨定之二次更正說明（DRAFT，2026-07-18 三鏡重審）**：原稿另以 `§D24` 之部署面為本條承接依據。經查 `AUGUR-WM v1.0` Annex D 原文，**D24（存取控制 RBAC；授權資料不入預測特徵之隔離強制）之目標 Layer ＝ L6**，且 `AUGUR-L6 v1.2` 生效本全文**零承接 D24**——L6→L7 之轉下鏈不存在，依 LDI.0「目標 Layer 以上層原文為準」該錨定屬**偽承接**，已於本條頭、(b)、LDI.13、LDI.23、TR.E、CS.3(a) 第 11 列共七處刪除。(b) 之隔離義務**不因此滅失**：其上游改繫 `§D25`（授權邊界之部署落實）與本條 carries 之 `§P4.E7`。**D24 本體（RBAC 與其 `§P5.E2` 錨）屬 Layer 6 未承接事項，本層不得代收**——具名提請 Steward 於 Layer 6 側處理（L6 生效本之補正屬 `§8.5`／`§8.6` 程序，非本稿權限）。〕
@@ -365,9 +365,9 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ---
 
-## §5 行動治理之物理承接與受控外部介面 [N]（`AUGUR-MC v1.4 §P5`、`§5` 角色六、`F6`；`AUGUR-L6 v1.2` LDO.1–LDO.6）
+## §5 行動治理之物理承接與受控外部介面 [N]（`AUGUR-MC v1.6 §P5`、`§5` 角色六、`F6`；`AUGUR-L6 v1.2` LDO.1–LDO.6）
 
-> **L7.40（kill-switch 硬體與 Agent-獨立否決通道之物理實作）[N｜carries｜`AUGUR-MC v1.4 §P5.W2`、`§P5.W5`、`§8.4` 不可豁免核心、`§7`、`§0.6(b)`；承接｜`AUGUR-L6 v1.2` LDO.1、L6.8、L6.16(V)、L6.17(iv)、L6.18]**
+> **L7.40（kill-switch 硬體與 Agent-獨立否決通道之物理實作）[N｜carries｜`AUGUR-MC v1.6 §P5.W2`、`§P5.W5`、`§8.4` 不可豁免核心、`§7`、`§0.6(b)`；承接｜`AUGUR-L6 v1.2` LDO.1、L6.8、L6.16(V)、L6.17(iv)、L6.18]**
 > 本層承接 `AUGUR-L6 v1.2` LDO.1 所下放之**否決／暫停／中止信號之物理傳輸機制、kill-switch 硬體／中斷實作**。`AUGUR-L6 v1.2` L6.8 定其**存在與有限性**為不變式（`§8.4` 不可豁免核心，承 `§P5.W2`）；本層定其物理實作，**不得**弱化之。實作**必須**滿足：
 > (a) **結構獨立（out-of-band）**：否決通道之**任一環節不得位於被控 Agent 之程序空間、容器、或其可寫入之組態範圍內**；通道**不得**使用被控 Agent 可支配之憑證；通道**不得**依賴被控 Agent 之協作（**不得**為「請求 Agent 自行停止」之語義）。被控 Agent **不得**停用、延遲、攔截、降級或侵蝕該通道（`§P5.W5`、L6.18）。
 > (b) **多層降級序（不依賴協作之強制手段）**：否決之執行**必須**具備由軟至硬之多層機制，且**任一上層失效時自動落入下層**——
@@ -383,7 +383,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (f) **不得以未建置為由延後**：本條所落實者為 `§P5.W2`，屬 `§8.4` **不可豁免核心，連履行時程亦不得豁免**——**不得**以「kill-switch 硬體尚未建置」「單機無獨立控制面」為由延後或降級；處置依 L7.18(b)。
 > **義務主體**：本規格、系統維運者、Agent Runtime、Controlled External Interface、Steward。**可判定判準**：(i) 存在任一進行中 Plan／Action 其否決通道之任一環節位於被控 Agent 可支配範圍內者，違反 (a)；(ii) (b) 五層之**逐層獨立觸發測試**留痕，且其可用性與停止時延可由不受被控 Agent 支配之路徑實測；(iii) 通道不可用而仍放行 RT ≥ 1 Action 者，違反 (c)。
 
-> **L7.41（否決有界延遲之數值上限 H_max 之登錄與單向棘輪）[N｜carries｜`AUGUR-MC v1.4 §P5.W2`、`§P5.W3`、`§P5.W5`、`§8.4`、`§8.1`；承接｜`AUGUR-L6 v1.2` LDO.1、LDO.5、L6.8、L6.10、L6.16(H)、L6.17(iv)、L6.18(b-1)]**
+> **L7.41（否決有界延遲之數值上限 H_max 之登錄與單向棘輪）[N｜carries｜`AUGUR-MC v1.6 §P5.W2`、`§P5.W3`、`§P5.W5`、`§8.4`、`§8.1`；承接｜`AUGUR-L6 v1.2` LDO.1、LDO.5、L6.8、L6.10、L6.16(H)、L6.17(iv)、L6.18(b-1)]**
 > `AUGUR-L6 v1.2` L6.8 定否決至停止之時延**必須**「有限且有上限」，其**物理數值上限**下放本層；L6.16 定其為 OCV 之 **H 分量**（負向：愈小愈佳）。本層行使該下放權，登錄 **H_max**（自經授權人類之否決／暫停／中止信號送達，至相應 Plan／Action **實際停止並經 Observation 確認**之時延上限），**依 RT 級分別登錄**：
 >
 > | RT 級 | H_max 登錄基線 | 附加不變式 |
@@ -399,7 +399,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (d) **pre-commit hold 之窗長度尚未登錄**（**OPEN-L7-06**）：其缺位期間走 `AUGUR-L6 v1.2` L6.10 缺位最高級預設——**RT-4 Action 一律不得以任何自動路徑 commit**（`§8.3`）。
 > **義務主體**：本規格、系統維運者、Controlled External Interface、Steward。**可判定判準**：每一 RT 級之 H 實測 ≤ 其登錄 H_max 為可機器查核之放行條件；任一 H_max 調高而未經 RT-4＋雙人類獨立核准者，違反本條。
 
-> **L7.42（憑證、密碼學綁定與 capability token 之物理機制；持有 ≠ Authorization；人類權威憑證不得為 Agent 可支配）[N｜carries｜`AUGUR-MC v1.4 §P5.W2`、`§P5.W4`、`§P5.E1`、`§P4.E7`、`§P3.W2`、`§2.8`、`F6`、`§8.3`、`§8.4`；承接｜`AUGUR-L6 v1.2` LDO.2、L6.2、L6.5、L6.6、L6.13、L6.14、L6.15、L6.18]**
+> **L7.42（憑證、密碼學綁定與 capability token 之物理機制；持有 ≠ Authorization；人類權威憑證不得為 Agent 可支配）[N｜carries｜`AUGUR-MC v1.6 §P5.W2`、`§P5.W4`、`§P5.E1`、`§P4.E7`、`§P3.W2`、`§2.8`、`F6`、`§8.3`、`§8.4`；承接｜`AUGUR-L6 v1.2` LDO.2、L6.2、L6.5、L6.6、L6.13、L6.14、L6.15、L6.18]**
 > 本層承接 `AUGUR-L6 v1.2` LDO.2 所下放之 **Actor Identity 與授權鏈節點之密碼學綁定、憑證簽發／驗證、capability token 之發放與撤銷之物理機制**。實作**必須**滿足：
 > (a) **人類根之物理保證**：授權鏈根節點之人類 Identity，其簽發金鑰**必須**由該自然人**獨立持有並控制**，**不得**由任何 Agent、自動化流程或共用服務帳戶持有或代行；金鑰之持有形式**必須**使 Agent 在**物理上不可取得**（L6.5：根為 Agent 者違憲）。
 > (b) **不可否認之綁定**：每一經受控介面發出之 Action，其 **Actor Identity 與授權鏈之各節點必須以不可否認之技術綁定至該次發出**（簽章或等效機制），使 `F6` 阻卻（L7.44）與事後溯責**不依賴發出方之自陳**——否則歸責僅以 self-reported 為據，違 `§P4.E7` 並使「Action 之 Identity 歸因必須可機器稽核」（`§8.3`）落空。綁定素材可由 Agent 自由支配者，不可否認性不成立，**推定為未綁定**（`§8.3`）。
@@ -411,7 +411,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (h) **留痕**：token 之簽發、使用、撤銷各留痕為 Observation。
 > **義務主體**：本規格、憑證機制維運者、Controlled External Interface、部署者、Agent Runtime、Steward。**可判定判準**：以金鑰持有者之 Identity 查核 (a)；任一已發出 Action 之記錄，其 Actor Identity 與授權鏈可由**不受發出方支配之路徑**驗證，存在任一以憑證持有取代授權鏈驗證者違反 (b)(d)；以 token schema 之欄位與簽章涵蓋範圍查核 (c)；**人類權威憑證之持有主體集合與 Agent 之權限主體集合交集為空**，可機器盤點——存在任一核准之作成無法歸因至人類自然人之已解析 Identity、或其憑證落於 Agent 可支配範圍者，違反 (e)(f)。
 
-> **L7.43（人類監督介面、Gate UI 與透明度 T 分量之揭露載體）[N｜carries｜`AUGUR-MC v1.4 §5` 角色六、`§P5.E1`、`§6 F5`、`§P5.W2`、`§P5.W5`、`§0.6(b)`；承接｜`AUGUR-L6 v1.2` LDO.3、L6.7、L6.13、L6.16(T)、L6.17(v)、`AUGUR-L5 v1.0` LDO.3、L5.6]**
+> **L7.43（人類監督介面、Gate UI 與透明度 T 分量之揭露載體）[N｜carries｜`AUGUR-MC v1.6 §5` 角色六、`§P5.E1`、`§6 F5`、`§P5.W2`、`§P5.W5`、`§0.6(b)`；承接｜`AUGUR-L6 v1.2` LDO.3、L6.7、L6.13、L6.16(T)、L6.17(v)、`AUGUR-L5 v1.0` LDO.3、L5.6]**
 > 本層承接 `AUGUR-L6 v1.2` LDO.3（人類監督介面：Gate 之 UI、核准／否決互動、監督儀表板；透明度分量 T 之揭露載體）與 `AUGUR-L5 v1.0` LDO.3（Explanation 之呈現／交付格式與 UI）。實作**必須**滿足：
 > (a) **T 分量之定義性揭露**：L6.16 定 **T ＝ 於執行前向人類監督介面揭露其六元組與授權鏈之 Action 比例**；本層登錄 **T 之基線 ＝ 1.0（100%）於全部 RT 級**；此基線之**調降於任一 RT 級均為 OCV 弱化**，準用 L7.41(b) 之單向棘輪（RT-4＋雙人類獨立核准）。
 > (b) **揭露之內容最低集**：每一 Action 於執行前之揭露**必須**含——六元組全欄（Actor Identity、Authorization 之完整授權鏈、Knowledge Basis、Timestamp、Expected Effect、Observed Effect 之待填位置）；其 RT 級與該級之三門檻及**實得值**（**Completeness Level**——門檻依 L7.45(f) 之對照登錄、實得值為該 Action 之 Knowledge Basis 所達之 CL.0 等級；**⊓Conf**——門檻依 L7.45(a)；**核准層級**——依 L6.13）；其 Knowledge Basis 所繫承載表／通道之 **As-of Capability Tier**（L7.20(f)）；其 Knowledge Basis 之 Explanation 四要素（`AUGUR-L5 v1.0` L5.6）；以及全部 synthetic／self-reported／modal／assumption／conflict 標記（L7.32）。
@@ -420,7 +420,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (e) **fail-closed**：揭露載體不可用期間，**T 推定為 0**，系統**不得**執行任何 RT ≥ 1 之 Action。
 > **義務主體**：本規格、UI 維運者、Controlled External Interface。**可判定判準**：以揭露欄位完備性掃描查核 (b)；以呈現路徑之標記可見性測試查核 (c)；以 UI 停用下之否決可達性測試查核 (d)；以 T 實測比例查核 (a)(e)。
 
-> **L7.44（受控介面攔截點之物理佈點、單一受控出口不變式與 F6 執法之 fail-closed）[N｜carries｜`AUGUR-MC v1.4 §5` 角色六、`§2.9`、`§2.1`、`§6 F6`、`§P5.E2`、`§P5.W3`、`§P4.E2`、`§8.3`；承接｜`AUGUR-L6 v1.2` LDO.4、L6.1、L6.7、L6.10–L6.14、L6.18(b)、L6.21、`AUGUR-WM v1.0 §WM.25`]**
+> **L7.44（受控介面攔截點之物理佈點、單一受控出口不變式與 F6 執法之 fail-closed）[N｜carries｜`AUGUR-MC v1.6 §5` 角色六、`§2.9`、`§2.1`、`§6 F6`、`§P5.E2`、`§P5.W3`、`§P4.E2`、`§8.3`；承接｜`AUGUR-L6 v1.2` LDO.4、L6.1、L6.7、L6.10–L6.14、L6.18(b)、L6.21、`AUGUR-WM v1.0 §WM.25`]**
 > 本層承接 `AUGUR-L6 v1.2` LDO.4 所下放之**風險分級表各級之物理執法佈點**（受控介面攔截點部署、雙人核准之流程編排引擎）與 L6.21 之 **F6 執法點**。
 > (a) **執法點之單一性與可枚舉出口集合**：Controlled External Interface 為 `§P5.E2`／`F6` 之**單一執法點**。凡足以造成 Reality 變更之對外操作（`§2.9` 客觀判準：經受控介面對系統外發出即為 Action，不以意圖之有無或宣稱為斷），**必須且僅得**經之發出。本層**必須**維持一**可枚舉之受控出口集合（controlled egress inventory）**，逐一登錄：出口識別、所通向之外部系統、其可致之 Action 類型與 RT 級上界（L6.10）、其憑證來源、其攔截點落點。**具體手段**：出站網路**預設拒絕**＋白名單僅指向該介面＋一切外送憑證僅該介面持有（L7.42）。任一執行構件**不得**持有繞過該集合對外發出之能力——**旁路（bypass）之存在本身即為 `F6` 之結構性使能，不得以「該旁路目前未被使用」為由存續**。**存在任一旁路者，執法點之單一性即不成立，全系統 fail-closed（不得執行任何 Action）**。
 > (b) **缺位保守**：無法證明某對外可達路徑受控者，**推定為未受控出口**，**必須**阻斷（`§8.3` 存疑即不允許）。
@@ -433,7 +433,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (i) **guard-the-guard**：介面之驗證邏輯、攔截點部署、出口集合登錄、白名單與攔截規則之變更，**不得**由其所管制之 Agent 停用、旁路、降級、重設或以任何方式支配（L6.18(b)）；其變更至少為 **RT-3**；**凡使任一出口脫離受控集合、或使任一驗證項失效者，為 RT-4 且須人類事前逐案核准**。
 > **義務主體**：本規格、Controlled External Interface 維運者、系統維運者、一切執行構件與其宿主環境、部署者。**可判定判準**：(i) 受控出口集合可機器枚舉，且就每一執行構件，其**可達之對外路徑集合 ⊆ 受控出口集合**（存在任一路徑不在集合內即違反，且該檢核須可由**不受該構件支配之路徑**執行）；(ii) 以出站路徑掃描與**旁路測試**查核 (a)(b)；(iii) 以**故障注入測試**查核 (d)——驗證器故障情境下仍有操作發出者為 fail-open（違反）；(iv) 以未分級操作之處理結果查核 (e)；(v) 就每一宣告為 RT-0 之通道，其權能集合與對外可達性可機器盤點，存在任一 RT-0 宣告通道具對外寫入能力或持有對外憑證者違反 (f)；(vi) 介面組態可由被管制 Agent 之權限主體變更者，違反 (i)。
 
-> **L7.45（Threshold Registry：各 RT 級具體數值門檻之登錄與棘輪）[N｜carries｜`AUGUR-MC v1.4 §P4.E4`、`§P4.E8`、`§P5.E2`、`§P5.W3`、`§P5.W5`、`§8.1`、`§8.4`；承接｜`AUGUR-L6 v1.2` LDO.5、L6.9–L6.13、L6.16、L6.17、L6.18(b-1)、L6.20、`AUGUR-KS v1.1` KS.33、KDO.2、Annex CL.0（等級閉集之消費，不重定義）]**
+> **L7.45（Threshold Registry：各 RT 級具體數值門檻之登錄與棘輪）[N｜carries｜`AUGUR-MC v1.6 §P4.E4`、`§P4.E8`、`§P5.E2`、`§P5.W3`、`§P5.W5`、`§8.1`、`§8.4`；承接｜`AUGUR-L6 v1.2` LDO.5、L6.9–L6.13、L6.16、L6.17、L6.18(b-1)、L6.20、`AUGUR-KS v1.1` KS.33、KDO.2、Annex CL.0（等級閉集之消費，不重定義）]**
 > 本層承接 `AUGUR-L6 v1.2` LDO.5 所下放之**各 RT 級具體數值門檻登錄作為系統狀態**（含 **Completeness Level 門檻對照**、Confidence banding、自動執行鏈最大長度基線、否決有界延遲上限、影響量值門檻、容差**六類**），並承接 `AUGUR-KS v1.1` KS.33／KDO.2 之 banding 帶界閾值與 Annex CL.0 之完備性等級閉集（`E0`＜`E1`＜`E2`＜`E3`）之消費。設立單一 **Threshold Registry**，其**登錄基線**如下（**棘輪與綁定結構為 `AUGUR-L6 v1.2` 之規範，本層僅填數值，不得因數值下放而使結構失位**）：
 > (a) **Confidence banding（L_C 帶界，承 KS.33、KS.31 之序 INSUF ⊏ LOW ⊏ MODERATE ⊏ STRONG）**：INSUF ＝ [0.00, 0.50)；LOW ＝ [0.50, 0.70)；MODERATE ＝ [0.70, 0.90)；STRONG ＝ [0.90, 1.00)。**上界開於 1.00**（`§P4.E4`：Confidence 不得為隱含之 1.0）。門檻綁定依 L6.12 不變：RT-1 ⊓Conf ≥ LOW；RT-2 ≥ MODERATE；RT-3、RT-4 ≥ STRONG；**⊓Conf ＝ INSUF 者不得執行任何 RT ≥ 1 之 Action**。
 > (b) **最大自動執行鏈長 C_max（L6.16 之 C 分量，負向）**：**RT-2、RT-3、RT-4 ＝ 0**（**由上層結構推導而非自由裁量**：L6.13 綁定 RT-2 以上須事中人工在環或更高，故其每案均具介入點，鏈長恆為 0）；**RT-1 ＝ 50**（登錄基線）。
@@ -460,7 +460,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > **登錄本身為義務**：未登錄即為缺位，依 `§8.3` 保守解釋一律取**最嚴門檻**（Completeness Level 為 **E3**、⊓Conf 為 **STRONG**）、缺位預設**最高風險級 RT-4**（`§P5.E2`、L6.10），非「暫無門檻」。
 > **義務主體**：本規格、Threshold Registry 維護者、Controlled External Interface、Gate、Steward。**可判定判準**：每一數值為可機器讀取之系統狀態且具 provenance（其儲存為受保護儲存物件，L7.16）；**(f) 之四列門檻對照（RT-1–RT-4）逐級可解析至 CL.0 閉集之一級，且其序為單調非遞減——缺任一級或序不成立者，該級適用 (f-2) 缺位取最嚴（E3）**，使 L7.44(c)(iii) 之「其 RT 級所需之 Completeness Level 門檻已滿足」與 L7.43(b) 之「三門檻及實得值」於物理層**可判定**；每一變更之方向可機器判定（依上開弱化清單與 L7.46(c) 之 OCV componentwise 比較）；弱化向變更未走 RT-4＋事前雙人類獨立核准者，違反本條。
 
-> **L7.46（OCV 之物理擷取、快照儲存與不可自我洗白）[N｜carries｜`AUGUR-MC v1.4 §P5.W5`、`§P4.E7`、`§P2.E3`、`§8.3`、`§8.4`、`§8.1`；承接｜`AUGUR-L6 v1.2` L6.16 末句（OCV 之物理擷取與快照儲存下放 Layer 7）、L6.13、L6.17、L6.18(c)]**
+> **L7.46（OCV 之物理擷取、快照儲存與不可自我洗白）[N｜carries｜`AUGUR-MC v1.6 §P5.W5`、`§P4.E7`、`§P2.E3`、`§8.3`、`§8.4`、`§8.1`；承接｜`AUGUR-L6 v1.2` L6.16 末句（OCV 之物理擷取與快照儲存下放 Layer 7）、L6.13、L6.17、L6.18(c)]**
 > (a) **六分量之擷取來源登錄**：**V**（否決通道可達性）自 L7.40(c) 之可用性量測；**D**（逐案／即時人類介入點密度）自介入點登錄；**A**（核准層級，以 per-action 逐案可介入性為序準）自 Gate 組態；**H**（否決至停止時延上限）自 L7.41(c) 之實測；**T**（執行前揭露比例）自 L7.43 之揭露載體；**C**（最大自動執行鏈長）自鏈長遙測。每一分量之擷取路徑**必須**登錄且**必須不受被量測構件與提案 Agent 支配**（L7.5(c)、L7.15(c)）。
 > (b) **快照**：OCV **必須**於**每一組態、授權圖、介入點登錄、Plan 或權限之變更前後各取一快照**；快照留痕為 Observation，攜 provenance，且儲存於 append-only 載體（L7.21、L7.16 之受保護儲存物件）。
 > (c) **棘輪之物理執行**：變更之放行**必須**以 **OCV(after) ⊒ OCV(before)**（componentwise：**V／D／A／T 非遞減且 H／C 非遞增，就每一 RT 級**）為**機器可查之放行條件**；不成立者**必須**於受控介面阻卻（L7.44），除非附具 Steward 依 `§8.1` 之書面裁決引用。
@@ -468,7 +468,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (e) **擷取失效**：任一分量不可擷取期間，該分量**推定為最弱值**（V=0、D=0、A=最低、H=∞、T=0、C=∞），據此走 (c) 之阻卻。
 > **義務主體**：本規格、OCV 擷取構件維運者、一切變更主體、Steward。**可判定判準**：六分量之擷取路徑登錄完備且各不受被量測者支配；每一變更具前後快照對；⊒ 比較為機器可執行；任一變更無快照對或未經 ⊒ 查核而放行者，違反本條。
 
-> **L7.47（資源約束不得作為弱化監督之理由：單機部署之防逃逸條款）[N｜carries｜`AUGUR-MC v1.4 §P5.W5`、`§P2.E5`、`§8.4`、`§8.1`；refines｜`AUGUR-L6 v1.2` L6.16、L6.17、L6.18、L6.20]**
+> **L7.47（資源約束不得作為弱化監督之理由：單機部署之防逃逸條款）[N｜carries｜`AUGUR-MC v1.6 §P5.W5`、`§P2.E5`、`§8.4`、`§8.1`；refines｜`AUGUR-L6 v1.2` L6.16、L6.17、L6.18、L6.20]**
 > 現行部署為單節點、資源有限（L7.51），此構成對「監督成本」之持續壓力，形成弱化 OCV 之結構誘因。故：**物理資源不足（算力、記憶體、頻寬、儲存、成本、時延）於任何情形下均不得作為下列之理由**——
 > (a) 降低任一 RT 級之核准層級（A）或移除人工介入點（D）；
 > (b) 調高 C_max、H_max 或容差；
@@ -479,7 +479,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > **正確處置**：資源不足時，系統**必須**降低**吞吐**（degrade：減少並行 Plan 數、延長排程、拒絕新 Plan），**不得**降低**監督**。「資源不足」之可判定判準：經登錄之資源指標（CPU／GPU 佔用、記憶體、儲存餘量、時延）逾越其**登錄之營運界限**（L7.45(g)）。凡任一組態變更之理由書載明資源理由而其效果落入 (a)–(f) 者，**推定為 `§P5.W5` 所禁之降低人類監督與否決能力**，不得實施（L6.17）；其推翻僅得由 Steward 依 `§8.1` 書面裁決為之，且該變更為 **RT-4＋事前雙人類獨立核准**。
 > **義務主體**：本規格、系統維運者、Planner、一切組態變更之提案者、Steward。**可判定判準**：變更之效果是否落入 (a)–(f) 為可機器判定（OCV 分量比較，L7.46）；落入而未經前述程序者，違反本條。
 
-> **L7.48（外部資料供應商之防護、額度紀律與入向介面之 Observation 化）[N｜carries｜`AUGUR-MC v1.4 §2.9`、`§2.1`、`§2.11`、`§P2.E1`、`§P2.E2`、`§P2.E4`、`§P4.E2`、`§P4.E3`、`§P4.E6`、`§P1.E1`、`§5` 角色六、`§0.5`、`§0.6(b)`；承接｜`AUGUR-WM v1.0 §D23`（`§A.13`）、`§WM.9(a)`、`§WM.10`、`AUGUR-KS v1.1` KS.81、`AUGUR-L6 v1.2` L6.10、L6.21、L6.23]**
+> **L7.48（外部資料供應商之防護、額度紀律與入向介面之 Observation 化）[N｜carries｜`AUGUR-MC v1.6 §2.9`、`§2.1`、`§2.11`、`§P2.E1`、`§P2.E2`、`§P2.E4`、`§P4.E2`、`§P4.E3`、`§P4.E6`、`§P1.E1`、`§5` 角色六、`§0.5`、`§0.6(b)`；承接｜`AUGUR-WM v1.0 §D23`（`§A.13`）、`§WM.9(a)`、`§WM.10`、`AUGUR-KS v1.1` KS.81、`AUGUR-L6 v1.2` L6.10、L6.21、L6.23]**
 > 本層承接 `AUGUR-WM v1.0 §D23`（資料供應商防護與額度紀律：限流、額度、防護模式）之 **L7 面向**，並定入向介面之 Observation 化紀律。
 > (a) **入站（Observation 取得）之防護登錄與 As-of Tier 宣告**：對每一 Observation Channel（`§A.13`）**必須**登錄其**限流參數、額度上限與防護模式**（backoff、熔斷、快取策略），且防護之觸發**必須**留痕為 Observation。每一 Channel 之登錄並**必須**含其 **As-of Capability Tier 宣告欄（A0–A3，L7.20(f)(iii)；等級語義屬 Layer 4，KS.41）**：低能力通道**必須顯式宣告**其等級，消費端之 as-of 推理受**最弱通道等級**約束並於查詢層強制（KS.46）；**無 Tier 宣告之 Channel，其 Observation 推定為 A0**（禁止型態），不得供任何 as-of 推理或作為 RT ≥ 1 Action 之 Knowledge Basis（`§8.3`）。**防護模式之啟動不得使 Observation 靜默遺失**——遺失即為 **Evidence 缺口**，**必須**登錄為顯式缺口並使受影響 Knowledge 之完備性下降（`AUGUR-KS v1.1` KS.81），**不得**以插補、外推或前值填補冒充 Observation（`§P2.E4`）。
 > (b) **入站非 Action 之邊界與其例外**：純取得 Observation 而不造成 Reality 變更者，為 **RT-0 邊界**（`§2.1`、L6.10）；惟其若逾越供應商之額度或條款而致外部後果（帳號停權、費用、法律責任），**即為經受控介面對系統外發出而足以造成 Reality 變更之操作，一律為 Action**（`§2.9`，不以意圖為斷），必須經 Gate 與六元組。
@@ -489,7 +489,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > (f) **供應商條款**：每一 Channel 之授權條款、其對輸入資料之使用權主張、及其對重分發之限制，**必須**登錄；不明者推定為受限（L7.33(d)）。
 > **義務主體**：本規格、Channel 維運者、Controlled External Interface、部署者。**可判定判準**：以每一 Channel 之限流／額度／防護**及 As-of Tier 宣告四欄**之完備性查核 (a)（缺 Tier 宣告者推定 A0 並依 L7.20(f)(ii) 阻卻）；以插補／填補之掃描查核 (a) 末句；以逾額事件之 Action 定性查核 (b)；任一入向紀錄可逐值追溯至某次來源回應且具對帳驗證紀錄（`§WM.10` 二特徵），存在任一入向內容未經通道即取得權威地位、或介面條款對 L3–L6 語義作實質定義者，違反 (c)(d)。
 
-> **L7.49（憑證紀律：不得明文、Plan 範圍化、可枚舉、非常駐、外洩熔斷）[N｜carries｜`AUGUR-MC v1.4 §P5.W4`、`§P5.W3`、`§P4.E3`、`§P2.E5`、`§P1.E3`、`§P3.E1`、`§8.3`；承接｜`AUGUR-L6 v1.2` L6.15、L6.20、LDO.2、L6.7]**
+> **L7.49（憑證紀律：不得明文、Plan 範圍化、可枚舉、非常駐、外洩熔斷）[N｜carries｜`AUGUR-MC v1.6 §P5.W4`、`§P5.W3`、`§P4.E3`、`§P2.E5`、`§P1.E3`、`§P3.E1`、`§8.3`；承接｜`AUGUR-L6 v1.2` L6.15、L6.20、LDO.2、L6.7]**
 > **憑證**（＝可用以取得權能之素材：外部系統之 API 金鑰、儲存層密碼、簽章私鑰、capability token、工作階段權杖、owner 角色之認證素材）：
 > (a) **不得明文**：**不得**以可直接使用之明文形式存在於下列任一位置——(i) 規格文本與治權文件；(ii) 原始碼；(iii) 納入版本控制之組態內容（**含歷史提交**）；(iv) 日誌與遙測；(v) Observation／Evidence／Knowledge 之內容本體；(vi) 任何 Agent 之提示脈絡、Plan 內容或其可讀之環境；(vii) 備份與其副本之明文內容（`§P4.E3` 之保存義務**不得**成為憑證擴散之通道）。**必須**：以專責機密載體保存；以最小權限授予（`§P5.W4`）；可撤銷；可輪替；其**取用留痕為 Observation**（Source＝取用者之已解析 Identity，`§P3.E1`）。
 > (b) **Plan 範圍化**：憑證之權能集合**必須** ⊆ 當前經授權 Plan 之已授權 Action 集合可推導之**最小必要超集**；**必須**具到期時點；**必須**於 Plan 完成、失效、暫停或被否決時**即時撤銷**（撤銷之生效延遲計入 L6.16 之 H 分量，L7.42(c)）。
@@ -501,29 +501,29 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ---
 
-## §6 硬體與環境現況（[I] 之地位）[N]（`AUGUR-MC v1.4 §7`、`§0.3`、`§8.2`）
+## §6 硬體與環境現況（[I] 之地位）[N]（`AUGUR-MC v1.6 §7`、`§0.3`、`§8.2`）
 
-> **L7.50（架構相容性驗證義務）[N｜carries｜`AUGUR-MC v1.4 §7`、`§6 F1`、`F2`、`§5`、`§0.6(b)`；refines｜`AUGUR-WM v1.0 §WM.4`；承接｜`AUGUR-L5 v1.0` LDO.1、`AUGUR-L6 v1.2` LDO.6]**
+> **L7.50（架構相容性驗證義務）[N｜carries｜`AUGUR-MC v1.6 §7`、`§6 F1`、`F2`、`§5`、`§0.6(b)`；refines｜`AUGUR-WM v1.0 §WM.4`；承接｜`AUGUR-L5 v1.0` LDO.1、`AUGUR-L6 v1.2` LDO.6]**
 > **規範內容（技術中立）**：Bearer Registry（L7.10）與 Selection Registry（L7.30）之每一登錄，**必須**具備**目標部署架構之相容性驗證紀錄**，其最低內容為：
 > (a) **原生二進位之可得性**——該載體於目標架構具**原生建置**（非模擬層）；不具者，**必須**顯式登錄其模擬／轉譯層，並登錄其對**正確性與時延**之已知影響（時延之影響**必須**與 L7.41 H_max 之成就**一併評估**）；
 > (b) **驗收測試紀錄**——該載體於目標架構上通過其角色語義欄（L7.11 [N]）所列不變式之**逐項驗收**，留痕為 Observation；
 > (c) **不得以相容性為由弱化角色語義**——某載體於目標架構不可得或不完整者，**必須**改選他載體或登錄為 OPEN（L7.3(b)），**不得**修改或放寬角色語義欄以遷就該載體（F1／F2 反向防線，L7.14(c)）。
 > (d) **目標架構之單一登錄與逐登錄適用**：本層**必須**於登錄簿登錄**恰一組目標部署架構**（指令集架構、作業系統平台、GPU 運算平台及其版本）為系統狀態；二登錄簿之**每一登錄**，其 (a) 欄之相容性驗證**必須**就**該登錄之目標架構**作成（非就任意架構作成）。目標架構之變更為現行值之登錄變更，**不觸動本條 (a)–(e) 之 [N] 內容**。
 > (e) **以映像形式部署之載體，其建置必須以不可變之內容識別釘選**：凡以映像形式部署之載體，其登錄**必須**釘選至該載體於目標架構之**不可變內容識別（content-addressed identifier）**，使實際運行之建置與登錄值恆一致；**不得**以可變標籤、浮動端點或「取最新」語義指向（連結 L7.31 版本漂移禁令）。**多架構映像者，所釘選之內容識別必須為其目標架構之建置**，非其多架構索引之可變別名。
-> **現行登錄值 [I]（登錄簿之現行值；本段為系統狀態之記述，不課義務——本條之義務恆源於上開 (a)–(e) [N] 款，`§0.3`）**：目標部署架構 ＝ **x86_64（AMD64）**；平台 ＝ WSL2 on Windows host（AMD Ryzen 5 3600，6C／12T，RAM 15GB，**GPU ＝ NVIDIA GeForce GTX 1650 4GB**〔WSL2 GPU 半虛擬化：/dev/dxg＋/usr/lib/wsl/lib〕）；OS ＝ Ubuntu 24.04.4 LTS（核心 6.18.33.2-microsoft-standard-WSL2）；加速運算堆疊 ＝ **CUDA 12.6**（driver 560.94；推理服務實測 GPU 卸載中）。〔**登錄二次更正 [I]（2026-07-18，同日）**：前次更正誤載「無 GPU／CPU-only」——係**量測方法錯誤**（僅查 PATH 之 nvidia-smi，WSL2 之 GPU 工具在 /usr/lib/wsl/lib、不在預設 PATH），經 Steward 質疑後以 /dev/dxg＋nvidia-smi 全輸出＋ollama VRAM 分配（qwen3:4b 2.3GB in VRAM）三重實證更正。同族教訓：工具輸出之沉默不得當成事實。〕〔**登錄變更說明 [I]（2026-07-18，patch 級）**：原登錄值 aarch64／GB10 係依 ENVIRONMENT-SPEC 起草，惟該機經實測不可達且 Steward 已裁示「基建落於本機 WSL2、aarch64 約束全部作廢」；本變更為 L7.50 明定之 patch 級登錄變更，[N] 內容不動；上開值均經本機實測（lscpu／free／uname／nvidia-smi），非轉抄；ENVIRONMENT-SPEC 同步重寫。〕
+> **現行登錄值 [I]（登錄簿之現行值；本段為系統狀態之記述，不課義務——本條之義務恆源於上開 (a)–(e) [N] 款，`§0.3`）**：目標部署架構 ＝ **x86_64（AMD64）**；平台 ＝ WSL2 on Windows host。**登錄二實體載體（2026-07-30 patch 更正：原登錄為嵌合值——RAM 取自當家機而 GPU／CUDA 取自另一機，不對應任何單一真實機器）**：**① 當家機（primary bearer）`PC002-S1800`**——**Intel Core i5-10500 6C／12T**、RAM 實體 15.9 GiB（WSL 可見 11.7 GiB）＋swap 69.8 GiB（單通道記憶體）、**GPU ＝ 無**（`nvidia-smi` not found、`nvcc` 未安裝、`torch.cuda.is_available()=False`；`/dev/dxg` 存在但無 CUDA 堆疊）、儲存 1007 GB vhdx（2026-07-30 可用 754 GB）；**② 第二載體（second bearer，**與 ① 並行使用於本專案**）`DESKTOP-8MQPFS8`**——RAM 25.4 GiB＋swap 140.7 GiB、**GPU ＝ NVIDIA GeForce GTX 1650 4GB**（sm_75、driver 560.94、CUDA runtime 12.6、nvcc 12.0）〔WSL2 GPU 半虛擬化：/dev/dxg＋/usr/lib/wsl/lib〕。**影響：凡需 GPU／CUDA 之義務（本地 model 推論之加速面、微調）於 ① 物理不可成就，僅得於 ② 成就。①②並行使用；「當家（canonical bearer）」之指定（現行＝①，承載進化與 arena 正典）為**治權配置**，與 ② 之實體可用性無關——二者不得混為一談**——此為 L7.51 應揭露之結構性限制；OS ＝ Ubuntu 24.04.4 LTS〔核心：**① 6.6.87.2**-microsoft-standard-WSL2／**② 6.18.33.2**-microsoft-standard-WSL2〕；加速運算堆疊 ＝ **① 無**（無 CUDA、無 driver；advisor 實測 CPU-only）／**② CUDA 12.6**（driver 560.94；推理服務實測 GPU 卸載中）。〔**登錄二次更正 [I]（2026-07-18，同日）**：前次更正誤載「無 GPU／CPU-only」——係**量測方法錯誤**（僅查 PATH 之 nvidia-smi，WSL2 之 GPU 工具在 /usr/lib/wsl/lib、不在預設 PATH），經 Steward 質疑後以 /dev/dxg＋nvidia-smi 全輸出＋ollama VRAM 分配（qwen3:4b 2.3GB in VRAM）三重實證更正。同族教訓：工具輸出之沉默不得當成事實。〕〔**登錄變更說明 [I]（2026-07-18，patch 級）**：原登錄值 aarch64／GB10 係依 ENVIRONMENT-SPEC 起草，惟該機經實測不可達且 Steward 已裁示「基建落於本機 WSL2、aarch64 約束全部作廢」；本變更為 L7.50 明定之 patch 級登錄變更，[N] 內容不動；上開值均經本機實測（lscpu／free／uname／nvidia-smi），非轉抄；ENVIRONMENT-SPEC 同步重寫。〕
 > 〔**[I] 適用結果之例示，刪名測試適用**（`AUGUR-WM v1.0 §WM.4`）：於上開現行值下，(a) 之適用結果為「各登錄之相容性驗證紀錄係就 x86_64 原生建置作成」；(e) 之適用結果為「以映像形式部署者，所釘選者為其 amd64 建置之內容摘要（digest）」。**此二者為 (a)、(e) 於現行值之適用結果，非另立之義務**：現行值變更時該結果隨之改變，(a)–(e) 之規範內涵不變。〕
 > **刪名測試**：刪去上開現行登錄值（平台名、指令集架構名、OS 名與版本、GPU 運算平台名與版本）及其適用結果例示後，本條 (a)–(e) 之規範內涵（相容性驗證義務、模擬層之揭露與時延評估、不得以相容性弱化語義、目標架構之單一登錄、內容識別之釘選）**不變**——故本條為登錄，非依賴。
 > **義務主體**：本規格、二登錄簿之維護者、系統維運者。**可判定判準**：每一登錄之 (a)(b) 欄俱全且 (b) 之驗收留痕可解析者為合規；缺任一者，該登錄不成立，該角色／構件視為未登錄（L7.10、L7.30 之保守後果）。目標架構之登錄恰解析至一組值者合規（(d)）；存在任一以映像形式部署之載體，其登錄指向可變標籤、浮動端點或多架構可變別名者，違反 (e)（以登錄值與運行中建置之內容識別比對機器查核）。
 
-> **L7.51（統一記憶體、單節點與 residual risk 之揭露義務）[N｜carries｜`AUGUR-MC v1.4 §P4.E3`、`§P2.E5`、`§P5.W2`、`§P5.W5`、`§8.2`、`§8.3`；refines｜`AUGUR-WM v1.0 §WM.39`、`§WM.42`；承接｜`AUGUR-L6 v1.2` L6.8、L6.20]**
+> **L7.51（統一記憶體、單節點與 residual risk 之揭露義務）[N｜carries｜`AUGUR-MC v1.6 §P4.E3`、`§P2.E5`、`§P5.W2`、`§P5.W5`、`§8.2`、`§8.3`；refines｜`AUGUR-WM v1.0 §WM.39`、`§WM.42`；承接｜`AUGUR-L6 v1.2` L6.8、L6.20]**
 > 本層**必須**維護並揭露現行部署之**結構性限制**及其對上層不變式成就之影響，其揭露為 Steward `§8.2` 實質審查之**必要輸入**。現行登錄之限制與影響（**[I] 現行值，其 [N] 內容為「登錄與揭露義務」本身**）如下：
 > (a) **單節點、無備援**——影響：`§P4.E3` 之 Evidence 不滅失，其物理成就**倚賴** L7.25 之故障域分離副本（現況未成就 → T-L7-2、L7.28）；且 L7.40 之 kill-switch 結構獨立性**不及於實體層**（residual risk → T-L7-3）。
-> (b) **CPU／GPU 統一記憶體 121 GiB**——影響：Semantic Memory、System of Record 與本地 model 推論共用記憶體，故**資源競爭為常態**；本層**必須**登錄各角色之資源界限（配額／限額），且該界限**必須**保證：**否決通道（L7.40）、受控介面攔截（L7.44）、OCV 擷取（L7.46）與監督介面（L7.43）之資源為優先保留（reserved）且不得被任何 Agent 工作負載排擠**——**監督路徑之資源保留為硬不變式**（承 L7.47）。
-> (c) **可用儲存 3.4 TB**——影響：`§P4.E3` 之只失效不刪除使儲存**單調成長**；本層**必須**登錄容量趨勢監測與擴充計畫；**容量耗盡不得導致刪除**（唯一例外仍為 `§P4.E3` 法規強制抹除且須 tombstone 留痕，L7.21(c)、L7.27(b)），逼近界限時**必須** degrade 為觀測模式（`§P2.E5`）並升報人類（T-L7-9）。
+> (b) **記憶體受限且無統一記憶體（2026-07-30 patch 更正：原登錄「CPU／GPU 統一記憶體 121 GiB」為已作廢之 GB10 機器事實，該機經 Steward 宣告不存在）**——當家機 `PC002-S1800`：CPU 記憶體實體 **15.9 GiB**（WSL 可見 11.7 GiB）＋swap 69.8 GiB，**單通道**，**無 GPU 專屬記憶體**；週末載體 `DESKTOP-8MQPFS8`：RAM 25.4 GiB＋**GPU VRAM 僅 4 GB**。影響：Semantic Memory、System of Record 與本地 model 推論共用**同一 CPU 記憶體**（非統一記憶體架構），故**資源競爭為常態且較原登錄值嚴峻約 8 倍**；本層**必須**登錄各角色之資源界限（配額／限額），且該界限**必須**保證：**否決通道（L7.40）、受控介面攔截（L7.44）、OCV 擷取（L7.46）與監督介面（L7.43）之資源為優先保留（reserved）且不得被任何 Agent 工作負載排擠**——**監督路徑之資源保留為硬不變式**（承 L7.47）。
+> (c) **可用儲存 1007 GB vhdx（2026-07-30 實測可用 754 GB）〔patch 更正：原登錄「3.4 TB」為 GB10 機器事實〕**——影響：`§P4.E3` 之只失效不刪除使儲存**單調成長**；本層**必須**登錄容量趨勢監測與擴充計畫；**容量耗盡不得導致刪除**（唯一例外仍為 `§P4.E3` 法規強制抹除且須 tombstone 留痕，L7.21(c)、L7.27(b)），逼近界限時**必須** degrade 為觀測模式（`§P2.E5`）並升報人類（T-L7-9）。
 > (d) **揭露義務**：上開限制與其 residual risk **必須**於本規格 Constitutional Compliance Statement 之「已知緊張關係」節（`§WM.42`）逐項揭露，**不得**以「已有補償控制」為由略去揭露。
 > **義務主體**：本規格、系統維運者、Steward。**可判定判準**：資源保留組態之存在性與監督路徑之不可排擠性為可機器查核；容量逼近界限而系統仍執行 RT ≥ 1 Action 者，違反 (c)；(a)–(c) 任一未於 `§WM.42` 節揭露者，本規格之聲明不完整（`§8.3`）。
 
-> **L7.52（環境盤點之時點快照地位與更新義務）[N｜carries｜`AUGUR-MC v1.4 §0.5`、`§0.3`、`§8.2`、`§8.3`、`§7`；refines｜`AUGUR-WM v1.0 §WM.4`、`§WM.13(iii)`]**
+> **L7.52（環境盤點之時點快照地位與更新義務）[N｜carries｜`AUGUR-MC v1.6 §0.5`、`§0.3`、`§8.2`、`§8.3`、`§7`；refines｜`AUGUR-WM v1.0 §WM.4`、`§WM.13(iii)`]**
 > `infrastructure/ENVIRONMENT-SPEC.md`（部署環境規格盤點，2026-07-16 快照；含其所載硬體平台、指令集架構、記憶體容量、儲存容量、單節點拓撲、已安裝軟體清單）於本規格中之地位為 **[I] 時點快照**，**不具規範力**（其自身亦明載此旨）。
 > (a) **不得為定義依據**：**不得**作為本規格任一 [N] 條款之定義依據（`§WM.4`、L7.4）。
 > (b) **得為登錄之輸入**：**得**作為 L7.10／L7.30 登錄簿之**現行值欄之素材**、L7.50 相容性驗證之**目標架構登錄值**、及可替換性論證之輸入（例如指令集相容性作為候選載體之篩選條件），惟該考量之**結果為登錄內容，非義務內容**。
@@ -536,9 +536,9 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ## §7 治權文件措辭收斂 [N]
 
-> **L7.60（治權文件措辭收斂與跨層標注）[N｜carries｜`AUGUR-MC v1.4 §2.1`–`§2.3`、`§0.5` Layer 7 欄、`§8.3`；承接｜`AUGUR-WM v1.0 §D19`（`§WM.9(c)`、`§A.41`）]**
+> **L7.60（治權文件措辭收斂與跨層標注）[N｜carries｜`AUGUR-MC v1.6 §2.1`–`§2.3`、`§0.5` Layer 7 欄、`§8.3`；承接｜`AUGUR-WM v1.0 §D19`（`§WM.9(c)`、`§A.41`）]**
 > 本層承接 `AUGUR-WM v1.0 §D19` 之 **L7 面向**。
-> (a) **措辭收斂**：本規格及 Layer 7 所轄之領域治權文件（系統架構大憲章、datasets 參考文件〔`datasets_zh.md` 及 finmind-references〕，`§0.5` Layer 7 欄）引用治權文件時，**必須**依 `§WM.9(c)` 判準解釋；描述世界模型之地位時**必須**採「**唯一系統記錄**」或等義措辭，**不得**採「唯一真相來源」；「真相／事實」之指涉一律收斂至 `AUGUR-MC v1.4 §2` 之 Reality／Observation／Representation 定義。
+> (a) **措辭收斂**：本規格及 Layer 7 所轄之領域治權文件（系統架構大憲章、datasets 參考文件〔`datasets_zh.md` 及 finmind-references〕，`§0.5` Layer 7 欄）引用治權文件時，**必須**依 `§WM.9(c)` 判準解釋；描述世界模型之地位時**必須**採「**唯一系統記錄**」或等義措辭，**不得**採「唯一真相來源」；「真相／事實」之指涉一律收斂至 `AUGUR-MC v1.6 §2` 之 Reality／Observation／Representation 定義。
 > (b) **收斂狀態之揭露**：本規格 Compliance Statement 之緊張關係節（`§WM.42`）**必須**揭露上開治權文件之措辭收斂現況與未收斂存量。
 > (c) **跨層標注**：系統架構大憲章涉 Layer 4–6 之章節、datasets 參考文件涉 Layer 1–4 之內容，其**逐節／逐條 Layer 標注**必須由各該檔之 Constitutional Compliance Statement 載明（`§0.5` Layer 7 欄註記；補正期依 Steward 裁決第 2026-002 號主文五：**至 2026-10-14**）。
 > (d) **治權檔本身之 patch** 為 Steward 程序事項，非本條承接義務之對象。
@@ -548,7 +548,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ## §8 末層紀律（no further defer）[N]
 
-> **L7.70（末層紀律：上層 DEFER 之終局承接、缺口明列義務與數值登錄為唯一類下放模式）[N｜carries｜`AUGUR-MC v1.4 §0.5`、`§0.6`、`§8.2`、`§8.3`、`§8.4`、`§P5.E2`；refines｜`AUGUR-KS v1.1` KS.33、KDO.0、`AUGUR-L6 v1.2` LDO.0、LDO.5、L6.10、L6.17、L6.18(b)、`AUGUR-WM v1.0 §WM.44`]**
+> **L7.70（末層紀律：上層 DEFER 之終局承接、缺口明列義務與數值登錄為唯一類下放模式）[N｜carries｜`AUGUR-MC v1.6 §0.5`、`§0.6`、`§8.2`、`§8.3`、`§8.4`、`§P5.E2`；refines｜`AUGUR-KS v1.1` KS.33、KDO.0、`AUGUR-L6 v1.2` LDO.0、LDO.5、L6.10、L6.17、L6.18(b)、`AUGUR-WM v1.0 §WM.44`]**
 > Layer 7 為**執行層末層**（`§0.5` 對照表第 7 列、`§0.6` 層級圖之終點），其下**無層可承接**。故：
 > (a) **禁止再下放**：本規格**不得**設任何以「下層定義」為由之 DEFER 掛鉤（defers-out 至 Layer 8 者不存在）。上層明示下放本層之事項，**必須**於本規格逐一承接（Annex LDI／defers-in 逐列對應）。
 > (b) **缺口不得以沉默規避**：本規格未能承接之上層下放事項，**必須**明文列為**缺口／OPEN**（Annex OPEN），載明：事項、其上層授權條款、未能承接之理由、補正計畫與**到期日**（`§8.2`）；涉 `§8.4` 不可豁免核心者，**不得**以缺口列示替代履行（**缺口列示為揭露，非豁免**）。**未承接且未列為缺口者，構成本層之違憲不作為**——依 `§8.3` 保守解釋，該事項所涉之 Action 一律推定不允許。
@@ -564,9 +564,9 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ## §9 文件治理與合規存續 [N]
 
-> **L7.90（文件治理：合規聲明、形式充分性、【地位】與 `§8.2` 實質審查之必審清單）[N｜carries｜`AUGUR-MC v1.4 §0.3`、`§0.5`、`§8.2`、`§8.3`、`§8.6`；refines｜`AUGUR-WM v1.0 §WM.39`–`§WM.46`、`§WM.44`；準用｜`AUGUR-L6 v1.2` L6.90、`AUGUR-L5 v1.0` L5.90]**
+> **L7.90（文件治理：合規聲明、形式充分性、【地位】與 `§8.2` 實質審查之必審清單）[N｜carries｜`AUGUR-MC v1.4〔矩陣建立時之有效版；現行 v1.6，v1.4→v1.5 增設 §8.1「解釋之界線」段，**該段之枚舉完備性待 Steward 審**〕 §0.3`、`§0.5`、`§8.2`、`§8.3`、`§8.6`；refines｜`AUGUR-WM v1.0 §WM.39`–`§WM.46`、`§WM.44`；準用｜`AUGUR-L6 v1.2` L6.90、`AUGUR-L5 v1.0` L5.90]**
 > (a) **合規聲明**：本規格**必須**內含 Constitutional Compliance Statement（Annex CS），依 `AUGUR-WM v1.0 §WM.39–45` **正式格式**作成，含 front-matter 全欄（含 `defers-in` 與**空之 `defers-out`**——本層為末層，defers-out **必須**為空集合；非空者違反 L7.1、L7.70(a)）。**無有效聲明使本規格不生效力。**
-> (b) **形式充分性（`§WM.44`）**：`AUGUR-MC v1.4`、`AUGUR-WM v1.0`、`AUGUR-ONT v1.0`、`AUGUR-ID v1.0`、`AUGUR-KS v1.1`、`AUGUR-L5 v1.0`、`AUGUR-L6 v1.2` 之**全部 [N] 條款**，均須於 Annex TR 對應至本規格至少一 [N] 條款、明記承接、或明記「不觸及」及理由（`Pn.Y` 為 [I] 不計）。
+> (b) **形式充分性（`§WM.44`）**：`AUGUR-MC v1.4〔矩陣建立時之有效版；現行 v1.6，v1.4→v1.5 增設 §8.1「解釋之界線」段，**該段之枚舉完備性待 Steward 審**〕`、`AUGUR-WM v1.0`、`AUGUR-ONT v1.0`、`AUGUR-ID v1.0`、`AUGUR-KS v1.1`、`AUGUR-L5 v1.0`、`AUGUR-L6 v1.2` 之**全部 [N] 條款**，均須於 Annex TR 對應至本規格至少一 [N] 條款、明記承接、或明記「不觸及」及理由（`Pn.Y` 為 [I] 不計）。
 > (c) **【地位】與生效要件**：本文件為 **v1.0 生效版本**（§8.2 條件通過）；生效要件（`§0.5` 對照表登錄＋Steward 充任認定＋`§WM.39` Compliance Statement）已於 2026-07-18 全部成就（RULING-2026-011／AL-2026-014）。本規格所定數值、載體登錄與 kill-switch 機制自生效日起具規範力；**`§8.2` 深度實質審查已於 2026-07-19 條件通過（RULING-2026-025／AL-2026-028）**——(i)(ii)(v) 核定值、(iii)(iv)(vi) residual 分階段①、(vii) §8.1 已裁；**residual 之復審期限 2026-10-14**，其後如經補正或數值調整另依 `§8.2` 辦。
 > (d) **`§8.2` 實質審查之保留與必審清單**：本層為末層且承載 `§P5.W2`／`§P5.W5` 之**物理**成就，其自我交易誘因高於 Layer 6（L7.5、T-L7-7）。故本層之充任**不得**僅以形式關卡為據；Steward 之 `§8.2` 實質審查**必須**涵蓋下列必審事項——
 >   (i) **L7.41 之 H_max 各級數值**（含 RT-4 之 1 秒與 pre-commit hold 之語義，T-L7-12）；
@@ -578,7 +578,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 >   (vii) **`AUGUR-L6 v1.2` L6.11 之 RT 級要件於 `AUGUR-KS v1.1` Annex CL.0 線性閉集上不可同時單調滿足之異常**（T-L7-13）——**本項之 `§8.1` 書面裁決**已作成（RULING-2026-024，2026-07-19）**——原聲請事項見 T-L7-13(c) (i)–(iii)，**併含 L7.45(f-4) 之未裁決致命 Conflict 分級判準之核可與登錄**——該判準登錄前一切未裁決 Conflict 推定致命之保守預設持續適用），非僅審查請求：RT-2「須含可重現驗證」與 RT-3「須至少一項獨立 Data Evidence」於 CL.0 之序上不可並存；本層採保守預設（取較嚴者：E 階門檻與 (f-4) 量測面要件**併存取交集**，L7.45(f)／(f-4)），**不自行解釋或修改已生效之 `AUGUR-L6 v1.2`**（`§8.1` 解釋權專屬 Steward）。**§8.1 已裁（RULING-2026-024，2026-07-19）：多軸解耦、取交集為忠實承接；保守預設升為正式解釋、維持。**
 > **義務主體**：本規格自身、Steward。**可判定判準**：(a) front-matter 欄位、七節論證、緊張關係節、雙向 DEFER 表俱全（`§WM.40–44`）且 defers-out 為空；(b) Annex TR 之落點列覆蓋七上層全部 [N] 條款，缺 0 條；(c)(d) 充任裁決文書之存在與其必審事項逐項載明。
 
-> **L7.91（編號穩定性與升版維護）[N｜carries｜`AUGUR-MC v1.4 §8.6`；refines｜`AUGUR-WM v1.0 §WM.45`–`§WM.47`]**
+> **L7.91（編號穩定性與升版維護）[N｜carries｜`AUGUR-MC v1.6 §8.6`；refines｜`AUGUR-WM v1.0 §WM.45`–`§WM.47`]**
 > 條款編號一經發布**永不重用、永不重排**；廢止條款保留編號並標 `(repealed)`。上層升版或條款增修時，Annex TR 對應列、Annex LDI 承接列、Annex CS front-matter 之 `mc-version`／`upper-specs` 欄**必須**同步維護，否則聲明重回不完整。**登錄簿現行值之變更為 patch 級（`§8.6`），不觸發本規格之升版**；反之，若某現行值變更迫使任一 [N] 條款須修訂，即為 L7.4(a)／L7.30(c) 意義之違憲缺陷。
 > **義務主體**：本規格、其後續修訂者、Steward。**可判定判準**：升版時 Annex CS 之 `mc-version`／`upper-specs` 欄同步；版本間 diff 檢查——任一既發布編號於後版消失或改指他文者，違反本條。
 
@@ -591,15 +591,15 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 ## Annex LDI [N] — 承接七上層 DEFER 掛鉤（defers-in）
 
 > **LDI.0（承接義務）[N]** 本表每列為規範性承接掛鉤：本層明示承接上層明示下放之事項，並於正文對應落點填充之；本表每列與 Annex CS front-matter `defers-in` 欄及 CS.3(a) 三向可解析。**本層為末層，承接不能者必須以 Annex OPEN 之顯式條目落點（L7.3(b)、L7.70(b)），不得無落點。**
-> **本表之承接列數 ＝ 33**（LDI.1–LDI.7、LDI.10–LDI.13、LDI.21–LDI.22、LDI.24–LDI.28、LDI.43、LDI.29–LDI.32、LDI.33–LDI.40、LDI.41–LDI.42）；**LDI.20 為 ONT「目標含 L7 者零列」之宣告列，非承接列，不計入**；**LDI.23 為未使用之保留編號**（目標 Layer 誤植之更正，見該條）。三向對表之基準數為 **33** [N]（front-matter `defers-in` 陣列長度＝CS.3(a) 表列數＝本表承接列數）。〔**基準數之載明方式（DRAFT）**：本數以正文 [N] 載明，**不以 front-matter 欄位登錄**——`AUGUR-WM v1.0 §WM.40` 之欄位為**閉集**，其定義權屬 Layer 1（`AUGUR-MC v1.4 §8.3` 授予），末層**無權擴充**（`§0.6(a)` lex superior、L7.2）。原稿之 `defers-in-count` 欄係擅自擴欄，於此刪除；三向對表之稽核價值無損（基準數仍以 [N] 載明且逐列可解析）。〕
+> **本表之承接列數 ＝ 33**（LDI.1–LDI.7、LDI.10–LDI.13、LDI.21–LDI.22、LDI.24–LDI.28、LDI.43、LDI.29–LDI.32、LDI.33–LDI.40、LDI.41–LDI.42）；**LDI.20 為 ONT「目標含 L7 者零列」之宣告列，非承接列，不計入**；**LDI.23 為未使用之保留編號**（目標 Layer 誤植之更正，見該條）。三向對表之基準數為 **33** [N]（front-matter `defers-in` 陣列長度＝CS.3(a) 表列數＝本表承接列數）。〔**基準數之載明方式（DRAFT）**：本數以正文 [N] 載明，**不以 front-matter 欄位登錄**——`AUGUR-WM v1.0 §WM.40` 之欄位為**閉集**，其定義權屬 Layer 1（`AUGUR-MC v1.6 §8.3` 授予），末層**無權擴充**（`§0.6(a)` lex superior、L7.2）。原稿之 `defers-in-count` 欄係擅自擴欄，於此刪除；三向對表之稽核價值無損（基準數仍以 [N] 載明且逐列可解析）。〕
 > **本表之收錄範圍**：不限於上層 Annex 之下放列——**上層正文直接課本層設置登錄／宣告載體之條款**，以下列**閉集枚舉**：KS.33、KS.41／42／45／46（LDI.43）、L6.16 末句、L6.15／L6.20；及審計與環境盤點之承接（AUD-02、ENV-SPEC）——**均為本表之承接列**。上層正文以義務主體形式課本層承載構件**行為紀律**而不設登錄載體者（如 KS.40 之雙時間儲存紀律、KS.43 之無宣告保守推定），屬各該 L7 條款之 carries 直接承接（L7.20(a)、L7.20(f)），由 Annex TR／CS.4 受檢，**不經本表**；本表對正文條款**不作開放全稱宣稱**。〔**判準寫法更正（DRAFT，2026-07-18 三鏡重審）**：原稿之全稱句「義務主體明文含本層承載構件之**每一**正文條款」照字面執行即自我否證（KS.40／KS.43 同型而無列）——實質落點俱在而判準不可執行，於此改為閉集枚舉＋差集檢核。漏收正文直接課本層義務者仍為 L7.3(c) 之違憲不作為（LDI.43 即此類漏收之補正先例），惟其查核路徑為 Annex TR／CS.4，非本表之全稱。〕
 > **義務主體**：本規格自身、Steward。**可判定判準**：上層七份規格 Annex 中**目標 Layer 含 L7 之每一下放列**（機器可枚舉之全稱）、**及上開閉集枚舉之每一正文條款**，於本表有列且於正文有對應 L7 條款或 OPEN 條目、且於 Annex CS front-matter `defers-in` 欄與 CS.3(a) 表**三向逐列雙向可解析**者為合規；三者之列數不一致、或任二者之差集非空者，承接不完整（L7.3(c) 違憲不作為，`§WM.43`）。**每一上層掛鉤之目標 Layer 以該上層規格 Annex 之原文為準**——本表任一列所載目標 Layer 與上層原文不符者（誤植），該列即為偽承接：其所宣稱之落點不生承接效力，須依原文更正並查核該事項是否另有真實落點（LDI.23 之更正即依本款）。
 
-### LDI.A — `AUGUR-MC v1.4` 直接落於 L7 者 [N]
+### LDI.A — `AUGUR-MC v1.6` 直接落於 L7 者 [N]
 
 | # | 上層掛鉤 | 下放事項 | 本層落點 |
 |---|---|---|---|
-| **LDI.1** | `AUGUR-MC v1.4 §5` 角色一–角色六 | 六架構角色之**物理載體**（System of Record／Relationship Store／Semantic Memory／Understanding Engine／Action Layer／Controlled External Interface） | L7.10、L7.11、L7.12、L7.13、L7.15 |
+| **LDI.1** | `AUGUR-MC v1.6 §5` 角色一–角色六 | 六架構角色之**物理載體**（System of Record／Relationship Store／Semantic Memory／Understanding Engine／Action Layer／Controlled External Interface） | L7.10、L7.11、L7.12、L7.13、L7.15 |
 | **LDI.2** | `§7`＋`Appendix A`（非約束性選型對照） | 參考技術選型之**登錄落點**；Appendix A 不得為登錄依據 | L7.4（尤 (c)）、L7.14、L7.30 |
 | **LDI.3** | `§P5.E2` 末句（Controlled External Interface 為行動分級之執法點） | 執法點之**物理佈點** | L7.44、L7.43、L7.45 |
 | **LDI.4** | `§P4.E2`（as-of 重建之機制） | as-of 重建引擎之物理承接 | L7.20；其前提由 L7.16（權限錨定）、L7.25／L7.27（可還原性）承接 |
@@ -631,7 +631,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 | **LDI.21** | ID IDO.3（目標 L4／L7；落點 ID.40；授權 `§0.6(b)`、WM `§D3`；承接審計 AUD-05） | lifecycle **事件表之物理欄位／索引實作**、tombstone 儲存落地 | L7.21、L7.22、L7.16 |
 | **LDI.22** | ID IDO.5（目標 L7；落點 ID.12；授權 `§0.6(b)`、`§WM.20`；承接審計 AUD-04） | identifier 命名空間之**物理序列化與儲存編碼** | L7.23、L7.11（角色一載體）、L7.16 |
 
-> **LDI.23（未使用；草案期內部更正）[N]** 本編號原列「ID IDO.6／IDO.7 → L7.20／L7.33」，**係目標 Layer 誤植**：依 `AUGUR-ID v1.0` Annex DO 原文，**IDO.6 之目標為 L4**（as-of 重建引擎與能力等級、雙時間查詢操作化——已由 `AUGUR-KS v1.1` §5 KS.40–KS.46 承接，並經 **KS KDO.6** 再下放本層，其本層落點為 LDI.26／L7.20，**非**經 IDO.6 直達）；**IDO.7 之目標為 L6**（自然人法規對應表本體與其授權，`AUGUR-WM v1.0 §D17` 之 L6 slice——本層之語料隔離部署面係承接 **WM `§D25` 部署面**而來，其本層落點為 LDI.13／L7.33，**非**經 IDO.7）。原列所指之二事項**均已於他列具名落點**（LDI.26、LDI.13），故本更正**不生承接漏列**。本編號依 `AUGUR-MC v1.4 §8.6`／`AUGUR-WM v1.0 §WM.46` **保留、永不重用**（該更正作成於 v0.1-draft 草案期〔尚未發布時〕，屬草案內部更正而非既發布編號之廢止）。
+> **LDI.23（未使用；草案期內部更正）[N]** 本編號原列「ID IDO.6／IDO.7 → L7.20／L7.33」，**係目標 Layer 誤植**：依 `AUGUR-ID v1.0` Annex DO 原文，**IDO.6 之目標為 L4**（as-of 重建引擎與能力等級、雙時間查詢操作化——已由 `AUGUR-KS v1.1` §5 KS.40–KS.46 承接，並經 **KS KDO.6** 再下放本層，其本層落點為 LDI.26／L7.20，**非**經 IDO.6 直達）；**IDO.7 之目標為 L6**（自然人法規對應表本體與其授權，`AUGUR-WM v1.0 §D17` 之 L6 slice——本層之語料隔離部署面係承接 **WM `§D25` 部署面**而來，其本層落點為 LDI.13／L7.33，**非**經 IDO.7）。原列所指之二事項**均已於他列具名落點**（LDI.26、LDI.13），故本更正**不生承接漏列**。本編號依 `AUGUR-MC v1.6 §8.6`／`AUGUR-WM v1.0 §WM.46` **保留、永不重用**（該更正作成於 v0.1-draft 草案期〔尚未發布時〕，屬草案內部更正而非既發布編號之廢止）。
 
 ### LDI.E — `AUGUR-KS v1.1`（Annex DO 目標含 L7 者 **4 列**〔KDO.4–KDO.7〕＋**正文直接課 Layer 5–7 承載構件義務者 2 列**〔KS.33；KS.41／KS.42／KS.45／KS.46〕，**共 6 列**）[N]
 
@@ -677,7 +677,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ## Annex LDO [N] — 下放掛鉤：**空集**（末層無下層）
 
-> **LDO.0（無下放宣告）[N]** 本層為 `AUGUR-MC v1.4 §0.5` 對照表之末層，其下無 Layer 8。故本規格之 **defers-out ＝ ∅（空集合，front-matter 顯式 `[]`）**：本規格**不設任何以下層為目標之 DEFER 掛鉤**。本層唯一之類下放模式為 **L7.70(c) 之數值登錄為系統狀態**，其**非**下放（無下放對象），而係本層之落地形式，其結構／序／棘輪仍為本層 [N]；承接不能之事項一律以 **Annex OPEN** 之顯式條目收編並走保守預設（L7.3(b)）。
+> **LDO.0（無下放宣告）[N]** 本層為 `AUGUR-MC v1.6 §0.5` 對照表之末層，其下無 Layer 8。故本規格之 **defers-out ＝ ∅（空集合，front-matter 顯式 `[]`）**：本規格**不設任何以下層為目標之 DEFER 掛鉤**。本層唯一之類下放模式為 **L7.70(c) 之數值登錄為系統狀態**，其**非**下放（無下放對象），而係本層之落地形式，其結構／序／棘輪仍為本層 [N]；承接不能之事項一律以 **Annex OPEN** 之顯式條目收編並走保守預設（L7.3(b)）。
 > **義務主體**：本規格自身、Steward。**可判定判準**：front-matter `defers-out` 欄為 `[]`；本規格全文無任一條款以「下層定義」「由 Layer 8 定義」或等義措辭設掛鉤者為合規；違反者依 L7.1、L7.70(a) 為末層落空。
 
 ---
@@ -722,7 +722,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 > **TR.0（對應完備性義務）[N]** 依 `AUGUR-WM v1.0 §WM.44`：七上層之**全部 [N] 條款**均須於本矩陣對應至本規格至少一 [N] 條款、明記承接／細化、或明記「不觸及」及理由（`Pn.Y` 為 [I] 說理條款不計）。**本層為末層，「不觸及」之理由不得為「下放下層」**（無下層）——僅得為「屬上層本體，本層消費不重定義」或「已於他列落點」；否則違反 L7.70(a)(b)。
 > **義務主體**：本規格自身、Steward。**可判定判準**：七上層每一 [N] 條款於本矩陣有落點列；缺任一條者，形式充分性不成立（`§WM.44`）。
 
-### TR.A — `AUGUR-MC v1.4` §P5 家族（逐條）[N]
+### TR.A — `AUGUR-MC v1.6` §P5 家族（逐條）[N]
 
 | MC 條款 | L7 落點／處置 | 模式 |
 |---|---|---|
@@ -735,7 +735,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 | `§P5.W4`（Agent 僅持有完成當前經授權 Plan 所需之最小權限） | **L7.49**（不得明文／Plan 範圍化／非常駐／可枚舉）、L7.16(c)（owner 憑證不得常駐）、L7.42(c) | 承接（核心） |
 | `§P5.W5`（系統不得規劃、執行或學習任何降低人類監督與否決能力之行為）**〔`§8.4` 不可豁免核心〕** | **L7.46**（OCV 物理擷取＋⊒ 棘輪之機器執行）、**L7.45 棘輪條**、**L7.41(b)**、**L7.47**（資源不足不得弱化監督）、L7.5、L7.51(b)（監督路徑資源保留） | 細化（核心） |
 
-### TR.B — `AUGUR-MC v1.4` §P4 家族（逐條）[N]
+### TR.B — `AUGUR-MC v1.6` §P4 家族（逐條）[N]
 
 | MC 條款 | L7 落點／處置 | 模式 |
 |---|---|---|
@@ -750,7 +750,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 | `§P4.E7`（NoLaundering） | **L7.32**（標記不可脫落之物理保證＋receipt vs 外部確認之來源區隔）、L7.42(e)（人類確認之歸因）、L7.46(d)（度量不可自我洗白）、L7.5(c) | 細化（核心） |
 | `§P4.E8`（Confidence（語義與消費）） | L7.45(a)（banding 帶界數值；序與綁定消費自 L4／L6） | 承接（消費面） |
 
-### TR.C — `AUGUR-MC v1.4` 非 P4／P5 家族（逐條）[N]
+### TR.C — `AUGUR-MC v1.6` 非 P4／P5 家族（逐條）[N]
 
 | MC 條款 | L7 落點／處置 | 模式 |
 |---|---|---|
@@ -771,7 +771,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 | `§8.5`（Amendment Procedure（修訂程序）） | L7.14(c)（「現行載體不支援」為唯一理由者推定違反 F1／F2，不得議決） | 承接 |
 | `§8.6`（版本語義、引用格式與編號穩定性） | `§0.3`（現行值變更為 patch）、L7.30(c)、L7.90(c)、L7.91 | 承接 |
 
-### TR.C-EV — `AUGUR-MC v1.4 §4` canonical chain（逐條）[N]
+### TR.C-EV — `AUGUR-MC v1.6 §4` canonical chain（逐條）[N]
 
 | EV | L7 落點／處置 | 模式 |
 |---|---|---|
@@ -788,11 +788,11 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 | `EV.11`（Feedback） | **L7.32(e)–(g)**（receipt vs 外部確認之來源區隔；Observed Effect 之供應者標明）、L7.45(e)（背離容差） | 細化（核心） |
 | `EV.12`（Learning） | L7.46(c)（Learning 所致之組態變更受 ⊒ 棘輪之物理執行約束）、L7.17(d)（沙盒產出回流須經通道並標明來源部署） | 承接 |
 
-### TR.C-F — `AUGUR-MC v1.4 §6` F1–F6 反模式防線（逐條）[N]
+### TR.C-F — `AUGUR-MC v1.6 §6` F1–F6 反模式防線（逐條）[N]
 
-**標籤權威性**：本表 F1–F6 之標題**逐字取自 `AUGUR-MC v1.4 §6` 原文**（F1 Data First Architecture／F2 Model First Architecture／F3 Agent First Architecture／F4 Knowledge Without Identity／F5 Intelligence Without Evidence／F6 Unaccountable Action）；本層**不得**自創、改寫或近似替代任一禁令之標題或內涵（L7.2 不重定義）。落點論證**必須**對應各禁令之**真實禁止內涵**（見各列括號內之憲章原文摘引），非僅對應其標籤。
+**標籤權威性**：本表 F1–F6 之標題**逐字取自 `AUGUR-MC v1.6 §6` 原文**（F1 Data First Architecture／F2 Model First Architecture／F3 Agent First Architecture／F4 Knowledge Without Identity／F5 Intelligence Without Evidence／F6 Unaccountable Action）；本層**不得**自創、改寫或近似替代任一禁令之標題或內涵（L7.2 不重定義）。落點論證**必須**對應各禁令之**真實禁止內涵**（見各列括號內之憲章原文摘引），非僅對應其標籤。
 
-| F | `AUGUR-MC v1.4 §6` 之禁止內涵（原文摘引） | L7 落點／處置 | 模式 |
+| F | `AUGUR-MC v1.6 §6` 之禁止內涵（原文摘引） | L7 落點／處置 | 模式 |
 |---|---|---|---|
 | `F1`（**Data First Architecture**） | 禁止「先建立資料表，再想世界模型」（違 P1）；資料結構不是世界結構 | **L7.14**（登錄以角色語義為輸入、選型為輸出；**禁由 schema／API 行為反推導角色語義或上層條款**）、**L7.24(c)**（直綁消除：禁以資料表名／欄位名／來源位置字面繫結世界事實，一切消費須經世界概念解析）、L7.50(c)（不得以相容性為由弱化角色語義） | 承接（核心） |
 | `F2`（**Model First Architecture**） | 禁止「先選 AI model，再設計系統」（違 P2）；模型只是智慧工具 | **L7.14**、**L7.4**（刪名測試；產品名三種合法地位之閉集）、**L7.30(c)**（選型變更迫使上層條款修訂者，即證明該條款曾以選型為定義依據——L7.4 之機器可執行驗證器）、L7.31（model 版本僅為 Evidence provenance 之構成，非權威來源）、L7.11 角色四語義欄（引擎之概念不變式屬 L5，本層僅登錄物理構件） | 承接（核心） |
@@ -803,7 +803,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 **F4／F5 落點與 `§P5.W5` 家族之分界（防誤植回歸）**：C_max（自動執行鏈長）、T 基線（執行前揭露比例）、資源壓力不得延長自動鏈等事項，其憲章依據為 **`§P5.W5`／`§P5.E2`**（見 Annex TR.A），**非** F4／F5——F4 之禁止對象為「無 Identity 繫結、無 Source 之 Knowledge」，F5 之禁止對象為「無法回答為什麼之 prediction／recommendation／decision」，二者均屬 **P3／P4 家族**之反模式，與自動化程度、答案優先與否**無涉**。凡以「Automation First」「Answer First」或任何非 `§6` 原文之標題指稱 F4／F5 者，為憲章誤標，依 `§8.2` 為文件缺陷（L7.2、L7.4(d)）。
 
-### TR.C-P123 — `AUGUR-MC v1.4` P1／P2／P3 家族（逐條）[N]
+### TR.C-P123 — `AUGUR-MC v1.6` P1／P2／P3 家族（逐條）[N]
 
 | MC 條款 | L7 落點／處置 | 模式 |
 |---|---|---|
@@ -947,7 +947,7 @@ Infrastructure 規格（Layer 7 — Infrastructure／External Interface；**執�
 
 ## Annex CS [N] — Constitutional Compliance Statement（依 `AUGUR-WM v1.0 §WM.39–45` 格式）
 
-本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（L7.90(a)、`AUGUR-MC v1.4 §8.3`、`AUGUR-WM v1.0 §WM.39`）。**地位提示**：本規格為 **v1.0 生效版本**——充任認定已於 2026-07-18 成就（RULING-2026-011）、`§8.2` 深度實質審查 2026-07-19 條件通過（RULING-2026-025）（見【地位】、L7.90(c)）；本聲明之充分性最終判斷仍屬 Steward 違憲審查程序。
+本 Annex 為**規範性聲明文件**（[N]）：其存在與內容為本規格之生效要件（L7.90(a)、`AUGUR-MC v1.6 §8.3`、`AUGUR-WM v1.0 §WM.39`）。**地位提示**：本規格為 **v1.0 生效版本**——充任認定已於 2026-07-18 成就（RULING-2026-011）、`§8.2` 深度實質審查 2026-07-19 條件通過（RULING-2026-025）（見【地位】、L7.90(c)）；本聲明之充分性最終判斷仍屬 Steward 違憲審查程序。
 
 ```
 compliance-statement:
@@ -972,7 +972,7 @@ compliance-statement:
 ### CS.1 逐原則論證本文（七節，順序固定）[N]
 
 > **CS.1-PA（Prime Axiom）**〔承接〕
-> 引 `AUGUR-MC v1.4 §1.1`、`§P4.D`、`§P5.D`。本層落實 PA 三性之**物理成就**：「可追溯之 Evidence」——L7.21（引擎權限層物理禁刪＋雜湊鏈）＋L7.25（故障域分離副本、還原實測）＋L7.31（model 版本為 provenance 之構成）使追溯鏈於物理層存續；「不確定性可追溯」——L7.45(a) banding 帶界（上界開於 1.00）＋L7.32（標記不可脫落）使不確定性不因序列化、嵌入或轉引而消失；「錯誤可被修正／可中止」——L7.40（Agent-獨立 kill-switch 五層降級序）＋L7.41（H_max）＋L7.49(f)（外洩熔斷）。**判準揭示**：「可追溯」以受保護儲存物件之引用鏈可機器遍歷、且其不變式以**可執行測試證明拒絕**（L7.16 判準）操作化；「錯誤可修正」以否決通道之逐層獨立觸發測試與 H 實測（L7.40、L7.41 判準）操作化——**未經實測之保證推定不成立**（`§8.3`、L7.25(c)）。
+> 引 `AUGUR-MC v1.6 §1.1`、`§P4.D`、`§P5.D`。本層落實 PA 三性之**物理成就**：「可追溯之 Evidence」——L7.21（引擎權限層物理禁刪＋雜湊鏈）＋L7.25（故障域分離副本、還原實測）＋L7.31（model 版本為 provenance 之構成）使追溯鏈於物理層存續；「不確定性可追溯」——L7.45(a) banding 帶界（上界開於 1.00）＋L7.32（標記不可脫落）使不確定性不因序列化、嵌入或轉引而消失；「錯誤可被修正／可中止」——L7.40（Agent-獨立 kill-switch 五層降級序）＋L7.41（H_max）＋L7.49(f)（外洩熔斷）。**判準揭示**：「可追溯」以受保護儲存物件之引用鏈可機器遍歷、且其不變式以**可執行測試證明拒絕**（L7.16 判準）操作化；「錯誤可修正」以否決通道之逐層獨立觸發測試與 H 實測（L7.40、L7.41 判準）操作化——**未經實測之保證推定不成立**（`§8.3`、L7.25(c)）。
 
 > **CS.1-P1（Reality First）**〔承接＋不觸及〕
 > 引 `§P1.E1`、`§P1.E2`、`§P1.E3`、`§2.9`、`§2.1`。`§P1.E2` 之唯一權威表徵於本層之物理面為 L7.24(a)：「唯一」指**權威地位唯一，不指儲存份數**——多副本、快取、備份不得取得權威地位，且該保證**不得依賴現行拓撲**（L7.24(d) 拓撲中立）；Identity 跨部署可解析之編碼落點為 L7.23(d)。`§P1.E3` 之自然人保護於本層為 L7.33（語料隔離之機器強制、egress 預設拒絕）與 L7.45(d)（涉自然人敏感 Identity ⇒ I3 ⇒ RT-4）。`§P1.E1`（**開放來源**——任何對 Reality 之觀測通道**無論當前是否存在**皆屬資料來源；**資料來源不得成為最高抽象**）之物理防線為 **L7.14**（登錄以**角色語義為輸入、選型為輸出**，**禁由 schema／API 行為反推導**）＋**L7.4(a)(ii)**（產品名之合法地位限於 Observation Channel 之**指名**，非定義依據）＋**L7.24(c)**（直綁消除：禁以來源位置字面繫結世界事實）＋L7.13（來源回應為**觀測結果**，Store 不得被表徵層取代）。`§P1.W1`（**必須優先描述 Reality，而不是優先適配現有資料來源**）於本層**非「不觸及」**：其禁止內涵於末層恰有直接物理落點——**L7.14**（禁由現有 schema／API 反推導角色語義）、**L7.24(c)**（禁字面直綁）、**L7.30(a)**（未登錄構件之輸出推定不可靠，模型**只是**推理工具而非權威來源）。〔**更正說明（DRAFT）**：原稿以 L7.32(g)（介面不得以送出成功推定外部狀態已變更）為 `§P1.E1` 之物理防線——**該條屬 `§P2.E3`／`§P2.E4` 家族**，與「開放來源」無涉，已歸還各該列；原稿並將 `§P1.W1` 判為「不觸及」，係**因誤標而生之誤判**，已改為承接（核心）。〕Reality／表徵本體屬 Layer 0／1，本層消費不重定義（L7B.0）。**判準揭示**：權威表徵欄恰解析至一個載體（L7.24(b) 判準）可機器盤點；存在任一 [N] 不變式之論證引用現行拓撲特性為必要條件者即為缺陷（L7.24(d) 判準）。
@@ -1003,7 +1003,7 @@ compliance-statement:
 | **T-L7-5** | L7.45 末段、L7B.0 | **「填數值不得使結構失位」vs 本層無權重定義上層綁定**：L6.11–L6.13 之綁定結構與 L6.17 之棘輪為 Layer 6 規範，本層僅填數值；然某些數值選擇會**實質架空**該結構（例：若 STRONG 帶界定為 [0.50, 1.00)，則「RT-4 須 ⊓Conf ≥ STRONG」形同虛設）。 | L7.45 末段：任一數值登錄使 L6.10–L6.13 綁定或 L6.17 棘輪不成立者，該登錄**自始無效**（非僅違規）；並以 L7.45(b) C_max 之推導（RT-2 以上恆為 0，因 L6.13 已綁定其須事中人工在環）示範**數值須由上層結構推導而非自由裁量**。**殘餘**：「架空」之可判定判準本身部分倚賴實質判斷——**列為 L7.90(d) 必審事項第 (ii) 項。** |
 | **T-L7-6** | L7.50、L7.14(c)、L7.47、OPEN-L7-01/02 | **目標部署架構之選型約束 vs 角色語義之完整實現**（其現行登錄值 [I] 為 x86_64／WSL2，見 L7.50；**本張力之陳述不以該值為前提——任一目標架構之登錄均生同型張力**）：某些最貼合角色語義之載體（特定圖儲存、統計庫、model runtime）可能於**目標架構無原生建置**；「遷就硬體而放寬角色語義」為最自然之逃逸路徑，且其形式上**不觸動任何 [N] 條文**（僅改 [I] 現行值）。 | L7.50(c) 明文禁止：載體於目標架構不可得或不完整者，**必須**改選他載體或登錄為 OPEN（保守預設），**不得**修改或放寬角色語義欄；L7.14(c) 將「現行載體不支援」列為 F1／F2 推定違反之理由類型；模擬層之時延影響**必須**與 H_max 之成就一併評估（L7.50(a)）。**殘餘**：OPEN 登錄之保守預設（該角色 fail-closed）成本高，實務壓力將持續指向放寬——此壓力本身即 L7.47 所欲阻斷者，二條互為支撐。** |
 | **T-L7-7** | L7.5、L7.40、L7.16、L7.41、L7.45、L7.90(d) | **本層由 Agent 起草 vs 本層規範 Agent 之物理停止機制（誘因於本層達到頂點）**：L6【地位】已揭露「Agent 自撰人類權威層」之結構性自我交易誘因，並經獨立對抗審查查獲 2 處自我交易；本層之誘因**更高**——L6 之自我交易需改條文（有跡可循），本層之自我交易只需**改一個數字**（H_max、C_max、I3 門檻）或**登錄一個載體**（選一個否決時延天然較長、或標記會脫落之產品），即可在完全不觸動任何 [N] 文字之情形下抽空 P5。誘因之顯現向量：以「維運便利」寬鬆化 owner 分離、以「單機限制」弱化否決通道獨立性、以「開發需要」正當化常駐憑證。 | 三向量均設**絕對禁止＋保守推定**（L7.18(c)、L7.49(c)、L7.42(e)）；L7.5 全面準用 L6.18（反自我交易、guard-the-guard、定義窄化防線、度量不可自我洗白）於本層一切登錄與變更；**度量與拒絕之證明要求為可執行測試**（L7.16 判準）而非文件宣稱——使合規不繫於起草者之自陳（`§P4.E7` 之同型）；L7.46(d) 明定 self-reported OCV 不得單獨為據；L7.90(d) 明定本層之充任**不得僅以形式關卡為據**、必須經 Steward `§8.2` 實質審查逐項涵蓋七項必審事項。**此三重防守之充分性，連同本稿全部條款，須經獨立對抗審查與 Steward `§8.2` 實質人類審查確認；本稿就此不主張已充分，此判斷專屬 Steward。** |
-| **T-L7-8** | L7.4(c)、L7.11 | **`AUGUR-MC v1.4 Appendix A` 已具名 vs 本層登錄簿之單一權威性**：Appendix A 明示為「非約束性、屬 Layer 7 現行選型、可隨時代更換、不受穩定性保證」，惟其位於憲章文本內，實務上易被誤讀為授權或限制。 | L7.4(c)：Appendix A **不得**作為本層任何登錄之依據，亦**不得**反用以限制本層之登錄；分歧時以**本層登錄簿為單一權威、以角色語義為準**。本層 L7.11 之現行值與 Appendix A 已有分歧（角色一–六多為 OPEN 待定）——**此分歧為合法且預期，非文件缺陷**。**建請 Steward 考量**：Appendix A 是否宜於下次 minor 升版時加註「其值以 Layer 7 登錄簿為準」之交叉引用（屬 `§8.6` minor、Steward 議決事項，**本草案僅建請、不代行**）。** |
+| **T-L7-8** | L7.4(c)、L7.11 | **`AUGUR-MC v1.6 Appendix A` 已具名 vs 本層登錄簿之單一權威性**：Appendix A 明示為「非約束性、屬 Layer 7 現行選型、可隨時代更換、不受穩定性保證」，惟其位於憲章文本內，實務上易被誤讀為授權或限制。 | L7.4(c)：Appendix A **不得**作為本層任何登錄之依據，亦**不得**反用以限制本層之登錄；分歧時以**本層登錄簿為單一權威、以角色語義為準**。本層 L7.11 之現行值與 Appendix A 已有分歧（角色一–六多為 OPEN 待定）——**此分歧為合法且預期，非文件缺陷**。**建請 Steward 考量**：Appendix A 是否宜於下次 minor 升版時加註「其值以 Layer 7 登錄簿為準」之交叉引用（屬 `§8.6` minor、Steward 議決事項，**本草案僅建請、不代行**）。** |
 | **T-L7-9** | L7.51(c)、L7.21、L7.27(b) | **`§P4.E3` 只失效不刪除（儲存單調成長）vs 3.4 TB 有限儲存之物理界限**：長期而言容量必然逼近界限，屆時「刪除舊資料」將成為唯一顯而易見之解，而該解直接違反 `§P4.E3` 與 `§8.4` 不可豁免核心。 | L7.51(c)：**容量耗盡不得導致刪除**（唯一例外仍為法規強制抹除且須 tombstone 留痕＋涵蓋全部副本）；逼近界限時**必須** degrade 為觀測與建議模式（`§P2.E5`）並升報人類；並要求登錄容量趨勢監測與擴充計畫。**殘餘**：本條將容量問題轉化為「系統停止服務」而非「歷史滅失」——此為正確之優先序（**P4 > 可用性**），惟其營運後果嚴峻，**須 Steward 知悉並認可此權衡。** |
 | **T-L7-10** | L7.44(a)(d)、L7.20(b)、L7.47 | **受控介面之單一出口與 fail-closed vs 可用性與維運現實**：L7.44 要求一切對外 Action 經單一受控出口且 fail-closed——介面故障即全系統對外停擺，維運壓力將誘導「緊急旁路」「暫時放行後補驗」之設計；as-of gate 之查詢層強制於單機統一記憶體架構下亦有明確效能代價。 | `§P5.Y` 之立論即為此——**行動錯了物理後果無法收回，故可用性不得換取可歸責性**：L7.44(d) 明文禁 fail-open、禁補驗路徑、禁以可用性為由旁路；L7.47 阻斷「以效能為由停用 gate」，正確處置為**降低吞吐**。緊急情境之正解為**人類逐案核准之 RT-4 路徑**（仍經介面、仍具六元組），非旁路。**殘餘**：介面自身之單點故障使其成為可用性瓶頸；其高可用化屬 L7.25 同源之部署課題，惟**介面不可用時之正確行為恆為阻卻——此為設計常數，非可調參數。** |
 | **T-L7-11** | L7.70(b)、TR.Z、OPEN-L7-02 | **末層無下層可 DEFER vs 承接量之巨大（收編完備性風險）**：七上層之全部下放於 L7 終局落地，而 L7 已無「屬實作細節」之遁詞（L7.70(d)）。風險：以沉默規避未承接事項，**形式上不違任何條款而實質架空上層**。另一具體未解：**向量索引之 as-of 重建（於 t 時刻之嵌入空間狀態）是否於任何候選載體上可行**——若不可行，Semantic Memory 之檢索結果將無法通過 `§P4.E2` 之認識狀態可追溯要求。 | (i) **禁止再下放**（defers-out 須為空，L7.70(a)）；(ii) **缺口明列義務**——未承接者必須明文列為 OPEN＋理由＋補正計畫＋到期日，未列者為**違憲不作為**，該事項所涉 Action 一律推定不允許（L7.70(b)）；(iii) 缺口列示為**揭露，非豁免**——涉 `§8.4` 不可豁免核心者不得以列示替代履行；(iv) 向量 as-of 之未解事項登錄為 **OPEN-L7-02 附隨事項**，保守預設：Semantic Memory 輸出恆為候選斷言且推定 synthetic，不得進入權威表徵層。**殘餘**：TR 矩陣中標「不觸及＋理由」者，若 Steward 認定其物理面實有 L7 落點需求，**即為缺口，必須補列，不得默過。** |
@@ -1020,7 +1020,7 @@ compliance-statement:
 
 | # | front-matter 鍵 | 上層掛鉤 | 本層落點 | Annex LDI |
 |---|---|---|---|---|
-| 1 | `MC.role1-6` | `AUGUR-MC v1.4 §5` 角色一–六 | L7.10／L7.11／L7.12／L7.13／L7.15 | LDI.1 |
+| 1 | `MC.role1-6` | `AUGUR-MC v1.6 §5` 角色一–六 | L7.10／L7.11／L7.12／L7.13／L7.15 | LDI.1 |
 | 2 | `MC.7+AppendixA` | `§7`＋Appendix A（非約束性） | L7.4／L7.14／L7.30 | LDI.2 |
 | 3 | `MC.P5.E2` | `§P5.E2` 末句（執法點） | L7.44／L7.43／L7.45 | LDI.3 |
 | 4 | `MC.P4.E2` | `§P4.E2`（as-of 重建之機制） | L7.20 | LDI.4 |
@@ -1061,7 +1061,7 @@ compliance-statement:
 
 ### CS.4 形式充分性（`AUGUR-WM v1.0 §WM.44`）[N]
 
-依 `§WM.44` 判準自查：`AUGUR-MC v1.4` **全部** [N] 條款、`AUGUR-WM v1.0`／`AUGUR-ONT v1.0`／`AUGUR-ID v1.0`／`AUGUR-KS v1.1`／`AUGUR-L5 v1.0`／`AUGUR-L6 v1.2` **全部** [N] 條款，均須對應至本規格至少一 [N] 條款、或明記 OPEN 落點、或明記「不觸及」及理由。
+依 `§WM.44` 判準自查：`AUGUR-MC v1.6` **全部** [N] 條款、`AUGUR-WM v1.0`／`AUGUR-ONT v1.0`／`AUGUR-ID v1.0`／`AUGUR-KS v1.1`／`AUGUR-L5 v1.0`／`AUGUR-L6 v1.2` **全部** [N] 條款，均須對應至本規格至少一 [N] 條款、或明記 OPEN 落點、或明記「不觸及」及理由。
 
 * **P5 家族〔核心〕**：Annex TR.A 已就 `§P5.D`／`§P5.E1`／`§P5.E2`／`§P5.W1`–`§P5.W5` 逐條枚舉（本層為 P5 之**物理執法層**）。
 * **P4 家族〔核心〕**：Annex TR.B 已就 `§P4.D`／`§P4.W1`／`§P4.E1`–`§P4.E8` 逐條枚舉（本層為 P4 之**物理成就層**）。
@@ -1076,7 +1076,7 @@ compliance-statement:
 
 ## Annex EO [N] — 自創評價性謂詞判準彙整
 
-> **EO.1（判準彙整表）[N]** 本規格自創或操作化之評價性謂詞，依 `AUGUR-MC v1.4 §8.3` 可判定性元規則，逐一附可判定判準：
+> **EO.1（判準彙整表）[N]** 本規格自創或操作化之評價性謂詞，依 `AUGUR-MC v1.6 §8.3` 可判定性元規則，逐一附可判定判準：
 >
 > | 謂詞 | 出處 | 可判定判準 |
 > |---|---|---|
@@ -1132,6 +1132,6 @@ compliance-statement:
 
 *本規格計：正文 [N] 條款 **45 條**——L7.1–L7.5（末層紀律與文件從屬，5）＋L7.10–L7.18（`§5` 六角色物理載體與角色分離，9）＋L7.20–L7.28（資料庫架構，9）＋L7.30–L7.33（選型登錄，4）＋L7.40–L7.49（行動治理物理承接與受控介面，10）＋L7.50–L7.52（硬體與環境，3）＋L7.60（治權措辭，1）＋L7.70（末層紀律，1）＋L7.90–L7.92（文件治理，3）；其餘為十位制保留區塊（空號為保留、非跳號）。Annex：LDI（LDI.0–LDI.43）、LDO（LDO.0，**空集宣告**）、OPEN（OPEN.0、OPEN-L7-00–07）、L7B（L7B.0）、TR（TR.0、TR.A–TR.G、TR.Z）、CS（CS.1–CS.4）、EO（EO.1）。全文以繁體中文為權威文本（`§0.4`）。*
 
-*本文件為 **v1.0 生效版本**（§8.2 條件通過，RULING-2026-025）：2026-07-18 經 Constitution Steward（人類 tsaitsangchi）依 `AUGUR-MC v1.4 §0.5`／`§8.6` 充任認定（RULING-2026-011／AL-2026-014）；`§8.2` 深度實質審查 2026-07-19 條件通過（RULING-2026-025，七項核定；residual 復審 2026-10-14）。**本層為執行層末層**：一切上層 DEFER 於此終局落地，無下層可承接（defers-out ＝ ∅）。**本層由 Agent 起草而規範限制該 Agent 自身之物理停止機制**——此結構性誘因之三重防守（T-L7-7）與全部條款，仍受 `§8.2` 保留審查約束；本規格不以形式關卡冒充實質合憲。*
+*本文件為 **v1.0 生效版本**（§8.2 條件通過，RULING-2026-025）：2026-07-18 經 Constitution Steward（人類 tsaitsangchi）依 `AUGUR-MC v1.6 §0.5`／`§8.6` 充任認定（RULING-2026-011／AL-2026-014）；`§8.2` 深度實質審查 2026-07-19 條件通過（RULING-2026-025，七項核定；residual 復審 2026-10-14）。**本層為執行層末層**：一切上層 DEFER 於此終局落地，無下層可承接（defers-out ＝ ∅）。**本層由 Agent 起草而規範限制該 Agent 自身之物理停止機制**——此結構性誘因之三重防守（T-L7-7）與全部條款，仍受 `§8.2` 保留審查約束；本規格不以形式關卡冒充實質合憲。*
 
 **核心產物索引 [I]**：末層紀律＝§1（L7.1 末層地位／L7.2 不重定義／L7.3 OPEN 收編／L7.4 刪名測試／L7.5 反自我交易準用）；六角色載體＝§2（L7.10 Bearer Registry 七欄／L7.11 六角色對映／L7.12 可替換性／L7.13 Observation Store 分立／L7.14 F1-F2 反向防線＋處置序／L7.15 角色分離／**L7.16 owner ≠ 應用角色（AUD-02）**／L7.17 prod-沙盒隔離／L7.18 共置不解除分離）；資料庫＝§3（L7.20 as-of gate／L7.21 物理禁刪＋tombstone／L7.22 轉指／L7.23 命名空間編碼／L7.24 拓撲＋Registry＋直綁消除／**L7.25 故障域分離副本＋還原實測**／L7.26 存量量測／L7.27 還原非旁路＋抹除涵蓋全部副本／L7.28 單機無備援之非豁免宣示）；選型＝§4（L7.30 Selection Registry／L7.31 版本為 provenance／L7.32 標記不脫落＋receipt 區隔／L7.33 語料隔離）；行動治理物理面＝§5（**L7.40 kill-switch 五層降級序**／**L7.41 H_max＋pre-commit hold**／L7.42 憑證綁定＋人類權威憑證／L7.43 監督介面＋T／**L7.44 單一執法點＋fail-closed**／**L7.45 Threshold Registry＋棘輪**／L7.46 OCV 擷取＋⊒ 物理執行／L7.47 資源不足不得弱化監督／L7.48 供應商防護＋入向 Observation 化／L7.49 憑證紀律）；硬體＝§6（L7.50 架構相容／L7.51 residual risk 揭露／L7.52 快照 [I] 地位）；承接表＝Annex LDI／OPEN；WM.44 矩陣＝Annex TR。

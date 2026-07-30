@@ -32,7 +32,7 @@
 | **微調棧** | ⚠ **無 peft／trl／bitsandbytes／gguf／dspy** ——LoRA 路線環境**尚未備**（記憶曾誤記為已裝，本日親驗推翻） | `pip list` |
 | **服務（user-level systemd）** | 11 unit＋5 timer：`augur-{chat,advisor,admin,probability,qdrant,ollama}.service`、`augur-{admission-assist,ata-advance,audit-watchdog,embed-catchup,l2-deliberation}.service+.timer` | `~/.config/systemd/user/` |
 | **程式** | `src/augur/` **16 package**：advisor・arena・audit・catalog・core・deliberation・evaluation・evolution・execution・features・identity・ingestion・knowledge・models・philosophy・universe | `ls -d src/augur/*/ \| grep -v __pycache__` |
-| **硬體上限（2026-07-30 親驗更正）** | **當家機 PC002-S1800＝CPU-only、無獨顯**（`GPU: 無 nvidia-smi`／`nvcc: 未安裝`／x86_64／12 緒／RAM 11.7–15.9 GiB＋swap 69.8 GiB／單通道，hugo 已拍板不修）。**GTX 1650 4GB 屬 DESKTOP-8MQPFS8**（25.4 GiB／CUDA 12.6／sm_75），該機**僅週末開**。⚠ 故「1.7b QLoRA 可行」**只對 DESKTOP 成立、對當家機不成立**（CPU LoRA 已退場）；與 §8.4 之親驗一致 | `ops/machines/PC002-S1800.md`＋`DESKTOP-8MQPFS8.md` 逐行親驗 |
+| **硬體上限（2026-07-30 親驗更正）** | **當家機 PC002-S1800＝CPU-only、無獨顯**（`GPU: 無 nvidia-smi`／`nvcc: 未安裝`／x86_64／12 緒／RAM 11.7–15.9 GiB＋swap 69.8 GiB／單通道，hugo 已拍板不修）。**GTX 1650 4GB 屬 DESKTOP-8MQPFS8**（25.4 GiB／CUDA 12.6／sm_75），該機**與當家機並行使用於本專案**（Steward 2026-07-30 確認）。⚠ 故「1.7b QLoRA 可行」**只對 DESKTOP 成立、對當家機不成立**（CPU LoRA 已退場）；與 §8.4 之親驗一致 | `ops/machines/PC002-S1800.md`＋`DESKTOP-8MQPFS8.md` 逐行親驗 |
 
 ## 三、核心實測發現：「一條路」目前是六條並行的路
 
@@ -251,7 +251,7 @@ END $$ LANGUAGE plpgsql;
 | **統計檢定** | statsmodels 0.14.6（HAC／Eff-t） | `evaluation/metrics.py:effective_t_hac` | 禁裸用 iid effective_t |
 | **風險模擬** | arch 8.0.0（GARCH-FHS）＋自建重抽法 | 模擬方法庫 | 四鎖：模擬非預測 |
 | **外來時序基礎模型** | chronos-bolt／moirai-2.0／timesfm-2.5 | replay 合法窗已親驗（權重污染邊界） | 僅 replay／arena 對照，不入生產認知 |
-| **微調（規劃中）** | 1.7b 級 QLoRA | peft＋trl＋bitsandbytes → `convert_lora_to_gguf` → ollama `ADAPTER` | ⚠ **雙重阻塞（親驗）**：(1) 四套件皆未裝；(2) **當家機無 GPU 無 CUDA → QLoRA 於本機物理不可行**（`torch.cuda.is_available()=False`），唯 DESKTOP-8MQPFS8（GTX 1650 4GB、**僅週末開**）可跑。4b no-go；llama.cpp 未裝且**禁跑其 requirements.txt** |
+| **微調（規劃中）** | 1.7b 級 QLoRA | peft＋trl＋bitsandbytes → `convert_lora_to_gguf` → ollama `ADAPTER` | ⚠ **雙重阻塞（親驗）**：(1) 四套件皆未裝；(2) **當家機無 GPU 無 CUDA → QLoRA 於本機物理不可行**（`torch.cuda.is_available()=False`），唯 DESKTOP-8MQPFS8（GTX 1650 4GB、**並行使用中**）可跑。4b no-go；llama.cpp 未裝且**禁跑其 requirements.txt** |
 
 ## 七、對接規格 D・服務與端點
 
@@ -759,7 +759,7 @@ END $$ LANGUAGE plpgsql;
 
 | 階段 | 內容 | 前置 | 產出 |
 |---|---|---|---|
-| **P0 環境前置** | `pip install peft trl bitsandbytes`＋4-bit 載入 smoke——**須在 DESKTOP-8MQPFS8 上做**（當家機無 GPU 無 CUDA、smoke 必失敗）；不動 torch/transformers 版本 | **DESKTOP 開機（僅週末）** | `verify_lora_prereq.py` exit 0 且輸出含 hostname；當家機明記為不可跑之機 |
+| **P0 環境前置** | `pip install peft trl bitsandbytes`＋4-bit 載入 smoke——**須在 DESKTOP-8MQPFS8 上做**（當家機無 GPU 無 CUDA、smoke 必失敗）；不動 torch/transformers 版本 | **DESKTOP 可用（並行使用中）** | `verify_lora_prereq.py` exit 0 且輸出含 hostname；當家機明記為不可跑之機 |
 | **P1 統一層落地** | `migrate_path_registry_ddl.py` 建三表二 guard；`src/augur/path/` 五模組＋`--selftest` | 無（不動既有） | `--check` 綠；selftest 綠 |
 | **P2 掛既有** | `sync_path_registry.py --source all`（3 門表 33 列＋4 裁決表 770 列，冪等） | P1 | `path_status.py` 全景可查；空表誠實顯示 0 |
 | **P3 接線八線** | B-3 八處各 +2~3 行；新裁決一律雙寫（既有表＋統一表），觀察一週後才考慮單寫 | P2 | 每線至少一筆新裁決落統一表 |
