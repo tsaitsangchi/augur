@@ -16,7 +16,7 @@ Augur 的完整架構是**憲章定義的 8 層（Layer 0–7）**；本文件�
 
 | 層 | 是什麼 | 對映 8 層 | 對映 repo |
 |---|---|---|---|
-| **概念層**（Reality／Representation） | 精神、思想、憲章；世界「是什麼、如何表徵/分類/識別/知道」 | Layer 0–4 | `augur-constitution`（私有） |
+| **概念層**（Reality／Representation） | 精神、思想、憲章；世界「是什麼、如何表徵/分類/識別/知道」 | Layer 0–4 | `constitution/`＋`specs/`（原 `augur-constitution`，2026-07-22 併入本倉） |
 | **實作層**（Intelligence／Action） | 軟體、模型、程式、資料庫；世界如何被「推理/行動/承載」 | Layer 5–7 | `augur`（公開）＋基建 |
 
 > **概念層獨立性（`§0.6(b)`）**：概念層（L1–4）規格**不得**引用執行層（L5–7）之構件（特定資料庫、向量庫、Agent 框架、LLM）作為定義依據 —— 這正是「概念先於實作」在憲章中的機器可判落實。
@@ -24,7 +24,7 @@ Augur 的完整架構是**憲章定義的 8 層（Layer 0–7）**；本文件�
 ## 三、8 層權威結構（憲章定義）× 對映
 
 ```
-┌─ 概念層 ── augur-constitution repo ───────────────────────────┐
+┌─ 概念層 ── constitution/ + specs/（原獨立倉,已併入） ─────────┐
 │ Layer 0  Meta-Constitution   精神/憲章/Prime Axiom+五原則      │
 │ Layer 1  World Model         世界有何物（存在宣告）            │
 │ Layer 2  Ontology            是什麼類、如何分類、同一性判準      │
@@ -47,7 +47,7 @@ Augur 的完整架構是**憲章定義的 8 層（Layer 0–7）**；本文件�
 ## 四、L5/L6 是雙面的（重要）
 
 Layer 5（Cognitive Kernel）、Layer 6（Agent Runtime）**橫跨兩層**：
-- 它們的**規格**（推理不變式、人類權威、風險分級）＝**概念層**（[N] 規範，住 `augur-constitution`）。
+- 它們的**規格**（推理不變式、人類權威、風險分級）＝**概念層**（[N] 規範，住 `specs/`；原 `augur-constitution` 已併入本倉）。
 - 它們的**引擎實作**（實際的 reasoning engine、Agent runtime、排程器、LLM）＝**實作層**（住 `augur`/基建）。
 
 因此**不可**把 L5/L6 整個歸入實作層 —— 那會弄丟其規範性。L5 規格自稱「概念層與執行層之交界」即此故。
