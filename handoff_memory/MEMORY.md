@@ -1,4 +1,12 @@
 # Memory Index
+
+## ⭐ 核心基礎（2026-07-30 定案；後續發展一律以此三則為前提）
+- [世界建構核心](augur-world-construction-core.md) — **augur＝從零建構的世界 L0-L7**;一條路×八行走者;法屬世界足跡屬域;自反性法源鏈(hugo 五度校正定案)
+- [一條路實為六條並行](augur-path-six-parallel-gap.md) — 親驗:3 門表同骨架重複+6 裁決表異質(2 空表)+prodset 真名 evolution_production_feature_set;統一 path_* 三表設計
+- [技術底座 20260730](augur-tech-baseline-20260730.md) — 294 表/8.54M/18 package/425 scripts/11 unit(user-level)/ollama 三模型/套件實況(無 peft)
+
+- [同尺四查](same-scale-precheck.md) — 07-28~30 六發尺陷阱歸納:A/B 前查覆蓋/網格(hash 自證)/重名/falsy 空集
+- [便宜尺寸先行](cheap-scale-first.md) — 昂貴掃描前 preview 打熟引擎(23-cutoff 抓 3 bug 省 73h);sha 含網格自動分家;收 preview 讀帳本驗屍
 - [git add 只逐檔明列](git-add-scoped-only.md) — 07-28 實犯:add -A 掃進並行 session 未提交檔;commit 逐檔列+status 先查+--allow-empty 零 add
 
 - [慢可以、提升要精準](slow-but-precise.md) — hugo 07-27 指導原則:速度讓位正確性;驗收用精確計數/凍結尺實測不用估;timeout 放寬不猶豫(advisor 900s);不為快降 draws/seeds
@@ -6,11 +14,12 @@
 - [本機 PC002-S1800 硬體](machine-pc002-s1800-hardware.md) — SSOT=ops/machines/PC002-S1800.md;單通道記憶體(hugo 拍板不修、勿再提案);無獨顯無 AVX-512;Trend Micro 企業機;AC 永不睡眠=可跑過夜
 - [不代打人簽](never-type-human-signature.md) — **promoted_by/approved_by/decided_by 一律 hugo 親跑寫入**;07-25 實犯(代打 promoted_by='hugo' 使 P5.W2 保證變成我能自行滿足);判斷句「這欄位是不是為了證明某事由人做的?」;已犯列以註記自陳不竄改
 
+- [venv 微調棧未備](venv-finetune-stack-absent.md) — 07-30 親驗:無 peft/trl/bitsandbytes/gguf;LoRA 計畫須先列環境前置 P0+import smoke
 - [GB10 不可用](gb10-unavailable.md) — **hugo 07-25 宣告:沒有 GB10、進化只能本機**;07-26 修正:1.7b QLoRA 可行/4b no-go(embedding 不被量化)、GTX1650 無 tensor core 故 bf16 快 3×、CPU LoRA 退場、權重鏈唯 convert_lora_to_gguf 路
 - [防呆機制自己靜默失效](guard-mechanisms-that-silently-fail.md) — 四型實犯(欄名錯被except吞/測試靜默skip/斷言掃到自己/字面斷言驗不到真行為);判斷句「這機制若壞了會不會安靜變綠燈?」;先唯讀比對再apply
 - [評測樣板地板](eval-boilerplate-floor.md) — **鐵律:宣稱分數代表能力前必跑 ceiling/floor/mismatched 三臂**;07-26 常數字串 0.654>冠軍 0.492;**07-27 新尺同病復發→07-28 已修尺**(V2-RUBRIC-go:robot 第五臂+加料年份否決+真地板;新尺 ef142e9374c1;robot 五格全 1.000=本集無可證格,真訊號唯 S-4 重建)
 - [自我進化計畫地貌](augur-self-evolution-plan-map.md) — SSOT=v2 總控(20260726,TRI-v1 降前身);Phase 0/1 ✅(behavior F@L1 0.933=判準A PASS)、Phase 2 焊死待 V2-P-yes;V2-SUNSET 落日 hugo 親填;六條邊/共用零件裁決/I1-I9/H1-H10/明確不做 全錄;⚠讀計畫須帶 07-26 晚更正(arena 已結+每日 cron)
-- 【07-25 晚新增,詳細記憶待寫】**憲章已 v1.47.0**(跨域原理映射準則;principle_domain_map 表);**人閘機制 live**(governance_proposal 三表三鎖+governance_queue CLI,首案全循環:v1 審查退回→v2 hugo 人簽→enacted);演化迴圈 evolve_cycle 首輪跑通(gold+50/pack pp_7c55);夜間收割 cron 01:30 已掛(quant_finance/software_engineering 新域);venv 新增 peft/trl/dspy/gguf;**演化鏈全自動編排 run_evolution_chain.sh(01:30)+2h 快車道+6h 自我求知;hugo 鐵律:演化教師永久本地化(oracle>8b教4b>人裁)、外部 AI token 歸零、僅 hugo 可反轉**
+- 【07-25 晚新增,詳細記憶待寫】**憲章已 v1.47.0**(跨域原理映射準則;principle_domain_map 表);**人閘機制 live**(governance_proposal 三表三鎖+governance_queue CLI,首案全循環:v1 審查退回→v2 hugo 人簽→enacted);演化迴圈 evolve_cycle 首輪跑通(gold+50/pack pp_7c55);夜間收割 cron 01:30 已掛(quant_finance/software_engineering 新域);~~venv 新增 peft/trl/dspy/gguf~~〔**07-30 親驗推翻：本機無此四者，見 [venv 微調棧未備](venv-finetune-stack-absent.md)**〕;**演化鏈全自動編排 run_evolution_chain.sh(01:30)+2h 快車道+6h 自我求知;hugo 鐵律:演化教師永久本地化(oracle>8b教4b>人裁)、外部 AI token 歸零、僅 hugo 可反轉**
 
 - [憲章 corpus 已讀 20260723](augur-constitution-corpus-20260723.md) — monorepo 治權全貌：入口 GOVERNANCE-MAP；**MC v1.6**；L1–L7 生效版；領域靈魂／原則／大憲章／CLAUDE；RULING-041 #7 規範閉合；10-14 勿假關
 - [AUGUR-MC 上位治權體系](augur-mc-upper-governance.md) — **MC v1.6 原文在 `constitution/`**（不再「不在本機」）；領域 Layer 登錄；#7↔P4.E5 規範已閉（RULING-041）；AUD-02 code 仍受閘；2026-10-14 日曆項勿假關
