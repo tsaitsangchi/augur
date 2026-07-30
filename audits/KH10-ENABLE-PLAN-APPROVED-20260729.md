@@ -29,6 +29,6 @@
 
 | 階段 | CLOSED |
 |---|---|
-| S0（DDL） | （待實作令） |
+| S0（DDL） | ✅ CLOSED — `audits/KH10-ENABLE-S0-CLOSED-20260730.md` |
 | S1（collect + governance CLI） | （待實作令） |
 | S2（feedback + PME 銜接） | （待實作令） |
