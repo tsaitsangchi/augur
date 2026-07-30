@@ -330,7 +330,15 @@ def _ask_ollama(prompt: str, timeout: int = LLM_TIMEOUT_SEC) -> str:
         "system": SYSTEM,
         "stream": False,
         "think": False,
-        "options": {"temperature": 0, "num_predict": 220},
+        # `format: "json"` 為關鍵（2026-07-30 實證）：不加時 qwen3:4b **照樣把推理當正文吐**
+        #（`think: False` 只擋 `<think>` 標籤、不擋思考本身），220 tokens 全花在前言、
+        # 回應斷在「這表示」**根本還沒輪到輸出 JSON**；而 `_parse_llm_json` 抓到的 `{...}`
+        # 是它複述的 schema（`{"score":0.0到1.0,...}`＝非合法 JSON）⇒ 回 None ⇒
+        # 整個答案被丟掉、退回啟發式 ⇒ 又印「待放行」。
+        # 加了之後：**76.0s（比不加快 47s）、210 字元、可解析**，且直接吐 JSON 無前言。
+        "format": "json",
+        # 220 仍會截斷（實測回應斷在 "suggested_domain"）；JSON 輸出精簡，400 有餘裕。
+        "options": {"temperature": 0, "num_predict": 400},
     }
     req = urllib.request.Request(
         OLLAMA, json.dumps(body).encode(), {"Content-Type": "application/json"})
