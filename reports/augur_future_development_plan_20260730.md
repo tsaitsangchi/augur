@@ -32,7 +32,7 @@
 | **微調棧** | ⚠ **無 peft／trl／bitsandbytes／gguf／dspy** ——LoRA 路線環境**尚未備**（記憶曾誤記為已裝，本日親驗推翻） | `pip list` |
 | **服務（user-level systemd）** | 11 unit＋5 timer：`augur-{chat,advisor,admin,probability,qdrant,ollama}.service`、`augur-{admission-assist,ata-advance,audit-watchdog,embed-catchup,l2-deliberation}.service+.timer` | `~/.config/systemd/user/` |
 | **程式** | `src/augur/` **16 package**：advisor・arena・audit・catalog・core・deliberation・evaluation・evolution・execution・features・identity・ingestion・knowledge・models・philosophy・universe | `ls -d src/augur/*/ \| grep -v __pycache__` |
-| **硬體上限** | GTX 1650 4GB（無 tensor core）→ **1.7b QLoRA 可行、4b no-go**；單通道記憶體（hugo 已拍板不修） | `ops/machines/PC002-S1800.md` |
+| **硬體上限（2026-07-30 親驗更正）** | **當家機 PC002-S1800＝CPU-only、無獨顯**（`GPU: 無 nvidia-smi`／`nvcc: 未安裝`／x86_64／12 緒／RAM 11.7–15.9 GiB＋swap 69.8 GiB／單通道，hugo 已拍板不修）。**GTX 1650 4GB 屬 DESKTOP-8MQPFS8**（25.4 GiB／CUDA 12.6／sm_75），該機**僅週末開**。⚠ 故「1.7b QLoRA 可行」**只對 DESKTOP 成立、對當家機不成立**（CPU LoRA 已退場）；與 §8.4 之親驗一致 | `ops/machines/PC002-S1800.md`＋`DESKTOP-8MQPFS8.md` 逐行親驗 |
 
 ## 三、核心實測發現：「一條路」目前是六條並行的路
 
@@ -251,7 +251,7 @@ END $$ LANGUAGE plpgsql;
 | **統計檢定** | statsmodels 0.14.6（HAC／Eff-t） | `evaluation/metrics.py:effective_t_hac` | 禁裸用 iid effective_t |
 | **風險模擬** | arch 8.0.0（GARCH-FHS）＋自建重抽法 | 模擬方法庫 | 四鎖：模擬非預測 |
 | **外來時序基礎模型** | chronos-bolt／moirai-2.0／timesfm-2.5 | replay 合法窗已親驗（權重污染邊界） | 僅 replay／arena 對照，不入生產認知 |
-| **微調（規劃中）** | 1.7b 級 QLoRA | peft＋trl＋bitsandbytes → `convert_lora_to_gguf` → ollama `ADAPTER` | ⚠ **四套件皆未裝**＝P0 環境前置；4b no-go（embedding 不被量化）；llama.cpp 未裝且**禁跑其 requirements.txt** |
+| **微調（規劃中）** | 1.7b 級 QLoRA | peft＋trl＋bitsandbytes → `convert_lora_to_gguf` → ollama `ADAPTER` | ⚠ **雙重阻塞（親驗）**：(1) 四套件皆未裝；(2) **當家機無 GPU 無 CUDA → QLoRA 於本機物理不可行**（`torch.cuda.is_available()=False`），唯 DESKTOP-8MQPFS8（GTX 1650 4GB、**僅週末開**）可跑。4b no-go；llama.cpp 未裝且**禁跑其 requirements.txt** |
 
 ## 七、對接規格 D・服務與端點
 
@@ -759,7 +759,7 @@ END $$ LANGUAGE plpgsql;
 
 | 階段 | 內容 | 前置 | 產出 |
 |---|---|---|---|
-| **P0 環境前置** | `pip install peft trl bitsandbytes`＋4-bit 載入 smoke（GTX 1650）；不動 torch/transformers 版本 | 無 | import smoke 綠；版本鎖記錄 |
+| **P0 環境前置** | `pip install peft trl bitsandbytes`＋4-bit 載入 smoke——**須在 DESKTOP-8MQPFS8 上做**（當家機無 GPU 無 CUDA、smoke 必失敗）；不動 torch/transformers 版本 | **DESKTOP 開機（僅週末）** | `verify_lora_prereq.py` exit 0 且輸出含 hostname；當家機明記為不可跑之機 |
 | **P1 統一層落地** | `migrate_path_registry_ddl.py` 建三表二 guard；`src/augur/path/` 五模組＋`--selftest` | 無（不動既有） | `--check` 綠；selftest 綠 |
 | **P2 掛既有** | `sync_path_registry.py --source all`（3 門表 33 列＋4 裁決表 770 列，冪等） | P1 | `path_status.py` 全景可查；空表誠實顯示 0 |
 | **P3 接線八線** | B-3 八處各 +2~3 行；新裁決一律雙寫（既有表＋統一表），觀察一週後才考慮單寫 | P2 | 每線至少一筆新裁決落統一表 |
@@ -778,12 +778,12 @@ END $$ LANGUAGE plpgsql;
 | V5 | `scope_label` 不混算：live 門之樣本計數 SQL 排除 `replay-確立` | `path_status.py --integrity` exit 0 |
 | V6 | 八行走者全景可一頁查得（含 0 值誠實顯示） | `python3 scripts/path_status.py` |
 | V7 | 既有六條路之證據**零變動**（列數與 sha 前後相同） | 前後 `count(*)`＋`md5(array_agg(...))` 比對 |
-| V8 | P0 環境：4-bit 1.7b 載入成功、4b 明確 OOM（誠實記錄上限） | smoke log |
+| V8 | P0 環境：4-bit 1.7b 載入成功、4b 明確 OOM（誠實記錄上限）——**驗收須附 hostname，於當家機執行者一律不算通過** | smoke log＋`verify_lora_prereq.py` 輸出 |
 
 ## 十一、誠實界限與風險
 
 1. **本檔為計畫，未實作**：§四 DDL 尚未執行、§五 程式尚未寫；所有「已有」欄位皆本日親驗，所有「新增」皆未動工。
-2. **微調棧未備**（§二 ⚠）：任何 LoRA 排程在 P0 完成前都是空中樓閣；記憶曾誤記為已裝，本日推翻並已更正記憶檔。
+2. **微調棧未備＋載具錯置（親驗雙重更正）**：(a) peft／trl／bitsandbytes／gguf 四套件皆未裝；(b) **本檔初版把 GTX 1650 4GB 當成當家機能力，實為 DESKTOP-8MQPFS8 之硬體**——當家機 PC002-S1800 為 CPU-only 無獨顯（`ops/machines/` 兩檔逐行對照）。此為我**未先確認該硬體屬哪台機即引用**之誤（假兆③：憑記憶而未實證），致 §二／§六／§九 與 §8.4 agent 親驗結果自相矛盾，已於本版逐處更正。LoRA 排程須改為「週末於 DESKTOP 訓練、平日於當家機評測」，或改走非微調路線。
 3. **雙寫期風險**：P3 採雙寫（既有＋統一）以保既有證據零動；若兩邊不一致，以既有為準、統一層標 `adapter_source` 待對帳——**不得反過來以統一層覆寫既有**。
 4. **`walker_kind` 八值閉集**：新增第九類行走者屬治權變更（須入憲），不得由 code 逕自加值。
 5. **不觸判準**：本計畫全部屬執行層（新增機制、接線、守夜人）；§八 ⑧之乙批五案與「一條路總則入憲」（乙-3）仍待 Steward 裁，**本計畫不預設其結果**。
