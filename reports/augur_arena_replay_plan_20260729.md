@@ -82,3 +82,14 @@ own_daily 逐日重訓 ~600 日＝**過夜級**（nice、逐日 resume、與 LLM
 沿用既有 direction gate 三關逐字（(i) hit−base HAC Eff-t 單尾 p<0.05；(ii) OOS Brier < p̄(1−p̄)；(iii) ECE≤凍結上限＋十分位單調），樣本源改「`direction_arena_replay` 之 `weights_cutoff_ok=true` 列、≥60 不重疊 cluster」；每隊一門（own_daily_rolling／mc_bootstrap／momentum_20／chronos_bolt／moirai2／timesfm）；作用域標注=「replay-確立」。
 
 **待簽**：`REPLAY-go`（含附錄判準；改判準請註明）。
+
+## 補記：R3 發布日親驗（2026-07-30，web/HF 查證非記憶）
+
+| 隊 | 權重發布（親驗） | 合法窗（+1M 邊際） | 估 clusters |
+|---|---|---|---|
+| chronos_bolt_small | **2024-11-26**（HF 發布） | 2024-12-26 → 2026-06-30 | ~370 ✓ |
+| moirai2_small（Moirai-2.0-R-small） | **2025-08** | 2025-09-15 → 2026-06-30 | ~195 ✓ |
+| timesfm_25_200m（TimesFM-2.5） | **2025-09** | 2025-10-16 → 2026-06-30 | ~175 ✓ |
+
+三隊合法窗皆足 ≥60 不重疊 cluster——R3 重演可排程（TSFM CPU 推論重活、待車道；`--allow-pretrained`＋窗參數照上表）。
+來源：huggingface.co/amazon/chronos-bolt-small、Salesforce/moirai-2.0-R-small、google/timesfm-2.5-200m-pytorch（發布敘述另證 marktechpost 2025-08-15/09-16）。
