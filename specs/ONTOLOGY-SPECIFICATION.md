@@ -56,7 +56,7 @@ Augur Enterprise AI Operating System
 * 正文條款編號採 **ONT.{n}**；Annex 條款編號採 **T.{n}**（Annex T 型別階層）、**DI.{n}**（Annex DI，承接上層之掛鉤）、**DO.{n}**（Annex DO，下放下層之掛鉤）、**EO.{n}**（Annex EO，評價性謂詞判準）、**TM.{n}**（Annex T-Map 之表首治理條款，如 TM.0）。Annex L3 之列與 Annex T-Map 之資料列以其所引 ONT／T 編號為索引，不另立獨立條款號；TM.{n} 僅用於 T-Map 之表首治理條款本身，非逐列編號。
 * 條款編號一經發布**永不重用、永不重排**；廢止條款保留編號並標注 **(repealed)**（準用 `AUGUR-MC v1.6 §8.6`、`AUGUR-WM v1.0 §WM.46`）。
 * 下層引用本規格之格式：`AUGUR-ONT v{version} §ONT.{n}`；Annex 條款逐一為 `AUGUR-ONT v{version} §T.{n}`、`§DI.{n}`、`§DO.{n}`、`§EO.{n}`。
-* 本規格引用憲章引用版號**隨憲章／上層規格升版同步更新**（準用 `AUGUR-WM v1.0 §0.3`、RULING-2026-018 已廢止永久凍結措辭；現行＝`AUGUR-MC v1.6`）〔2026-07-30 patch：依 Steward 核示「specs 之 [I] 值與事實更正屬 patch，依核示施作」〕 §{條款編號}` 格式；引用 Layer 1 一律採 `AUGUR-WM v1.0 §WM.{n}` / `§A.{n}` / `§D{n}` / `§E{n}` 格式。
+* 本規格引用憲章採 `AUGUR-MC v{現行版本} §{條款編號}` 格式，**引用版號隨憲章／上層規格升版同步更新**（準用 `AUGUR-WM v1.0 §0.3`、RULING-2026-018 已廢止永久凍結措辭；現行＝`AUGUR-MC v1.6`）〔2026-07-30：本行原經 patch 替換而致格式模板遺失、句構破碎（獨立核驗 F2 查獲），此為**還原並補齊**，非新訂格式〕；引用 Layer 1 一律採 `AUGUR-WM v1.0 §WM.{n}` / `§A.{n}` / `§D{n}` / `§E{n}` 格式。
 
 ### 0.4 權威語言聲明
 

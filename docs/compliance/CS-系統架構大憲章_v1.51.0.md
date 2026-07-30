@@ -1,9 +1,9 @@
-# Constitutional Compliance Statement — 系統架構大憲章 v1.50.0
+# Constitutional Compliance Statement — 系統架構大憲章 v1.51.0
 
 * **性質**：領域治權檔之 Constitutional Compliance Statement（[N] 聲明；**不上收** docs 進 META）
 * **依據**：`AUGUR-MC v1.6 §8.3`；`AUGUR-WM v1.0 §WM.39–45`；RULING-2026-002 主文二（補正期至 **2026-10-14**）
 * **登錄 Layer**：7（Infrastructure／領域架構承載；涉 L4–6 由本聲明逐節標注）
-* **正文 SSOT**：`docs/系統架構大憲章_v1.50.0.md`
+* **正文 SSOT**：`docs/系統架構大憲章_v1.51.0.md`
 * **誠實界限**：履行本檔補正；不假關 039／025／029 等其他 10-14 項。
 * **本版增量**：v1.49.0 第一部補「策展映射住 PostgreSQL（curated-mapping SSOT）」——策展映射／詞表／別名 runtime SSOT＝PG、know-how 產生禁領域 hardcode、明示豁免清單；知識層表 roster 加 `retrieve_glossary`／`advisor_distill_seed_topic`（見 `audits/NHC-CONSTITUTE-CLOSED-20260729.md`）。
 
@@ -22,7 +22,7 @@ compliance-statement:
   defers-out: [D-CHARTER-1]
   date: 2026-07-29
   author: Steward 授權（KH10-AUTO-ADMIT 入憲）
-  archive-path: docs/compliance/CS-系統架構大憲章_v1.50.0.md
+  archive-path: docs/compliance/CS-系統架構大憲章_v1.51.0.md
 ```
 
 ## CS.1 逐原則論證（七節）[N]
