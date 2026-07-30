@@ -4,6 +4,9 @@
 - [世界建構核心](augur-world-construction-core.md) — **augur＝從零建構的世界 L0-L7**;一條路×八行走者;法屬世界足跡屬域;自反性法源鏈(hugo 五度校正定案)
 - [一條路實為六條並行](augur-path-six-parallel-gap.md) — 親驗:3 門表同骨架重複+6 裁決表異質(2 空表)+prodset 真名 evolution_production_feature_set;統一 path_* 三表設計
 - [技術底座 20260730](augur-tech-baseline-20260730.md) — 294 表/8.54M/18 package/425 scripts/11 unit(user-level)/ollama 三模型/套件實況(無 peft)
+- [全專案重讀・記憶級事實](../../../project/augur/reports/augur_full_reread_facts_20260730.md) — 339 事實/153 踩雷/117 廢棄(12 區逐檔;repo 內全文,此處僅指針)
+- [驗證器陷阱 20260730](augur-verifier-traps-20260730.md) — verify_* 非唯讀+四支中位數灌滿覆蓋、reconcile_audit 假綠仍在、rc=0≠通過、門評跨軸(已修)
+- [DB schema 陷阱 20260730](augur-db-schema-traps-20260730.md) — raw_* 前綴反義、Dividend PK 塌列根因、ExchangeRate 兩表差 6 年、candidate 表無 guard、reltuples=-1≠空
 
 - [同尺四查](same-scale-precheck.md) — 07-28~30 六發尺陷阱歸納:A/B 前查覆蓋/網格(hash 自證)/重名/falsy 空集
 - [便宜尺寸先行](cheap-scale-first.md) — 昂貴掃描前 preview 打熟引擎(23-cutoff 抓 3 bug 省 73h);sha 含網格自動分家;收 preview 讀帳本驗屍

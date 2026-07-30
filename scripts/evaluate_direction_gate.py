@@ -239,11 +239,23 @@ def main():
         with db.connect() as conn:
             cur = conn.cursor()
             if args.all:
-                cur.execute("SELECT gate_id FROM direction_gate WHERE status='approved' ORDER BY track, horizon")
+                # track='M'(meta-replay)雖住同表,判準與取樣屬另一評估器(evaluate_meta_replay_gate.py);
+                # 不加軸過濾會把 M 門餵進方向軸取樣器 → 跨軸污染、且可能寫錯終局。故僅取本評估器之軸。
+                cur.execute("SELECT gate_id FROM direction_gate WHERE status='approved' "
+                            "AND track IN ('D','H') ORDER BY track, horizon")
                 gids = [r[0] for r in cur.fetchall()]
             else:
                 gids = [args.evaluate]
             for gid in gids:
+                cur.execute("SELECT track FROM direction_gate WHERE gate_id=%s", (gid,))
+                row = cur.fetchone()
+                if row is None:
+                    raise SystemExit(f"[FAIL] 門不存在:{gid}")
+                if row[0] not in ("D", "H"):
+                    # fail-closed:不靜默跳過,明示改用正確評估器(誤判終局比不判更貴)
+                    raise SystemExit(
+                        f"[FAIL] {gid} 之 track={row[0]} 非本評估器之軸(D/H);"
+                        f"track='M' 請用 scripts/evaluate_meta_replay_gate.py")
                 _evaluate_one(cur, gid)
                 conn.commit()
             # 家族總表(機械輸出;criteria family_disclosure 句不可消失——revival §3.7)
