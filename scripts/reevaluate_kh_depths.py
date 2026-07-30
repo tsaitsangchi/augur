@@ -36,6 +36,8 @@ from typing import Any
 import _bootstrap  # noqa: F401
 
 BATCH = 5000
+# admit_state 誠實閘之通行證（降級＝撤銷既有准入宣稱，不得無痕）
+LOWER_GUC = "augur.admit_depth_lower"
 LEDGER_DDL = """
 CREATE TABLE IF NOT EXISTS knowhow_depth_reevaluation (
     reeval_id   BIGSERIAL PRIMARY KEY,
@@ -132,6 +134,8 @@ def run(conn, *, apply: bool, limit: int | None) -> int:
             nd, why = new_depth_for(band, disc["ok"], int(d))
             if nd == int(d):
                 continue
+            # admit_state 誠實閘（migrate_admit_state_guard_ddl.py）：降級須通行證
+            cur.execute(f"SET LOCAL {LOWER_GUC} = 'on'")
             cur.execute(
                 "UPDATE knowhow_auto_admit_state SET admit_depth=%s, updated_at=now() "
                 "WHERE target_kind='item' AND target_id=%s",
@@ -180,6 +184,7 @@ def _selftest() -> int:
     d, _ = new_depth_for(None, False, 8)
     chk("depth8 亦收斂至 7", d == 7)
     chk("LEDGER 為 append-only（無 DELETE 語句）", "DELETE" not in LEDGER_DDL)
+    chk("降級帶 admit_state 閘之通行證", LOWER_GUC == "augur.admit_depth_lower")
     print("selftest: " + ("RED" if fails else "GREEN"))
     return 1 if fails else 0
 
