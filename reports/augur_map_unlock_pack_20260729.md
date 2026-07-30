@@ -32,3 +32,7 @@
 ## 三、執行約定
 
 回覆格式例：`MAP-1~11-核可＋12defer＋13defer＋14:-1＋15defer`（任意組合；掛原理要換就寫「6:p99」）。核可後我逐列 INSERT：`principle_factor_map(principle_id, feature, direction, hint_id〔#6-15〕, provenance={"unlock_pack":"20260729","note":"hugo 對話逐列核;claude 繕打 §8.1","window_semantics":…})`——`validated_ic/validated_econ` 留 NULL（那是漏斗跑完才填的欄，不預填 #9）。
+
+## 結案補記（2026-07-30，hugo「有三件，全部處理」）
+
+#12 已於 07-29 補裁落庫（−1 掛 p80）。**#13／#14／#15 defer 定案**：三顆交互之預期方向文獻無開口（#14 之 p95 讀法帶規模混雜、不強掛），hint 維持 approved、不入 map——日後文獻到位或你給一字（如 `14:p95:−1`）隨時補列。unlock pack 全案結：15 列中 12 入 map、3 defer 定案。
