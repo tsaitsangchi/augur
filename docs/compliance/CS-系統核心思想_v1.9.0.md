@@ -1,15 +1,18 @@
-# Constitutional Compliance Statement — 系統核心思想 v1.8.0
+# Constitutional Compliance Statement — 系統核心思想 v1.9.0
 
 * **性質**：領域治權檔之 Constitutional Compliance Statement（[N] 聲明文件；非把本檔正文上收為 Layer 0／非實質併憲）
 * **依據**：`AUGUR-MC v1.6 §8.3`；`AUGUR-WM v1.0 §WM.39–45`（§11 正式格式）；RULING-2026-002 主文二（五檔補正；期限至 **2026-10-14**）
 * **登錄 Layer**：1（World Model 領域前身；`AUGUR-WM v1.0 §WM.6`：[I] 引註，**非**定義依據）
-* **正文 SSOT**：`docs/系統核心思想_v1.8.0.md`
+* **正文 SSOT**：`docs/系統核心思想_v1.9.0.md`
 * **誠實界限**：本聲明履行 RULING-2026-002 主文二之**本檔**補正義務；**不**假關 RULING-2026-039 殘留或其他 2026-10-14 日曆項。
+
+
+* **本版增量（v1.9.0；hugo 拍板 2026-07-30「P1,P4,P9-照案」＋「P11 先修三則 high」）**：(a) **P4 刪名測試**：Source-Pure 判準本體由「真實 FinMind／FRED API 值」改為「**已登錄觀測通道**之真實來源回應」，現行通道降為 [I] 括注（過 `AUGUR-KS v1.1 §KS.4`；承 `§WM.7` 資料來源不得為最高抽象）。(b) **P11-high① 閉集對齊**：「它不是」列補「**目標價**」（原漏，而大憲章 L137 與 `§A.38` 皆含之），並增 E[r] 界線（不得反算或呈現為個股目標價／價格點位；粒度上限＝報酬率百分比）；幅度級 E[r] 於 A.38 閉集之模態定性是否須依 WM.52 作 Profile minor 增列，**列 open-tension 呈 Steward 裁**。(c) **P1 普遍晉升路徑從屬**：新增從屬段，明示本檔一切產物／能力／方法（含 AI 自身能力宣稱、評測量尺、迭代程序本身）從屬大憲章 v1.50.0「普遍晉升路徑」總則五節點，未複誦不得解為豁免。判準內涵：(a) 零變動（外延由二通道擴為登錄通道集、方向為去供應商依賴）；(b)(c) **為收緊**（補齊除外項、增界線、增節點義務），無放寬。留痕 `audits/TREATY-P1P3P4P9P11-20260730.md`。
 
 ```
 compliance-statement:
   spec: Augur Domain Soul（系統核心思想）
-  spec-version: v1.8.0
+  spec-version: v1.9.0
   layer: 1
   mc-version: AUGUR-MC v1.6
   upper-specs: []
@@ -21,7 +24,7 @@ compliance-statement:
   defers-out: [D-SOUL-1]
   date: 2026-07-23
   author: Steward 授權執行層（P2；計畫 reports/augur_docs_into_mc_initial_constitution_plan_20260723.md）
-  archive-path: docs/compliance/CS-系統核心思想_v1.8.0.md
+  archive-path: docs/compliance/CS-系統核心思想_v1.9.0.md
 ```
 
 ## CS.1 逐原則論證（七節）[N]

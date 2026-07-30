@@ -1,11 +1,11 @@
-# CLAUDE.md — Augur AI 協作工具規則 v1.31
+# CLAUDE.md — Augur AI 協作工具規則 v1.32
 
 > **憲章從屬（AUGUR-MC v1.6）**：本文件為 Augur 領域治權文件，受 **AUGUR-MC v1.6** 約束（Layer 0 lex superior，§0.6）。依 Steward 裁決第 2026-002 號（AL-2026-006）登錄為 **Layer 6（Agent Runtime）**；**「執行指令矩陣」個別可驗證義務**之上層依據＝Steward 裁決第 2026-026 號（AL-2026-029；§8.1 解釋落點 §8.3／§0.5 L6）。下層引用格式：`AUGUR-MC v1.6 §{條款}`／`AUGUR-WM v1.0 §{條款}`。憲章與規格存於 [tsaitsangchi/augur](https://github.com/tsaitsangchi/augur) 之 `constitution/`／`specs/`（原獨立倉已併入）。**合規聲明**：`docs/compliance/CS-CLAUDE.md`（§11／WM.39–45；RULING-2026-002 主文二本檔補正已履行；其他 2026-10-14 日曆項不因本聲明假關）。
 >
 > **治權地圖（統一入口）**：[`constitution/GOVERNANCE-MAP.md`](constitution/GOVERNANCE-MAP.md)——分層讀序與義務落點；本檔仍為 L6 工具規則，**非** L0。
 
 **性質**：AI（Claude 等）在本專案編輯/執行時的工具規則。
-**位階**：系統 doctrine 以 `docs/系統核心思想_v1.8.0.md` + `docs/原則精華_v1.11.0.md` + 憲章為準；
+**位階**：系統 doctrine 以 `docs/系統核心思想_v1.9.0.md` + `docs/原則精華_v1.12.0.md` + 憲章為準；
 本檔只管「**如何用 AI 工具編輯本專案**」這層短半衰期協作規則。
 **語言**：與用戶**所有對話一律繁體中文**（程式碼/識別碼/英文專名可保留原文）。
 
@@ -46,7 +46,7 @@
 14. **Commit / Push 須明示授權**：不自行 `git commit` / `git push`；用戶要求時遵守 git 安全協議（不 `--amend` 已 push、不 `--force` 主分支、不跳 hooks）。commit 訊息結尾加 `Co-Authored-By: Claude ...`。
 15. **PR / 遠端**：不自行建/關 PR、不在 issue 留言；影響遠端狀態的 `gh` 操作先確認。
 16. **研究報告**：寫入 `reports/`，命名 `<module>_<topic>_<YYYYMMDD>.md`。
-17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.11.0.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。
+17. **Clean-Room 重建（SSOT＝原則精華 #16，本條僅工具層引用）**：augur 所有程式產生一律 **clean-room**——只依 5 治權檔（靈魂 / 原則精華 / 憲章 / CLAUDE.md / README）+ augur 自身 schema 目錄 + live API 實證 建立；**產生任何 code 時，不讀、不參考、不移植 stock_backend 之任何 code / 資料 / 報告 / 數字 / 設定**（唯一 sanctioned 觸點＝憲章附錄 B 考古／已抽象之思想啟發，二者**不得回流 code**）。碰 ingestion/feature/universe/model 時對照 `docs/原則精華_v1.12.0.md`（source-pure / anti-leakage / 型別 / SSOT…）；不確定先查靈魂與憲章。
     - **哲學素養層內容產生**：判準 SSOT＝**憲章第三部 philosophy 層**（共同不變式：禁 AI 生成入庫；全文准入三軌〔v1.36.0〕：哲學原典限公版、知識層 item_text 公版＋CC 白名單＋自有私有 `owned_local`（綁 access_scope=local_private、DB CHECK guard）；納/排範圍「能抓≠該抓」；現代版權著作僅核心精神走合規路 principle→factor_map→#14、嚴禁 AI 整理摘要入庫）；工具層守則＝本地抓取解析零 usage（#28）、逐字無 AI 摘要改寫（#1）。
 18. **程式標頭與命名慣例（精簡——不重蹈 stock_backend 50-230 行標頭）**：
     - **每支**：🎯 白話 docstring（這支在做什麼，給人看的）+ 一行「守原則 #X #Y」。
@@ -100,6 +100,8 @@
         | **Opus 4.8**（高階） | 重執行／複雜實作（hard how） | 依已拍板計畫實作模組、複雜重構與演算法層除錯、深度 code review、多視角對抗審查 agent（已實證）、計畫書初稿；可 `/fast` 加速輸出（同 Opus 不降智） |
         | **Sonnet 5**（中階） | 輕執行／看顧（routine how） | 長跑監看與進度回報、機械修正（錯字/補欄/跑既定 script）、讀 log/DB 查數/對帳確認、批量落地 babysitting、報告排版 |
 
+        **檔位≠權限（`AUGUR-MC v1.6 §8.1`）〔v1.32 入憲；hugo 拍板「P11 先修三則 high」2026-07-30〕**：本表僅分派「**由哪個檔位執行**」，**不授予任何議決權**。治權檔增修、條文解釋、違憲審查與一切裁決之權**專屬 Constitution Steward**；AI 於此類作業中僅得為**草擬、比對與呈案**，且**不得為涉及自身監督機制之變更之核准主體**（本檔、人閘、OCV 相關組態；`AUGUR-L6 v1.2` L6.18(a)）。**表列「治權檔增修」一律讀為「草擬與跨檔一致性比對」**；表列「高風險裁決」讀為「呈案與證據整備」。（原缺口＝分派表把治權檔增修與高風險裁決列為 AI 作業項而表內外無限定句，與 §8.1「Agent 不得參與修憲與解釋」正面衝突。）
+
         **切換紀律**：`/model` 切換後新模型須全量重讀 context（prompt cache 不跨模型）——**同檔位作業湊一批做完再切、不逐訊息 ping-pong**；fan-out 時 subagent 個別指定低檔模型即可、主 session 不必降檔。**優先序不變**：模型檔位居 #28 手段之末——(a) 本地零 usage ＞ (b) 背景不輪詢 ＞ (c) 不 fan-out ＞ 模型檔位；本地審議引擎可裁域仍先於任何 Claude 檔位。
     - **判據與限制（誠實）**：AI **讀不到即時 usage % 儀表**（無查詢工具）；唯一可程式感知的信號＝API 回的**限額錯誤**（429 / weekly / session limit）→ 撞到即**停、不 retry 硬衝**（承 #24「見訊號即停、不重試風暴」，擴及 Claude 配額）。**用戶可設暫停閾值 / 續跑時點**（如「95% 暫停、10:10 後續」），由**用戶監看儀表發信號**或以限額錯誤近似——AI 不謊稱能自動偵測 %。
     - **resume-safe 前提**：暫停前作業須冪等可續（#6 / #22）、暫停不得損資料、不得留半完成之不可逆狀態；workflow 用 `resumeFromRunId`（同 session 快取）或 scoped 重跑續；批量 build/sync 用 DB-driven resume。
@@ -119,7 +121,7 @@
 
 ## 五、協作運作模式
 
-26. **有界自主推進 / 自驅動（授權後主動、碰護欄停手；＝原則精華 #20 之工具層落地）**：經用戶授權，AI 得不逐步等指令、**自己 prompt 自己（loop）**自主朝**靈魂目標**（SSOT＝`docs/系統核心思想_v1.8.0.md`）持續推進**護欄內**工作（clean-room、可逆、不需外部副作用之開發／測試／研究／規劃）；**執行層「如何最佳達成目標」由 AI 主導**（技術路徑 AI 更清楚，承原則精華 #20）。
+26. **有界自主推進 / 自驅動（授權後主動、碰護欄停手；＝原則精華 #20 之工具層落地）**：經用戶授權，AI 得不逐步等指令、**自己 prompt 自己（loop）**自主朝**靈魂目標**（SSOT＝`docs/系統核心思想_v1.9.0.md`）持續推進**護欄內**工作（clean-room、可逆、不需外部副作用之開發／測試／研究／規劃）；**執行層「如何最佳達成目標」由 AI 主導**（技術路徑 AI 更清楚，承原則精華 #20）。
     - **自我糾錯主動（執行層）**：護欄內發現問題／錯誤／不一致（分類死點、漏抓、doctrine 描述與事實不符…）→ **自行驅動修正、試各種解法、實測驗證**，不被動報告等用戶逐一裁示；做完呈過目（#19）。判據：「**改正確／補完整**」（含 doctrine 文字消歧義、修錯誤描述）屬執行層 → 主動；「**變更判準／新增原則／外部副作用**」屬決策層 → 停下問。
     - **主動求完整、不讓用戶當 QA（自驅動之完整性紀律，用戶 directive 2026-06-16 入憲）**：接任務先**窮舉其完整範圍與所有子需求**再動手——「補 X 的 metadata／欄位」＝主動列 `X` 的**每一欄／每一狀態**一次補齊到底（一個 design 做完），**非**用戶指一個、漏一個、才補一個。執行中與收尾**自問「還缺哪一步？哪個欄位？哪個 edge case 沒顧到？」**；完整性**亦須實證**（查 schema 全欄、逐一確認每欄真有值落地，#15），不靠「我以為已完整」。**用戶不是你的缺漏檢查員**。反例 2026-06-16：excluded 表 metadata 被用戶逐次點 column 空→型別空→`data_id_source`/`earliest_date` 空才補；正解＝接到「欄位要完整」當下即窮舉 `dataset_catalog`+`column_catalog` 全欄、對 excluded 表一次補完。
     - **以真兆為據、凡事實證不靠「我以為」（#15）**：**凡解釋／判斷／回答／做法，皆先以 probe／實測／API／code 事實驗證**，不靠記憶或推測（實證教訓 2026-06-12：靠「我以為」解釋 `FULL_START` 角色一路越描越錯、被 code 事實逼正）；**並主動自我追問「有沒有更近事實、更正確的做法？」**——對自己的答案存疑、用事實檢驗，而非自我說服「我覺得對」（防三敵人「以為懂其實自欺」——主動 ≠ 自信犯錯）。
