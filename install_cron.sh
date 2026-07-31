@@ -30,8 +30,11 @@ $BEGIN
 30 1 * * * flock -n /tmp/augur_llm.lock bash $ROOT/run_evolution_chain.sh
 # 連續演化(6h;錯開 01:30 鏈——*/6 會落在 01:15 撞鏈;LLM 單槽鎖)
 15 4,10,16,22 * * * flock -n /tmp/augur_llm.lock bash -c 'cd $ROOT && venv/bin/python scripts/evolve_cycle.py --cycle' >> \$HOME/logs/evolve_cycle.log 2>&1
-# 自我求知(6h;純 SQL/文字,不碰 ollama,故不入鎖)
-45 */6 * * * cd $ROOT && venv/bin/python scripts/evolve_self_seek.py --seek >> \$HOME/logs/self_seek.log 2>&1
+# 自我求知(6h)。**入 LLM 單槽鎖**(LANE-GOV 2026-07-30,commit 5a4e473):原註「純 SQL/文字不碰
+# ollama 故不入鎖」與事實不符——本支會呼叫本地模型。用 -w 3600(有界等待)而非 -n(立即放棄):
+# 錯過一輪求知不如等,但不得無限等。**2026-07-31 回寫 SSOT**:此值先前只改 live 未回寫,
+# 任何一次 --apply 都會靜默拆掉這把鎖。
+45 */6 * * * flock -w 3600 /tmp/augur_llm.lock bash -c 'cd $ROOT && venv/bin/python scripts/evolve_self_seek.py --seek' >> \$HOME/logs/self_seek.log 2>&1
 # 週一 08:00 維運健檢(VACUUM/磁碟/zram)
 0 8 * * 1 { date; cd $ROOT && set -a && . ./.env && set +a && PGPASSWORD=\$DB_PASSWORD psql -h \$DB_HOST -p \$DB_PORT -U \$DB_USER -d \$DB_NAME -c "VACUUM ANALYZE"; free -h; df -h /; /usr/local/bin/ollama list; pg_lsclusters; zramctl; echo ----; } >> \$HOME/logs/ops_weekly.log 2>&1
 # 週一 08:40 工具自測(錯開 08:00 維運;原 08:10 過近)
@@ -46,17 +49,23 @@ $BEGIN
 # DESKTOP→本機 進化增量拉取 2h(乙案私有通道;離線=優雅跳過、遠端排程未停即拒拉)
 37 */2 * * * cd $ROOT && bash scripts/pull_desktop_evolution_delta.sh >> \$HOME/logs/desktop_pull.log 2>&1
 # 週日 09:00 三軸週儀表+R6 digest(唯讀;第一行=V2-SUNSET 現況;存檔供掃視認領)
-0 9 * * 0 cd $ROOT && venv/bin/python scripts/report_triple_evolution_week.py --md > \$HOME/logs/evolution_week_$(date +\%Y\%m\%d).md 2>&1
+# ⚠ 檔名之 \$(date) **必須跳脫**:本 heredoc 未加引號,寫成 \$(date) 會在**安裝當下**被命令替換
+#   而把日期凍死——live 曾出現之 evolution_week_20260727.md 即此坑之產物(每週覆寫同一檔、檔名說謊)。
+#   跳脫後 \$(...) 留到 crontab,由 cron 每次執行時才展開。\% 之跳脫則是 crontab 語法要求。
+#   同理:本區塊內**一律不得用反引號**(見下方 --allow-apply 註記;2026-07-31 撰寫本註解時實犯一次)。
+0 9 * * 0 cd $ROOT && venv/bin/python scripts/report_triple_evolution_week.py --md > \$HOME/logs/evolution_week_\$(date +\%Y\%m\%d).md 2>&1
 # RAWEVO 週輪(週六 09:00;V2-AUTOADVANCE R1——全程庫內唯讀、零 API;hint 一律 pending 待 H3 人閘)
 0 9 * * 6 cd $ROOT && venv/bin/python scripts/run_raw_evolution_iteration.py --run >> \$HOME/logs/rawevo.log 2>&1
 # TWEVO 夜輪(週間 23:00;V2-AUTOADVANCE R2。時點=arena 出單 20:00／結算 21:30 之後、演化鏈 01:30 之前;
-# I3 local-gates 實測 60-88 分(ledger steps_json 親查:成功兩次=3626s/5309s;原註「25-35 分」與事實不符,
-# 2026-07-31 更正)。逾時上限見 run_evolution_iteration.py:STEP_TIMEOUT_SEC(可 AUGUR_STEP_TIMEOUT_SEC 調)。
+# I3 local-gates **實測 7-10 小時**(2026-07-31 晚重測:645-720 s/feature × 37 個 mapped feature;
+# panels 36→66、feature_values 2.51M→8.54M 之後果)。同日稍早註記之「60-88 分」取自 07-27 舊規模,
+# 已過期。逾時上限見 run_evolution_iteration.py:STEP_TIMEOUT_SEC(2026-07-31 由 7200→43200,
+# 7200 在數學上保證跑不完;可 AUGUR_STEP_TIMEOUT_SEC 覆寫)。
 # **刻意不帶 --allow-apply**:R2 授權閘內自動 APPLY,但 driver 尚未跑完
 # 任一次完整輪;先讓它連續跑出乾淨的輪再開 APPLY(比授權更保守、不鬆動任何閘)。開啟＝於本行補
 # --allow-apply 與 --gate-ref V2-AUTOADVANCE 兩個旗標(此處不用反引號:heredoc 未加引號會命令替換)。
 # 重活互斥由 heavy_slot 負責,搶不到即落 deferred 不堆積。
-0 23 * * 1-5 cd $ROOT && venv/bin/python scripts/run_evolution_iteration.py --run >> \$HOME/logs/twevo.log 2>&1
+0 23 * * 1-5 cd $ROOT && venv/bin/python scripts/run_evolution_iteration.py --run --slot-wait 10800 >> \$HOME/logs/twevo.log 2>&1
 $END
 EOF
 )
@@ -83,8 +92,19 @@ case "${1:-}" in
            && printf '%s' "$AUGUR_BLOCK" | grep -q 'settle_arena_labels.py --run' && echo 1 || echo 0)"
     chk "oneshot 已退場(由每日條目取代,不殘留)" \
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q 'arena_settle_oneshot' && echo 0 || echo 1)"
-    chk "路徑不寫死 hugo(換機可攜)" \
-        "$(printf '%s' "$AUGUR_BLOCK" | grep -qv '/home/hugo/project' && echo 1 || echo 0)"
+    # 舊斷言用 grep -qv 掃 AUGUR_BLOCK——**恆真、永不會紅**:-v 只要有任一行(如註解行)
+    # 不含該字串就成功。且量錯對象:ROOT 於 heredoc 已展開,區塊本來就含絕對路徑(設計如此)。
+    # 要驗的是**腳本原始碼**是否以 ROOT 變數取代寫死路徑。
+    # pattern 用字元類切開,否則 grep 會掃到本斷言自己這一行(2026-07-31 實犯:債之型態「斷言掃到自己」)。
+    chk "腳本原始碼用 \$ROOT 而非寫死路徑(換機可攜)" \
+        "$(grep -c 'cd /home/hugo/proj[e]ct' "${BASH_SOURCE[0]}" | grep -q '^0$' && echo 1 || echo 0)"
+    # ↓ 以下三條鎖住 2026-07-31 實際發生過之漂移(live 有、SSOT 無 ⇒ --apply 會靜默拆掉)。
+    chk "self_seek 帶 LLM 單槽鎖 flock -w 3600(LANE-GOV 2026-07-30)" \
+        "$(printf '%s' "$AUGUR_BLOCK" | grep -q 'flock -w 3600 /tmp/augur_llm.lock.*evolve_self_seek' && echo 1 || echo 0)"
+    chk "TWEVO 夜輪帶 --slot-wait 10800(有界等待,非立即放棄)" \
+        "$(printf '%s' "$AUGUR_BLOCK" | grep -q 'run_evolution_iteration.py --run --slot-wait 10800' && echo 1 || echo 0)"
+    chk "週儀表檔名之 \$(date) 已跳脫(否則安裝當下凍死、每週覆寫同檔)" \
+        "$(printf '%s' "$AUGUR_BLOCK" | grep -q 'evolution_week_\$(date' && echo 1 || echo 0)"
     chk "無 % 未跳脫(cron 會截斷)" \
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q '[^\\]%' && echo 0 || echo 1)"
     chk "移除邏輯保留他人條目(只剝標記區間)" \
@@ -111,9 +131,21 @@ case "${1:-}" in
     echo "✓ augur 區塊已安裝/更新(備份在 $BAK_DIR)"
     echo "── 現行 augur 區塊 ──"; crontab -l | awk -v b="$BEGIN" -v e="$END" '$0==b{s=1} s{print} $0==e{s=0}'
     exit 0 ;;
+  --check)
+    # 可當閘之漂移偵測(exit≠0)。無參數模式為人看的、恆 exit 0——**不可當閘**,
+    # 那正是 2026-07-31 三行漂移得以存活之因(diff 有差異時「✓ 一致」不印,但 exit 0 照跑)。
+    echo "── 現行 vs 期望(diff;空＝一致) ──"
+    if diff <(_current) <(_desired); then
+      echo "  ✓ 一致"; exit 0
+    else
+      echo "  ✗ **live 與 SSOT 漂移**——上列 < 為 live、> 為 install_cron.sh 期望值。"
+      echo "     判斷哪一邊對再處置:live 對 → 回寫本腳本;SSOT 對 → 跑 --apply(會整段替換,先讀 diff)。"
+      exit 2
+    fi ;;
   "")
     echo "── 現行 vs 期望(diff;空＝一致) ──"
     diff <(_current) <(_desired) && echo "  ✓ 一致,無須 --apply"
+    echo "  (本模式恆 exit 0、給人看;要當閘請用 --check)"
     exit 0 ;;
   *) awk '/^set -u/{exit} NR>1' "${BASH_SOURCE[0]}"; exit 2 ;;
 esac
