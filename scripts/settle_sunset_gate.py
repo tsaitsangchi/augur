@@ -231,21 +231,99 @@ def _selftest() -> int:
         ok &= bool(cond)
         print(f"  {'✓' if cond else '✗'} {name}")
 
-    body = open(__file__, encoding="utf-8").read()
-    chk("人閘強制 TTY（非互動不得簽）", "isatty()" in body and "AI 不得代簽" in body)
-    chk("settle-fail 另需逐字確認句（防手滑）",
-        "CONFIRM_PHRASE" in body and "typed != CONFIRM_PHRASE" in body)
-    chk("不可逆性於執行前明示", "永久不可更正" in body or "不可更正" in body)
-    chk("誠實記載 consequence 未執行", '"consequence_executed": False' in body
-        or "consequence_executed" in body)
-    chk("裁決基礎為必填且寫入 snapshot", "ruling_basis" in body and "--basis" in body)
+    # ── 本段於 2026-07-31 夜全面改寫 ──────────────────────────────────────────
+    # 原十條皆為 `"字面" in body`，而 `body = open(__file__).read()`＝**整檔含本段**
+    # ⇒ 字面必在 ⇒ **十條中九條永遠不會紅**。突變實測（scripts/check_false_assertions.py
+    # 之外另以探針逐條驗證）：把 TTY 人閘拆掉、把 `AND status='approved'` 拿掉
+    # （終態列變可覆寫）、把 `rowcount != 1` 回滾拆掉（誤更新靜默 commit）、
+    # 把逐字確認句拆掉——**四種破壞下自測皆全綠**。
+    # 本支保護的是**不可逆之治權結算**，這種保護不能只是文字。
+    # 改法：全部餵真輸入／假 cursor 驗真行為，零 DB（#18）。
+    import io
+
     chk("三種讀法皆可選（不預設任一把尺）", all(k in BASES for k in ("R1", "R2", "R3")))
-    chk("本腳本不判定條件（只記錄人的裁決）", "只記錄人的裁決" in body)
-    chk("UPDATE 帶 status='approved' 前提（終態不覆寫）", "AND status='approved'" in body)
-    chk("rowcount≠1 即回滾（不靜默失敗）", "rowcount != 1" in body and "rollback()" in body)
-    chk("不設 kill switch／不封存（不假裝執行 consequence）",
-        "kill_switch" not in body.split("def _settle")[1].split("def _selftest")[0]
-        or "未設" in body)
+
+    # (1) TTY 人閘：非互動時 _sign() 必須 SystemExit
+    # **必須餵非空字串**：餵空字串會走到「簽名不得留空」那條 SystemExit，
+    # 於是拆掉 isatty 檢查後斷言仍通過——**以錯的理由變綠**（2026-07-31 撰寫本段時實犯，
+    # 突變測試當場抓到：拆 isatty 後紅燈數不變）。餵 "hugo" 才能隔離出 isatty 那條路。
+    _si, _so = sys.stdin, sys.stdout
+    sys.stdin, sys.stdout = io.StringIO("hugo\n"), io.StringIO()
+    try:
+        _got = _sign("--settle-fail")
+        _blocked = False
+    except SystemExit:
+        _blocked, _got = True, None
+    finally:
+        sys.stdin, sys.stdout = _si, _so
+    chk("非互動 TTY 時 _sign() 拒簽——即使輸入非空（拆掉 isatty 即紅）",
+        _blocked and _got is None)
+
+    # (2) 假 cursor：驗 UPDATE 真的帶 status='approved' 前提、且 rowcount≠1 會回滾
+    class _Cur:
+        def __init__(self, rowcount=1):
+            self.sql, self.rowcount = [], rowcount
+
+        def execute(self, q, p=None):
+            self.sql.append(q)
+
+        def fetchone(self):
+            return (0,)          # _evidence 之各計數；值不重要，本段驗的是控制流
+
+        def fetchall(self):
+            return []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    class _Conn:
+        def __init__(self, rowcount=1):
+            self.cur, self.committed, self.rolled = _Cur(rowcount), False, False
+
+        def cursor(self):
+            return self.cur
+
+        def commit(self):
+            self.committed = True
+
+        def rollback(self):
+            self.rolled = True
+
+    # (3) 以真流程驗控制流與 SQL（monkeypatch _check 與 _sign 略過互動與 DB）
+    _oc, _os_ = globals()["_check"], globals()["_sign"]
+    globals()["_check"] = lambda conn: 0
+    globals()["_sign"] = lambda act: "test"
+    try:
+        _bad = _Conn(rowcount=0)
+        _rc = _settle(_bad, "evaluated_pass", "R1", None)
+        chk("rowcount=0 時回滾且回非 0（不靜默 commit）",
+            _rc != 0 and _bad.rolled and not _bad.committed)
+        _good = _Conn(rowcount=1)
+        _rc2 = _settle(_good, "evaluated_pass", "R1", None)
+        chk("rowcount=1 時 commit 且回 0（綠燈也要驗得到）",
+            _rc2 == 0 and _good.committed and not _good.rolled)
+        # **必須驗 _settle 真正送出的 SQL**，不是測試裡手寫的字串。
+        # （2026-07-31 撰寫本段時實犯：原斷言檢查自己 execute 的字串 ⇒ 拿掉生產碼之
+        #   `AND status='approved'` 後仍不紅；突變測試當場抓到。）
+        _upd = [q for q in _good.cur.sql if "UPDATE evolution_prereg_gate" in q]
+        chk("_settle 送出之 UPDATE 帶 status='approved' 前提（終態不覆寫）",
+            bool(_upd) and all("status='approved'" in q for q in _upd))
+        # snapshot 以參數傳入 execute()，故改由 _settle 之實際建構驗：
+        # 攔下 executemany/execute 之參數不便，改直接檢查該常數在建構處為 False。
+        # （原寫成 `... or True` ＝恆真廢斷言，2026-07-31 撰寫本段時實犯、隨即刪除。）
+        import inspect as _i
+        _settle_src = _i.getsource(_settle)
+        chk("snapshot 之 consequence_executed 建構為 False（非 True）",
+            '"consequence_executed": False' in _settle_src)
+    finally:
+        globals()["_check"], globals()["_sign"] = _oc, _os_
+
+    # (4) --settle-fail 之逐字確認句：打錯字必須拒
+    chk("確認句非空且夠長（防誤觸）", len(CONFIRM_PHRASE) >= 12)
+    chk("確認句含『不可更正』（讓簽的人看到後果）", "不可更正" in CONFIRM_PHRASE)
     print("自測:全通過 ✓" if ok else "自測:有失敗 ✗")
     return 0 if ok else 1
 
