@@ -92,9 +92,20 @@ def synth_conn():
         pytest.skip(f"DB 不可用、跳過 DB 注入測試:{e}")
 
     def _clean(c):
+        # feature_values 掛 fv_guard(FV-GUARD 誠實閘):DELETE 須帶通行證,否則 RAISE。
+        # 原實作未帶 ⇒ 迴圈在該表拋例外 → commit 到不了 → **前三張表已刪之列一併回滾**,
+        # 清理看似執行而實際零效果,synthetic 列逐次累積於生產表,下一輪即卡 :104 之碰撞防禦。
+        # (2026-07-31 實證:MonthRevenue 13 列／PriceAdj 300 列殘留;四個 T1 與兩個 T3 全 ERROR。)
+        # 逐表獨立子交易:任一表失敗不牽連其餘,且失敗會被看見而非靜默。
         for t in _SYNTH_TABLES:
-            c.execute(f'DELETE FROM "{t}" WHERE stock_id LIKE %s', (SID_PREFIX + "%",))
-        c.connection.commit()
+            try:
+                if t == "feature_values":
+                    c.execute("SET LOCAL augur.honesty_write='on'")
+                c.execute(f'DELETE FROM "{t}" WHERE stock_id LIKE %s', (SID_PREFIX + "%",))
+                c.connection.commit()
+            except Exception as e:  # noqa: BLE001
+                c.connection.rollback()
+                print(f"⚠ synthetic 清理失敗 {t}: {e}")
 
     cur = conn.cursor()
     # 防禦:注入前確認 synthetic 前綴確實不與任何真實資料碰撞(理應 0 列)。

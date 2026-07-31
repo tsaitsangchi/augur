@@ -47,6 +47,9 @@ ref_augur/
 
 # qdrant 本機初始化標記（衍生物）
 .qdrant-initialized
+# qdrant 二進位（85MB 外部發行物、非源碼；2026-07-31 由 ttai 遷入 augur 自有路徑）
+# 根限定，勿改為 .qdrant_server/（同 /models/ 之錨定紀律）
+/.qdrant_server/
 
 # GPU 驗證本機衍生物
 ops/gpu-verify/.gpu-test-venv/

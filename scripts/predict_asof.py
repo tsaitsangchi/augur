@@ -151,7 +151,11 @@ def predict(horizon, family, asof, top_n=20, top_frac=0.1, weight="equal", dry_r
     與 run_backtest 同一支選股邏輯、live≡回測零漂移)。risk=True 時收尾套 execution.risk_control overlay
     (單標的 cap 生效於落庫權重;DD 熔斷/換手為建議旗標、不自動下單),閾值讀 risk_policy(#29b)。
     """
-    with db.connect_predict() as conn:  # G-ISO-2：預測寫入走 augur_predict（非 app／advisor）
+    # 2026-07-31 起單一角色 `augur`（Steward 拍板「augur 包含所有專案與 database 及 database user」）。
+    # 原 G-ISO-2 之受限 role `augur_predict` 已退役 ⇒ #8 隔離之 **DB 層不復存在**，
+    # 完全依賴 code 層 AST 稽核（src/augur/audit/import_isolation.py；射程 7 package）。
+    # 依據＝reports/augur_db_role_architecture_submission_20260731.md §6（含 OCV 四項對照）。
+    with db.connect() as conn:
         asof = _as_date(asof) or _latest_asof(conn)
         if asof is None:
             print("✗ core_universe_asof 無資料;中止。"); return None

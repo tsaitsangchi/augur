@@ -8,7 +8,8 @@
    advisor 知識語料(philosophy_*/knowledge_*)對 augur schema 零內容——誠實答法=DECLINE(知識庫無據、
    轉查 DB/oracle),非 ANSWER(原標 ANSWER 使 S5 該批 100% drop=類別錯誤,非 gold 品質)。
    下游走既有蒸餾管線(S2 build_context→S3 teacher→S4 validate),本橋零重造。
-   **界線(引擎計畫界線-A)**:蒸餾產物零回流預測管線(distill 表已自 augur_predict REVOKE,既有閘);
+   **界線(引擎計畫界線-A)**:蒸餾產物零回流預測管線;
+   ⚠ 2026-07-31 單一角色整併:原「distill 表已自 augur_predict REVOKE」之 DB 層閘已隨該 role 退役,現唯 AST 稽核。
    escalated/undecidable/pending 不入題(無機械真值=不可教)。
 
 守 #12(下游全複用既有 S2-S4)· #15(只橋 oracle 裁決過者)· #29a。冪等:question UNIQUE ON CONFLICT skip。

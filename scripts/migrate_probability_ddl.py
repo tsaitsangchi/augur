@@ -8,7 +8,8 @@
       機率數字可 trace 回哪個校準器(憲章 v1.40.0「相對機率誠實判準」);
    ③ `prediction_probability`:P(勝過同儕中位數|as-of,H) 之 DB 承載,econ_verdict 判死標籤與機率
       同列硬綁(D2)、calibrator_id FK 溯源。**唯一合法口徑=橫斷面相對機率,禁絕對漲跌機率**。
-   隔離:僅 advisor 唯讀;PIPELINE 7 pkg 零回讀、augur_predict role 不授 SELECT(A-28 預測輸出不自迴圈)。
+   隔離:僅 advisor 唯讀;PIPELINE 7 pkg 零回讀(A-28 預測輸出不自迴圈)。
+   ⚠ 2026-07-31 單一角色整併:原「augur_predict role 不授 SELECT」之 DB 層閘已隨該 role 退役,A-28 現唯 AST 稽核。
 
 守 #6(冪等)· #8(exit_date=purge 斷言依據)· #10(全欄可溯源)· #12(DDL 單一住所)· 憲章 v1.40.0 相對機率誠實判準 ·
    CLAUDE #29a。SSOT=reports/augur_omniscient_e2e_master_plan_20260710.md §5.2-5.4/§6.1。
@@ -87,7 +88,7 @@ DDL = [
         CREATE INDEX IF NOT EXISTS ix_pred_prob_panel_h ON prediction_probability (panel_date, horizon)"""),
     ("comment prediction_probability", """
         COMMENT ON TABLE prediction_probability IS
-        'P(勝過同儕中位數|as-of,H)——唯一合法口徑=橫斷面相對機率;絕對漲跌機率唯經預言機軸 GATE(憲章 v1.42.0,GATE 前禁);econ_verdict 與機率同列硬綁不可分離(D2);calendar_days=日曆日近似呈現偏差之推導 SSOT(A-27);僅 advisor 唯讀、PIPELINE 零回讀、augur_predict 不授 SELECT(A-28)'"""),
+        'P(勝過同儕中位數|as-of,H)——唯一合法口徑=橫斷面相對機率;絕對漲跌機率唯經預言機軸 GATE(憲章 v1.42.0,GATE 前禁);econ_verdict 與機率同列硬綁不可分離(D2);calendar_days=日曆日近似呈現偏差之推導 SSOT(A-27);僅 advisor 唯讀、PIPELINE 零回讀(A-28;原 augur_predict 不授 SELECT 之 DB 層閘已於 2026-07-31 隨該 role 退役)'"""),
     # econ_verdict 規則表(2026-07-11 拍板「3遷」#29b:決定行為的資料住 DB 不 hardcode;
     # SSOT 此後=本表,calibrate 讀表非讀碼;新增/改裁決=UPDATE 一列零改碼。種子=舊硬編 dict 一次性遷移)
     ("table econ_verdict_rule", """
@@ -165,12 +166,13 @@ def verify() -> int:
             got = cons.get((t, ctype), 0)
             if got < n_min:
                 print(f"✗ {t} 約束 {ctype} 數 {got} < {n_min}"); ok = False
-        # A-28 隔離斷言:augur_predict 對三表無任何權限
-        cur.execute("""
-            SELECT table_name, count(*) FROM information_schema.table_privileges
-            WHERE grantee='augur_predict' AND table_name = ANY(%s) GROUP BY 1""", (list(TABLES),))
-        for t, n in cur.fetchall():
-            print(f"✗ A-28 違反:augur_predict 對 {t} 有 {n} 項權限(應零)"); ok = False
+        # A-28 原以「augur_predict 對三表零權限」為斷言。2026-07-31 單一角色整併後該 role 退役。
+        # **此斷言必須移除而非留著**:`table_privileges WHERE grantee='<不存在角色>'` 回 0 列,
+        # 迴圈不執行 ⇒ ok 恆真 ⇒ **假綠**(把「角色不存在」讀成「零授權已驗」)。
+        # A-28 之「預測輸出不自迴圈」現由 PIPELINE 零回讀之 AST 稽核承接
+        # (src/augur/audit/import_isolation.py;射程 7 package)。
+        print("⚠ 射程註記:A-28 之 DB 層授權斷言已隨 augur_predict 退役移除,"
+              "現唯 AST 稽核(import_isolation)——非「已驗過」")
     print("✓ --verify 全綠" if ok else "✗ --verify 失敗")
     return 0 if ok else 1
 

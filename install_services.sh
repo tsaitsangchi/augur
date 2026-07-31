@@ -23,7 +23,7 @@ UD="$HOME/.config/systemd/user"
 VENV="$ROOT/venv/bin/python"
 OLLAMA_BIN="${OLLAMA_BIN:-$HOME/ollama/bin/ollama}"
 # qdrant 二進位：可覆寫；預設仍嘗試舊 ttai 路徑（各機可改用 docker／自備 binary）
-QDRANT_BIN="${QDRANT_BIN:-$HOME/project/ttai/.qdrant_server/qdrant}"
+QDRANT_BIN="${QDRANT_BIN:-$ROOT/.qdrant_server/qdrant}"
 UC() { systemctl --user "$@"; }
 
 if [ "${1:-}" = "--status" ]; then

@@ -73,26 +73,13 @@ def _check() -> int:
             fails.append("resolve empty despite active")
         if not set(resolved).issubset(set(active)):
             fails.append("resolved not ⊆ active")
-        # predict role privileges
-        with db.transaction(conn) as cur:
-            for t, expect in (
-                ("evolution_production_feature_set", True),
-                ("evolution_run", False),
-                ("promotion_queue", False),
-            ):
-                cur.execute("SELECT to_regclass(%s)", (f"public.{t}",))
-                if not cur.fetchone()[0]:
-                    print(f"⚠ {t} missing")
-                    continue
-                cur.execute(
-                    "SELECT has_table_privilege(%s, %s, 'SELECT')",
-                    ("augur_predict", f'"{t}"'),
-                )
-                got = bool(cur.fetchone()[0])
-                mark = "✓" if got == expect else "✗"
-                print(f"{mark} predict SELECT {t}={got} (expect {expect})")
-                if got != expect:
-                    fails.append(f"grant {t}")
+        # 原此處以受限 role `augur_predict` 之 GRANT 逐表驗 #8 隔離之 DB 層。
+        # 2026-07-31 單一角色整併後該 role 退役 ⇒ **DB 層之隔離判準不復存在**（非「改用別的方式驗」，
+        # 是這一層沒有了）。此處誠實印出射程縮減，不留「看似仍在驗」之殘骸。
+        # 現行 #8 之唯一機械落點＝`src/augur/audit/import_isolation.py` 之 AST 稽核（射程 7 package）。
+        # 依據＝reports/augur_single_role_consolidation_plan_20260731.md
+        print("⚠ 射程註記：predict role 已退役，本檢查不再涵蓋 #8 之 DB 層"
+              "（現唯 AST 稽核；見 tests/test_philosophy_isolation.py）")
 
     if fails:
         print("✗ FAIL:", "; ".join(fails))

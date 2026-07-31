@@ -57,7 +57,8 @@ DDL = [
         'heal 覆寫前被取代原值快照帳本(AUD-02;P4.E5 衝突裁決留痕);append-only(trigger + REVOKE 硬化)、唯 raw_supersede_tombstone() 得法規抹除(P4.E3 唯一例外);attestation_run_id 決策 B nullable(heal 直呼 sync 無 run 時恆 None、非待回填);actor=P4.E6 斷言主體'"""),
     # 縱深防禦(issue 2①):對 PUBLIC REVOKE 覆寫/刪除/整表抹除。GUC 閘非存取控制(任意角色可自行 SET LOCAL
     # augur.supersede_erase='on')→ 真正之閘=權限層:非 owner 角色無 UPDATE/DELETE/TRUNCATE 權,GUC 設了也
-    # mutate 不了(setup_predict_role 另對 augur_predict REVOKE ALL)。owner 殘餘風險見檔頭 ⚠(部署層 owner 分離)。
+    # ⚠ 2026-07-31 單一角色整併:原「setup_predict_role 對 augur_predict REVOKE ALL」之 DB 層閘已隨該 role 退役;
+    # 且 augur 已為 superuser ⇒ owner 分離設計亦失去意義。此處之保護現僅存 trigger 層。
     ("revoke mutate from public", """
         REVOKE UPDATE, DELETE, TRUNCATE ON raw_supersede_log FROM PUBLIC"""),
     # 決策 A=(a):append-only 硬化。BEFORE UPDATE OR DELETE → RAISE;唯 tombstone SECURITY DEFINER 函式

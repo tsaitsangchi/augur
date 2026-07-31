@@ -50,19 +50,21 @@ DELIB_LITERALS = ("deliberation_session", "deliberation_claim", "deliberation_ve
 BRIDGE_LITERALS = ("field_term_map", "field_knowhow_lexical_affinity", "knowledge_item_term_stats")
 # 被取代原值帳表(AUD-02):old_row(被取代舊值)+superseded_at(事後修正知識)落入預測回讀=WM.35 消費閘破口。
 # 純預測消費者 package 禁字面觸及;合法寫入者(core/ingestion/audit——本就 SELECT/INSERT 本表)排除在掃描外。
-# 與 setup_predict_role 之 DB 動態 REVOKE 成雙閘(AST/字面擋靜態、GRANT 擋動態),補齊先前對本表僅單閘之不對稱(issue 11)。
+# ⚠ 2026-07-31 單一角色整併:原與 setup_predict_role 之 DB REVOKE 成「雙閘」,該 role 已退役
+#    ⇒ **本 AST/字面閘現為唯一閘**(動態 SQL 旁路不再有 DB 層攔截)。
 SUPERSEDE_LITERALS = ("raw_supersede_log",)
 # 身份側「事後修正知識」表(步 11 AUD-04/05/07):claim 衝突並存、lifecycle retire/redirect、attribute as-of 修正
-# 版本皆屬事後認識,純預測消費者裸讀=洩漏未來修正=WM.35 消費閘破口。與 setup_predict_role 之 DB REVOKE 成雙閘
-# (AST/字面擋靜態、GRANT 擋動態);補齊步 11 對此三表僅 DB 單閘之不對稱(同 raw_supersede issue 11 雙閘紀律)。
+# 版本皆屬事後認識,純預測消費者裸讀=洩漏未來修正=WM.35 消費閘破口。
+# ⚠ 2026-07-31:原之 DB REVOKE 對偶已隨 augur_predict 退役 ⇒ **本閘為唯一閘**。
 IDENTITY_LITERALS = ("identity_claim", "identity_lifecycle_event", "entity_attribute_version")
-# 自動行動授權/留痕表(步 11 AUD-10/11):執行層記錄、與預測管線無涉;純預測消費者禁字面觸及(縱深雙閘,對稱 DB REVOKE)。
+# 自動行動授權/留痕表(步 11 AUD-10/11):執行層記錄、與預測管線無涉;純預測消費者禁字面觸及(⚠ 2026-07-31 起 DB REVOKE 對偶已退役,本閘為唯一閘)。
 ACTION_LITERALS = ("automation_action_log", "authorization_grant")
 # 預測產物表(G-PV-1／PV-α)：禁被純消費側回讀當特徵(自迴圈)；合法寫入在 scripts/predict_*、顧問讀在 advisor。
 # AST 字面閘對稱 SUPERSEDE；GRANT 層 REVOKE SELECT＝β（本輪未做——predict writer 仍可自讀）。
 PRODUCT_LITERALS = ("prediction_values", "prediction_probability")
 # LAIEVO/RAWEVO 帳本字面(V2 Phase 2.1/I3):預測管線+core 禁字面觸及 local_model_*/未來三軸 ledger——
-# 行為評測樣本/pack 版本是「訓練行為樣本、非真兆」(界線-A 同構);與 setup_predict_role 之 DB REVOKE 成雙閘。
+# 行為評測樣本/pack 版本是「訓練行為樣本、非真兆」(界線-A 同構)。
+# ⚠ 2026-07-31:原之 DB REVOKE 對偶已隨 augur_predict 退役 ⇒ 本閘為唯一閘。
 LAIEVO_LITERALS = ("local_model_gold_sample", "local_model_version", "local_model_eval_item",
                    "local_model_eval_run", "local_model_", "local_ai_iteration", "raw_evolution_")
 # 反向(I2/I5):augur.evolution 禁 import 預測管線/素養層、禁字面觸及 panel/prodset/預測產物——

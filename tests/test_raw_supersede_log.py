@@ -229,48 +229,14 @@ def test_db_truncate_blocked(cur):
     assert _log_count(cur) == 1
 
 
-def test_db_tombstone_controlled_erasure(cur):
-    """tombstone 受控函式（P4.E3 唯一例外）：應用角色無 EXECUTE（受控之第一道；#19 審查 major 之
-    REVOKE 回歸鎖）；owner 側抹 old/new 內容本體、保留該列＋provenance；須具事由。"""
-    import os
-    import psycopg2
-    _seed(cur, "600")
-    _heal(cur, "605")
-    cur.execute('SELECT id FROM raw_supersede_log WHERE "table"=%s', (_TEST_TABLE,))
-    rid = cur.fetchone()[0]
-    cur.execute("SAVEPOINT sp_perm")
-    with pytest.raises(psycopg2.errors.InsufficientPrivilege):   # 應用角色被拒＝抹除不可自應用路徑達成
-        cur.execute("SELECT raw_supersede_tombstone(%s, %s)", (rid, "GDPR erasure req #42"))
-    cur.execute("ROLLBACK TO SAVEPOINT sp_perm")
-    su_pw = os.getenv("DB_SUPERUSER_PASSWORD")
-    if not su_pw:
-        pytest.skip("無 DB_SUPERUSER_PASSWORD、owner 側 tombstone 正向路徑略過")
-    from augur.core import config
-    sconn = psycopg2.connect(connect_timeout=10, **{**config.DB_PARAMS,
-                             "user": os.getenv("DB_SUPERUSER", "postgres"), "password": su_pw})
-    sconn.autocommit = False
-    try:
-        sc = sconn.cursor()
-        stbl = _TEST_TABLE + "_su"                   # 獨立表名：與應用交易之未提交 DDL 零互動
-        sc.execute(f'DROP TABLE IF EXISTS "{stbl}"')
-        gs.provision_and_upsert(sc, stbl, [_row("2330", "2026-06-30", "600")], require_keys=("date",))
-        gs.provision_and_upsert(sc, stbl, [_row("2330", "2026-06-30", "605")], require_keys=("date",),
-                                snapshot_reason="heal_by_date")
-        sc.execute('SELECT id FROM raw_supersede_log WHERE "table"=%s', (stbl,))
-        srid = sc.fetchone()[0]
-        sc.execute("SAVEPOINT sp")
-        with pytest.raises(psycopg2.Error):          # 空事由被拒
-            sc.execute("SELECT raw_supersede_tombstone(%s, %s)", (srid, ""))
-        sc.execute("ROLLBACK TO SAVEPOINT sp")
-        sc.execute("SELECT raw_supersede_tombstone(%s, %s)", (srid, "GDPR erasure req #42"))
-        sc.execute("SELECT old_row->>'_tombstoned', note FROM raw_supersede_log WHERE id=%s", (srid,))
-        tombstoned, note = sc.fetchone()
-        assert tombstoned == "true" and "GDPR erasure req #42" in note
-        sc.execute('SELECT count(*) FROM raw_supersede_log WHERE "table"=%s', (stbl,))
-        assert sc.fetchone()[0] == 1                 # 列仍在（tombstone 非 DELETE）
-    finally:
-        sconn.rollback()
-        sconn.close()
+# ── 2026-07-31 已刪除:test_db_tombstone_controlled_erasure ──────────────────
+# 原斷言「應用角色被拒(InsufficientPrivilege)＝抹除不可自應用路徑達成」。
+# 單一角色整併後 `augur` 已為 superuser、且為全系統唯一角色 ⇒ 該前提不再成立,
+# 測試恆 FAIL(DID NOT RAISE)。依 Steward 拍板(丙案)整格刪除,不改判 PASS(那會是假綠)。
+# **抹除函式仍為 SECURITY DEFINER,但已無 DB 層之角色阻擋**——此事實之留痕見
+# reports/augur_db_role_architecture_submission_20260731.md §6.2(OCV 四項對照)與
+# reports/augur_single_role_consolidation_plan_20260731.md。原測試內容見 git history。
+
 
 
 def test_db_same_transaction_rollback(cur):

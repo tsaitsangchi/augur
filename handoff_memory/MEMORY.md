@@ -1,5 +1,6 @@
 # Memory Index
 
+- [單一角色整併 20260731](augur-single-role-consolidation-20260731.md) — ⭐**終態權威**:只剩 augur(superuser)一個角色/一個庫;**#8 隔離之 DB 層已不存在且無法重建**(唯 AST、擋不到動態 SQL);knowledge_unit_source≠knowledge_source;**備份只剩 /mnt/c/database/**;GROUNDING-MAP 基線非本機;遷移清點五類物件
 - [深化理解 r2 20260731](augur-deep-understanding-r2-20260731.md) — ⭐**最新現況權威**:基線報告 commit 前已過期之元教訓;sim 專章生效鏈(候選物理死鎖);KH0 真破口 48.68%;靈魂 v1.10.0 最終目標;人閘偵測級三殘道;全文=repo reports/augur_deep_understanding_r2_20260731.md
 
 ## ⭐ 核心基礎（2026-07-30 定案；後續發展一律以此三則為前提）

@@ -1,11 +1,11 @@
 # 元憲章落地地圖（GROUNDING-MAP）[I]
 
-- **快照日**：2026-07-17（生產庫資料至 2026-07-16——此值未附產生指令＝**未驗**，僅與審查現實錨定相符；本審禁連 DB 無法補跑）
+- **快照日**：2026-07-17（生產庫資料至 2026-07-16——此值未附產生指令＝**未驗**，僅與審查現實錨定相符；本審禁連 DB 無法補跑）〔**2026-07-31 全域補註**：本圖為 **2026-07-17 之快照**，**一切快照值維持原記述不動**。惟 2026-07-31「augur ＝ 全部」單一化整併已使多處與現況產生系統性落差：`ttai_import` schema 併入 `public` 後 DROP（16 表＋11 seq＋6 view＋2 enum；`knowledge_source`→**`knowledge_unit_source`**）、`ttai`／`rdai`／`stock` 三庫與角色 DROP、`augur` 升為 **superuser**、`augur_predict` **已退役**。受影響處已逐一加註「2026-07-31 補註」。決定記錄與執行教訓見 `reports/augur_single_role_consolidation_plan_20260731.md`；治權面（OCV 四項對照）見 `reports/augur_db_role_architecture_submission_20260731.md` §6.2。**本檔性質仍為 [I]，各補註同不創設義務、不代為認定。**〕
 - **性質**：資訊性 [I]。本文件不創設任何義務，權威悉依各 [N] 條款原文（AUGUR-MC v1.3〔**盤點時有效版**；現行 **v1.6**，Steward 裁決第 2026-040 號／AL-2026-044、2026-07-23〕、AUGUR-WM v1.0、AUGUR-ID v1.0、AUGUR-KS v1.0〔**盤點時有效版**；現行 **v1.1**，RULING-2026-016／AL-2026-019〕）。本文件不宣稱任何充任或生效；一切 apply／生效認定屬 Constitution Steward（MC §8.1）。（2026-07-30 機械軌：版號標注依各規格檔頭原文更正；**盤點所依之版本不改**，以免竄改 2026-07-17 盤點之時序記錄。）
 - **盤點涵蓋範圍之誠實揭露（2026-07-30 機械軌補列）**：本圖三路盤點以 **MC P1–P5＋§8** 為抽出母體；下列**已生效規格之規格級條款未逐條涵蓋＝未盤點（非「已合規」）**——**AUGUR-ONT v1.0**（Layer 2；分類與同一性判準、刪名測試等）、**AUGUR-L5 v1.0**（Layer 5）、**AUGUR-L6 v1.2**（Layer 6）、**AUGUR-L7 v1.0**（Layer 7）；§六-4 原僅揭露 L7 未涵蓋。**產生指令與輸出（於本段寫入前於本檔實跑）**：`grep -c 'ONT\.'` → **0**、`grep -c 'AUGUR-ONT'` → **0**、`grep -c 'L5\.'` → **0**、`grep -c 'L6\.'` → **0**、`grep -c 'L7\.'` → **0**。⚠ **自我掃描告誡**：本段自身即提及上開規格名，故重跑該 grep 將命中本段；複驗須以本段寫入前之 git 版本為準。**快照日（2026-07-17）與一切生產數字維持原值不動**——本次僅補列涵蓋範圍與現行版號，未連 DB 重驗。
 - **產生方法**：三路獨立盤點（義務官：憲章條文逐條抽出 44 項物理義務＋3 項程序性歸併；現實官：生產 schema 唯讀抽出物逐表比對；載具官：已寫成但未 apply 之 migration／程式盤點）之統整。衝突以現實官之 schema 行號證據為準。
 - **證據紀律**：凡數字必附產生指令；凡「已存在」必附 schema 行證據；凡「不存在」必附 grep 零命中證明；不確定者明標「不確定」。**未採信任何文件自陳**（本專案已五度實證文件自陳不可信，含 ENVIRONMENT-SPEC 整份描述另一台機器、HANDOFF 鐵證數字全錯——凡引 HANDOFF/審計處均另附獨立實跑證據或明標未驗）。
-- **抽出物**（唯讀，未連 DB；`$SP` ≡ `/tmp/claude-1001/-home-giga-augur/c804a0f7-f5fe-40c6-98ea-d200c3a65c0b/scratchpad`）：
+- **抽出物**（唯讀，未連 DB；`$SP` ≡ `/tmp/claude-1001/-home-giga-augur/c804a0f7-f5fe-40c6-98ea-d200c3a65c0b/scratchpad`）〔**2026-07-31 補註（機器身分之誠實揭露，依本檔證據紀律「不確定者明標不確定」）**：上開 `$SP` 之家目錄為 **`/home/giga`**（§四載具清單亦載「find 全 `/home/giga`」），與現行當家機 **`PC002-S1800`（家目錄 `/home/hugo`）不同**；**該抽出物於何機產生、與本機是否同一實體，未查明＝UNKNOWN，本補註不推測**。本機實查佐證三則：`/home/giga` 不存在且無 `giga` 帳號；`/mnt/d`（§0.5 restic 異碟庫所在）不存在；§四步 5 所稱「十新表」在本機 live 僅 `raw_supersede_log` 一張存在、其餘九張 `pg_class` 零命中。⇒ 全檔一切繫於 `$S`／`$SP` 之數字與行號（253 表、12 trigger、`$S L11850` 等）**於本機不可重跑**，且**其與本機 live 之差異不得逕解為某次變更所致**。需現況者請用各補註所附之 live 產生指令。〕：
   - `$SP/augur-schema.sql`（pg_dump 17.9 schema-only，17690 行：`wc -l` 實測）——下稱 `$S`
   - `$SP/augur-rowcounts.txt`（253 行＝253 表列數）
   - `$SP/augur-triggers.txt`（12 條 trigger 清單）
@@ -83,7 +83,7 @@
 |---|---|---|---|---|
 | MC §P4（對帳留痕） | DB↔API 對帳結果落表 | attestation_result | ✅（覆蓋率誠實有限） | $S L7421-7434（14 欄；L7420 為 CREATE TABLE、L7435 為右括號；`sed -n '7421,7434p' $S \| wc -l` → 14）；rowcounts：attestation_result\|**3**（表在、僅 3 列） |
 | MC §P4.E1/E6（留痕面） | 寫入/對帳逐筆留痕 | data_audit_log | ✅ | $S L7726-7734；rowcounts：data_audit_log\|**259,975**（實際在用） |
-| MC §P4.E1 / KS.20-24、KS.26 | Knowledge 五元組（不可豁免核心） | 五槽俱在可機器解析 | 🔨 | 現實官精確陳述為準：public schema（236 表）**零** confidence 欄；僅 ttai_import 遺留二欄（$S L11850/L12014）＋一 view（L12149）：`grep -ci confidence $S` → 5，逐行檢視全在 ttai_import（義務官 `grep -cE '^\s+confidence'` → 2 為欄位計數，不衝突） |
+| MC §P4.E1 / KS.20-24、KS.26 | Knowledge 五元組（不可豁免核心） | 五槽俱在可機器解析 | ✅〔2026-07-31 Steward 拍板閉合，S21〕 | 現實官精確陳述為準：public schema（236 表）**零** confidence 欄；僅 ttai_import 遺留二欄（$S L11850/L12014）＋一 view（L12149）：`grep -ci confidence $S` → 5，逐行檢視全在 ttai_import（義務官 `grep -cE '^\s+confidence'` → 2 為欄位計數，不衝突）〔**2026-07-31 補註（事實更正；狀態 🔨 未動、不代為認定）**：(1) `ttai_import` 16 表已 `SET SCHEMA public`、該 schema 已 DROP ⇒ 原句「僅 ttai_import 遺留」**逐字不再成立**——該二欄＋一 view 現位於 `public`（`knowledge_unit.confidence`／`value_flow.confidence`／`v_units_without_source.confidence`，皆 smallint）。(2) **與本輪無關之漏列**：`public.knowhow_evidence_weight.confidence_band`（text，2026-07-29 由 `migrate_kh8_kh9_min_ddl.py` 建）本即會被原句之 grep 口徑命中，原列漏列之。(3) **實值全空**：`knowledge_unit` 142,040 列 confidence non-null＝**0**；`value_flow` 41 列 non-null＝**0**——欄在、值不在。(4) 「236 表」與 live **322** 基表不符。**⇒ 本補註僅更正事實描述；「該等欄位是否構成 KS.20-24 之 Confidence 槽」「🔨 可否閉合」屬 MC §P4.E1／KS.20-24（不可豁免核心）之合規認定，專屬 Steward（MC §8.1），本補註不代為認定。** |
 | MC §P4.E2 / WM.30 / KS.22、KS.40 | 雙時間性 | valid time＋transaction time 二獨立槽 | 🔨（部分✅＋部分🚚） | ✅僅 fred_series vintage（$S L8831-8836，realtime_start NOT NULL 入 PK；rowcounts 344,063）；**84 張 FinMind 鏡像皆無 tx-time**；欄名模式全庫 0：`grep -cE '^\s+(valid_time\|valid_from\|valid_to\|transaction_time\|tx_time)\s' $S` → 0；🚚 entity_attribute_version（身份屬性面） |
 | KS.41、KS.42、KS.46 | As-of 能力分級（A0 禁止） | 表級 tier 登錄結構 | 🔨 | 判定式：`grep -icE 'asof\|as_of_tier\|capability_tier' "$S"`；條文 KS:336-348 |
 | KS.43 | 已呈現結論不可靜默重寫 | 新版本＋superseded 標記；禁 DELETE+INSERT | 🔨（部分✅＋🚚） | ✅僅 arena 二 trigger：trg_arena_pred_immutable（fn $S L161）＋trg_arena_pred_no_backfill（fn L190）——僅覆蓋 arena 表；🚚 prediction_serving_log（migrate_prediction_serving_ddl.py:37，`--selftest` 本機綠）；prediction_values 本體切換（Phase 4）未動 |
@@ -137,7 +137,7 @@
 2. **data_audit_log**（P4.E1/E6）：$S L7726-7734；**259,975 列**實際在用。
 3. **審議可判定性 CHECK 群**（§8.3）：claim anchor 非空、verifier 七值閉集、status 五值閉集（$S L7921-7938）；**verdict 非 undecidable 必附 evidence 直接由 DB 執法**（L8356-8366）；「證據不足」為合法一級狀態（undecidable ∈ 值域，L8365，P4.E5）。
 4. **direction_gate 預註冊賭注**（P4）：criteria+criteria_sha+git_sha NOT NULL、status DEFAULT 'preregistered'、狀態機閉集、approved 強制簽核（$S L8515-8534）；21 列。
-5. **10 條實質護欄 trigger**（$S L15573-15650；函式體 L94-390）：挪門柱鎖×3（arena_admission、direction_gate、unfreeze_gate）、arena 凍結/反回填×3、fail-closed 輸出契約×2（gate 非 evaluated_pass 不得寫產物表）、洩漏迴歸鎖×1（feature_panel_hash_baseline）、staging 來源門×1。**誠實揭露**：12 條中 2 條（trg_ku_touch/trg_vf_touch@ttai_import）僅 touch updated_at，非憲章護欄。
+5. **10 條實質護欄 trigger**（$S L15573-15650；函式體 L94-390）：挪門柱鎖×3（arena_admission、direction_gate、unfreeze_gate）、arena 凍結/反回填×3、fail-closed 輸出契約×2（gate 非 evaluated_pass 不得寫產物表）、洩漏迴歸鎖×1（feature_panel_hash_baseline）、staging 來源門×1。**誠實揭露**：12 條中 2 條（trg_ku_touch/trg_vf_touch@ttai_import）僅 touch updated_at，非憲章護欄。〔**2026-07-31 補註**：該 2 條 trigger 與其函式 `ttai_import.touch_updated_at()` 已於本日 `DROP SCHEMA ttai_import CASCADE` 時連帶刪除（清點漏查 `pg_proc`，函式未隨 16 表搬移；教訓見計畫書 §0.5 之 L-2）。**本列原即載明其非憲章護欄，故本次損失不觸及任何憲章護欄面**；「10 條實質護欄」之數與內容不因此改變。實查：`SELECT count(*) FROM pg_proc WHERE proname='touch_updated_at'` → **0**；public 非內部 trigger → **93**（二者均不在列）。定義可自 `/mnt/c/database/augur_pgdump_20260731_Fd` 復原。〕
 6. **fred_series 雙時間 vintage**（P4.E2）：realtime_start NOT NULL 入 PK（$S L8831-8836）；344,063 列。**僅此一表**；84 張 FinMind 鏡像無 transaction-time。
 7. **knowledge_source_review_log**（P5.W2）：11 動作閉集、actor NOT NULL、os_user、probe_result（$S L9886-9899）；81 列；配套 staging_source_gate trigger。
 8. **model_registry 六凍結欄**（P4.E6）：train_span/asof_snapshot/feats_hash/seed/git_sha/artifact_path 全 NOT NULL（$S L10310-10324）；15 列。**誠實揭露**：無 immutability trigger，凍結靠欄位約定非 DB 執法。
@@ -173,7 +173,22 @@
 5. ✅ **生產 apply 完成（2026-07-18）**：
    - 前置：生產快照（240 表、TaiwanStockPrice 至 2026-07-16＝與 dump 同步、prediction_values 1695／feature_values 2,510,040／deliberation_claim 396、活躍寫入者 0）；回滾態勢＝新增式（DROP 十新表即復原）＋9.9G dump 雙保險。
    - Apply：五支 migration＋seed 依沙盒同序 → 生產 `augur`。
-   - 事後驗證（全唯讀）：**250 表**；快照三表列數**逐一相等**（1695／2,510,040／396）；**18 條護欄 trigger 在位**（pg_trigger 唯讀列舉）；tombstone/de_identify **SECURITY DEFINER✓**；**十新表對 augur_predict SELECT 全拒**（has_table_privilege 逐表查證——WM.35 消費閘已達，setup_predict_role --apply 僅餘 Phase 4 之 serving 寫權授予、非隔離必需）。
+   - 事後驗證（全唯讀）：**250 表**；快照三表列數**逐一相等**（1695／2,510,040／396）；**18 條護欄 trigger 在位**（pg_trigger 唯讀列舉）；tombstone/de_identify **SECURITY DEFINER✓**；**十新表對 augur_predict SELECT 全拒**（has_table_privilege 逐表查證——WM.35 消費閘已達，setup_predict_role --apply 僅餘 Phase 4 之 serving 寫權授予、非隔離必需）〔**2026-07-31 補註（證據失效之揭露；WM.35 新證據屬 Steward 認定）**：(1) **本證據已不可再生**——`augur_predict` 角色已於本日 `DROP ROLE`，`has_table_privilege` 之查證對象消失；且 `augur` 已升 **superuser**，superuser 繞過一切 GRANT 檢查 ⇒ **任何以 GRANT／REVOKE 為基礎之消費閘證據於本架構下均不成立**。(2) **該證據於本機更早即不可重跑**：所謂「十新表」在本機 live **僅 `raw_supersede_log` 一張存在**（owner=augur、3,914 列），其餘九張 `pg_class` 零命中——成因 UNKNOWN，見 :8 之機器身分揭露。(3) **本檔內部矛盾（非本輪造成）**：:47 判 WM.35 為 🔨，本行卻稱「已達」；而 :117 顯示 predict 角色隔離實際掛於 **MC §P5.W4**（最小權限），本行之「WM.35」有誤引之虞。**⇒ WM.35 消費閘於新架構下以何為證、:47 與本行之矛盾如何處置，二者均屬 Steward 認定（MC §8.1），本補註不代為認定。WM.35／36 為 2026-10-14 到期義務（`RULING-2026-030` 第五(b)：自 10-15 起消費禁令無條件適用）。**
+
+**【2026-07-31 S22 定案——WM.35 消費閘之新證據（Steward 拍板同日辦理）】**
+舊證據（`has_table_privilege('augur_predict', …)` 逐表全拒）**永久失效且不可再生**：角色已 DROP，且 `augur` 為 superuser、繞過一切 GRANT 檢查 ⇒ **任何權限層證據於本架構下均不成立**。
+**新證據＝code 層 AST／字面稽核**（`src/augur/audit/import_isolation.py`）：
+`SUPERSEDE_LITERALS`（＝`raw_supersede_log`）× `PREDICT_CONSUMERS` 之字面引用禁令。
+**產生指令（可機械重跑、零 DB、零 API）**：
+`venv/bin/python -c "from augur.audit.import_isolation import check_isolation; v=check_isolation(); print(len(v)); assert not v"`
+**2026-07-31 實跑：違規數 0**；紅綠由 `tests/test_philosophy_isolation.py` 承接（9 passed）。
+
+**⚠ 新證據弱於舊證據之處（誠實揭露、不得省略）**：
+1. **擋不到動態 SQL**——字面稽核只看原始碼；執行期組字串撈表之旁路原由 DB 層 REVOKE 攔截，**該層現已不存在**。此為單一角色整併之**淨損失**，非改用他法可補。
+2. **射程為 7 個 package**（`PIPELINE`）＋`core`；`execution`／`arena`／`identity`／`deliberation` **不在掃描集合內**（r2 §4 B10 實掃確認現況乾淨，但屬「現況恰好乾淨」非「由構造保證」）。
+3. **不具人／機分辨力**——全系統單一角色，DB 層無從區分寫入者。
+
+⇒ **本定案之射程＝「靜態引用層之消費禁令有機械證據且可重跑」**；動態 SQL 旁路於本架構下**誠實列為缺口**，不偽稱已覆蓋。其與 `MC §8.1 解釋之界線 (c)`（削弱既有制衡）之關係，已於 `reports/augur_db_role_architecture_submission_20260731.md` §6.2 之 OCV 四項對照留痕。〕。
    - 行為證據承接：同一份 DDL 於沙盒經 PR #2 **15/15 行為測試**驗證（含 append-only 擋改刪、TRUNCATE 擋、tombstone 受控、同交易回滾）。
    - **殘餘（誠實揭露）**：表 owner＝augur＝應用角色——owner 分離未落地（owner 可 DISABLE TRIGGER），列 §五既有 ⛔ 族、待部署層處置；runtime 接線（Phase 1/2/4/5）未動，新表現全零列屬預期。
 6. **Runtime 接線另案**（各有完成判準）：Phase 1 vendor 直綁消除（判準：37 檔 grep → 0）、Phase 2 屬性 as-of 消費、Phase 4 serving_log 消費切換、Phase 5 resolve-or-mint＋action_log 接線（判準：ingestion grep 出現接線且沙盒 entity_registry 有 mint 記錄）。

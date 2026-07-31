@@ -158,16 +158,15 @@ def _checks(cur):
     add("A8", "重活互斥;搶不到鎖者於 evolution_deferred_work 有列",
         "N/A" if n_def == 0 else "PASS", f"deferred {n_def} 列(heavy_slot v2 已上線)")
 
-    # A9 三軸隔離:isolation 零違規 + predict 對 local_model_* 零授權
+    # A9 三軸隔離:isolation 零違規
+    # 原另驗「augur_predict 對 local_model_*/raw_evolution_* 零授權」。2026-07-31 單一角色整併後
+    # 該 role 退役 ⇒ **此子判準必須移除而非留著**:`role_table_grants WHERE grantee='<不存在角色>'`
+    # 回 0 列,原式 `n_grant == 0` 會恆真 ⇒ **假綠**(把「角色不存在」讀成「零授權已驗」)。
+    # 現行 #8 之機械落點唯 check_isolation(AST);射程 7 package,見 import_isolation.PIPELINE。
     from augur.audit.import_isolation import check_isolation
     v = check_isolation()
-    # 樣式以參數傳(SQL 內裸 % 會被 psycopg2 當佔位符;2026-07-27 實撞 IndexError)
-    n_grant = _q(cur, """SELECT count(*) FROM information_schema.role_table_grants
-        WHERE grantee='augur_predict'
-          AND (table_name LIKE %s ESCAPE '!' OR table_name LIKE %s ESCAPE '!')""",
-                 ("local!_model!_%", "raw!_evolution!_%")) or 0
-    add("A9", "check_isolation 零違規;augur_predict 對 local_model_*/raw_evolution_* 零授權",
-        "PASS" if not v and n_grant == 0 else "FAIL", f"isolation 違規 {len(v)}、predict 授權 {n_grant}")
+    add("A9", "check_isolation 零違規(#8 現唯 AST 稽核;predict role 已退役、DB 層子判準已移除)",
+        "PASS" if not v else "FAIL", f"isolation 違規 {len(v)}")
 
     # A10 措辭掃描:brief/hint/週報零黑名單
     from augur.audit.evolution_contract import BLACKLIST, validate

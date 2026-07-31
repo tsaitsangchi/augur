@@ -8,7 +8,7 @@
 守 #15(裁決出 DB／pytest／AST 非我以為)· #1(隔離)· #29(個別可執行＋矩陣)· R6 計畫 §4 S1–S2。
 
 執行指令矩陣:
-  python scripts/verify_roadmap_r6_s12.py              # 印矩陣＋跑 --check(A1–A5,A7,A8,A10;不含 A6 煙測)
+  python scripts/verify_roadmap_r6_s12.py              # 印矩陣＋跑 --check(A1–A4,A7,A8,A10;A9 永 SKIP、A6 須煙測旗)
   python scripts/verify_roadmap_r6_s12.py --check      # 同上唯讀哨兵(零外部 knowledge 放量)
   python scripts/verify_roadmap_r6_s12.py --with-smoke # --check 後再跑 e2e 煙測(A6;本機 sentinel)
   python scripts/verify_roadmap_r6_s12.py --json       # 機器可讀(exit 0=近程 A* 綠;A9 永不由此綠)
@@ -152,34 +152,6 @@ def _a4() -> dict:
     return _row("A4", "PASS" if ok else "FAIL", out.replace("\n", " ")[-200:])
 
 
-def _a5(cur) -> dict:
-    from augur.core import config
-    app_u = config.DB_PARAMS.get("user")
-    pred_u = config.DB_PARAMS_PREDICT.get("user")
-    role_ok = app_u != "augur_predict" and pred_u == "augur_predict"
-    cur.execute("SELECT current_user")
-    sess = cur.fetchone()[0]
-    sess_ok = sess != "augur_predict"
-    # predict 對素養 SELECT＝false(抽樣)
-    denied = 0
-    checked = 0
-    for t in ("knowledge_item", "philosophy_work", "knowledge_sentence"):
-        cur.execute("SELECT to_regclass(%s)", (t,))
-        if cur.fetchone()[0] is None:
-            continue
-        cur.execute("SELECT has_table_privilege(%s, %s, 'SELECT')", ("augur_predict", f'"{t}"'))
-        got = cur.fetchone()[0]
-        checked += 1
-        if got is False:
-            denied += 1
-    priv_ok = checked >= 2 and denied == checked
-    ok = role_ok and sess_ok and priv_ok
-    return _row(
-        "A5", "PASS" if ok else "FAIL",
-        f"app_ne_predict={role_ok} sess_ne_predict={sess_ok} "
-        f"predict_denied={denied}/{checked}",
-    )
-
 
 def _a7() -> dict:
     from augur.advisor import ollama
@@ -256,7 +228,6 @@ def run_check(*, with_smoke: bool) -> list[dict]:
         with conn.cursor() as cur:
             rows.append(_a1(cur))
             rows.append(_a2(cur))
-            rows.append(_a5(cur))
     rows.append(_a3())
     rows.append(_a4())
     rows.append(_a7())
@@ -300,8 +271,12 @@ def main(argv=None) -> int:
 
     rows = run_check(with_smoke=args.with_smoke)
     hard = [r for r in rows if r["status"] == "FAIL"]
-    # 近程哨兵綠＝A1–A5,A7,A8,A10 PASS;A6 僅 --with-smoke 計入;A9 永 SKIP
-    required = {"A1", "A2", "A3", "A4", "A5", "A7", "A8", "A10"}
+    # 近程哨兵綠＝A1–A4,A7,A8,A10 PASS;A6 僅 --with-smoke 計入;A9 永 SKIP
+    # **A5 已於 2026-07-31 整格刪除**（Steward 拍板）：其標的（受限 role augur_predict 之
+    # DB 層 GRANT 隔離）隨單一角色整併退役、該檢查已無標的。#8 現唯 AST 稽核
+    # （src/augur/audit/import_isolation.py，射程 7 package），紅綠由
+    # tests/test_philosophy_isolation.py 承接。A5 之編號不重用。
+    required = {"A1", "A2", "A3", "A4", "A7", "A8", "A10"}
     if args.with_smoke:
         required.add("A6")
     req_rows = [r for r in rows if r["id"] in required]

@@ -115,7 +115,8 @@ if [ "$NEED_EXTRACT" = 1 ]; then
 fi
 
 # ---- 確保角色存在(新機只有 postgres)----
-for pair in "$DB_USER:${DB_PASSWORD:-}" "augur_predict:${DB_PREDICT_PASSWORD:-}"; do
+# 2026-07-31 單一角色整併:僅 $DB_USER 一個角色(augur_predict 已退役)
+for pair in "$DB_USER:${DB_PASSWORD:-}"; do
   role="${pair%%:*}"; pw="${pair#*:}"
   has=$(psu -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$role';" 2>/dev/null)
   if [ "$has" != 1 ] && [ -n "$pw" ]; then
@@ -144,13 +145,10 @@ PGOPTIONS="-c maintenance_work_mem=$IDX_MEM" pg_restore --section=post-data $POS
 errs=$(grep -c '^pg_restore: error' "$RLOG" 2>/dev/null || echo 0)
 echo "  三段還原完成(完整 log=$RLOG;pg_restore error 行=$errs——GRANT 到未建角色屬非致命)"
 
-# ---- 預測隔離角色(#8 動態 GRANT 閘)----
-echo "setup_predict_role(#8 隔離角色)…"
-if [ -x "$VENV_PY" ]; then
-  "$VENV_PY" "$ROOT/scripts/setup_predict_role.py" --apply --confirm 2>&1 | tail -3 || echo "  (setup_predict_role 未完成,可事後手動跑)"
-else
-  echo "  ✗ 無 $VENV_PY;請先 pip install -e . 後手動跑 scripts/setup_predict_role.py --apply --confirm"
-fi
+# ---- (2026-07-31 移除)預測隔離角色 setup_predict_role ----
+# 單一角色整併後 augur_predict 退役 ⇒ #8 之 DB 層動態 GRANT 閘不復存在,
+# 現唯 src/augur/audit/import_isolation.py 之 AST 稽核(射程 7 package)。
+# 依據=reports/augur_single_role_consolidation_plan_20260731.md
 
 # ---- 選配:補 migrations(冪等)----
 if [ "$MIGRATE" = 1 ] && [ -x "$VENV_PY" ]; then

@@ -27,8 +27,10 @@
    `ss -tlnp | grep -E ':(8090|8500|8399|8600|11434)'` → 取 pid → `ps -o lstart,cmd -p <pid>`
    ——**啟動路徑須為絕對路徑**（`/home/hugo/project/augur/venv/...`）；
    若見相對路徑 `./venv/...` 即為 shell 起的孤兒，systemd 副本會在背後崩潰重啟。
-3. **qdrant 二進位在 `~/project/ttai/.qdrant_server/`（跨專案依賴）**——
-   若該路徑不在，`augur-qdrant.service` 會起不來；pgvector 仍是 SSOT，可暫不修。
+3. ~~**qdrant 二進位在 `~/project/ttai/.qdrant_server/`（跨專案依賴）**~~
+   **【2026-07-31 已解除】** `~/project/ttai/` 已刪除；二進位遷入 **`~/project/augur/.qdrant_server/qdrant`**
+   （unit 之 `ExecStart` 與 `install_services.sh:26` 已同步改指，重啟後以 `ps` 實測確認跑的是新路徑）。
+   storage 仍在 `~/qdrant_augur`、未受影響；pgvector 仍是 SSOT。**r2 債 #40 至此結案。**
 
 **重開會中斷、且不可自動續跑者（2026-07-31 當下在跑）**
 - `run_philosophy_evolution.py --local-gates` ×2（**resume 跡象 0 ＝重跑須從頭**）。
@@ -48,7 +50,8 @@ memory 已 export 至 `handoff_memory/`（74 檔），新機以 `python3 sync_me
 ## 0.5 增補快照 2026-07-18（Phase 1 憲章化收官——接續者必讀）
 
 **main HEAD＝`f95557b`**（AUD-02＋identity 補正已併入並部署生產）。本日完成：
-* **Phase 1 全線收官**（憲章移轉計畫第一期）：(a) 分支三鏡對抗審查全 GO＋Steward 准併；(b) hugo 側部署＋heal 快照 gate 上線；(c) predict role refresh（REVOKE 84 素養／GRANT 163 預測）；(d) **owner 分離生產生效**——十張憲章表＋2 抹除函式隸 `augur_owner`（NOLOGIN），應用角色 `augur_app` 僅 SELECT/INSERT，`augur` 留維運通道；服務連線已切 `augur_app`。
+* **Phase 1 全線收官**（憲章移轉計畫第一期）：(a) 分支三鏡對抗審查全 GO＋Steward 准併；(b) hugo 側部署＋heal 快照 gate 上線；(c) predict role refresh（REVOKE 84 素養／GRANT 163 預測）；(d) ~~**owner 分離生產生效**——十張憲章表＋2 抹除函式隸 `augur_owner`（NOLOGIN），應用角色 `augur_app` 僅 SELECT/INSERT，`augur` 留維運通道；服務連線已切 `augur_app`。~~
+  **【2026-07-31 誠實更正】本段所述於當家機 `PC002-S1800` **從未成立**：實查 `augur_owner`／`augur_app` 兩角色**皆不存在**、`augur` 缺 DELETE 之表數＝**0**（零 ACL 型 append-only）、306→322 張表 owner 全為 `augur`、服務連線一律 `augur`。本段所提之 `/home/giga/augur/backups/` 亦不存在（本機無 `giga` 帳號）⇒ **本節描述之對象應為另一載體**，本檔先前未標明。又：`augur` 已於 2026-07-31 升為 **superuser**（Steward 拍板），**owner 分離設計自此失去意義**。留痕見 `reports/augur_db_role_architecture_submission_20260731.md` §6.2（OCV 四項對照）。**
 * **權限紅線（新）**：憲章十表 append-only＝ACL＋19 trigger 雙層；抹除函式唯 owner/superuser；tombstone 測試已把「應用角色被拒」鎖為回歸。**測試要跑 DB 行為層須有 `DB_SUPERUSER_PASSWORD` env（fixture 雙角色模式）**。
 * **備份**：`/home/giga/augur/backups/`（10GB dump）＋restic 異碟庫 `D:\augur_restic`（密碼檔 backups/restic.pass，600，不在 git）；pg_stat_statements 已預載。
 * **詳細執行記錄／裁決軌跡**＝augur-constitution 倉 `ops/phase1/`（EXECUTION-RECORD、#19 卷宗）與 `CODE-MIGRATION-PLAN.md`（Phase 2–8 路線）。
@@ -106,14 +109,16 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 >
 > 兩支的排程內容是各自檔內的單一 SSOT（改排程改檔、跑一次即生效、隨 git 走）。**共用一把 LLM 單槽鎖 `/tmp/augur_llm.lock`**——ollama `-np 1` 全域序列化，不鎖則多支互搶、全部變慢且結果不可比。
 
-- **DB**（靠 dump 搬、#30;**本條＝dump 之單一住所 SSOT**，別處只許留指針、不得各自宣稱「最新」）:**最新＝`~/db_dumps/augur_20260726_Fd`**（2026-07-30 機械軌：本機 PC002-S1800 實跑 `ls -la ~/db_dumps/` ＋ `du -sh` ＋ `ls .../toc.dat`——-Fd 目錄版、含 `toc.dat`、10 GB、mtime 2026-07-26 09:00）。備援：`augur_pgdump_20260718_Fd`（9.9 GB；**PriceAdj 錨修復後之乾淨快照**，即 §4.1b ⑤ 所指那份）／`augur_pgdump_20260714_Fd`（9.9 GB）／`augur_pgdump_20260712_Fd.tar`（9.9 GB 單檔）。⚠ 同目錄 `augur_pg17_20260722.dump` **實查 0 byte＝空檔、不可用**;⚠ 本機**無 `/mnt/d`**（舊文所載 `D:\database\…tar` 單檔版於本機不可及;若在外接碟須先掛載並實查，勿假設存在）。**史註**：原文「最新＝`augur_pgdump_20260713_Fd`（含 07-12 全日成果＝擂台九門簽核／三鏡頭月頻／491 件公版全文＋469,551 句／K 計畫橋表／**audit 增量 658,911 列**;取於 audit 尾段對帳中）」係 **07-13 當時值**、已被 07-18／07-26 取代——**換機勿再取 07-13 庫**（其 headline 口徑早於 PriceAdj 錨修復）;audit 續跑之 API 面受 §4.4 凍結約束，見該條。還原一律用 `bash import_database.sh`（自動判 tar/-Fd/-Fc、平行還原;新機庫不存在直接建、取代既有須 `--force`）。56GB 庫=35GB 資料+21GB 索引,dump ~10GB 屬正常。**dump 不進 git**,用外接碟/雲端搬。
+- **DB**（靠 dump 搬、#30;**本條＝dump 之單一住所 SSOT**，別處只許留指針、不得各自宣稱「最新」）:**⚠ 2026-07-31 全面更正——`~/db_dumps/` 已由 Steward 清空，本行原載之五份 dump 全部不存在。**
+  **現行唯一備份＝`/mnt/c/database/augur_pgdump_20260731_Fd`**（Windows C 碟；本日 09:20:38 建、11 GB、`pg_restore -l` 可解析、**2,748 個物件**、含整併前之 `ttai_import` 151 物件與 `touch_updated_at()`＋2 trigger、承重表 DATA 段俱在——2026-07-31 實查）。**它是「augur ＝ 全部」整併前的最後快照**，亦是 `ttai_import`／`augur_predict` GRANT 佈局／兩個 touch trigger 之唯一復原來源。
+  ~~原記述：最新＝`~/db_dumps/augur_20260726_Fd`；備援 `augur_pgdump_20260718_Fd`／`_20260714_Fd`／`_20260712_Fd.tar`；`augur_pg17_20260722.dump` 為 0 byte 空檔~~——**以上五者已於 2026-07-31 刪除，勿再引用**。⚠ **本機 `~/db_dumps/` 現為空目錄**；下次備份請重新產生並更新本條（本條為 dump 單一住所 SSOT）。;⚠ 本機**無 `/mnt/d`**（舊文所載 `D:\database\…tar` 單檔版於本機不可及;若在外接碟須先掛載並實查，勿假設存在）。**史註**：原文「最新＝`augur_pgdump_20260713_Fd`（含 07-12 全日成果＝擂台九門簽核／三鏡頭月頻／491 件公版全文＋469,551 句／K 計畫橋表／**audit 增量 658,911 列**;取於 audit 尾段對帳中）」係 **07-13 當時值**、已被 07-18／07-26 取代——**換機勿再取 07-13 庫**（其 headline 口徑早於 PriceAdj 錨修復）;audit 續跑之 API 面受 §4.4 凍結約束，見該條。還原一律用 `bash import_database.sh`（自動判 tar/-Fd/-Fc、平行還原;新機庫不存在直接建、取代既有須 `--force`）。56GB 庫=35GB 資料+21GB 索引,dump ~10GB 屬正常。**dump 不進 git**,用外接碟/雲端搬。
 - **`.env`**（手動重建、值不入 git;**按通道分組——漏鍵=對應通道靜默失效**):
   | 通道/層 | 鍵 | 漏了會怎樣 |
   |---|---|---|
-  | DB(一切之本) | `DB_HOST/PORT/NAME/USER/PASSWORD`、`DB_SUPERUSER_*`、`DB_PREDICT_PASSWORD` | 全系統不動 |
+  | DB(一切之本) | `DB_HOST/PORT/NAME/USER/PASSWORD`、`DB_SUPERUSER_*`（⚠ `augur` 已為 superuser、此組現屬冗餘）;~~`DB_PREDICT_PASSWORD`~~（**2026-07-31 `augur_predict` 已退役、此鍵可移除**） | 全系統不動 |
   | 市場資料(預測管線) | `FINMIND_TOKEN`（Sponsor 已續訂 2026-07-12;過期降 free tier,錶=`/user_info`）、`FRED_API_KEY` | sync/audit 死 |
   | 知識抓取①(主題/全文/abstract) | `UNPAYWALL_EMAIL`、`FRASER_API_KEY`、`SEMANTIC_SCHOLAR_API_KEY`（有則提速,無則匿名慢速）、`GITHUB_TOKEN`(如用) | OA 全文/abstract 缺源 |
-  | 本機匯入②之 ERP 重抓 | `ORACLE_HOST/PORT/SERVICE_NAME/USER/PASSWORD/DSN` | ERP 語料**無法重抓**(見下 dump-only 警語) |
+  | 本機匯入②之 ERP 重抓 | `ORACLE_HOST/…/DSN`（**2026-07-31：抽取工具隨 `~/project/ttai/` 刪除而消失，此五鍵現無對應工具、留存與否待裁**） | ERP 語料**無法重抓**；語料本身安全（`owned_local` item_text **150,772** 列在庫） |
   | 服務層 | `AUGUR_ADMIN_PASSWORD`、`AUGUR_INTERNAL_SECRET` | admin/advisor RBAC 死 |
   | git | `git config user.name/email`(檔內註記) | commit 身分缺 |
 
