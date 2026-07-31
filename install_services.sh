@@ -3,7 +3,7 @@
 # 全本地、免 sudo（user 級 systemd）、零 Claude usage。啟動規格與 start_chat.sh 對齊（單一 SSOT）。
 #
 # 服務(6 常駐):qdrant:6333 · ollama:11434 ← advisor:8399 ← chat:8090 · admin:8500 · probability:8600
-# timers:embed-catchup(03:30) · ata-advance(04:00 庫內 ATA sentences+embed,limit=200) · admission-assist(05:00 dry-run 預設;ADM-AI-ASSIST S3) · l2-deliberation(06:15,預設 disabled) · knowhow-refresh(週日,預設 disabled) · audit-watchdog(30m)
+# timers:embed-catchup(03:30) · ata-advance(04:00 庫內 ATA sentences+embed,limit=200) · admission-assist(05:00 dry-run 預設;ADM-AI-ASSIST S3) · l2-deliberation(06:15,預設 disabled) · knowhow-refresh(週日,預設 disabled) · audit-watchdog(30m) · drain-deferred(30m,清 heavy-slot 積壓)
 # 註:qdrant:6333=sentence_items serving 索引(hugo 2026-07-14 拍板上線;pgvector 仍 SSOT、Qdrant 可拋棄從 PG 重建)。
 #
 # ⚠ ollama 排序循環陷阱(2026-07-11 實證):user unit **不得**寫 After=default.target(與 WantedBy 成環→開機被丟棄)。
@@ -34,7 +34,7 @@ if [ "${1:-}" = "--status" ]; then
 fi
 
 if [ "${1:-}" = "--uninstall" ]; then
-  for u in augur-chat augur-advisor augur-admin augur-probability augur-ollama augur-qdrant augur-embed-catchup.timer augur-ata-advance.timer augur-admission-assist.timer augur-l2-deliberation.timer augur-knowhow-refresh.timer augur-audit-watchdog.timer; do
+  for u in augur-chat augur-advisor augur-admin augur-probability augur-ollama augur-qdrant augur-embed-catchup.timer augur-ata-advance.timer augur-admission-assist.timer augur-l2-deliberation.timer augur-knowhow-refresh.timer augur-audit-watchdog.timer augur-drain-deferred.timer; do
     UC disable --now "$u" 2>/dev/null; UC stop "$u" 2>/dev/null
   done
   rm -f "$UD"/augur-*.service "$UD"/augur-*.timer
@@ -280,6 +280,32 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+# --- timer: drain-deferred(每 30 分清 evolution_deferred_work 積壓;2026-07-31 hugo 拍板) ---
+# 餓死三日之修:TWEVO 23:00 秒退 rc=75 後從無補跑。本 timer 每輪只處理最舊一筆(--limit 1):
+# superseded(有成功輪佐證)=廉價清帳;rerun 白名單僅 tw、rc=0 才清;slot 忙即空轉非錯誤。
+# 併行安全:script 內 flock /tmp/augur_drain.lock 防雙 drain;子行程自取 heavy slot(父不持)。
+cat > "$UD/augur-drain-deferred.service" <<EOF
+[Unit]
+Description=augur heavy-slot 積壓補跑器(superseded 清帳/白名單補跑;每輪最舊一筆)
+
+[Service]
+Type=oneshot
+WorkingDirectory=$ROOT
+ExecStart=$VENV $ROOT/scripts/drain_deferred_work.py --apply --limit 1
+EOF
+cat > "$UD/augur-drain-deferred.timer" <<EOF
+[Unit]
+Description=augur 積壓補跑 每 30 分
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
 UC daemon-reload
 loginctl enable-linger "$USER" 2>/dev/null && echo "✓ enable-linger(無登入也自起)" || echo "⚠ enable-linger 失敗(需 root 或已設)"
 
@@ -292,6 +318,7 @@ UC enable augur-embed-catchup.timer 2>/dev/null; UC restart augur-embed-catchup.
 UC enable --now augur-ata-advance.timer 2>/dev/null; UC restart augur-ata-advance.timer 2>/dev/null  # KH-ATA-SCHED 庫內 ATA
 UC enable --now augur-admission-assist.timer 2>/dev/null; UC restart augur-admission-assist.timer 2>/dev/null  # ADM-AI-ASSIST S3（預設 dry-run）
 UC enable augur-audit-watchdog.timer 2>/dev/null; UC restart augur-audit-watchdog.timer 2>/dev/null   # audit 未綠期間監看;綠後 no-op
+UC enable --now augur-drain-deferred.timer 2>/dev/null; UC restart augur-drain-deferred.timer 2>/dev/null  # heavy-slot 積壓補跑(2026-07-31)
 UC enable augur-l2-deliberation.timer 2>/dev/null   # timer 檔就緒但不啟(--now),待開閘
 UC enable augur-knowhow-refresh.timer 2>/dev/null   # 件 A/G:timer 檔就緒不啟,待 R-A-R3 hugo 開閘(--with-refresh)
 [ "${1:-}" = "--with-l2" ] && { UC start augur-l2-deliberation.timer; echo "✓ L2 timer 已啟(--with-l2)"; }
