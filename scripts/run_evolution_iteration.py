@@ -250,14 +250,23 @@ def close_round(dry, partial=False):
     return 0
 
 
-def run_round(steps_to_run, dry, allow_apply, gate_ref):
-    """跑一輪(或指定單步)。重活前取 heavy slot;搶不到即積壓落帳並 rc=75。"""
+def run_round(steps_to_run, dry, allow_apply, gate_ref, slot_wait: float = 0):
+    """跑一輪(或指定單步)。重活前取 heavy slot;搶不到即積壓落帳並 rc=75。
+
+    `slot_wait`(2026-07-31,餓死三日之修):>0 時**有界等待**該秒數(每 15s 重試)——
+    23:00 之本支與時長不可預測之 lai 評測臂共用單槽,原「秒退」使 07-27/28/29 連三日
+    rc=75 且無補跑 ⇒ 錯過一秒＝損失一天。等待上限由呼叫端(cron)明示,預設 0 不變。
+    """
     slot = HeavySlot("tw_iteration")
     heavy_needed = any(it.step_meta(s)["heavy"] for s in steps_to_run)
     if heavy_needed and not dry:
-        if not slot.acquire():
+        if slot_wait > 0:
+            print(f"heavy slot 有界等待中(上限 {slot_wait:.0f}s;佔用者見 "
+                  f"python -m augur.core.heavy_slot)…", flush=True)
+        if not slot.acquire(wait_seconds=slot_wait):
             slot.defer("run_evolution_iteration", "heavy slot busy",
-                       {"steps": steps_to_run, "at": _now()})
+                       {"steps": steps_to_run, "at": _now(),
+                        "waited_seconds": slot_wait})
             print(f"⚠ 重活單槽被佔用 → 已寫 evolution_deferred_work(積壓可見);rc={RC_SLOT_BUSY}")
             return RC_SLOT_BUSY
     try:
@@ -338,6 +347,21 @@ def _selftest():
     chk("APPLY 走 --allow-apply 明示旗標", "allow_apply" in body and "if step == \"I5\" and not allow_apply" in body)
     chk("自動 APPLY 留痕 gate_ref(R6 週掃視)", 'rec["gate_ref"] = gate_ref' in body)
     chk("重活鎖用 heavy_slot 非 flock(C3 第二版)", "HeavySlot(" in body and "flock" not in body)
+    # --slot-wait 透傳之行為驗證(2026-07-31):以 fake acquire 攔實收值,非 grep 字面
+    from augur.core import heavy_slot as _hs
+    seen = {}
+    _orig_acq = _hs.HeavySlot.acquire
+    _orig_defer = _hs.HeavySlot.defer
+    _hs.HeavySlot.acquire = lambda self, wait_seconds=0, poll_seconds=15: (
+        seen.__setitem__("wait", wait_seconds), False)[1]
+    _hs.HeavySlot.defer = lambda self, *a, **k: None
+    try:
+        rc = run_round(["I1"], False, False, AUTO_GATE_REF, slot_wait=123)
+        chk("--slot-wait 實透傳至 acquire(實收 wait_seconds=123)", seen.get("wait") == 123)
+        chk("等滿仍失敗 → rc=75 積壓語義不變", rc == RC_SLOT_BUSY)
+    finally:
+        _hs.HeavySlot.acquire = _orig_acq
+        _hs.HeavySlot.defer = _orig_defer
     chk("掉鎖 fail-loud(接 SlotLost 後停手)", "except SlotLost" in body and "停手不續跑" in body)
     chk("搶不到鎖有 defer 落帳(不 silent skip)", "slot.defer(" in body)
     chk("失敗步 fail-closed 不前進", "fail-closed 停止本輪" in body)
@@ -370,6 +394,9 @@ def main(argv=None):
                     help="允許 I5 APPLY(預設關;人閘碼請配 --gate-ref TWEVO-APPLY-go)")
     ap.add_argument("--gate-ref", default=AUTO_GATE_REF, help=f"APPLY 之依據碼(預設 {AUTO_GATE_REF})")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--slot-wait", type=float, default=0, metavar="SEC",
+                    help="搶不到 heavy slot 時之有界等待秒數(預設 0=秒退;"
+                         "cron 23:00 建議 10800=等到最晚 02:00)")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
     if a.selftest:
@@ -382,12 +409,12 @@ def main(argv=None):
         if a.step not in it.STEP_KEYS:
             print(f"未知步驟 {a.step}(合法:{','.join(it.STEP_KEYS)})")
             return 2
-        return run_round([a.step], a.dry_run, a.allow_apply, a.gate_ref)
+        return run_round([a.step], a.dry_run, a.allow_apply, a.gate_ref, slot_wait=a.slot_wait)
     if a.run:
         rc = open_round(a.dry_run)
         if rc:
             return rc
-        rc = run_round(list(it.STEP_KEYS), a.dry_run, a.allow_apply, a.gate_ref)
+        rc = run_round(list(it.STEP_KEYS), a.dry_run, a.allow_apply, a.gate_ref, slot_wait=a.slot_wait)
         if rc:
             return rc
         return close_round(a.dry_run, a.partial)

@@ -59,14 +59,66 @@ class HeavySlot:
             self._conn.autocommit = True
         return self._conn
 
-    def acquire(self) -> bool:
-        """非阻塞取鎖;回 True=取得。已持有再呼叫回 True(冪等)。"""
+    def acquire(self, wait_seconds: float = 0, poll_seconds: float = 15) -> bool:
+        """取鎖;回 True=取得。已持有再呼叫回 True(冪等)。
+
+        `wait_seconds`(2026-07-31,餓死三日之修):**有界等待**——預設 0 維持原「秒退」
+        行為;>0 時每 `poll_seconds` 重試一次直到期限。起因:23:00 之 TWEVO 與時長不可
+        預測之 lai 評測臂共用單槽,秒退政策使 TWEVO 於 07-27/28/29 連三日 rc=75、
+        且無任何補跑機制 ⇒ 錯過一秒＝損失一天。有界等待讓「臂 23:40 收槍」之日
+        TWEVO 23:40 即接手。**上限由呼叫端明示**(如 cron 給 3 小時),不無限等。
+        """
+        import time as _t
+
         if self._held:
             return True
-        cur = self._connect().cursor()
-        cur.execute("SELECT pg_try_advisory_lock(hashtext(%s))", (self.lock_name,))
-        self._held = bool(cur.fetchone()[0])
-        return self._held
+        deadline = _t.monotonic() + max(0, wait_seconds)
+        while True:
+            cur = self._connect().cursor()
+            cur.execute("SELECT pg_try_advisory_lock(hashtext(%s))", (self.lock_name,))
+            self._held = bool(cur.fetchone()[0])
+            if self._held:
+                self._log_acquired()
+                return True
+            if _t.monotonic() >= deadline:
+                return False
+            _t.sleep(min(poll_seconds, max(0.1, deadline - _t.monotonic())))
+
+    # ── holder 帳(2026-07-31,U6 之修):acquire 成功即落一列「誰、何時起」,release 補
+    # released_at。**帳失敗不阻斷取鎖路徑**(鎖是安全機制、帳是觀測;但失敗須 stderr 一行,
+    # 不全靜默)。SIGKILL 者 released_at 恆 NULL——holder_status() 以「pid 是否仍持鎖」
+    # 區分「仍持有」與「死亡未釋放(orphan)」,故 NULL 不會誤讀成在跑。
+    _LOG_DDL = """CREATE TABLE IF NOT EXISTS heavy_slot_holder_log (
+        log_id      BIGSERIAL PRIMARY KEY,
+        lock_name   TEXT NOT NULL,
+        owner       TEXT NOT NULL,
+        pid         INTEGER NOT NULL,
+        acquired_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        released_at TIMESTAMPTZ)"""
+
+    def _log_acquired(self) -> None:
+        try:
+            cur = self._conn.cursor()
+            cur.execute(self._LOG_DDL)
+            cur.execute("INSERT INTO heavy_slot_holder_log (lock_name, owner, pid) "
+                        "VALUES (%s,%s,pg_backend_pid()) RETURNING log_id",
+                        (self.lock_name, self.owner))
+            self._log_id = cur.fetchone()[0]
+        except Exception as e:  # noqa: BLE001
+            self._log_id = None
+            print(f"[heavy_slot] holder 帳落帳失敗({type(e).__name__});鎖已取得、續跑",
+                  file=sys.stderr)
+
+    def _log_released(self) -> None:
+        if getattr(self, "_log_id", None) is None:
+            return
+        try:
+            cur = self._conn.cursor()
+            cur.execute("UPDATE heavy_slot_holder_log SET released_at=now() "
+                        "WHERE log_id=%s AND released_at IS NULL", (self._log_id,))
+        except Exception as e:  # noqa: BLE001
+            print(f"[heavy_slot] holder 帳收帳失敗({type(e).__name__})", file=sys.stderr)
+        self._log_id = None
 
     def verify(self) -> None:
         """heavy step 邊界重驗:鎖仍在**本連線**手上才放行,否則 fail-loud(#15)。"""
@@ -114,6 +166,7 @@ class HeavySlot:
         if self._conn is not None and not self._conn.closed:
             try:
                 if self._held:
+                    self._log_released()
                     cur = self._conn.cursor()
                     cur.execute("SELECT pg_advisory_unlock(hashtext(%s))", (self.lock_name,))
             finally:
@@ -138,6 +191,36 @@ def holder_pids(lock_name: str = LOCK_NAME):
         cur = conn.cursor()
         cur.execute("SELECT pid FROM pg_locks WHERE locktype='advisory' AND granted")
         return [r[0] for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+def holder_status(lock_name: str = LOCK_NAME):
+    """目前持有者之 owner／起始時間(U6 之答);另回 orphan(died 未釋放)近況。唯讀。"""
+    import psycopg2
+
+    from augur.core import config
+    conn = psycopg2.connect(connect_timeout=10, **dict(config.DB_PARAMS))
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT to_regclass('public.heavy_slot_holder_log')")
+        if cur.fetchone()[0] is None:
+            return {"holders": [], "orphans": [], "note": "holder 帳未建(首次 acquire 自建)"}
+        cur.execute("""SELECT h.owner, h.pid, h.acquired_at
+                         FROM heavy_slot_holder_log h
+                        WHERE h.lock_name=%s AND h.released_at IS NULL
+                          AND h.pid IN (SELECT pid FROM pg_locks
+                                         WHERE locktype='advisory' AND granted)
+                        ORDER BY h.acquired_at""", (lock_name,))
+        holders = [{"owner": o, "pid": p, "since": str(t)} for o, p, t in cur.fetchall()]
+        cur.execute("""SELECT h.owner, h.pid, h.acquired_at
+                         FROM heavy_slot_holder_log h
+                        WHERE h.lock_name=%s AND h.released_at IS NULL
+                          AND h.pid NOT IN (SELECT pid FROM pg_locks
+                                             WHERE locktype='advisory' AND granted)
+                        ORDER BY h.acquired_at DESC LIMIT 5""", (lock_name,))
+        orphans = [{"owner": o, "pid": p, "since": str(t)} for o, p, t in cur.fetchall()]
+        return {"holders": holders, "orphans": orphans}
     finally:
         conn.close()
 
@@ -194,7 +277,28 @@ def _selftest():
         a.release()
         c = HeavySlot("selftest_c")
         chk("release 後他人可取得", c.acquire())
+        # ── 2026-07-31 新增之行為驗證 ──
+        import time as _t
+        w = HeavySlot("selftest_wait")
+        t0 = _t.monotonic()
+        got = w.acquire(wait_seconds=1.2, poll_seconds=0.3)   # c 持有中 → 應等滿後 False
+        el = _t.monotonic() - t0
+        chk(f"有界等待:被佔時等滿才放棄(實測 {el:.1f}s)", (not got) and 0.9 <= el <= 4)
+        cur1 = c._conn.cursor()
+        cur1.execute("SELECT owner FROM heavy_slot_holder_log WHERE released_at IS NULL "
+                     "AND pid=pg_backend_pid() ORDER BY log_id DESC LIMIT 1")
+        r = cur1.fetchone()
+        chk("holder 帳:acquire 有落列且 owner 正確", bool(r) and r[0] == "selftest_c")
         c.release()
+        got2 = w.acquire(wait_seconds=5, poll_seconds=0.3)    # c 放手後 → 等待中取得
+        chk("有界等待:前手釋放後等待者真的接手", got2)
+        cur2 = w._conn.cursor()
+        cur2.execute("SELECT count(*) FROM heavy_slot_holder_log WHERE owner='selftest_c' "
+                     "AND released_at IS NOT NULL")
+        chk("holder 帳:release 有補 released_at", cur2.fetchone()[0] >= 1)
+        w.release()
+        cur3 = HeavySlot("selftest_probe_clean")._connect().cursor()
+        cur3.execute("DELETE FROM heavy_slot_holder_log WHERE owner LIKE 'selftest%'")
         b.release()
     except Exception as e:  # noqa: BLE001
         print(f"  (DB 不可用,略過真鎖測:{type(e).__name__}: {str(e)[:60]})")
@@ -210,7 +314,10 @@ def main(argv=None):
     print("  HeavySlot(owner).acquire()/verify()/defer(task,reason)/release()  ── context manager 可用")
     print("  holder_pids()  目前持有 advisory 鎖之 backend pid")
     try:
-        print(f"  現況:持有中的 advisory backend pid = {holder_pids()}")
+        st = holder_status()
+        print(f"  現況:持有中 = {st['holders'] or '(無)'}")
+        if st.get("orphans"):
+            print(f"  ⚠ 死亡未釋放之殘帳(僅示近 5;鎖已隨連線自動釋放,無實害): {st['orphans']}")
     except Exception as e:  # noqa: BLE001
         print(f"  (DB 未連線:{type(e).__name__})")
     return 0
