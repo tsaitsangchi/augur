@@ -1,9 +1,10 @@
 # Memory Index
 
+- [深化理解 r3 20260801](augur-deep-understanding-r3-20260801.md) — ⭐**最新現況權威**:run 20 首完整輪(51 feat)+r01 failed-but-gain(close 判準失真);晉升鏈四斷點(sign 0 列/G-SIGN 未入閘/APPLY-go 未開);**口徑鎖定表**(KH0 兩把尺 138,854 vs 138,805/VE 19 列/表數兩口徑/444·445 非重複);KH8 靠 0.27% 尾巴解閘+GREATEST 再膨脹實證;L7.16 衝突零登錄;lint 真恆真 26;T7=08-02 09:00 看 0727 檔
 - [SUNSET 已結案・裁 pass](sunset-deadline-today-pending-a.md) — ✅**07-31 19:45 hugo 親簽 evaluated_pass(basis=R1)、三軸續命**;⚠**R1 使 (a) 於凍結瞬間即滿足且永遠滿足 ⇒ 下次開停損閘不可沿用 (a) 現行文字**;consequence 仍無機械載體(kill_switch 四 scope 全 clear、tw/raw runner 引用各 0);AI 證據結論與裁決不同、二者並存不刪
 
 - [單一角色整併 20260731](augur-single-role-consolidation-20260731.md) — ⭐**終態權威**:只剩 augur(superuser)一個角色/一個庫;**#8 隔離之 DB 層已不存在且無法重建**(唯 AST、擋不到動態 SQL);knowledge_unit_source≠knowledge_source;**備份只剩 /mnt/c/database/**;GROUNDING-MAP 基線非本機;遷移清點五類物件
-- [深化理解 r2 20260731](augur-deep-understanding-r2-20260731.md) — ⭐**最新現況權威**:基線報告 commit 前已過期之元教訓;sim 專章生效鏈(候選物理死鎖);KH0 真破口 48.68%;靈魂 v1.10.0 最終目標;人閘偵測級三殘道;全文=repo reports/augur_deep_understanding_r2_20260731.md
+- [深化理解 r2 20260731](augur-deep-understanding-r2-20260731.md) — 〔現況權威已移交 r3〕基線報告 commit 前已過期之元教訓;sim 專章生效鏈(候選物理死鎖仍在);靈魂 v1.10.0 最終目標;⚠其 KH0「破口=無原文」口徑已由 r3 正名為兩把尺;全文=repo reports/augur_deep_understanding_r2_20260731.md
 
 ## ⭐ 核心基礎（2026-07-30 定案；後續發展一律以此三則為前提）
 - [世界建構核心](augur-world-construction-core.md) — **augur＝從零建構的世界 L0-L7**;一條路×八行走者;法屬世界足跡屬域;自反性法源鏈(hugo 五度校正定案)
@@ -15,7 +16,7 @@
 
 - [KH0 覆蓋≠品質](kh0-coverage-vs-quality.md) — ⚠**v1.53.0(07-31)撤回窄口徑:真普遍破口 48.68%**(「破口 0」係假綠);「待人裁」根因=回應不可解析、format:json 已解(62.7s 答成);ollama unit 名=augur-ollama(user-level);ERP 五錯處;來源層人簽動它會重啟 P8
 - [三核 FAIL 九則](kh-verify-fail-three.md) — V-4 逐item全表掃=17天(已修凍結 5.6天→2秒)、V-1 fail-open死碼(已修 fail-closed);**六則未修**含 V-3 一列即解閘、V-5 DISABLE TRIGGER 可卸閘、V-6 假綠自測再犯
-- [機械閘三層強度](augur-three-gate-strengths.md) — **硬33表/半14表/軟437支**用同一個詞稱呼=誤判根源;三個親驗假綠(綠燈帳本19/19實有3條false、孤兒佔埠使restart成功卻跑舊碼、人閘零DB強制);優化第一原則=先讓紅燈會亮
+- [機械閘三層強度](augur-three-gate-strengths.md) — **硬33表/半14表/軟437支**用同一個詞稱呼=誤判根源;優化第一原則=先讓紅燈會亮;⚠**「綠燈帳本19/19假綠」已於07-31修**(現19列=green14/red5誠實紅+machine_note分欄;r3口徑);「人閘零DB強制」仍真
 - [同尺四查](same-scale-precheck.md) — 07-28~30 六發尺陷阱歸納:A/B 前查覆蓋/網格(hash 自證)/重名/falsy 空集
 - [便宜尺寸先行](cheap-scale-first.md) — 昂貴掃描前 preview 打熟引擎(23-cutoff 抓 3 bug 省 73h);sha 含網格自動分家;收 preview 讀帳本驗屍
 - [git add 只逐檔明列](git-add-scoped-only.md) — 07-28 實犯:add -A 掃進並行 session 未提交檔;commit 逐檔列+status 先查+--allow-empty 零 add
