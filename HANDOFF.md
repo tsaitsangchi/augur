@@ -31,9 +31,9 @@
 
 | 檔 | 是什麼 |
 |---|---|
-| `docs/系統核心思想_v1.9.0.md` | **靈魂**：預測**相對強弱**＋預言機軸(絕對方向機率,唯過 direction_gate;v1.6.0;v1.8.0 三度堅持刪「不是預測絕對漲跌幅」句,E[r] 升格幅度級得逐股(GATE/econ 同源/揭露硬綁不動))（非絕對漲跌機率）、成功=經濟價值非 IC、系統建議人決策、禁 AI 占卜大師 |
+| `docs/系統核心思想_v1.10.0.md` | **靈魂**：預測**相對強弱**＋預言機軸(絕對方向機率,唯過 direction_gate;v1.6.0;v1.8.0 三度堅持刪「不是預測絕對漲跌幅」句,E[r] 升格幅度級得逐股(GATE/econ 同源/揭露硬綁不動))（非絕對漲跌機率）、成功=經濟價值非 IC、系統建議人決策、禁 AI 占卜大師 |
 | `docs/原則精華_v1.12.0.md` | **20 條不可違反法律** + 資料完整性判準（**FREEZE 已解凍→live 增量維運**;live 准入=arena 前置 G1-G5 機制；**#7 supersede／RULING-2026-041**） |
-| `docs/系統架構大憲章_v1.51.0.md` | **憲法**：三敵×管線、12-PHASE、升版規則、**知識一律准入＋漸進 KH（v1.48.0 入憲，現行 v1.51.0）**、第六部計畫先行、修訂歷程（2026-07-30 機械軌：14:33 親跑 `ls -1 docs/系統架構大憲章_*.md` ＋ `head -1` 實查現行＝**v1.51.0**〔同日 `4dae4bb` 升 v1.50.0、`24f020a` 再升 v1.51.0，一日兩升〕；原寫「現行 v1.49.0」與同列檔名自相矛盾故更正；「v1.48.0 入憲」為史述、未動。**本行版號一日內可再變——引用前一律 `ls docs/`**） |
+| `docs/系統架構大憲章_v1.53.0.md` | **憲法**：三敵×管線、12-PHASE、升版規則、**知識一律准入＋漸進 KH（v1.48.0 入憲，現行 v1.51.0）**、第六部計畫先行、修訂歷程（2026-07-30 機械軌：14:33 親跑 `ls -1 docs/系統架構大憲章_*.md` ＋ `head -1` 實查現行＝**v1.51.0**〔同日 `4dae4bb` 升 v1.50.0、`24f020a` 再升 v1.51.0，一日兩升〕；原寫「現行 v1.49.0」與同列檔名自相矛盾故更正；「v1.48.0 入憲」為史述、未動。**本行版號一日內可再變——引用前一律 `ls docs/`**） |
 | `CLAUDE.md`（版本見檔頭） | AI 協作工具規則（Read-before-Edit、clean-room #16、plan-first #20、一支一支檢視 #19、常駐服務改碼須重啟實測 #7、最小 usage #28、DB 備份慣例 #30） |
 | `reports/augur_construction_understanding_20260713.md` | **⭐建構作法完整理解 v4（code-verified；58-agent 多視角深讀＋12 條承重宣稱 REFUTED 後採更正版；該檔自陳 supersede `20260710.md`＝v3）**：兩半系統＋第三塊審議引擎、逐層 how-built、治權→code 接線、§11 債/斷線/埋雷、§12 對 v3 差異——**接手必讀「這專案怎麼建的」**；`20260710.md`（v3）／`20260709.md` 降為史料（2026-07-30 機械軌：`ls reports/augur_construction_understanding_*` 實查 v4 在檔，原索引指 v3） |
 | `reports/augur_omniscient_advisor_plan_20260709.md` | **活躍計畫①**：全能全知顧問端到端（know-how→DB→逐字理解→Qdrant→qwen→web UI）——**未執行、待拍板** |
@@ -269,7 +269,7 @@ SELECT gate_id, status, criteria->>'min_clusters' AS min_clusters
 | 要什麼 | 去哪 |
 |---|---|
 | 規則/工具紀律 | `CLAUDE.md`（版本見檔頭；#31＝接續慣例） |
-| 判準/憲法 | `docs/系統架構大憲章_v1.51.0.md`＋`docs/原則精華_v1.12.0.md`＋`docs/系統核心思想_v1.9.0.md` |
+| 判準/憲法 | `docs/系統架構大憲章_v1.53.0.md`＋`docs/原則精華_v1.12.0.md`＋`docs/系統核心思想_v1.10.0.md` |
 | 這專案怎麼建的 | `reports/augur_construction_understanding_20260713.md`（**v4** code-verified；20260710＝v3 史料。2026-07-30 機械軌：與 §1 同步） |
 | 擂台規格 | `reports/augur_direction_live_arena_plan_20260711.md` |
 | arena 前置 G1-G5 gate（現行開賽機制+Phase 0 決策紀錄） | `reports/arena_g1g5_admission_gate_plan_20260716.md` |

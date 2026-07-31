@@ -3,7 +3,7 @@
 * **性質**：領域治權檔之 Constitutional Compliance Statement（[N] 聲明；**不上收** docs 進 META）
 * **依據**：`AUGUR-MC v1.6 §8.3`；`AUGUR-WM v1.0 §WM.39–45`；RULING-2026-002 主文二（補正期至 **2026-10-14**）
 * **登錄 Layer**：7（Infrastructure／領域架構承載；涉 L4–6 由本聲明逐節標注）
-* **正文 SSOT**：v1.48.0 正文續改為現行 `docs/系統架構大憲章_v1.51.0.md`（同一檔案沿革，v1.48.0 無獨立檔）；本聲明僅覆蓋 v1.48.0 之增量，現行版聲明見 `docs/compliance/CS-系統架構大憲章_v1.51.0.md`。
+* **正文 SSOT**：v1.48.0 正文續改為現行 `docs/系統架構大憲章_v1.53.0.md`（同一檔案沿革，v1.48.0 無獨立檔）；本聲明僅覆蓋 v1.48.0 之增量，現行版聲明見 `docs/compliance/CS-系統架構大憲章_v1.53.0.md`。
 * **誠實界限**：履行本檔補正；不假關 039／025／029 等其他 10-14 項。
 * **本版增量**：v1.48.0 改「來源治理／知識准入」——一律准入＋漸進 KH update；廢止 v1.41.0 唯人 approve／activate（見 `audits/KH10-AUTO-ADMIT-CONSTITUTED-20260729.md`）。
 

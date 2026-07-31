@@ -3,7 +3,7 @@
 * **性質**：領域治權檔之 Constitutional Compliance Statement（[N] 聲明文件；非把本檔正文上收為 Layer 0／非實質併憲）
 * **依據**：`AUGUR-MC v1.6 §8.3`；`AUGUR-WM v1.0 §WM.39–45`（§11 正式格式）；RULING-2026-002 主文二（五檔補正；期限至 **2026-10-14**）
 * **登錄 Layer**：1（World Model 領域前身；`AUGUR-WM v1.0 §WM.6`：[I] 引註，**非**定義依據）
-* **正文 SSOT**：`docs/系統核心思想_v1.9.0.md`
+* **正文 SSOT**：`docs/系統核心思想_v1.10.0.md`
 * **誠實界限**：本聲明履行 RULING-2026-002 主文二之**本檔**補正義務；**不**假關 RULING-2026-039 殘留或其他 2026-10-14 日曆項。
 
 
@@ -24,7 +24,7 @@ compliance-statement:
   defers-out: [D-SOUL-1]
   date: 2026-07-23
   author: Steward 授權執行層（P2；計畫 reports/augur_docs_into_mc_initial_constitution_plan_20260723.md）
-  archive-path: docs/compliance/CS-系統核心思想_v1.9.0.md
+  archive-path: docs/compliance/CS-系統核心思想_v1.10.0.md
 ```
 
 ## CS.1 逐原則論證（七節）[N]
