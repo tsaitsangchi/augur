@@ -12,6 +12,39 @@
 
 ---
 
+
+## 重開機／接續狀態（2026-07-31 11:2x，封存點 `archive-20260731-sim-axis-live`）
+
+**重開後會自己回來**：13 個 enabled user unit（chat/admin/advisor/probability/ollama/qdrant
+＋7 個 timer）＋12 條 crontab。`Linger=yes` 已設，**無登入亦自起**。
+帶 `Persistent=true` 的 timer 會在開機後補跑錯過的班次。
+
+**重開後須人工確認的三件**
+1. **五埠實測**（不能只看 `systemctl is-active`）：
+   `for p in 8090 8500 8399 8600 11434; do curl -s -o /dev/null -w "$p:%{http_code}\n" --max-time 8 http://127.0.0.1:$p/; done`
+   advisor(:8399) 對 `/` 回 **404 是正常**（OpenAI 相容 API），驗 `/v1/models` 應回 200。
+2. **孤兒佔埠檢查**（2026-07-31 實踩：`systemctl restart` 成功但跑的是 20 小時前的碼）：
+   `ss -tlnp | grep -E ':(8090|8500|8399|8600|11434)'` → 取 pid → `ps -o lstart,cmd -p <pid>`
+   ——**啟動路徑須為絕對路徑**（`/home/hugo/project/augur/venv/...`）；
+   若見相對路徑 `./venv/...` 即為 shell 起的孤兒，systemd 副本會在背後崩潰重啟。
+3. **qdrant 二進位在 `~/project/ttai/.qdrant_server/`（跨專案依賴）**——
+   若該路徑不在，`augur-qdrant.service` 會起不來；pgvector 仍是 SSOT，可暫不修。
+
+**重開會中斷、且不可自動續跑者（2026-07-31 當下在跑）**
+- `run_philosophy_evolution.py --local-gates` ×2（**resume 跡象 0 ＝重跑須從頭**）。
+- `run_evolution_iteration.py`（drain timer 補跑 `tw-20260728-r01`，**resume 完整**）
+  ——中斷後由 30 分一次的 `augur-drain-deferred.timer` 自動再補，不需人管。
+- DB 進行中交易將 rollback（皆為冪等管線，重跑即續）。
+
+**未閉狀態（重開後仍在，非重開造成）**
+- `evolution_iteration_ledger.tw-20260728-r01` status=running、closed_at NULL（殭屍輪，補跑中）。
+- `evolution_deferred_work` 未清 2 筆（drain timer 會處理）。
+- `validation_evidence` 12 條可執行檢查中 **3 條 false**（E1 真退步／E2·E4 待 Steward 裁）。
+
+**接續讀序**：本檔 → `reports/augur_deep_understanding_20260731.md`（優化地基，40 則債務）
+→ `reports/augur_local_ai_market_sim_evolution_plan_20260731.md`（sim 軸實作計畫，P2 已完成、P3 待做）。
+memory 已 export 至 `handoff_memory/`（73 檔），新機以 `python3 sync_memory.py restore` 還原。
+
 ## 0.5 增補快照 2026-07-18（Phase 1 憲章化收官——接續者必讀）
 
 **main HEAD＝`f95557b`**（AUD-02＋identity 補正已併入並部署生產）。本日完成：
