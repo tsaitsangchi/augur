@@ -12,6 +12,7 @@
 
 執行指令矩陣:
   python scripts/promote_knowledge.py                                  # 無參數:列 pending 統計+用法
+  python scripts/promote_knowledge.py --entity-type all                # **全部 pending 型別**(DAG S2 用;資料驅動列舉)
   python scripts/promote_knowledge.py --entity-type thinker            # 晉升全部 pending thinker
   python scripts/promote_knowledge.py --entity-type work --domain management
   python scripts/promote_knowledge.py --entity-type paper              # 七類條目→knowledge_item
@@ -75,7 +76,11 @@ def promote_work(cur, p, source_key=None):
         return "dup"
     cur.execute("INSERT INTO philosophy_work (thinker_id,title,title_zh,year,work_type,note) "
                 "VALUES (%s,%s,%s,%s,%s,'經 knowledge_staging 晉升(provenance 見 staging)')",
-                (r[0], title, p.get("title_zh"), p.get("year"), p.get("work_type", "book")))
+                # `_year()` 不可略（2026-07-31 實證）：payload 之 year 可能是完整日期
+                # （實例 '1999-06-01'）而 philosophy_work.year 為整數欄 ⇒ 直塞得
+                # `InvalidTextRepresentation: invalid input syntax for type integer`，
+                # 且該例外會中斷整批晉升。promote_thinker／promote_item 皆已正規化，唯本函式漏。
+                (r[0], title, p.get("title_zh"), _year(p.get("year")), p.get("work_type", "book")))
     return "ok"
 
 
@@ -194,21 +199,55 @@ def main():
             for r in rows:
                 print(f"  {r[0]:10} {r[1]:16} {r[2]} 列")
             return
-        if args.etype not in MAPPERS:
+        if args.etype != "all" and args.etype not in MAPPERS:
             sys.exit(f"未知 entity_type: {args.etype}(現有:{list(MAPPERS)};新類型=加 mapping 函式)")
         cur.execute("SELECT to_regclass('knowledge_item')")
         has_item = cur.fetchone()[0] is not None
-        if args.etype in ITEM_TYPES and not has_item:
-            sys.exit("knowledge_item 未建——先跑 python scripts/harvest_knowledge.py --migrate-only")
         cur.execute("SELECT 1 FROM information_schema.columns "
                     "WHERE table_name='knowledge_staging' AND column_name='query_id'")
         qid_col = "query_id" if cur.fetchone() else "NULL::int"   # 欄未建(未跑 harvest migrate)→ 容 NULL
+
+        # `--entity-type all`：由 **pending 實況列舉**要跑哪些型別（#29b 資料驅動、不寫死清單）。
+        # 起因（2026-07-31）：DAG 之 S2 promote 傳空 args ⇒ 無 --entity-type ⇒ 走「印用法即 return」
+        # 分支、exit 0 ⇒ DAG 記「✓ 完成 0s」而 16,072 筆 pending **一筆未動**＝假綠。
+        if args.etype == "all":
+            eq = "SELECT DISTINCT entity_type FROM knowledge_staging WHERE status='pending'"
+            ep: list = []
+            if args.domain:
+                eq += " AND domain=%s"; ep.append(args.domain)
+            if args.source:
+                eq += " AND source_key=%s"; ep.append(args.source)
+            cur.execute(eq + " ORDER BY 1", ep)
+            found = [r[0] for r in cur.fetchall()]
+            etypes = [e for e in found if e in MAPPERS]
+            unknown = [e for e in found if e not in MAPPERS]
+            if unknown:   # 誠實揭露、非靜默丟棄（新型別＝加 mapping 函式，屬 code 非資料）
+                print(f"⚠ 略過未知 entity_type（需加 mapping 函式）：{unknown}")
+            if not etypes:
+                print("(pending 中無可晉升之 entity_type — 非錯誤，確為無待辦)")
+        else:
+            etypes = [args.etype]
+
+        scanned_total = 0
+        for etype in etypes:
+            if etype in ITEM_TYPES and not has_item:
+                print(f"⚠ {etype}:knowledge_item 未建 → 略過"
+                      "（先跑 harvest_knowledge.py --migrate-only）")
+                continue
+            scanned_total += _promote_one(cur, etype, args, has_item, qid_col)
+        if args.etype == "all":
+            print(f"all:共 {len(etypes)} 型、掃 {scanned_total} 列 pending")
+
+
+def _promote_one(cur, etype, args, has_item, qid_col) -> int:
+    """晉升單一 entity_type；回本型掃到的 pending 列數（供 all 模式彙總）。"""
+    if True:
         q = (f"SELECT staging_id, payload, source_key, entity_type, domain, source_url, {qid_col} "
              "FROM knowledge_staging WHERE status='pending' AND entity_type=%s "
              "AND NOT EXISTS (SELECT 1 FROM knowledge_source ks "                # 閘二入庫面(fail-closed):
              "  WHERE ks.source_key = knowledge_staging.source_key "             # 來源在 registry 且非 active
              "  AND ks.approval_status <> 'active')")                            # → 不晉升(憲章 v1.41.0)
-        params = [args.etype]
+        params = [etype]
         if args.domain:
             q += " AND domain=%s"; params.append(args.domain)
         if args.source:
@@ -222,9 +261,9 @@ def main():
                 print(f"  [dry] #{sid} {str(p)[:90]}")
                 continue
             ctx = {"staging_id": sid, "entity_type": s_et, "domain": s_dom, "source_url": s_url, "query_id": s_qid}
-            fn = MAPPERS[args.etype]
+            fn = MAPPERS[etype]
             res = fn(cur, p, source_key=skey, ctx=ctx) if fn is promote_item else fn(cur, p, source_key=skey)
-            if res == "no_thinker" and args.etype == "work" and s_dom != "philosophy" and has_item:
+            if res == "no_thinker" and etype == "work" and s_dom != "philosophy" and has_item:
                 # work→item 後援(harvest 計畫 §一⑤):無 thinker 歸屬之非哲學 work=論文/書目 metadata
                 # → knowledge_item;哲學域仍留 pending 人審(守審核後晉升)
                 res = {"ok": "item_ok", "dup": "item_dup"}.get(
@@ -232,11 +271,12 @@ def main():
             stats[res] = stats.get(res, 0) + 1
             if res in ("ok", "dup", "item_ok", "item_dup"):
                 cur.execute("UPDATE knowledge_staging SET status='promoted', promoted_at=now() WHERE staging_id=%s", (sid,))
-                if args.etype in ITEM_TYPES or args.etype == "document" or res in ("item_ok", "item_dup"):
+                if etype in ITEM_TYPES or etype == "document" or res in ("item_ok", "item_dup"):
                     _refresh_kh4_for_staging(cur, sid)
             elif res == "rejected":
                 cur.execute("UPDATE knowledge_staging SET status='rejected' WHERE staging_id=%s", (sid,))
-        print(f"{args.etype}:掃 {len(rows)} 列 pending → {stats or '(dry-run 未寫)'}")
+        print(f"{etype}:掃 {len(rows)} 列 pending → {stats or '(dry-run 未寫)'}")
+        return len(rows)
 
 
 if __name__ == "__main__":

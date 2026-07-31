@@ -32,6 +32,7 @@ import signal
 import sys
 import time
 import argparse
+import re
 import subprocess
 from pathlib import Path
 from collections import namedtuple
@@ -50,8 +51,10 @@ Stage = namedtuple("Stage", "name seg script args domain_ok limit_flag default_l
 STAGES = (
     Stage("harvest", "S1", "harvest_knowledge.py", ("--rounds", "1"), True, "--batch", 10,
           "首輪最小 --batch 10(#25);放量個別跑 harvest_knowledge.py --batch 300 --rounds 4"),
-    Stage("promote", "S2", "promote_knowledge.py", (), True, None, None,
-          "冪等去重全量(真實旗標無界量,--limit 不適用)"),
+    Stage("promote", "S2", "promote_knowledge.py", ("--entity-type", "all"), True, None, None,
+          "冪等去重全量(真實旗標無界量,--limit 不適用);**必帶 --entity-type**——"
+          "前版傳空 args 使 promote 走「印用法即 return」分支、exit 0，"
+          "本段遂記「✓ 完成 0s」而 pending 一筆未動(2026-07-31 實證 16,072 筆假綠)"),
     Stage("fulltext", "S3", "fetch_oa_fulltext.py", (), True, "--limit", None,
           "需 UNPAYWALL_EMAIL;NC/ND/license 未明=誠實 skip 停 metadata"),
     Stage("sentences", "S3", "build_sentences.py", ("--scope", "items", "--max-chars", "800"), False, "--limit", None,
@@ -490,6 +493,14 @@ def main():
             after = pending_lines(cur, st.name, args.domain)
         print(f"✓ {st.seg} {st.name} 完成 {time.time() - ts:.0f}s | 驗收計數(後):{'; '.join(after)}",
               flush=True)
+        # 空轉哨兵(2026-07-31 加):rc=0 **不等於**有做事——S2 promote 曾因缺參數而
+        # 「印用法即 exit 0」，DAG 照記 ✓ 完成，16,072 筆 pending 一筆未動。
+        # 驗收計數與執行前逐字相同且其中含非零數 ⇒ 提示查核。**僅警示不中止**：
+        # 相同亦可能是「確實無待辦」之誠實終態(如 resplit 恆 0)，二者此處分不出，故不擅判失敗。
+        if before == after and any(int(n.replace(",", "")) > 0
+                                   for n in re.findall(r"\d[\d,]*", "; ".join(after))):
+            print(f"  ⚠ {st.name}:驗收計數與執行前**逐字相同**——rc=0 不代表有做事，"
+                  "請確認是「確實無待辦」還是「空轉」(缺參數/前置未備)", flush=True)
         if st.name in {"promote", "fulltext", "sentences", "resplit", "embed", "kip"}:
             _refresh_kh4_scope(args.domain, args.limit)
     heartbeat(len(NAMES) - 1, child_pid=0)                   # 收尾 tick(child 清零)
