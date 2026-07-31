@@ -52,3 +52,4 @@
 | 2026-07-30 | W0 檢索 PASS；W1 102 panel 材料化；孤兒揭露；四關待開 |
 | 2026-07-30 | `INTERACT-ORPHAN-CLEAR`：刪 2014–2017 staging；7×102 ALIGN PASS |
 | 2026-07-30 | `S4-eval-set-go`／`KH10-ENABLE-S1` 補拍落地（見 `EVO-S4-KH10-S1-APPROVED`＋兩 CLOSED） |
+| 2026-07-30 | Steward TTY 人裁：approved 4（id 2/3/9/18）＋rejected 2＋killed 1；pending 餘 36 |

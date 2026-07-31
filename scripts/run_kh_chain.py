@@ -169,7 +169,8 @@ def main(argv: list[str] | None = None) -> int:
               f"｜誠實例外：無原文 {pf['no_fulltext']:,} 件 metadata-only（KH0 不適用）")
     else:
         print(f"  KH0 底線不變式：✗ **破口 {pf['kh0_breach']:,} 件**"
-              f"（有原文卻未評 KH0）——憲章 v1.52.0 命須先補齊方得推進上層")
+              "（有原文卻未評 KH0，通常＝新落地全文尚未評）"
+              "——跑 --run --phase advance 由 KH0 逐層補齊，收尾自動覆核（憲章 v1.52.0）")
     busy = concurrent_running()
     if busy:
         print("  ⚠ 偵測到並行 runner（避免同表競態，--run 將拒絕執行）：")
@@ -188,10 +189,19 @@ def main(argv: list[str] | None = None) -> int:
         print("\nABORT：已有並行 runner，先等其收槍（守同表競態紀律）")
         return 3
 
-    if pf["kh0_breach"] > 0 and a.phase in ("advance", "all"):
-        print(f"\nABORT：KH0 底線破口 {pf['kh0_breach']:,} 件（憲章 v1.52.0）"
-              "——須先補齊 KH0 方得推進上層；可跑 --phase data 或 run_knowhow_auto_admit --apply-raw")
-        return 4
+    # KH0 底線不變式之**閘位**（2026-07-31 修正；前版擺錯位置）：
+    # 憲章 v1.52.0 之「須先補齊方得推進上層」＝**KH0 須先於 KH8/KH9 被評**，
+    # 而 `run_knowhow_auto_admit` 本來就是**由 KH0 逐層往上**評——它正是補齊之手段。
+    # 前版卻以 `破口>0 ⇒ ABORT --phase advance/all` 實作，**剛好擋掉修復動作本身**：
+    # 每次 data 段抓進新全文（本例＝fetch_oa_fulltext 落地 49 筆）就必然造成破口，
+    # 於是全鏈從此再也跑不完。此為施作者誤讀條文之實作錯，非條文本身要求。
+    #（第四次獨立核驗修復順序第 8 項已預示：「射程收到『結果採信』而非擋 --phase」。）
+    # 正解：**事前警示、事後驗證**——跑完仍有破口才是真違反。
+    if pf["kh0_breach"] > 0:
+        print(f"\n⚠ KH0 底線破口 {pf['kh0_breach']:,} 件（新落地全文尚未評 KH0）"
+              + ("——本次推進段將由 KH0 逐層補齊，收尾自動覆核"
+                 if a.phase in ("advance", "all")
+                 else "——本次未含推進段，破口將留存至下次 --phase advance"))
 
     for i, c in enumerate(cmds, 1):
         print(f"\n── [{i}/{len(cmds)}] {' '.join(shlex.quote(x) for x in c)}")
@@ -200,6 +210,17 @@ def main(argv: list[str] | None = None) -> int:
         if rc != 0:
             print(f"ABORT：第 {i} 段 rc={rc}（不續跑後段；修好後重跑同指令即從該段續）")
             return rc
+
+    # 事後驗證：推進段跑完仍有破口 ⇒ 才是真的違反不變式（補齊沒生效）
+    if a.phase in ("advance", "all"):
+        with db.connect() as conn, conn.cursor() as cur:
+            post = preflight(cur)
+        if post["kh0_breach"] > 0:
+            print(f"\n✗ KH0 底線不變式**未回復**：推進後仍有破口 {post['kh0_breach']:,} 件"
+                  f"（推進前 {pf['kh0_breach']:,}）——憲章 v1.52.0；補齊未生效，須查核")
+            return 4
+        print(f"\n✓ KH0 底線不變式：破口已回復為 0（推進前 {pf['kh0_breach']:,} 件）")
+
     print("\n全鏈完成（各段 rc=0）。建議收尾：python3 scripts/run_kh_chain.py --check 覆核分佈")
     return 0
 
@@ -279,6 +300,15 @@ def _selftest() -> int:
         all("count(DISTINCT i.item_id)" in q for q in joins))
     chk("KH0 底線破口有被算出", "kh0_breach" in pf)
     chk("同尺自檢有被算出且成立（5<=5）", pf.get("scale_consistent") is True)
+    # KH0 閘位之回歸鎖（2026-07-31）：前版以「破口>0 ⇒ ABORT --phase advance/all」實作，
+    # 剛好擋掉修復動作本身（推進段正是由 KH0 逐層補齊者），使全鏈在每次抓進新全文後
+    # 再也跑不完。切 def _selftest 之前的本體掃描，避免斷言字串掃到自己。
+    _body = open(__file__, encoding="utf-8").read().split("def _selftest")[0]
+    chk("KH0 破口不再事前 ABORT（否則擋掉修復動作本身）",
+        "ABORT\uff1aKH0 \u5e95\u7dda\u7834\u53e3" not in _body)
+    chk("改為事前警示", "\u26a0 KH0 \u5e95\u7dda\u7834\u53e3" in _body)
+    chk("改為事後驗證（推進後仍有破口才失敗）",
+        'post["kh0_breach"] > 0' in _body and "\u672a\u56de\u5fa9" in _body)
     print("selftest: " + ("RED" if fails else "GREEN"))
     return 1 if fails else 0
 

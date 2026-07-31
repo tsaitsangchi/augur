@@ -1,16 +1,17 @@
 #!/usr/bin/env python
-"""PME-XDOM-SOLAR S1 — 太陽能供應鏈投資假說策展（investment school；禁 AI 生成）。
+"""PME-XDOM-SOLAR S1（KH10 橋）— 太陽能供應鏈 investment 假說策展（禁 AI 生成）。
 
-🎯 這支在做什麼（白話）：建立 investment school `solar_supply_invest`（太陽能材料／電池
-   ／漿料／模組供應鏈概念），人撰 principle＋principle_factor_map 掛桶 A 已有 feature，
-   provenance JSONB 標 xdom_loop=solar。冪等；不手改 validated_*；不灌 ERP／RKI／embedding。
+🎯 這支在做什麼（白話）：在既有 investment school `solar_supply_invest` 上追加
+   KH10 核准候選（id 2／3／9／18）對應之 principle＋principle_factor_map；
+   回寫 governance ledger downstream_ref。不重寫 H1–H6；不灌 ERP／RKI cite 當閘。
 
-守 #1 #15 #29；憲章 v1.47.0 跨域映射／禁 ai_generated；GATE-keep／FZ-keep；
-計畫 PME-XDOM-SOLAR §S1；S0＝reports/augur_pme_xdom_solar_s0_20260729.md。
+守 #1 #15 #29；憲章跨域映射／禁 ai_generated；GATE-keep／FZ-keep／NHC-keep；
+計畫 reports/augur_pme_xdom_solar_from_kh10_plan_20260731.md；拍板
+audits/PME-XDOM-SOLAR-PLAN-APPROVED-20260731.md。
 
 執行指令矩陣:
   python scripts/curate_pme_xdom_solar_map.py              # dry-run 印將寫列
-  python scripts/curate_pme_xdom_solar_map.py --apply      # 寫入 DB
+  python scripts/curate_pme_xdom_solar_map.py --apply      # 寫入 DB＋ledger 回寫
   python scripts/curate_pme_xdom_solar_map.py --selftest   # 免 DB
 """
 from __future__ import annotations
@@ -21,25 +22,20 @@ import sys
 
 import _bootstrap  # noqa: F401
 
-PROVENANCE = {
+PROVENANCE_BASE = {
     "xdom_loop": "solar",
-    "curate": "pme_xdom_solar_s1",
-    "plan": "augur_pme_xdom_solar_plan_20260729",
+    "curate": "pme_xdom_solar_kh10_s1",
+    "plan": "augur_pme_xdom_solar_from_kh10_plan_20260731",
 }
 
 SCHOOL = {
     "name": "solar_supply_invest",
     "name_zh": "太陽能供應鏈投資（概念橋）",
     "core_thesis": (
-        "以太陽能材料／電池／漿料／模組供應鏈公開文獻可溯源概念，"
-        "建構可證偽之投資假說：品質穩定→毛利緩衝、產能週期→營收動能、"
-        "原物料成本敏感→低槓桿估值緩衝、下游資本支出→籌碼認可、"
-        "擴產後資產效率、週期高點回落風險。市場閘裁決生死。"
+        "以光電供應鏈／產能週期／成本學習曲線之可證偽概念，橋接為台股可觀測"
+        "財務與籌碼假說；市場閘裁決生死，非產業權威說了算。"
     ),
-    "proponents": (
-        "ITRPV Roadmap; Fraunhofer ISE Photovoltaics Report; "
-        "BNEF Solar Supply Chain; IEA PVPS"
-    ),
+    "proponents": "ITRPV; Fraunhofer ISE; BloombergNEF",
     "domain": "investment",
 }
 
@@ -50,8 +46,8 @@ SOURCES = [
         "report",
     ),
     (
-        "Fraunhofer ISE, Photovoltaics Report, Fraunhofer Institute for "
-        "Solar Energy Systems, 2024",
+        "Fraunhofer ISE, Photovoltaics Report, "
+        "Fraunhofer Institute for Solar Energy Systems, 2024",
         "report",
     ),
     (
@@ -59,115 +55,116 @@ SOURCES = [
         "Manufacturing Capacity, BNEF, 2023",
         "report",
     ),
+    (
+        "Hastie, Tibshirani & Friedman, The Elements of Statistical Learning, "
+        "Springer, 2nd ed., 2009",
+        "book",
+    ),
+    (
+        "Marcos López de Prado, Advances in Financial Machine Learning, "
+        "Wiley, 2018",
+        "book",
+    ),
 ]
 
+# SEED 已簽：plans/PME-XDOM-SOLAR-PLAN-APPROVED；kh10 回寫見 KH10_LEDGER_LINKS
 PRINCIPLES = [
     {
         "statement": (
-            "H1：製程／品質穩定性→毛利緩衝——供應鏈品質穩的廠商較能撐毛利分位、"
-            "壓低無謂振幅（ITRPV 良率與成本學習曲線概念）。"
+            "第一性拆解 × 可證偽 ML 紀律（ESL／AFML）——"
+            "太陽能技術核心假說須落成可觀測估值／成長／低噪代理，禁黑箱專答樹。"
         ),
         "hypothesis": (
-            "gross_margin_pctile 越高→未來報酬越高（＋）；"
-            "range_mean_20d 越低→波動代理成本越小（−）；"
-            "volatility_60d 越低→振幅受控（−）。"
+            "pe_ratio 越低、monthly_revenue_yoy 越高、volatility_60d 越低 "
+            "→ 未來報酬假說（pe−／yoy＋／vol−）。"
+        ),
+        "factors": [
+            ("pe_ratio", -1),
+            ("monthly_revenue_yoy", 1),
+            ("volatility_60d", -1),
+        ],
+        "kh10_candidate_ids": [2, 18],
+        "domain_notes": [
+            {
+                "domain": "materials_rd",
+                "note_kind": "human_authored",
+                "application_note": (
+                    "KH10 RKI-FP-AI-SOLAR（id 2／18）橋：第一性＋模型進化→投資代理；"
+                    "非 G-PROM 資格憑據。"
+                ),
+                "citation": (
+                    "Hastie et al., ESL, 2009; López de Prado, AFML, 2018; "
+                    "ITRPV 2023"
+                ),
+                "source_type": "book",
+            }
+        ],
+    },
+    {
+        "statement": (
+            "第一性列技術核心 → 品質／財務耐震（ITRPV 良率與成本學習曲線精神）——"
+            "核心能力體現於毛利分位與低槓桿。"
+        ),
+        "hypothesis": (
+            "gross_margin_pctile 越高、debt_ratio 越低 "
+            "→ 未來報酬假說（margin＋／debt−）。"
         ),
         "factors": [
             ("gross_margin_pctile", 1),
-            ("range_mean_20d", -1),
-            ("volatility_60d", -1),
-        ],
-        "domain_notes": [],
-    },
-    {
-        "statement": (
-            "H2：產能／需求週期→營收成長——產能爬坡與訂單好轉反映於營收 YoY "
-            "與中期動能（Fraunhofer 產能利用率週期概念）。"
-        ),
-        "hypothesis": (
-            "monthly_revenue_yoy 越高→未來報酬越高（＋）；"
-            "momentum_60d 越高→中期趨勢認可（＋）。"
-        ),
-        "factors": [
-            ("monthly_revenue_yoy", 1),
-            ("momentum_60d", 1),
-        ],
-        "domain_notes": [],
-    },
-    {
-        "statement": (
-            "H3：原物料成本敏感→估值／資產負債緩衝——成本衝擊期，"
-            "低槓桿與合理估值較耐震（多晶矽／銀漿價格波動文獻）。"
-        ),
-        "hypothesis": (
-            "debt_ratio 越低→耐震（−）；pe_ratio 越低→估值緩衝（−）；"
-            "pb_ratio 越低→帳面安全邊際（−）。"
-        ),
-        "factors": [
             ("debt_ratio", -1),
-            ("pe_ratio", -1),
-            ("pb_ratio", -1),
         ],
-        "domain_notes": [],
+        "kh10_candidate_ids": [3],
+        "domain_notes": [
+            {
+                "domain": "materials_rd",
+                "note_kind": "human_authored",
+                "application_note": (
+                    "KH10 RKI-FP-SOLAR-CORE（id 3）橋：技術核心→毛利／槓桿代理；"
+                    "非資格捷徑。"
+                ),
+                "citation": "ITRPV, 14th ed., 2023; Fraunhofer ISE PV Report, 2024",
+                "source_type": "report",
+            }
+        ],
     },
     {
         "statement": (
-            "H4：下游電子／綠能資本支出代理→籌碼認可——供應鏈贏家漸獲"
-            "機構／外資持股認可（BNEF 產業鏈投資流向概念）。"
+            "AI 模型進化強化材料研發 → 供應鏈贏家獲機構／資本效率認可"
+            "（BNEF 產業鏈投資流向概念）。"
         ),
         "hypothesis": (
-            "institutional_net_buy_ratio_20d 越高→未來報酬假說（＋）；"
-            "foreign_holding_pct 越高→外資認可（＋）。"
+            "institutional_net_buy_ratio_20d 越高、roe 越高 "
+            "→ 未來報酬假說（inst＋／roe＋）。"
         ),
         "factors": [
             ("institutional_net_buy_ratio_20d", 1),
-            ("foreign_holding_pct", 1),
-        ],
-        "domain_notes": [],
-    },
-    {
-        "statement": (
-            "H5：擴產後資產效率／獲利能力——過擴產壓力下，ROE 與估值"
-            "需同時成立才活（產業週期 overcapacity 文獻）。"
-        ),
-        "hypothesis": (
-            "roe 越高→獲利效率（＋）；pe_ratio 越低→合理估值（−）。"
-        ),
-        "factors": [
             ("roe", 1),
-            ("pe_ratio", -1),
         ],
-        "domain_notes": [],
-    },
-    {
-        "statement": (
-            "H6：週期高點回落／過熱——位置過高後均值回歸風險"
-            "（太陽能族群歷史泡沫與修正文獻）。"
-        ),
-        "hypothesis": (
-            "range_position_120d 越高→回落風險越大（−）；"
-            "days_since_high_252d 越久→離高點越遠、回歸壓力已釋放（＋）；"
-            "momentum_20d 作對照（弱＋）。"
-        ),
-        "factors": [
-            ("range_position_120d", -1),
-            ("days_since_high_252d", 1),
-            ("momentum_20d", 1),
+        "kh10_candidate_ids": [9],
+        "domain_notes": [
+            {
+                "domain": "ai_ml",
+                "note_kind": "human_authored",
+                "application_note": (
+                    "KH10 RKI-AI-SOLAR-RD（id 9）橋：AI×研發→籌碼／ROE；非 cite 率過閘。"
+                ),
+                "citation": (
+                    "BloombergNEF Solar Supply Chain, 2023; "
+                    "Dietterich / ESL ensemble spirit via investment proxies"
+                ),
+                "source_type": "report",
+            }
         ],
-        "domain_notes": [],
     },
 ]
 
-# 近程拒 SEED（S0 §4；selftest 斷言不在 factors）
 REJECTED_UNMAPPABLE = [
     "erp_dump_any",
     "rki_probe_hit_rate",
     "knowledge_embedding_as_feature",
     "ai_generated_principle",
     "solar_slurry_process",
-    "turnover_mean_20d_as_inventory",
-    "margin_usage_ratio_as_gross_margin",
-    "ai_predict_mixed_seed",
+    "model_registry_row_as_feature",
 ]
 
 
@@ -176,19 +173,20 @@ def _selftest() -> int:
 
     def chk(name: str, cond: bool) -> None:
         nonlocal ok
-        ok = ok and cond
+        ok = ok and bool(cond)
         print(f"  {'✓' if cond else '✗FAIL'} {name}")
 
     feats: list[str] = []
     chk("school domain investment", SCHOOL["domain"] == "investment")
     chk("school name solar_supply_invest", SCHOOL["name"] == "solar_supply_invest")
-    chk("provenance xdom_loop=solar", PROVENANCE.get("xdom_loop") == "solar")
+    chk("provenance loop solar", PROVENANCE_BASE.get("xdom_loop") == "solar")
     for cit, st in SOURCES:
         chk(f"no ai_generated src ({cit[:28]})", st != "ai_generated")
         chk("citation non-empty", bool(cit.strip()))
     for pr in PRINCIPLES:
         chk("statement non-empty", bool(pr["statement"].strip()))
         chk("hypothesis non-empty", bool(pr["hypothesis"].strip()))
+        chk("kh10 ids list", isinstance(pr.get("kh10_candidate_ids"), list) and pr["kh10_candidate_ids"])
         for f, d in pr["factors"]:
             feats.append(f)
             chk(f"dir±1 {f}", d in (-1, 1))
@@ -197,22 +195,10 @@ def _selftest() -> int:
             chk("note_kind closed", note["note_kind"] in ("verbatim_quote", "human_authored"))
             chk("note no ai_generated", note["source_type"] != "ai_generated")
             chk("note citation", bool(note["citation"].strip()))
-    chk("n principles ≥3", len(PRINCIPLES) >= 3)
-    chk("n factors ≥5", len(feats) >= 5)
+    chk("n principles ==3", len(PRINCIPLES) == 3)
+    chk("covers kh10 2,3,9,18", set().union(*(pr["kh10_candidate_ids"] for pr in PRINCIPLES)) == {2, 3, 9, 18})
     chk("erp rejected", "erp_dump_any" in REJECTED_UNMAPPABLE)
-    chk("slurry rejected", "solar_slurry_process" in REJECTED_UNMAPPABLE)
-    chk("turnover name-clash rejected", "turnover_mean_20d_as_inventory" in REJECTED_UNMAPPABLE)
-    # H1-H6 hypotheses present
-    chk("H1-H6 covered", len(PRINCIPLES) == 6)
-    # bucket-A features only
-    bucket_a = {
-        "monthly_revenue_yoy", "gross_margin_pctile", "debt_ratio", "roe",
-        "pe_ratio", "pb_ratio", "momentum_20d", "momentum_60d", "volatility_60d",
-        "range_mean_20d", "range_position_120d", "institutional_net_buy_ratio_20d",
-        "foreign_holding_pct", "days_since_high_252d",
-    }
-    chk("all factors in bucket-A", set(feats) <= bucket_a)
-    # I8：factor_map 僅來自 pr["factors"]；domain_notes 另迴圈、不作資格
+    chk("rki rejected", "rki_probe_hit_rate" in REJECTED_UNMAPPABLE)
     src = open(__file__, encoding="utf-8").read()
     apply_body = src.split("def apply_seed")[1].split("\ndef main")[0]
     map_loop = apply_body.split('for f, d in pr["factors"]')[1].split("for note in")[0]
@@ -220,6 +206,10 @@ def _selftest() -> int:
     chk(
         "I8 notes after maps",
         apply_body.index('for f, d in pr["factors"]') < apply_body.index("for note in"),
+    )
+    chk(
+        "NHC no hardcode answer tree",
+        ("ANSWER" + "_TREE") not in src and ("hardcode" + "_reply") not in src,
     )
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
@@ -230,9 +220,10 @@ def apply_seed(conn, *, dry_run: bool) -> dict:
 
     n_src = n_pri = n_map = n_note = 0
     n_school = 0
+    n_ledger = 0
     new_maps: list[tuple] = []
-    prov_json = json.dumps(PROVENANCE, ensure_ascii=False)
     name = SCHOOL["name"]
+    pid_by_statement: dict[str, int] = {}
 
     with db.transaction(conn) as cur:
         cur.execute(
@@ -244,6 +235,7 @@ def apply_seed(conn, *, dry_run: bool) -> dict:
             if dry_run:
                 print(f"  [dry] school ← {name} domain=investment")
                 sid = -1
+                n_school = 1
             else:
                 cur.execute(
                     "INSERT INTO philosophy_school "
@@ -258,7 +250,7 @@ def apply_seed(conn, *, dry_run: bool) -> dict:
                     ),
                 )
                 sid = cur.fetchone()[0]
-            n_school = 1
+                n_school = 1
         else:
             sid, domain = row[0], row[1]
             if domain != "investment":
@@ -272,12 +264,13 @@ def apply_seed(conn, *, dry_run: bool) -> dict:
                 print(f"  [dry] principle ← {pr['statement'][:56]}")
                 n_pri += 1
                 for f, d in pr["factors"]:
-                    if f in REJECTED_UNMAPPABLE:
-                        raise ValueError(f"拒 SEED 不可對映: {f}")
                     print(f"  [dry] map ← {f} dir={d:+d}")
                     new_maps.append((name, f, d))
                     n_map += 1
                 n_note += len(pr.get("domain_notes") or [])
+                for cid in pr["kh10_candidate_ids"]:
+                    print(f"  [dry] ledger downstream ← candidate_id={cid}")
+                    n_ledger += 1
             return {
                 "school": name,
                 "school_new": n_school,
@@ -285,9 +278,9 @@ def apply_seed(conn, *, dry_run: bool) -> dict:
                 "principles_new": n_pri,
                 "maps_new": n_map,
                 "domain_notes_new": n_note,
+                "ledger_links": n_ledger,
                 "new_map_pairs": new_maps,
                 "rejected": list(REJECTED_UNMAPPABLE),
-                "provenance": PROVENANCE,
                 "dry_run": dry_run,
             }
 
@@ -310,6 +303,11 @@ def apply_seed(conn, *, dry_run: bool) -> dict:
                 n_src += 1
 
         for pr in PRINCIPLES:
+            kh_ids = list(pr["kh10_candidate_ids"])
+            prov = dict(PROVENANCE_BASE)
+            prov["kh10_candidate_ids"] = kh_ids
+            prov_json = json.dumps(prov, ensure_ascii=False)
+
             cur.execute(
                 "SELECT principle_id FROM philosophy_principle "
                 "WHERE school_id=%s AND statement=%s",
@@ -335,6 +333,8 @@ def apply_seed(conn, *, dry_run: bool) -> dict:
                     )
                     pid = cur.fetchone()[0]
                 n_pri += 1
+            if pid > 0:
+                pid_by_statement[pr["statement"]] = pid
 
             for f, d in pr["factors"]:
                 if f in REJECTED_UNMAPPABLE:
@@ -343,6 +343,12 @@ def apply_seed(conn, *, dry_run: bool) -> dict:
                     new_maps.append((name, f, d))
                     n_map += 1
                     continue
+                cur.execute(
+                    "SELECT 1 FROM feature_values WHERE feature=%s LIMIT 1",
+                    (f,),
+                )
+                if not cur.fetchone():
+                    raise ValueError(f"feature 庫內無序列，拒 SEED: {f}")
                 cur.execute(
                     "SELECT map_id FROM principle_factor_map "
                     "WHERE principle_id=%s AND feature=%s",
@@ -370,54 +376,83 @@ def apply_seed(conn, *, dry_run: bool) -> dict:
                     new_maps.append((name, f, d))
                     n_map += 1
 
-            for note in pr.get("domain_notes") or []:
-                if note["source_type"] == "ai_generated":
-                    raise ValueError("禁 ai_generated domain note")
-                if note["note_kind"] not in ("verbatim_quote", "human_authored"):
-                    raise ValueError(f"bad note_kind: {note['note_kind']}")
-                if pid < 0:
-                    n_note += 1
+            if pid < 0:
+                n_note += len(pr.get("domain_notes") or [])
+            else:
+                for note in pr.get("domain_notes") or []:
+                    if note["source_type"] == "ai_generated":
+                        raise ValueError("禁 ai_generated domain note")
+                    if note["note_kind"] not in ("verbatim_quote", "human_authored"):
+                        raise ValueError(f"bad note_kind: {note['note_kind']}")
+                    cur.execute(
+                        "SELECT map_id FROM principle_domain_map "
+                        "WHERE principle_id=%s AND domain=%s",
+                        (pid, note["domain"]),
+                    )
+                    nrow = cur.fetchone()
+                    if nrow:
+                        if not dry_run:
+                            cur.execute(
+                                "UPDATE principle_domain_map SET note_kind=%s, "
+                                "application_note=%s, citation=%s, source_type=%s "
+                                "WHERE map_id=%s",
+                                (
+                                    note["note_kind"],
+                                    note["application_note"],
+                                    note["citation"],
+                                    note["source_type"],
+                                    nrow[0],
+                                ),
+                            )
+                    else:
+                        if dry_run:
+                            print(
+                                f"  [dry] domain_note ← {note['domain']} "
+                                f"kind={note['note_kind']}"
+                            )
+                        else:
+                            cur.execute(
+                                "INSERT INTO principle_domain_map "
+                                "(principle_id, domain, note_kind, application_note, "
+                                "citation, source_type) VALUES (%s,%s,%s,%s,%s,%s)",
+                                (
+                                    pid,
+                                    note["domain"],
+                                    note["note_kind"],
+                                    note["application_note"],
+                                    note["citation"],
+                                    note["source_type"],
+                                ),
+                            )
+                        n_note += 1
+
+            # ledger downstream_ref
+            ref = f"principle_id={pid};school={name};kh10={kh_ids}"
+            for cid in kh_ids:
+                if dry_run or pid < 0:
+                    print(f"  [dry] ledger downstream ← candidate_id={cid} → {ref}")
+                    n_ledger += 1
                     continue
                 cur.execute(
-                    "SELECT map_id FROM principle_domain_map "
-                    "WHERE principle_id=%s AND domain=%s",
-                    (pid, note["domain"]),
+                    """
+                    UPDATE knowhow_governance_ledger
+                    SET downstream_ref=%s
+                    WHERE candidate_id=%s AND decision='approved'
+                      AND (downstream_ref IS NULL OR downstream_ref <> %s)
+                    """,
+                    (ref, cid, ref),
                 )
-                nrow = cur.fetchone()
-                if nrow:
-                    if not dry_run:
-                        cur.execute(
-                            "UPDATE principle_domain_map SET note_kind=%s, application_note=%s, "
-                            "citation=%s, source_type=%s WHERE map_id=%s",
-                            (
-                                note["note_kind"],
-                                note["application_note"],
-                                note["citation"],
-                                note["source_type"],
-                                nrow[0],
-                            ),
-                        )
-                else:
-                    if dry_run:
-                        print(
-                            f"  [dry] domain_note ← {note['domain']} "
-                            f"kind={note['note_kind']}"
-                        )
-                    else:
-                        cur.execute(
-                            "INSERT INTO principle_domain_map "
-                            "(principle_id, domain, note_kind, application_note, "
-                            "citation, source_type) VALUES (%s,%s,%s,%s,%s,%s)",
-                            (
-                                pid,
-                                note["domain"],
-                                note["note_kind"],
-                                note["application_note"],
-                                note["citation"],
-                                note["source_type"],
-                            ),
-                        )
-                    n_note += 1
+                if cur.rowcount:
+                    n_ledger += cur.rowcount
+                cur.execute(
+                    """
+                    UPDATE knowhow_evolution_candidate
+                    SET note=COALESCE(note,'') || %s, updated_at=now()
+                    WHERE candidate_id=%s
+                      AND COALESCE(note,'') NOT LIKE %s
+                    """,
+                    (f" | PME-SOLAR {ref}", cid, f"%PME-SOLAR principle_id={pid}%"),
+                )
 
     return {
         "school": name,
@@ -426,15 +461,15 @@ def apply_seed(conn, *, dry_run: bool) -> dict:
         "principles_new": n_pri,
         "maps_new": n_map,
         "domain_notes_new": n_note,
+        "ledger_links": n_ledger,
         "new_map_pairs": new_maps,
         "rejected": list(REJECTED_UNMAPPABLE),
-        "provenance": PROVENANCE,
         "dry_run": dry_run,
     }
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="PME-XDOM-SOLAR S1 策展")
+    ap = argparse.ArgumentParser(description="PME-XDOM SOLAR KH10 S1 策展")
     ap.add_argument("--apply", action="store_true", help="寫入 DB（預設 dry-run）")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
