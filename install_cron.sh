@@ -50,7 +50,9 @@ $BEGIN
 # RAWEVO 週輪(週六 09:00;V2-AUTOADVANCE R1——全程庫內唯讀、零 API;hint 一律 pending 待 H3 人閘)
 0 9 * * 6 cd $ROOT && venv/bin/python scripts/run_raw_evolution_iteration.py --run >> \$HOME/logs/rawevo.log 2>&1
 # TWEVO 夜輪(週間 23:00;V2-AUTOADVANCE R2。時點=arena 出單 20:00／結算 21:30 之後、演化鏈 01:30 之前;
-# I3 local-gates 約 25-35 分。**刻意不帶 --allow-apply**:R2 授權閘內自動 APPLY,但 driver 尚未跑完
+# I3 local-gates 實測 60-88 分(ledger steps_json 親查:成功兩次=3626s/5309s;原註「25-35 分」與事實不符,
+# 2026-07-31 更正)。逾時上限見 run_evolution_iteration.py:STEP_TIMEOUT_SEC(可 AUGUR_STEP_TIMEOUT_SEC 調)。
+# **刻意不帶 --allow-apply**:R2 授權閘內自動 APPLY,但 driver 尚未跑完
 # 任一次完整輪;先讓它連續跑出乾淨的輪再開 APPLY(比授權更保守、不鬆動任何閘)。開啟＝於本行補
 # --allow-apply 與 --gate-ref V2-AUTOADVANCE 兩個旗標(此處不用反引號:heredoc 未加引號會命令替換)。
 # 重活互斥由 heavy_slot 負責,搶不到即落 deferred 不堆積。

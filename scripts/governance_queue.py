@@ -18,7 +18,6 @@
   python scripts/governance_queue.py --selftest                  # 零 DB 紅綠
 """
 import argparse
-import getpass
 import hashlib
 import sys
 from pathlib import Path
@@ -82,13 +81,19 @@ def _require_human_tty() -> str:
     人簽帳本已三度被自測程式寫入之同族病）。修法比照既有三支 CLI 之 isatty 先例
     （`review_evolution_candidates.py:49`）：**非 TTY 一律拒絕寫入、絕不自動代填**；
     TTY 內亦不再默默取 OS 帳號，改要求**親手打出簽名者名字**——打字本身即人在場之證據。
+
+    **2026-07-31 W0-0 補正**：前版留「直接 Enter＝OS 帳號」之回退，使 docstring 與
+    模擬專章 §4.4 補強 1（「approve/reject 須 TTY＋**親手打簽名**」）之宣稱**強於 code 實況**
+    ——按 Enter 仍取 `getpass.getuser()`，打字並未真的發生。此處改為**空輸入即拒**，
+    使條文所述之「親手打字」成為機械要件而非文件描述。
     """
     if not sys.stdin.isatty():
         raise SystemExit("P5.W2 人閘: approve/reject 須 TTY 親跑（禁管道／AI 代簽；"
                          "L6.18(a)）——非互動環境一律拒絕，不自動代填簽名")
-    default = getpass.getuser()
-    typed = input(f"簽名者（親手輸入名字以確認；直接 Enter＝{default}）: ").strip()
-    return typed or default
+    typed = input("簽名者（親手輸入名字；不得留空，無預設值）: ").strip()
+    if not typed:
+        raise SystemExit("P5.W2 人閘: 簽名不得留空——本 CLI 無預設值、不代填 OS 帳號")
+    return typed
 
 
 def decide(conn, pid, verdict, note):
@@ -163,8 +168,22 @@ def selftest():
     builtins.input = lambda prompt="": "hugo-typed"
     try:
         chk("TTY 內簽名＝親手打的字(非默默取 OS 帳號)", _require_human_tty() == "hugo-typed")
+        # 2026-07-31 W0-0:前版此處鎖定「空輸入回退 OS 帳號」為通過條件,等於把
+        # 「打字並未真的發生」寫成規格,與專章 §4.4 補強 1 之「親手打簽名」相牴觸。改鎖為「拒絕」。
         builtins.input = lambda prompt="": ""
-        chk("空輸入回退 OS 帳號(明示 Enter=default 之約定)", _require_human_tty() == getpass.getuser())
+        _empty_rejected = False
+        try:
+            _require_human_tty()
+        except SystemExit:
+            _empty_rejected = True
+        chk("**空輸入即拒**(無預設值、不回退 OS 帳號;專章 §4.4 補強 1 名實相符)", _empty_rejected)
+        builtins.input = lambda prompt="": "   "
+        _blank_rejected = False
+        try:
+            _require_human_tty()
+        except SystemExit:
+            _blank_rejected = True
+        chk("純空白亦拒(strip 後為空)", _blank_rejected)
     finally:
         builtins.input = _input
         sys.stdin = _stdin

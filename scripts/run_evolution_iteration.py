@@ -33,6 +33,7 @@ SSOT=v2 總控 §3.5 I1–I8／TWEVO 計畫 §4 步圖。
 import argparse
 import datetime as dt
 import json
+import os
 import subprocess
 import sys
 
@@ -44,7 +45,13 @@ from augur.philosophy import iteration as it
 TRIGGER_CODE = "TWEVO-S2-go"        # 開輪碼(拍板碼非人名);APPLY 之人閘碼另計=TWEVO-APPLY-go
 AUTO_GATE_REF = "V2-AUTOADVANCE"    # R2 閘內自動 APPLY 之依據碼(留痕給 R6 週掃視)
 RC_SLOT_BUSY = 75                   # 搶不到 heavy slot 之退出碼(非失敗、屬積壓)
+RC_STEP_TIMEOUT = 124               # 外呼步逾時之 rc(沿 GNU timeout 慣例;非 0 故 fail-closed)
 PY = sys.executable
+# 外呼步逾時上限(秒)。實測依據(evolution_iteration_ledger.steps_json 親查 2026-07-31):
+# I3 成功兩次=5309s/3626s(88.5/60.4 分),cron 註解原寫「25-35 分」與事實不符;
+# 2026-07-30 23:00 該步在 load 10-24(兩支手動 replay 併行)下超過 7200s。故預設維持 7200
+# (最慢成功輪之 1.36 倍),真實變因是車道競爭而非本值——調高前先解車道(見行程計畫 W2/D7)。
+STEP_TIMEOUT_SEC = int(os.environ.get("AUGUR_STEP_TIMEOUT_SEC", "7200"))
 
 # 步→指令(argv 不含 python;None=driver 內建邏輯步,不外呼)
 STEP_CMD = {
@@ -126,8 +133,19 @@ def _run_cmd(step, argv, dry):
     if dry:
         print(f"    [dry] {PY} {' '.join(argv)}")
         return it.step_record(step, argv[0], argv[1:], 0, started, _now(), dry_run=True)
-    p = subprocess.run([PY] + argv, cwd=str(_bootstrap.ROOT) if hasattr(_bootstrap, "ROOT") else None,
-                       capture_output=True, text=True, timeout=7200)
+    try:
+        p = subprocess.run([PY] + argv, cwd=str(_bootstrap.ROOT) if hasattr(_bootstrap, "ROOT") else None,
+                           capture_output=True, text=True, timeout=STEP_TIMEOUT_SEC)
+    except subprocess.TimeoutExpired as e:
+        # 逾時**不得讓例外上拋**:上拋會在 _append_step 之前炸掉整支 driver ⇒ 該步完全不落帳
+        # (steps_json 查無此步)、輪永遠停在 running。2026-07-30 23:00 實犯,連四晚無產出。
+        # 改為記成一般失敗步 → 走既有 fail-closed 路徑(不前進、可 --step 續跑)。
+        tail = (e.stdout or "").strip().splitlines()[-3:]
+        return it.step_record(step, argv[0], argv[1:], RC_STEP_TIMEOUT, started, _now(),
+                              stdout_tail=tail,
+                              stderr_tail=[f"TimeoutExpired after {STEP_TIMEOUT_SEC}s"],
+                              note=f"逾時 {STEP_TIMEOUT_SEC}s(可調 AUGUR_STEP_TIMEOUT_SEC);"
+                                   "子行程已開之 evolution_run 列可能殘留 running,見行程計畫 W1-7")
     tail = (p.stdout or "").strip().splitlines()[-3:]
     return it.step_record(step, argv[0], argv[1:], p.returncode, started, _now(),
                           stdout_tail=tail, stderr_tail=(p.stderr or "").strip().splitlines()[-2:])
@@ -362,6 +380,21 @@ def _selftest():
     finally:
         _hs.HeavySlot.acquire = _orig_acq
         _hs.HeavySlot.defer = _orig_defer
+    # 逾時之行為驗證(2026-07-31 W0-0):以 fake subprocess.run 拋 TimeoutExpired,驗**回一筆步紀錄**
+    # 而非上拋。字面斷言在此無效——正是「例外有沒有被接住」這件事字面驗不到(債 #14 同型)。
+    _orig_run = subprocess.run
+    subprocess.run = lambda *a, **k: (_ for _ in ()).throw(
+        subprocess.TimeoutExpired(cmd="fake", timeout=1))
+    try:
+        _rec = _run_cmd("I3", ["scripts/nonexistent_for_selftest.py"], False)
+        chk("逾時被接住:回步紀錄不上拋(否則該步永不落帳)", isinstance(_rec, dict))
+        chk(f"逾時 rc={RC_STEP_TIMEOUT} 非 0(走 fail-closed 不前進)", _rec.get("rc") == RC_STEP_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        chk("逾時被接住:回步紀錄不上拋(否則該步永不落帳)", False)
+    finally:
+        subprocess.run = _orig_run
+    chk("逾時上限可組態(不寫死;實測 I3 需 60-88 分)", STEP_TIMEOUT_SEC > 0
+        and "AUGUR_STEP_TIMEOUT_SEC" in body)
     chk("掉鎖 fail-loud(接 SlotLost 後停手)", "except SlotLost" in body and "停手不續跑" in body)
     chk("搶不到鎖有 defer 落帳(不 silent skip)", "slot.defer(" in body)
     chk("失敗步 fail-closed 不前進", "fail-closed 停止本輪" in body)

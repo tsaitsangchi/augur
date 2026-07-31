@@ -36,7 +36,14 @@ def sunset_status(cur):
     clusters = _one(cur, "SELECT count(DISTINCT pred_date) FROM direction_arena_prediction") or 0
     gate_ok = _one(cur, "SELECT count(*) FROM direction_gate WHERE status='evaluated_pass'") or 0
     a_done = settled > 0 and gate_ok > 0
-    a_ev = f"arena 已結算 {settled} 列;方向門 evaluated_pass={gate_ok}(cluster {clusters}/60)"
+    # 分母一律讀**門內凍結值**、不寫死(2026-07-31 W0-3):原寫死 "/60" 係 2026-07-17 之舊口徑,
+    # 而 live 之 arena 門實查 min_clusters=250(own_daily/chronos/timesfm 等)與 36(own_stack 三門),
+    # **無任何門為 60** ⇒ 週儀表會逐週印出與判準不符之分母(本檔首跑為 2026-08-02,尚無存量誤印)。
+    need = _one(cur, """SELECT min((criteria->>'min_clusters')::int) FROM direction_gate
+                        WHERE status='approved' AND criteria ? 'min_clusters'""")
+    need_s = str(need) if need is not None else "未定(無 approved 門帶 min_clusters)"
+    a_ev = (f"arena 已結算 {settled} 列;方向門 evaluated_pass={gate_ok}"
+            f"(cluster {clusters}/{need_s};分母＝現行 approved 門之最低凍結門檻)")
 
     n_active = _one(cur, "SELECT count(*) FROM evolution_production_feature_set WHERE set_status='active'") or 0
     b_done = n_active > 2

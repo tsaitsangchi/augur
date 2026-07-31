@@ -42,11 +42,27 @@ SCAN_GLOBS = (
 REF_RE = re.compile(r"(?:\]\(|`)((?:docs|constitution|specs)/[^`)\s]+\.md)(?:\)|`)")
 # 散文通配符／史料標記：不算缺陷
 GLOB_CHARS = ("*", "{", "<", "?")
-LEGACY_MARKERS = ("舊 ", "舊`", "原獨立倉", "史料")
+LEGACY_MARKERS = ("舊 ", "舊`", "原獨立倉", "史料", "史述")
+# 版號落後之**局部**豁免（2026-07-31 W0-2）：整行豁免會被句中任一「史料」二字癱瘓，
+# 故改判該版號近旁是否為史述語境。窗寬取 30 字（實測足以涵蓋「原釘 vX 已 SUPERSEDED」之句式）。
+# 只收**無歧義**之史述詞：「入憲」「曾」等泛用詞會反過來豁免掉真缺陷
+# （實測：README.md:30 之「憲章 v1.51.0」因句後「歷次入憲演進」而被誤豁免）。
+LOCAL_LEGACY_MARKERS = LEGACY_MARKERS + ("SUPERSEDED", "原釘")
+# 窗寬須**緊**：取 30 時，同行左半之「原釘…SUPERSEDED」會連右半之現況宣告一併豁免
+# （自測乙例抓到，真語料掃描抓不到——合成樹之價值即在此）。10 字＝僅及於緊鄰之修飾詞。
+LEGACY_WINDOW = 10
 # 現況宣告站點之結構訊號（非策展資料）——只有這些行的版本號被視為「指標」而非史述
 STATUS_MARKERS = ("治權已立", "現行版", "判準/憲法")
 # 版本化治權檔家族：檔名前綴 → 用於「版本行是否落後」比對
 VERSIONED_FAMILIES = ("系統核心思想", "原則精華", "系統架構大憲章")
+# 家族之口語簡稱（2026-07-31 W0-2）：原以檔名全名 stem 為正則錨，故 README.md:30
+# 「治權已立（靈魂 v1.9.0…憲章 v1.51.0…）」落後三版仍報全綠——現況宣告站點多用簡稱、
+# 少用檔名全名，錨在全名等於漏掉最常見的寫法。簡稱→家族全名（含全名自身，供統一迭代）。
+FAMILY_ALIASES = {
+    "系統核心思想": ("系統核心思想", "靈魂"),
+    "原則精華": ("原則精華",),
+    "系統架構大憲章": ("系統架構大憲章", "大憲章", "憲章"),
+}
 VER_RE = re.compile(r"^(?P<stem>.+?)_v(?P<maj>\d+)\.(?P<min>\d+)\.(?P<pat>\d+)\.md$")
 
 
@@ -128,7 +144,13 @@ def check_version_lines(root: Path) -> list[Finding]:
     """
     cur = current_versions(root)
     out: list[Finding] = []
-    entries = [root / "README.md", root / "HANDOFF.md", root / "HANDOFF-governance.md"]
+    # 射程＝**現況宣告站點**（入口／接續／工具規則檔），2026-07-31 W0-2 擴入 CLAUDE.md 與
+    # ARCHITECTURE-OVERVIEW.md。**刻意不含 docs/ 治權檔本身**：治權檔內之版號多為合法史述
+    # （修訂歷程、「雙留痕於憲章 vX 該條」之留痕指針），以正則判其新舊必生假陽性；
+    # 治權檔內部之版號一致性應由 `<!--lint:KEY-->` 綁定機制處理（債 #16／行程計畫 W2-11），
+    # 非本檔射程。**已知殘留缺口**：docs/原則精華:7「大憲章 v1.51.0」等裸引用不受檢。
+    entries = [root / "README.md", root / "HANDOFF.md", root / "HANDOFF-governance.md",
+               root / "CLAUDE.md", root / "ARCHITECTURE-OVERVIEW.md"]
     superseded_files = {
         p.name for p in (root / "docs").glob("*.md") if "SUPERSEDED" in p.read_text(encoding="utf-8")[:600]
     }
@@ -136,26 +158,42 @@ def check_version_lines(root: Path) -> list[Finding]:
         if not path.exists():
             continue
         for i, text in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            if any(m in text for m in LEGACY_MARKERS):
-                continue
-            for ref in REF_RE.findall(text):
-                name = os.path.basename(ref)
-                if name in superseded_files and name not in path.name:
-                    out.append(
-                        Finding("link_to_superseded", str(path.relative_to(root)), i, f"連到已被取代之治權檔 `{ref}`")
-                    )
+            line_is_legacy = any(m in text for m in LEGACY_MARKERS)
+            if line_is_legacy:
+                # 整行豁免只及於 link_to_superseded；版號落後之判定改用**局部**豁免，
+                # 否則一個現況宣告行只要順帶提到「史料」二字即整行隱形
+                # （2026-07-31 實犯：README.md:30 因句尾「unfreeze gate 已退史料」
+                #   而使同行落後三版之「靈魂 v1.9.0／憲章 v1.51.0」報全綠）。
+                pass
+            else:
+                for ref in REF_RE.findall(text):
+                    name = os.path.basename(ref)
+                    if name in superseded_files and name not in path.name:
+                        out.append(
+                            Finding("link_to_superseded", str(path.relative_to(root)), i,
+                                    f"連到已被取代之治權檔 `{ref}`")
+                        )
             if not any(m in text for m in STATUS_MARKERS):
                 continue
             for stem, (maj, mnr, pat) in cur.items():
-                for m in re.finditer(re.escape(stem) + r"[^\n]{0,20}?v(\d+)\.(\d+)\.(\d+)", text):
-                    got = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
-                    if got < (maj, mnr, pat):
+                seen: set[tuple[int, int, int]] = set()   # 同行同家族之同一版號只報一次
+                for alias in FAMILY_ALIASES.get(stem, (stem,)):
+                    for m in re.finditer(re.escape(alias) + r"[^\n]{0,20}?v(\d+)\.(\d+)\.(\d+)", text):
+                        got = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+                        if got >= (maj, mnr, pat) or got in seen:
+                            continue
+                        # 局部豁免：該版號**近旁**有史述詞才算史述（非整行有即免檢）
+                        near = text[max(0, m.start() - LEGACY_WINDOW): m.end() + LEGACY_WINDOW]
+                        if any(k in near for k in LOCAL_LEGACY_MARKERS):
+                            continue
+                        seen.add(got)
                         out.append(
                             Finding(
                                 "status_line_stale",
                                 str(path.relative_to(root)),
                                 i,
-                                f"現況宣告行之 {stem} 為 v{got[0]}.{got[1]}.{got[2]}，現行為 v{maj}.{mnr}.{pat}",
+                                f"現況宣告行之 {stem}（寫作「{alias}」）為 "
+                                f"v{got[0]}.{got[1]}.{got[2]}，現行為 v{maj}.{mnr}.{pat}",
                             )
                         )
     return out
@@ -216,6 +254,27 @@ def _selftest() -> int:
         (root / "README.md").write_text("見 舊 [`docs/已搬走.md`](docs/已搬走.md)\n", encoding="utf-8")
         if scan_dead_refs(root):
             fails.append("史料標記（舊）應豁免，卻被判缺陷")
+
+        # ── 2026-07-31 W0-2 新增兩例 ─────────────────────────────────
+        # (甲) 口語簡稱之落後版號須被抓到。原以檔名全名 stem 為錨，故現況宣告行寫
+        #      「憲章 v1.51.0」時完全不匹配 → README.md:30 落後三版仍報全綠（實犯）。
+        (root / "docs" / "系統架構大憲章_v2.0.0.md").write_text("# 系統架構大憲章 v2.0.0\n", encoding="utf-8")
+        (root / "README.md").write_text("治權已立（憲章 v1.0.0・原則精華 v9.9.9）\n", encoding="utf-8")
+        got_alias = [f for f in check_version_lines(root) if f.kind == "status_line_stale"]
+        if not got_alias:
+            fails.append("簡稱「憲章 v1.0.0」落後未被抓到（FAMILY_ALIASES 失效）")
+
+        # (乙) 同行**局部**史述須豁免，但不得因此整行免檢。
+        #      左半為史述（原釘…SUPERSEDED）應豁免；右半為現況宣告且落後，仍須抓到。
+        (root / "README.md").write_text(
+            "治權已立（原釘 憲章 v1.0.0 已 SUPERSEDED；現行 憲章 v1.5.0）\n", encoding="utf-8"
+        )
+        got_local = [f for f in check_version_lines(root) if f.kind == "status_line_stale"]
+        vers = {f.detail.split("為 v")[1].split("，")[0] for f in got_local} if got_local else set()
+        if "1.0.0" in vers:
+            fails.append("局部史述（原釘…SUPERSEDED）應豁免該版號，卻被判缺陷")
+        if "1.5.0" not in vers:
+            fails.append("同行另一處現況宣告落後未被抓到（整行豁免復發＝README:30 之病）")
     for f in fails:
         print(f"FAIL {f}")
     print("selftest: " + ("RED" if fails else "GREEN"))
