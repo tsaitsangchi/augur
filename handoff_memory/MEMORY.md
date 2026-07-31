@@ -8,6 +8,9 @@
 - [驗證器陷阱 20260730](augur-verifier-traps-20260730.md) — verify_* 非唯讀+四支中位數灌滿覆蓋、reconcile_audit 假綠仍在、rc=0≠通過、門評跨軸(已修)
 - [DB schema 陷阱 20260730](augur-db-schema-traps-20260730.md) — raw_* 前綴反義、Dividend PK 塌列根因、ExchangeRate 兩表差 6 年、candidate 表無 guard、reltuples=-1≠空
 
+- [KH0 覆蓋≠品質](kh0-coverage-vs-quality.md) — KH0 底線入憲 v1.52.0(破口 0 已達);**「待人裁」根因=90.3s 逾時、本地AI從未答成**;ollama 無 systemd unit 故 is-active=假訊號;ERP 五錯處;來源層人簽動它會重啟 P8
+- [三核 FAIL 九則](kh-verify-fail-three.md) — V-4 逐item全表掃=17天(已修凍結 5.6天→2秒)、V-1 fail-open死碼(已修 fail-closed);**六則未修**含 V-3 一列即解閘、V-5 DISABLE TRIGGER 可卸閘、V-6 假綠自測再犯
+- [機械閘三層強度](augur-three-gate-strengths.md) — **硬33表/半14表/軟437支**用同一個詞稱呼=誤判根源;三個親驗假綠(綠燈帳本19/19實有3條false、孤兒佔埠使restart成功卻跑舊碼、人閘零DB強制);優化第一原則=先讓紅燈會亮
 - [同尺四查](same-scale-precheck.md) — 07-28~30 六發尺陷阱歸納:A/B 前查覆蓋/網格(hash 自證)/重名/falsy 空集
 - [便宜尺寸先行](cheap-scale-first.md) — 昂貴掃描前 preview 打熟引擎(23-cutoff 抓 3 bug 省 73h);sha 含網格自動分家;收 preview 讀帳本驗屍
 - [git add 只逐檔明列](git-add-scoped-only.md) — 07-28 實犯:add -A 掃進並行 session 未提交檔;commit 逐檔列+status 先查+--allow-empty 零 add
