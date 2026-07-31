@@ -20,6 +20,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import os
 import sys
 
 import _bootstrap  # noqa: F401
@@ -167,9 +168,28 @@ def r3_hints(cur, uid, top, write):
     return made, ids
 
 
+def _kill_state(cur) -> str:
+    """本軸之有效 kill 狀態（raw ∨ global；OR 語意 fail-safe）。
+
+    口徑與判準單一住所＝`augur.philosophy.evolution.effective_kill_state`（#12）。
+    2026-07-31 補：本 driver 原**對 kill_switch 零引用**——按下停機鈕後 raw 仍會開輪、
+    仍寫帳本，即「停機」實為「照跑」。tw driver 同缺（另案，須待其收工後補）。
+    """
+    from augur.philosophy.evolution import effective_kill_state
+    cur.execute("SELECT state FROM evolution_kill_switch WHERE scope IN ('raw','global')")
+    return effective_kill_state([r[0] for r in cur.fetchall()],
+                                env_halt=os.environ.get(
+                                    "AUGUR_EVOLUTION_KILL_SWITCH", "").strip().lower() == "halt")
+
+
 def run(top_hints, dry):
     with db.connect() as conn:
         cur = conn.cursor()
+        if _kill_state(cur) == "halt":
+            # fail-closed：不開輪、不寫帳本、非 0 退出（供 cron log 與 OnFailure 可見）。
+            print("⛔ RAWEVO kill switch=halt(scope raw 或 global)——不開輪。"
+                  "解除：UPDATE evolution_kill_switch SET state='clear' WHERE scope IN ('raw','global');")
+            return 75
         uid = _uid(cur)
         print(f"── RAWEVO 開輪 {uid}(trigger={TRIGGER_CODE};dry={dry}) ──")
         if not dry:
@@ -229,6 +249,18 @@ def _selftest():
         nonlocal ok
         print(("  ✓ " if cond else "  ✗ ") + name)
         ok = ok and cond
+
+    # kill switch（2026-07-31 補；本 driver 原對其零引用＝「停機」實為「照跑」）。
+    # 判準本體在 augur.philosophy.evolution（單一住所 #12），此處驗真行為＋接線。
+    from augur.philosophy.evolution import effective_kill_state as _eks
+    chk("kill:任一 scope halt ⇒ halt(OR 語意 fail-safe)", _eks(["clear", "halt"]) == "halt")
+    chk("kill:全 clear ⇒ clear", _eks(["clear", "clear"]) == "clear")
+    chk("kill:env AUGUR_EVOLUTION_KILL_SWITCH=halt 可強制", _eks(["clear"], env_halt=True) == "halt")
+    _src = open(__file__, encoding="utf-8").read()
+    chk("run() 開輪前檢 kill(接線存在,非只有函式)",
+        "if _kill_state(cur) == \"halt\"" in _src)
+    chk("halt 時 fail-closed:不開輪、不寫帳本、rc≠0", "return 75" in _src)
+    chk("kill 查詢含 global scope(不只自軸)", "scope IN ('raw','global')" in _src)
 
     chk("分類:新鮮 daily=ok", classify_gap("daily", True, True, 3, dt.date(2026, 7, 24)) == "ok")
     chk("分類:長期停更=true_gap(ExchangeRate 型)",
