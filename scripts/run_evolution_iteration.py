@@ -47,11 +47,15 @@ AUTO_GATE_REF = "V2-AUTOADVANCE"    # R2 閘內自動 APPLY 之依據碼(留痕�
 RC_SLOT_BUSY = 75                   # 搶不到 heavy slot 之退出碼(非失敗、屬積壓)
 RC_STEP_TIMEOUT = 124               # 外呼步逾時之 rc(沿 GNU timeout 慣例;非 0 故 fail-closed)
 PY = sys.executable
-# 外呼步逾時上限(秒)。實測依據(evolution_iteration_ledger.steps_json 親查 2026-07-31):
-# I3 成功兩次=5309s/3626s(88.5/60.4 分),cron 註解原寫「25-35 分」與事實不符;
-# 2026-07-30 23:00 該步在 load 10-24(兩支手動 replay 併行)下超過 7200s。故預設維持 7200
-# (最慢成功輪之 1.36 倍),真實變因是車道競爭而非本值——調高前先解車道(見行程計畫 W2/D7)。
-STEP_TIMEOUT_SEC = int(os.environ.get("AUGUR_STEP_TIMEOUT_SEC", "7200"))
+# 外呼步逾時上限(秒)。**2026-07-31 晚改 7200→43200**,因原值在數學上保證 I3 永遠跑不完:
+# 舊依據(I3 成功兩次=5309s/3626s)取自 07-27 之 36 panels/39 features 時代,已過期;
+# 今日實測 run 11 於完整 7200s 只完成 10 個 feature、run 18 於 86 分完成 8 個
+# ⇒ **645-720 s/feature**,而 principle_factor_map 現有 37 個在 feature_values 之 feature
+# ⇒ 一輪 I3 需 **7-10 小時**(panels 36→66、feature_values 2.51M→8.54M 之後果)。
+# 設 43200(12h)=最壞估之 1.2 倍。**不得改以 --skip-multi-seed 或縮 --since 換快**:
+# 前者使 G-PROM triad 變 partial SKIP(永遠拿不到雙綠)、後者換 panel 口徑而 _gate_scale
+# 只指紋 min_abs_hac_t 看不出來(「宣稱可比但已換尺」之靜默污染)。
+STEP_TIMEOUT_SEC = int(os.environ.get("AUGUR_STEP_TIMEOUT_SEC", "43200"))
 
 # 步→指令(argv 不含 python;None=driver 內建邏輯步,不外呼)
 STEP_CMD = {
@@ -100,32 +104,71 @@ def _open_row(cur):
     return (r[0], r[1] or []) if r else None
 
 
-def _gate_scale(cur):
+def _gate_scale(cur, run_id=None):
     """本輪閘口徑指紋——換尺即不可比之依據(GATE-raise 後 min_abs_hac_t 由 2.0 升 2.643)。
 
     住 `gate_json->'G-PROM'->'thresholds'->>'min_abs_hac_t'`(evolution.py DEFAULT_GATE_CONFIG 之落帳)。
+    **與 dual_green_n 綁同一個 run**:兩者取自不同 run＝拿 A 尺量 B 數,比較失去意義。
     """
-    cur.execute("""SELECT gate_json->'G-PROM'->'thresholds'->>'min_abs_hac_t'
-        FROM promotion_queue WHERE gate_json ? 'G-PROM'
-        ORDER BY queue_id DESC LIMIT 1""")
+    if run_id is None:
+        cur.execute("""SELECT gate_json->'G-PROM'->'thresholds'->>'min_abs_hac_t'
+            FROM promotion_queue WHERE gate_json ? 'G-PROM'
+            ORDER BY queue_id DESC LIMIT 1""")
+    else:
+        cur.execute("""SELECT gate_json->'G-PROM'->'thresholds'->>'min_abs_hac_t'
+            FROM promotion_queue WHERE gate_json ? 'G-PROM' AND run_id=%s
+            ORDER BY queue_id DESC LIMIT 1""", (run_id,))
     r = cur.fetchone()
     return f"min_abs_hac_t={r[0]}" if r and r[0] else "unset"
+
+
+def _last_complete_run(cur):
+    """回最新一個**引擎自己跑完**之 run_id;無則 None。兩道過濾缺一不可:
+
+    (1) `status='succeeded'`——不得用 `max(run_id) FROM promotion_queue`,被砍死之半套掃描
+        也會留 promotion_queue 列,其 run_id 更大卻只掃到少數 feature。2026-07-31 實測:
+        run 12-19 各只掃到 5/1/1/3/12/9/9/7 個 feature(完整 37-39),而 max=19
+        ⇒ 以 7 個 feature 之碎片冒充本輪完整證據算增益。
+    (2) `config_json ? 'mode'`——`evolution_run` **混住兩類列**:引擎輪帶 `mode`,
+        人工紀錄帶 `kind`(如 run 10 = `{"kind":"human_promotion",...}`,hugo 2026-07-29
+        親搬 lending_fee_rate_mean_20d)。只濾 succeeded 會取到 run 10,
+        **把人在輪外的手動晉升記成自動輪的成果**——本專案最忌之自我欺騙型態(#15)。
+    """
+    cur.execute("""SELECT max(run_id) FROM evolution_run
+        WHERE status='succeeded' AND config_json ? 'mode'""")
+    r = cur.fetchone()
+    return r[0] if r else None
 
 
 def _snapshot(cur):
     """本輪數字摘要(compare_gain 之輸入;全出自 DB query,#9/#10)。
 
-    雙綠=**最新一 run** 內 G-PROM ∧ G-ECON 皆 PASS 之相異特徵數(跨 run 累計會把舊輪算進來)。
+    雙綠=**最新一個跑完的 run** 內 G-PROM ∧ G-ECON 皆 PASS 之相異特徵數
+    (跨 run 累計會把舊輪算進來;取半套 run 則以碎片冒充完整證據)。
     """
-    cur.execute("""SELECT count(DISTINCT feature) FROM promotion_queue
-        WHERE run_id = (SELECT max(run_id) FROM promotion_queue)
-          AND gate_json->'G-PROM'->>'verdict'='PASS'
-          AND gate_json->'G-ECON'->>'verdict'='PASS'""")
-    dual_green = cur.fetchone()[0]
+    rid = _last_complete_run(cur)
+    if rid is None:
+        dual_green = 0
+    else:
+        cur.execute("""SELECT count(DISTINCT feature) FROM promotion_queue
+            WHERE run_id = %s
+              AND gate_json->'G-PROM'->>'verdict'='PASS'
+              AND gate_json->'G-ECON'->>'verdict'='PASS'""", (rid,))
+        dual_green = cur.fetchone()[0]
     cur.execute("SELECT count(*) FROM evolution_production_feature_set WHERE set_status='active'")
     active = cur.fetchone()[0]
     return {"dual_green_n": dual_green, "prodset_active_n": active,
-            "arena_prereg_win": None, "gate_scale": _gate_scale(cur)}
+            "arena_prereg_win": None, "gate_scale": _gate_scale(cur, rid),
+            "source_run_id": rid}
+
+
+def _tail(raw, n):
+    """取末 n 行為 **str** list。`TimeoutExpired.stdout` 即使 text=True 仍是 bytes
+    (CPython 以 b''.join 建例外、不經 newline translation),直接進 json.dumps 會炸
+    TypeError ⇒ 該步仍然落不了帳(2026-07-31 15:21 實犯,見 journald)。"""
+    if isinstance(raw, (bytes, bytearray)):
+        raw = raw.decode("utf-8", "replace")
+    return (raw or "").strip().splitlines()[-n:]
 
 
 def _run_cmd(step, argv, dry):
@@ -140,15 +183,14 @@ def _run_cmd(step, argv, dry):
         # 逾時**不得讓例外上拋**:上拋會在 _append_step 之前炸掉整支 driver ⇒ 該步完全不落帳
         # (steps_json 查無此步)、輪永遠停在 running。2026-07-30 23:00 實犯,連四晚無產出。
         # 改為記成一般失敗步 → 走既有 fail-closed 路徑(不前進、可 --step 續跑)。
-        tail = (e.stdout or "").strip().splitlines()[-3:]
         return it.step_record(step, argv[0], argv[1:], RC_STEP_TIMEOUT, started, _now(),
-                              stdout_tail=tail,
-                              stderr_tail=[f"TimeoutExpired after {STEP_TIMEOUT_SEC}s"],
+                              stdout_tail=_tail(e.stdout, 3),
+                              stderr_tail=[f"TimeoutExpired after {STEP_TIMEOUT_SEC}s"]
+                                          + _tail(e.stderr, 2),
                               note=f"逾時 {STEP_TIMEOUT_SEC}s(可調 AUGUR_STEP_TIMEOUT_SEC);"
                                    "子行程已開之 evolution_run 列可能殘留 running,見行程計畫 W1-7")
-    tail = (p.stdout or "").strip().splitlines()[-3:]
     return it.step_record(step, argv[0], argv[1:], p.returncode, started, _now(),
-                          stdout_tail=tail, stderr_tail=(p.stderr or "").strip().splitlines()[-2:])
+                          stdout_tail=_tail(p.stdout, 3), stderr_tail=_tail(p.stderr, 2))
 
 
 def _do_step(cur, uid, step, dry, allow_apply, gate_ref):
@@ -383,12 +425,25 @@ def _selftest():
     # 逾時之行為驗證(2026-07-31 W0-0):以 fake subprocess.run 拋 TimeoutExpired,驗**回一筆步紀錄**
     # 而非上拋。字面斷言在此無效——正是「例外有沒有被接住」這件事字面驗不到(債 #14 同型)。
     _orig_run = subprocess.run
+    # payload **必須是 bytes**:真實 TimeoutExpired 之 stdout/stderr 即使 text=True 亦為 bytes。
+    # 舊版假例外未帶 output/stderr(⇒None,走 str 分支),於是這組斷言對真正的洞免疫——
+    # 2026-07-31 15:21 線上 rc=124 印出後即 TypeError,而自測全綠(假綠第六犯)。
     subprocess.run = lambda *a, **k: (_ for _ in ()).throw(
-        subprocess.TimeoutExpired(cmd="fake", timeout=1))
+        subprocess.TimeoutExpired(cmd="fake", timeout=1, output=b"a\nb\nc\n", stderr=b"e\n"))
     try:
         _rec = _run_cmd("I3", ["scripts/nonexistent_for_selftest.py"], False)
         chk("逾時被接住:回步紀錄不上拋(否則該步永不落帳)", isinstance(_rec, dict))
         chk(f"逾時 rc={RC_STEP_TIMEOUT} 非 0(走 fail-closed 不前進)", _rec.get("rc") == RC_STEP_TIMEOUT)
+        # 真正要驗的不是「例外被接住」而是「這筆紀錄落得了帳」——落帳即 _append_step 之 json.dumps。
+        _ser = None
+        try:
+            json.dumps([_rec], ensure_ascii=False)
+            _ser = True
+        except TypeError:
+            _ser = False
+        chk("逾時紀錄可序列化(json.dumps 不拋;否則接住了也仍落不了帳)", _ser)
+        chk("逾時 tail 已解碼為 str(非 bytes)",
+            all(isinstance(x, str) for x in _rec.get("stdout_tail") or []))
     except subprocess.TimeoutExpired:
         chk("逾時被接住:回步紀錄不上拋(否則該步永不落帳)", False)
     finally:

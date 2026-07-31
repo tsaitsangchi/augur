@@ -86,7 +86,11 @@ def run(only_id=None, with_scripts=False):
                 new, nn = "red", note
             else:
                 new, nn = ("green", note) if ok else ("red", note or "斷言為假")
-            cur.execute("UPDATE validation_evidence SET status=%s, status_note=COALESCE(%s,status_note), "
+            # **本稽核器不得寫 status_note**——該欄記人裁/設計理由(半衰期以年計、寫入者是人),
+            # 機器判定一律進 machine_note(每跑覆寫)。原碼 `status_note=COALESCE(%s,status_note)`
+            # 之 COALESCE 為死碼(上一行 `or "斷言為假"` 保證 nn 恆非空)⇒ 每跑必覆寫;該表
+            # trigger=0、無 pre-image ⇒ 2026-07-31 13:29 一跑即抹掉 E1 之 hugo 拍板逐字理由。
+            cur.execute("UPDATE validation_evidence SET status=%s, machine_note=%s, "
                         "last_verified_at=now() WHERE evidence_id=%s", (new, nn, eid))
             conn.commit()
             n_g += (new == "green"); n_r += (new == "red")

@@ -395,37 +395,46 @@ def evaluate_layer(cur, depth: int, snap: dict) -> dict:
             return {"verdict": "pass", "note": "有 embedding、kh4 表缺→暫 pass"}
         return {"verdict": "fail", "note": "未 eligible／無 embedding"}
 
+    # KH5／KH6 之判準自 2026-07-31 起**一律逐 item**——原有之「庫級」與「粗代理」後路已移除。
+    # 移除理由（實證，非設計偏好）：舊碼下 KH2/KH5/KH6/KH7 對**全母體恆 pass**，
+    #   · KH5 後路 `if snap["domain"]` ⇒ knowledge_item.domain 零 NULL（285,179/285,179）；
+    #   · KH6 後路 `SELECT 1 FROM knowhow_interaction_probe_run LIMIT 1` ⇒ 該表 7 列且
+    #     **無任何 item 級欄位**（run_id/started_at/script/git_sha/note/params_json），
+    #     即「有人跑過一次探針腳本」就放行全庫二十八萬件，連 interaction_state 標
+    #     pending(15,365)／blocked(556) 者亦一併通過。
+    # 後果：145,948 件之 depth=7 實際只代表「has_text ∧ KH4 eligible」（對照 KH4
+    #   eligible=145,954），KH5/6/7 三層對結果之貢獻為 0，而深度是顧問引文之排序鍵。
+    # 現行語義：**無逐 item 證據即 fail**（fail-closed，同 corpus.LICENSE_WHITELIST「未列＝不入」）。
+    # 註：KH7 無法比照——`knowhow_kh7_eligibility` 之 schema 無任一 item 級欄位
+    #   （eligibility_id/run_id/probe_id/status/reasons/evidence/decided_at/script/note），
+    #   逐 item 化須先建其資料模型與評估管線，非本次可為之收緊。
     if depth == 5:
-        if _table_exists(cur, "knowledge_kh4_state"):
-            cur.execute(
-                "SELECT kh_axis_state FROM knowledge_kh4_state WHERE item_id=%s",
-                (item_id,),
-            )
-            row = cur.fetchone()
-            if row and row[0] == "ready":
-                return {"verdict": "pass", "note": "kh_axis_state=ready"}
-            if row and row[0] == "blocked":
-                return {"verdict": "fail", "note": "kh_axis_state=blocked"}
-        if snap["domain"]:
-            return {"verdict": "pass", "note": "有 domain＝軸起步"}
-        return {"verdict": "fail", "note": "無軸／domain"}
+        if not _table_exists(cur, "knowledge_kh4_state"):
+            return {"verdict": "fail", "note": "KH5 逐 item 判準之載體表未建"}
+        cur.execute(
+            "SELECT kh_axis_state FROM knowledge_kh4_state WHERE item_id=%s",
+            (item_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return {"verdict": "fail", "note": "無 kh4_state 列＝無逐 item 軸證據（fail-closed）"}
+        if row[0] == "ready":
+            return {"verdict": "pass", "note": "kh_axis_state=ready"}
+        return {"verdict": "fail", "note": f"kh_axis_state={row[0]}"}
 
     if depth == 6:
-        if _table_exists(cur, "knowledge_kh4_state"):
-            cur.execute(
-                "SELECT interaction_state FROM knowledge_kh4_state WHERE item_id=%s",
-                (item_id,),
-            )
-            row = cur.fetchone()
-            if row and row[0] == "ready":
-                return {"verdict": "pass", "note": "interaction_state=ready"}
-        if _table_exists(cur, "knowhow_interaction_probe_run"):
-            cur.execute("SELECT 1 FROM knowhow_interaction_probe_run LIMIT 1")
-            if cur.fetchone():
-                return {"verdict": "pass", "note": "交互 probe run 帳存在（庫級）"}
-        if snap["has_embedding"]:
-            return {"verdict": "pass", "note": "embedding 可投影起步"}
-        return {"verdict": "fail", "note": "交互投影未就緒"}
+        if not _table_exists(cur, "knowledge_kh4_state"):
+            return {"verdict": "fail", "note": "KH6 逐 item 判準之載體表未建"}
+        cur.execute(
+            "SELECT interaction_state FROM knowledge_kh4_state WHERE item_id=%s",
+            (item_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return {"verdict": "fail", "note": "無 kh4_state 列＝無逐 item 交互證據（fail-closed）"}
+        if row[0] == "ready":
+            return {"verdict": "pass", "note": "interaction_state=ready"}
+        return {"verdict": "fail", "note": f"interaction_state={row[0]}"}
 
     if depth == 7:
         if not _table_exists(cur, "knowhow_kh7_eligibility"):

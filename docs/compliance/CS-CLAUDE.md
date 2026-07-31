@@ -110,3 +110,15 @@ MC [N] 落點以 `specs/`（尤 `AUGUR-L6`）為權威；本檔觸及見 CS.1；
 > **自我洗白防線（L6.18(c)／`MC §P4.E7`／CLAUDE #32(a)）**：上表為 **AI self-reported**，**不得單獨**作為「未降低監督能力」之依據；效力繫於 Steward 獨立確認。
 >
 > **反自我交易（L6.18(a)）**：本條核准鏈根節點為**人類（Steward 直接 directive）**，非 Agent 自行核准；惟本檔即 T-CLAUDE-1 所指「Agent 增修規範自身護欄」結構，該結構性利益衝突於此再度揭露。
+
+### CS.3.1 上表之更正與射程限縮 [N]〔2026-07-31 晚，L0–L7 落地稽核後補〕
+
+> 上表 v1.34 初版對 D 分量之描述**過度樂觀**，本節據實更正（更正不改變棘輪結論——#34 確未改動任一介入點，before ＝ after；更正的是「那些介入點有多少機械強制力」之描述）。
+
+| 更正項 | 初版所述 | 實查事實 | 影響 |
+|---|---|---|---|
+| **OCV 可機器擷取（L6.16 明文要求）** | 未述 | **零機械實作**——全 repo `.py` 對 `OCV` 僅 **1 處**命中，且係 2026-07-31 新增之註解引用（`scripts/predict_asof.py:157`）；無任何量測腳本、無快照儲存（L6.16 下放 L7 之物理擷取亦無落點） | L6.16「每一分量於任一組態快照**可機器計算並可比較**」係**系統性未落地**；上表因而**不可能**由不受本變更支配之路徑計算，只能由提案者手寫 ⇒ L6.18(c)「度量不可自我洗白」之要求在現況下**無法滿足**，非僅形式標註 |
+| **D 分量之人閘強度** | 「`promoted_by`／`approved_by`／`decided_by` 唯 Steward 親跑」 | `governance_proposal` 之 CHECK 僅 `kind`／`status` 兩個 enum，**無任一條提及 `decided_by`**（實查 `pg_constraint`）；`trg_gov_proposal_immutable` 只凍結 diff／evidence／kind 與終態，**pending 列仍可被裸 SQL 直接 UPDATE 為 `status='approved', decided_by='hugo'`**。唯一強制點＝`scripts/governance_queue.py:90-96` 之 `isatty()`＋拒空輸入（2026-07-31 新增），**僅護該一支 CLI** | 「唯人親簽」在 DB 層為**軟強度**（文字紀律＋單一 CLI），非硬強度。同型見全庫七條簽核 CHECK 一律只驗非空、不驗身分或寫入通道 |
+| **超級使用者之繞道** | 未述 | 單一角色整併後 `augur` 為 superuser 且為全部 322 表之 owner ⇒ 可 `ALTER TABLE … DISABLE TRIGGER` 或 `SET session_replication_role='replica'` 繞過上述全部 trigger 閘 | 一切以 GRANT／REVOKE／trigger 為基礎之隔離與不可竄改性證據，於本架構下**均不成立**（見 `reports/augur_single_role_consolidation_plan_20260731.md`） |
+
+> **本節不主張任何補救已完成**；三項均為現況揭露。其處置屬治權判準（誰能簽、如何機械證明、是否重建角色隔離），**專屬 Steward**，本檔僅呈案。

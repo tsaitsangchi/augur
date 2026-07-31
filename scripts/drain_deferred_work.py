@@ -31,7 +31,7 @@
     python3 scripts/drain_deferred_work.py --check          # 唯讀：積壓＋slot 現況＋每筆擬處置
     python3 scripts/drain_deferred_work.py --apply          # 實作：superseded 清帳＋白名單補跑
     python3 scripts/drain_deferred_work.py --apply --limit 1        # 一次只處理最舊一筆
-    python3 scripts/drain_deferred_work.py --apply --timeout 7200   # 補跑子行程時限（秒，預設 14400）
+    python3 scripts/drain_deferred_work.py --apply --timeout 7200   # 補跑子行程時限（秒，預設 46800）
     python3 scripts/drain_deferred_work.py --selftest       # 紅綠自測（免 DB 免 API）
     # 排程（未掛；由 Steward 決定）：每 30 分 --apply --limit 1，slot 忙時自然空轉
 """
@@ -230,7 +230,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--limit", type=int, default=None)
-    ap.add_argument("--timeout", type=int, default=14400)
+    # 須 ≥ run_evolution_iteration.STEP_TIMEOUT_SEC(43200)否則本層先砍、內層逾時永遠不觸發,
+    # 步紀錄一樣落不了帳(2026-07-31:內層 7200 內層先砍,故未暴露;調高內層後本層即成新上限)。
+    ap.add_argument("--timeout", type=int, default=46800)
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
     if a.selftest:
