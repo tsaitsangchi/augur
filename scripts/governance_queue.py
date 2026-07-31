@@ -3,7 +3,10 @@
 🎯 這支在做什麼(白話):「能力自動演化、判準人閘一鍵化」的人閘介面。AI 用 submit 投遞提案(diff+證據包,
    送出即被 trigger 凍結不可改);hugo 用 list/show 審視、approve/reject **一鍵裁決**(記 decided_by+時戳
    =P5.W2 人簽留痕);enact 由 AI 於 approved 後執行落地並標 enacted。撤回=withdraw(留痕不刪)。
-   核可動作設計上唯人執行(本 CLI 由 hugo 在 TTY 跑;AI 不代跑 approve——比照 direction_gate TTY 親核先例)。
+   核可動作**機械上唯人執行**(2026-07-31 補上真閘:approve/reject 須 TTY＋親手打簽名,
+   非 TTY 一律拒絕、不自動代填——前版僅 docstring 宣稱「由 hugo 在 TTY 跑」而無檢查,
+   AI 以同 OS 帳號跑即被自動簽為 hugo;比照 direction_gate/review_evolution_candidates isatty 先例)。
+   enact 不設 TTY 閘(依設計=AI 於 approved 後落地標記,不寫 decided_by)。
 守 P5.W2(人閘)· P4.E3(不刪留痕)· #15(狀態機械可查)· #29a/d。SSOT=演化閉環計畫 §三/#11。
 執行指令矩陣:
   python scripts/governance_queue.py                        # 無參數:pending 佇列(安全預設、唯讀)
@@ -70,15 +73,35 @@ def submit(conn, kind, title, diff_file, evidence):
     return 0
 
 
+def _require_human_tty() -> str:
+    """人簽前置（2026-07-31 修）：TTY 閘＋打字確認，回簽名者名字。
+
+    前版僅 `getpass.getuser()` 自動取 OS 帳號——docstring 寫「本 CLI 由 hugo 在 TTY 跑」
+    但**無任何機械檢查**，致任何以 Steward 之 OS 帳號執行之行程（**含 AI**）會被自動
+    簽為人（L6.18(a) AI 不得代簽之直接漏洞；深化理解核驗 2026-07-31 查獲，
+    人簽帳本已三度被自測程式寫入之同族病）。修法比照既有三支 CLI 之 isatty 先例
+    （`review_evolution_candidates.py:49`）：**非 TTY 一律拒絕寫入、絕不自動代填**；
+    TTY 內亦不再默默取 OS 帳號，改要求**親手打出簽名者名字**——打字本身即人在場之證據。
+    """
+    if not sys.stdin.isatty():
+        raise SystemExit("P5.W2 人閘: approve/reject 須 TTY 親跑（禁管道／AI 代簽；"
+                         "L6.18(a)）——非互動環境一律拒絕，不自動代填簽名")
+    default = getpass.getuser()
+    typed = input(f"簽名者（親手輸入名字以確認；直接 Enter＝{default}）: ").strip()
+    return typed or default
+
+
 def decide(conn, pid, verdict, note):
-    actor = getpass.getuser()
+    actor = _require_human_tty()
     with db.transaction(conn) as cur:
         cur.execute("""UPDATE governance_proposal
             SET status=%s, decided_by=%s, decided_at=now(), decision_note=%s
             WHERE proposal_id=%s AND status='pending'""", (verdict, actor, note, pid))
         n = cur.rowcount
-    print(f"{'✓' if n else '✗'} {pid} → {verdict}" + ("" if n else "(非 pending 或不存在)")
-          + f" (人簽={actor})" if n else "")
+    if n:
+        print(f"✓ {pid} → {verdict} (人簽={actor})")
+    else:
+        print(f"✗ {pid} → {verdict}(非 pending 或不存在)")
     return 0 if n else 1
 
 
@@ -104,6 +127,47 @@ def selftest():
     chk("decide 只動 pending(SQL 帶 status 守衛)", "status='pending'" in decide.__wrapped__.__doc__ if hasattr(decide, "__wrapped__") else "AND status='pending'" in __import__("inspect").getsource(decide))
     chk("enact 只動 approved", "status='approved'" in __import__("inspect").getsource(enact))
     chk("submit 冪等(ON CONFLICT DO NOTHING)", "DO NOTHING" in __import__("inspect").getsource(submit))
+
+    # ── 人閘之行為驗證(2026-07-31;非字面斷言) ──
+    class _NoTTY:
+        def isatty(self):
+            return False
+
+    class _DBTouched(Exception):
+        pass
+
+    class _TripConn:
+        def cursor(self):
+            raise _DBTouched("decide 在 TTY 閘前就碰了 DB")
+
+    _stdin = sys.stdin
+    sys.stdin = _NoTTY()
+    try:
+        try:
+            decide(_TripConn(), "gp_fake", "approved", None)
+            chk("非 TTY 之 approve 被拒", False)
+        except SystemExit as e:
+            chk("非 TTY 之 approve 被拒(SystemExit,且訊息含 P5.W2)", "P5.W2" in str(e))
+        except _DBTouched:
+            chk("非 TTY 之 approve 被拒(**在碰 DB 之前**)", False)
+    finally:
+        sys.stdin = _stdin
+
+    class _FakeTTY:
+        def isatty(self):
+            return True
+
+    import builtins
+    _input = builtins.input
+    sys.stdin = _FakeTTY()
+    builtins.input = lambda prompt="": "hugo-typed"
+    try:
+        chk("TTY 內簽名＝親手打的字(非默默取 OS 帳號)", _require_human_tty() == "hugo-typed")
+        builtins.input = lambda prompt="": ""
+        chk("空輸入回退 OS 帳號(明示 Enter=default 之約定)", _require_human_tty() == getpass.getuser())
+    finally:
+        builtins.input = _input
+        sys.stdin = _stdin
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 
