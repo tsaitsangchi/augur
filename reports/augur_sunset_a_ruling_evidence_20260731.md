@@ -84,8 +84,7 @@ SELECT feature, run_id FROM promotion_queue
  WHERE gate_json->'G-PROM'->>'verdict'='PASS' AND gate_json->'G-ECON'->>'verdict'='PASS';
 ```
 
-→ **`cycle_position_252d` 自 run 11 起，於 run 12／15／16／17／18／19／20 每一輪皆雙綠**
-（含 2026-07-31 晚正在跑之 I3）。其 run 20 之 `G-PROM` 證據：
+→ `cycle_position_252d` 於 run 11／12／15／16／17／18／19／20 **每一次掃到它時皆雙綠**。其 run 20 之 `G-PROM` 證據：
 
 ```
 hac_t = 3.5225   mean_ic = 0.08810   hit_rate = 0.78125   n_panels = 64
@@ -101,6 +100,21 @@ checks = {hac_t: true, asof_ic: true, multi_seed_delta: true}
 該閘從未開啟。
 
 ⇒ **(b) 之失敗為治理吞吐失能，非程式無產出。**
+
+> **⚠ 更正（本檔初版誇大，2026-07-31 同日修正）**：初版寫「**自 run 11 起連續十輪雙綠**」，
+> 字面為真但**材料上誤導**——`run 11/12/15/16/17/18/19/20` **全部是 `status='running'` 之殭屍輪**
+> （被 7200s 逾時砍死），各只掃到 **3–12** 個 feature（完整為 37–39）。
+> **最近一個真正跑完之引擎輪為 run 6**（掃滿 39 個），其唯一雙綠為 `inst_cumflow_position_120d`
+> ——**已在 prodset**。故截至本檔撰寫時，`cycle_position_252d` **尚無任何完整輪之確認**。
+>
+> 其 per-feature 之閘判定本身已寫入 `promotion_queue`（逾時發生在 run 層、非該 feature 之評估中途），
+> 故該判定應屬有效；但「連續十輪」不等於「十次完整驗證」。
+>
+> **`run 20` 即今晚正在跑之 I3**，且是第一個有機會真正跑完的輪。
+> 若其完成且 `cycle_position_252d` 仍雙綠，則 (b) 首次取得**完整輪背書之候選**。
+> ⇒ **在 I3 完成前，(b) 之證據強度不宜被高估。**
+>
+> 錯誤型態＝**用「次數」冒充「強度」**，與本檔 §2.1 註所記之同型（引用數字時未查該數字所屬之輪是否完整）。
 
 **⚠ 未驗之前置**：(b) 尚要求「每一新成員**通過符號一致性檢查**」。`gate_json` 內查無該欄
 （`G-PROM.checks` 僅 `hac_t`／`asof_ic`／`multi_seed_delta`）。**該檢查之實作位置與判準＝UNKNOWN**；
@@ -164,9 +178,14 @@ heavy slot 被 `run_philosophy_evolution --local-gates` 獨佔，該步實測需
 3. r2 之期限係於今日 19:05:51 同一秒預登記並核准、自 10-31 壓縮 92 日；
    在原期限下 arena 達最低凍結門檻（36 clusters；現 6）為可及。
 
-**最具行動性之單一步驟**：開 `TWEVO-APPLY-go`，讓連續十輪雙綠之 `cycle_position_252d` 進入 prodset
-——(b) 即以**程式自身之實力**達成，不依賴任何對判準之重新解釋。
-**前置**：先確認「符號一致性檢查」之實作與通過（§3.1 之 UNKNOWN）。
+**最具行動性之單一步驟**：待今晚 I3（run 20）跑完並確認 `cycle_position_252d` 仍雙綠後，
+考慮開 `TWEVO-APPLY-go` 使其進入 prodset——(b) 即以**程式自身之實力**達成，
+不依賴任何對判準之重新解釋。
+
+**兩項前置（缺一不可，皆為 §3.1 所記之 UNKNOWN／更正）**：
+1. **等 I3 完成**——現有八次雙綠全出自未完成之殭屍輪，尚無完整輪背書（見 §3.1 更正段）。
+2. **確認「符號一致性檢查」之實作與通過**——`G-PROM.checks` 內查無該項，其位置與判準 UNKNOWN。
+   未確認即開閘，即為本檔一路在指認之同型假綠。
 
 **自我利益揭露（`AUGUR-L6 v1.2` L6.18(c)／CLAUDE #32(a)）**：本檔由 AI 起草，
 而起草者即今日修復該等故障、且於程式續行時將承擔更多工作之一方。
