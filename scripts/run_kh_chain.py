@@ -102,12 +102,19 @@ def preflight(cur) -> dict:
     out["advance_pool"] = int(cur.fetchone()[0])
     # KH0 底線不變式（大憲章 v1.52.0 第三部 philosophy／知識節；本支為其指定機械落點）：
     # 「有原文 ∧ 無 admit_state 列」之計數須恆為 0；非 0 即底線破口，須先補齊方得推進上層。
-    cur.execute("""SELECT count(DISTINCT i.item_id) FROM knowledge_item i
-                     JOIN knowledge_item_text x ON x.item_id=i.item_id
+    # **普遍口徑**（憲章 v1.53.0 修正 v1.52.0 之量尺）：分母＝**全部 knowledge_item**，
+    # 非僅「有原文者」。Steward 2026-07-31：「就算是一個標題也有其語意進行理解」
+    # ——實測無原文者 138,780 件**全部有標題**、無題者 0 件，故「無原文＝無從理解」
+    # 之前提不成立。前版以 JOIN item_text 收窄分母，使「破口 0」成為窄口徑假綠
+    # （真實普遍破口 138,829／285,177＝48.7%）。全文之有無只影響理解**深度**，
+    # 不影響**是否須被理解**。
+    cur.execute("""SELECT count(*) FROM knowledge_item i
                      LEFT JOIN knowhow_auto_admit_state st
                        ON st.target_kind='item' AND st.target_id=i.item_id::text
                     WHERE st.target_id IS NULL""")
     out["kh0_breach"] = int(cur.fetchone()[0])
+    cur.execute("SELECT count(*) FROM knowledge_item")
+    out["items_total"] = int(cur.fetchone()[0])
     cur.execute("""SELECT count(DISTINCT i.item_id) FROM knowledge_item i
                     LEFT JOIN knowledge_item_text x ON x.item_id=i.item_id
                    WHERE x.item_id IS NULL""")
@@ -165,12 +172,13 @@ def main(argv: list[str] | None = None) -> int:
           + ("" if pf["scale_consistent"] else "  ✗ **同尺矛盾：子集大於母集，計數有誤**"))
     print(f"  層級上限：{eff}（{why}）")
     if pf["kh0_breach"] == 0:
-        print(f"  KH0 底線不變式：✓ 破口 0（有原文者 100% 已評）"
-              f"｜誠實例外：無原文 {pf['no_fulltext']:,} 件 metadata-only（KH0 不適用）")
+        print(f"  KH0 底線不變式：✓ 破口 0（全部 {pf['items_total']:,} 件 item 皆已評）")
     else:
-        print(f"  KH0 底線不變式：✗ **破口 {pf['kh0_breach']:,} 件**"
-              "（有原文卻未評 KH0，通常＝新落地全文尚未評）"
-              "——跑 --run --phase advance 由 KH0 逐層補齊，收尾自動覆核（憲章 v1.52.0）")
+        _pct = pf["kh0_breach"] / max(pf["items_total"], 1) * 100
+        print(f"  KH0 底線不變式：✗ **破口 {pf['kh0_breach']:,} / {pf['items_total']:,} 件"
+              f"（{_pct:.1f}%）未評 KH0**（普遍口徑，憲章 v1.53.0；標題即有語意，"
+              f"無原文者不豁免；其中無原文 {pf['no_fulltext']:,} 件）"
+              "——跑 --run --phase advance 由 KH0 逐層補齊，收尾自動覆核")
     busy = concurrent_running()
     if busy:
         print("  ⚠ 偵測到並行 runner（避免同表競態，--run 將拒絕執行）：")
@@ -295,9 +303,18 @@ def _selftest() -> int:
                 _sys.modules[k] = v
 
     joins = [q for q in fake.sqls if "JOIN knowledge_item_text" in q]
-    chk("preflight 確實查了 item_text（3 條 JOIN）", len(joins) == 3)
+    # v1.53.0：kh0_breach 已改**普遍口徑**（不 JOIN item_text）⇒ 由 3 條降為 2 條
+    # （advance_pool 與 no_fulltext）。此數字隨口徑走，改口徑時須同步改本鎖。
+    chk("preflight 查 item_text 之 JOIN 為 2 條（v1.53.0 普遍口徑後）", len(joins) == 2)
     chk("每條 item_text JOIN 皆以 count(DISTINCT) 計 item、不數原文列",
         all("count(DISTINCT i.item_id)" in q for q in joins))
+    # KH0 破口之**普遍口徑**回歸鎖：其查詢不得再以 item_text 收窄分母
+    kh0q = [q for q in fake.sqls
+            if "knowhow_auto_admit_state" in q and "st.target_id IS NULL" in q]
+    chk("KH0 破口查詢存在", len(kh0q) == 1)
+    chk("KH0 破口為普遍口徑（不 JOIN item_text 收窄分母）",
+        bool(kh0q) and "JOIN knowledge_item_text" not in kh0q[0])
+    chk("有算 items_total 作分母", "items_total" in pf)
     chk("KH0 底線破口有被算出", "kh0_breach" in pf)
     chk("同尺自檢有被算出且成立（5<=5）", pf.get("scale_consistent") is True)
     # KH0 閘位之回歸鎖（2026-07-31）：前版以「破口>0 ⇒ ABORT --phase advance/all」實作，

@@ -57,8 +57,18 @@ def promote_thinker(cur, p, source_key=None):
 
 def promote_work(cur, p, source_key=None):
     thinker, title = p.get("thinker") or (p.get("authors") or [None])[0], p.get("title")
-    if not (thinker and title):
+    # **只以「無標題」判死**（2026-07-31 修）：前版為 `not (thinker and title)`，
+    # 缺作者亦直接 rejected（終態、不重試）——但 `promote_item` 只要求標題、不要求作者
+    # （:143-144），且本函式下游本就有 `no_thinker` → `promote_item` 之後援路徑
+    # （非哲學域）。缺作者者遂在抵達該後援**之前**即被判死，使後援形同虛設。
+    # 實測損失：rejected work 48,775 筆中，**43,204 筆（88.6%）有合法標題、僅缺作者**；
+    # 真正無標題者僅 2,000 筆。
+    if not title:
         return "rejected"
+    if not thinker:
+        # 交由呼叫端之後援：非哲學域 → promote_item（knowledge_item 不需作者）；
+        # 哲學域則**留 pending 待人審**（不自動晉升、不判死），守「審核後晉升」。
+        return "no_thinker"
     names = [thinker]
     if "," in thinker:                       # gutendex "Smith, Adam" → "Adam Smith"
         last, _, first = thinker.partition(",")
@@ -140,8 +150,22 @@ def promote_item(cur, p, source_key=None, ctx=None):
     taxonomy_id 由 staging.query_id→knowledge_query.taxonomy_id 回填(lineage 全鏈)。"""
     ctx = ctx or {}
     title = p.get("title") or p.get("name")
-    if not title:
-        return "rejected"
+    if not (title and str(title).strip()):
+        # **不得因欄位缺漏判死**（Steward 2026-07-31 拍板入憲）：判死之唯一合法理由＝
+        # **無任何可理解之內容**，而非「我們的 mapper 想要的欄位不在」。
+        # 實測（2026-07-31）：rejected work 48,775 筆中**零筆真正無內容**——
+        # 無標題之 2,000 筆皆帶 DOI／年份／期刊名（Crossref 期層級記錄）。
+        # 故無標題者以**可得識別資訊構造衍生標題**入庫（title 亦為去重鍵、不得為空），
+        # 並於 payload 留 `title_derived` 旗標以示其非原始標題（#15 不偽稱）。
+        ident = next((str(p[k]) for k in EXTID_PRIORITY if p.get(k)), None)
+        parts = [str(p.get("venue") or "").strip(), str(p.get("year") or "").strip()]
+        label = " ".join(x for x in parts if x)
+        derived = (f"[{ident}]" if ident else "") + (f" {label}" if label else "")
+        derived = derived.strip()
+        if not derived:
+            return "rejected"          # 真無內容可資識別者才判死（實測現況：0 筆）
+        title = f"（衍生標題）{derived}"
+        p = {**p, "title_derived": True}
     title = str(title)
     etype = ctx.get("entity_type")
     if etype not in ITEM_TYPES and etype != "document":  # work 後援路:以 payload work_type 定條目類(paper/report/book…)
