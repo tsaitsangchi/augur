@@ -162,7 +162,11 @@ is_forbidden_path() {
 }
 
 collect_changed_paths() {
-  git status --porcelain | while IFS= read -r line || [ -n "${line:-}" ]; do
+  # -c core.quotePath=false:非 ASCII 路徑不轉義。預設 true 會把中文檔名輸出成 \345\216\237…,
+  # 後續 `git add -- "$p"` 拿到的是含反斜線之字面字串 → pathspec 不匹配 → **該檔靜默漏掉**。
+  # 2026-07-31 實犯:docs/原則精華_v1.12.0.md 之改動未進封存 commit,而腳本仍印「封存完成」。
+  # 本專案治權檔全為中文名(靈魂/原則精華/大憲章/專章),此 bug 專打治權檔,故列為必修。
+  git -c core.quotePath=false status --porcelain | while IFS= read -r line || [ -n "${line:-}" ]; do
     [ -z "$line" ] && continue
     local path="${line#?? }"
     path="${path#\"}"; path="${path%\"}"
@@ -198,7 +202,11 @@ stage_safe_changes() {
     if [ "$DRY_RUN" -eq 1 ]; then
       echo "  [dry-run] git add -- $p"
     else
-      git add -- "$p"
+      # 失敗須出聲:靜默漏檔會使「封存完成」成為假綠(2026-07-31 實犯)
+      if ! git add -- "$p"; then
+        echo "✗ git add 失敗:$p —— 中止封存(避免產生不完整之封存點)" >&2
+        return 2
+      fi
     fi
     staged=1
   done < <(collect_changed_paths)
