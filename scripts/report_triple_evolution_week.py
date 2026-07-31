@@ -100,13 +100,23 @@ def sunset_status(cur):
     # 該尺 scripts/verify_sign_consistency.py 存在但未接線:GATE_IDS 無 G-SIGN、
     # promotion_queue 之 G-SIGN 命中 0 列、且無任何落帳表)。
     #
-    # **「新成員」之基線定義**（顯式常數,便於 Steward 依 §8.1 改讀法;不藏在邏輯裡）:
-    #   取 SUNSET 凍結時點 evolution_prereg_gate.preregistered_at('2026-07-27 15:30:36')。
-    #   於此之後 registered 者為「新成員」。改為「所有現役皆須檢」只需把下行改成極早日期。
-    B_BASELINE_TS = "2026-07-27 15:30:36+08"
+    # **「新成員」之射程＝Steward 依 §8.1 之裁決（2026-07-31：「要回頭補」）：**
+    #   採 **all_active**——**所有現役成員**皆須有符號檢查紀錄，不因進場早於 SIGN-B 而豁免。
+    #   被此裁決涵蓋者＝`inst_cumflow_position_120d`（2026-07-24 進 prodset，早於 SIGN-B
+    #   〔07-28 建〕存在，故至今零符號證據）。另一現役 `lending_fee_rate_mean_20d`
+    #   （07-29 進、凍結後）在任一讀法下皆須檢。
+    #   曾考慮之較窄讀法＝post_freeze（只檢凍結時點之後 registered 者），**已由 Steward 否決**，
+    #   保留於此僅為留痕；欲改回改 B_SCOPE 一處即可，判準不藏在邏輯裡。
+    B_SCOPE = "all_active"        # all_active | post_freeze
+    B_FREEZE_TS = "2026-07-27 15:30:36+08"   # post_freeze 讀法用；all_active 下不參與判定
     n_active = _one(cur, "SELECT count(*) FROM evolution_production_feature_set WHERE set_status='active'") or 0
-    cur.execute("SELECT feature FROM evolution_production_feature_set "
-                "WHERE set_status='active' AND registered_at > %s ORDER BY feature", (B_BASELINE_TS,))
+    if B_SCOPE == "all_active":
+        cur.execute("SELECT feature FROM evolution_production_feature_set "
+                    "WHERE set_status='active' ORDER BY feature")
+    else:
+        cur.execute("SELECT feature FROM evolution_production_feature_set "
+                    "WHERE set_status='active' AND registered_at > %s ORDER BY feature",
+                    (B_FREEZE_TS,))
     newcomers = [r[0] for r in cur.fetchall()]
     has_tbl = _one(cur, "SELECT to_regclass('public.feature_sign_check') IS NOT NULL")
     sign_rows: dict[str, str] = {}
@@ -114,7 +124,8 @@ def sunset_status(cur):
         cur.execute("""SELECT DISTINCT ON (feature) feature, verdict FROM feature_sign_check
                         WHERE feature = ANY(%s) ORDER BY feature, checked_at DESC""", (newcomers,))
         sign_rows = dict(cur.fetchall())
-    b_done, sign_note = judge_b(n_active, newcomers, sign_rows, has_tbl, B_BASELINE_TS)
+    b_done, sign_note = judge_b(n_active, newcomers, sign_rows, has_tbl,
+                                f"射程={B_SCOPE}（Steward 2026-07-31 裁：所有現役皆須檢）")
     b_ev = f"prodset active={n_active}(基線 2;須成長 ∧ 新成員過符號一致性)｜{sign_note}"
 
     # (c) **SUNSET-C-align**(hugo 2026-07-28 拍板;audits/V2-RUBRIC-GO-20260728.md)——
