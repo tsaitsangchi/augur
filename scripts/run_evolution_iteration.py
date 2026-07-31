@@ -433,15 +433,35 @@ def _selftest():
     chk("--dry-run 不受閘阻(唯讀不算執行)", _should_check_kill(_A(run=True, dry_run=True)) is False)
     chk("無參數狀態顯示不受閘阻", _should_check_kill(_A()) is False)
 
+    # **守衛下游注入故障**，而非拆掉守衛。
+    # 拆守衛之測法（本日 21:01 實犯）會讓無守衛之路徑**真的執行**——當時 main(["--run"])
+    # 一路跑到 open_round → 搶不到 slot → 寫 deferred，污染帳本 4 筆。
+    # 改法：把守衛**下游**的 open_round/run_round/close_round 換成「一被呼叫就爆」。
+    # 守衛有效 ⇒ 下游永不被呼叫 ⇒ 綠；守衛失效 ⇒ 立刻大聲失敗且**零 DB 寫入**。
     _orig_ks = globals()["_kill_state"]
+    _downstream = {n: globals()[n] for n in ("open_round", "run_round", "close_round")}
+
+    def _tripwire(*_a, **_k):
+        raise AssertionError("守衛未擋住——不該走到這裡（若非測試中，帳本已被污染）")
+
     globals()["_kill_state"] = lambda: "halt"
+    for _n in _downstream:
+        globals()[_n] = _tripwire
     try:
         for _act in ("--run", "--open", "--close"):
-            chk(f"halt 時 {_act} 立即回 RC_KILL_HALT(不碰 DB／不取 slot)",
+            chk(f"halt 時 {_act} 擋在下游之前(絆線未被觸發＝零 DB 寫入)",
                 main([_act]) == RC_KILL_HALT)
         chk("halt 時 --step I3 亦擋", main(["--step", "I3"]) == RC_KILL_HALT)
+        # 反向驗：絆線本身確實會爆（否則上面四條可能是「下游根本沒被換掉」而假綠）
+        _fired = False
+        try:
+            _tripwire()
+        except AssertionError:
+            _fired = True
+        chk("絆線本身會爆(否則上四條為假綠)", _fired)
     finally:
         globals()["_kill_state"] = _orig_ks
+        globals().update(_downstream)
     chk("RC_KILL_HALT 與 RC_SLOT_BUSY 分開(停機≠積壓,不該被補跑器撿去重試)",
         RC_KILL_HALT != RC_SLOT_BUSY)
 
