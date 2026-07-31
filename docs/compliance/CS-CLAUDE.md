@@ -5,11 +5,13 @@
 * **登錄 Layer**：6（Agent Runtime 領域協作規格）
 * **正文 SSOT**：`CLAUDE.md`
 * **誠實界限**：履行本檔補正；不假關 039 殘留。
+* **v1.33 增量（2026-07-31）**：新增 `#33 禁止阻塞等待迴圈`（四、long-running；#21 之對偶）。純工具用法紀律——**不改變任何內容能否進某層**，故依 CLAUDE.md §六「工具/協作慣例變更不需動憲章」**未觸發憲章同步**；亦不涉 P5/OCV 任一分量之增減（非新增 Action 類型、非改監督點）。動因＝2026-07-31 實犯：前景 `until … sleep` 迴圈使會話 600s 無回應，用戶三則訊息未獲回覆。
+* **v1.34 增量（2026-07-31）**：新增 `#34 Claude 平行度開到最大`（四、long-running），**明示反向修正 `#28(c)`「非必要不 fan-out」**，並同步改寫 #28 優先序末段與 #20 引用句（#19 一處改全鏈對齊）。動因＝Steward directive「增加 claude 同步到最大」＋實犯：以「避免兩個大 workflow 互相拖垮」為由延後第二個 workflow，該前提**從未量測**（實測 4 workflow／約 37 並行 agent 時 12 執行緒 load＝2.78）。**性質判定**：放寬對象為 Claude 自身 usage 之配額經濟，非任何監督機制；不新增 Action 類型、不改風險分級／核准層級、不新增排程或自我喚醒鏈；依 CLAUDE.md §六**未觸發憲章同步**。OCV 六分量前後對照見下 CS.3。
 
 ```
 compliance-statement:
   spec: Augur Domain Agent Runtime Rules（CLAUDE.md）
-  spec-version: v1.32
+  spec-version: v1.34
   layer: 6
   mc-version: AUGUR-MC v1.6
   upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0, AUGUR-KS v1.1, AUGUR-L5 v1.0, AUGUR-L6 v1.2]
@@ -86,6 +88,25 @@ MC [N] 落點以 `specs/`（尤 `AUGUR-L6`）為權威；本檔觸及見 CS.1；
 | 一 通用 | Read/Edit／最小邊界／實測 | L6 |
 | 二 資料真實 | #9–#12 | L6 工具＋消費 L4 原則 |
 | 三 編輯規則 | #13–#20／#29；clean-room；計畫先行 | L6（#17 觸 L4 clean-room） |
-| 四 Long-running | #21–#25／#28／#30／#31 | L6＋L7 操作 |
+| 四 Long-running | #21–#25／#28／#30／#31／#33／#34 | L6＋L7 操作 |
 | 五 協作模式 | #26–#27 | L6（對映 P5 人類權威） |
 | 六 升版 | 半衰期 | L6 [I] |
+
+## CS.3 #34 之 OCV 六分量前後對照 [N]〔T-CLAUDE-1 所要求；v1.34〕
+
+> 依 T-CLAUDE-1 緩解條款「本檔任何弱化條之修訂須附 OCV 六分量前後對照」（`AUGUR-L6 v1.2` L6.16–L6.17 單向棘輪；判定＝V／D／A／T 非遞減且 H／C 非遞增）。
+
+| 分量 | before | after | 判定 |
+|---|---|---|---|
+| **V** 否決通道可達性 | 1（Steward 可隨時中斷會話／停背景作業） | 1（agent 路數不改變通道存在性） | 非降 ✓ |
+| **D** 逐案／即時人類介入點密度 | approve/activate 唯人 TTY＋superuser；`promoted_by`／`approved_by`／`decided_by` 唯 Steward 親跑；#20 拍板；#14 commit 授權 | **完全相同**——#34 未移除任一介入點；fan-out 產物一律回主 session 由 Steward 過目，agent 不得自我生效 | 非降 ✓ |
+| **A** 所要求核准層級 | 依 RT 級既有值 | 未改任一 RT 級 | 非降 ✓ |
+| **H** 否決至停止時延 | 中斷即停 | 同左（並行寬度不改變停止路徑） | 非增 ✓ |
+| **T** 透明度 | 部分背景作業未登記 | **上升**——#21 落實，本輪 4 個 workflow 全數登記進可見任務清單並附 run id／log 路徑 | 非降 ✓ |
+| **C** 最大自動執行鏈長 | 單次 fan-out → 回主 session | **相同**——#34 明文保留 #33 與 #26 自動鏈上限，未新增排程／自我喚醒鏈 | 非增 ✓ |
+
+> **誠實記載之反對論證（不迴避）**：可主張「同時跑 4 個 workflow ＝ 兩次人類檢視之間完成的工作量變大，實質削弱監督」。本檔採之區辨為：**L6.16 之 C 定義為鏈「長」（連續無人類介入點而執行之 Action 數上限），非鏈「寬」**；並行擴張者為同一介入點下之寬度，且本輪 agent 全為**唯讀研究型（RT-0／RT-1）**、產物須回主 session 方能促成任何寫入。惟此區辨之充分性**非本檔可自證**，列為待 Steward `§8.2` 實質審查之點。
+>
+> **自我洗白防線（L6.18(c)／`MC §P4.E7`／CLAUDE #32(a)）**：上表為 **AI self-reported**，**不得單獨**作為「未降低監督能力」之依據；效力繫於 Steward 獨立確認。
+>
+> **反自我交易（L6.18(a)）**：本條核准鏈根節點為**人類（Steward 直接 directive）**，非 Agent 自行核准；惟本檔即 T-CLAUDE-1 所指「Agent 增修規範自身護欄」結構，該結構性利益衝突於此再度揭露。
