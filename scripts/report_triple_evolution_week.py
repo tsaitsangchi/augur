@@ -21,7 +21,56 @@ from datetime import date, datetime
 import _bootstrap  # noqa: F401
 from augur.core import db
 
-SUNSET_DEADLINE = date(2026, 10, 31)
+# 期限**不得寫死**——判準住 evolution_prereg_gate 且受 criteria_sha 保護,程式另存副本
+# 即為「凍結了判準文字卻沒凍結解釋它的程式」之同型缺口(2026-07-31 實犯:當日 GATE-raise
+# 把期限由 10-31 改為 07-31 並 supersede 舊列,而本檔仍印 10-31,且其自測還把過期值鎖住)。
+# 保留常數僅作**歷史錨**與 DB 不可讀時之誠實標記,不參與任何判定。
+SUNSET_DEADLINE_HISTORICAL = date(2026, 10, 31)  # 原始凍結值(V2-SUNSET,已 superseded)
+
+
+def judge_b(n_active, newcomers, sign_rows, has_tbl, baseline_ts="?"):
+    """(b) 之兩要件合取 → (達成?, 說明)。**純函式**——自測餵真輸入驗真行為。
+
+    刻意抽成純函式而非留在 build() 內：字面斷言（`"xxx" in src`）驗不到這種邏輯，
+    且會掃到自己那份字串副本而恆綠（2026-07-31 一日內實犯三次之型態）。
+
+    要件一：active 由 2 成長。要件二：**每一新成員**通過符號一致性檢查。
+    fail-closed：查無紀錄＝未通過（不是通過）；落帳表未建亦然——「沒證據」≠「有通過」。
+    """
+    unchecked = [f for f in newcomers if sign_rows.get(f) != "PASS"]
+    # has_tbl 必須進**判定**而非只進訊息:表不存在＝證據載體不存在,任何 PASS 都無所附麗。
+    # （2026-07-31:本行原只寫 `bool(newcomers) and not unchecked`，自測 fail-closed
+    #   那條隨即抓到——has_tbl=False 時仍可能回 True。斷言抓到作者的 bug，這才是它的用處。）
+    b_sign_ok = bool(has_tbl) and bool(newcomers) and not unchecked
+    done = (n_active > 2) and b_sign_ok
+    if not has_tbl:
+        note = "符號落帳表 feature_sign_check **未建**⇒無新成員可被證明通過(fail-closed)"
+    elif not newcomers:
+        note = f"無新成員(基線 {baseline_ts} 之後 registered 者為 0)"
+    else:
+        det = "、".join(f"{f}={sign_rows.get(f, '無紀錄')}" for f in newcomers)
+        note = "新成員符號檢查:" + det + (
+            "" if not unchecked else f"；**未通過/未檢:{'、'.join(unchecked)}**")
+    return done, note
+
+
+def live_sunset_gate(cur):
+    """自 DB 取現行(非 superseded)之 SUNSET 閘 → (deadline, gate_id, status, evaluated_at)。
+
+    無現行閘＝治權狀態異常,**不猜、不回退到常數**:拋例外讓報表大聲失敗,
+    而非靜默印一個沒有依據的日期。
+    """
+    cur.execute("""SELECT gate_id, criteria->>'deadline', status, evaluated_at
+                     FROM evolution_prereg_gate
+                    WHERE axis='program' AND status <> 'superseded'
+                    ORDER BY preregistered_at DESC LIMIT 1""")
+    r = cur.fetchone()
+    if not r or not r[1]:
+        raise SystemExit(
+            "✗ evolution_prereg_gate 查無現行(非 superseded)之 program 軸閘,或其 criteria 無 deadline。"
+            "\n  本報表拒絕以寫死日期充數——請先確認治權狀態(SELECT gate_id,status,criteria->>'deadline'"
+            " FROM evolution_prereg_gate;)。")
+    return date.fromisoformat(r[1]), r[0], r[2], r[3]
 
 
 def _one(cur, sql, params=()):
@@ -45,9 +94,28 @@ def sunset_status(cur):
     a_ev = (f"arena 已結算 {settled} 列;方向門 evaluated_pass={gate_ok}"
             f"(cluster {clusters}/{need_s};分母＝現行 approved 門之最低凍結門檻)")
 
+    # (b) 逐字為**兩個要件之合取**:「active 由 2 成長，**且每一新成員通過符號一致性檢查**」。
+    # 原碼 `b_done = n_active > 2` **只實作了第一個**,符號要件僅存在於顯示字串 b_ev
+    # ⇒ 一旦 active 成長,週報即印「(b) 達成」而符號尺可能一次都沒跑過(2026-07-31 補;
+    # 該尺 scripts/verify_sign_consistency.py 存在但未接線:GATE_IDS 無 G-SIGN、
+    # promotion_queue 之 G-SIGN 命中 0 列、且無任何落帳表)。
+    #
+    # **「新成員」之基線定義**（顯式常數,便於 Steward 依 §8.1 改讀法;不藏在邏輯裡）:
+    #   取 SUNSET 凍結時點 evolution_prereg_gate.preregistered_at('2026-07-27 15:30:36')。
+    #   於此之後 registered 者為「新成員」。改為「所有現役皆須檢」只需把下行改成極早日期。
+    B_BASELINE_TS = "2026-07-27 15:30:36+08"
     n_active = _one(cur, "SELECT count(*) FROM evolution_production_feature_set WHERE set_status='active'") or 0
-    b_done = n_active > 2
-    b_ev = f"prodset active={n_active}(基線 2;須成長且新成員過符號一致性)"
+    cur.execute("SELECT feature FROM evolution_production_feature_set "
+                "WHERE set_status='active' AND registered_at > %s ORDER BY feature", (B_BASELINE_TS,))
+    newcomers = [r[0] for r in cur.fetchall()]
+    has_tbl = _one(cur, "SELECT to_regclass('public.feature_sign_check') IS NOT NULL")
+    sign_rows: dict[str, str] = {}
+    if has_tbl and newcomers:
+        cur.execute("""SELECT DISTINCT ON (feature) feature, verdict FROM feature_sign_check
+                        WHERE feature = ANY(%s) ORDER BY feature, checked_at DESC""", (newcomers,))
+        sign_rows = dict(cur.fetchall())
+    b_done, sign_note = judge_b(n_active, newcomers, sign_rows, has_tbl, B_BASELINE_TS)
+    b_ev = f"prodset active={n_active}(基線 2;須成長 ∧ 新成員過符號一致性)｜{sign_note}"
 
     # (c) **SUNSET-C-align**(hugo 2026-07-28 拍板;audits/V2-RUBRIC-GO-20260728.md)——
     # 實作逐字對齊凍結原文(criteria_sha 65eda893…):「LAIEVO 有任一臂在 F@L1 上同時勝過 floor 與
@@ -98,7 +166,9 @@ def build(days, md):
     L = []
     h1 = (lambda s: L.append(f"\n## {s}")) if md else (lambda s: L.append(f"\n── {s} ──"))
     with db.connect() as conn, db.transaction(conn) as cur:
-        left = (SUNSET_DEADLINE - date.today()).days
+        gate = live_sunset_gate(cur)
+        deadline, gate_id, g_status, g_evaluated = gate
+        left = (deadline - date.today()).days
         conds = sunset_status(cur)
         # ok 三態:True 達成 / False 未達成 / None **未判定**(判準與實作不符,須人裁)。
         # 未判定**不計入達成數**——把爭議算成達成就是自己把落日條款關掉(#15)。
@@ -109,8 +179,14 @@ def build(days, md):
                    "**期限到而仍無確定達成者即整體停止、帳本封存、不得換 trigger_code 重開**"
                    if n_und else
                    "**三條件皆未達成——期限到即整體停止、帳本封存、不得換 trigger_code 重開**")
-        L.append(f"# V2-SUNSET:剩 {left} 天(至 {SUNSET_DEADLINE});"
-                 f"確定達成 {n_ok}/3、未判定 {n_und} → {verdict}")
+        if g_status in ("evaluated_pass", "evaluated_fail"):
+            # 已結算 ⇒ 不再倒數;印終局裁決,並保留三條件現況供掃視(結算後條件仍會變動)。
+            L.append(f"# {gate_id}:**已結算 {g_status}**(evaluated_at={g_evaluated});"
+                     f"期限 {deadline};現況確定達成 {n_ok}/3、未判定 {n_und}"
+                     f"（現況僅供掃視,裁決以 result_snapshot 為準）")
+        else:
+            L.append(f"# {gate_id}:剩 {left} 天(至 {deadline});"
+                     f"確定達成 {n_ok}/3、未判定 {n_und} → {verdict}")
         for code, ok, ev in conds:
             L.append(f"  {'✅' if ok is True else ('⚠' if ok is None else '⬜')} {code}\n      {ev}")
 
@@ -194,7 +270,25 @@ def _selftest():
         not any(k in " ".join(sql_lits).upper() for k in ("INSERT INTO", "UPDATE ", "DELETE FROM")))
     chk("R6 降級條款成文", "自動降回逐案人閘" in src)
     chk("三條件逐字對齊 v2 §2.1", all(x in src for x in ("(a) arena", "(b) prodset", "(c) LAIEVO")))
-    chk("期限=2026-10-31(criteria 凍結值)", SUNSET_DEADLINE == date(2026, 10, 31))
+    # 舊斷言為 `SUNSET_DEADLINE == date(2026,10,31)`——把**程式自己存的副本**鎖住,
+    # 於是 07-31 GATE-raise 之後它仍是綠的、而報表印過期日期。
+    # **不用字面斷言**:`"xxx" in src` 會掃到斷言自己那份字串副本而恆綠
+    # （2026-07-31 一日內實犯三次;install_cron.sh 用字元類切開,此處改驗真行為）。
+    chk("期限取自 DB 之現行閘(函式存在且可呼叫,非寫死常數)",
+        callable(globals().get("live_sunset_gate")))
+    # (b) 之判定改為純函式 judge_b,以下餵真輸入驗真行為——退回舊邏輯即會紅。
+    chk("(b) 未成長(active=2)⇒未達成", judge_b(2, [], {}, True)[0] is False)
+    chk("(b) 已成長但新成員無符號紀錄⇒**未達成**(fail-closed)",
+        judge_b(3, ["f_new"], {}, True)[0] is False)
+    chk("(b) 已成長但符號 FAIL⇒未達成",
+        judge_b(3, ["f_new"], {"f_new": "FAIL"}, True)[0] is False)
+    chk("(b) 已成長且新成員全 PASS⇒達成(綠燈也要驗得到)",
+        judge_b(3, ["f_new"], {"f_new": "PASS"}, True)[0] is True)
+    chk("(b) 落帳表未建⇒未達成且說明理由",
+        judge_b(3, ["f_new"], {"f_new": "PASS"}, False)[0] is False
+        and "未建" in judge_b(3, ["f_new"], {}, False)[1])
+    chk("(b) 多個新成員只要一個未過即整體未達成",
+        judge_b(4, ["a", "b"], {"a": "PASS"}, True)[0] is False)
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 
