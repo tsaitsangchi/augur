@@ -136,3 +136,28 @@ def test_predict_consumers_have_no_product_table_literal():
         bad.write_text("q = 'SELECT score FROM prediction_values'\n", encoding="utf-8")
         caught = _string_ref_violations([pathlib.Path(d)], PRODUCT_LITERALS, "product")
         assert caught, "掃描器未抓到植入的 prediction_values 字面=紅測失敗(閘是假的)"
+
+
+# ── 射程補閘之行為級回歸（2026-07-31）────────────────────────────────────────
+# 為何是行為級而非字面斷言：本專案最常見之假綠即「加了一盞永遠不會紅的燈」。
+# 只斷言 OUTER_PKGS 常數存在，證明不了掃描真的涵蓋它們；故以**植入違規再驗被抓**為準。
+# 急迫性：單一角色整併後 `#8` 之 DB 層已不存在，本 AST 閘為唯一防線，其射程須由構造保證。
+def test_outer_packages_are_actually_scanned(tmp_path):
+    """在射程外 package 植入違規 import → check_isolation 必須抓到（驗畢還原）。"""
+    import pathlib
+    probe = pathlib.Path(iso.__file__).resolve().parent.parent / "arena" / "_probe_isolation_test.py"
+    try:
+        probe.write_text("from augur.knowledge import kh4\n", encoding="utf-8")
+        v = iso.check_isolation()
+        assert any("outer-import" in x and "_probe_isolation_test" in x for x in v), \
+            f"arena 之違規未被抓到 ⇒ 射程補閘失效（實得 {v}）"
+    finally:
+        probe.unlink(missing_ok=True)
+    assert not iso.check_isolation(), "探針移除後應回零違規"
+
+
+def test_deliberation_advisor_exception_is_explicit():
+    """deliberation 之 advisor 例外須為**明文開洞**，而非整包不掃。"""
+    assert "augur.advisor" not in iso.DELIB_FORBIDDEN, "advisor 應為 deliberation 之設計例外"
+    for f in ("augur.philosophy", "augur.knowledge", "augur.evolution"):
+        assert f in iso.DELIB_FORBIDDEN, f"{f} 仍須對 deliberation 禁止"

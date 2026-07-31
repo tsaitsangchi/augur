@@ -47,6 +47,12 @@ bash "$ROOT/sync_from_github.sh" || echo "  ⚠ 同步未完成(分岔/髒樹?�
 step "3/5 sync_memory.py restore(還原 Claude memory)"
 "$VENV_PY" "$ROOT/sync_memory.py" restore || echo "  ⚠ memory 還原未完成"
 
+# ---- 3b) git hooks(不隨 git 走,換機必裝)----
+# 2026-07-31:單一角色整併後 #8 隔離之 DB 層已不存在,AST 字面稽核成為唯一機械防線;
+# pre-commit 是它唯一之自動觸發點。.git/hooks 不受版控 ⇒ 不在此裝則換機即失(r2 債 #6/#40 同型)。
+step "3b/5 install_git_hooks(pre-commit 機械閘;不隨 git 走)"
+"$VENV_PY" "$ROOT/scripts/install_git_hooks.py" --apply || echo "  ⚠ git hooks 安裝未完成"
+
 # ---- 4) DB ----
 step "4/5 資料庫"
 set -a; source "$ROOT/.env"; set +a

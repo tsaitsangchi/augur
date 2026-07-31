@@ -75,6 +75,17 @@ EVOLUTION_SRC_FORBIDDEN_IMPORTS = ("augur.features", "augur.models", "augur.univ
 EVOLUTION_PANEL_LITERALS = ("feature_values", "feature_candidate_values", "prediction_values",
                             "promotion_queue", "evolution_production_feature_set", "TaiwanStockPrice")
 PREDICT_CONSUMERS = ("features", "models", "universe", "evaluation")   # 純消費側:排除合法寫入者 core/ingestion/audit/catalog
+
+# ── 射程補閘(2026-07-31,r2 §4 B10 收口)───────────────────────────────────────
+# 病:PIPELINE 只含 7 package,`arena`/`execution`/`identity`/`deliberation` **從不在任何掃描集合內**。
+# r2 實掃確認四者現況對 FORBIDDEN 零 import,但那是「**現況恰好乾淨**」而非「由構造保證」——
+# 任何人日後於此四包 import 素養層,不會有任何機械紅燈。
+# 急迫性來自單一角色整併(2026-07-31):`#8` 隔離之 DB 層已不存在且原理上無法重建,
+# 本 AST 閘成為**唯一**防線 ⇒ 其射程外的每一個 package 都是實質缺口。
+OUTER_PKGS = ("arena", "execution", "identity")
+# `deliberation` 另列:其 engine.py 依設計 import `augur.advisor.ollama`(審議引擎需本地 LLM 通道,
+# 見 deliberation/__init__.py 之鐵則)。**明文開洞優於默默不掃**——只放行 advisor,其餘同禁。
+DELIB_FORBIDDEN = ("augur.philosophy", "augur.knowledge", "augur.evolution")
 # grep-lint 面:預測管線 + core 皆禁字面引用 RBAC/chat(擋不 import 但字串旁路)
 SCAN_STR = PIPELINE + ("core",)
 # 蒸餾/審議表禁被觸及之範圍=預測管線 + core + 素養層寫入者(產物零回流真兆庫,界線-A)
@@ -230,6 +241,11 @@ def check_isolation() -> list[str]:
         + _string_ref_violations([_AUGUR_ROOT / p for p in SCAN_STR], LAIEVO_LITERALS, "laievo")
         + _ast_import_scan([_AUGUR_ROOT / "evolution"], EVOLUTION_SRC_FORBIDDEN_IMPORTS,
                            "evolution-import", "evolution 禁 import 預測管線/素養層(I2 單向)")
+        # 射程補閘(2026-07-31):四個此前不受掃之 package
+        + _ast_import_scan([_AUGUR_ROOT / p for p in OUTER_PKGS], FORBIDDEN,
+                           "outer-import", "arena/execution/identity 禁 import 素養層/evolution")
+        + _ast_import_scan([_AUGUR_ROOT / "deliberation"], DELIB_FORBIDDEN,
+                           "delib-import", "deliberation 禁 import 素養層/evolution(advisor 為設計例外)")
         + _string_ref_violations([_AUGUR_ROOT / "evolution"], EVOLUTION_PANEL_LITERALS, "evolution-panel")
         + _placement_violations()
         + _scripts_predict_leak_violations()

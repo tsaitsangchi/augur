@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# 🎯 augur pre-commit — 把「已寫好但不會自己跑」的機械閘接上唯一會自動觸發的地方。
+#
+# 為何存在（2026-07-31）：單一角色整併後，`#8` 隔離之 DB 層已不存在且原理上無法重建
+# （單一角色 owner 無法 REVOKE 自己）。AST 字面稽核成為**唯一**的機械防線，
+# 而它在此之前 `.git/hooks` 非 sample 檔＝0、無 CI、無 cron ⇒ 只在有人手動想到時才跑。
+# r2 債 #6 逐字：「四個真有價值的機械閘全部『存在但不會自己跑』」。
+#
+# 紀律：純 shell、零新依賴（不引入 pre-commit 框架，守 #28 本地優先）。
+# 射程誠實：只掛「現況為綠且可重跑」之三閘；`constitution_lint --selftest` 現為 rc=1
+# （G10 界線 FAIL、屬治權解釋待裁）**刻意不掛**——掛了會使 repo 立即不可 commit。
+# 換機注意：.git/hooks 不隨 git 走，須由 install_services.sh 或本檔複製安裝。
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+PY="$ROOT/venv/bin/python"
+[ -x "$PY" ] || { echo "pre-commit: 無 $PY，略過（請先 pip install -e .）"; exit 0; }
+cd "$ROOT" || exit 0
+fail=0
+run() {  # run <名稱> <指令…>
+  local name="$1"; shift
+  if ! out=$("$@" 2>&1); then
+    echo "✗ pre-commit [$name] 失敗："; echo "$out" | tail -12; fail=1
+  else
+    echo "✓ $name"
+  fi
+}
+run "治權引用稽核"   "$PY" scripts/check_treaty_refs.py
+run "執行指令矩陣"   "$PY" scripts/check_cmd_matrix.py
+run "#8 隔離 AST 閘" "$PY" -c "from augur.audit.import_isolation import check_isolation; v=check_isolation(); assert not v, v"
+if [ "$fail" -ne 0 ]; then
+  echo ""
+  echo "── commit 已中止。修正後重試；確需跳過請 git commit --no-verify（會留在 reflog）。"
+  exit 1
+fi
+exit 0
