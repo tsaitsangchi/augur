@@ -85,6 +85,11 @@ def analyse(text: str):
     for i, ln in enumerate(lines):
         if i < st:                            # 只看自測段內之斷言
             continue
+        # **註解不是斷言**：描述本問題之註解（如 `# 不用字面斷言:"xxx" in src 會掃到自己`）
+        # 會被誤判為問題實例。2026-07-31 初版實犯——一個誤報連連之檢查器沒人會看，
+        # 等同不會紅。註：只跳整行註解；行尾註解中之斷言極罕見，留給人看。
+        if ln.lstrip().startswith("#"):
+            continue
         for lit, hay in _ASSERT.findall(ln):
             # **只管「以原始碼為乾草堆」之斷言**。`in sys.argv`／`in os.environ`／
             # `in some_dict` 等執行期判斷不在射程——把它們一起告警會使本支淪為狼來了，
@@ -153,6 +158,10 @@ _FIXTURES = [
     ("執行期判斷（sys.argv）不在射程 ⇒ 不告警",
      'import sys\n\ndef _selftest():\n'
      '    chk("x", "--selftest" in sys.argv)\n', None),
+    ("整行註解中描述本問題之句子 ⇒ 不告警（誤報防線）",
+     'def _selftest():\n'
+     '    src = open(__file__, encoding="utf-8").read()\n'
+     '    # 不用字面斷言:"MAGIC_TOKEN" in src 會掃到自己\n', None),
 ]
 
 
