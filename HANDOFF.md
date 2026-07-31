@@ -41,9 +41,9 @@
 - `evolution_deferred_work` 未清 2 筆（drain timer 會處理）。
 - `validation_evidence` 12 條可執行檢查中 **3 條 false**（E1 真退步／E2·E4 待 Steward 裁）。
 
-**接續讀序**：本檔 → `reports/augur_deep_understanding_20260731.md`（優化地基，40 則債務）
-→ `reports/augur_local_ai_market_sim_evolution_plan_20260731.md`（sim 軸實作計畫，P2 已完成、P3 待做）。
-memory 已 export 至 `handoff_memory/`（73 檔），新機以 `python3 sync_memory.py restore` 還原。
+**接續讀序**：本檔 → **`reports/augur_deep_understanding_r2_20260731.md`（r2 獨立核驗＋重開機後重測——基線 42 債逐項判定、07-31 治權生效鏈全景、新發現 N1-N12；最新現況權威）** → `reports/augur_deep_understanding_20260731.md`（基線，債務表實為 42 則；其 #15/#31/B1/A10 已被 r2 更正）
+→ `reports/augur_local_ai_market_sim_evolution_plan_20260731.md`（sim 軸實作計畫，P2 已完成〔⚠r2 實查：method registry 0 列＝候選物理死鎖、prereg 無 sim 列＝節點二未成立〕、P3 待做）。
+memory 已 export 至 `handoff_memory/`（74 檔），新機以 `python3 sync_memory.py restore` 還原。
 
 ## 0.5 增補快照 2026-07-18（Phase 1 憲章化收官——接續者必讀）
 

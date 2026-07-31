@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 223fa752-0df8-474d-aa39-9ddbcbfef034
-  modified: 2026-07-30T04:03:52.895Z
+  modified: 2026-07-31T03:47:11.622Z
 ---
 
 **全部本日 `psql`／`pip list`／ollama API／`ls` 親驗**（不是記憶）：
@@ -19,4 +19,6 @@ metadata:
 
 **Why**：舊 [[augur-project-map]] 之數字（15 package／193 scripts／原則精華 v1.9.1／憲章 v1.46.0）已被多層補丁疊成矛盾文本；在錯的底座上規劃會排出跑不動的行程（例：以為 peft 已裝而排 LoRA 訓練）。
 
-**How to apply**：`systemctl --user`（**不是** `sudo systemctl`）操作服務；改 `serve_*.py`／`src` 後必 restart 對應 unit（`http.server` 啟動載入不熱更新，見 [[restart-systemd-after-edit]]）。查表名前先 `information_schema` 實查、勿憑印象（本日即因憑印象猜 `prodset_state`／`arena_bet`／`meta_replay_run` 三個表名全錯，真名見 [[augur-path-six-parallel-gap]]）。治權現行版：靈魂 v1.8.0・**原則精華 v1.11.0**・大憲章 v1.49.0・CLAUDE.md v1.31・AUGUR-MC v1.6。
+**How to apply**：`systemctl --user`（**不是** `sudo systemctl`）操作服務；改 `serve_*.py`／`src` 後必 restart 對應 unit（`http.server` 啟動載入不熱更新，見 [[restart-systemd-after-edit]]）。查表名前先 `information_schema` 實查、勿憑印象（本日即因憑印象猜 `prodset_state`／`arena_bet`／`meta_replay_run` 三個表名全錯，真名見 [[augur-path-six-parallel-gap]]）。~~治權現行版：靈魂 v1.8.0・原則精華 v1.11.0・大憲章 v1.49.0・CLAUDE.md v1.31・AUGUR-MC v1.6~~〔**07-31 已漂：靈魂 v1.10.0・原則精華 v1.12.0・大憲章 v1.54.0＋模擬專章 v1.0・CLAUDE v1.32；舊三檔名已不存在。版號小時級變動，引用前一律 `ls docs/`**〕。
+
+**⚠ 07-31 數字漂移補丁（見 [[augur-deep-understanding-r2-20260731]]）**：public 306 base 表（+sim 八表/evolution_axis/heavy_slot_holder_log/staging_rejection_recovery 等）；migrate_*_ddl 68 支；矩陣受檢 440；`knowledge_item` 285,177；`governance_proposal` 4；unit 13（新增 augur-drain-deferred、augur-knowhow-refresh）。本檔數字＝07-30 快照、引用前實查。

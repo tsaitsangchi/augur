@@ -1,14 +1,16 @@
 # Memory Index
 
+- [深化理解 r2 20260731](augur-deep-understanding-r2-20260731.md) — ⭐**最新現況權威**:基線報告 commit 前已過期之元教訓;sim 專章生效鏈(候選物理死鎖);KH0 真破口 48.68%;靈魂 v1.10.0 最終目標;人閘偵測級三殘道;全文=repo reports/augur_deep_understanding_r2_20260731.md
+
 ## ⭐ 核心基礎（2026-07-30 定案；後續發展一律以此三則為前提）
 - [世界建構核心](augur-world-construction-core.md) — **augur＝從零建構的世界 L0-L7**;一條路×八行走者;法屬世界足跡屬域;自反性法源鏈(hugo 五度校正定案)
 - [一條路實為六條並行](augur-path-six-parallel-gap.md) — 親驗:3 門表同骨架重複+6 裁決表異質(2 空表)+prodset 真名 evolution_production_feature_set;統一 path_* 三表設計
-- [技術底座 20260730](augur-tech-baseline-20260730.md) — 294 表/8.54M/18 package/425 scripts/11 unit(user-level)/ollama 三模型/套件實況(無 peft)
+- [技術底座 20260730](augur-tech-baseline-20260730.md) — **16 package**(索引原誤 18)/8.54M/ollama 三模型/套件實況(無 peft);⚠表數/scripts/unit 為 07-30 快照、07-31 已漂(306 表/440 矩陣/13 unit),檔內有補丁
 - [全專案重讀・記憶級事實](../../../project/augur/reports/augur_full_reread_facts_20260730.md) — 339 事實/153 踩雷/117 廢棄(12 區逐檔;repo 內全文,此處僅指針)
 - [驗證器陷阱 20260730](augur-verifier-traps-20260730.md) — verify_* 非唯讀+四支中位數灌滿覆蓋、reconcile_audit 假綠仍在、rc=0≠通過、門評跨軸(已修)
 - [DB schema 陷阱 20260730](augur-db-schema-traps-20260730.md) — raw_* 前綴反義、Dividend PK 塌列根因、ExchangeRate 兩表差 6 年、candidate 表無 guard、reltuples=-1≠空
 
-- [KH0 覆蓋≠品質](kh0-coverage-vs-quality.md) — KH0 底線入憲 v1.52.0(破口 0 已達);**「待人裁」根因=90.3s 逾時、本地AI從未答成**;ollama 無 systemd unit 故 is-active=假訊號;ERP 五錯處;來源層人簽動它會重啟 P8
+- [KH0 覆蓋≠品質](kh0-coverage-vs-quality.md) — ⚠**v1.53.0(07-31)撤回窄口徑:真普遍破口 48.68%**(「破口 0」係假綠);「待人裁」根因=回應不可解析、format:json 已解(62.7s 答成);ollama unit 名=augur-ollama(user-level);ERP 五錯處;來源層人簽動它會重啟 P8
 - [三核 FAIL 九則](kh-verify-fail-three.md) — V-4 逐item全表掃=17天(已修凍結 5.6天→2秒)、V-1 fail-open死碼(已修 fail-closed);**六則未修**含 V-3 一列即解閘、V-5 DISABLE TRIGGER 可卸閘、V-6 假綠自測再犯
 - [機械閘三層強度](augur-three-gate-strengths.md) — **硬33表/半14表/軟437支**用同一個詞稱呼=誤判根源;三個親驗假綠(綠燈帳本19/19實有3條false、孤兒佔埠使restart成功卻跑舊碼、人閘零DB強制);優化第一原則=先讓紅燈會亮
 - [同尺四查](same-scale-precheck.md) — 07-28~30 六發尺陷阱歸納:A/B 前查覆蓋/網格(hash 自證)/重名/falsy 空集
@@ -35,10 +37,10 @@
 - [alpha Phase1 錨修復鏈](alpha-phase1-anchor-repair.md) — 簽核錨 1.1321(hugo,另一台機器);⚠本機07-16快照 dry-run=1.1302/DSR 34.3%(差0.0019=PriceAdj快照漂;DSR「47.9%」查無來源、真值≈34.5%@N=32);PriceAdj 41真損傷/175減資誤標(非除息);7候選全滅headline未動;踩雷四型
 - [arena 前置 G1-G5 機制計畫](arena-g1g5-admission-plan.md) — unfreeze gate 退史料;arena 前置改 G1-G5;Phase 0 **全7顆已拍板**、gate evaluated_pass、**arena 已開賽(4,128列/8隊/結算0)**
 - [audit 假綠+v1.28 自測入憲](audit-attestation-falsegreen.md) — audit「PASS」曾假綠(死表空視窗靜默PASS);⚠**射程註記:reconcile_audit.py 仍會假綠**(不呼叫 verdict()、:158 自算漏 coverage_gap);v1.28 library 自測CLI;死表=本機漏sync可補
-- [件A admission 硬化+健檢](jian-a-admission-hardening.md) — 對抗審查 R1-R6 硬化+verify_knowledge_admission_health.py 日常哨兵;**live-vs-repo drift 教訓**:驗 DB 層宣稱查 live DB 非只 grep repo(chk 存 live 但曾無 migration)
+- [件A admission 硬化+健檢](jian-a-admission-hardening.md) — 對抗審查 R1-R6 硬化+verify_knowledge_admission_health.py(⚠07-31 實查:零自動呼叫者、「日常哨兵」名不符實);**live-vs-repo drift 教訓**:驗 DB 層宣稱查 live DB 非只 grep repo(chk 存 live 但曾無 migration)
 - [Qdrant serving+HNSW over-filter 陷阱](qdrant-serving-hnsw-overfilter.md) — augur-qdrant.service 上線(07-14 拍板);pgvector HNSW+CLEAN WHERE over-filter 假空/假FAIL 鑑識法=exact baseline;Qdrant 只服務 public、private 走 pgvector
 - [背景作業須可見](background-tasks-visible.md) — 每個背景 shell 都要 TaskCreate 登記+更新狀態，用戶介面才看得到；不得靜默跑（2026-07-13 directive）
-- [建構理解 v4](augur-construction-v4.md) — 20260713 報告指針(58-agent深讀+12 REFUTED+終審16修);三塊架構;斷線清單(predict role未接線/A3=preregistered〔有2026-08 deadline〕);⚠**redline失聯已修(redlines.py 在)、macro埋雷為假(macro_vintage.py 07-11 已在=v4 §8.3 自相矛盾)**
+- [建構理解 v4](augur-construction-v4.md) — 20260713 報告指針(58-agent深讀+12 REFUTED+終審16修);三塊架構;斷線清單(predict role未接線/~~A3=preregistered 有2026-08 deadline~~〔07-31 實查:A3 三門已 superseded、deadline 查無出處,勿再引〕);⚠**redline失聯已修(redlines.py 在)、macro埋雷為假(macro_vintage.py 07-11 已在=v4 §8.3 自相矛盾)**
 - [記憶 export 密碼掃描](memory-export-secret-scan.md) — sync_memory export 全量推 public repo；記憶不存明碼憑證、commit/push 前必掃密碼（2026-07-13 差點洩漏 ttai admin 密碼）
 - [DB 匯入調優+HNSW OOM 陷阱](db-import-tuning-hnsw-oom.md) — HNSW×並發=記憶體乘數OOM(07-17又踩:IDX_MEM 4GB×-j2>/dev/shm 7.8G);**07-25 極限版調優已 ALTER SYSTEM 持久化**(sb=6GB/wm=256MB/mwm=2GB封頂+維護並行2=OOM護欄),匯入前仍實查 pg_settings;information_schema漏報IDENTITY須用pg_class;大檔匯入SOP
 - [Git 身分在 .env](git_identity_in_env.md) — commit 遇身分未設時查 .env 的 `git config --global` 指令,不問用戶、不自設

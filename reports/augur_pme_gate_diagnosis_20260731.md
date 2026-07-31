@@ -1,8 +1,8 @@
 # PME 閘診斷帳 [I]（2026-07-31）
 
-* run_id=14 · as_of=2026-07-31T02:18:29Z · 唯讀 · FZ-keep／GATE-keep
+* run_id=15 · as_of=2026-07-31T03:19:57Z · 唯讀 · FZ-keep／GATE-keep
 * coverage_tallies={'missing': 14, 'mapped': 36, 'blocked_div': 1}
-* gate_cross={'SKIP×SKIP': 1}
+* gate_cross={'PASS×PASS': 2, 'SKIP×SKIP': 2}
 * unmapped_in_fv n=1
 * econ_only_features=[]
 * missing_buildability={'close_x_sbl_balance_level': 'unknown', 'days_since_high_126d': 'unknown', 'days_since_high_252d_raw': 'unknown', 'inst_gross_x_money_change': 'unknown', 'inst_gross_x_turnover_change': 'unknown', 'inst_gross_x_turnover_level': 'unknown', 'inst_gross_x_volume_change': 'unknown', 'inst_gross_x_volume_level': 'unknown', 'lending_fee_vw_mean_20d': 'unknown', 'log1p_days_since_high_252d': 'unknown', 'macro_regime': 'blocked_fz', 'market_value_x_revenue_level': 'unknown', 'peg_ratio': 'deferred_growth', 'piotroski_fscore': 'deferred_complex'}

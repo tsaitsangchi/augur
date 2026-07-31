@@ -5,11 +5,12 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 778040ca-21b5-4b60-ad2d-0fad302930ca
+  modified: 2026-07-31T03:46:41.075Z
 ---
 
 件 A 三通道公民化 code 經 15-agent 對抗審查(2026-07-14)+ by-oracle 裁決後之硬化狀態。
 
-**新工具** `scripts/verify_knowledge_admission_health.py`(#29 日常哨兵,零 token):唯讀驗
+**新工具** `scripts/verify_knowledge_admission_health.py`(零 token;⚠**07-31 實查更正：零自動呼叫者——不在 crontab/unit/hook,「日常哨兵」名不符實,當哨兵用須先接線**):唯讀驗
 ① SCHEMA(必要 CHECK 在位:chk_itext_owned_local_private / source_type 黑名單 / access_scope 值域 / license 白名單)
 ② 資料(零 ai_generated、零 owned_local 非 local_private、全文 license 全白名單、provenance)。exit 1=命門/隔離破口。
 
