@@ -45,6 +45,7 @@ from augur.philosophy import iteration as it
 TRIGGER_CODE = "TWEVO-S2-go"        # 開輪碼(拍板碼非人名);APPLY 之人閘碼另計=TWEVO-APPLY-go
 AUTO_GATE_REF = "V2-AUTOADVANCE"    # R2 閘內自動 APPLY 之依據碼(留痕給 R6 週掃視)
 RC_SLOT_BUSY = 75                   # 搶不到 heavy slot 之退出碼(非失敗、屬積壓)
+RC_KILL_HALT = 76                   # kill switch=halt 之退出碼(與 75 分開:停機≠積壓,不該被補跑器撿去重試)
 RC_STEP_TIMEOUT = 124               # 外呼步逾時之 rc(沿 GNU timeout 慣例;非 0 故 fail-closed)
 PY = sys.executable
 # 外呼步逾時上限(秒)。**2026-07-31 晚改 7200→43200**,因原值在數學上保證 I3 永遠跑不完:
@@ -94,6 +95,29 @@ def _uid(cur):
     cur.execute("SELECT count(*) FROM evolution_iteration_ledger WHERE iteration_uid LIKE %s",
                 (f"tw-{today}-%",))
     return f"tw-{today}-r{cur.fetchone()[0] + 1:02d}"
+
+
+def _should_check_kill(args) -> bool:
+    """本次呼叫是否須過 kill 閘。**純函式**——自測餵假 args 驗真行為（免 DB）。
+
+    真會做事的四條路徑（open/close/step/run）皆須檢；`--dry-run` 與無參數狀態顯示不受阻
+    （唯讀不算執行）。抽成函式而非留在 main() 內：字面斷言驗不到分支邏輯，
+    且 `"xxx" in src` 會掃到斷言自己那份副本而恆綠（2026-07-31 一日內實犯三次）。
+    """
+    return bool(args.open or args.close or args.step or args.run) and not args.dry_run
+
+
+def _kill_state() -> str:
+    """本軸之有效 kill 狀態（tw ∨ global；OR 語意 fail-safe）。
+
+    判準單一住所＝`augur.philosophy.evolution.effective_kill_state`（#12），不另立口徑。
+    自開連線後即關閉——**不佔用長交易**，以免與進行中之輪互相干擾。
+    """
+    from augur.philosophy.evolution import effective_kill_state
+    env_halt = os.environ.get("AUGUR_EVOLUTION_KILL_SWITCH", "").strip().lower() == "halt"
+    with db.connect() as conn, conn.cursor() as cur:
+        cur.execute("SELECT state FROM evolution_kill_switch WHERE scope IN ('tw','global')")
+        return effective_kill_state([r[0] for r in cur.fetchall()], env_halt=env_halt)
 
 
 def _open_row(cur):
@@ -386,6 +410,41 @@ def _selftest():
         print(("  ✓ " if cond else "  ✗ ") + name)
         ok = ok and cond
 
+    # ── kill switch（2026-07-31 補）──
+    # **不用字面斷言**（`"xxx" in src` 會掃到斷言自己那份字串副本而恆綠；同日實犯三次）。
+    # 以 monkeypatch 直接驗 main() 之真行為：halt 時應立刻返回、不碰 DB、不取 heavy slot。
+    from augur.philosophy.evolution import effective_kill_state as _eks
+    chk("kill:任一 scope halt ⇒ halt(OR 語意 fail-safe)", _eks(["clear", "halt"]) == "halt")
+    chk("kill:全 clear ⇒ clear", _eks(["clear", "clear"]) == "clear")
+    chk("kill:env AUGUR_EVOLUTION_KILL_SWITCH=halt 可強制", _eks(["clear"], env_halt=True) == "halt")
+    chk("_kill_state 存在且可呼叫", callable(globals().get("_kill_state")))
+    # 閘之射程：四條動作路徑皆檢（停機時不該佔住單槽鎖讓別的軸也動不了）；
+    # dry-run 與狀態顯示不受阻。以假 args 驗——**不得呼叫 main(["--run","--dry-run"])**，
+    # 那會走進 open_round() 之 db.connect() 而違反 #18「自測免 DB」（2026-07-31 實犯，
+    # 以 DB_PORT=59999 複驗確認會 rc=1 崩掉）。
+    class _A:
+        def __init__(self, **kw):
+            self.open = self.close = self.run = self.dry_run = False
+            self.step = None
+            self.__dict__.update(kw)
+    for _f in ("open", "close", "run"):
+        chk(f"閘涵蓋 --{_f}", _should_check_kill(_A(**{_f: True})) is True)
+    chk("閘涵蓋 --step", _should_check_kill(_A(step="I3")) is True)
+    chk("--dry-run 不受閘阻(唯讀不算執行)", _should_check_kill(_A(run=True, dry_run=True)) is False)
+    chk("無參數狀態顯示不受閘阻", _should_check_kill(_A()) is False)
+
+    _orig_ks = globals()["_kill_state"]
+    globals()["_kill_state"] = lambda: "halt"
+    try:
+        for _act in ("--run", "--open", "--close"):
+            chk(f"halt 時 {_act} 立即回 RC_KILL_HALT(不碰 DB／不取 slot)",
+                main([_act]) == RC_KILL_HALT)
+        chk("halt 時 --step I3 亦擋", main(["--step", "I3"]) == RC_KILL_HALT)
+    finally:
+        globals()["_kill_state"] = _orig_ks
+    chk("RC_KILL_HALT 與 RC_SLOT_BUSY 分開(停機≠積壓,不該被補跑器撿去重試)",
+        RC_KILL_HALT != RC_SLOT_BUSY)
+
     chk("步圖十步齊(I0..I9 皆有 STEP_CMD 條目)", set(STEP_CMD) == set(it.STEP_KEYS))
     import pathlib
     root = pathlib.Path(__file__).resolve().parents[1]
@@ -489,6 +548,18 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if a.selftest:
         return _selftest()
+    # ── kill switch（2026-07-31 補）────────────────────────────────────────────
+    # 本 driver 原**對 kill_switch 零引用**（raw driver 同缺、已於同日修）：按下停機鈕後
+    # tw 仍會開輪、仍取 heavy slot、仍跑滿 I0–I9（I3 現需 7–12h LLM），只有 I3 之子行程
+    # 與 I5 會把結果標成 halted／拒絕晉升 ⇒ 「停機」實為「照跑但不採用」。
+    # 檢查點刻意放在**取 heavy slot 之前**、且涵蓋 open/close/step/run 全部動作路徑：
+    # 停機時不該佔住單槽鎖讓別的軸也動不了。狀態顯示（無參數）不受阻——唯讀不算執行。
+    if _should_check_kill(a):
+        ks = _kill_state()
+        if ks == "halt":
+            print("⛔ TWEVO kill switch=halt(scope tw 或 global)——不開輪、不取 heavy slot。"
+                  "\n   解除：UPDATE evolution_kill_switch SET state='clear' WHERE scope IN ('tw','global');")
+            return RC_KILL_HALT
     if a.open:
         return open_round(a.dry_run)
     if a.close:
