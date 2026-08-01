@@ -287,9 +287,15 @@ def close_round(dry, partial=False):
             print("無進行中之輪(先 --open)")
             return 1
         uid, steps = got
-        done_ok = {s["step"] for s in steps if s.get("rc") == 0}
+        # A5（登錄冊 2026-08-01）：一步之成敗以**末次嘗試**為準（判準住 iteration.py #12）。
+        # 舊邏輯「任一步曾敗即敗」使 r01（I3 −15,−15,0 重試成功、十步末次全綠）被標
+        # failed 且與 gain=true 自相矛盾；曾敗之誠實由 steps_json 全史＋retried_steps 留痕。
+        fa = it.final_attempts(steps)
+        done_ok = {k for k, r in fa.items() if r.get("rc") == 0}
         missing = [k for k in it.STEP_KEYS if k not in done_ok]
-        failed = [s["step"] for s in steps if s.get("rc") not in (0, None)]
+        failed = [k for k in it.STEP_KEYS
+                  if k in fa and fa[k].get("rc") not in (0, None)]
+        retried = it.retried_ok_steps(steps)
         if missing and not partial and not dry:
             print(f"✗ 拒絕結輪 {uid}:尚有 {len(missing)} 步未成功({','.join(missing)})")
             print("  半套結成 succeeded＝把沒做的事記成做了。續跑 --step,或明示 --partial 結成 halted。")
@@ -322,7 +328,8 @@ def close_round(dry, partial=False):
             WHERE iteration_uid=%s""",
             (status, gain, basis,
              json.dumps({"suite_id": "twevo_i0i9_v1", "snapshot": cur_snap,
-                         "prev_snapshot": prev_snap, "missing_steps": missing}, ensure_ascii=False),
+                         "prev_snapshot": prev_snap, "missing_steps": missing,
+                         "retried_steps": retried}, ensure_ascii=False),
              cnt, reason, uid))
         conn.commit()
         print(f"✓ 結輪 {uid}:{status} gain={gain}(basis={basis}) 連續無增益={cnt}")

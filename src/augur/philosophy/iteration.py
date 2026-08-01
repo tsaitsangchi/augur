@@ -44,23 +44,42 @@ def step_meta(key: str) -> dict[str, Any]:
     raise KeyError(f"未知步驟 {key}(合法:{','.join(STEP_KEYS)})")
 
 
+def final_attempts(steps_json: Sequence[Mapping[str, Any]]) -> dict[str, Mapping[str, Any]]:
+    """每步之**末次嘗試**紀錄（登錄冊 A5，2026-08-01）。純函式。
+
+    一步的成敗以其**最後一次嘗試**為準——重試成功即成功；歷史失敗全史仍在
+    steps_json（誠實不刪），但不再冒充「該步失敗」。實犯：tw-20260728-r01 之
+    I3 rc 序列 −15,−15,0（末次成功），舊邏輯仍把輪判 failed 且 next_step 永遠
+    叫人重跑 I3。
+    """
+    fa: dict[str, Mapping[str, Any]] = {}
+    for rec in steps_json:
+        key = rec.get("step")
+        if key in STEP_KEYS:
+            fa[key] = rec                   # 後者覆前者＝末次
+    return fa
+
+
+def retried_ok_steps(steps_json: Sequence[Mapping[str, Any]]) -> list[str]:
+    """曾敗後重試成功之步（依 STEP_KEYS 序）——「曾敗」之誠實留痕，供 gain_evidence。"""
+    ever_failed = {r.get("step") for r in steps_json
+                   if r.get("step") in STEP_KEYS and r.get("rc") not in (0, None)}
+    fa = final_attempts(steps_json)
+    return [k for k in STEP_KEYS
+            if k in ever_failed and fa.get(k, {}).get("rc") == 0]
+
+
 def next_step(steps_json: Sequence[Mapping[str, Any]]) -> str | None:
     """回下一個該跑的步驟碼;全跑完回 None。
 
-    判準:**最後一個成功步(rc==0)之後那步**。中間有 rc≠0 之步 → 回該步本身(重試該步,不跳過);
-    這樣半途中斷後 `--step` 續跑不會跳步(跳步=拿舊證據餵新步,#15)。
+    判準（A5 修正）:依 **每步末次嘗試**——canonical 序上第一個「無紀錄或末次 rc≠0」之步。
+    末次失敗 → 回該步本身(重試不跳過;跳步=拿舊證據餵新步,#15)；
+    重試已成功 → 不再回該步（舊邏輯遇**歷史**失敗即 return,重試成功後仍叫人重跑）。
     """
-    done_ok: set[str] = set()
-    for rec in steps_json:
-        key = rec.get("step")
-        if key not in STEP_KEYS:
-            continue
-        if rec.get("rc") == 0:
-            done_ok.add(key)
-        else:
-            return key                      # 失敗步:重試它,不前進
+    fa = final_attempts(steps_json)
     for key in STEP_KEYS:
-        if key not in done_ok:
+        rec = fa.get(key)
+        if rec is None or rec.get("rc") != 0:
             return key
     return None
 
@@ -125,6 +144,20 @@ def _selftest() -> int:
     chk("I0 成功→下一步 I1", next_step([{"step": "I0", "rc": 0}]) == "I1")
     chk("**失敗步重試不跳過**", next_step([{"step": "I0", "rc": 0}, {"step": "I1", "rc": 2}]) == "I1")
     chk("全跑完回 None", next_step([{"step": k, "rc": 0} for k in STEP_KEYS]) is None)
+    # A5（2026-08-01）：以 r01 **真實步序**為 fixture——I3 兩次 rc=-15 後重試 rc=0。
+    # 舊邏輯下兩條**必紅**（next_step 遇歷史失敗即 return I3；close 判任一步曾敗即敗）。
+    _r01 = ([{"step": k, "rc": 0} for k in ("I0", "I1", "I2")]
+            + [{"step": "I3", "rc": -15}, {"step": "I3", "rc": -15}]
+            + [{"step": "I0", "rc": 0}, {"step": "I3", "rc": 0}]
+            + [{"step": k, "rc": 0} for k in ("I4", "I5", "I6", "I7", "I8", "I9")])
+    chk("A5:重試成功後 next_step 不再叫重跑（末次為準）", next_step(_r01) is None)
+    chk("A5:final_attempts 之 I3 為末次 rc=0", final_attempts(_r01)["I3"]["rc"] == 0)
+    chk("A5:曾敗重試成功者列 retried_ok（誠實留痕非抹除）", retried_ok_steps(_r01) == ["I3"])
+    chk("A5:末次仍敗 ⇒ next_step 回該步（重試語意保留）",
+        next_step([{"step": "I0", "rc": 0}, {"step": "I1", "rc": 2},
+                   {"step": "I1", "rc": 3}]) == "I1")
+    chk("A5:從未失敗者不入 retried_ok（綠燈也要驗得到）",
+        retried_ok_steps([{"step": "I0", "rc": 0}]) == [])
     chk("步圖十步 I0..I9", STEP_KEYS == tuple(f"I{i}" for i in range(10)))
     chk("未知步驟 raise 非靜默", _raises(lambda: step_meta("I99")))
 
