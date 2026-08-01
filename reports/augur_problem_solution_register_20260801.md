@@ -17,8 +17,8 @@
 | E3 | arena 六交易日斷檔零機械揭露 | AI | **W0-α** | ☑ |
 | A4 | mean_20d FAIL 帳 rejected_gate 無人裁載體 | AI（除役裁決=Steward） | **W0-α** | ☑ |
 | C4′ | 全棧零 OnFailure sink（手動等價版，不跑 install_services.sh） | AI | **W0-α** | ☑ |
-| A5 | close「任一步曾敗即敗」標籤失真（per-step 取末次） | AI（動已結列=Steward） | **W0-β** | ☐ |
-| B1 | evolution_run 殭屍：寫者自收尾＋回填器 | AI（--apply=Steward） | **W0-β** | ☐ |
+| A5 | close「任一步曾敗即敗」標籤失真（per-step 取末次） | AI（動已結列=Steward） | **W0-β** | ☑ |
+| B1 | evolution_run 殭屍：寫者自收尾＋回填器 | AI（--apply=Steward） | **W0-β** | ☑ |
 | C3 | lint 修 7 誤報→gate_raise 6 恆真→基線→掛閘 | AI | **W0-β** | ☑ |
 | E4 | FinMind 讀錶腳本＋cron 前綴 | AI（--apply=hugo） | **W0-β** | ☑ |
 | F3 | consequence 封存腳本（execute_sunset_consequence.py） | AI（首次 --apply=Steward） | **W0-β** | ☐ |

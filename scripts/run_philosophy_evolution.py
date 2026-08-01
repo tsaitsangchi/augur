@@ -57,6 +57,62 @@ def _selftest() -> int:
         ok = ok and cond
         print(f"  {'✓' if cond else '✗FAIL'} {name}")
 
+    # ── B1 寫者自收尾（登錄冊 2026-08-01；行為驗證零 DB）──
+    _st, _note = _abort_status(RuntimeError("boom"))
+    chk("B1:_abort_status 餵真例外→failed+aborted note",
+        _st == "failed" and _note.startswith("aborted: RuntimeError: boom"))
+    chk("B1:note 截 200 字（超長例外不炸帳本欄）",
+        len(_abort_status(RuntimeError("x" * 999))[1]) == 200)
+    import signal as _sig
+    _fired = {}
+    try:
+        _sigterm_to_exit(_sig.SIGTERM, None)
+    except SystemExit as e:
+        _fired["rc"] = e.code
+    chk("B1:SIGTERM→SystemExit(143)（finally 得以跑）", _fired.get("rc") == 128 + _sig.SIGTERM)
+
+    class _RecCur:
+        def __init__(self):
+            self.sql, self.params, self.rowcount = [], [], 1   # rowcount：誠實訊息讀它
+
+        def execute(self, q, p=None):
+            self.sql.append(q); self.params.append(p)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    class _RecConn:
+        def __init__(self):
+            self.cur, self.committed = _RecCur(), False
+
+        def cursor(self):
+            return self.cur
+
+        def commit(self):
+            self.committed = True
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    _rec = _RecConn()
+    from augur.core import db as _dbmod    # patch 模組屬性（_abort_close 延遲 import 取同一模組物件）
+    _orig_connect = _dbmod.connect
+    _dbmod.connect = lambda: _rec
+    try:
+        _abort_close(77, RuntimeError("killed"))
+    finally:
+        _dbmod.connect = _orig_connect
+    chk("B1:_abort_close 真送 UPDATE 且帶 status='running' 謂詞（不碰非殭屍列）",
+        _rec.committed and any("AND status='running'" in q for q in _rec.cur.sql))
+    chk("B1:run_id 以參數傳入（非字串拼接）",
+        any(p and 77 in p for p in _rec.cur.params))
+
     text = Path(__file__).read_text(encoding="utf-8")
     chk("script G-NOEXEC clean", scan_noexec_text(text) == [])
     g = build_gate_json(
@@ -712,6 +768,7 @@ def run_evolution(
             (date.fromisoformat(since), horizon_h, sha, json.dumps(cfg), kill_eff, notes),
         )
         run_id = cur.fetchone()[0]
+        _ACTIVE_RUN["id"], _ACTIVE_RUN["closed"] = run_id, False   # B1 登記（收尾錨）
 
         seen = set()
         for m in maps:
@@ -789,6 +846,7 @@ def run_evolution(
             "UPDATE evolution_run SET finished_at=now(), status=%s WHERE run_id=%s",
             (final, run_id),
         )
+    _ACTIVE_RUN["closed"] = True            # B1：正常關帳，abort 收尾不再介入
 
     print(f"✓ run_id={run_id} status={final} queue pending={n_pending} rejected={n_rej} halted={n_halt}")
     print(f"  G-PROM tally={verdict_tally['G-PROM']} G-ECON tally={verdict_tally['G-ECON']}")
@@ -797,6 +855,43 @@ def run_evolution(
     else:
         print("  → 無 pending_auto（閘未全綠／SKIP／FAIL）— 不假綠 APPLY")
     return 0
+
+
+# ── B1 寫者自收尾（登錄冊 2026-08-01）────────────────────────────────────────
+# 病：引擎半途被殺（driver 逾時 kill／2h 快車道砍）時 evolution_run 之 'running' 列
+# 無人收尾——殭屍累積 run 11-19 共 9 列，未來每次被殺再產一列。
+# 解：SIGTERM→SystemExit（讓 finally/except 有機會跑；SIGKILL 攔不到＝回填器的事）；
+# 開輪後登記 run_id，未正常關帳而退出時以**新短連線**補記 failed+aborted note
+# （主連線可能正處 aborted transaction，不可複用）。
+_ACTIVE_RUN: dict = {"id": None, "closed": False}
+
+
+def _sigterm_to_exit(signum, frame):  # noqa: ARG001
+    raise SystemExit(128 + signum)
+
+
+def _abort_status(exc) -> tuple[str, str]:
+    """例外 → (status, note)。**純函式**——自測餵真例外驗。"""
+    return "failed", f"aborted: {type(exc).__name__}: {exc}"[:200]
+
+
+def _abort_close(run_id, exc) -> None:
+    st, note = _abort_status(exc)
+    try:
+        from augur.core import db          # 本檔慣例＝函式內延遲 import（模組層無 db 名）
+        with db.connect() as c2, c2.cursor() as cu:
+            cu.execute(
+                "UPDATE evolution_run SET finished_at=now(), status=%s, "
+                "notes=COALESCE(notes||' | ','')||%s "
+                "WHERE run_id=%s AND status='running'", (st, note, run_id))
+            n = cu.rowcount
+            c2.commit()
+        # rowcount 誠實：0 列（已被他人關帳/列不存在）不得印「已補記」——那是另一種假綠
+        print(f"⚠ run {run_id} " + (f"已補記 {st}（{note}）——不留殭屍 running" if n
+                                     else "無 running 列可補（已關帳或不存在）——無動作"))
+    except Exception as e2:  # noqa: BLE001
+        # 收尾失敗不得吞掉原始例外；印明留給回填器（防呆機制自己不得靜默失效）
+        print(f"⚠ abort-close 亦失敗（{type(e2).__name__}）——留給回填器", file=sys.stderr)
 
 
 def main() -> int:
@@ -832,14 +927,21 @@ def main() -> int:
         print("安全預設：請顯式 --skeleton / --local-gates / --dry-run（或 --selftest）")
         print("例: python scripts/run_philosophy_evolution.py --local-gates")
         return 0
-    return run_evolution(
-        since=args.since,
-        horizon_h=args.h,
-        dry_run=bool(args.dry_run),
-        mode=mode,
-        with_local=args.with_local_evidence,
-        skip_multi_seed=bool(args.skip_multi_seed),
-    )
+    import signal
+    signal.signal(signal.SIGTERM, _sigterm_to_exit)
+    try:
+        return run_evolution(
+            since=args.since,
+            horizon_h=args.h,
+            dry_run=bool(args.dry_run),
+            mode=mode,
+            with_local=args.with_local_evidence,
+            skip_multi_seed=bool(args.skip_multi_seed),
+        )
+    except BaseException as e:              # noqa: BLE001  SystemExit/KeyboardInterrupt 皆須收尾
+        if _ACTIVE_RUN["id"] is not None and not _ACTIVE_RUN["closed"]:
+            _abort_close(_ACTIVE_RUN["id"], e)
+        raise
 
 
 if __name__ == "__main__":
