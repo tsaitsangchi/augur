@@ -9,7 +9,7 @@ session 通行證 `SET LOCAL augur.honesty_write='on'`(工具鏈 ON CONFLICT UPD
 且 prodset 走 ON CONFLICT DO UPDATE,GUC 版會使同一特徵首次 APPLY 過、再次死,單次測試驗不出。
 要管 UPDATE 走「追加修訂列+superseded_by」不走 GUC。P4.E3 在 PME 側首次機械落地。冪等可重跑。
 
-**B4 部分翻案(2026-08-01 Steward 圈選甲案;RULING 編號待 Steward 指配)**:GUC_TABLES_P0 四表
+**B4 部分翻案(2026-08-01 Steward 圈選甲案;RULING-2026-043,hugo 指配「B4-043」)**:GUC_TABLES_P0 四表
 (pfm/pp/prodset 自 delete-only 升級 + feature_sign_check 新掛)改掛 honesty_ledger_guard——
 07-31 單一角色整併後 DB 層 role 縱深不存,「擋裸手」成僅存 DB 層價值(半閘:意圖留痕+防手滑,
 **非**硬閘——C5「GUC 對引擎豁免」之警告全數保留,不得引為已機械防引擎默改)。寫入者通行證補丁
