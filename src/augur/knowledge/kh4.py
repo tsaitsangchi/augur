@@ -88,7 +88,10 @@ def derive_states(row):
 
     if approval != "active":
         axis_state = AXIS_BLOCKED
-    elif domain and (adapter in CHANNEL_BY_ADAPTER or row["source_key"]):
+    # D3：ready 須逐 item 軸覆蓋證據（axis_domain_mapped＝domain 落於映射工件）；
+    # 未映射→pending（誠實「軸證據未落」），**不是** blocked——標籤不作答閘（KH-XDOM-S01），
+    # answer_status 之 eligible 路徑不受 pending 影響（derive_answer_status 僅擋 BLOCKED）。
+    elif row.get("axis_domain_mapped") and (adapter in CHANNEL_BY_ADAPTER or row["source_key"]):
         axis_state = AXIS_READY
     else:
         axis_state = AXIS_PENDING
@@ -129,6 +132,7 @@ def derive_states(row):
         "has_sentence": has_sentence,
         "has_embedding": has_embedding,
         "has_terminal_block": has_terminal_block,
+        "axis_domain_mapped": bool(row.get("axis_domain_mapped")),
         "qual_verdict": qual_verdict,
         "staging_promoted": row["staging_promoted"],
         "license": license,
@@ -145,7 +149,8 @@ def derive_states(row):
     }
 
 
-def _select_sql(*, has_fulltext_status, has_import_qualification):
+def _select_sql(*, has_fulltext_status, has_import_qualification,
+                has_principle_domain_map=False, has_knowledge_domain_map=False):
     # terminal_blocked＝有 status 終態帳且仍無全文（FT-COV：有 text≠不可答；
     # 僅因曾 skip_no_oa 等而留 status、後來已有 abstract/全文者不得誤擋 KH4）。
     # 'unattempted'（D1 回填旗標）＝「還沒試」非終態——不排除則 12 萬件被誤判 terminal_blocked。
@@ -167,6 +172,18 @@ def _select_sql(*, has_fulltext_status, has_import_qualification):
         )"""
         if has_import_qualification else "NULL::text"
     )
+    # D3（KH5 恆 ready 收緊）：軸證據＝item.domain 落於決策層映射工件
+    #（principle_domain_map.domain ∪ knowledge_domain_map.augur_domain/openalex_field）。
+    # 工件表缺 → false（fail-closed：無工件即無軸證據）；納新域＝決策層 INSERT 一列（#29b 零改碼）。
+    _axis_parts = []
+    if has_principle_domain_map:
+        _axis_parts.append(
+            "EXISTS (SELECT 1 FROM principle_domain_map pm WHERE pm.domain = i.domain)")
+    if has_knowledge_domain_map:
+        _axis_parts.append(
+            "EXISTS (SELECT 1 FROM knowledge_domain_map km "
+            "WHERE km.augur_domain = i.domain OR km.openalex_field = i.domain)")
+    axis_map_expr = ("(" + " OR ".join(_axis_parts) + ")") if _axis_parts else "false"
     return f"""
     SELECT
         i.item_id,
@@ -199,6 +216,7 @@ def _select_sql(*, has_fulltext_status, has_import_qualification):
            WHERE x.item_id=i.item_id
         ) AS has_embedding,
         {blocked_expr} AS has_terminal_block,
+        {axis_map_expr} AS axis_domain_mapped,
         EXISTS (
           SELECT 1 FROM knowledge_staging st
            WHERE st.status='promoted' AND st.source_key=i.source_key AND st.staging_id=i.staging_id
@@ -215,6 +233,8 @@ def refresh_items(cur, *, item_ids=None, source_key=None, domain=None, limit=Non
     sql = _select_sql(
         has_fulltext_status=_table_exists(cur, "knowledge_fulltext_status"),
         has_import_qualification=_table_exists(cur, "knowledge_import_qualification"),
+        has_principle_domain_map=_table_exists(cur, "principle_domain_map"),
+        has_knowledge_domain_map=_table_exists(cur, "knowledge_domain_map"),
     )
     where = []
     params = []
@@ -347,6 +367,25 @@ def _selftest():
     })
     chk("無 text＋status → terminal_blocked", still_blocked["status_reason"] == "terminal_blocked")
     chk("本機 channel map 穩定", CHANNEL_BY_ADAPTER["local_files"] == "local" and CHANNEL_BY_ADAPTER["sftp"] == "sftp")
+    # D3 紅先驗：erp_tiptop 真實形狀 fixture（live 2026-08-01：kh4_state 141,873 列、無任何映射工件列）
+    axis_fx = {
+        "approval_status": "active", "has_text": True, "has_sentence": True,
+        "has_embedding": True, "has_terminal_block": False, "entity_type": "paper",
+        "license": "owned_local", "domain": "erp_tiptop", "adapter": "local_files",
+        "qual_verdict": None, "staging_promoted": True, "source_key": "local_files_local",
+        "axis_domain_mapped": False,
+    }
+    erp = derive_states(axis_fx)
+    chk("未映射域 → axis pending（舊邏輯下本斷言必紅）", erp["kh_axis_state"] == AXIS_PENDING)
+    chk("未映射域不動作答閘（KH-XDOM-S01）", erp["answer_status"] == ANSWER_ELIGIBLE)
+    mapped = derive_states({**axis_fx, "domain": "quant_finance", "axis_domain_mapped": True})
+    chk("映射域 → axis ready", mapped["kh_axis_state"] == AXIS_READY)
+    chk("缺映射工件表 → SQL 落 false（fail-closed）",
+        "false AS axis_domain_mapped" in _select_sql(has_fulltext_status=False,
+                                                     has_import_qualification=False))
+    chk("terminal_blocked 仍排除 unattempted（D1 防回退絆線）",
+        "f.status <> 'unattempted'" in _select_sql(has_fulltext_status=True,
+                                                   has_import_qualification=False))
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

@@ -4,6 +4,8 @@
 白話:v2 §7 列了 13 條驗收,先前只存在於計畫文字。本支把每條寫成 SQL/rg 查證:
   PASS=條件成立且**有資料支撐**｜FAIL=條件被違反(須處置)｜N/A=尚無相關資料(誠實,非通過)。
 最末印「PASS/FAIL/NA」三計數與總判(有 FAIL → rc=1);零寫入(唯讀稽核)、零 Claude token。
+A13=A′ 依 R-CELL′ 逐格判讀(H1 2026-08-01):有效性單位=(run,格)、run 級 is_invalid 不連坐、
+缺格誠實列示、wins 限 capability 有效格;判讀層修不換尺(eval_code_hash 涵蓋域零觸碰)。
 守 #15(空表≠通過;未跑≠合格)· #12(判準文字引 v2 §7 不改寫)· #28 · #29a/d。
 
 執行指令矩陣:
@@ -25,6 +27,83 @@ ROOT = Path(__file__).resolve().parents[1]
 LEDGERS = ("raw_evolution_iteration_ledger", "evolution_iteration_ledger", "local_ai_iteration_ledger")
 UID_RE = r"^(tw|lai|raw)-[0-9]{8}-r[0-9]{2}$"
 AUTOADVANCE_SINCE = "2026-07-27"   # V2-AUTOADVANCE 生效日(audits/V2-AUTOADVANCE-PROPOSAL-20260727.md);A5 不溯及既往之界
+CTRL_ARMS = ("ceiling", "floor", "shuffled", "mismatched", "robot")
+
+
+def rcell_cells(per_item):
+    """R-CELL′-1/2 逐格收攏(H1 2026-08-01):per_item → {格: (n_total, n_answered, mean_f|None)}。
+
+    有效格 iff 該格**全部**題目皆有有效作答(零筆帶 invalid 鍵、逐項 f 非空;f 可為 0 故判 is not None)。
+    無效格 mean_f=None=**非證據亦非反證**——缺項與難度相關、部分均值向上偏誤
+    (C1 三 run 部分均值 0.606-0.625>floor 0.5 而全格無效,H1 §2.4 實證),不得入判。純函式。
+    """
+    agg = {}
+    for it in per_item or []:
+        lay = it.get("layer")
+        nt, na, s = agg.get(lay, (0, 0, 0.0))
+        f = it.get("f")
+        answered = ("invalid" not in it) and (f is not None)
+        agg[lay] = (nt + 1, na + (1 if answered else 0), s + (f if answered else 0.0))
+    return {lay: (nt, na, (s / na) if (na == nt and na > 0) else None)
+            for lay, (nt, na, s) in agg.items()}
+
+
+def rcell_judge(cell, cap_cells):
+    """R-CELL′ A′ 判定核心(H1 2026-08-01)——**純函式**,--selftest 餵 fixture 驗紅綠。
+
+    run 級 is_invalid 不整輪連坐(R-CELL′-1;判讀有效性單位=(run,格))。
+    cell={(set_id,hash): {arm: [逐 run 之 rcell_cells() 輸出]}};cap_cells={set_id: {capability 格名}}。
+    回 (wins, n_live_runs, missing, incomp):
+      wins    僅 capability 之**有效格**(R-CELL′-5)且 evidence_level ≥ weak 之 run ≥2(R-CELL′-4 原式);
+      missing capability 缺格誠實列示 n_answered/n_total(R-CELL′-2,不得靜默消失);
+      incomp  對照臂多 attempt 同格不同值=fail-loud 判 incomparable(R-CELL′-3)。
+    """
+    from augur.audit.evidence_protocol import evidence_level
+    wins, missing, incomp, n_live = [], [], [], 0
+    for (sid, ch), arms in sorted(cell.items()):
+        caps = cap_cells.get(sid, set())
+        tag = f"[{sid[:8]}/{ch[:8]}]"
+        ctrl0 = {}
+        for a in CTRL_ARMS:
+            vals, bad = {}, set()
+            for r in arms.get(a) or []:
+                for cname, (_nt, _na, m) in r.items():
+                    if m is None:
+                        continue
+                    if cname in vals and vals[cname] != m:
+                        bad.add(cname)
+                    vals.setdefault(cname, m)
+            for cname in sorted(bad):
+                vals.pop(cname, None)
+                if cname in caps:
+                    incomp.append(f"{a}@{cname}{tag}")
+            ctrl0[a] = vals
+        if not all(arms.get(a) for a in ("floor", "mismatched", "robot")):
+            continue                                    # 缺對照=不可判(非通過)
+        for arm, runs in sorted(arms.items()):
+            if arm in CTRL_ARMS:
+                continue
+            n_live += len(runs)
+            cells = set().union(*[set(r) for r in runs]) if runs else set()
+            for cname in sorted(cells & caps):          # R-CELL′-5:behavior 格永不入 wins
+                gaps = [f"{r[cname][1]}/{r[cname][0]}" for r in runs
+                        if cname in r and r[cname][2] is None]
+                if gaps:
+                    missing.append(f"{arm}@{cname}{tag} 缺格:{'、'.join(gaps)}")
+                if any(cname not in ctrl0[a] for a in ("floor", "mismatched", "robot")):
+                    missing.append(f"{arm}@{cname}{tag} 對照臂缺有效格=不可判")
+                    continue
+                ok_runs = [r for r in runs if cname in r and r[cname][2] is not None
+                           and evidence_level(
+                               {"ceiling": ctrl0["ceiling"].get(cname),
+                                "floor": ctrl0["floor"].get(cname),
+                                "shuffled": ctrl0["shuffled"].get(cname),
+                                "mismatched": ctrl0["mismatched"].get(cname),
+                                "robot": ctrl0["robot"].get(cname), "live": r[cname][2]})
+                           in ("weak", "scoped_established")]
+                if len(ok_runs) >= 2:
+                    wins.append(f"{arm}@{cname}{tag}({len(ok_runs)} run)")
+    return wins, n_live, missing, incomp
 
 
 def _q(cur, sql, params=()):
@@ -38,9 +117,12 @@ def _rg(pattern, *paths, exclude=()):
 
     exclude=檔名清單:掃描時排除。用於「稽核器自己寫下的判準文字被自己掃到」之假紅
     (2026-07-27 同型第三犯:`verify` 內含 `if`,使 `(if|elif|while)` 自我命中)。
+    __pycache__ 一律排除(同型第四犯 2026-08-01:本檔被他檔 import 後生成 .pyc,
+    其內含本檔 pattern 字串常數;grep fallback 不看 .gitignore 且 --exclude 只除
+    .py 不除 .pyc ⇒ A7 自我命中假紅)。
     """
-    ex_rg = [a for f in exclude for a in ("-g", f"!{f}")]
-    ex_gr = [f"--exclude={f}" for f in exclude]
+    ex_rg = [a for f in exclude for a in ("-g", f"!{f}")] + ["-g", "!__pycache__"]
+    ex_gr = [f"--exclude={f}" for f in exclude] + ["--exclude-dir=__pycache__"]
     for tool in (["rg", "-c", "--no-heading", *ex_rg, pattern],
                  ["grep", "-rc", *ex_gr, pattern]):
         try:
@@ -209,48 +291,36 @@ def _checks(cur):
     # 任一**受測臂**於任一 capability 格 evidence_level ≥ weak(嚴格勝 floor∧mismatched∧robot),
     # 且同臂同格 **≥2 個獨立 run 皆成立**。⚠ 語意=**成就判準非不變式**:未達成回 N/A(誠實未達),
     # **永不回 FAIL**——「還沒變強」不是違規,把它記紅會逼出 Goodhart。
+    # R-CELL′(H1 拍板 2026-08-01):判讀粒度由 run 級改 (run,格)——原 SQL 濾 is_invalid 使
+    # 132 題任一逾時即整輪作廢,A13 對 live 結構性失明;判定核心=rcell_judge(純函式,A′ 原式不動)。
     from collections import defaultdict
-    from augur.audit.evidence_protocol import evidence_level
-    CTRL = ("ceiling", "floor", "shuffled", "mismatched", "robot")
     cur.execute("""SELECT DISTINCT set_id FROM local_model_eval_item
         WHERE expect->>'cell_class'='capability'""")
     v2_sets = [r[0] for r in cur.fetchall()]
     ap_verdict, ap_ev = "N/A", "尚無 capability 格之凍結集"
     if v2_sets:
+        cur.execute("""SELECT set_id, layer FROM local_model_eval_item
+            WHERE set_id = ANY(%s) AND expect->>'cell_class'='capability' GROUP BY 1, 2""", (v2_sets,))
+        cap_cells = defaultdict(set)
+        for sid, lay in cur.fetchall():
+            cap_cells[sid].add(lay)
         cur.execute("""SELECT set_id, eval_code_hash, arm, detail FROM local_model_eval_run
-            WHERE set_id = ANY(%s) AND NOT is_invalid""", (v2_sets,))
-        cell = defaultdict(lambda: defaultdict(list))   # (sid,hash)->arm->[逐run之{cell:score}]
+            WHERE set_id = ANY(%s) ORDER BY created_at""", (v2_sets,))
+        cell = defaultdict(lambda: defaultdict(list))   # (sid,hash)->arm->[逐run之rcell_cells()]
         for sid, ch, arm, d in cur.fetchall():
-            per = defaultdict(list)
-            for it in (d or {}).get("per_item", []):
-                if it.get("f") is not None:
-                    per[it["layer"]].append(it["f"])
-            cell[(sid, ch)][arm].append({k: sum(v) / len(v) for k, v in per.items()})
-        wins, n_live_runs = [], 0
-        for scale, arms in cell.items():
-            ctrl0 = {a: (arms[a][-1] if arms.get(a) else {}) for a in CTRL}
-            if not all(arms.get(a) for a in ("floor", "mismatched", "robot")):
-                continue                                    # 缺對照=不可判(非通過)
-            for arm, runs in arms.items():
-                if arm in CTRL:
-                    continue
-                n_live_runs += len(runs)
-                cells = set().union(*[set(r) for r in runs])
-                for cname in cells:
-                    ok_runs = [r for r in runs if cname in r and evidence_level(
-                        {"ceiling": ctrl0["ceiling"].get(cname), "floor": ctrl0["floor"].get(cname),
-                         "shuffled": ctrl0["shuffled"].get(cname),
-                         "mismatched": ctrl0["mismatched"].get(cname),
-                         "robot": ctrl0["robot"].get(cname), "live": r[cname]})
-                        in ("weak", "scoped_established")]
-                    if len(ok_runs) >= 2:
-                        wins.append(f"{arm}@{cname}({len(ok_runs)} run)")
+            cell[(sid, ch)][arm].append(rcell_cells((d or {}).get("per_item", [])))
+        wins, n_live_runs, missing, incomp = rcell_judge(cell, cap_cells)
         if wins:
-            ap_verdict, ap_ev = "PASS", f"**A′ 達成**:{wins}"
+            ap_verdict, ap_ev = "PASS", f"**A′ 達成(scoped,僅及該格;self-reported #32a)**:{wins}"
         elif n_live_runs:
-            ap_verdict, ap_ev = "N/A", f"未達成(非違規):受測 run={n_live_runs},無 (臂,格) 有 ≥2 run ≥weak"
+            ap_verdict, ap_ev = "N/A", (f"未達成(非違規):受測 run={n_live_runs},"
+                                        "無 (臂,capability 格) 有 ≥2 有效格 ≥weak")
         else:
-            ap_verdict, ap_ev = "N/A", "v2 集尚無有效受測 run(批跑進行中)"
+            ap_verdict, ap_ev = "N/A", "v2 集尚無受測 run(批跑進行中)"
+        if missing:
+            ap_ev += f";缺格(R-CELL′-2 誠實列示,非證據亦非反證):{missing}"
+        if incomp:
+            ap_ev += f";⚠對照臂 attempt 不同值=incomparable(R-CELL′-3):{incomp}"
     add("A13", "A′:任一受測臂於能力格 ≥weak(勝 floor∧mismatched∧robot)且 ≥2 run 複現",
         ap_verdict, ap_ev)
     return out
@@ -291,6 +361,43 @@ def _selftest():
     chk("A10 走既有 C7 validator(不自造契約,#12)", "from augur.audit.evolution_contract import" in src)
     chk("uid regex 與 ledger CHECK 同式", UID_RE == r"^(tw|lai|raw)-[0-9]{8}-r[0-9]{2}$")
     chk("有 FAIL 即 rc=1(供 CI/cron 機械把關)", "return 1 if n[\"FAIL\"] else 0" in src)
+
+    # ── R-CELL′ 紅綠(H1 2026-08-01)——純函式餵 fixture 驗真行為,零 DB;非字面斷言 ──
+    def _pi(cname, n_ok, n_bad, f):
+        return ([{"layer": cname, "f": f}] * n_ok
+                + [{"layer": cname, "invalid": "error:TimeoutError"}] * n_bad)
+
+    c1 = rcell_cells(_pi("C1", 34, 2, 0.62))["C1"]
+    chk("R-CELL′-1/2:部分格(34/36 答、均值 0.62>0.5)mean 必為 None(缺格非證據)",
+        c1[0] == 36 and c1[1] == 34 and c1[2] is None)
+    chk("R-CELL′-1:全格有效才給 mean;f=0 亦屬有效作答(0 非 falsy 缺答)",
+        abs(rcell_cells(_pi("C2P", 24, 0, 2 / 3))["C2P"][2] - 2 / 3) < 1e-9
+        and rcell_cells([{"layer": "X", "f": 0}])["X"] == (1, 1, 0.0))
+
+    def _ctrl(vc1, vc2, vb1):
+        return [rcell_cells(_pi("C1", 36, 0, vc1) + _pi("C2P", 24, 0, vc2) + _pi("B1", 24, 0, vb1))]
+
+    fx = {("s", "h"): {
+        "ceiling": _ctrl(1.0, 1.0, 1.0), "floor": _ctrl(0.5, 0.5, 0.0),
+        "shuffled": _ctrl(0.47, 0.46, 0.0), "mismatched": _ctrl(0.0, 0.0, 0.0),
+        "robot": _ctrl(0.5, 0.5, 0.9),
+        "behavior": [
+            rcell_cells(_pi("C1", 34, 2, 0.62) + _pi("C2P", 24, 0, 2 / 3) + _pi("B1", 24, 0, 0.99)),
+            rcell_cells(_pi("C1", 33, 3, 0.61) + _pi("C2P", 24, 0, 2 / 3) + _pi("B1", 24, 0, 0.99))]}}
+    wins, n_live, missing, _ic = rcell_judge(fx, {"s": {"C1", "C2P"}})
+    chk("R-CELL′-1/4:含逾時題之 run 其 C2P 有效格仍計入,恰一勝(不多不少)且 run 不連坐",
+        wins == ["behavior@C2P[s/h](2 run)"] and n_live == 2)
+    chk("R-CELL′-2:C1 部分格(0.62>floor 0.5)不入 wins、以缺格 34/36 列示(乙案假 PASS 之封條)",
+        not any("C1" in w for w in wins) and any("C1" in m and "34/36" in m for m in missing))
+    chk("R-CELL′-5:behavior 格(B1 0.99>robot 0.9)永不入 wins(判準文字寫進實作)",
+        not any("B1" in w for w in wins))
+    w2, _n2, m2, i2 = rcell_judge(
+        {("s", "h"): {"floor": [{"C2P": (24, 24, 0.5)}, {"C2P": (24, 24, 0.6)}],
+                      "mismatched": [{"C2P": (24, 24, 0.0)}], "robot": [{"C2P": (24, 24, 0.5)}],
+                      "behavior": [{"C2P": (24, 24, 0.9)}, {"C2P": (24, 24, 0.9)}]}},
+        {"s": {"C2P"}})
+    chk("R-CELL′-3:對照臂兩 attempt 同格不同值 ⇒ fail-loud incomparable、該格不產 win",
+        w2 == [] and any("floor@C2P" in x for x in i2) and any("不可判" in x for x in m2))
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 

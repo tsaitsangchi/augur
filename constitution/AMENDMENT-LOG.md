@@ -474,3 +474,12 @@
 * **程序依據**：§0.6；§P4.E3／E5；RULING-2026-012 2(d) 方向採認；Sole Steward「開 P3」
 * **文件**：[RULING-2026-041-PRIN7-P4E5-DISPOSITION.md](RULING-2026-041-PRIN7-P4E5-DISPOSITION.md)；`docs/原則精華_v1.10.0.md`；`docs/compliance/CS-原則精華_v1.10.0.md`；`audits/P3-PRIN7-P4E5-20260723.md`
 * **裁決人**：Constitution Steward（tsaitsangchi）——2026-07-23
+
+## AL-2026-046
+
+* **日期**：2026-08-01
+* **事項**：Steward 裁決第 2026-042 號——**L7.16 與單一角色部署之正面衝突登錄**：(1) 2026-07-31「augur＝全部」單一化整併認定為 Steward 裁決之既成事實（OCV 對照留痕 D13 §6.2）；(2) L7.16 適用性註記——DB 權限層強制依 L7.16(e) 於現行部署**在憲章意義上不成立**，現行承載＝trigger＋AST 稽核＋紀律（補償控制），**殘餘風險明載：superuser 可 DISABLE TRIGGER，不粉飾**；(3) L7.16 全棧矩陣觸發唯餘 **2026-10-14 併審**（039 八.2 之「雙角色部署議程」臂消滅）；(4) 同 commit 恢復條件式機械紅燈 `tests/test_l716_conflict_registered.py`。**spec 零改、L7 版本不升、不豁免、不假關 10-14 各項、MC／PA 零觸**
+* **文件**：[RULING-2026-042-L716-SINGLE-ROLE-CONFLICT.md](RULING-2026-042-L716-SINGLE-ROLE-CONFLICT.md)；呈案 `reports/w2_20260801/F1_ruling_042_draft.md`；留痕 `reports/augur_db_role_architecture_submission_20260731.md` §6、`reports/augur_single_role_consolidation_plan_20260731.md`
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：`pytest tests/test_l716_conflict_registered.py` passed（同 commit）；先驗紅留痕 `audits/L716-RULING-042-REDRUN-20260801.md`
+* **定案**：Steward 2026-08-01 圈選 F1-同意（終版圈選單）；裁決檔簽核欄親簽後生效

@@ -169,19 +169,25 @@ def _snapshot(cur):
 
     雙綠=**最新一個跑完的 run** 內 G-PROM ∧ G-ECON 皆 PASS 之相異特徵數
     (跨 run 累計會把舊輪算進來;取半套 run 則以碎片冒充完整證據)。
+    prodset_active_n(snapshot_ver=2 起,2026-08-01 Steward 裁決)=**同一 run 晉升且仍 active**
+    之列數(source_run_id 限縮)——全域計數會把人在輪外的手動晉升(如 run 10 human_promotion)
+    記成自動輪的增益;版本鍵使新 scoped cur 對舊全域 prev 直比誠實回 incomparable
+    (gate_scale 指紋只抓閘門檻換尺、抓不到摘要本身換口徑)。
     """
     rid = _last_complete_run(cur)
     if rid is None:
-        dual_green = 0
+        dual_green, active = 0, 0       # 無完整 run=自動輪零產出;不得退回全域計數冒充
     else:
         cur.execute("""SELECT count(DISTINCT feature) FROM promotion_queue
             WHERE run_id = %s
               AND gate_json->'G-PROM'->>'verdict'='PASS'
               AND gate_json->'G-ECON'->>'verdict'='PASS'""", (rid,))
         dual_green = cur.fetchone()[0]
-    cur.execute("SELECT count(*) FROM evolution_production_feature_set WHERE set_status='active'")
-    active = cur.fetchone()[0]
-    return {"dual_green_n": dual_green, "prodset_active_n": active,
+        cur.execute("""SELECT count(*) FROM evolution_production_feature_set
+            WHERE set_status='active' AND source_run_id = %s""", (rid,))
+        active = cur.fetchone()[0]
+    return {"snapshot_ver": it.SNAPSHOT_VER,
+            "dual_green_n": dual_green, "prodset_active_n": active,
             "arena_prereg_win": None, "gate_scale": _gate_scale(cur, rid),
             "source_run_id": rid}
 
@@ -311,6 +317,13 @@ def close_round(dry, partial=False):
             gain, basis = None, "incomparable"     # 不完整之輪無資格宣稱增益
         else:
             gain, basis = it.compare_gain(prev_snap, cur_snap)
+        # 版本鍵不符=不比、印明(判準住 iteration.incomparable_reason #12,此處只印不重算):
+        # 舊全域 prev 對新 scoped cur 直比=拿舊尺量新數,gate_scale 指紋抓不到此換尺。
+        ver_note = None
+        if it.incomparable_reason(prev_snap, cur_snap) == "snapshot_ver":
+            ver_note = (f"  (版本鍵不符:prev snapshot_ver={(prev_snap or {}).get('snapshot_ver')}"
+                        f" ≠ cur={cur_snap.get('snapshot_ver')}——prodset_active_n 已由全域改"
+                        " run-scoped,跨版直比會把口徑差冒充增益,故不比;下一輪起同版可比)")
         cnt = it.next_no_gain_count(prev_cnt or 0, gain, basis)
         status = ("failed" if failed else
                   "halted" if missing else
@@ -321,6 +334,8 @@ def close_round(dry, partial=False):
         if dry:
             print(f"[dry] {uid} → {status} gain={gain}({basis}) 連續無增益={cnt}"
                   + (f" 缺步 {','.join(missing)}" if missing else ""))
+            if ver_note:
+                print(ver_note)
             return 0
         cur.execute("""UPDATE evolution_iteration_ledger
             SET status=%s, closed_at=now(), closed_by='run_evolution_iteration(執行層)',
@@ -334,7 +349,9 @@ def close_round(dry, partial=False):
         conn.commit()
         print(f"✓ 結輪 {uid}:{status} gain={gain}(basis={basis}) 連續無增益={cnt}")
         if basis == "incomparable":
-            print("  (不可比:無前輪/閘口徑換過/輪不完整——**不計停損**,誠實非「沒進步」)")
+            print("  (不可比:無前輪/摘要版本換過/閘口徑換過/輪不完整——**不計停損**,誠實非「沒進步」)")
+            if ver_note:
+                print(ver_note)
         if status == "stopped_no_gain":
             print(f"  ⚠ 停損:{reason}")
             print("  重啟須人裁(R5):hugo 檢視後以新 trigger_code 開輪")
@@ -541,6 +558,40 @@ def _selftest():
     chk("失敗步 fail-closed 不前進", "fail-closed 停止本輪" in body)
     chk("gain 判準外包 philosophy.iteration(單一住所)",
         "it.compare_gain(" in body and "def compare_gain" not in body)
+    # prodset_delta 基準(2026-08-01 Steward 裁決)——行為式驗 _snapshot 之 run-scoped 計數,零 DB。
+    # fixture 模擬「run 20 自動晉升 1 顆 active＋run 10 人工晉升 1 顆 active」:scoped 查詢
+    # (參數帶本輪 run_id)回 1、全域查詢回 2——突變體拿掉 source_run_id 過濾即必紅,非字面斷言。
+    class _SnapCur:
+        def __init__(self, rid=20):
+            self._rid, self._next = rid, None
+
+        def execute(self, sql, params=None):
+            p = params or ()
+            if "evolution_run" in sql:
+                self._next = (self._rid,)
+            elif "evolution_production_feature_set" in sql:
+                self._next = (1,) if (self._rid is not None and self._rid in p) else (2,)
+            elif "count(DISTINCT feature)" in sql:
+                self._next = (1,)
+            else:
+                self._next = ("2.643",)
+
+        def fetchone(self):
+            return self._next
+    _snap = _snapshot(_SnapCur())
+    chk("snapshot 帶版本鍵(單一住所=iteration.SNAPSHOT_VER)",
+        _snap.get("snapshot_ver") == it.SNAPSHOT_VER)
+    chk("prodset_active_n 已 run-scoped(fixture:scoped=1/全域=2;退回全域計數必紅)",
+        _snap.get("prodset_active_n") == 1)
+    chk("scoped 計數與 dual_green 綁同一 run(source_run_id 同源)",
+        _snap.get("source_run_id") == 20)
+    chk("無完整 run ⇒ prodset_active_n=0(不退回全域計數冒充)",
+        _snapshot(_SnapCur(rid=None)).get("prodset_active_n") == 0)
+    _prev_global = {k: v for k, v in _snap.items() if k != "snapshot_ver"}
+    chk("跨版直比誠實回 incomparable(舊全域 prev 無版本鍵=不比;gate_scale 指紋抓不到此換尺)",
+        it.compare_gain(_prev_global, _snap) == (None, "incomparable"))
+    chk("同版仍可比(版本鍵不擋正常增益判讀)",
+        it.compare_gain(_snap, {**_snap, "prodset_active_n": 2}) == (True, "prodset_delta"))
     chk("incomparable 不計停損之訊息有印", "不計停損" in body)
     chk("每步落帳含 rc/started/finished(A3;經 step_record)", "it.step_record(" in body)
     # 射程聲明:窄於計畫 §5.1 之步驟必須逐字說明,否則十步全綠會被讀成「完整一輪跑過了」

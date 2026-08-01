@@ -110,8 +110,10 @@ DEEP_KH_FLOOR = 7
 # 乙：KH8 證據有效性之進程內快取（由呼叫端以 set_kh_evidence_validity() 灌入；
 # 未灌入時預設 None＝未知，深度優先照舊套用以免無 DB 連線時全面退化）。
 _kh_evidence_valid_cache: dict[str, Any] = {}
-# 判準快取之存活期：成功者較長（母體變動慢）；**失敗者極短**——fail-closed 不得與成功同壽，
-# 否則一次 DB 瞬斷即永久關閘（第四次核驗實證：advisor 常駐、無自癒路徑）。
+# 判準快取之存活期（D2 2026-08-01 改按**裁決來源**分壽）：資料為據之裁決（ok True/False
+# 皆然）＝長 TTL——D2 質量門檻後閘將以資料為據長期 False，若沿用短 TTL＝每 30s 無謂重掃全表；
+# 唯 error fail-closed（取不到、error_closed=True）＝極短——否則一次 DB 瞬斷即永久關閘
+# （第四次核驗實證：advisor 常駐、無自癒路徑）。
 _OK_TTL_SEC = 900.0
 _FAIL_TTL_SEC = 30.0
 
@@ -136,17 +138,19 @@ def kh_evidence_valid() -> dict[str, Any]:
     故本函式改為：**呼叫端零配合**（自開唯讀連線）＋**進程級記憶化**（只算一次）
     ＋**fail-closed**（算不出＝視同不具鑑別力、不套深度優先；不確定不得放行）。
     """
-    # TTL（第四次獨立核驗 2026-07-30 抓到本函式引入之新洞）：advisor 為**常駐服務**
-    # （實測進程存活 1h28m），前版快取永不失效 ⇒ **DB 一次瞬斷即永久 fail-closed、無自癒**，
-    # 等於把 fail-open 換成永久關閘。故：
-    #   成功之判準快取 TTL 較長（母體變動慢）；**fail-closed 之快取 TTL 極短**
-    #   ——不確定不得放行，但也不得讓一次瞬斷永久生效。
+    # TTL（第四次獨立核驗 2026-07-30 抓到本函式引入之新洞；D2 2026-08-01 改按裁決來源分壽）：
+    # advisor 為**常駐服務**（實測進程存活 1h28m），前版快取永不失效 ⇒ **DB 一次瞬斷即
+    # 永久 fail-closed、無自癒**，等於把 fail-open 換成永久關閘。故：
+    #   資料為據之裁決（ok True/False 皆然）＝長 TTL——閘因資料而關毋須 30s 重掃；
+    #   唯 **error fail-closed（取不到）之快取 TTL 極短**——不確定不得放行，
+    #   但也不得讓一次瞬斷永久生效。
     import time as _t
 
     _now = _t.monotonic()
     _at = _kh_evidence_valid_cache.get("_at")
     if _kh_evidence_valid_cache and _at is not None:
-        _ttl = _OK_TTL_SEC if _kh_evidence_valid_cache.get("ok") else _FAIL_TTL_SEC
+        # 資料為據之裁決（ok True/False 皆然）＝長 TTL；唯 error fail-closed（取不到）＝短 TTL
+        _ttl = _FAIL_TTL_SEC if _kh_evidence_valid_cache.get("error_closed") else _OK_TTL_SEC
         if (_now - _at) < _ttl:
             return {k: v for k, v in _kh_evidence_valid_cache.items() if k != "_at"}
     try:
@@ -158,6 +162,7 @@ def kh_evidence_valid() -> dict[str, Any]:
     except Exception as exc:  # noqa: BLE001 — 任何取不到皆走 fail-closed，不得靜默放行
         disc = {
             "ok": False,
+            "error_closed": True,
             "bands": [],
             "n": 0,
             "note": f"fail-closed：無法判定 KH8 母體鑑別力（{type(exc).__name__}）"
@@ -774,6 +779,11 @@ def _selftest() -> int:
         S(item_id=4, score=0.95, sent_id=40),  # depth 8 deep, high score
     ]
     depths = {1: 3, 2: 9, 3: 7, 4: 8}
+    # D2：深度優先繫於 KH8 鑑別力閘（live 現況閘關）——selftest 免 DB，閘裁決以快取顯式灌入
+    import time as _t
+
+    _kh_evidence_valid_cache.clear()
+    _kh_evidence_valid_cache.update({"ok": True, "_at": _t.monotonic()})
     ranked = rank_item_citations(cites, depths)
     ids_order = [getattr(c, "item_id", None) for c in ranked]
     chk("KH9-first 序 9→8→7→works→shallow",
@@ -784,6 +794,26 @@ def _selftest() -> int:
             {9: 9},
         )[0].sent_id == 2)
     chk("DEEP_KH_FLOOR=7", DEEP_KH_FLOOR == 7)
+
+    # D2：資料為據之閘關（ok=False）→ 不套深度優先、退回相似度原序（fail-closed）
+    _kh_evidence_valid_cache.clear()
+    _kh_evidence_valid_cache.update({"ok": False, "_at": _t.monotonic()})
+    chk("閘關→退回相似度原序",
+        [getattr(c, "item_id", None) for c in rank_item_citations(cites, depths)]
+        == [1, 2, 3, None, 4])
+    # D2 TTL 政策：資料為據之 fail＝長 TTL（30s<age<900s 仍用快取、不每 30s 重掃全表）
+    _kh_evidence_valid_cache.clear()
+    _kh_evidence_valid_cache.update(
+        {"ok": False, "note": "sentinel-d2-data-fail", "_at": _t.monotonic() - 60.0})
+    chk("資料為據之 fail 用長 TTL（60s 仍取快取）",
+        kh_evidence_valid().get("note") == "sentinel-d2-data-fail")
+    # error fail-closed（error_closed=True）＝短 TTL：60s 已過期、須重取（sentinel 不得沿用）
+    _kh_evidence_valid_cache.clear()
+    _kh_evidence_valid_cache.update(
+        {"ok": False, "error_closed": True, "note": "sentinel-d2-err", "_at": _t.monotonic() - 60.0})
+    chk("error fail-closed 用短 TTL（60s 過期重取）",
+        kh_evidence_valid().get("note") != "sentinel-d2-err")
+    _kh_evidence_valid_cache.clear()
 
     from augur.knowledge import evidence as kh8
     from augur.knowledge import synthesis as kh9

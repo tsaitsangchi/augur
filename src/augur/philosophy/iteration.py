@@ -35,6 +35,10 @@ STEPS: tuple[dict[str, Any], ...] = (
 STEP_KEYS: tuple[str, ...] = tuple(s["key"] for s in STEPS)
 STOP_N = 3                      # TWEVO-N=3(計畫 §7「無增益停損」;改數字須改此處單一住所)
 GAIN_BASES = ("dual_green_delta", "prodset_delta", "arena_prereg", "none", "incomparable")
+# snapshot 口徑版本(2026-08-01 Steward 裁決 prodset_delta 基準):v2 起 prodset_active_n 由
+# 全域 active 計數改為 **source_run_id 限縮本輪**(人在輪外的手動晉升不記自動輪功勞)。
+# gate_scale 指紋只抓閘門檻換尺、抓不到「摘要本身換口徑」——故靠版本鍵:版本不符=不比。
+SNAPSHOT_VER = 2
 
 
 def step_meta(key: str) -> dict[str, Any]:
@@ -84,16 +88,31 @@ def next_step(steps_json: Sequence[Mapping[str, Any]]) -> str | None:
     return None
 
 
+def incomparable_reason(prev: Mapping[str, Any] | None, cur: Mapping[str, Any]) -> str | None:
+    """兩輪摘要不可直比之原因;可比回 None。判準單一住所(#12)——driver 只印、不重算。
+
+    'no_prev'=無前輪;'snapshot_ver'=摘要口徑版本不同(如 v2 起 prodset_active_n 由全域改
+    run-scoped——gate_scale 指紋抓不到這種換尺,舊全域 prev 對新 scoped cur 直比=拿舊尺量新數);
+    'gate_scale'=閘口徑換過(GATE-raise 同型)。
+    """
+    if prev is None:
+        return "no_prev"
+    if prev.get("snapshot_ver") != cur.get("snapshot_ver"):
+        return "snapshot_ver"
+    if prev.get("gate_scale") != cur.get("gate_scale"):
+        return "gate_scale"
+    return None
+
+
 def compare_gain(prev: Mapping[str, Any] | None, cur: Mapping[str, Any]) -> tuple[bool | None, str]:
     """回 (gain, gain_basis)。**尺不同或無前輪 → (None,'incomparable')**,不是 (False,'none')。
 
-    參數為兩輪之數字摘要:{'dual_green_n':int, 'prodset_active_n':int, 'arena_prereg_win':bool|None,
-    'gate_scale':str}。`gate_scale`=閘的口徑指紋(如 GATE-raise 後之 p95 門檻);兩輪口徑不同時
-    數字不可比——這正是 2026-07-26 LAIEVO 量尺失效的同型病,故此處硬回 incomparable(承 evidence_protocol)。
+    參數為兩輪之數字摘要:{'snapshot_ver':int, 'dual_green_n':int, 'prodset_active_n':int,
+    'arena_prereg_win':bool|None, 'gate_scale':str}。`gate_scale`=閘的口徑指紋(如 GATE-raise 後之
+    p95 門檻);兩輪口徑不同時數字不可比——這正是 2026-07-26 LAIEVO 量尺失效的同型病,故此處硬回
+    incomparable(承 evidence_protocol)。`snapshot_ver` 不符同理(摘要本身換口徑,見 SNAPSHOT_VER)。
     """
-    if prev is None:
-        return None, "incomparable"
-    if prev.get("gate_scale") != cur.get("gate_scale"):
+    if incomparable_reason(prev, cur):
         return None, "incomparable"
     if cur.get("arena_prereg_win") is True:
         return True, "arena_prereg"
@@ -175,6 +194,18 @@ def _selftest() -> int:
                               for p, c in ((None, base), (base, base),
                                            (base, {**base, "dual_green_n": 1})))
         )
+    # prodset_delta 基準(2026-08-01 Steward 裁決):v2 起 prodset_active_n 換口徑(全域→run-scoped),
+    # gate_scale 指紋抓不到此換尺——版本鍵不符必須硬回 incomparable,不得把口徑差冒充增益。
+    v2 = {**base, "snapshot_ver": SNAPSHOT_VER}
+    chk("**跨版直比=incomparable**(舊全域 prev 無版本鍵、新 scoped cur 有=不比)",
+        compare_gain(base, v2) == (None, "incomparable"))
+    chk("同版(皆 v2)仍可比:prodset 增→prodset_delta",
+        compare_gain(v2, {**v2, "prodset_active_n": 2}) == (True, "prodset_delta"))
+    chk("incomparable_reason 四態(no_prev/snapshot_ver/gate_scale/可比 None)",
+        (incomparable_reason(None, v2), incomparable_reason(base, v2),
+         incomparable_reason({**v2, "gate_scale": "p95=2.000"}, v2),
+         incomparable_reason(v2, v2)) == ("no_prev", "snapshot_ver", "gate_scale", None))
+    chk("SNAPSHOT_VER 現版=2(scoped prodset 口徑;升版須連動 driver _snapshot)", SNAPSHOT_VER == 2)
 
     chk("**incomparable 不推進停損計數**", next_no_gain_count(2, None, "incomparable") == 2)
     chk("無增益 +1", next_no_gain_count(2, False, "none") == 3)
@@ -210,7 +241,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print("  next_step(steps_json) -> 'I3'|None   compare_gain(prev,cur) -> (gain,basis)")
     print("  next_no_gain_count(n,gain,basis)     should_stop(n) / stop_reason_text(n)")
     print("  step_record(step,script,argv,rc,started,finished,**extra)")
-    print(f"  常數:STOP_N={STOP_N}(TWEVO-N=3)  GAIN_BASES={GAIN_BASES}")
+    print("  incomparable_reason(prev,cur) -> 'no_prev'|'snapshot_ver'|'gate_scale'|None")
+    print(f"  常數:STOP_N={STOP_N}(TWEVO-N=3)  SNAPSHOT_VER={SNAPSHOT_VER}  GAIN_BASES={GAIN_BASES}")
     return 0
 
 

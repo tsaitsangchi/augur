@@ -1,0 +1,18 @@
+---
+name: augur-adjudication-exec-20260801
+description: 08-01 晚裁決批執行狀態——批次一全清＋批次四波1落地；圈選單=終版 ballot；TTY 親簽包四件待 hugo
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: b877d307-e736-407a-aa6a-200f3758f684
+  modified: 2026-08-01T08:56:10.426Z
+---
+
+**2026-08-01 晚裁決批執行狀態**（接 [[augur-deep-understanding-r3-20260801]]）：
+
+- **圈選介面＝`reports/augur_final_adjudication_ballot_20260801.md`**（20 項×12 路鮮度驗證定稿）。hugo 已圈：**批次一**（B1/B2/B3）＋**批次四**（15 項照建議案＋子裁 S-i~iii 採建議）。**批次二（A3/APPLY-go/A2A4）與批次三（E1）尚未圈**——E1 有 08-03 20:00 時效、A3 有 08-03 23:00 窗。
+- **批次一已清**：B2 七筆全標不刪（4 探針 test-artifact／3 筆 ruling:superseded）；B1 殭屍 run 11-19 回填 failed；B3 stale-hold（>72h hold）落地＋drain timer 重掛（首發乾淨）。
+- **批次四已落**：F5=CLAUDE.md **v1.35** #35 三規則入憲；F3 防鏽哨掛週報；D1 fulltext unattempted 121,389 回填（9 謂詞行為保存）；波1 五項（C2 watchdog 三態機/D2 KH8 0.05〔live 閘轉 ok=False=預期〕/D3 重繫版＋存量 161,900 scoped 重刷〔axis ready 19,454/pending 142,446 恰等預期；answer Δ43=資料時漂，機械證明 derive_answer_status 只認 BLOCKED〕/H1 R-CELL′/prodset_delta scoped＋SNAPSHOT_VER=2〔r01 舊快照無版本鍵→下次結輪誠實 incomparable 一次，設計內〕）。全部經突變驗紅。
+- **F1=RULING-2026-042 已落庫但未生效**：驗紅→裁決檔→AL-2026-046→綠；**簽核欄空白待 hugo 親簽**（親簽後才生效）。
+- **待辦（波2-4）**：D4 clamp（先 code 後 DDL 不可倒——週日 04:30 knowhow-refresh KIP 自動路）＋B4 通行證→統一 DDL 窗（C1/B4/D4/E2/H2）→G3 沙盒演練。**TTY 親簽包**：F1 簽核欄／E2 三列簽錨（S-ii 三列版＋定名歧異裁定）／H1 之 R-CELL′+S-8 governance_queue approve／（批次二圈後）A2A4 demote decided_by。
+- 殘項：C2 閉環 48h 觀察（selfheal 16:40 已發車）；audit_selfheal.sh:46 過時註解；D2 呈案 127.0.0.99 假設錯誤（本機 127/8 全通、壞埠才是壞連線）；B2 證偽觀察窗至 08-08。

@@ -20,6 +20,7 @@ from datetime import date, datetime
 
 import _bootstrap  # noqa: F401
 from augur.core import db
+from verify_evolution_acceptance import rcell_cells  # R-CELL′ 逐格收攏(H1;同源單一住所 #12)
 
 # 期限**不得寫死**——判準住 evolution_prereg_gate 且受 criteria_sha 保護,程式另存副本
 # 即為「凍結了判準文字卻沒凍結解釋它的程式」之同型缺口(2026-07-31 實犯:當日 GATE-raise
@@ -79,6 +80,28 @@ def judge_b(n_active, newcomers, sign_rows, has_tbl, baseline_ts="?"):
         note = "新成員符號檢查:" + det + (
             "" if not unchecked else f"；**未通過/未檢:{'、'.join(unchecked)}**")
     return done, note
+
+
+def rcell_status_line(scale_tag, caps, live_cells, robot_cells):
+    """R-CELL′ 逐格狀態行(H1 2026-08-01)——**純函式**(自測餵真輸入;judge_b 同型)。
+
+    caps={capability 格名};live_cells={格:[(n_total,n_answered,mean|None) 逐 live run]};
+    robot_cells={格:robot 該格 mean}。有效格計數只數全格有效者;缺格誠實列示
+    n_answered/n_total(R-CELL′-2);robot=量尺哨兵非受測臂(S-8:分數僅驗尺、永不入排名)。
+    """
+    n_ok, parts = 0, []
+    for cname in sorted(caps):
+        good = [e for e in live_cells.get(cname, []) if e[2] is not None]
+        gaps = [e for e in live_cells.get(cname, []) if e[2] is None]
+        n_ok += len(good)
+        rb = robot_cells.get(cname)
+        if good:
+            parts.append(f"{cname} 有效 {len(good)} run F={'/'.join(f'{e[2]:.4f}' for e in good)}"
+                         f"(robot 哨兵 {rb if rb is not None else '無'})")
+        elif gaps:
+            parts.append(f"{cname} 缺格({'、'.join(f'{e[1]}/{e[0]}' for e in gaps)})")
+    return (f"R-CELL′ 逐格{scale_tag}:capability 有效格 {n_ok};" + ";".join(parts)
+            + ";S-8:robot=量尺哨兵非受測臂(分數僅驗尺、不入排名)")
 
 
 def live_sunset_gate(cur):
@@ -193,8 +216,36 @@ def sunset_status(cur):
             c_ev = (f"同尺 {sid[:8]}/{ch[:8]}:floor F={floor_f} mism F={mism_f};"
                     f"首半(嚴格同勝)之臂={first or '無'};複現(≥2 run 皆勝)之臂={repro or '**無**'}"
                     + (f";⚠量尺附註:robot(零知識格式機)同尺 F={robot_f}"
-                       "——(c) 凍結文字不含 robot,語意權=S-8 待裁" if robot_f is not None else ""))
+                       "——(c) 凍結文字不含 robot;S-8(H1 拍板 2026-08-01):robot=量尺哨兵"
+                       "非受測臂,其 veto 作用於證據力層(A′),不動 (c) 字面" if robot_f is not None else ""))
     c_done = bool(c_done)
+    # R-CELL′ 逐格狀態(H1 2026-08-01):capability 格之有效格數＋live-vs-robot 哨兵線。
+    # (c) 聚合口徑照舊並列於上;此行=A′ 判讀層之逐格口徑(不換尺;rcell_cells 同源 #12)。
+    cur.execute("""SELECT DISTINCT set_id FROM local_model_eval_item
+        WHERE expect->>'cell_class'='capability'""")
+    cap_sets = [x[0] for x in cur.fetchall()]
+    if cap_sets:
+        cur.execute("""SELECT set_id, eval_code_hash FROM local_model_eval_run
+            WHERE set_id = ANY(%s) AND arm <> ALL(%s)
+            ORDER BY created_at DESC LIMIT 1""", (cap_sets, list(CTRL)))
+        r2 = cur.fetchone()
+        if r2:
+            sid2, ch2 = r2
+            cur.execute("""SELECT layer FROM local_model_eval_item
+                WHERE set_id=%s AND expect->>'cell_class'='capability' GROUP BY 1""", (sid2,))
+            caps2 = {x[0] for x in cur.fetchall()}
+            cur.execute("""SELECT arm, detail FROM local_model_eval_run
+                WHERE set_id=%s AND eval_code_hash=%s ORDER BY created_at""", (sid2, ch2))
+            robot2, live2 = {}, {}
+            for arm2, d2 in cur.fetchall():
+                cs = rcell_cells((d2 or {}).get("per_item", []))
+                if arm2 == "robot":
+                    robot2 = {k: v[2] for k, v in cs.items() if v[2] is not None}
+                elif arm2 not in CTRL:
+                    for cname in caps2:
+                        if cname in cs:
+                            live2.setdefault(cname, []).append(cs[cname])
+            c_ev += "\n      " + rcell_status_line(f"({sid2[:8]}/{ch2[:8]})", caps2, live2, robot2)
     return [("(a) arena 結算＋方向門可讀數", a_done, a_ev),
             ("(b) prodset active 由 2 成長＋符號一致", b_done, b_ev),
             ("(c) LAIEVO 任一臂 F@L1 勝 floor 與 mismatched 且可複現", c_done, c_ev)]
@@ -389,6 +440,17 @@ def _selftest():
         demote_fail_pending(True, "demote", "pending_auto", "FAIL") is False)
     chk("(b) 多個新成員只要一個未過即整體未達成",
         judge_b(4, ["a", "b"], {"a": "PASS"}, True)[0] is False)
+    # R-CELL′ 逐格狀態行(H1 2026-08-01):純函式餵真輸入(haystack=回傳值,非本檔 src)
+    _ln = rcell_status_line("(s/h)", {"C1", "C2P"},
+                            {"C1": [(36, 34, None)],
+                             "C2P": [(24, 24, 0.6667), (24, 24, 0.6667)]},
+                            {"C1": 0.5, "C2P": 0.5})
+    chk("R-CELL′ 行:有效格只數全格有效者(C2P×2=2)且 C1 以缺格 34/36 列示",
+        "capability 有效格 2" in _ln and "C1 缺格(34/36)" in _ln)
+    chk("R-CELL′ 行:live-vs-robot 哨兵線在場且 S-8 語意成文(robot 不入排名)",
+        "robot 哨兵 0.5" in _ln and "不入排名" in _ln)
+    chk("R-CELL′ 行:零 live run 時有效格=0(綠燈也要驗得到)",
+        "capability 有效格 0" in rcell_status_line("(s/h)", {"C1"}, {}, {}))
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 
