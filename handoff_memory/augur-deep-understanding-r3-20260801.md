@@ -43,7 +43,7 @@ metadata:
 - lint 校準：33 ERROR 中 **7 誤報**（鏈式 .split）⇒ 真恆真 **26**（首惡=gate_raise_sunset_deadline 6 條，未修）；lint 未接自動閘。
 - 備份：唯一 dump＝`~/db_dumps/augur_20260731_postmerge_Fd`（/mnt/c/database 已再空）；dump＋DB＋repo **同一顆實體 C: 碟**；12 條 cron 零 pg_dump。
 - 殭屍：`evolution_run` 9 列（run 11-19）；deferred 7 筆（真積壓 2＋**探針污染 4**＋08-01 02:00 新 1）；drain timer inactive 但 **enabled（重開機復活）**；週末無 tw cron。
-- **T7 自動檢驗＝08-02 09:00**，但 live 週報檔名凍死 ⇒ **查 T7 須看 `evolution_week_20260727.md`**（覆寫式）。
+- **T7 自動檢驗＝08-02 09:00**；⚠08-01 10:15 hugo 已 --apply cron 合批 ⇒ 檔名凍死已修，**查 T7 看 `evolution_week_20260802.md`**（非 0727 舊檔）。
 - RAWEVO 08-01 09:00＝史上首次 cron 輪（受 kill 閘）；DESKTOP 至 08-01 06:37 連續不可達（週六晨未上線）。
 - 回滾不對稱：治權裁決繫 DB 親簽列，**git revert 撤不掉裁決**；正途唯新提案/GATE-raise。
 - 方法論三規則住所債：「回歸鎖須驗紅」「綠燈也要驗得到」只活在 commit 訊息，無治權檔住所。

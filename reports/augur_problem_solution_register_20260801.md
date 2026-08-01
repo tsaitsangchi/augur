@@ -20,12 +20,12 @@
 | A5 | close「任一步曾敗即敗」標籤失真（per-step 取末次） | AI（動已結列=Steward） | **W0-β** | ☐ |
 | B1 | evolution_run 殭屍：寫者自收尾＋回填器 | AI（--apply=Steward） | **W0-β** | ☐ |
 | C3 | lint 修 7 誤報→gate_raise 6 恆真→基線→掛閘 | AI | **W0-β** | ☐ |
-| E4 | FinMind 讀錶腳本＋cron 前綴 | AI（--apply=hugo） | **W0-β** | ☐ |
+| E4 | FinMind 讀錶腳本＋cron 前綴 | AI（--apply=hugo） | **W0-β** | ☑ |
 | F3 | consequence 封存腳本（execute_sunset_consequence.py） | AI（首次 --apply=Steward） | **W0-β** | ☐ |
-| G1 | 定期 pg_dump 腳本＋輪替＋cron 兩行 | AI（--apply/首跑=hugo） | **W0-β** | ☐ |
+| G1 | 定期 pg_dump 腳本＋輪替＋cron 兩行 | AI（--apply/首跑=hugo） | **W0-β** | ☑ |
 | A1 | 兩現役跑符號尺 --record（(b) 機械證據） | AI | **W1**（RAWEVO 輪後） | ☐ |
 | D1 | fulltext 'unattempted' 旗標補 121,389 件 | AI（DDL 小窗） | **W1** | ☐ |
-| cron 合批 | E4＋C1＋G1＋C4 之 install_cron.sh **單 agent 一批**＋hugo 一次 --apply | 合批=AI；apply=hugo | **W1** | ☐ |
+| cron 合批 | E4＋C1＋G1＋C4 之 install_cron.sh **單 agent 一批**＋hugo 一次 --apply | 合批=AI；apply=hugo | **W1** | ☑ |
 | A2-S1 | mean_20d 語意復原探針（四假設 SQL 對照） | AI 唯讀 | **W1** | ☑ |
 | F2 | 10-14 checklist 七項 Evidence 備料（不代勾） | AI 唯讀 | **W1** | ☐ |
 | A3 | G-SIGN 入閘呈案包（四件套＋77 筆三案） | 呈案 AI／拍板 Steward | **W2** | ☐ |
@@ -46,7 +46,7 @@
 | H1 | LAIEVO 判讀層逐格有效性（R-CELL′ 預凍；不換尺） | 呈案→Steward | **W2** | ☐ |
 | H2 | sim 死鎖：derive_param_schema 腳本＋首 method 入冊程序 | 呈案→Steward（D-1＋親簽） | **W2** | ☐ |
 | B3 | drain timer 修好再重啟（stale-hold 護欄；前置=B2） | 判準 Steward 輕裁＋AI | **W3-b**（固定序 B2→B1 apply→B3） | ☐ |
-| G4 | install_cron live --apply 一頁程序（hugo 照跑） | hugo | **W3** | ☐ |
+| G4 | install_cron live --apply 一頁程序（hugo 照跑） | hugo | **W3** | ☑ |
 | 3c | 統一 DDL 窗收 D4/B4/E2 之 trigger/表 | 拍板後排窗 | **W3-c** | ☐ |
 
 ## §2 critic 五裁決（執行時必守）
