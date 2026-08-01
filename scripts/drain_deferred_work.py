@@ -16,6 +16,8 @@
       之列（記其 run_id 為佐證）。
   (b) **rerun**——無佐證者，於 heavy slot 空閒時真補跑；**rc=0 才清**，
       rc=75（跑時又被佔）或其他失敗一律留帳、印明。
+  **rerun 限新鮮積壓**：無佐證且逾 STALE_HOLD_HOURS(72h)者退 hold 待人裁——
+  過期補跑恐非原語境(07-31 實證:66h 舊積壓補跑燒道 13.3h、餓死當夜新輪)。
   **僅 tw/run_evolution_iteration 在 rerun 白名單**：lai 臂之重跑需 set_id／arm 全參數
   且評測身分綁 eval_code_hash，擅自代跑＝造出一個沒人預註冊的實驗，故 lai 只走 (a) 或人工。
 
@@ -43,12 +45,17 @@ import fcntl
 import json
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import _bootstrap  # noqa: F401
 
 REPO = Path(__file__).resolve().parent.parent
 DRAIN_LOCK = "/tmp/augur_drain.lock"
+
+# stale-hold 判準（B3 呈案 2026-08-01;值=Steward 輕裁）：無佐證且積壓逾此時齡者不自動補跑。
+# 實證：07-31 撿 66h 舊積壓補跑,燒道 13.3h 並餓死當夜 23:00 新輪（twevo.log/#11）。
+STALE_HOLD_HOURS = 72.0
 
 # rerun 白名單：(axis, step_key) → 指令。lai 不在此列（見 docstring；擅代跑＝未預註冊實驗）。
 RERUN_CMDS = {
@@ -58,14 +65,19 @@ RERUN_CMDS = {
 }
 
 
-def decide(axis: str, step_key: str, superseded_ref: str | None) -> tuple[str, str]:
+def decide(axis: str, step_key: str, superseded_ref: str | None,
+           age_hours: float) -> tuple[str, str]:
     """純函式判準（可自測）：這筆積壓該怎麼處置。
 
-    superseded 佐證存在 → 清帳（附佐證）；無佐證且在 rerun 白名單 → 補跑；
-    其餘 → hold（誠實留帳、印明需人工，**不得為了清而清**）。
+    superseded 佐證存在 → 清帳（附佐證；不受 stale 限制——有證據的清帳永遠誠實）；
+    無佐證且積壓逾 STALE_HOLD_HOURS → hold（過期補跑恐非原語境,留帳待人裁）；
+    無佐證且在 rerun 白名單 → 補跑；其餘 → hold（**不得為了清而清**）。
     """
     if superseded_ref:
         return "superseded", f"已被積壓時點後之成功輪涵蓋：{superseded_ref}"
+    if age_hours > STALE_HOLD_HOURS:
+        return "hold", (f"積壓已 {age_hours:.0f}h（>{STALE_HOLD_HOURS:.0f}h stale 判準）"
+                        "→ 過期補跑恐非原語境,留帳待人裁,不自動重跑")
     if (axis, step_key) in RERUN_CMDS:
         return "rerun", "無涵蓋佐證 → 補跑（rc=0 才清）"
     return "hold", ("不在 rerun 白名單（lai 臂重跑需全參數＋eval_code_hash 身分，"
@@ -110,9 +122,10 @@ def check(cur) -> int:
           + (f"｜死亡未釋放殘帳 {len(st['orphans'])} 筆" if st.get("orphans") else ""))
     rows = _rows(cur)
     print(f"未清積壓：{len(rows)} 筆")
+    now = datetime.now(timezone.utc)
     for did, ax, sk, at, reason, detail in rows:
         ref = find_superseded_ref(cur, ax, at, detail or {})
-        action, why = decide(ax, sk, ref)
+        action, why = decide(ax, sk, ref, (now - at).total_seconds() / 3600.0)
         print(f"  #{did} {ax}/{sk} @{at:%m-%d %H:%M} → **{action}**｜{why}")
     print("（唯讀；跑 --apply 實作）")
     return 0
@@ -127,7 +140,8 @@ def apply(conn, limit: int | None, timeout: int) -> int:
         if limit and done >= limit:
             break
         ref = find_superseded_ref(cur, ax, at, detail or {})
-        action, why = decide(ax, sk, ref)
+        age_h = (datetime.now(timezone.utc) - at).total_seconds() / 3600.0
+        action, why = decide(ax, sk, ref, age_h)
         if action == "hold":
             print(f"  #{did} {ax}/{sk} → hold｜{why}")
             continue
@@ -178,16 +192,23 @@ def _selftest() -> int:
         if not cond:
             fails.append(name)
 
-    a, w = decide("tw", "run_evolution_iteration", "ledger.uid=X")
+    a, w = decide("tw", "run_evolution_iteration", "ledger.uid=X", 1.0)
     chk("有佐證 → superseded（不重跑）", a == "superseded" and "X" in w)
-    a, _ = decide("tw", "run_evolution_iteration", None)
+    a, _ = decide("tw", "run_evolution_iteration", None, 1.0)
     chk("tw 無佐證 → rerun（白名單內）", a == "rerun")
-    a, w = decide("lai", "eval_local_model", None)
+    a, w = decide("lai", "eval_local_model", None, 1.0)
     chk("lai 無佐證 → hold（不擅代跑未預註冊實驗）", a == "hold" and "eval_code_hash" in w)
-    a, _ = decide("lai", "eval_local_model", "run_id=Y")
+    a, _ = decide("lai", "eval_local_model", "run_id=Y", 1.0)
     chk("lai 有佐證 → superseded", a == "superseded")
-    a, _ = decide("raw", "unknown_step", None)
+    a, _ = decide("raw", "unknown_step", None, 1.0)
     chk("未知軸/步 → hold（不亂跑）", a == "hold")
+    a, w = decide("tw", "run_evolution_iteration", None, 100.0)
+    chk("stale(>72h) 無佐證 → hold 不補跑（舊邏輯回 rerun;本 case 在舊碼必紅）",
+        a == "hold" and "stale" in w)
+    a, _ = decide("tw", "run_evolution_iteration", "ledger.uid=X", 100.0)
+    chk("stale 但有佐證 → 仍 superseded（證據清帳不受 stale 限制）", a == "superseded")
+    a, _ = decide("tw", "run_evolution_iteration", None, STALE_HOLD_HOURS)
+    chk("恰等於門檻 → 仍 rerun（嚴格大於才 stale,邊界不誤殺）", a == "rerun")
 
     class _FakeCur:
         def __init__(self, ret):

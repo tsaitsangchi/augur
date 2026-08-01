@@ -30,7 +30,7 @@
 | F2 | 10-14 checklist 七項 Evidence 備料（不代勾） | AI 唯讀 | **W1** | ☐ |
 | A3 | G-SIGN 入閘呈案包（四件套＋77 筆三案） | 呈案 AI／拍板 Steward | **W2** | 呈☑ |
 | A2-S2 | mean_20d 產生器重建 或 除役（與 A4 併案） | 呈案→裁 | **W2** | 呈☑ |
-| B2 | deferred 7 筆逐筆處置 SQL（探針標 test-artifact） | Steward 拍板後執行 | **W2** | 呈☑ |
+| B2 | deferred 7 筆逐筆處置 SQL（探針標 test-artifact） | Steward 拍板後執行 | **W2** | ☑ |
 | B4 | 23 表 UPDATE 裸缺口：P0/P1 四表升級 UPDATE-GUC 閘 | 呈案（翻 C5 一部）→裁 | **W2** | 呈☑ |
 | C1 | validation_evidence 排程＋manual 5 條有效期呈案 | 排程 AI／有效期 Steward | **W2** | 呈☑ |
 | C2 | attestation 掛回 watchdog（DB 三態機） | 呈案→裁（API 放量節奏） | **W2** | 呈☑ |
@@ -45,7 +45,7 @@
 | G3 | identity 六表：沙盒演練→建表＋最小接線一案 | 呈案→Steward（P5 一次拍板） | **W2** | 呈☑ |
 | H1 | LAIEVO 判讀層逐格有效性（R-CELL′ 預凍；不換尺） | 呈案→Steward | **W2** | 呈☑ |
 | H2 | sim 死鎖：derive_param_schema 腳本＋首 method 入冊程序 | 呈案→Steward（D-1＋親簽） | **W2** | 呈☑ |
-| B3 | drain timer 修好再重啟（stale-hold 護欄；前置=B2） | 判準 Steward 輕裁＋AI | **W3-b**（固定序 B2→B1 apply→B3） | 呈☑ |
+| B3 | drain timer 修好再重啟（stale-hold 護欄；前置=B2） | 判準 Steward 輕裁＋AI | **W3-b**（固定序 B2→B1 apply→B3） | ☑ |
 | G4 | install_cron live --apply 一頁程序（hugo 照跑） | hugo | **W3** | ☑ |
 | 3c | 統一 DDL 窗收 D4/B4/E2 之 trigger/表 | 拍板後排窗 | **W3-c** | ☐ |
 
