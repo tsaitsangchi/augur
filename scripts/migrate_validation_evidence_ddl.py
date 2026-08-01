@@ -38,8 +38,13 @@ CREATE TABLE IF NOT EXISTS validation_evidence (
   status_note      text,
   last_verified_at timestamptz,
   created_at       timestamptz NOT NULL DEFAULT now(),
+  valid_until      timestamptz,
   CONSTRAINT chk_ve_sql_presence CHECK (check_type <> 'sql' OR check_sql IS NOT NULL),
-  CONSTRAINT chk_ve_cmd_presence CHECK (check_type <> 'script_exit' OR check_cmd IS NOT NULL)
+  CONSTRAINT chk_ve_cmd_presence CHECK (check_type <> 'script_exit' OR check_cmd IS NOT NULL),
+  -- C1 甲案(2026-08-01):manual green/amber 必帶有效期(過期由 verify 轉 unverified)。
+  -- 僅新機 bootstrap 生效;既有庫 IF NOT EXISTS 跳過,存量遷移=migrate_validation_evidence_valid_until_ddl.py
+  CONSTRAINT chk_ve_manual_expiry CHECK
+    (check_type <> 'manual' OR status NOT IN ('green','amber') OR valid_until IS NOT NULL)
 );
 COMMENT ON TABLE validation_evidence IS
   '驗證證據帳本(缺口①機械層):策展斷言+重驗方式;green=斷言此刻對 DB 為真,非方法論背書;已知債紅列誠實入帳;解凍 GATE 之 --strict 前置消費此表';
@@ -116,12 +121,25 @@ def run():
     with db.connect() as conn:
         cur = conn.cursor()
         cur.execute(DDL)
+        # C1 種子相容:欄在(新機 bootstrap/存量遷移後)則 manual 種子帶簽核日+90 天效期
+        # (chk_ve_manual_expiry 下 green/amber manual 無效期會被拒);欄不在(存量庫 DDL-1 前)走舊 9 欄。
+        cur.execute("SELECT count(*) FROM information_schema.columns "
+                    "WHERE table_name='validation_evidence' AND column_name='valid_until'")
+        has_vu = cur.fetchone()[0] > 0
         n = 0
         for row in SEEDS:
-            cur.execute(
-                "INSERT INTO validation_evidence (evidence_id, chain_link, claim, check_type, check_sql, "
-                "check_cmd, source_ref, status, status_note) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
-                "ON CONFLICT (evidence_id) DO NOTHING", row)
+            if has_vu:
+                cur.execute(
+                    "INSERT INTO validation_evidence (evidence_id, chain_link, claim, check_type, check_sql, "
+                    "check_cmd, source_ref, status, status_note, valid_until) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s, "
+                    "CASE WHEN %s='manual' THEN now() + interval '90 days' END) "
+                    "ON CONFLICT (evidence_id) DO NOTHING", row + (row[3],))
+            else:
+                cur.execute(
+                    "INSERT INTO validation_evidence (evidence_id, chain_link, claim, check_type, check_sql, "
+                    "check_cmd, source_ref, status, status_note) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                    "ON CONFLICT (evidence_id) DO NOTHING", row)
             n += cur.rowcount
         # E1 check 機制變更((a) 2026-07-14):既有列 ON CONFLICT DO NOTHING 不更新→明確冪等 UPDATE 對齊 seed
         # (script_exit reconcile_audit 39分逾時+窗/heal 分歧 → sql 讀 attestation_result 正典 verdict)。改機制須重驗→status 退 unverified。
