@@ -183,6 +183,7 @@ def backfill_prodset(*, dry_run: bool, run_id: int | None) -> int:
                 n += 1
                 continue
             with db.transaction(conn) as cur:
+                cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4)
                 _upsert_prodset(
                     cur,
                     feature=feature,
@@ -330,6 +331,7 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
                     promotes_this_round += 1  # dry 也計數:preview 須如實反映 R2(d) 上限
                 continue
             with db.transaction(conn) as cur:
+                cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4)
                 if principle_id is not None and action in ("promote", "demote"):
                     cur.execute(
                         "UPDATE philosophy_principle SET status=%s WHERE principle_id=%s",

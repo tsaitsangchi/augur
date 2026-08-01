@@ -208,6 +208,7 @@ def apply_seed(conn, seed, *, dry_run: bool) -> dict:
     n_sch = n_pri = n_map = n_src = 0
     new_maps: list[tuple] = []
     with db.transaction(conn) as cur:
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4)
         for sch in seed:
             name = sch["name"]
             cur.execute("SELECT school_id FROM philosophy_school WHERE name=%s", (name,))

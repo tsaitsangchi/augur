@@ -1,0 +1,103 @@
+{
+  "title": "iid_bootstrap param_schema（derive 草案；未經人審不生效）",
+  "type": "object",
+  "properties": {
+    "horizon_td": {
+      "type": "integer",
+      "x-observed": {
+        "values": [
+          21,
+          30,
+          42,
+          60,
+          63,
+          126
+        ],
+        "min": 21,
+        "max": 126,
+        "n_nonnull": 261,
+        "n_rows": 261
+      }
+    },
+    "n_paths": {
+      "type": "integer",
+      "x-observed": {
+        "values": [
+          10000
+        ],
+        "min": 10000,
+        "max": 10000,
+        "n_nonnull": 261,
+        "n_rows": 261
+      }
+    },
+    "seed": {
+      "type": "integer",
+      "x-observed": {
+        "values": [
+          42
+        ],
+        "min": 42,
+        "max": 42,
+        "n_nonnull": 261,
+        "n_rows": 261
+      }
+    }
+  },
+  "required": [
+    "horizon_td",
+    "n_paths",
+    "seed"
+  ],
+  "additionalProperties": false,
+  "x-excluded": {
+    "block_len_td": "史料全 NULL（iid_bootstrap 無此參數）"
+  },
+  "x-unclassified": {
+    "summary_key_shapes": [
+      {
+        "keys": [
+          "cone",
+          "disclaimer",
+          "horizon_td",
+          "last_close",
+          "note_p_up",
+          "sim_stat_p_terminal_up",
+          "terminal"
+        ],
+        "n_rows": 260
+      },
+      {
+        "keys": [
+          "cell",
+          "disclaimer",
+          "dropped_dates",
+          "effective_window_td",
+          "kind",
+          "maxdd",
+          "n_members",
+          "note_candidate",
+          "note_policy",
+          "note_window_bias",
+          "p_maxdd_lt_info",
+          "p_maxdd_lt_policy",
+          "panel_date",
+          "policy_threshold",
+          "terminal",
+          "window_actual_maxdd"
+        ],
+        "n_rows": 1
+      }
+    ],
+    "note": "summary 鍵＝輸出非參數；不自動入 properties，逐鍵分類屬人審"
+  },
+  "x-scope-warning": "入冊僅解 B-1 物理死鎖；sim 軸合法評估仍待 D-2 另案（evolution_prereg_gate axis='sim'）——不得據此宣稱 sim 可開跑",
+  "x-provenance": {
+    "source": "mc_simulation_run",
+    "filter": "method='iid_bootstrap'",
+    "n_rows": 261,
+    "asof_data_max_created_at": "2026-07-27T16:44:15.623340+08:00",
+    "git_sha": "b6ceaa8",
+    "sql": "observed_param_profile／summary_key_shapes 之 DB aggregate（本檔原文）"
+  }
+}

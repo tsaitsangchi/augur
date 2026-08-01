@@ -104,6 +104,18 @@ def get_admit_depth(cur, target_kind: str, target_id: str) -> int:
     return int(row[0]) if row else 0
 
 
+def repromotion_locked(cur, item_id: int) -> bool:
+    """item 曾被重評降級（knowhow_depth_reevaluation 有 depth_after<depth_before 列）→ D4 再晉升鎖。"""
+    if not _table_exists(cur, "knowhow_depth_reevaluation"):
+        return False  # 帳表不存在＝從未有降級治權行為；DB trigger 為最終防線
+    cur.execute(
+        "SELECT EXISTS (SELECT 1 FROM knowhow_depth_reevaluation "
+        "WHERE item_id=%s AND depth_after < depth_before)",
+        (int(item_id),),
+    )
+    return bool(cur.fetchone()[0])
+
+
 # 作答帶：KH7／8／9 視為「深水印本地 know-how」（KH9-first 計畫）
 DEEP_KH_FLOOR = 7
 
@@ -620,6 +632,17 @@ def progressive_item(
             # fail／escalate：不抬本層；較淺 depth 保留
             break
 
+    # D4 再晉升鎖之引擎側配套：曾降級 item 不因 KH8 band=high 自動爬回；
+    # 誠實記 held、深度維持原值（無升→trigger 靜默）；再晉升唯 Steward 通行證路徑。
+    if depth > before and repromotion_locked(cur, item_id):
+        layer_scores["repromote_lock"] = {
+            "verdict": "held",
+            "note": f"曾重評降級：{before}→{depth} 之再晉升須 Steward 通行證（D4）；本輪維持 {before}",
+            "layer": "REPROMOTION_LOCK",
+        }
+        actions.append({"layer": "repromote", "action": "held_at_floor"})
+        depth = before
+
     raw_v = "pass" if layer_scores.get("0", {}).get("verdict") == "pass" else "fail"
     full_v = "pass" if depth >= 10 else ("pending" if depth < cap else "fail")
 
@@ -814,6 +837,81 @@ def _selftest() -> int:
     chk("error fail-closed 用短 TTL（60s 過期重取）",
         kh_evidence_valid().get("note") != "sentinel-d2-err")
     _kh_evidence_valid_cache.clear()
+
+    # ── D4 再晉升鎖（2026-08-01）：謂詞＝sqlite 真表 fixture（真 SQL 打真資料列，
+    #    謂詞方向反了會紅）＋ progressive_item wiring 紅綠
+    import sqlite3
+
+    class _LedgerCur:
+        """sqlite 真表 fixture：repromotion_locked 之真 SQL 對真列執行（#35(1)）；to_regclass 攔截。"""
+
+        def __init__(self, table_in: bool, rows: list[tuple[int, int, int]]):
+            self._table_in = table_in
+            self._db = sqlite3.connect(":memory:")
+            self._db.execute(
+                "CREATE TABLE knowhow_depth_reevaluation "
+                "(item_id INTEGER, depth_before INTEGER, depth_after INTEGER)")
+            self._db.executemany(
+                "INSERT INTO knowhow_depth_reevaluation VALUES (?,?,?)", rows)
+            self.calls: list = []
+            self._last = None
+
+        def execute(self, sql, params=None):
+            self.calls.append((str(sql), params))
+            if "to_regclass" in str(sql):
+                self._last = ("knowhow_depth_reevaluation",) if self._table_in else (None,)
+                return
+            self._last = self._db.execute(str(sql).replace("%s", "?"), params or ()).fetchone()
+
+        def fetchone(self):
+            return self._last
+
+    _rc_absent = _LedgerCur(False, [(277948, 9, 7)])
+    chk("D4 謂詞:帳表不存在→False（不掃、trigger 為最終防線）",
+        repromotion_locked(_rc_absent, 277948) is False and len(_rc_absent.calls) == 1)
+    _rc_demoted = _LedgerCur(True, [(277948, 9, 7)])
+    chk("D4 謂詞:降級列（9→7）在帳→True 且收到 item 參數",
+        repromotion_locked(_rc_demoted, 277948) is True
+        and _rc_demoted.calls[-1][1] == (277948,))
+    chk("D4 謂詞:僅再晉升列（7→9）→False（自動留帳不回饋污染謂詞）",
+        repromotion_locked(_LedgerCur(True, [(277948, 7, 9)]), 277948) is False)
+    chk("D4 謂詞:他 item 之降級不波及→False",
+        repromotion_locked(_LedgerCur(True, [(999, 9, 7)]), 277948) is False)
+
+    import augur.knowledge.auto_admit as _self
+    _orig = (_self.load_gate, _self._item_snapshot, _self.get_admit_depth,
+             _self.evaluate_layer, _self.repromotion_locked)
+    _lock_calls: list = []
+    try:
+        _self.load_gate = lambda cur: {
+            "enabled": True, "raw_floor_enabled": True, "progressive_enabled": True,
+            "max_auto_depth": 9, "require_kh8": True, "require_kh9": True}
+        _self._item_snapshot = lambda cur, iid: dict(snap, item_id=iid, source_key=None)
+        _self.get_admit_depth = lambda cur, k, i: 7
+        _self.evaluate_layer = lambda cur, d, s: {"verdict": "pass", "note": "fixture"}
+        _self.repromotion_locked = lambda cur, iid: _lock_calls.append(iid) or True
+        r = _self.progressive_item(None, 277948, up_to=9, apply=False)
+        chk("D4 clamp:曾降級 7→9 被壓回 7（dry-run 亦 clamp）",
+            r["admit_depth_before"] == 7 and r["admit_depth_after"] == 7)
+        chk("D4 clamp:誠實留痕 repromote_lock=held ＋ held_at_floor action",
+            r["layer_scores"].get("repromote_lock", {}).get("verdict") == "held"
+            and {"layer": "repromote", "action": "held_at_floor"} in r["actions"])
+        _self.repromotion_locked = lambda cur, iid: False
+        r2 = _self.progressive_item(None, 277948, up_to=9, apply=False)
+        chk("D4 clamp:未曾降級照升 7→9、零 held 標記",
+            r2["admit_depth_after"] == 9 and "repromote_lock" not in r2["layer_scores"])
+        _lock_calls.clear()
+        _self.repromotion_locked = lambda cur, iid: _lock_calls.append(iid) or True
+        _self.evaluate_layer = lambda cur, d, s: (
+            {"verdict": "pass", "note": "fixture"} if d < 8
+            else {"verdict": "fail", "note": "fixture"})
+        r3 = _self.progressive_item(None, 277948, up_to=9, apply=False)
+        chk("D4 clamp:無升深不觸鎖（謂詞零呼叫＝零成本）",
+            r3["admit_depth_after"] == 7 and not _lock_calls
+            and "repromote_lock" not in r3["layer_scores"])
+    finally:
+        (_self.load_gate, _self._item_snapshot, _self.get_admit_depth,
+         _self.evaluate_layer, _self.repromotion_locked) = _orig
 
     from augur.knowledge import evidence as kh8
     from augur.knowledge import synthesis as kh9

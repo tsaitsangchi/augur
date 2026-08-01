@@ -31,10 +31,28 @@ from datetime import datetime, timezone
 import _bootstrap  # noqa: F401
 
 
+def count_repromote_held(results: list[dict]) -> int:
+    """D4 clamp 之 held 計數——§4 證偽條件度量載體（週 >10 件應議白名單）。純函式可自測。"""
+    return sum(
+        1 for r in results
+        if r.get("ok") and any(
+            a.get("action") == "held_at_floor" for a in (r.get("actions") or []))
+    )
+
+
 def selftest() -> int:
     from augur.knowledge import auto_admit as aa
 
-    return aa._selftest()
+    rc = aa._selftest()
+    fixture = [
+        {"ok": True, "actions": [{"layer": "repromote", "action": "held_at_floor"}]},
+        {"ok": False, "actions": [{"action": "held_at_floor"}]},   # 失敗列不計
+        {"ok": True, "actions": [{"layer": 4, "action": "kh4_refresh"}]},
+        {"ok": True},                                              # 無 actions
+    ]
+    ok_held = count_repromote_held(fixture) == 1
+    print(f"  {'✓' if ok_held else '✗FAIL'} D4 repromote_held 計數（fixture 恰 1/4）")
+    return 0 if (rc == 0 and ok_held) else 1
 
 
 def check() -> int:
@@ -117,12 +135,14 @@ def run_batch(*, up_to: int, limit: int, apply: bool, item_id: int | None,
             if r.get("ok") and r["admit_depth_after"] == r["admit_depth_before"]
         )
         ok_n = sum(1 for r in results if r.get("ok"))
-        print(f"done ok={ok_n} advanced={advanced} unchanged={stuck}")
+        held = count_repromote_held(results)
+        print(f"done ok={ok_n} advanced={advanced} unchanged={stuck} repromote_held={held}")
         return {
             "n": len(ids),
             "ok": ok_n,
             "advanced": advanced,
             "unchanged": stuck,
+            "held": held,
         }
 
 

@@ -219,6 +219,7 @@ def apply_seed(conn, *, dry_run: bool) -> dict:
     prov_json = json.dumps(PROVENANCE, ensure_ascii=False)
 
     with db.transaction(conn) as cur:
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4)
         cur.execute(
             "SELECT school_id, domain FROM philosophy_school WHERE name=%s",
             (name,),

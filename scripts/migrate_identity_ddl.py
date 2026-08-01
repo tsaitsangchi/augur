@@ -469,6 +469,7 @@ def main(argv=None):
     from augur.core import db  # 延遲載入(psycopg2 僅 DDL 執行/--check 需要)
     with db.connect() as conn, db.transaction(conn) as cur:
         if not args.check:
+            cur.execute("SET lock_timeout = '5s'")  # 絕不排隊(#30 鎖風暴;與 B4 DDL 同紀律)
             for label, ddl in DDL:
                 cur.execute(ddl)
                 print(f"✓ {label}")

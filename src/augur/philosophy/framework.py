@@ -268,6 +268,7 @@ def build(conn, seed=SEED):
     """
     n_sch = n_pri = n_map = n_src = 0
     with db.transaction(conn) as cur:
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4)
         bootstrap(cur)
         for sch in seed:
             cur.execute("INSERT INTO philosophy_school (name, name_zh, core_thesis, proponents) "

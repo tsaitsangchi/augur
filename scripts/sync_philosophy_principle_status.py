@@ -221,6 +221,7 @@ def audit_and_maybe_apply(*, do_apply: bool, dry_run: bool, as_json: bool) -> in
                 healed += 1
                 continue
             with db.transaction(conn) as cur:
+                cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4)
                 cur.execute(
                     "UPDATE philosophy_principle SET status=%s WHERE principle_id=%s",
                     (new_status, r["principle_id"]),

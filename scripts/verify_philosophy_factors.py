@@ -33,6 +33,7 @@ def main():
         for feature, direction in fmaps:
             if feature not in augur_feats:
                 with db.transaction(conn) as cur:
+                    cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4)
                     cur.execute("UPDATE principle_factor_map SET validated_ic=NULL, validated_econ=NULL WHERE feature=%s", (feature,))
                 print(f"⊘ {feature}: augur 未建/已試盡淘汰 → NULL")
                 continue
@@ -58,6 +59,7 @@ def main():
                 vecon = None
                 bt_err = str(e)[:50]
             with db.transaction(conn) as cur:
+                cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4)
                 cur.execute("UPDATE principle_factor_map SET validated_ic=%s, validated_econ=%s WHERE feature=%s",
                             (vic, vecon, feature))
             icstr = f"{vic:+.4f}" if vic is not None else "None"
