@@ -29,7 +29,7 @@
 | A2-S1 | mean_20d 語意復原探針（四假設 SQL 對照） | AI 唯讀 | **W1** | ☑ |
 | F2 | 10-14 checklist 七項 Evidence 備料（不代勾） | AI 唯讀 | **W1** | ☐ |
 | A3 | G-SIGN 入閘呈案包（四件套＋77 筆三案） | 呈案 AI／拍板 Steward | **W2** | ☑ |
-| A2-S2 | mean_20d 產生器重建 或 除役（與 A4 併案） | 呈案→裁 | **W2** | 呈☑ |
+| A2-S2 | mean_20d 產生器重建 或 除役（與 A4 併案） | 呈案→裁 | **W2** | ☑ |
 | B2 | deferred 7 筆逐筆處置 SQL（探針標 test-artifact） | Steward 拍板後執行 | **W2** | ☑ |
 | B4 | 23 表 UPDATE 裸缺口：P0/P1 四表升級 UPDATE-GUC 閘 | 呈案（翻 C5 一部）→裁 | **W2** | ☑ |
 | C1 | validation_evidence 排程＋manual 5 條有效期呈案 | 排程 AI／有效期 Steward | **W2** | ☑ |
@@ -41,10 +41,10 @@
 | E2 | headline 錨落帳：新表 alpha_headline_anchor | DDL AI／簽錨=hugo TTY | **W2** | ☑ |
 | F1 | L7.16 衝突登錄：RULING-2026-042 草稿（DRAFT 與施作同 commit） | 草擬 AI／簽=Steward | **W2** | ☑ |
 | F5 | 回歸鎖三規則入 CLAUDE.md 呈案（限向前生效） | 草擬 AI／定版 Steward | **W2** | ☑ |
-| G2 | 異地備份三案比較呈案（外接碟/加密上NAS/第二機） | 呈案→Steward | **W2** | 呈☑ |
+| G2 | 異地備份三案比較呈案（外接碟/加密上NAS/第二機） | 呈案→Steward | **W2** | ☑ |
 | G3 | identity 六表：沙盒演練→建表＋最小接線一案 | 呈案→Steward（P5 一次拍板） | **W2** | ☑ |
 | H1 | LAIEVO 判讀層逐格有效性（R-CELL′ 預凍；不換尺） | 呈案→Steward | **W2** | ☑ |
-| H2 | sim 死鎖：derive_param_schema 腳本＋首 method 入冊程序 | 呈案→Steward（D-1＋親簽） | **W2** | 呈☑ |
+| H2 | sim 死鎖：derive_param_schema 腳本＋首 method 入冊程序 | 呈案→Steward（D-1＋親簽） | **W2** | ☑ |
 | B3 | drain timer 修好再重啟（stale-hold 護欄；前置=B2） | 判準 Steward 輕裁＋AI | **W3-b**（固定序 B2→B1 apply→B3） | ☑ |
 | G4 | install_cron live --apply 一頁程序（hugo 照跑） | hugo | **W3** | ☑ |
 | 3c | 統一 DDL 窗收 D4/B4/E2 之 trigger/表 | 拍板後排窗 | **W3-c** | ☐ |
