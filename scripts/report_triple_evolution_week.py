@@ -28,6 +28,16 @@ from augur.core import db
 SUNSET_DEADLINE_HISTORICAL = date(2026, 10, 31)  # 原始凍結值(V2-SUNSET,已 superseded)
 
 
+def demote_fail_pending(is_active, action, queue_status, prom_verdict):
+    """現役成員之 demote FAIL 帳是否該出現在「待你裁決」——**純函式**（judge_b 同型，登錄冊 A4）。
+
+    真條件＝四要件合取：現役 ∧ demote 提案 ∧ 被閘記 rejected_gate ∧ G-PROM 確為 FAIL 族
+    （FAIL/FAIL_SIGN 皆算；PASS 之 demote 列不出單——inst_cumflow 型正確不入列）。
+    """
+    return (bool(is_active) and action == "demote" and queue_status == "rejected_gate"
+            and str(prom_verdict or "").startswith("FAIL"))
+
+
 def judge_b(n_active, newcomers, sign_rows, has_tbl, baseline_ts="?"):
     """(b) 之兩要件合取 → (達成?, 說明)。**純函式**——自測餵真輸入驗真行為。
 
@@ -245,6 +255,24 @@ def build(days, md):
         L.append(f"  hint 待批(H3 RAWEVO-HINT-approve):{n_hint} 則")
         n_srv = _one(cur, "SELECT count(*) FROM local_model_version WHERE status='serving' AND promoted_by IS NULL") or 0
         L.append(f"  serving 無 promoted_by(P5.W2 缺人簽):{n_srv} 列")
+        # 現役成員之 demote FAIL 帳（登錄冊 A4，2026-08-01）：demote 提案因非 FAIL_SIGN 被記
+        # rejected_gate＝「名義人裁」，但先前**查無任何人裁載體**——帳上有 FAIL 證據卻無人會看到
+        # （實例：lending_fee_rate_mean_20d 於 run 20 G-PROM FAIL 仍 active）。本段即該載體。
+        # 口徑＝只看最新完整引擎輪（succeeded ∧ config_json?'mode'）：舊 run 之 FAIL 不重複出單。
+        cur.execute("""SELECT q.feature, q.queue_id, q.gate_json->'G-PROM'->>'verdict'
+                         FROM promotion_queue q
+                         JOIN evolution_production_feature_set p
+                           ON p.feature=q.feature AND p.set_status='active'
+                        WHERE q.run_id=(SELECT max(run_id) FROM evolution_run
+                                         WHERE status='succeeded' AND config_json ? 'mode')
+                          AND q.action='demote' AND q.queue_status='rejected_gate'""")
+        _dr = [r for r in cur.fetchall()
+               if demote_fail_pending(True, "demote", "rejected_gate", r[2])]
+        if _dr:
+            L.append(f"  **現役 FAIL 除役帳待裁:{len(_dr)} 顆**——帳上有 G-PROM FAIL 卻仍 active,"
+                     "除役與否須人裁(勿靜默):")
+            for f, qid, v in _dr:
+                L.append(f"    · {f}(queue {qid}, {v})——裁除役=demote 走既有 APPLY;裁保留=記理由")
         # R6 降級哨兵:近 14 日零認領動作 → 提示
         if n_q and left > 0:
             L.append("  ⚠ R6:連續 2 週 digest 無人認領 ⇒ 自動降回逐案人閘(防規則簽淪為無人監督)")
@@ -298,6 +326,16 @@ def _selftest():
     chk("(b) 落帳表未建⇒未達成且說明理由",
         judge_b(3, ["f_new"], {"f_new": "PASS"}, False)[0] is False
         and "未建" in judge_b(3, ["f_new"], {}, False)[1])
+    # A4 載體（登錄冊 2026-08-01）：純函式餵真輸入，四要件缺一即 False（紅綠雙向都驗）
+    chk("A4:現役+demote+rejected_gate+FAIL ⇒ 出單",
+        demote_fail_pending(True, "demote", "rejected_gate", "FAIL") is True)
+    chk("A4:FAIL_SIGN 亦屬 FAIL 族 ⇒ 出單",
+        demote_fail_pending(True, "demote", "rejected_gate", "FAIL_SIGN") is True)
+    chk("A4:G-PROM=PASS 之 demote 不出單（inst_cumflow 型）",
+        demote_fail_pending(True, "demote", "rejected_gate", "PASS") is False)
+    chk("A4:非現役不出單", demote_fail_pending(False, "demote", "rejected_gate", "FAIL") is False)
+    chk("A4:pending_auto（尚在自動道）不出單",
+        demote_fail_pending(True, "demote", "pending_auto", "FAIL") is False)
     chk("(b) 多個新成員只要一個未過即整體未達成",
         judge_b(4, ["a", "b"], {"a": "PASS"}, True)[0] is False)
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
