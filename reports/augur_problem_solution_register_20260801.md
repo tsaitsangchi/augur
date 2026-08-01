@@ -23,7 +23,7 @@
 | E4 | FinMind 讀錶腳本＋cron 前綴 | AI（--apply=hugo） | **W0-β** | ☑ |
 | F3 | consequence 封存腳本（execute_sunset_consequence.py） | AI（首次 --apply=Steward） | **W0-β** | ☐ |
 | G1 | 定期 pg_dump 腳本＋輪替＋cron 兩行 | AI（--apply/首跑=hugo） | **W0-β** | ☑ |
-| A1 | 兩現役跑符號尺 --record（(b) 機械證據） | AI | **W1**（RAWEVO 輪後） | ☐ |
+| A1 | 兩現役跑符號尺 --record（(b) 機械證據） | AI | **W1**（RAWEVO 輪後） | ☑ |
 | D1 | fulltext 'unattempted' 旗標補 121,389 件 | AI（DDL 小窗） | **W1** | ☐ |
 | cron 合批 | E4＋C1＋G1＋C4 之 install_cron.sh **單 agent 一批**＋hugo 一次 --apply | 合批=AI；apply=hugo | **W1** | ☑ |
 | A2-S1 | mean_20d 語意復原探針（四假設 SQL 對照） | AI 唯讀 | **W1** | ☑ |
