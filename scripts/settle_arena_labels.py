@@ -243,6 +243,20 @@ def _leak_audit(cur):
     return len(rows), bad
 
 
+def _ledger_gaps(cal, pred_dates):
+    """出單斷檔＝位於 [min(pred), max(pred)] 內、已實現卻無任何出單之交易日。**純函式**。
+
+    登錄冊 E3（2026-08-01）：07-17~24 六交易日零預測列為永久證據缺口，先前無任何機械
+    揭露——證據缺口不揭露就會被「累計列數很多」的印象蓋掉。零 hardcode 日期（#29b）：
+    cal＝TAIEX 交易日升冪列表（與 _classify 同源），gap 由集合差自動得出。
+    """
+    if not pred_dates:
+        return []
+    ds = set(pred_dates)
+    lo, hi = min(ds), max(ds)
+    return [d for d in cal if lo <= d <= hi and d not in ds]
+
+
 def scoreboard():
     """官方計分板(唯讀):三基準並排+常數隊標示+洩漏稽核+觀察級鐵則。口徑見檔頭「計分口徑」。"""
     with db.connect() as conn, db.transaction(conn) as cur:
@@ -264,6 +278,16 @@ def scoreboard():
         cur.execute("SELECT count(DISTINCT pred_date) FROM direction_arena_prediction WHERE settled_at IS NOT NULL")
         n_clusters = cur.fetchone()[0]
         n_groups, leak_bad = _leak_audit(cur)
+        # E3 斷檔揭露（唯讀；日曆與 _classify 同源之 TAIEX 序列）
+        cur.execute("SELECT DISTINCT pred_date FROM direction_arena_prediction")
+        _preds = [r[0] for r in cur.fetchall()]
+        if _preds:
+            cur.execute('SELECT date FROM "TaiwanStockPriceAdj" WHERE stock_id=%s '
+                        "AND date >= %s AND date <= now()::date ORDER BY date",
+                        ("TAIEX", min(_preds)))
+            _gaps = _ledger_gaps([r[0] for r in cur.fetchall()], _preds)
+        else:
+            _gaps = []
     print(f"═══ arena 官方計分板(觀察級;cluster={n_clusters}/確立門檻 60=direction_gate)═══")
     print(f"  {'隊':<22}{'n':>5}{'命中':>8}{'恆跌命中':>9}{'Brier':>8}{'Δ恆0.5':>9}{'Δ恆跌':>9}{'事後天花板':>10}")
     for mk in sorted(teams, key=lambda k: teams[k][2]):
@@ -279,6 +303,11 @@ def scoreboard():
     print("  ⚠ 觀察級鐵則:cluster<60 之前,任何「技能/排名/確立」措辭皆屬自欺;"
           "橫斷面 344 檔高度相關(首批 DEFF≈43-53、有效 n≈8)")
     print("  觀察名單(預註冊、只驗不改):audits/ARENA-WATCHLIST-PREREG-20260726.md")
+    if _gaps:
+        print(f"  ⚠ 出單斷檔:{len(_gaps)} 個交易日零預測列（永久證據缺口,cluster 累計不含之）:"
+              f"{'、'.join(str(d) for d in _gaps[:8])}{'…' if len(_gaps) > 8 else ''}")
+    else:
+        print("  出單斷檔:0（自首單日起每交易日皆有出單）")
     _gate_autotrigger(n_clusters)
     return 0
 
@@ -290,6 +319,20 @@ def _selftest():
         nonlocal ok
         print(("  ✓ " if cond else "  ✗ ") + name)
         ok = ok and cond
+
+    import datetime as _dt
+
+    # E3 斷檔揭露（登錄冊 2026-08-01）：純函式餵真形狀輸入，紅綠雙向
+    _d = _dt.date
+    _cal = [_d(2026, 7, d) for d in (14, 15, 16, 17, 20, 21)]
+    chk("E3:窗內缺出單之交易日被抓出（中段斷檔）",
+        _ledger_gaps(_cal, [_d(2026, 7, 15), _d(2026, 7, 21)])
+        == [_d(2026, 7, 16), _d(2026, 7, 17), _d(2026, 7, 20)])
+    chk("E3:每日皆有出單 ⇒ 零斷檔（綠燈也要驗得到）",
+        _ledger_gaps(_cal, list(_cal)) == [])
+    chk("E3:窗外日不算斷檔（首單前/末單後不誣賴）",
+        _ledger_gaps(_cal, [_d(2026, 7, 15), _d(2026, 7, 16)]) == [])
+    chk("E3:零出單 ⇒ 空列表不崩", _ledger_gaps(_cal, []) == [])
 
     import inspect
     src = inspect.getsource(_gate_autotrigger)
