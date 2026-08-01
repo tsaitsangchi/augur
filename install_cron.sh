@@ -41,7 +41,9 @@ $BEGIN
 40 8 * * 1 cd $ROOT && { date; bash ops/gpu-verify/gpu_verify.sh; python3 -m tools.constitution_mcp --selftest; python3 -m tools.local_llm_mcp --selftest; python3 -m tools.project_memory_mcp --selftest; echo ----; } >> \$HOME/logs/verify_weekly.log 2>&1
 # arena 每交易日出單(hugo 2026-07-26「讓 arena 的鐘重新走起來」;全鏈=sync〔freeze mdc 有界豁免 V2-FZ-scope〕
 # →特徵→對局;雙機械閘+休市誠實缺席 exit 0;取代已完成使命之 oneshot)
-0 20 * * 1-5 cd $ROOT && venv/bin/python scripts/run_arena_daily_pipeline.py --run >> \$HOME/logs/arena_pipeline.log 2>&1
+# 前綴=FinMind 讀錶一步(登錄冊 E4 2026-08-01:讀錶不計額度、每交易日一行可見點;
+# 分號銜接=只記錄不擋道——真正的放量閘在 finmind._quota_gate,此處不重複造閘 #12)
+0 20 * * 1-5 cd $ROOT && venv/bin/python scripts/check_finmind_quota.py --read >> \$HOME/logs/finmind_quota.log 2>&1; cd $ROOT && venv/bin/python scripts/run_arena_daily_pipeline.py --run >> \$HOME/logs/arena_pipeline.log 2>&1
 # arena 每日結算+官方計分板(冪等;標籤到期才結;三基準並排+洩漏稽核)
 30 21 * * 1-5 cd $ROOT && venv/bin/python scripts/settle_arena_labels.py --run >> \$HOME/logs/arena_settle.log 2>&1; cd $ROOT && venv/bin/python scripts/settle_arena_labels.py --scoreboard >> \$HOME/logs/arena_settle.log 2>&1
 # Steward 提問帳本 2h 增量(hugo 2026-07-27「每二個小時做一次」;純本地零 Claude token)
@@ -54,6 +56,13 @@ $BEGIN
 #   跳脫後 \$(...) 留到 crontab,由 cron 每次執行時才展開。\% 之跳脫則是 crontab 語法要求。
 #   同理:本區塊內**一律不得用反引號**(見下方 --allow-apply 註記;2026-07-31 撰寫本註解時實犯一次)。
 0 9 * * 0 cd $ROOT && venv/bin/python scripts/report_triple_evolution_week.py --md > \$HOME/logs/evolution_week_\$(date +\%Y\%m\%d).md 2>&1
+# 證據帳本重驗(登錄冊 C1 2026-08-01:19 列帳本原零排程——紅燈會亮但沒人看見;
+# 每日 07:10 只跑 sql 型=秒級;週日 07:40 連 script_exit 型一起=重、錯開 09:00 週儀表)
+10 7 * * * cd $ROOT && venv/bin/python scripts/verify_validation_evidence.py --run >> \$HOME/logs/validation_evidence.log 2>&1
+40 7 * * 0 cd $ROOT && venv/bin/python scripts/verify_validation_evidence.py --run --with-scripts >> \$HOME/logs/validation_evidence.log 2>&1
+# 週備份(登錄冊 G1 2026-08-01:原 12 條 cron 零 pg_dump;#30 平行口徑;白名單輪替;
+# 週六 07:30=RAWEVO 09:00 前收工、避 01:30 演化鏈;dump 期間禁 DDL,鎖檔=/tmp/augur_pgdump.lock)
+30 7 * * 6 cd $ROOT && bash scripts/backup_database.sh --run >> \$HOME/logs/backup.log 2>&1
 # RAWEVO 週輪(週六 09:00;V2-AUTOADVANCE R1——全程庫內唯讀、零 API;hint 一律 pending 待 H3 人閘)
 0 9 * * 6 cd $ROOT && venv/bin/python scripts/run_raw_evolution_iteration.py --run >> \$HOME/logs/rawevo.log 2>&1
 # TWEVO 夜輪(週間 23:00;V2-AUTOADVANCE R2。時點=arena 出單 20:00／結算 21:30 之後、演化鏈 01:30 之前;
@@ -105,6 +114,13 @@ case "${1:-}" in
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q 'run_evolution_iteration.py --run --slot-wait 10800' && echo 1 || echo 0)"
     chk "週儀表檔名之 \$(date) 已跳脫(否則安裝當下凍死、每週覆寫同檔)" \
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q 'evolution_week_\$(date' && echo 1 || echo 0)"
+    # ↓ 登錄冊 2026-08-01 合批三排程(E4/C1/G1);鎖住防回退(07-31 三行漂移同型教訓)
+    chk "E4:arena 出單行前綴 FinMind 讀錶一步" \
+        "$(printf '%s' "$AUGUR_BLOCK" | grep -q 'check_finmind_quota.py --read.*run_arena_daily_pipeline' && echo 1 || echo 0)"
+    chk "C1:證據帳本每日+週日兩條重驗排程" \
+        "$(printf '%s' "$AUGUR_BLOCK" | grep -c 'verify_validation_evidence.py --run' | awk '{print ($1>=2)?1:0}')"
+    chk "G1:週備份排程在且於 RAWEVO(09:00)之前收工" \
+        "$(printf '%s' "$AUGUR_BLOCK" | grep -q '^30 7 \* \* 6 .*backup_database.sh --run' && echo 1 || echo 0)"
     chk "無 % 未跳脫(cron 會截斷)" \
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q '[^\\]%' && echo 0 || echo 1)"
     chk "移除邏輯保留他人條目(只剝標記區間)" \
