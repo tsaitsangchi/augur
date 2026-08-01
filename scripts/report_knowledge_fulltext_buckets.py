@@ -29,7 +29,7 @@ WITH ans AS (
   JOIN knowledge_sentence_embedding e ON e.sent_id = s.sent_id
 ),
 txt AS (SELECT DISTINCT item_id FROM knowledge_item_text),
-blk AS (SELECT DISTINCT item_id FROM knowledge_fulltext_status),
+blk AS (SELECT DISTINCT item_id FROM knowledge_fulltext_status WHERE status <> 'unattempted'),
 legacy AS (SELECT DISTINCT item_id FROM knowledge_item_text WHERE length(content) > 200)
 SELECT i.domain,
   count(*)::bigint AS items,
@@ -126,8 +126,8 @@ def main() -> int:
     payload = {
         "definition": {
             "answerable": "至少一句已 embed（可檢索）",
-            "terminal_blocked": "有 knowledge_fulltext_status、無 item_text（skip_*／blocked 終態，非漏做）",
-            "pending": "無 text、無 status（未嘗試）",
+            "terminal_blocked": "有 knowledge_fulltext_status 終態列（≠unattempted）、無 item_text（skip_*，非漏做）",
+            "pending": "無 text 且（無 status 列或 status='unattempted'）＝未嘗試",
             "answerable_pct": "answerable/items",
             "terminal_done_pct": "(answerable+terminal_blocked)/items",
             "legacy_ft_gt200": "舊 gov length>200；不得當可檢索 headline",

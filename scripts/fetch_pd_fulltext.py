@@ -39,7 +39,8 @@ WHERE s.approval_status='active' AND s.license_regime='public_domain'
   AND i.url IS NOT NULL AND i.url <> ''
   AND (%(src)s IS NULL OR i.source_key = %(src)s)
   AND NOT EXISTS (SELECT 1 FROM knowledge_item_text t WHERE t.item_id = i.item_id)
-  AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status f WHERE f.item_id = i.item_id)
+  AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status f
+                  WHERE f.item_id = i.item_id AND f.status <> 'unattempted')
 ORDER BY i.item_id
 """
 

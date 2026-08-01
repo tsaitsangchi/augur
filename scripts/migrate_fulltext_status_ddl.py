@@ -8,7 +8,8 @@
    (a) 冪等——已判定 blocked 者下次不重問 Unpaywall(#6/#28 省 API);
    (b) 收斂——「待抓」= 無全文且尚未有終態帳;
    (c) 誠實(#15)——blocked 是 license 現實非系統漏抓,可溯源、可回報「N 筆 license 阻擋」。
-   status='ok' 之列不入本表(全文已在 knowledge_item_text=終態載體);本表只收 blocked 終態。
+   status='ok' 之列不入本表(全文已在 knowledge_item_text=終態載體);本表收 blocked 終態
+   ＋'unattempted' 非終態旗標(D1:「未嘗試」由隱性缺列升為顯性列,可數可回填不可誤當終態)。
 守 #15(誠實帳本、blocked≠漏做)· #6(冪等 ON CONFLICT、可重跑)· #12(DDL 單一住所)· #29a(bootstrap/指令矩陣)。
 
 執行指令矩陣:
@@ -25,9 +26,12 @@ from augur.core import db
 #   fetch_oa_fulltext.py:      skip_no_oa/skip_license/skip_pdf/skip_ctype/skip_short/skip_fetch_error
 #   fetch_entity_fulltext.py:  + skip_no_fulltext/skip_no_resolver/skip_no_license(件 B-1~B-4)
 #   acquire_abstract.py:       + abstract_none/abstract_no_license/abstract_short/abstract_fetch_error(件 B-0)
+#   backfill_fulltext_unattempted.py: + unattempted(D1 誠實**非終態**——「還沒試」有列可數,
+#     任何真實嘗試以 ON CONFLICT 覆寫;消費端以 status<>'unattempted' 區分終態)
 STATUS_VALUES = ("skip_no_oa", "skip_license", "skip_pdf", "skip_ctype", "skip_short", "skip_fetch_error",
                  "skip_no_fulltext", "skip_no_resolver", "skip_no_license",
-                 "abstract_none", "abstract_no_license", "abstract_short", "abstract_fetch_error")
+                 "abstract_none", "abstract_no_license", "abstract_short", "abstract_fetch_error",
+                 "unattempted")
 
 DDL = f"""
 CREATE TABLE IF NOT EXISTS knowledge_fulltext_status (
@@ -88,7 +92,7 @@ def main():
                 cur.execute(DDL)
             with db.transaction(conn) as cur:            # 既有表 CHECK 升級為 superset(冪等)
                 cur.execute(MIGRATE)
-            print("DDL 冪等完成:knowledge_fulltext_status(CHECK 已含 13 狀態值)")
+            print(f"DDL 冪等完成:knowledge_fulltext_status(CHECK 已含 {len(STATUS_VALUES)} 狀態值)")
         with db.transaction(conn) as cur:
             ok = verify(cur)
     sys.exit(0 if ok else 1)

@@ -224,7 +224,8 @@ PENDING_WHERE = """
   AND s.approval_status = 'active'
   AND (COALESCE(i.external_id,'') <> '' OR COALESCE(i.url,'') <> '')   -- COD id 住 url
   AND NOT EXISTS (SELECT 1 FROM knowledge_item_text t WHERE t.item_id = i.item_id)
-  AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status b WHERE b.item_id = i.item_id)
+  AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status b
+                  WHERE b.item_id = i.item_id AND b.status <> 'unattempted')
 """
 
 

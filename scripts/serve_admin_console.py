@@ -795,7 +795,7 @@ def _gov_data(job_id=None):
               JOIN knowledge_sentence_embedding e ON e.sent_id = s.sent_id
             ),
             txt AS (SELECT DISTINCT item_id FROM knowledge_item_text),
-            blk AS (SELECT DISTINCT item_id FROM knowledge_fulltext_status),
+            blk AS (SELECT DISTINCT item_id FROM knowledge_fulltext_status WHERE status <> 'unattempted'),
             legacy AS (SELECT DISTINCT item_id FROM knowledge_item_text WHERE length(content) > 200)
             SELECT i.domain,
               count(*)::bigint AS items,
@@ -1032,7 +1032,7 @@ writer 已由 S1 <code>acquire_local_files</code> 落庫；此處只掃真相。
 <div class=note>
 <b>覆蓋（可答）</b>＝answerable／items（至少一句已 embed）。
 <b>終態完成率</b>＝(answerable＋terminal_blocked)／items（含誠實不可答）。
-pending＝無全文且無 status（未嘗試）；blocked＝skip_license／skip_no_oa 等終態帳（<b>非漏做、不得灌成全文</b>）。
+pending＝無全文且無終態列（無 status 或 status='unattempted'＝未嘗試）；blocked＝skip_license／skip_no_oa 等終態帳（<b>非漏做、不得灌成全文</b>）。
 「舊 length&gt;200」僅歷史對照——erp 短文會假低，勿當可檢索 headline。
 </div>
 <table><tr><th>domain</th><th>items</th><th>answerable</th><th>blocked</th><th>pending</th>

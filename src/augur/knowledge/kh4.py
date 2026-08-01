@@ -147,10 +147,12 @@ def derive_states(row):
 
 def _select_sql(*, has_fulltext_status, has_import_qualification):
     # terminal_blocked＝有 status 終態帳且仍無全文（FT-COV：有 text≠不可答；
-    # 僅因曾 skip_no_oa 等而留 status、後來已有 abstract/全文者不得誤擋 KH4）
+    # 僅因曾 skip_no_oa 等而留 status、後來已有 abstract/全文者不得誤擋 KH4）。
+    # 'unattempted'（D1 回填旗標）＝「還沒試」非終態——不排除則 12 萬件被誤判 terminal_blocked。
     blocked_expr = (
         """(
-          EXISTS (SELECT 1 FROM knowledge_fulltext_status f WHERE f.item_id=i.item_id)
+          EXISTS (SELECT 1 FROM knowledge_fulltext_status f
+                  WHERE f.item_id=i.item_id AND f.status <> 'unattempted')
           AND NOT EXISTS (SELECT 1 FROM knowledge_item_text x WHERE x.item_id=i.item_id)
         )"""
         if has_fulltext_status else "false"

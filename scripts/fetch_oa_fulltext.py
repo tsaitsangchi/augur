@@ -96,7 +96,8 @@ PENDING_WHERE = """
    OR i.external_id ILIKE 'http://doi.org/10.%%' OR i.external_id ILIKE 'https://dx.doi.org/10.%%'
    OR i.external_id ILIKE 'http://dx.doi.org/10.%%' OR i.external_id ILIKE 'doi:10.%%')
   AND NOT EXISTS (SELECT 1 FROM knowledge_item_text t WHERE t.item_id = i.item_id)
-  AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status b WHERE b.item_id = i.item_id)
+  AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status b
+                  WHERE b.item_id = i.item_id AND b.status <> 'unattempted')
   AND NOT EXISTS (SELECT 1 FROM knowledge_source ks WHERE ks.source_key = i.source_key
                   AND ks.protocol IN ('local_file','sftp'))
 """

@@ -45,7 +45,8 @@ def _pool_counts(cur):
         SELECT
           count(*) FILTER (
             WHERE NOT EXISTS (SELECT 1 FROM knowledge_item_text t WHERE t.item_id=i.item_id)
-              AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status f WHERE f.item_id=i.item_id)
+              AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status f
+                              WHERE f.item_id=i.item_id AND f.status <> 'unattempted')
           ) AS pending,
           count(*) FILTER (
             WHERE EXISTS (SELECT 1 FROM knowledge_item_text t WHERE t.item_id=i.item_id)

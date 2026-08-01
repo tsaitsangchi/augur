@@ -55,7 +55,8 @@ def main():
         # 尚待 harvest 判定者(未試/公版待抓)——清單未完整之誠實揭露(#15)
         cur.execute("""SELECT count(*) FROM knowledge_item ki
                        LEFT JOIN knowledge_fulltext_status fs ON fs.item_id=ki.item_id
-                       WHERE ki.entity_type='book' AND ki.domain=ANY(%s) AND fs.item_id IS NULL""", (doms,))
+                       WHERE ki.entity_type='book' AND ki.domain=ANY(%s)
+                         AND (fs.item_id IS NULL OR fs.status='unattempted')""", (doms,))
         pending = cur.fetchone()[0]
     if args.csv:
         print("domain,title,authors,external_id,url")

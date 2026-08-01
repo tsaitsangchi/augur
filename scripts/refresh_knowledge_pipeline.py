@@ -239,13 +239,15 @@ def pending_lines(cur, name, domain):
         blocked_exists = _n(cur, "SELECT count(*) FROM information_schema.tables "
                                  "WHERE table_name='knowledge_fulltext_status'")
         blocked_clause = ("AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status b "
-                          "WHERE b.item_id = i.item_id) " if blocked_exists else "")
+                          "WHERE b.item_id = i.item_id AND b.status <> 'unattempted') "
+                          if blocked_exists else "")
         n = _n(cur, "SELECT count(*) FROM knowledge_item i WHERE NOT EXISTS "
                     "(SELECT 1 FROM knowledge_item_text t WHERE t.item_id = i.item_id) "
                     + blocked_clause
                     + ("AND i.domain = %s" if domain else ""), p)
         nb = _n(cur, "SELECT count(*) FROM knowledge_fulltext_status b JOIN knowledge_item i USING (item_id)"
-                     + (" WHERE i.domain = %s" if domain else ""), p) if blocked_exists else 0
+                     " WHERE b.status <> 'unattempted'"
+                     + (" AND i.domain = %s" if domain else ""), p) if blocked_exists else 0
         return [f"item 待抓全文 {n:,}(已排除 blocked 終態帳 {nb:,} 筆=license/OA 阻擋非漏抓;分子照實)"]
     if name == "sentences":
         n = _n(cur, "SELECT count(*) FROM knowledge_item_text t JOIN knowledge_item i USING (item_id) "
