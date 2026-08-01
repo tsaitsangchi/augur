@@ -27,7 +27,7 @@
 | D1 | fulltext 'unattempted' 旗標補 121,389 件 | AI（DDL 小窗） | **W1** | ☑ |
 | cron 合批 | E4＋C1＋G1＋C4 之 install_cron.sh **單 agent 一批**＋hugo 一次 --apply | 合批=AI；apply=hugo | **W1** | ☑ |
 | A2-S1 | mean_20d 語意復原探針（四假設 SQL 對照） | AI 唯讀 | **W1** | ☑ |
-| F2 | 10-14 checklist 七項 Evidence 備料（不代勾） | AI 唯讀 | **W1** | ☐ |
+| F2 | 10-14 checklist 七項 Evidence 備料（不代勾） | AI 唯讀 | **W1** | ☑ |
 | A3 | G-SIGN 入閘呈案包（四件套＋77 筆三案） | 呈案 AI／拍板 Steward | **W2** | ☑ |
 | A2-S2 | mean_20d 產生器重建 或 除役（與 A4 併案） | 呈案→裁 | **W2** | ☑ |
 | B2 | deferred 7 筆逐筆處置 SQL（探針標 test-artifact） | Steward 拍板後執行 | **W2** | ☑ |
