@@ -40,7 +40,7 @@
 | E1 | dgate own_stack 三門錯配：supersede vs 補 h 出單（⚠時效：E1-B′ 須 08-03 20:00 前拍板） | 呈案→Steward | **W2** | 呈☑ |
 | E2 | headline 錨落帳：新表 alpha_headline_anchor | DDL AI／簽錨=hugo TTY | **W2** | 呈☑ |
 | F1 | L7.16 衝突登錄：RULING-2026-042 草稿（DRAFT 與施作同 commit） | 草擬 AI／簽=Steward | **W2** | 呈☑ |
-| F5 | 回歸鎖三規則入 CLAUDE.md 呈案（限向前生效） | 草擬 AI／定版 Steward | **W2** | 呈☑ |
+| F5 | 回歸鎖三規則入 CLAUDE.md 呈案（限向前生效） | 草擬 AI／定版 Steward | **W2** | ☑ |
 | G2 | 異地備份三案比較呈案（外接碟/加密上NAS/第二機） | 呈案→Steward | **W2** | 呈☑ |
 | G3 | identity 六表：沙盒演練→建表＋最小接線一案 | 呈案→Steward（P5 一次拍板） | **W2** | 呈☑ |
 | H1 | LAIEVO 判讀層逐格有效性（R-CELL′ 預凍；不換尺） | 呈案→Steward | **W2** | 呈☑ |

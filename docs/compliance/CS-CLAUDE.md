@@ -7,11 +7,12 @@
 * **誠實界限**：履行本檔補正；不假關 039 殘留。
 * **v1.33 增量（2026-07-31）**：新增 `#33 禁止阻塞等待迴圈`（四、long-running；#21 之對偶）。純工具用法紀律——**不改變任何內容能否進某層**，故依 CLAUDE.md §六「工具/協作慣例變更不需動憲章」**未觸發憲章同步**；亦不涉 P5/OCV 任一分量之增減（非新增 Action 類型、非改監督點）。動因＝2026-07-31 實犯：前景 `until … sleep` 迴圈使會話 600s 無回應，用戶三則訊息未獲回覆。
 * **v1.34 增量（2026-07-31）**：新增 `#34 Claude 平行度開到最大`（四、long-running），**明示反向修正 `#28(c)`「非必要不 fan-out」**，並同步改寫 #28 優先序末段與 #20 引用句（#19 一處改全鏈對齊）。動因＝Steward directive「增加 claude 同步到最大」＋實犯：以「避免兩個大 workflow 互相拖垮」為由延後第二個 workflow，該前提**從未量測**（實測 4 workflow／約 37 並行 agent 時 12 執行緒 load＝2.78）。**性質判定**：放寬對象為 Claude 自身 usage 之配額經濟，非任何監督機制；不新增 Action 類型、不改風險分級／核准層級、不新增排程或自我喚醒鏈；依 CLAUDE.md §六**未觸發憲章同步**。OCV 六分量前後對照見下 CS.3。
+* **v1.35 增量（2026-08-01）**：新增 `#35 回歸鎖三規則`（三、編輯規則；限向前生效、存量基線治理）。純測試品質紀律——不改變任何內容能否進某層，依 CLAUDE.md §六未觸發憲章同步；不涉 P5/OCV 任一分量增減（非新增 Action 類型、非改監督點；反而增加揭露：假斷言閘＋audits 紅證）。動因＝r3 20260801「三規則住所債」＋字面斷言假綠五犯。另依 F5 呈案 §3.3 選配（Steward 一併准）修正 #20 引用句殘留（「守 #28『非必要不 fan-out』」→「依 #34 該開就開滿」——v1.34 自陳已改而實未改之補正）。
 
 ```
 compliance-statement:
   spec: Augur Domain Agent Runtime Rules（CLAUDE.md）
-  spec-version: v1.34
+  spec-version: v1.35
   layer: 6
   mc-version: AUGUR-MC v1.6
   upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0, AUGUR-KS v1.1, AUGUR-L5 v1.0, AUGUR-L6 v1.2]

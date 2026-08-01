@@ -228,6 +228,17 @@ def build(days, md):
         for code, ok, ev in conds:
             L.append(f"  {'✅' if ok is True else ('⚠' if ok is None else '⬜')} {code}\n      {ev}")
 
+        # S-iii(F3-apply 圈選 2026-08-01):consequence 載體防鏽哨——每週實跑 --check(唯讀)。
+        # 紅=「不啟用只常備」策略之證偽條件觸發(呈案單 F3 條:屆時改季度演練),故紅要照印不吞。
+        import subprocess
+        from pathlib import Path
+        _f3 = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve().parent / "execute_sunset_consequence.py"),
+             "--check"], capture_output=True, text=True, timeout=120)
+        _f3_tail = (_f3.stdout or _f3.stderr or "").strip().splitlines()
+        L.append(f"  {'🟢' if _f3.returncode == 0 else '🔴'} consequence 載體防鏽哨(--check rc={_f3.returncode})"
+                 + (f"｜{_f3_tail[-1].strip()}" if _f3_tail else "｜(無輸出=異常,視同紅)"))
+
         h1(f"R6 自動決策 digest(近 {days} 日;請掃視認領)")
         cur.execute("""SELECT a.applied_at, q.feature, q.action, a.before_status, a.after_status,
                               a.evidence_json->>'auto_rule'
