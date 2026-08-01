@@ -1,0 +1,22 @@
+# 假斷言基線（存量容忍清單;C3 2026-08-01）——閘只擋新增,清償後手動移列。
+# 格式: 相對路徑\t字面\thaystack 變數名（不含行號,防編輯漂移假新增）
+scripts/apply_evolution_promotions.py	--backfill-prodset	text
+scripts/apply_evolution_promotions.py	--force	text
+scripts/migrate_feature_sign_check_ddl.py	lock_timeout	body
+scripts/migrate_promotion_queue_timing_ddl.py	DROP COLUMN	body
+scripts/migrate_promotion_queue_timing_ddl.py	conn.rollback()	body
+scripts/migrate_promotion_queue_timing_ddl.py	lock_timeout	body
+scripts/migrate_promotion_queue_timing_ddl.py	return 3	body
+scripts/migrate_promotion_queue_timing_ddl.py	這是預期行為	body
+scripts/migrate_validation_evidence_machine_note_ddl.py	return 2	body
+scripts/reconcile_ttai_bridge.py	if (unexplained or orphan)	src
+scripts/report_triple_evolution_week.py	# V2-SUNSET	src
+scripts/report_triple_evolution_week.py	**非成功指標**	src
+scripts/report_triple_evolution_week.py	自動降回逐案人閘	src
+scripts/run_raw_evolution_iteration.py	return 75	_src
+scripts/verify_evolution_acceptance.py	] else 0	src
+scripts/verify_evolution_acceptance.py	from augur.audit.evolution_contract import	src
+scripts/verify_evolution_acceptance.py	from augur.audit.import_isolation import	src
+scripts/verify_evolution_acceptance.py	尚無資料=誠實未通過	src
+src/augur/knowledge/kh7_eligibility.py	batch_decide	src
+src/augur/knowledge/kh7_eligibility.py	decide_eligibility	src

@@ -55,8 +55,12 @@ SCAN_DIRS = ("scripts", "src", "tools", "ops")
 _FULLFILE = re.compile(
     r"^\s*(\w+)\s*=\s*(?:open\(\s*__file__|Path\(\s*__file__\s*\)\.read_text|"
     r"pathlib\.Path\(\s*__file__\s*\)\.read_text)")
-# haystack 之切片：把自測段切掉（型 1 之解藥）
-_SLICED = re.compile(r"^\s*(\w+)\s*=\s*(\w+)\s*\.split\(\s*['\"]def _selftest['\"]")
+# haystack 之切片：把自測段切掉（型 1 之解藥）。
+# RHS 用 .+? 容**任意前綴**——原寫法只認 `x = y.split(...)` 兩段式，
+# 鏈式一句 `x = open(__file__).read().split("def _selftest")[0]` 認不得而被
+# _FULLFILE 誤判整檔 ⇒ 7 條誤報（run_kh_chain 4/drain_deferred_work 2/
+# recover_rejected_titled_works 1，皆已正確切片；2026-08-01 C3 修）。
+_SLICED = re.compile(r"^\s*(\w+)\s*=\s*.+?\.split\(\s*['\"]def _selftest['\"]")
 # 字面型斷言：'"literal" in haystack'
 _ASSERT = re.compile(r"""["']([^"']{3,})["']\s+(?:not\s+)?in\s+(\w+)\b""")
 
@@ -162,6 +166,15 @@ _FIXTURES = [
      'def _selftest():\n'
      '    src = open(__file__, encoding="utf-8").read()\n'
      '    # 不用字面斷言:"MAGIC_TOKEN" in src 會掃到自己\n', None),
+    # C3（2026-08-01）：鏈式一句切片曾被誤判整檔 ⇒ 7 條誤報
+    ("鏈式一句切片（open().read().split()[0]）⇒ OK 非 ERROR",
+     'MAGIC_TOKEN = 1\n\ndef _selftest():\n'
+     '    body = open(__file__, encoding="utf-8").read().split("def _selftest")[0]\n'
+     '    chk("x", "MAGIC_TOKEN" in body)\n', "OK"),
+    ("鏈式切片＋字面另有出處 ⇒ WARN（切了仍弱）",
+     'MAGIC_TOKEN = 1\nprint("MAGIC_TOKEN on")\n\ndef _selftest():\n'
+     '    body = open(__file__, encoding="utf-8").read().split("def _selftest")[0]\n'
+     '    chk("x", "MAGIC_TOKEN" in body)\n', "WARN"),
 ]
 
 
@@ -190,13 +203,75 @@ def _selftest() -> int:
 
     chk("射程誠實：不宣稱能抓『字面在但行為被繞過』",
         "不宣稱覆蓋" in scan.__doc__ if scan.__doc__ else True)
+    # C3 閘邏輯（純函式紅綠雙向）
+    _n, _c = gate_verdicts({"a\tx\tsrc", "b\ty\tsrc"}, {"a\tx\tsrc"})
+    chk("gate:基線外之新 ERROR 被抓（擋 commit 之依據）", _n == ["b\ty\tsrc"])
+    chk("gate:基線內存量不擋（清償制非一次還清）", "a\tx\tsrc" not in _n)
+    _n2, _c2 = gate_verdicts({"a\tx\tsrc"}, {"a\tx\tsrc", "z\tw\tsrc"})
+    chk("gate:已清償者列提示不自動移（防棘輪反轉）", _c2 == ["z\tw\tsrc"] and _n2 == [])
+    chk("gate:零新增零清償=安靜通過", gate_verdicts({"a\tx\tsrc"}, {"a\tx\tsrc"}) == ([], []))
     print("自測:全通過 ✓" if ok else "自測:有失敗 ✗")
     return 0 if ok else 1
+
+
+BASELINE = ROOT / "ops" / "false_assertion_baseline.txt"
+
+
+def fingerprint(rel, lit, hay):
+    """ERROR 之基線指紋——**不含行號**（行號隨編輯漂移會製造假新增）。純函式。"""
+    return f"{rel}\t{lit}\t{hay}"
+
+
+def gate_verdicts(found, baseline):
+    """(現存 ERROR 指紋集, 基線集) → (新增, 已清償)。純函式——fixture 可驗紅綠雙向。
+
+    · 新增（found−baseline）⇒ 擋 commit：新假斷言不得入庫。
+    · 已清償（baseline−found）⇒ 只提示「可自基線移除」——**不自動改基線**：
+      基線自動縮才是單向棘輪；自動擴就成了「閘自己放行自己」。
+    """
+    return sorted(found - baseline), sorted(baseline - found)
+
+
+def _collect_errors(paths):
+    out = set()
+    for p in paths:
+        try:
+            res = analyse(p.read_text(encoding="utf-8"))
+        except (UnicodeDecodeError, OSError):
+            continue
+        rel = str(p.relative_to(ROOT))
+        for _ln, lit, hay, kind in res:
+            if kind == "ERROR":
+                out.add(fingerprint(rel, lit, hay))
+    return out
+
+
+def gate(paths) -> int:
+    """pre-commit 閘：僅擋**基線之外**的新 ERROR（存量 20 條指紋容忍、逐步清償）。"""
+    if not BASELINE.exists():
+        print(f"✗ 基線檔不存在（{BASELINE}）——不敢猜白名單，fail-closed。"
+              "先跑 --write-baseline（過目後 commit 基線檔）。", file=sys.stderr)
+        return 1
+    base = {ln.rstrip("\n") for ln in BASELINE.read_text(encoding="utf-8").splitlines()
+            if ln.strip() and not ln.startswith("#")}
+    new, cleared = gate_verdicts(_collect_errors(paths), base)
+    if cleared:
+        print(f"（{len(cleared)} 條基線已清償，可自 {BASELINE.name} 移除——不自動移，防棘輪反轉）")
+    if new:
+        print(f"✗ **{len(new)} 條新假斷言**（不在基線）——恆真斷言不得入庫：", file=sys.stderr)
+        for f in new:
+            print(f"  {f}", file=sys.stderr)
+        print("  修法見 --scan 尾註（純函式餵真輸入／切自測段／下游絆線）。", file=sys.stderr)
+        return 1
+    print(f"✓ 假斷言閘：無新增（基線容忍 {len(base)} 條存量）")
+    return 0
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="揪出永遠不會紅的自測斷言")
     ap.add_argument("--scan", action="store_true")
+    ap.add_argument("--gate", action="store_true", help="pre-commit 閘：僅擋基線外之新 ERROR")
+    ap.add_argument("--write-baseline", action="store_true", help="以現況重寫基線（過目後 commit）")
     ap.add_argument("--path", help="只掃單一檔或目錄")
     ap.add_argument("--warn-too", action="store_true", help="WARN 亦使 exit 1")
     ap.add_argument("--selftest", action="store_true")
@@ -210,6 +285,17 @@ def main(argv=None) -> int:
     else:
         paths = sorted(q for d in SCAN_DIRS for q in (ROOT / d).rglob("*.py")
                        if "__pycache__" not in q.parts)
+    if a.write_baseline:
+        BASELINE.parent.mkdir(exist_ok=True)
+        errs = sorted(_collect_errors(paths))
+        BASELINE.write_text(
+            "# 假斷言基線（存量容忍清單;C3 2026-08-01）——閘只擋新增,清償後手動移列。\n"
+            "# 格式: 相對路徑\\t字面\\thaystack 變數名（不含行號,防編輯漂移假新增）\n"
+            + "\n".join(errs) + "\n", encoding="utf-8")
+        print(f"✓ 基線已寫 {len(errs)} 條 → {BASELINE}（過目後 commit）")
+        return 0
+    if a.gate:
+        return gate(paths)
     return scan(paths, a.warn_too)
 
 

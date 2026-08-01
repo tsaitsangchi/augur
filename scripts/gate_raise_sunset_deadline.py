@@ -225,13 +225,36 @@ def _selftest() -> int:
                                     "(c) LAIEVO 有任一臂在 F@L1 上同時勝過 floor 與 mismatched")))
     chk("consequence 逐字保留", "三軸整體停止、帳本封存、不得換 trigger_code 重開" in NEW_CRITERIA)
     chk("新期限為今天", f"期限：{NEW_DEADLINE}" in NEW_CRITERIA)
-    body = open(__file__, encoding="utf-8").read()
-    chk("人閘強制 TTY（非互動不得簽）", "isatty()" in body and "不得代簽" in body)
-    chk("授權沿革三段如實記錄（含一度撤回，不粉飾）",
-        "一度撤回" in body and "92 天後還是會撞到" in body)
-    chk("不寫 evaluated_at／result_snapshot（結算是另一個決定）",
-        "evaluated_at" not in body.split("def _apply")[1].split("def _selftest")[0]
-        or "SET evaluated_at" not in body)
+    # ── 2026-08-01 C3：原三條為 `"字面" in body` 而 body=整檔含本段 ⇒ 六個字串恆在、
+    # **永遠不會紅**（與 settle_sunset_gate 同病；本支為未來 GATE-raise 模板故必修）。
+    # 改行為驗證：假 TTY／monkeypatch 驗真路徑，零 DB（#18）。
+    import io as _io
+
+    # (1) 人閘：非互動時 _sign() 必須 SystemExit——餵**非空**輸入才隔離得出 isatty 檢查
+    #    （餵空字串會走到「不得留空」那條 SystemExit＝以錯的理由通過，settle 案已實犯）。
+    _si, _so = sys.stdin, sys.stdout
+    sys.stdin, sys.stdout = _io.StringIO("hugo\n"), _io.StringIO()
+    try:
+        _sign()
+        _blocked = False
+    except SystemExit:
+        _blocked = True
+    finally:
+        sys.stdin, sys.stdout = _si, _so
+    chk("非互動 TTY 時 _sign() 拒簽——即使輸入非空（拆 isatty 即紅）", _blocked)
+
+    # (2) 授權沿革：檔頭 docstring（模組層、非本段）須含三段記錄——射程限 __doc__，
+    #     本段字串不在其中 ⇒ 不自我匹配
+    _doc = sys.modules[__name__].__doc__ if __name__ != "__main__" else __doc__
+    chk("授權沿革三段在檔頭 docstring（含撤回段，不粉飾）",
+        _doc is not None and "撤回" in _doc and "重新指示" in _doc)
+
+    # (3) 不寫 evaluated_at：直接驗 _apply 之 SQL 建構——攔 INSERT 語句字面
+    #     （射程=inspect.getsource(_apply)，不含本段）
+    import inspect as _i
+    _apply_src = _i.getsource(_apply)
+    chk("_apply 之 SQL 不含 evaluated_at（結算是另一個決定，另有 settle 腳本）",
+        "evaluated_at" not in _apply_src)
     print("自測:全通過 ✓" if ok else "自測:有失敗 ✗")
     return 0 if ok else 1
 

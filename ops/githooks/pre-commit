@@ -27,6 +27,9 @@ run() {  # run <名稱> <指令…>
 run "治權引用稽核"   "$PY" scripts/check_treaty_refs.py
 run "執行指令矩陣"   "$PY" scripts/check_cmd_matrix.py
 run "#8 隔離 AST 閘" "$PY" -c "from augur.audit.import_isolation import check_isolation; v=check_isolation(); assert not v, v"
+# 第四閘(登錄冊 C3 2026-08-01):恆真自測斷言不得入庫——只擋基線外新增(存量 20 條清償制,
+# 基線=ops/false_assertion_baseline.txt);實測 0.6s。射程=型1自我匹配+型2字面另有出處。
+run "假斷言閘"       "$PY" scripts/check_false_assertions.py --gate
 if [ "$fail" -ne 0 ]; then
   echo ""
   echo "── commit 已中止。修正後重試；確需跳過請 git commit --no-verify（會留在 reflog）。"
