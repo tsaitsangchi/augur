@@ -218,6 +218,6 @@ venv/bin/python scripts/sync_attribute_versions.py --check     && venv/bin/pytho
 
 ## §7 Steward 決定欄
 
-- [ ] 甲（沙盒→新 P5 一次拍板→生產＋W-a）　- [ ] 乙（僅沙盒）　- [ ] 丙（不建）
-- 接線子選項：- [ ] W-a　- [ ] W-b　- [ ] W-c　- [ ] 修改意見：＿＿＿
-- 簽：＿＿＿　日期：＿＿＿
+- [x] 甲（沙盒→新 P5 一次拍板→生產＋W-a）　- [ ] 乙（僅沙盒）　- [ ] 丙（不建）
+- 接線子選項：- [x] W-a　- [ ] W-b　- [ ] W-c　- [ ] 修改意見：＿＿＿
+- 簽：hugo　日期：2026-08-01
