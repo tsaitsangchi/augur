@@ -1,0 +1,9 @@
+# OnFailure sink 模板(登錄冊 C4′ 2026-08-01)——%i=失敗單元名。
+# SSOT=本檔;安裝副本在 ~/.config/systemd/user/。sink=純 bash 追記 alerts.log,
+# 不依賴 DB/venv(失敗情境下它們可能正是掛掉的東西)。
+[Unit]
+Description=augur failure sink (%i)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env bash /home/hugo/project/augur/scripts/notify_failure.sh %i

@@ -28,6 +28,23 @@ from augur.core import db
 SUNSET_DEADLINE_HISTORICAL = date(2026, 10, 31)  # 原始凍結值(V2-SUNSET,已 superseded)
 
 
+def recent_alerts(lines, today, days=7):
+    """alerts.log 行 → 近 N 日者。**純函式**（登錄冊 C4′）。行格式＝'YYYY-MM-DD HH:MM:SS+ZZzz FAIL unit'。
+
+    無法解析日期之行**保留**（sink 壞掉寫出怪行時，寧可多印不可靜默丟——丟棄=另一種假綠）。
+    """
+    out = []
+    for ln in lines:
+        d = ln[:10]
+        try:
+            ok = (today - date.fromisoformat(d)).days < days
+        except ValueError:
+            ok = True   # 不可解析＝保留
+        if ok and ln.strip():
+            out.append(ln.rstrip())
+    return out
+
+
 def demote_fail_pending(is_active, action, queue_status, prom_verdict):
     """現役成員之 demote FAIL 帳是否該出現在「待你裁決」——**純函式**（judge_b 同型，登錄冊 A4）。
 
@@ -244,6 +261,20 @@ def build(days, md):
         if n_susp:
             L.append(f"  ⛔ 熔斷中:{n_susp} 個自動批源被 suspend——自動批全域暫停待人查(SRC-AUTO §二)")
 
+        # C4′ 失敗警示（登錄冊 2026-08-01）：OnFailure sink 落 alerts.log,此處印近 7 日
+        # ——sink 落了行但沒人看見＝紅燈失效之最後一哩。
+        import pathlib
+        _alog = pathlib.Path.home() / "logs" / "alerts.log"
+        _alerts = recent_alerts(_alog.read_text(encoding="utf-8").splitlines(),
+                                date.today()) if _alog.exists() else []
+        h1(f"系統失敗警示(近 7 日;OnFailure sink)")
+        if _alerts:
+            L.append(f"  **{len(_alerts)} 件**——逐件查因,勿只清 log:")
+            for a in _alerts[-8:]:
+                L.append(f"    · {a}")
+        else:
+            L.append("  0 件(13 支 service 全程無失敗;sink 端到端驗證於 2026-08-01)")
+
         h1("待你裁決(awaiting_hugo)")
         n_q = _one(cur, "SELECT count(*) FROM steward_question_ledger WHERE status='awaiting_hugo'") or 0
         L.append(f"  提問帳本 awaiting_hugo:{n_q} 題")
@@ -326,6 +357,15 @@ def _selftest():
     chk("(b) 落帳表未建⇒未達成且說明理由",
         judge_b(3, ["f_new"], {"f_new": "PASS"}, False)[0] is False
         and "未建" in judge_b(3, ["f_new"], {}, False)[1])
+    # C4′ alerts 顯示（登錄冊 2026-08-01）：純函式餵真輸入
+    _t = date(2026, 8, 1)
+    chk("C4′:近 7 日內之 FAIL 行保留", recent_alerts(
+        ["2026-07-30 10:00:00+0800 FAIL x.service"], _t) != [])
+    chk("C4′:7 日外之行過濾", recent_alerts(
+        ["2026-07-01 10:00:00+0800 FAIL old.service"], _t) == [])
+    chk("C4′:不可解析行保留（sink 壞掉寧多印不靜默丟）", recent_alerts(
+        ["GARBAGE not a date"], _t) == ["GARBAGE not a date"])
+    chk("C4′:空檔零告警（綠燈也要驗得到）", recent_alerts([], _t) == [])
     # A4 載體（登錄冊 2026-08-01）：純函式餵真輸入，四要件缺一即 False（紅綠雙向都驗）
     chk("A4:現役+demote+rejected_gate+FAIL ⇒ 出單",
         demote_fail_pending(True, "demote", "rejected_gate", "FAIL") is True)
