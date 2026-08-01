@@ -134,16 +134,23 @@ def _gate_scale(cur, run_id=None):
     住 `gate_json->'G-PROM'->'thresholds'->>'min_abs_hac_t'`(evolution.py DEFAULT_GATE_CONFIG 之落帳)。
     **與 dual_green_n 綁同一個 run**:兩者取自不同 run＝拿 A 尺量 B 數,比較失去意義。
     """
+    # A3(2026-08-01):指紋納閘集——G-SIGN 入 GATE_IDS 後新舊閘集相鄰輪自動 incomparable
+    # (iteration.compare_gain 對 gate_scale 不等硬回 incomparable);舊列字串**逐字元不變**,
+    # 歷史輪對之可比性保留,只有新閘集列帶 |gates=8+G-SIGN 後綴。
     if run_id is None:
-        cur.execute("""SELECT gate_json->'G-PROM'->'thresholds'->>'min_abs_hac_t'
+        cur.execute("""SELECT gate_json->'G-PROM'->'thresholds'->>'min_abs_hac_t',
+                              (gate_json ? 'G-SIGN')
             FROM promotion_queue WHERE gate_json ? 'G-PROM'
             ORDER BY queue_id DESC LIMIT 1""")
     else:
-        cur.execute("""SELECT gate_json->'G-PROM'->'thresholds'->>'min_abs_hac_t'
+        cur.execute("""SELECT gate_json->'G-PROM'->'thresholds'->>'min_abs_hac_t',
+                              (gate_json ? 'G-SIGN')
             FROM promotion_queue WHERE gate_json ? 'G-PROM' AND run_id=%s
             ORDER BY queue_id DESC LIMIT 1""", (run_id,))
     r = cur.fetchone()
-    return f"min_abs_hac_t={r[0]}" if r and r[0] else "unset"
+    if not (r and r[0]):
+        return "unset"
+    return f"min_abs_hac_t={r[0]}" + ("|gates=8+G-SIGN" if r[1] else "")
 
 
 def _last_complete_run(cur):
@@ -574,7 +581,7 @@ def _selftest():
             elif "count(DISTINCT feature)" in sql:
                 self._next = (1,)
             else:
-                self._next = ("2.643",)
+                self._next = ("2.643", False)   # (min_abs_hac_t, gate_json?G-SIGN)——A3 後兩欄
 
         def fetchone(self):
             return self._next
@@ -592,6 +599,21 @@ def _selftest():
         it.compare_gain(_prev_global, _snap) == (None, "incomparable"))
     chk("同版仍可比(版本鍵不擋正常增益判讀)",
         it.compare_gain(_snap, {**_snap, "prodset_active_n": 2}) == (True, "prodset_delta"))
+    # R9(A3):_gate_scale 假 cur 行為測——閘集入指紋;舊列字串逐字元不變
+    class _GSCur:
+        def __init__(self, row):
+            self._row = row
+
+        def execute(self, sql, params=None):
+            pass
+
+        def fetchone(self):
+            return self._row
+    chk("R9:新閘集列 → 指紋帶 |gates=8+G-SIGN",
+        _gate_scale(_GSCur(("2.0", True))) == "min_abs_hac_t=2.0|gates=8+G-SIGN")
+    chk("R9:舊閘集列 → 指紋逐字元不變(歷史輪對可比性保留)",
+        _gate_scale(_GSCur(("2.0", False))) == "min_abs_hac_t=2.0")
+    chk("R9:無列 → unset", _gate_scale(_GSCur(None)) == "unset")
     chk("incomparable 不計停損之訊息有印", "不計停損" in body)
     chk("每步落帳含 rc/started/finished(A3;經 step_record)", "it.step_record(" in body)
     # 射程聲明:窄於計畫 §5.1 之步驟必須逐字說明,否則十步全綠會被讀成「完整一輪跑過了」

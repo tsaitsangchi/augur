@@ -31,17 +31,13 @@ import _bootstrap  # noqa: F401
 import numpy as np
 from augur.core import db
 
-N_BOOT_SEEDS = 5
-SEED0 = 42
-
-
-def judge_sign(point_mean, boot_means, direction):
-    """判式(SIGN-B-go):sign(點估計)==direction 且全部 bootstrap 均值同號才 PASS。純函式。
-    0 均值視為不同號(無方向證據≠方向正確);direction ∈ {+1,-1}。"""
-    if direction not in (1, -1):
-        return "UNJUDGEABLE"
-    vals = [point_mean] + list(boot_means)
-    return "PASS" if all(v * direction > 0 for v in vals) else "FAIL"
+# 判式與常數移居 library（A3 2026-08-01;#12 單一住所）——此處模組層 re-export,
+# 既有屬性引用（run_meta_replay.py:147 之 vss.judge_sign 等）零改動即續通。
+from augur.philosophy.evolution import (  # noqa: E402
+    SIGN_BOOT_SEEDS as N_BOOT_SEEDS,
+    SIGN_SEED0 as SEED0,
+    judge_sign,
+)
 
 
 def map_direction(cur, feature, *, with_source=False):
@@ -206,6 +202,9 @@ def _selftest():
         and src.index("factor_direction_ruling") < src.index("principle_factor_map"))
     chk("複用 vcp as-of 機具(#12)", "_asof_ic_series" in src and "_asof_panels" in src)
     chk("bootstrap seed 確定性(42+k)", N_BOOT_SEEDS == 5 and SEED0 == 42)
+    # R7:判式單一住所斷言（行為級——搬家後屬性必指 library;本檔再定義本體即紅）
+    chk("R7:judge_sign 住 augur.philosophy.evolution(#12 單一住所)",
+        judge_sign.__module__ == "augur.philosophy.evolution")
     # 原斷言為「唯讀:零 UPDATE/INSERT」——加 --record 後**語意上已不成立**（本支會寫）。
     # 改為驗真正該守的：預設唯讀、寫入僅限 feature_sign_check、且永不碰閘／prodset／人簽欄。
     import inspect as _i

@@ -23,6 +23,8 @@ from augur.core.prodset_contract import (
 )
 
 # §4.1 機械閘（全綠才可自動 APPLY；SKIP ≠ PASS）
+# G-SIGN 入閘 2026-08-01（A3 Steward 拍板；SUNSET (b) 之閘落點）——舊七鍵 gate_json 之列
+# 自此 all_gates_green 一律 False（乙案遷移收斂舊佇列，見 ops/a3_gsign/）。
 GATE_IDS = (
     "G-ISO",
     "G-MAP",
@@ -31,6 +33,7 @@ GATE_IDS = (
     "G-ATTEST",
     "G-KILL",
     "G-NOEXEC",
+    "G-SIGN",
 )
 
 KILL_CLEAR = "clear"
@@ -80,10 +83,12 @@ NOEXEC_FORBIDDEN_LITERALS = tuple(
 # 預設閘閾值（釘入 evolution_run.config_json；同 run 禁事後改寫）
 # G-PROM 三關＝方法論 §四：(a) as-of IC (b) |HAC-t|≥2 (c) ≥3 seed 多因子增量 Δ>0
 # G-ECON＝#14：淨 Sharpe 優於基準 ∧ MaxDD ≥ floor（floor 為負值下界）
+# G-SIGN＝SIGN-B-go 判式（hugo 2026-07-28 簽核；A3 入閘 2026-08-01）
 DEFAULT_GATE_CONFIG: dict[str, Any] = {
     "policy": "PME-AUTO-B",
     "kill_required": True,
     "fz_keep": True,
+    "gate_set_rev": "8g-sign-v1",  # 閘集版本（入 config_json 供 provenance；A3）
     "gates": {
         "G-PROM": {
             "require_hac_t": True,
@@ -98,9 +103,29 @@ DEFAULT_GATE_CONFIG: dict[str, Any] = {
             "top_frac": 0.1,
             "max_dd_floor": -0.60,  # portfolio_net MaxDD 不得劣於此（更負＝FAIL）
         },
+        "G-SIGN": {
+            "n_boot_seeds": 5,
+            "seed0": 42,
+            "min_series": 6,
+            "unjudgeable_verdict": "FAIL",  # Steward A3 拍板落點：FAIL=fail-closed；改 'SKIP' 即乙案
+        },
     },
     "soul_wording_pending": False,  # [I] G-PME-SOUL closed 2026-07-24；靈魂／#20／A.53 已寫入
 }
+
+# —— G-SIGN(SIGN-B-go 判式簽核 hugo 2026-07-28;自 scripts/verify_sign_consistency.py 移居=#12 單一住所) ——
+SIGN_BOOT_SEEDS = 5     # panel block bootstrap 席數（儀器釘死;verify_sign_consistency 同源引用）
+SIGN_SEED0 = 42
+SIGN_MIN_SERIES = 6     # IC 序列下限;未達=不可判（樣本不足非證據）
+
+
+def judge_sign(point_mean, boot_means, direction):
+    """判式(SIGN-B-go):sign(點估計)==direction 且全部 bootstrap 均值同號才 PASS。純函式。
+    0 均值視為不同號(無方向證據≠方向正確);direction ∈ {+1,-1}。"""
+    if direction not in (1, -1):
+        return "UNJUDGEABLE"
+    vals = [point_mean] + list(boot_means)
+    return "PASS" if all(v * direction > 0 for v in vals) else "FAIL"
 
 EVOLUTION_DDL = [
     """CREATE TABLE IF NOT EXISTS evolution_run (
@@ -239,7 +264,7 @@ def normalize_kill_state(state: str | None, *, env_halt: bool = False) -> str:
     raise ValueError(f"illegal kill-switch state: {state!r}")
 
 
-KILL_SCOPES = ("tw", "lai", "raw", "global")
+KILL_SCOPES = ("tw", "lai", "raw", "global", "sim")   # sim:H2 2026-08-01 與 DDL 同批
 
 
 def effective_kill_state(states, *, env_halt: bool = False) -> str:
@@ -261,7 +286,7 @@ def gate_verdict(result: Mapping[str, Any]) -> str:
 
 
 def all_gates_green(gate_json: Mapping[str, Any]) -> bool:
-    """AUTO-B：七閘皆 PASS 才可 APPLY；任一 FAIL／SKIP／缺閘 → False。"""
+    """AUTO-B：GATE_IDS 全閘（八閘，含 G-SIGN）皆 PASS 才可 APPLY；任一 FAIL／SKIP／缺閘 → False。"""
     for gid in GATE_IDS:
         if gid not in gate_json:
             return False
@@ -279,8 +304,9 @@ def build_gate_json(
     g_attest: Mapping[str, Any],
     g_kill: Mapping[str, Any],
     g_noexec: Mapping[str, Any],
+    g_sign: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """組裝 gate_json（鍵＝GATE_IDS）。"""
+    """組裝 gate_json（鍵＝GATE_IDS）。g_sign 必填無預設——漏改呼叫端即 TypeError（fail-loud）。"""
     out = {
         "G-ISO": dict(g_iso),
         "G-MAP": dict(g_map),
@@ -289,6 +315,7 @@ def build_gate_json(
         "G-ATTEST": dict(g_attest),
         "G-KILL": dict(g_kill),
         "G-NOEXEC": dict(g_noexec),
+        "G-SIGN": dict(g_sign),
     }
     for gid in GATE_IDS:
         out[gid].setdefault("verdict", "FAIL")
@@ -566,6 +593,66 @@ def evaluate_g_econ_from_evidence(
     }
 
 
+def evaluate_g_sign_from_evidence(
+    evidence: Mapping[str, Any],
+    cfg: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """由符號一致性證據裁決 G-SIGN（純函式；判式＝judge_sign，SIGN-B-go 簽核原文）。
+
+    evidence 鍵：
+      direction (int|None|'conflict')   — 正典方向（factor_direction_ruling 優先於 map 共識；
+                                          呼叫端以 verify_sign_consistency.map_direction 取得）
+      direction_source (str)
+      point_ic (float|None)             — as-of IC 點估計（**raw 未乘方向**口徑，與 feature_sign_check 同）
+      boot_ics (list[float]|None)       — panel block bootstrap 均值（raw 口徑；SIGN_BOOT_SEEDS 席）
+      n_series (int)                    — IC 序列長度
+      skipped_reason (str|None)         — 整閘無法算（如 coverage_class 非 mapped）時誠實 SKIP
+
+    不可判（無方向／衝突／n_series<門檻／判式輸入不全）之 verdict 落點由
+    cfg gates.G-SIGN.unjudgeable_verdict 釘定（預設 'FAIL'＝fail-closed 人閘；Steward A3 拍板欄）。
+    一律附 unjudgeable=True 旗標——與「證據俱在而判負」之 FAIL 可機械區分，不混統計。
+    **禁用 'FAIL_SIGN' 字串**：該值屬 G-PROM R3 除役通道之保留字（執行計畫 W3 第 3 件）。
+    """
+    gcfg = dict((cfg or DEFAULT_GATE_CONFIG).get("gates", {}).get("G-SIGN", {}))
+    min_series = int(gcfg.get("min_series", SIGN_MIN_SERIES))
+    n_boot = int(gcfg.get("n_boot_seeds", SIGN_BOOT_SEEDS))
+    unj = str(gcfg.get("unjudgeable_verdict", "FAIL")).upper()
+
+    skip = evidence.get("skipped_reason")
+    if skip:
+        return {"verdict": "SKIP", "reason": str(skip),
+                "evidence": dict(evidence), "thresholds": gcfg}
+
+    def _unjudgeable(reason: str) -> dict[str, Any]:
+        return {"verdict": unj, "unjudgeable": True, "reason": reason,
+                "judge": "UNJUDGEABLE", "evidence": dict(evidence), "thresholds": gcfg}
+
+    direction = evidence.get("direction")
+    if direction not in (1, -1):
+        return _unjudgeable(f"direction={direction!r} 非 ±1（無方向/衝突＝fail-closed 人閘）")
+    n = int(evidence.get("n_series") or 0)
+    if n < min_series:
+        return _unjudgeable(f"IC 序列 n={n} < {min_series}（樣本不足非證據）")
+    point = evidence.get("point_ic")
+    boots = evidence.get("boot_ics")
+    if point is None or boots is None or len(boots) < n_boot:
+        return _unjudgeable("point_ic/boot_ics 不全（儀器未跑完整判式）")
+
+    v = judge_sign(float(point), [float(b) for b in boots], int(direction))
+    return {
+        "verdict": v,                      # 此處 v∈{PASS,FAIL}（±1 已前置檢查）
+        "judge": v,
+        "reason": ("sign consistent: 點估計+全 bootstrap 同號==direction" if v == "PASS"
+                   else "sign inconsistent: 點估計或任一 bootstrap 與 direction 異號"),
+        "direction": int(direction),
+        "direction_source": evidence.get("direction_source"),
+        "point_ic": float(point),
+        "n_series": n,
+        "evidence": dict(evidence),
+        "thresholds": gcfg,
+    }
+
+
 def status_after_apply(action: str, before: str | None, prom_verdict: str | None = None) -> str:
     """philosophy_principle.status 轉移（B 引擎寫入）。
 
@@ -679,7 +766,8 @@ def _selftest() -> int:
         ok = ok and cond
         print(f"  {'✓' if cond else '✗FAIL'} {name}")
 
-    chk("GATE_IDS 七閘", len(GATE_IDS) == 7)
+    chk("GATE_IDS 八閘（A3 G-SIGN 入閘）", len(GATE_IDS) == 8)          # R1
+    chk("G-SIGN 在 GATE_IDS", "G-SIGN" in GATE_IDS)                     # R1
     chk("DDL 六表", len(EVOLUTION_DDL) == 6 and all("CREATE TABLE" in d for d in EVOLUTION_DDL))
     chk("DDL 含 prodset", any(PRODSET_TABLE in d for d in EVOLUTION_DDL))
     chk("prodset promote→active", prodset_status_for_action("promote") == PRODSET_ACTIVE)
@@ -702,8 +790,63 @@ def _selftest() -> int:
         g_attest={"verdict": "PASS"},
         g_kill={"verdict": "PASS", "state": "clear"},
         g_noexec={"verdict": "PASS"},
+        g_sign={"verdict": "PASS"},
     )
     chk("all_gates_green", all_gates_green(green))
+    # R2:七鍵全 PASS（舊世代 gate_json、無 G-SIGN 鍵）不可放行
+    old7 = {g: {"verdict": "PASS"} for g in GATE_IDS if g != "G-SIGN"}
+    chk("R2:七鍵全 PASS → all_gates_green=False（舊世代列不可放行）", not all_gates_green(old7))
+    # R3:漏改呼叫端 fail-loud——七參數呼叫必拋 TypeError（行為測）
+    _r3 = False
+    try:
+        build_gate_json(
+            g_iso={"verdict": "PASS"}, g_map={"verdict": "PASS"}, g_prom={"verdict": "PASS"},
+            g_econ={"verdict": "PASS"}, g_attest={"verdict": "PASS"},
+            g_kill={"verdict": "PASS"}, g_noexec={"verdict": "PASS"},
+        )
+    except TypeError:
+        _r3 = True
+    chk("R3:build_gate_json 七參數 → TypeError（fail-loud）", _r3)
+    # R5:FAIL_SIGN 除役通道不受 G-SIGN 影響（demote 不經 all_gates_green；舊七鍵列相容）
+    _old7_sign = {g: {"verdict": "PASS"} for g in GATE_IDS if g != "G-SIGN"}
+    _old7_sign["G-PROM"] = {"verdict": "FAIL_SIGN", "evidence": {"hac_t": -3.966}}
+    chk("R5:demote+FAIL_SIGN → pending_auto（通道不變）",
+        decide_queue_status(_old7_sign, KILL_CLEAR, action="demote") == "pending_auto")
+    _r5_ok, _r5_reason = may_apply(kill_state=KILL_CLEAR, gate_json=_old7_sign,
+                                   queue_status="pending_auto", action="demote")
+    chk("R5:舊七鍵 demote FAIL_SIGN 經 may_apply 仍放行（舊列相容）", _r5_ok and "R3" in _r5_reason)
+    # R4:evaluate_g_sign_from_evidence 五路＋cfg 覆蓋（純函式餵真輸入）
+    _s_pass = evaluate_g_sign_from_evidence(
+        {"direction": 1, "direction_source": "principle_factor_map",
+         "point_ic": 0.02, "boot_ics": [0.01, 0.03, 0.02, 0.01, 0.02], "n_series": 10})
+    chk("R4:G-SIGN PASS（全同號==direction）", _s_pass["verdict"] == "PASS" and _s_pass["judge"] == "PASS")
+    _s_fail = evaluate_g_sign_from_evidence(
+        {"direction": 1, "direction_source": "principle_factor_map",
+         "point_ic": 0.02, "boot_ics": [0.01, -0.001, 0.03, 0.02, 0.01], "n_series": 10})
+    chk("R4:一 bootstrap 翻號 → FAIL（非 unjudgeable）",
+        _s_fail["verdict"] == "FAIL" and not _s_fail.get("unjudgeable"))
+    _s_nodir = evaluate_g_sign_from_evidence(
+        {"direction": None, "direction_source": "none",
+         "point_ic": 0.02, "boot_ics": [0.01] * 5, "n_series": 10})
+    chk("R4:無方向 → FAIL+unjudgeable（fail-closed 人閘）",
+        _s_nodir["verdict"] == "FAIL" and _s_nodir.get("unjudgeable") is True
+        and _s_nodir["judge"] == "UNJUDGEABLE")
+    _s_short = evaluate_g_sign_from_evidence(
+        {"direction": 1, "direction_source": "principle_factor_map",
+         "point_ic": 0.02, "boot_ics": [0.01] * 5, "n_series": 5})
+    chk("R4:n_series=5<6 → FAIL+unjudgeable（樣本不足非證據）",
+        _s_short["verdict"] == "FAIL" and _s_short.get("unjudgeable") is True)
+    _s_skip = evaluate_g_sign_from_evidence({"skipped_reason": "coverage_class=missing"})
+    chk("R4:skipped_reason → SKIP（誠實缺料）", _s_skip["verdict"] == "SKIP")
+    _cfg_skip = {"gates": {"G-SIGN": {"unjudgeable_verdict": "SKIP"}}}
+    _s_cfg = evaluate_g_sign_from_evidence(
+        {"direction": "conflict", "direction_source": "principle_factor_map(conflict)",
+         "point_ic": 0.02, "boot_ics": [0.01] * 5, "n_series": 10}, _cfg_skip)
+    chk("R4:cfg unjudgeable_verdict='SKIP' 覆蓋路（改一鍵不改判式）",
+        _s_cfg["verdict"] == "SKIP" and _s_cfg.get("unjudgeable") is True)
+    chk("G-SIGN 判式常數釘死（5 席/seed 42/n≥6）",
+        SIGN_BOOT_SEEDS == 5 and SIGN_SEED0 == 42 and SIGN_MIN_SERIES == 6)
+    chk("judge_sign:零均值=不同號（無證據≠正確）", judge_sign(0.0, [0.01], 1) == "FAIL")
     chk("decide pending_auto", decide_queue_status(green, KILL_CLEAR) == "pending_auto")
     chk("decide halted on kill", decide_queue_status(green, KILL_HALT) == "halted")
 
@@ -816,6 +959,7 @@ if __name__ == "__main__":
     print("公開入口: classify_coverage / build_gate_json / all_gates_green / may_apply /")
     print("          decide_queue_status / normalize_kill_state / scan_noexec_text / attest_complete /")
     print("          evaluate_g_prom_from_evidence / evaluate_g_econ_from_evidence /")
+    print("          judge_sign / evaluate_g_sign_from_evidence /")
     print("          classify_status_alignment / sync_action_for_alignment / is_a7_violation /")
     print("          prodset_status_for_action / production_set_delta")
     print("(自測: python -m augur.philosophy.evolution --selftest；免 DB 免 API)")

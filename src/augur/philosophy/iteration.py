@@ -206,6 +206,12 @@ def _selftest() -> int:
          incomparable_reason({**v2, "gate_scale": "p95=2.000"}, v2),
          incomparable_reason(v2, v2)) == ("no_prev", "snapshot_ver", "gate_scale", None))
     chk("SNAPSHOT_VER 現版=2(scoped prodset 口徑;升版須連動 driver _snapshot)", SNAPSHOT_VER == 2)
+    # R10(A3 2026-08-01):跨閘集邊界鎖——G-SIGN 入閘後指紋帶後綴,相鄰輪必 incomparable。
+    # 現碼既已通過(compare_gain 對 gate_scale 不等硬回 incomparable);此鎖為凍結防回歸、既綠收錄。
+    chk("R10:跨閘集(G-SIGN 入閘)相鄰輪=incomparable(停損計數不受污染)",
+        compare_gain({**v2, "gate_scale": "min_abs_hac_t=2.0"},
+                     {**v2, "gate_scale": "min_abs_hac_t=2.0|gates=8+G-SIGN"})
+        == (None, "incomparable"))
 
     chk("**incomparable 不推進停損計數**", next_no_gain_count(2, None, "incomparable") == 2)
     chk("無增益 +1", next_no_gain_count(2, False, "none") == 3)

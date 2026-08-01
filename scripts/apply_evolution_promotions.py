@@ -87,9 +87,24 @@ def _selftest() -> int:
     text = Path(__file__).read_text(encoding="utf-8")
     chk("G-NOEXEC clean", scan_noexec_text(text) == [])
     green = {g: {"verdict": "PASS"} for g in (
+        "G-ISO", "G-MAP", "G-PROM", "G-ECON", "G-ATTEST", "G-KILL", "G-NOEXEC", "G-SIGN"
+    )}
+    chk("gates green（八閘含 G-SIGN）", all_gates_green(green))
+    # R6:舊世代七鍵（無 G-SIGN）green 不得放行——APPLY 端與 library 同判
+    old7 = {g: {"verdict": "PASS"} for g in (
         "G-ISO", "G-MAP", "G-PROM", "G-ECON", "G-ATTEST", "G-KILL", "G-NOEXEC"
     )}
-    chk("gates green", all_gates_green(green))
+    chk("R6:七鍵 green → all_gates_green=False", not all_gates_green(old7))
+    ok_o7, r_o7 = may_apply(kill_state=KILL_CLEAR, gate_json=old7,
+                            queue_status="pending_auto", action="promote")
+    chk("R6:七鍵 green promote 拒（gates not all PASS）",
+        (not ok_o7) and r_o7 == "gates not all PASS")
+    # R5:舊七鍵 demote FAIL_SIGN 仍自動放行（除役通道不經 all_gates_green；舊列相容）
+    old7_sign = dict(old7)
+    old7_sign["G-PROM"] = {"verdict": "FAIL_SIGN", "evidence": {"hac_t": -3.966}}
+    ok_o7s, _ = may_apply(kill_state=KILL_CLEAR, gate_json=old7_sign,
+                          queue_status="pending_auto", action="demote")
+    chk("R5:舊七鍵 demote FAIL_SIGN 經 may_apply 仍放行", ok_o7s)
     ok_a, reason = may_apply(kill_state=KILL_HALT, gate_json=green, queue_status="pending_auto")
     chk("A5 halt refuse", (not ok_a) and "halt" in reason.lower())
     ok_b, _ = may_apply(kill_state=KILL_CLEAR, gate_json=green, queue_status="pending_auto")

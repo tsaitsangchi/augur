@@ -49,7 +49,8 @@ def _selftest() -> int:
     chk("normalize clear", normalize_kill_state("clear") == KILL_CLEAR)
     chk("normalize halt", normalize_kill_state("HALT") == KILL_HALT)
     chk("env OR halt", normalize_kill_state("clear", env_halt=True) == KILL_HALT)
-    chk("四 scope 封閉集", set(KILL_SCOPES) == {"tw", "lai", "raw", "global"})
+    chk("五 scope 封閉集(H2 2026-08-01 加 sim;與 DDL chk_kill_switch_scope 同批)",
+        set(KILL_SCOPES) == {"tw", "lai", "raw", "global", "sim"})
     chk("scoped OR:任一 halt 即 halt", effective_kill_state(["clear", "halt"]) == KILL_HALT)
     chk("scoped OR:全 clear 即 clear", effective_kill_state(["clear", "clear"]) == KILL_CLEAR)
     chk("scoped:空序列=表無列=clear(建表前相容)", effective_kill_state([]) == KILL_CLEAR)

@@ -36,6 +36,9 @@ from augur.philosophy.evolution import (
     DEFAULT_GATE_CONFIG,
     KILL_CLEAR,
     KILL_HALT,
+    SIGN_BOOT_SEEDS,
+    SIGN_MIN_SERIES,
+    SIGN_SEED0,
     attest_complete,
     build_gate_json,
     classify_coverage,
@@ -43,10 +46,18 @@ from augur.philosophy.evolution import (
     effective_kill_state,
     evaluate_g_econ_from_evidence,
     evaluate_g_prom_from_evidence,
+    evaluate_g_sign_from_evidence,
     map_action_from_evidence,
     normalize_kill_state,
     scan_noexec_text,
 )
+
+
+def _vss():
+    """同目錄 script 互 import（先例＝run_meta_replay.py:96-98）；G-SIGN 方向正典與落帳複用 #12。"""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import verify_sign_consistency as vss
+    return vss
 
 
 def _selftest() -> int:
@@ -123,6 +134,7 @@ def _selftest() -> int:
         g_attest={"verdict": "PASS"},
         g_kill={"verdict": "PASS"},
         g_noexec={"verdict": "PASS"},
+        g_sign={"verdict": "SKIP", "reason": "skeleton"},
     )
     chk("skeleton → rejected_gate", decide_queue_status(g, KILL_CLEAR) == "rejected_gate")
     prom = evaluate_g_prom_from_evidence(
@@ -139,6 +151,7 @@ def _selftest() -> int:
         g_attest={"verdict": "PASS"},
         g_kill={"verdict": "PASS"},
         g_noexec={"verdict": "PASS"},
+        g_sign={"verdict": "PASS"},
     )
     chk("local green → pending_auto", decide_queue_status(g2, KILL_CLEAR) == "pending_auto")
     # —— M-1 符號一致性(2026-07-27 拍板;實測值錨=volume_gini_60d 病灶形態) ——
@@ -153,6 +166,7 @@ def _selftest() -> int:
     g3 = build_gate_json(
         g_iso={"verdict": "PASS"}, g_map={"verdict": "PASS"}, g_prom=sign, g_econ=econ,
         g_attest={"verdict": "PASS"}, g_kill={"verdict": "PASS"}, g_noexec={"verdict": "PASS"},
+        g_sign={"verdict": "PASS"},   # 驗 FAIL_SIGN 通道不被 G-SIGN 干擾
     )
     chk("FAIL_SIGN → rejected_gate(不入 pending_auto)",
         decide_queue_status(g3, KILL_CLEAR) == "rejected_gate")
@@ -242,12 +256,14 @@ def _load_maps(cur):
     return [dict(zip(cols, r)) for r in cur.fetchall()]
 
 
-def _prom_econ_skeleton(row: dict, *, with_local: bool) -> tuple[dict, dict]:
-    """G-PROM／G-ECON：skeleton 預設 SKIP；--with-local-evidence 僅附 validated_* 仍 SKIP。"""
+def _prom_econ_skeleton(row: dict, *, with_local: bool) -> tuple[dict, dict, dict]:
+    """G-PROM／G-ECON／G-SIGN：skeleton 預設 SKIP；--with-local-evidence 僅附 validated_* 仍 SKIP。"""
+    sign = {"verdict": "SKIP", "reason": "skeleton; sign not evaluated"}
     if not with_local:
         return (
             {"verdict": "SKIP", "reason": "skeleton; use --local-gates for PASS/FAIL"},
             {"verdict": "SKIP", "reason": "skeleton; use --local-gates for PASS/FAIL"},
+            sign,
         )
     prom = {
         "verdict": "SKIP",
@@ -263,7 +279,7 @@ def _prom_econ_skeleton(row: dict, *, with_local: bool) -> tuple[dict, dict]:
         prom = {"verdict": "SKIP", "reason": "no validated_ic; blocked or never verified"}
     if row.get("validated_econ") is None:
         econ = {"verdict": "SKIP", "reason": "no validated_econ; never verified"}
-    return prom, econ
+    return prom, econ, sign
 
 
 def _ridge_mean_ic(conn, panels: list, h: int, feats: list[str]) -> float | None:
@@ -316,8 +332,8 @@ def _compute_feature_gates(
     cfg: dict,
     skip_multi_seed: bool,
     prod_feats: list[str] | None,
-) -> tuple[dict, dict]:
-    """本地 DB 重算單一 feature 之 G-PROM／G-ECON（零外部 API）。"""
+) -> tuple[dict, dict, dict]:
+    """本地 DB 重算單一 feature 之 G-PROM／G-ECON／G-SIGN（零外部 API）。"""
     import numpy as np
 
     from augur.core import db
@@ -355,6 +371,32 @@ def _compute_feature_gates(
 
     summ = metrics.summarize(ic_by_panel)
     hac_t = metrics.effective_t_hac(ic_by_panel) if ic_by_panel else None
+
+    # —— G-SIGN 證據（A3；判式=SIGN-B-go）——正典方向另取（裁決表優先、conflict 偵測；
+    # 不沿用呼叫端 None→1 硬默認，那會偽造方向）。ic_by_panel 為「已乘 engine 方向」口徑，
+    # 落證據前還原 raw（dir∈±1 故乘回即 raw），與 feature_sign_check／verify_sign_consistency 同口徑。
+    vss = _vss()
+    with db.transaction(conn) as cur:
+        d_canon, d_src = vss.map_direction(cur, feature, with_source=True)
+    ics = [float(v) for v in ic_by_panel.values()]
+    sign_ev: dict = {
+        "direction": d_canon,
+        "direction_source": d_src,
+        "engine_direction": int(direction),   # IC 乘用值；與正典不一致時如實入帳供稽核
+        "n_series": len(ics),
+        "point_ic": None,
+        "boot_ics": None,
+    }
+    if len(ics) >= SIGN_MIN_SERIES:
+        arr = np.array(ics, dtype=float)
+        boots_adj = []
+        for k in range(SIGN_BOOT_SEEDS):
+            rng_s = np.random.default_rng(SIGN_SEED0 + k)
+            boots_adj.append(float(arr[rng_s.integers(0, len(arr), len(arr))].mean()))
+        sign_ev["point_ic"] = float(arr.mean()) * int(direction)
+        sign_ev["boot_ics"] = [b * int(direction) for b in boots_adj]
+    g_sign = evaluate_g_sign_from_evidence(sign_ev, cfg)
+
     prom_ev: dict = {
         "n_panels": summ.get("n_panels", 0),
         "mean_ic": summ.get("mean_ic"),
@@ -371,7 +413,8 @@ def _compute_feature_gates(
         g_econ = evaluate_g_econ_from_evidence(
             {"skipped_reason": "skipped: no IC panels → econ not run"}, cfg
         )
-        return g_prom, g_econ
+        # g_sign 此時 n_series=0 → UNJUDGEABLE⇒FAIL(fail-closed；非 SKIP——儀器有跑、樣本不足非證據)
+        return g_prom, g_econ, g_sign
 
     # —— multi-seed 增量（Ridge-only；方法論 §四 (c)；不跑 GBDT 以免放量過慢）——
     if skip_multi_seed:
@@ -441,7 +484,7 @@ def _compute_feature_gates(
         econ_ev = {"skipped_reason": f"econ error: {type(e).__name__}: {e}"[:200]}
 
     g_econ = evaluate_g_econ_from_evidence(econ_ev, cfg)
-    return g_prom, g_econ
+    return g_prom, g_econ, g_sign
 
 
 def _draw_abs_hac(panel_data: list, arm: str, rng) -> float | None:
@@ -680,7 +723,7 @@ def run_evolution(
     print(f"  dry_run={dry_run} skip_multi_seed={skip_multi_seed}")
 
     # per-feature gate cache（同 feature 多 principle 共用）
-    gate_cache: dict[str, tuple[dict, dict]] = {}
+    gate_cache: dict[str, tuple[dict, dict, dict]] = {}
     prod_feats: list[str] | None = None
     if mode == "local_gates" and panels:
         with db.connect() as conn:
@@ -691,7 +734,34 @@ def run_evolution(
                 print(f"  ⚠ canonical_features failed: {e} → multi-seed will SKIP")
                 prod_feats = None
 
-    def gates_for(m: dict) -> tuple[dict, dict]:
+    # G-SIGN 雙寫 feature_sign_check（僅 live 非 dry-run；A3 §3.4.5）。表未建=大聲警告後略過
+    # （不擋輪；訊息每 run stdout 可見、非靜默），gate_json 內之 G-SIGN verdict 不受影響。
+    sign_sink = {"checked": False, "ok": False}
+
+    def _sign_record(f: str, gs: dict) -> None:
+        vss = _vss()
+        if not sign_sink["checked"]:
+            sign_sink["checked"] = True
+            with db.connect() as c, db.transaction(c) as cur:
+                cur.execute("SELECT to_regclass('public.feature_sign_check')")
+                sign_sink["ok"] = cur.fetchone()[0] is not None
+            if not sign_sink["ok"]:
+                print("  ⚠ feature_sign_check 未建——G-SIGN 只落 gate_json、sign 帳本缺頁"
+                      "（先跑 scripts/migrate_feature_sign_check_ddl.py --apply）", flush=True)
+        if not sign_sink["ok"]:
+            return
+        ev = gs.get("evidence") or {}
+        pt = ev.get("point_ic")
+        rows = vss.build_sign_rows(
+            f, ev.get("direction"), ev.get("direction_source"),
+            [(horizon_h, gs.get("judge", "UNJUDGEABLE"),
+              (float(pt) if pt is not None else float("nan")),
+              int(ev.get("n_series") or 0), list(ev.get("boot_ics") or []))],
+            [str(p) for p in panels], sha)
+        with db.connect() as c, db.transaction(c) as cur:
+            vss._record_rows(cur, rows)
+
+    def gates_for(m: dict) -> tuple[dict, dict, dict]:
         f = m["feature"]
         cls = feat_class[f]
         if mode != "local_gates":
@@ -701,13 +771,15 @@ def run_evolution(
             return (
                 {"verdict": "SKIP", "reason": reason, "coverage_class": cls},
                 {"verdict": "SKIP", "reason": reason, "coverage_class": cls},
+                {"verdict": "SKIP", "reason": f"coverage_class={cls}; G-SIGN not evaluated",
+                 "coverage_class": cls},
             )
         if f in gate_cache:
             return gate_cache[f]
         t0 = time.monotonic()
         print(f"  … local-gates compute {f} (dir={m['direction']:+d}) …", flush=True)
         with db.connect() as conn:
-            gp, ge = _compute_feature_gates(
+            gp, ge, gs = _compute_feature_gates(
                 conn,
                 feature=f,
                 direction=int(m["direction"] or 1),
@@ -718,12 +790,14 @@ def run_evolution(
                 prod_feats=prod_feats,
             )
         print(
-            f"    → G-PROM={gp['verdict']} G-ECON={ge['verdict']} "
+            f"    → G-PROM={gp['verdict']} G-ECON={ge['verdict']} SIGN={gs['verdict']} "
             f"({time.monotonic()-t0:.1f}s)",
             flush=True,
         )
-        gate_cache[f] = (gp, ge)
-        return gp, ge
+        gate_cache[f] = (gp, ge, gs)
+        if not dry_run and gs.get("verdict") != "SKIP":
+            _sign_record(f, gs)
+        return gp, ge, gs
 
     if dry_run:
         sample = maps[:5] if mode == "local_gates" else maps[:3]
@@ -733,7 +807,7 @@ def run_evolution(
                 "verdict": "PASS" if cls == "mapped" else "FAIL",
                 "coverage_class": cls,
             }
-            g_prom, g_econ = gates_for(m)
+            g_prom, g_econ, g_sign = gates_for(m)
             gj = build_gate_json(
                 g_iso=g_iso,
                 g_map=g_map,
@@ -742,6 +816,7 @@ def run_evolution(
                 g_attest=g_attest,
                 g_kill=g_kill,
                 g_noexec=g_noexec,
+                g_sign=g_sign,
             )
             dry_action = map_action_from_evidence(
                 coverage_class=cls,
@@ -752,6 +827,7 @@ def run_evolution(
             print(
                 f"  dry {m['feature']}: class={cls} "
                 f"PROM={g_prom.get('verdict')} ECON={g_econ.get('verdict')} "
+                f"SIGN={g_sign.get('verdict')} "
                 f"action={dry_action} →{qs}"
             )
         return 0
@@ -796,7 +872,7 @@ def run_evolution(
 
     # queue 列：local-gates 計算可能很久 → 逐筆短交易，避免長鎖
     n_pending = n_rej = n_halt = 0
-    verdict_tally = {"G-PROM": {}, "G-ECON": {}}
+    verdict_tally = {"G-PROM": {}, "G-ECON": {}, "G-SIGN": {}}
     for m in maps:
         cls = feat_class[m["feature"]]
         g_map = {
@@ -804,8 +880,8 @@ def run_evolution(
             "coverage_class": cls,
             "in_feature_values": bool(m["in_fv"]),
         }
-        g_prom, g_econ = gates_for(m)
-        for gid, gv in (("G-PROM", g_prom), ("G-ECON", g_econ)):
+        g_prom, g_econ, g_sign = gates_for(m)
+        for gid, gv in (("G-PROM", g_prom), ("G-ECON", g_econ), ("G-SIGN", g_sign)):
             v = str(gv.get("verdict", "FAIL"))
             verdict_tally[gid][v] = verdict_tally[gid].get(v, 0) + 1
         gj = build_gate_json(
@@ -816,6 +892,7 @@ def run_evolution(
             g_attest=g_attest,
             g_kill=g_kill,
             g_noexec=g_noexec,
+            g_sign=g_sign,
         )
         action = map_action_from_evidence(
             coverage_class=cls,
@@ -849,7 +926,8 @@ def run_evolution(
     _ACTIVE_RUN["closed"] = True            # B1：正常關帳，abort 收尾不再介入
 
     print(f"✓ run_id={run_id} status={final} queue pending={n_pending} rejected={n_rej} halted={n_halt}")
-    print(f"  G-PROM tally={verdict_tally['G-PROM']} G-ECON tally={verdict_tally['G-ECON']}")
+    print(f"  G-PROM tally={verdict_tally['G-PROM']} G-ECON tally={verdict_tally['G-ECON']} "
+          f"G-SIGN tally={verdict_tally['G-SIGN']}")
     if n_pending:
         print(f"  → S3: python scripts/apply_evolution_promotions.py --run-id {run_id}")
     else:
