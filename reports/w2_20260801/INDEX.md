@@ -35,3 +35,9 @@
 ## 待裁之外的既備件
 
 `backfill_evolution_run_zombies.py --apply`（B1，9 列）與 `execute_sunset_consequence.py`（F3，落地不啟用）為執行件非呈案，裁決同批圈選即可。
+
+## 預製波追加（2026-08-01 夜；圈選點）
+
+- **D2S_sim_prereg_gate_proposal**：SIM-CAL-R1 判準＋T-A 嚴/T-B 寬兩組門檻＋四圈選點（sim 門立前一切 sim 數字屬 self-reported）。
+- **B4P2_remaining_tables_proposal**：19 表三批（P2a 治權 6 表先／P2b 引擎 6 表 run 21 後／P2c sim 七表緩議）；⚠13 表 legacy trigger 名分居 3 檔、照抄 P0 卸不掉舊閘（已載修法）。
+- 另 `reports/augur_identity_mismatch_triage_20260801.md`：37 例預裁包（A=34/B=1/C=2；建議 MM-A+MM-B 全收、MM-C 留人裁）。

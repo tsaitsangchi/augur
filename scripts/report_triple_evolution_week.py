@@ -82,6 +82,33 @@ def judge_b(n_active, newcomers, sign_rows, has_tbl, baseline_ts="?"):
     return done, note
 
 
+def sign_rows_from_history(rows):
+    """feature_sign_check 全史列 → {feature: 聚合 verdict}。**純函式**（judge_b 同型;週報 (b) 口徑）。
+
+    口徑（2026-08-01,A3 落地時記錄之另案殘項）:某 feature「通過」＝該 feature 在表內
+    **每個 h 各自最新列皆 PASS**。步驟:(1) per-(feature,h) 取最新列(同刻取後讀入者;
+    SQL 端以 ORDER BY check_id 供序);(2) 全 h 皆 PASS ⇒ "PASS";任一 h 非 PASS ⇒
+    聚合值＝逐 h 明細(≠"PASS" ⇒ judge_b fail-closed 照舊擋下)。無列＝不入 dict＝
+    judge_b 之「無紀錄」不變。
+    捨棄舊口徑 `DISTINCT ON (feature)`「整表最新一列」——A3 後引擎會補寫**單 h** 列
+    (實例 2026-08-01 20:43 inst_cumflow_position_120d 僅 h=60),該列在舊口徑下會
+    **遮住其他 h(如 h=20)之最新裁決**。口徑住本純函式而非 SQL:退回單列口徑之突變,
+    自測之遮蔽 case 立即紅(SQL 端無口徑可被靜默改掉)。
+    rows=[(feature, h, verdict, checked_at), ...] 任意序;checked_at 可比較即可。
+    """
+    latest: dict = {}
+    for feat, h, verdict, ts in rows:
+        k = (feat, h)
+        if k not in latest or ts >= latest[k][0]:
+            latest[k] = (ts, verdict)
+    per_feat: dict = {}
+    for (feat, h), (_, verdict) in latest.items():
+        per_feat.setdefault(feat, {})[h] = verdict
+    return {feat: ("PASS" if all(v == "PASS" for v in hv.values())
+                   else "、".join(f"h{h}={v}" for h, v in sorted(hv.items())))
+            for feat, hv in per_feat.items()}
+
+
 def rcell_status_line(scale_tag, caps, live_cells, robot_cells):
     """R-CELL′ 逐格狀態行(H1 2026-08-01)——**純函式**(自測餵真輸入;judge_b 同型)。
 
@@ -171,12 +198,15 @@ def sunset_status(cur):
     has_tbl = _one(cur, "SELECT to_regclass('public.feature_sign_check') IS NOT NULL")
     sign_rows: dict[str, str] = {}
     if has_tbl and newcomers:
-        cur.execute("""SELECT DISTINCT ON (feature) feature, verdict FROM feature_sign_check
-                        WHERE feature = ANY(%s) ORDER BY feature, checked_at DESC""", (newcomers,))
-        sign_rows = dict(cur.fetchall())
+        # 口徑住純函式 sign_rows_from_history(per-(feature,h) 各自最新列全 PASS 才 PASS);
+        # SQL 只撈史料不做judgment——舊 DISTINCT ON (feature) 單列口徑會被 A3 單 h 補寫列遮蔽。
+        cur.execute("""SELECT feature, h, verdict, checked_at FROM feature_sign_check
+                        WHERE feature = ANY(%s) ORDER BY check_id""", (newcomers,))
+        sign_rows = sign_rows_from_history(cur.fetchall())
     b_done, sign_note = judge_b(n_active, newcomers, sign_rows, has_tbl,
                                 f"射程={B_SCOPE}（Steward 2026-07-31 裁：所有現役皆須檢）")
-    b_ev = f"prodset active={n_active}(基線 2;須成長 ∧ 新成員過符號一致性)｜{sign_note}"
+    b_ev = (f"prodset active={n_active}(基線 2;須成長 ∧ 新成員過符號一致性;"
+            f"符號口徑=每個 h 各自最新列皆 PASS)｜{sign_note}")
 
     # (c) **SUNSET-C-align**(hugo 2026-07-28 拍板;audits/V2-RUBRIC-GO-20260728.md)——
     # 實作逐字對齊凍結原文(criteria_sha 65eda893…):「LAIEVO 有任一臂在 F@L1 上同時勝過 floor 與
@@ -440,6 +470,32 @@ def _selftest():
         demote_fail_pending(True, "demote", "pending_auto", "FAIL") is False)
     chk("(b) 多個新成員只要一個未過即整體未達成",
         judge_b(4, ["a", "b"], {"a": "PASS"}, True)[0] is False)
+    # (b) per-(feature,h) 口徑（2026-08-01）:純函式餵真列 fixture(鏡射 live 之 A3 雙寫形狀:
+    # 13:57 雙 h 落帳、20:43 引擎補寫**單 h=60** 列)。舊 DISTINCT ON (feature) 單列口徑
+    # 只看 20:43 那列 ⇒ h20 之 FAIL 被遮——退回舊口徑,下一條立即紅。
+    _mask = [("inst_cumflow_position_120d", 20, "FAIL", "2026-08-01 13:57:33+08"),
+             ("inst_cumflow_position_120d", 60, "PASS", "2026-08-01 13:57:33+08"),
+             ("inst_cumflow_position_120d", 60, "PASS", "2026-08-01 20:43:20+08")]
+    chk("(b) h20 最新 FAIL 不被其後之單 h60 補寫列遮蔽(per-h 口徑;明細誠實列 h20=FAIL)",
+        judge_b(3, ["inst_cumflow_position_120d"], sign_rows_from_history(_mask), True)[0] is False
+        and "h20=FAIL" in sign_rows_from_history(_mask)["inst_cumflow_position_120d"])
+    _ok = [("inst_cumflow_position_120d", 20, "PASS", "2026-08-01 13:57:33+08"),
+           ("inst_cumflow_position_120d", 60, "PASS", "2026-08-01 13:57:33+08"),
+           ("inst_cumflow_position_120d", 60, "PASS", "2026-08-01 20:43:20+08")]
+    chk("(b) 每個 h 各自最新列皆 PASS ⇒ 聚合 PASS(綠燈也要驗得到)",
+        sign_rows_from_history(_ok) == {"inst_cumflow_position_120d": "PASS"}
+        and judge_b(3, ["inst_cumflow_position_120d"], sign_rows_from_history(_ok), True)[0] is True)
+    chk("(b) 同 h 之舊 FAIL 被新 PASS 取代(per-h 取最新,不翻舊帳、不過度嚴格)",
+        sign_rows_from_history([("f", 20, "FAIL", "2026-07-30"),
+                                ("f", 20, "PASS", "2026-07-31")]) == {"f": "PASS"})
+    chk("(b) UNJUDGEABLE 非 PASS ⇒ 未達成",
+        judge_b(3, ["f"], sign_rows_from_history(
+            [("f", 20, "UNJUDGEABLE", "2026-08-01"), ("f", 60, "PASS", "2026-08-01")]), True)[0] is False)
+    chk("(b) 零列 ⇒ 空 dict(無紀錄 fail-closed 不變)",
+        sign_rows_from_history([]) == {}
+        and judge_b(3, ["f"], sign_rows_from_history([]), True)[0] is False)
+    chk("(b) active=1 未成長:唯一現役即使全 h PASS 仍未達成(2026-08-01 mean_20d demote 後現況)",
+        judge_b(1, ["inst_cumflow_position_120d"], sign_rows_from_history(_ok), True)[0] is False)
     # R-CELL′ 逐格狀態行(H1 2026-08-01):純函式餵真輸入(haystack=回傳值,非本檔 src)
     _ln = rcell_status_line("(s/h)", {"C1", "C2P"},
                             {"C1": [(36, 34, None)],
