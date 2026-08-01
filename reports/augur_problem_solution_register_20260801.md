@@ -37,7 +37,7 @@
 | D2 | KH8 鑑別力閘（MIN_MINORITY_MASS 三選項） | 呈案→Steward | **W2** | ☑ |
 | D3 | KH5 恆 ready→逐 item 軸覆蓋證據 | 呈案→Steward | **W2** | ☑ |
 | D4 | GREATEST 再膨脹：重評樓地板＋再晉升通行證 | 呈案→Steward | **W2** | 呈☑ |
-| E1 | dgate own_stack 三門錯配：supersede vs 補 h 出單（⚠時效：E1-B′ 須 08-03 20:00 前拍板） | 呈案→Steward | **W2** | 呈☑ |
+| E1 | dgate own_stack 三門錯配：supersede vs 補 h 出單（⚠時效：E1-B′ 須 08-03 20:00 前拍板） | 呈案→Steward | **W2** | ☑ |
 | E2 | headline 錨落帳：新表 alpha_headline_anchor | DDL AI／簽錨=hugo TTY | **W2** | 呈☑ |
 | F1 | L7.16 衝突登錄：RULING-2026-042 草稿（DRAFT 與施作同 commit） | 草擬 AI／簽=Steward | **W2** | 呈☑ |
 | F5 | 回歸鎖三規則入 CLAUDE.md 呈案（限向前生效） | 草擬 AI／定版 Steward | **W2** | ☑ |
