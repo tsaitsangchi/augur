@@ -1303,6 +1303,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             try:
                 with db.connect() as conn:
                     cur = conn.cursor()
+                    cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2a)
                     cur.execute("""UPDATE evolution_hypothesis_hint
                         SET decision=%s, decided_by=%s, decided_at=now(), decision_code=%s,
                             gate_ref='H3-console'

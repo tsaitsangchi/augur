@@ -5,7 +5,10 @@
    另含跨軸 hint 表(UNIQUE dedup_key+decision 單向前進)、證據協定落點 evidence_run、RAW 覆蓋快照、
    heavy-slot 積壓表、題庫漂移落表、預註冊 gate(V2-SUNSET 落點)。**pytest 斷言三表同一清單生成**
    (tests/test_evolution_ledger_ddl.py)——這是「同構」由文字變機械的落點。
-   誠實閘:全部掛既有 honesty_delete_only_guard(C5 只擋刪除;函式住 migrate_honesty_guards_ddl #12)。
+   誠實閘:三本 ledger 掛既有 honesty_delete_only_guard(C5 只擋刪除;P2b 前效力不變);
+   hint/evidence 二表已升 UPDATE-GUC honesty_ledger_guard(**B4-P2a,RULING-2026-043 併案 2026-08-01**
+   ——decision/decided_by 人簽欄裸手默改被拒;legacy 名 hint_no_*/evidence_no_* 先卸不掛回;
+   hint_decision_forward_only 獨立 domain 閘保留)。兩 guard 函式皆住 migrate_honesty_guards_ddl(#12)。
 守 #12(單一住所)· #29b(schema 由本檔常數生成、migrate 只消費)· P4.E3(append-only)。
 執行指令矩陣:
   python -m augur.audit.evolution_ledger_ddl            # 無參數:印用途+表清單(唯讀)
@@ -77,6 +80,7 @@ AXES = {
 }
 
 GUARD_FN = "honesty_delete_only_guard"      # 既有函式(migrate_honesty_guards_ddl;#12 不重造)
+GUC_GUARD_FN = "honesty_ledger_guard"       # UPDATE-GUC 版(B4-P2a;同住 migrate_honesty_guards_ddl)
 
 
 def ledger_ddl(axis: str) -> str:
@@ -130,11 +134,13 @@ DROP TRIGGER IF EXISTS hint_decision_forward_only ON evolution_hypothesis_hint;
 CREATE TRIGGER hint_decision_forward_only BEFORE UPDATE ON evolution_hypothesis_hint
     FOR EACH ROW EXECUTE FUNCTION hint_decision_forward_only();
 DROP TRIGGER IF EXISTS hint_no_delete ON evolution_hypothesis_hint;
-CREATE TRIGGER hint_no_delete BEFORE DELETE ON evolution_hypothesis_hint
-    FOR EACH ROW EXECUTE FUNCTION {GUARD_FN}();
 DROP TRIGGER IF EXISTS hint_no_truncate ON evolution_hypothesis_hint;
-CREATE TRIGGER hint_no_truncate BEFORE TRUNCATE ON evolution_hypothesis_hint
-    FOR EACH STATEMENT EXECUTE FUNCTION {GUARD_FN}();"""
+DROP TRIGGER IF EXISTS trg_evolution_hypothesis_hint_honesty_row ON evolution_hypothesis_hint;
+CREATE TRIGGER trg_evolution_hypothesis_hint_honesty_row BEFORE UPDATE OR DELETE ON evolution_hypothesis_hint
+    FOR EACH ROW EXECUTE FUNCTION {GUC_GUARD_FN}();
+DROP TRIGGER IF EXISTS trg_evolution_hypothesis_hint_honesty_trunc ON evolution_hypothesis_hint;
+CREATE TRIGGER trg_evolution_hypothesis_hint_honesty_trunc BEFORE TRUNCATE ON evolution_hypothesis_hint
+    FOR EACH STATEMENT EXECUTE FUNCTION {GUC_GUARD_FN}();"""
 
 EVIDENCE_DDL = f"""CREATE TABLE IF NOT EXISTS evolution_evidence_run (
     evidence_id     BIGSERIAL PRIMARY KEY,
@@ -155,11 +161,13 @@ EVIDENCE_DDL = f"""CREATE TABLE IF NOT EXISTS evolution_evidence_run (
     UNIQUE (axis, suite_id, code_hash, arm, metric_name)
 );
 DROP TRIGGER IF EXISTS evidence_no_delete ON evolution_evidence_run;
-CREATE TRIGGER evidence_no_delete BEFORE DELETE ON evolution_evidence_run
-    FOR EACH ROW EXECUTE FUNCTION {GUARD_FN}();
 DROP TRIGGER IF EXISTS evidence_no_truncate ON evolution_evidence_run;
-CREATE TRIGGER evidence_no_truncate BEFORE TRUNCATE ON evolution_evidence_run
-    FOR EACH STATEMENT EXECUTE FUNCTION {GUARD_FN}();"""
+DROP TRIGGER IF EXISTS trg_evolution_evidence_run_honesty_row ON evolution_evidence_run;
+CREATE TRIGGER trg_evolution_evidence_run_honesty_row BEFORE UPDATE OR DELETE ON evolution_evidence_run
+    FOR EACH ROW EXECUTE FUNCTION {GUC_GUARD_FN}();
+DROP TRIGGER IF EXISTS trg_evolution_evidence_run_honesty_trunc ON evolution_evidence_run;
+CREATE TRIGGER trg_evolution_evidence_run_honesty_trunc BEFORE TRUNCATE ON evolution_evidence_run
+    FOR EACH STATEMENT EXECUTE FUNCTION {GUC_GUARD_FN}();"""
 
 COVERAGE_DDL = """CREATE TABLE IF NOT EXISTS raw_table_coverage_snapshot (
     snapshot_id       BIGSERIAL PRIMARY KEY,
@@ -303,8 +311,18 @@ def _selftest():
         len({AXES[a]["gain_basis_check"] for a in AXES}) == 3)
     chk("axis 自鎖 CHECK(raw 表只能 axis='raw')", all(f"CHECK (axis = '{a}')" in ddls[a] for a in AXES))
     chk("uid regex 三軸共用", all("^(tw|lai|raw)-[0-9]{8}-r[0-9]{2}$" in ddls[a] for a in AXES))
-    chk("全表 delete-only 閘用既有函式(#12 不重造)", all(GUARD_FN in ddls[a] for a in AXES)
-        and GUARD_FN in HINT_DDL and GUARD_FN in EVIDENCE_DDL)
+    chk("三 ledger delete-only 閘用既有函式(#12 不重造;C5 於 P2b 前效力不變)",
+        all(GUARD_FN in ddls[a] for a in AXES))
+    chk("hint/evidence 已升 UPDATE-GUC(B4-P2a RULING-2026-043):honesty_ledger_guard 雙 trigger"
+        "+卸 legacy 名不掛回",
+        GUC_GUARD_FN in HINT_DDL and GUC_GUARD_FN in EVIDENCE_DDL
+        and GUARD_FN not in HINT_DDL and GUARD_FN not in EVIDENCE_DDL
+        and "BEFORE UPDATE OR DELETE ON evolution_hypothesis_hint" in HINT_DDL
+        and "BEFORE UPDATE OR DELETE ON evolution_evidence_run" in EVIDENCE_DDL
+        and "DROP TRIGGER IF EXISTS hint_no_delete ON" in HINT_DDL
+        and "CREATE TRIGGER hint_no_delete" not in HINT_DDL
+        and "DROP TRIGGER IF EXISTS evidence_no_delete ON" in EVIDENCE_DDL
+        and "CREATE TRIGGER evidence_no_delete" not in EVIDENCE_DDL)
     chk("hint:dedup_key UNIQUE+decision 單向前進 trigger",
         "dedup_key           TEXT NOT NULL UNIQUE" in HINT_DDL and "hint_decision_forward_only" in HINT_DDL)
     chk("hint:非 pending 須三欄齊(decided_by/at/code)", "decision = 'pending'" in HINT_DDL)

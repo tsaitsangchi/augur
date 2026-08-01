@@ -50,6 +50,7 @@ def run(dry):
     from collections import Counter
     c = Counter()
     with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2a)
         cur.execute("SELECT qid, question FROM steward_question_ledger WHERE triage IS NULL ORDER BY qid")
         rows = cur.fetchall()
         for qid, q in rows:

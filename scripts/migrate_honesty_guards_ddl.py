@@ -15,6 +15,14 @@ session 通行證 `SET LOCAL augur.honesty_write='on'`(工具鏈 ON CONFLICT UPD
 **非**硬閘——C5「GUC 對引擎豁免」之警告全數保留,不得引為已機械防引擎默改)。寫入者通行證補丁
 先合入、DDL 後行(消滅 C5 理由②首過再死);C5 對其餘 delete-only 表(PME 5 表+P2 殘餘)效力不變。
 升級 DDL 逐表獨立交易+`SET LOCAL lock_timeout='5s'`(#30 鎖紀律:拿不到即 abort 不排隊)。
+
+**B4-P2a(2026-08-01 Steward 圈選「P2a-同意+§5-乙」,編號併 RULING-2026-043)**:GUC_TABLES_P2A 五表
+(promotion_queue/steward_question_ledger/evolution_hypothesis_hint=治權欄默改代價最高三表,
+evolution_apply_log/evolution_evidence_run=零寫入者白撿)自 delete-only 升級 honesty_ledger_guard。
+**evolution_kill_switch 依 §5 乙案排除**——緊急煞車之裸 psql 解除路徑零摩擦優先於閘完整性,
+維持 delete-only(否決可達性 #26 OCV 不弱化)。legacy 自訂名(hint_no_*/evidence_no_*,live pg_trigger
+親驗 2026-08-01)逐名列 LEGACY_TRIGGERS、同交易先卸盡再掛=原子換閘;hint 之 hint_decision_forward_only
+係獨立 domain 閘(decision 單向前進)**不卸**。P2b 六表候 run 21 結束後窗;P2c sim 七表緩議(住所歸 sim 專章)。
 守原則 #15(誠實)#8(錨不可默移)#12(單一閘住所)。
 
 執行指令矩陣:
@@ -31,13 +39,26 @@ from augur.core import db
 TABLES = ("trial_ledger", "revalidation_baseline")
 # PME 側(V2 Phase 2.3):§1.4 盤點之無閘表,repo 全掃無任何合法 DELETE 路徑(2026-07-26 實查),
 # delete-only 閘零誤傷。B4(2026-08-01)遷出 principle_factor_map/philosophy_principle/
-# evolution_production_feature_set → GUC_TABLES_P0 升級 UPDATE-GUC;本組餘 5 表維持 C5 delete-only。
-PME_TABLES = ("evolution_run", "evolution_coverage_snapshot", "promotion_queue", "evolution_apply_log",
-              "evolution_kill_switch")
+# evolution_production_feature_set → GUC_TABLES_P0;B4-P2a(RULING-2026-043 併案)再遷出
+# promotion_queue/evolution_apply_log → GUC_TABLES_P2A(防 --apply 重掛 delete-only)。
+# evolution_kill_switch §5 乙案明文留守 delete-only(緊急煞車零摩擦);evolution_run/
+# evolution_coverage_snapshot 候 P2b(run 21 結束後窗)。
+PME_TABLES = ("evolution_run", "evolution_coverage_snapshot", "evolution_kill_switch")
 # B4 P0 四表(3 升級+1 新掛):晉升鏈判準四要害——方向基準(pfm.direction)/原則 status(pp)/
 # prodset SSOT(set_status)/符號 verdict(feature_sign_check,07-31 A1 建表後原零 trigger)。
 GUC_TABLES_P0 = ("principle_factor_map", "philosophy_principle",
                  "evolution_production_feature_set", "feature_sign_check")
+# B4-P2a 五表(2026-08-01「P2a-同意+§5-乙」併 RULING-2026-043;呈案=reports/w2_20260801/
+# B4P2_remaining_tables_proposal.md §4):queue 決議/治理答案/人簽欄+二白撿;kill_switch 排除見 §5 乙。
+GUC_TABLES_P2A = ("promotion_queue", "steward_question_ledger", "evolution_hypothesis_hint",
+                  "evolution_apply_log", "evolution_evidence_run")
+# P2a legacy trigger 名映射(live pg_trigger 親驗 2026-08-01;呈案 §2.4 之自訂名):非標準 delonly 名者
+# 逐名列此,_upgrade_sql 同交易先卸盡(全 IF EXISTS 冪等)再掛 honesty 雙 trigger=原子換閘無空窗。
+# hint 之 hint_decision_forward_only=獨立 domain 閘(decision 單向前進,evolution_ledger_ddl 住所)——不在卸列。
+LEGACY_TRIGGERS = {
+    "evolution_hypothesis_hint": ("hint_no_delete", "hint_no_truncate"),
+    "evolution_evidence_run": ("evidence_no_delete", "evidence_no_truncate"),
+}
 GUC = "augur.honesty_write"
 
 GUARD_FN = f"""
@@ -87,11 +108,14 @@ CREATE TRIGGER trg_{tbl}_delonly_trunc BEFORE TRUNCATE ON {tbl}
 
 
 def _upgrade_sql(tbl):
-    """B4:一表升級 UPDATE-GUC 閘——卸 delonly 雙名(feature_sign_check 本無,IF EXISTS 安全)再掛
-    honesty 雙 trigger;同交易=原子換閘無空窗。呼叫端須逐表獨立交易(#30:單表 abort 不連坐)。"""
+    """B4:一表升級 UPDATE-GUC 閘——卸 delonly 雙名(feature_sign_check 本無,IF EXISTS 安全)
+    +該表 legacy 自訂名(LEGACY_TRIGGERS;P2a)再掛 honesty 雙 trigger;同交易=原子換閘無空窗。
+    呼叫端須逐表獨立交易(#30:單表 abort 不連坐)。"""
+    legacy = "".join(f"DROP TRIGGER IF EXISTS {name} ON {tbl};\n"
+                     for name in LEGACY_TRIGGERS.get(tbl, ()))
     return f"""
 SET LOCAL lock_timeout = '5s';
-DROP TRIGGER IF EXISTS trg_{tbl}_delonly_row   ON {tbl};
+{legacy}DROP TRIGGER IF EXISTS trg_{tbl}_delonly_row   ON {tbl};
 DROP TRIGGER IF EXISTS trg_{tbl}_delonly_trunc ON {tbl};
 DROP TRIGGER IF EXISTS trg_{tbl}_honesty_row   ON {tbl};
 DROP TRIGGER IF EXISTS trg_{tbl}_honesty_trunc ON {tbl};
@@ -102,13 +126,33 @@ CREATE TRIGGER trg_{tbl}_honesty_trunc BEFORE TRUNCATE ON {tbl}
 """
 
 
+def _registry_problems(tables, pme, p0, p2a, legacy):
+    """表集互斥+legacy 映射鍵完整之純函式檢核(#35);回傳問題清單(空=通過)。
+    selftest 以現行常數驗綠、以壞變體驗紅——集合重疊/重複/映射懸空任一即非空。"""
+    problems = []
+    groups = (("TABLES", tables), ("PME_TABLES", pme),
+              ("GUC_TABLES_P0", p0), ("GUC_TABLES_P2A", p2a))
+    for name, g in groups:
+        if len(set(g)) != len(g):
+            problems.append(f"{name} 內含重複")
+    for i, (na, ga) in enumerate(groups):
+        for nb, gb in groups[i + 1:]:
+            overlap = set(ga) & set(gb)
+            if overlap:
+                problems.append(f"{na}∩{nb}≠∅:{sorted(overlap)}")
+    for key in legacy:
+        if key not in p2a:
+            problems.append(f"LEGACY_TRIGGERS 鍵 {key} 不在 GUC_TABLES_P2A(映射懸空)")
+    return problems
+
+
 def check(conn):
     with db.transaction(conn) as cur:
         cur.execute(
             "SELECT c.relname, coalesce(string_agg(t.tgname, ', ' ORDER BY t.tgname), '(無)') "
             "FROM pg_class c LEFT JOIN pg_trigger t ON t.tgrelid = c.oid AND NOT t.tgisinternal "
             "WHERE c.relname = ANY(%s) GROUP BY c.relname ORDER BY c.relname",
-            (list(TABLES) + list(PME_TABLES) + list(GUC_TABLES_P0),))
+            (list(TABLES) + list(PME_TABLES) + list(GUC_TABLES_P0) + list(GUC_TABLES_P2A),))
         for name, trgs in cur.fetchall():
             print(f"  {name}: {trgs}")
     return 0
@@ -122,13 +166,13 @@ def apply(conn):
         cur.execute(DELETE_ONLY_FN)
         for tbl in PME_TABLES:
             cur.execute(_delete_only_sql(tbl))
-    # B4:P0 四表逐表獨立交易(交易首句 SET LOCAL lock_timeout='5s'——5 秒拿不到 ACCESS EXCLUSIVE
+    # B4:P0+P2a 表逐表獨立交易(交易首句 SET LOCAL lock_timeout='5s'——5 秒拿不到 ACCESS EXCLUSIVE
     # 即 abort 不排隊;排隊中的 EXCLUSIVE 會擋全庫後續查詢,07-03 鎖風暴教訓 #30)
-    for tbl in GUC_TABLES_P0:
+    for tbl in GUC_TABLES_P0 + GUC_TABLES_P2A:
         with db.transaction(conn) as cur:
             cur.execute(_upgrade_sql(tbl))
     print(f"✓ honesty guards applied(冪等):帳本雙閘 {len(TABLES)} 表 + PME delete-only {len(PME_TABLES)} 表"
-          f" + B4 UPDATE-GUC {len(GUC_TABLES_P0)} 表")
+          f" + B4 UPDATE-GUC {len(GUC_TABLES_P0)} 表 + B4-P2a {len(GUC_TABLES_P2A)} 表")
     return check(conn)
 
 
@@ -150,7 +194,8 @@ def selftest():
     # V2 Phase 2.3(C5)增項
     chk("PME 閘=獨立 delete-only 函式(**不含** UPDATE-GUC 分支——C5:GUC 對引擎豁免+首過再死)",
         "honesty_delete_only_guard" in DELETE_ONLY_FN and "UPDATE" not in DELETE_ONLY_FN and GUC not in DELETE_ONLY_FN)
-    chk("PME 五表覆蓋(§1.4 盤點-B4 遷出三表;C5 delete-only 於此組效力不變)", len(PME_TABLES) == 5
+    chk("PME 三表覆蓋(B4 遷出三表+P2a 遷出二表;kill_switch §5 乙案留守;C5 於此組效力不變)",
+        len(PME_TABLES) == 3
         and all(t in "".join(_delete_only_sql(x) for x in PME_TABLES) for t in PME_TABLES))
     for t in PME_TABLES:
         s = _delete_only_sql(t)
@@ -178,6 +223,47 @@ def selftest():
             and "honesty_ledger_guard()" in trunc_trg)
         chk(f"{t}: 先 DROP 後 CREATE(同交易原子換閘無空窗)",
             bool(drops) and bool(creates) and stmts.index(drops[-1]) < stmts.index(creates[0]))
+    # —— B4-P2a 增項(2026-08-01;RULING-2026-043 併案;#35 先驗紅,紅證=audits/B4-P2A-UPDATE-GUC-RED-20260801.md) ——
+    chk("P2a:五表凍結=promotion_queue/steward_question_ledger/evolution_hypothesis_hint/"
+        "evolution_apply_log/evolution_evidence_run",
+        set(GUC_TABLES_P2A) == {"promotion_queue", "steward_question_ledger",
+                                "evolution_hypothesis_hint", "evolution_apply_log",
+                                "evolution_evidence_run"})
+    chk("P2a:kill_switch 明文留守 PME delete-only(§5 乙案=緊急煞車零摩擦,不上 GUC)",
+        "evolution_kill_switch" in PME_TABLES and "evolution_kill_switch" not in GUC_TABLES_P2A)
+    chk("四表集互斥+legacy 映射鍵完整(_registry_problems 純函式=空)",
+        _registry_problems(TABLES, PME_TABLES, GUC_TABLES_P0, GUC_TABLES_P2A, LEGACY_TRIGGERS) == [])
+    chk("壞變體驗紅:PME 誤含 promotion_queue(重疊)須被抓",
+        _registry_problems(TABLES, PME_TABLES + ("promotion_queue",), GUC_TABLES_P0,
+                           GUC_TABLES_P2A, LEGACY_TRIGGERS) != [])
+    chk("壞變體驗紅:legacy 鍵懸空(不在 P2A)須被抓",
+        _registry_problems(TABLES, PME_TABLES, GUC_TABLES_P0, GUC_TABLES_P2A,
+                           {"sim_llm_proposal": ("x_no_delete",)}) != [])
+    hint_sql = _upgrade_sql("evolution_hypothesis_hint")
+    chk("hint:卸 legacy 名 hint_no_delete+hint_no_truncate(live pg_trigger 親驗名 2026-08-01)",
+        "DROP TRIGGER IF EXISTS hint_no_delete ON" in hint_sql
+        and "DROP TRIGGER IF EXISTS hint_no_truncate ON" in hint_sql)
+    chk("hint:不卸 hint_decision_forward_only(獨立 domain 閘=decision 單向前進,非 delonly)",
+        "hint_decision_forward_only" not in hint_sql)
+    ev_sql = _upgrade_sql("evolution_evidence_run")
+    chk("evidence:卸 legacy 名 evidence_no_delete+evidence_no_truncate(live 親驗名)",
+        "DROP TRIGGER IF EXISTS evidence_no_delete ON" in ev_sql
+        and "DROP TRIGGER IF EXISTS evidence_no_truncate ON" in ev_sql)
+    for t in GUC_TABLES_P2A:
+        stmts = [x.strip() for x in _upgrade_sql(t).split(";") if x.strip()]
+        drops = [x for x in stmts if x.startswith("DROP TRIGGER IF EXISTS")]
+        creates = [x for x in stmts if x.startswith("CREATE TRIGGER")]
+        n_legacy = len(LEGACY_TRIGGERS.get(t, ()))
+        chk(f"{t}: 首句 lock_timeout+卸 {4 + n_legacy} 名(標準4+legacy{n_legacy})+先卸後掛",
+            bool(stmts) and stmts[0] == "SET LOCAL lock_timeout = '5s'"
+            and len(drops) == 4 + n_legacy and len(creates) == 2
+            and stmts.index(drops[-1]) < stmts.index(creates[0]))
+        row_trg = next((c for c in creates if f"trg_{t}_honesty_row" in c), "")
+        trunc_trg = next((c for c in creates if f"trg_{t}_honesty_trunc" in c), "")
+        chk(f"{t}: row 閘=BEFORE UPDATE OR DELETE→honesty_ledger_guard+TRUNCATE statement 閘同函式",
+            "BEFORE UPDATE OR DELETE ON" in row_trg and "honesty_ledger_guard()" in row_trg
+            and "BEFORE TRUNCATE ON" in trunc_trg and "FOR EACH STATEMENT" in trunc_trg
+            and "honesty_ledger_guard()" in trunc_trg)
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 

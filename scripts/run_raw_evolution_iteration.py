@@ -218,10 +218,11 @@ def run(top_hints, dry):
         conn.commit()
         print(f"✓ 結輪 {uid}:gain={gain}(basis={'new_gap' if gain else 'none'})")
         if made:
-            print("  人閘 H3——hugo 檢視後親跑(逐 id 或整批):")
+            print("  人閘 H3——hugo 檢視後親跑(逐 id 或整批;B4-P2a 後 UPDATE 須帶誠實閘通行證):")
             print("    SELECT hint_id, hint_text FROM evolution_hypothesis_hint WHERE decision='pending';")
+            print("    BEGIN; SET LOCAL augur.honesty_write='on';  -- B4-P2a 通行證(裸 UPDATE 遭閘拒)")
             print("    UPDATE evolution_hypothesis_hint SET decision='approved', decided_by='hugo',"
-                  " decided_at=now(), decision_code='RAWEVO-HINT-approve <ids>' WHERE hint_id IN ('…');")
+                  " decided_at=now(), decision_code='RAWEVO-HINT-approve <ids>' WHERE hint_id IN ('…'); COMMIT;")
     return 0
 
 

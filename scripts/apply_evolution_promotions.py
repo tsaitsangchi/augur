@@ -280,6 +280,7 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
         # A5：halt 時拒絕一切 APPLY；可選把 pending 標 halted
         if not dry_run and items:
             with db.connect() as conn, db.transaction(conn) as cur:
+                cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2a)
                 ids = [r[0] for r in items]
                 cur.execute(
                     "UPDATE promotion_queue SET queue_status='halted', decided_at=now(), "
@@ -315,6 +316,7 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
                 skipped += 1
                 if not dry_run:
                     with db.transaction(conn) as cur:
+                        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2a)
                         cur.execute(
                             "UPDATE promotion_queue SET queue_status='rejected_gate', decided_at=now() "
                             "WHERE queue_id=%s",

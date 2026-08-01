@@ -62,6 +62,7 @@ def classify(dry, limit=None):
     n_frag = n_resp = n_open = 0
     samples = []
     with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2a)
         # 每 session 之最後提問時戳:晚於本題 ⇒ 對話續行 ⇒ 本題已在當時被回應(機械可判)
         cur.execute("""
             SELECT q.qid, q.question, q.triage,
@@ -116,6 +117,7 @@ def solve(limit):
         if m:
             sid = m.group(1)
         with db.connect() as conn, db.transaction(conn) as cur:
+            cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2a)
             cur.execute("""UPDATE steward_question_ledger SET status=%s, resolution_ref=%s,
                 resolved_by='deliberation_engine', resolved_at=now() WHERE qid=%s""",
                 ("auto_resolved" if r.returncode == 0 else "pending",
@@ -176,6 +178,7 @@ def solve_knowledge(limit, dry):
         ref = ("advisor_declined:誠實拒答(知識庫無內容)→升人" if declined
                else f"advisor[qwen3:8b]:{' '.join((ans or '').split())[:1800]}")
         with db.connect() as conn, db.transaction(conn) as cur:
+            cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2a)
             cur.execute("""UPDATE steward_question_ledger SET status=%s, resolution_ref=%s,
                 resolved_by='advisor', resolved_at=now() WHERE qid=%s AND status='pending'""",
                 (st, ref, qid))
@@ -191,6 +194,7 @@ def sweep_queued(dry):
     """v3 規則掃 queued_for_claude(304 題積壓多為 v2 前誤入之貼文/指令;只降級不生成答案)。"""
     n_frag = n_keep = 0
     with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2a)
         cur.execute("""SELECT qid, question FROM steward_question_ledger
             WHERE status='queued_for_claude' ORDER BY qid""")
         for qid, q in cur.fetchall():
@@ -216,6 +220,7 @@ def sweep_awaiting(dry):
     import mine_steward_questions as msq
     n_noise = n_frag = n_keep = 0
     with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2a)
         cur.execute("""SELECT qid, question FROM steward_question_ledger
             WHERE status='awaiting_hugo' ORDER BY qid""")
         for qid, q in cur.fetchall():
