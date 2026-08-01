@@ -43,7 +43,8 @@ EOF
     fi
     if [ "$rc" -eq 2 ]; then
       # rc=2=機制跑完但 attestation FAIL(資料判準紅)——重試不會變綠、只重打一輪 API(#24/#28),
-      # 終態停手待根因/判準拍板(#26);watchdog 見 FAIL 終態亦不 relaunch。
+      # 終態停手待根因/判準拍板(#26)。〔C2 2026-08-01 語意更新:watchdog 已改 DB 三態機——
+      # 見 FAIL 終態會於 COOLOFF_H(24h)後重發車(自癒路);本檔行為不變,僅舊註解失效〕
       echo "$(date '+%m-%d %H:%M') ✗ audit 對帳 FAIL(rc=2)——不重試,待根因;見 log 內 attestation 行" >> "$LOG"
       exit 1
     fi
