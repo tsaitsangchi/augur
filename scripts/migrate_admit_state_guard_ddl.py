@@ -269,6 +269,7 @@ def apply_r1(conn) -> int:
         print("未確認，取消")
         return 1
     old_ac = conn.autocommit
+    conn.rollback()   # 上方讀查詢已開隱式交易——autocommit 切換須在交易外(psycopg2;2026-08-01 hugo 實跑 ProgrammingError 實證)
     conn.autocommit = True
     try:
         cur.execute(R1_RECYCLE_SQL)
