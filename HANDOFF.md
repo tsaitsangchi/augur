@@ -18,7 +18,7 @@
 **08-01 一日要旨（接續者最速讀法＝記憶 `augur-adjudication-exec-20260801` → 終版圈選單 `reports/augur_final_adjudication_ballot_20260801.md` → 登錄冊全冊 ☑）**：
 治理迴路首次全循環——24 項問題「呈案→12 路鮮度驗證→Steward 圈選→機械施作（全程突變驗紅）→TTY 親簽→驗收落帳」一日閉環；追加迷你批 3 裁（MM 37 例／D2S sim 門 T-A／P2a+§5乙）。
 **當日落地之新機制（接續者須知其存在）**：TWEVO 八閘含 G-SIGN（77 筆乙案遷移訖）；UPDATE-GUC 閘擴至 15 表（治權表裸 UPDATE 面 20→15；kill_switch 依乙案豁免=緊急煞車零摩擦）；validation_evidence manual 90 天有效期（10-09/10-10 到期）；identity 六表生產（registry 3,503；37 例 mismatch 已裁 A/B 收 C 留）；fulltext `unattempted` 121,389；CLAUDE.md **v1.35 #35 回歸鎖三規則**＋pre-commit 假斷言第四閘；RULING-2026-042 生效（L7.16 衝突登錄）；`iid_bootstrap` 入 sim registry（門待 D2S INSERT 親簽後才可評）；週報 (b) per-(feature,h) 口徑。
-**跑動中/待辦**：run 21（A3 八閘首輪；結輪→`scripts/report_applygo_readiness.py` 產決策包、預覽已見 2 顆可裁→**第一顆引擎自掙晉升在望**）；P2b 六表=run 21 後窗；hugo TTY 兩條=D2S 門 CTE INSERT＋APPLY-go 逐顆；10-14 備料=`reports/augur_1014_review_evidence_prep_20260801.md`（⚠WM.35/36 於 10-15 起自動生效）。
+**08-02 晚已兌現**：run 21 succeeded→hugo `--queue-id` 逐顆親簽 556/599＝**首兩顆引擎自掙晉升**（prodset active=3、週報 (b) ✅）；SIM-CAL-R1 sim 門親簽生效＋四件套落地＋P0 候選落戶（`sim-clock-armed-20260802`；首格待 08-03 anchor、T-A 首判 ~11 月上旬；S-4=人工逐次觸發勿排程）；P2a+P2b 全落（裸 UPDATE 面 20→9 表）。**餘**：I5B-甲 diff 待 hugo 過目（窗至 08-03 23:00）；run 22=08-03 23:00 全自動首驗；10-14 備料=`reports/augur_1014_review_evidence_prep_20260801.md`（⚠WM.35/36 於 10-15 自動生效——合規弧規畫進行中）。
 
 ## 重開機／接續狀態（2026-07-31 11:2x，封存點 `archive-20260731-sim-axis-live`）
 
