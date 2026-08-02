@@ -124,6 +124,22 @@ def _selftest() -> int:
     chk("B1:run_id 以參數傳入（非字串拼接）",
         any(p and 77 in p for p in _rec.cur.params))
 
+    # ── I5B-甲 世代 supersede(裁決 I5B-照建議;行為驗證零 DB;recording double 同 B1 先例)──
+    _q = _RecConn()
+    _q.cur.rowcount = 3
+    _n_sup = _supersede_stale_pending(_q.cur, 22, "debt_ratio")
+    _qsql = " ".join(_q.cur.sql)
+    chk("I5B:回傳 rowcount 誠實計數(非常數)", _n_sup == 3)
+    chk("I5B:最窄謂詞三件齊(pending_auto ∧ 同 feature ∧ run_id<本 run)——拔任一即紅",
+        "queue_status='pending_auto'" in _qsql and "feature=%s" in _qsql
+        and "run_id < %s" in _qsql)
+    chk("I5B:標 superseded 終態且帶誠實閘 GUC 通行證(同交易)",
+        "SET queue_status='superseded'" in _qsql
+        and "SET LOCAL augur.honesty_write" in _qsql)
+    chk("I5B:decided_by 自陳機器世代(非人簽)+參數化傳值",
+        any(p and "superseded_by_run_22" in p and "debt_ratio" in p and 22 in p
+            for p in _q.cur.params))
+
     text = Path(__file__).read_text(encoding="utf-8")
     chk("script G-NOEXEC clean", scan_noexec_text(text) == [])
     g = build_gate_json(
@@ -657,6 +673,23 @@ def run_control_arms(*, since: str, horizon_h: int, draws: int, seed: int) -> in
     return 0
 
 
+def _supersede_stale_pending(cur, run_id: int, feature: str) -> int:
+    """I5B-甲(裁決 I5B-照建議):開新世代列前,同 feature 舊 run 之 pending_auto 標 superseded。
+
+    最窄謂詞=pending_auto ∧ 同 feature ∧ run_id<本 run——同 run 多 principle 合法列、
+    已裁列(applied/rejected_gate/halted)永不觸碰(機器僅關機器 pending,不碰人裁);
+    decided_by 自陳世代供逐列稽核(非人簽、不代打)。UPDATE 過誠實帳本閘(B4-P2a)須 GUC
+    通行證,與新列 INSERT 同交易=世代交替原子性。前置 DDL:queue_status CHECK 須含 superseded。
+    """
+    cur.execute("SET LOCAL augur.honesty_write = 'on'")
+    cur.execute(
+        "UPDATE promotion_queue SET queue_status='superseded', decided_at=now(), "
+        "decided_by=%s "
+        "WHERE queue_status='pending_auto' AND feature=%s AND run_id < %s",
+        (f"superseded_by_run_{run_id}", feature, run_id))
+    return cur.rowcount
+
+
 def run_evolution(
     *,
     since: str,
@@ -871,7 +904,7 @@ def run_evolution(
             )
 
     # queue 列：local-gates 計算可能很久 → 逐筆短交易，避免長鎖
-    n_pending = n_rej = n_halt = 0
+    n_pending = n_rej = n_halt = n_superseded = 0
     verdict_tally = {"G-PROM": {}, "G-ECON": {}, "G-SIGN": {}}
     for m in maps:
         cls = feat_class[m["feature"]]
@@ -902,6 +935,11 @@ def run_evolution(
         # action 先算再裁 queue_status:demote+FAIL_SIGN → pending_auto(R3 除役通道)
         qs = decide_queue_status(gj, kill_eff, action=action)
         with db.connect() as conn, db.transaction(conn) as cur:
+            # I5B-甲:同交易先關同 feature 舊世代 pending(冪等;該 feature 首列即清空,
+            # 後續 0 列)。kill halt 期間不動舊列(halt=照跑但不採用;供下個 clear run 自癒補關,
+            # 謂詞 run_id<本 run 天然跨代補抓)。
+            if kill_eff == KILL_CLEAR:
+                n_superseded += _supersede_stale_pending(cur, run_id, m["feature"])
             cur.execute(
                 """
                 INSERT INTO promotion_queue
@@ -926,7 +964,8 @@ def run_evolution(
         )
     _ACTIVE_RUN["closed"] = True            # B1：正常關帳，abort 收尾不再介入
 
-    print(f"✓ run_id={run_id} status={final} queue pending={n_pending} rejected={n_rej} halted={n_halt}")
+    print(f"✓ run_id={run_id} status={final} queue pending={n_pending} rejected={n_rej} "
+          f"halted={n_halt} superseded_stale={n_superseded}")
     print(f"  G-PROM tally={verdict_tally['G-PROM']} G-ECON tally={verdict_tally['G-ECON']} "
           f"G-SIGN tally={verdict_tally['G-SIGN']}")
     if n_pending:

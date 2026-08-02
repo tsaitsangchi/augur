@@ -263,3 +263,9 @@ stdout 面：run 22 收尾行應含 `superseded_stale=<n>`（n>0 且＝(2) 之�
 > 圈選格式：`I5B-diff-施作`（＝§3 diff＋§4-A 全採、依 §5 序）／`I5B-diff-改B`（零 DDL 備援案，
 > 併裁週報過濾第二處碼改）／`I5B-diff-退回`（附修改指示）。
 > 施作屬碼改＋DDL：依 #14/#19 由主 session 於 hugo 拍板後執行；本呈文不施作。
+
+---
+
+## 過目與施作登錄（2026-08-02 晚）
+
+> **Steward 圈選（AskUserQuestion 留痕）**：「過目通過，CHECK 採 A 案」。施作：四 hunk＋函式落齊、模板五值同步、四鎖綠＋突變紅（拔 run_id< 謂詞 rc=1）、DDL A 案上線（constraintdef 五值親驗）、裸 UPDATE 仍被誠實閘拒。DESKTOP 下次上線補跑同一冪等 DDL（migrate 模板已同源五值）。run 22 邊界起同 feature 舊 pending 自動收斂。

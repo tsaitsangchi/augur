@@ -165,7 +165,7 @@ EVOLUTION_DDL = [
         decided_by      VARCHAR(64) NOT NULL DEFAULT 'evolution_engine',
         apply_log_id    BIGINT,
         CHECK (action IN ('promote','demote','freeze')),
-        CHECK (queue_status IN ('pending_auto','applied','rejected_gate','halted'))
+        CHECK (queue_status IN ('pending_auto','applied','rejected_gate','halted','superseded'))
     )""",
     """CREATE TABLE IF NOT EXISTS evolution_apply_log (
         apply_log_id    BIGSERIAL PRIMARY KEY,
