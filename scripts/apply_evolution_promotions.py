@@ -6,6 +6,10 @@
    APPLY 成功時：翻 philosophy_principle.status ＋ **真寫** `evolution_production_feature_set`
    （promote→active／demote→removed；≠可交易／確立級）。`--backfill-prodset` 可對已 applied
    重放登錄。無人簽核參數（B）；可 `--dry-run`。零 FinMind／FRED。
+   TWEVO-APPLY-go「一次一顆」（S-i 逐顆人裁）：`--queue-id N` 僅消費該顆 pending_auto、
+   他列一概不碰；**真寫須併用 `--allow-apply --gate-ref TWEVO-APPLY-go`（hugo 親跑＝授權載體）**，
+   無 --allow-apply 時 --queue-id 只允許 --dry-run 預覽單顆（唯讀）。八閘裁決路與
+   decided_by='evolution_engine' 照舊（判準一字不動）。
 
 守 #14 #15 #26 #29；計畫 §4 S3／§4.1／§6／驗收 A5／A6。
 
@@ -13,6 +17,9 @@
   python scripts/apply_evolution_promotions.py              # 消費 pending_auto（寫入）
   python scripts/apply_evolution_promotions.py --dry-run     # 只印裁決
   python scripts/apply_evolution_promotions.py --run-id N    # 限某 run
+  python scripts/apply_evolution_promotions.py --dry-run --queue-id N   # 預覽單顆（唯讀;免旗標）
+  python scripts/apply_evolution_promotions.py --queue-id N --allow-apply --gate-ref TWEVO-APPLY-go
+                                                            # 一次一顆真寫（S-i;hugo 親跑）
   python scripts/apply_evolution_promotions.py --backfill-prodset [--run-id N]  # 已 applied 補登錄
   python scripts/apply_evolution_promotions.py --selftest    # 免 DB（含 A5 語意）
 """
@@ -42,8 +49,36 @@ from augur.philosophy.evolution import (
 )
 
 
+AUTO_GATE_REF = "V2-AUTOADVANCE"    # 既有整批自動路之落帳碼（語意不變）
+HUMAN_GATE_REF = "TWEVO-APPLY-go"   # S-i 逐顆人裁閘碼（開閘授權＝hugo 親跑指令本身）
+
+
 def _env_halt() -> bool:
     return os.environ.get("AUGUR_EVOLUTION_KILL_SWITCH", "").strip().lower() == KILL_HALT
+
+
+def select_queue_rows(items: list, queue_id: int | None) -> list:
+    """篩選謂詞（純函式；S-i 一次一顆）：queue_id=None→原批次全保留（既有語意）；
+    否則僅留 queue_id 相符之列——他列一概不碰。查無回空集，由上層大聲說明 rc=1。"""
+    if queue_id is None:
+        return list(items)
+    return [r for r in items if r[0] == queue_id]
+
+
+def single_apply_gate(*, queue_id: int | None, allow_apply: bool,
+                      gate_ref: str | None, dry_run: bool) -> tuple[bool, str]:
+    """--queue-id 武裝判準（純函式）：真寫須 --allow-apply 且 gate_ref==TWEVO-APPLY-go；
+    無 --allow-apply 時僅 --dry-run 預覽（唯讀）。整批路（queue_id=None）不經此閘、語意不變。"""
+    if queue_id is None:
+        return True, "batch mode（既有語意）"
+    if dry_run:
+        return True, f"dry-run 預覽單顆 q={queue_id}（唯讀）"
+    if not allow_apply:
+        return False, (f"--queue-id {queue_id} 真寫需 --allow-apply --gate-ref {HUMAN_GATE_REF}"
+                       "（現無 --allow-apply → 僅允許 --dry-run 預覽）")
+    if gate_ref != HUMAN_GATE_REF:
+        return False, f"--gate-ref 須為 {HUMAN_GATE_REF}（收到 {gate_ref!r}）"
+    return True, f"armed:{HUMAN_GATE_REF} 一次一顆 q={queue_id}"
 
 
 def _upsert_prodset(
@@ -152,6 +187,34 @@ def _selftest() -> int:
     chk("status:demote+FAIL_SIGN → sign_refuted(與證據不足 rejected 區分)",
         status_after_apply("demote", "validated", prom_verdict="FAIL_SIGN") == "sign_refuted"
         and status_after_apply("demote", "validated") == "rejected")
+    # —— --queue-id 一次一顆（TWEVO-APPLY-go S-i;I5B）:純函式餵真輸入 ——
+    import inspect
+    fx = [
+        (555, 21, 77, "cycle_position_252d", "promote", {}, "pending_auto"),
+        (565, 21, 85, "debt_ratio", "demote", {}, "pending_auto"),
+        (599, 21, 107, "lending_fee_rate_mean_30d", "promote", {}, "pending_auto"),
+    ]
+    chk("queue-id 篩選:3 列僅中指定 1 顆", select_queue_rows(fx, 565) == [fx[1]])
+    chk("queue-id 篩選:查無→空集(上層大聲 rc=1)", select_queue_rows(fx, 999) == [])
+    chk("queue-id 篩選:None→原批次全保留(既有語意)", select_queue_rows(fx, None) == fx)
+    ok_q1, _ = single_apply_gate(queue_id=565, allow_apply=False,
+                                 gate_ref=HUMAN_GATE_REF, dry_run=False)
+    chk("queue-id 真寫無 --allow-apply → 拒", not ok_q1)
+    ok_q2, _ = single_apply_gate(queue_id=565, allow_apply=True,
+                                 gate_ref=AUTO_GATE_REF, dry_run=False)
+    chk("queue-id 真寫 gate-ref 非人閘碼 → 拒", not ok_q2)
+    ok_q3, r_q3 = single_apply_gate(queue_id=565, allow_apply=True,
+                                    gate_ref=HUMAN_GATE_REF, dry_run=False)
+    chk("queue-id 真寫 --allow-apply+人閘碼 → 武裝", ok_q3 and "armed" in r_q3)
+    ok_q4, _ = single_apply_gate(queue_id=565, allow_apply=False, gate_ref=None, dry_run=True)
+    chk("queue-id --dry-run 免武裝可預覽(唯讀)", ok_q4)
+    ok_q5, _ = single_apply_gate(queue_id=None, allow_apply=False, gate_ref=None, dry_run=False)
+    chk("無 queue-id 整批路不受影響(既有語意)", ok_q5)
+    # 佈線鎖:haystack 限定該函式原始碼(非整檔,避免自我匹配假綠)
+    chk("main 真寫前經 single_apply_gate", "single_apply_gate(" in inspect.getsource(main))
+    chk("apply_pending 套 queue-id 篩選謂詞",
+        "select_queue_rows(" in inspect.getsource(apply_pending))
+    chk("矩陣含 --queue-id 用法", (__doc__ or "").count("--queue-id") >= 2)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 
@@ -223,7 +286,9 @@ def backfill_prodset(*, dry_run: bool, run_id: int | None) -> int:
     return 0
 
 
-def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
+def apply_pending(*, dry_run: bool, run_id: int | None,
+                  queue_id: int | None = None,
+                  gate_ref_label: str = AUTO_GATE_REF) -> int:
     from augur.core import db
 
     with db.connect() as conn, db.transaction(conn) as cur:
@@ -251,6 +316,26 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
         cur.execute(q, params)
         items = cur.fetchall()
 
+        # S-i 一次一顆:--queue-id 篩選謂詞(純函式);查無/非 pending_auto/被 --run-id 排除=大聲 rc=1
+        if queue_id is not None:
+            picked = select_queue_rows(items, queue_id)
+            if not picked:
+                cur.execute(
+                    "SELECT queue_status, feature, run_id FROM promotion_queue WHERE queue_id=%s",
+                    (queue_id,),
+                )
+                row = cur.fetchone()
+                if row is None:
+                    print(f"✗ --queue-id {queue_id}: promotion_queue 查無此列——不消費（rc=1）")
+                elif row[0] != "pending_auto":
+                    print(f"✗ --queue-id {queue_id}: queue_status={row[0]!r}"
+                          f"（feature={row[1]} run={row[2]}）非 pending_auto——不消費（rc=1）")
+                else:
+                    print(f"✗ --queue-id {queue_id}: 該列 pending_auto 但 run={row[2]} 被 --run-id 篩掉"
+                          f"（feature={row[1]}）——不消費（rc=1）")
+                return 1
+            items = picked
+
         # R2(c) GATE-raise 篩(V2-AUTOADVANCE):讀最新對照臂證據(最大 n 之 control_arms suite),
         # 偽陽率>10% 時 promote 加篩 |hac_t|≥經驗 p95。無證據=無篩(誠實:沒跑對照臂前不假裝有)。
         cur.execute(
@@ -269,7 +354,8 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
             ctrl = {"fp_rate_worst": max(rates), "p95_worst": max(p95s),
                     "evidence_ids": [r[3] for r in ctrl_rows]}
 
-    print(f"── PME APPLY (AUTO-B) kill={kill_eff} pending={len(items)} dry_run={dry_run} ──")
+    scope = f" queue_id={queue_id} gate_ref={gate_ref_label}" if queue_id is not None else ""
+    print(f"── PME APPLY (AUTO-B) kill={kill_eff} pending={len(items)} dry_run={dry_run}{scope} ──")
     if ctrl:
         print(f"  對照臂篩: 偽陽率(最壞)={ctrl['fp_rate_worst']:.1%} p95={ctrl['p95_worst']:.3f} "
               f"→ {'升嚴生效(R2c)' if ctrl['fp_rate_worst'] > 0.10 else '未觸發(≤10%)'}")
@@ -366,9 +452,10 @@ def apply_pending(*, dry_run: bool, run_id: int | None) -> int:
                         before,
                         after,
                         json.dumps(delta),
-                        # R6:自動決策落帳可稽——gate_ref + 依據規則號(週日 digest 掃此)
+                        # R6:自動決策落帳可稽——gate_ref + 依據規則號(週日 digest 掃此);
+                        # 整批路恆 V2-AUTOADVANCE(語意不變);--queue-id 武裝路落 TWEVO-APPLY-go(S-i 留痕)
                         json.dumps({"gate_json": gate_json, "run_id": rid,
-                                    "gate_ref": "V2-AUTOADVANCE",
+                                    "gate_ref": gate_ref_label,
                                     "auto_rule": ("R3-sign-refuted-demote" if action == "demote"
                                                   else "R2-auto-apply"),
                                     "ctrl_screen": ctrl}),
@@ -408,6 +495,19 @@ def main() -> int:
         action="store_true",
         help="對已 applied promote/demote 補寫 evolution_production_feature_set（冪等）",
     )
+    ap.add_argument(
+        "--queue-id", type=int, default=None,
+        help="一次一顆（S-i）:僅消費該 queue_id 之 pending_auto;"
+             f"真寫須併 --allow-apply --gate-ref {HUMAN_GATE_REF}、否則僅 --dry-run 預覽",
+    )
+    ap.add_argument(
+        "--allow-apply", action="store_true",
+        help=f"與 --queue-id 併用:允許單顆真寫（{HUMAN_GATE_REF};hugo 親跑＝授權載體）",
+    )
+    ap.add_argument(
+        "--gate-ref", default=None,
+        help=f"單顆真寫之人閘碼（須={HUMAN_GATE_REF};僅與 --queue-id 併用）",
+    )
     ap.add_argument("--selftest", action="store_true")
     # 明確拒絕跳閘 force（若用戶傳入）
     ap.add_argument("--force", action="store_true", help=argparse.SUPPRESS)
@@ -417,9 +517,25 @@ def main() -> int:
     if args.force:
         print("✗ --force 禁止用於跳閘（PME-AUTO-B）；閘紅不得 APPLY")
         return 2
+    if args.queue_id is None and (args.allow_apply or args.gate_ref is not None):
+        print("✗ --allow-apply / --gate-ref 僅與 --queue-id 併用（S-i 一次一顆）；"
+              "整批路沿既有無旗標語意——未觸 DB、零寫入")
+        return 2
+    if args.queue_id is not None and args.backfill_prodset:
+        print("✗ --queue-id 不適用於 --backfill-prodset——未觸 DB、零寫入")
+        return 2
     if args.backfill_prodset:
         return backfill_prodset(dry_run=args.dry_run, run_id=args.run_id)
-    return apply_pending(dry_run=args.dry_run, run_id=args.run_id)
+    ok_gate, gate_reason = single_apply_gate(
+        queue_id=args.queue_id, allow_apply=args.allow_apply,
+        gate_ref=args.gate_ref, dry_run=args.dry_run,
+    )
+    if not ok_gate:
+        print(f"✗ {gate_reason}——未觸 DB、零寫入")
+        return 2
+    gate_label = HUMAN_GATE_REF if (args.queue_id is not None and args.allow_apply) else AUTO_GATE_REF
+    return apply_pending(dry_run=args.dry_run, run_id=args.run_id,
+                         queue_id=args.queue_id, gate_ref_label=gate_label)
 
 
 if __name__ == "__main__":
