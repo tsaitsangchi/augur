@@ -131,6 +131,18 @@ def rcell_status_line(scale_tag, caps, live_cells, robot_cells):
             + ";S-8:robot=量尺哨兵非受測臂(分數僅驗尺、不入排名)")
 
 
+def sentinel_line(name, rc, tail_lines):
+    """哨兵一行(F3 防鏽哨/門指紋哨共用)。**純函式**——rc≠0 必紅、無輸出視同紅(不吞)。
+
+    抽成純函式之由:兩處呼叫端各有一份三元式,字面斷言驗不到「紅會不會真的印紅」,
+    且複製貼上二份=改一處漏一處(#35(1) 純函式餵真輸入)。
+    """
+    tail = [t.strip() for t in (tail_lines or []) if t and t.strip()]
+    mark = "🟢" if rc == 0 and tail else "🔴"
+    body = "；".join(tail) if tail else "(無輸出=異常,視同紅)"
+    return f"  {mark} {name}(rc={rc})｜{body}"
+
+
 def live_sunset_gate(cur):
     """自 DB 取現行(非 superseded)之 SUNSET 閘 → (deadline, gate_id, status, evaluated_at)。
 
@@ -317,8 +329,16 @@ def build(days, md):
             [sys.executable, str(Path(__file__).resolve().parent / "execute_sunset_consequence.py"),
              "--check"], capture_output=True, text=True, timeout=120)
         _f3_tail = (_f3.stdout or _f3.stderr or "").strip().splitlines()
-        L.append(f"  {'🟢' if _f3.returncode == 0 else '🔴'} consequence 載體防鏽哨(--check rc={_f3.returncode})"
-                 + (f"｜{_f3_tail[-1].strip()}" if _f3_tail else "｜(無輸出=異常,視同紅)"))
+        L.append(sentinel_line("consequence 載體防鏽哨(--check)", _f3.returncode, _f3_tail[-1:]))
+
+        # 門指紋哨(2026-08-02;哨兵落地時留之「掛週報候選另日一行」):逐列覆算 criteria_sha
+        # 與文自洽。紅=某門之判準文與其指紋分家(挪門柱或資料毀損)——治權級,故照印不吞。
+        _sha = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve().parent / "verify_gate_sha_integrity.py"),
+             "--check"], capture_output=True, text=True, timeout=120)
+        _sha_tail = [ln for ln in (_sha.stdout or _sha.stderr or "").strip().splitlines()
+                     if "→" in ln or "MISMATCH" in ln]
+        L.append(sentinel_line("門指紋哨(criteria_sha 覆算)", _sha.returncode, _sha_tail))
 
         h1(f"R6 自動決策 digest(近 {days} 日;請掃視認領)")
         cur.execute("""SELECT a.applied_at, q.feature, q.action, a.before_status, a.after_status,
@@ -423,6 +443,10 @@ def _selftest():
         ok = ok and cond
 
     src = open(__file__, encoding="utf-8").read()
+    chk("哨兵:rc=0 且有輸出 → 🟢", sentinel_line("X", 0, ["ok"]).startswith("  🟢"))
+    chk("哨兵:rc≠0 → 🔴(紅不被吞;哨兵回紅=週報必顯形)", sentinel_line("X", 1, ["MISMATCH=1"]).startswith("  🔴"))
+    chk("哨兵:rc=0 但零輸出 → 🔴(靜默=異常,不當綠)", sentinel_line("X", 0, []).startswith("  🔴"))
+    chk("哨兵:紅時原文照印不改寫", "MISMATCH=1" in sentinel_line("X", 1, ["MISMATCH=1"]))
     chk("第一行為 SUNSET(v2 §2.2 硬要求)", 'L.append(f"# V2-SUNSET' in src)
     chk("吞吐標明非成功指標", "**非成功指標**" in src)
     # A12 唯讀:掃 SQL 字面而非全檔(自測斷言字串本身含關鍵字=假紅;2026-07-27 實撞)
