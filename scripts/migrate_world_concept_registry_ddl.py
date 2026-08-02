@@ -320,8 +320,22 @@ def _annex_tables_missing(cur) -> list[str]:
     return [t for t in tables if t not in have]
 
 
+def _split_done(cur) -> bool:
+    """概念表是否已依丙案拆為身分/版本二表（Steward 2026-08-03）。
+
+    拆表後本支之 DDL＋種子會**重建一張空的 world_concept_registry 並重種 6 列**＝影子表:
+    解析 API 讀的是相容 view、沒人讀它,卻長得像現行登錄 ⇒ 典型「防呆機制自己靜默失效」。故 fail-closed。
+    """
+    cur.execute("SELECT to_regclass('public.world_concept_version')")
+    return bool(cur.fetchone()[0])
+
+
 def _check(conn) -> int:
     with conn.cursor() as cur:
+        if _split_done(cur):
+            print("  ⚠ 概念表已依丙案拆為 world_concept + world_concept_version（2026-08-03）——"
+                  "本支之 world_concept_registry 已更名為 world_concept_registry_legacy 史料;"
+                  "現況請跑 scripts/migrate_world_concept_identity_split_ddl.py --check／--verify")
         ok_all = True
         for tbl in ("world_concept_registry", "world_channel_binding"):
             cur.execute("SELECT to_regclass(%s)", (f"public.{tbl}",))
@@ -377,6 +391,11 @@ def _seed_dry(conn) -> int:
 def _apply(conn) -> int:
     from augur.core import db
     with db.transaction(conn) as cur:
+        if _split_done(cur):
+            print("✗ 概念表已依丙案拆為身分/版本二表——本支 --apply 會重建空的 world_concept_registry"
+                  "＋重種 6 列（影子表,無人讀卻長得像現行登錄）,故拒。"
+                  "DDL/種子之現行住所＝scripts/migrate_world_concept_identity_split_ddl.py")
+            return 1
         cur.execute("SELECT count(*) FROM pg_proc WHERE proname='honesty_ledger_guard'")
         if cur.fetchone()[0] == 0:
             print("✗ honesty_ledger_guard 函式不存在——先跑 migrate_honesty_guards_ddl.py --apply"

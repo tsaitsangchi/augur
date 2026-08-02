@@ -2,8 +2,8 @@
 
 🎯 這支在做什麼（白話）：
 消費模組想讀「台股日 K」時，不再寫死供應商表名，而是問這支「`tw.daily_bar` 的權威表徵在哪？」
-本支查 World Concept Registry 二表（`world_concept_registry` 概念主表 → 欄 4 權威表徵指定 →
-`world_channel_binding` 通道映射列），回一個 `Binding(表, 欄, 角色)`。
+本支查 World Concept Registry（`world_concept_registry_current` 相容 view＝概念之**現行版本列** →
+欄 4 權威表徵指定 → `world_channel_binding` 通道映射列），回一個 `Binding(表, 欄, 角色)`。
 **解析不出來就拋例外、絕不靜默回退成 vendor 字面**——這是本支存在的全部理由：
 unmapped／未指定權威表徵之通道，其資料僅具 Observation 地位（WM.35），不得被消費為
 Representation 或 Knowledge 之依據；靜默回退＝把不得消費的東西餵進生產鏈，比報錯壞得多。
@@ -32,7 +32,17 @@ Representation 或 Knowledge 之依據；靜默回退＝把不得消費的東西
   concepts_for_table() → 反查某供應商表服務哪些概念（一對多故回 tuple；絞殺工具用）
   load_registry()      → Registry 快照（模組級快取；`clear_cache()` 清）
 
-邊界：**唯讀**——本支不寫 registry、不建表（DDL＝scripts/migrate_world_concept_registry_ddl.py）、
+載體（2026-08-03 丙案拆表後；DDL 一律不住本檔）
+------------------------------------------------
+  `world_concept`（身分表，自然鍵真 PK）＋`world_concept_version`（版本表，(concept_key,
+  transaction_time) 複合鍵 append-only）＋`world_concept_registry_current`（相容 view＝現行列）。
+  本支**只讀 view**；「現行列恰一」在 DB 層由 partial unique `uq_world_concept_current` 擔保，
+  本支之「同鍵兩筆現行列即拋」為第二層防禦（view 被改寫／索引被卸時仍拒解析，不猜）。
+  修訂／採認一律 **INSERT 進 `world_concept_version`**（honesty guard 不擋 INSERT ⇒ 人類簽核不需
+  默改通行證）；舊單表 `world_concept_registry` 已更名 `world_concept_registry_legacy` 為史料。
+
+邊界：**唯讀**——本支不寫 registry、不建表（DDL＝scripts/migrate_world_concept_registry_ddl.py
+建 M1 二表、scripts/migrate_world_concept_identity_split_ddl.py 拆身分／版本＋建 view）、
 不代填 decided_by（採認＝Steward 附卷裁定，hugo 親簽）。
 
 執行指令矩陣（本檔＝library #18；--selftest 免 DB 免 API 零 usage）
@@ -47,7 +57,10 @@ from __future__ import annotations
 import re
 from typing import Iterable, Mapping, NamedTuple, Optional, Sequence
 
-CONCEPT_TABLE = "world_concept_registry"
+# 讀取面＝相容 view（＝版本表之現行列 JOIN 身分表；identity／version 拆表後之唯一讀取入口）。
+# 寫入面另立常數：view 為 JOIN 形、**非自動可更新**，訊息若叫人往 view 登錄即錯誤指引。
+CONCEPT_TABLE = "world_concept_registry_current"
+CONCEPT_WRITE_TABLE = "world_concept_version"
 BINDING_TABLE = "world_channel_binding"
 
 CONCEPT_COLS = ("concept_key", "category", "authoritative_binding_id", "superseded_at")
@@ -110,7 +123,7 @@ def resolve_rows(concept_key: str, concept_rows: Sequence[Mapping],
     if not hits:
         raise UnknownConcept(
             f"世界概念 {concept_key!r} 無現行登錄列——未登錄或已 supersede；"
-            f"不得以供應商表名字面代替（WM.36:356）。先登錄 {CONCEPT_TABLE}。")
+            f"不得以供應商表名字面代替（WM.36:356）。先登錄 {CONCEPT_WRITE_TABLE}（INSERT 新版本列）。")
     if len(hits) > 1:
         raise RegistryIntegrityError(
             f"世界概念 {concept_key!r} 現行列 {len(hits)} 筆（應恰一，WM.14）——"
@@ -205,7 +218,9 @@ def load_registry(conn=None, refresh: bool = False) -> Registry:
     except Exception as e:  # noqa: BLE001 — 讀不到 registry 一律 fail-closed，不得退成空快照
         raise RegistryIntegrityError(
             f"讀取 World Concept Registry 失敗（{type(e).__name__}: {e}）——"
-            "二表是否已 migrate？先跑 scripts/migrate_world_concept_registry_ddl.py --check") from e
+            "二表是否已 migrate？先跑 scripts/migrate_world_concept_registry_ddl.py --check"
+            "（M1 二表）與 scripts/migrate_world_concept_identity_split_ddl.py --check"
+            "（identity／version 拆表＋相容 view）") from e
     _CACHE = snap
     return snap
 

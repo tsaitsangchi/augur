@@ -17,21 +17,28 @@ reports/wm3536_vendor_registry_plan_20260802.md §4／§5 表列 4）。消費�
 3. **施作時序不同**：①② 已 live（2026-08-02 M1），③ 尚未執行——分家使 `--check` 誠實反映
    「這張還沒建」，不被已建的二表掩蓋。
 
-## ⚠ 待確認事項（本支未執行，主 session／Steward 過目時裁）
+## guard trigger：已裁決＝**不掛**（Steward 2026-08-03；本支預設隨之改為無閘）
 
-**guard trigger 是否上**：計畫 §4 原文「不新增 honesty trigger 於本批」，但 G0 格 3 裁示
-「照案（二表七欄溯源＋**trigger 同 honesty 家族**）」——其文義及於 ①②，**③ 未經明示**。
-本支**預設上 trigger**（理由：③ 是帳本，紅列若可被裸手 UPDATE／DELETE 抹掉，整條絞殺鏈的
-「紅燈會亮」保證即失效；與既有兩帳本表上閘之先例同型）。不同意者以 `--no-guard` 生成無 trigger 版本
-（DDL 印出可過目）。**本支不代決、不代簽**。
+原標頭列此為待確認事項並**預設上 trigger**。Steward 已依計畫 §4 原文「不新增 honesty trigger 於本批」
+裁示 **③ 帳本不掛 honesty trigger**（裁決登錄住 reports/w2_20260801/WM_M1_pk_vs_appendonly_20260802.md
+文末「併裁」）。故 `--apply` 預設**不掛**；`--with-guard` 為反向旗標（上閘＝加嚴，屬單向棘輪之緊側，
+不因此旗標存在而弱化裁決）。
+
+**誠實殘項（不因裁決而消失，#15）**：本支原主張上閘之理由**仍然成立且現在未被承接**——
+`vendor_binding_strangler_ledger` 之紅列（`verdict='red'`）**無 DB 層寫保護**：帶足夠權限者可
+裸手 `UPDATE`／`DELETE` 抹掉紅列而不留痕。目前「紅燈留得住」僅由三件事承載：
+(a) `PRIMARY KEY (file_path, verified_at)` 使同檔重驗＝追加新列、**不覆寫**舊列；
+(b) 寫入端 `compare_shadow_binding.py` 只 INSERT、不 UPDATE（慣例，非機械閘）；
+(c) 人為紀律。**(b)(c) 皆非機械閘**——此為已知缺口，列為殘項待 treaty 表閘另案處理，
+不得以「已裁決」為由當作缺口不存在。
 
 執行指令矩陣
 ------------
     python3 scripts/migrate_strangler_ledger_ddl.py             # 無參數＝印矩陣＋--check（唯讀，DB 不可達則 graceful）
     python3 scripts/migrate_strangler_ledger_ddl.py --check     # 唯讀：表在否／trigger 數／列況
     python3 scripts/migrate_strangler_ledger_ddl.py --print-ddl # 唯讀：印將執行之 DDL 全文（過目用，零連線）
-    python3 scripts/migrate_strangler_ledger_ddl.py --apply     # 建表（冪等；須 hugo #6 明示；dump 期間禁跑 #30）
-    python3 scripts/migrate_strangler_ledger_ddl.py --apply --no-guard   # 同上但不掛 honesty trigger
+    python3 scripts/migrate_strangler_ledger_ddl.py --apply     # 建表（冪等；**依裁決不掛 trigger**；須 hugo #6 明示；dump 期間禁跑 #30）
+    python3 scripts/migrate_strangler_ledger_ddl.py --apply --with-guard  # 反向旗標：另掛 honesty trigger（加嚴；非現行裁決）
     python3 scripts/migrate_strangler_ledger_ddl.py --selftest  # 紅綠自測（免 DB 免 API；壞變體驗紅 #35）
 """
 
@@ -64,7 +71,8 @@ COMMENT ON TABLE vendor_binding_strangler_ledger IS
   'WM.36 絞殺帳本(計畫 §4 表③;非條文義務、為落地憑證):一檔一次雙讀影子比對一列——green=diff 0 才准切,red=熔斷回退,pending=比對未達成(含新舊 SQL 全等之無鑑別力情形,誠實不記綠);append-only:同檔重驗=新列(PK 含 verified_at),舊列不覆寫';
 """
 
-# ── guard trigger（預設上；--no-guard 可去。函式本體＝migrate_honesty_guards_ddl.py 單一住所）──
+# ── guard trigger（**預設不上**，Steward 2026-08-03 裁；--with-guard 才掛。
+#    函式本體＝migrate_honesty_guards_ddl.py 單一住所）──
 DDL_GUARD = """
 DROP TRIGGER IF EXISTS trg_vendor_binding_strangler_ledger_honesty_row ON vendor_binding_strangler_ledger;
 CREATE TRIGGER trg_vendor_binding_strangler_ledger_honesty_row
@@ -77,12 +85,12 @@ CREATE TRIGGER trg_vendor_binding_strangler_ledger_honesty_trunc
 """
 
 
-def build_ddl(with_guard: bool = True) -> str:
-    """→ 將執行之 DDL 全文（純函式）。with_guard=False ⇒ 只建表、不掛 trigger。"""
+def build_ddl(with_guard: bool = False) -> str:
+    """→ 將執行之 DDL 全文（純函式）。預設 with_guard=False＝裁決之無閘版；True ⇒ 另掛二 trigger。"""
     return DDL_TABLE + (DDL_GUARD if with_guard else "")
 
 
-def ddl_invariants(ddl: str, with_guard: bool = True) -> list:
+def ddl_invariants(ddl: str, with_guard: bool = False) -> list:
     """回傳被違反之不變式名清單（空＝全守）。純函式；selftest 以本尊驗綠、壞變體驗紅。
 
     #35 型 3 註記（同 M1／E2 先例）：DDL 字串即被逐字執行之行為載體，對載體驗形＝對行為驗形；
@@ -130,8 +138,8 @@ def _check(conn) -> int:
         cur.execute("SELECT count(*) FROM pg_trigger WHERE tgrelid = %s::regclass AND NOT tgisinternal",
                     (TABLE,))
         n = cur.fetchone()[0]
-        print(f"  {'✓' if n == 2 else '·'} honesty guard trigger {n}/2"
-              f"{'（--no-guard 版本即 0/2）' if n == 0 else ''}")
+        print(f"  {'✓' if n == 0 else '·'} honesty guard trigger {n}/2"
+              f"{'（＝裁決之無閘版;紅列無 DB 層寫保護,見標頭殘項）' if n == 0 else '（--with-guard 版本;加嚴）'}")
         cur.execute(f"SELECT verdict, count(*) FROM {TABLE} GROUP BY 1 ORDER BY 1")
         rows = cur.fetchall()
         print("  帳本列：" + ("（空——尚無檔改線）" if not rows
@@ -146,7 +154,7 @@ def _apply(conn, with_guard: bool) -> int:
             cur.execute("SELECT count(*) FROM pg_proc WHERE proname='honesty_ledger_guard'")
             if cur.fetchone()[0] == 0:
                 print("✗ honesty_ledger_guard 函式不存在——先跑 migrate_honesty_guards_ddl.py --apply"
-                      "（#12 不自造第二住所），或以 --no-guard 建無閘版")
+                      "（#12 不自造第二住所），或去掉 --with-guard 建無閘版（＝現行裁決）")
                 return 1
     with db.transaction(conn) as cur:
         cur.execute(build_ddl(with_guard))
@@ -162,11 +170,13 @@ def _selftest() -> int:
         ok &= bool(cond)
         print(f"  {'✓' if cond else '✗'} {name}")
 
-    ddl = build_ddl(True)
-    chk("本尊 DDL（含 guard）全不變式守住（綠）", ddl_invariants(ddl) == [])
-    chk("--no-guard 變體：不變式守住且不夾帶 trigger（綠）",
-        ddl_invariants(build_ddl(False), with_guard=False) == []
-        and "honesty_ledger_guard" not in build_ddl(False))
+    ddl = build_ddl()          # 本尊＝裁決之無閘版（表級突變一律以它為底）
+    ddl_g = build_ddl(True)    # 加嚴版（trigger 相關突變之底）
+    chk("本尊 DDL（預設＝裁決之無閘版）全不變式守住且不夾帶 trigger（綠）",
+        ddl_invariants(build_ddl()) == [] and "honesty_ledger_guard" not in build_ddl())
+    chk("預設即無閘（裁決落地於預設值，非只落在文件）", build_ddl() == build_ddl(False))
+    chk("--with-guard 變體：不變式守住且恰二 trigger（綠；加嚴側仍可用）",
+        ddl_invariants(ddl_g, with_guard=True) == [] and ddl_g.count("honesty_ledger_guard()") == 2)
     chk("build_ddl 為純函式：with_guard 真假生不同 DDL、表本體相同",
         build_ddl(True) != build_ddl(False) and build_ddl(False) in build_ddl(True))
     # ── 壞變體驗紅（在檔常駐版；scratch 突變另證，見 commit/report）──
@@ -181,10 +191,10 @@ def _selftest() -> int:
     chk("驗紅：verdict 可為 NULL → 報違（判定不得留空冒充未定）",
         "verdict_not_null" in ddl_invariants(
             ddl.replace("verdict        text NOT NULL", "verdict        text        ")))
-    chk("驗紅：少一支 trigger → two_guard_triggers 報違",
-        "two_guard_triggers" in ddl_invariants(ddl.replace(
+    chk("驗紅：--with-guard 版少一支 trigger → two_guard_triggers 報違",
+        "two_guard_triggers" in ddl_invariants(ddl_g.replace(
             "DROP TRIGGER IF EXISTS trg_vendor_binding_strangler_ledger_honesty_trunc "
-            "ON vendor_binding_strangler_ledger;", "", 1)))
+            "ON vendor_binding_strangler_ledger;", "", 1), with_guard=True))
     chk("驗紅：DDL 自造 guard 函式 → 報違（#12 單一住所）",
         "guard_fn_not_self_made" in ddl_invariants(
             ddl + "\nCREATE OR REPLACE FUNCTION honesty_ledger_guard() RETURNS trigger AS $$ $$;"))
@@ -196,8 +206,10 @@ def _selftest() -> int:
         "lock_timeout" in ddl_invariants(ddl.replace("SET lock_timeout = '5s';", "")))
     chk("驗紅：少一欄（evidence_ref）→ col_evidence_ref 報違",
         "col_evidence_ref" in ddl_invariants(ddl.replace("evidence_ref   text,", "")))
-    chk("驗紅：--no-guard 變體卻夾帶 trigger → 報違（旗標與產物須一致）",
-        "no_guard_variant_leaks_trigger" in ddl_invariants(build_ddl(True), with_guard=False))
+    chk("驗紅：無閘版（預設）卻夾帶 trigger → 報違（旗標與產物須一致）",
+        "no_guard_variant_leaks_trigger" in ddl_invariants(ddl_g))
+    chk("驗紅：把預設改回上閘 → 預設無閘之斷言變紅（裁決落地於預設值之回歸鎖）",
+        "no_guard_variant_leaks_trigger" in ddl_invariants(DDL_TABLE + DDL_GUARD))
     print("自測：全通過 ✓" if ok else "自測：有失敗 ✗")
     return 0 if ok else 1
 
@@ -208,14 +220,14 @@ def main(argv=None) -> int:
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--print-ddl", dest="print_ddl", action="store_true")
     ap.add_argument("--apply", action="store_true")
-    ap.add_argument("--no-guard", dest="no_guard", action="store_true",
-                    help="不掛 honesty trigger（見標頭待確認事項）")
+    ap.add_argument("--with-guard", dest="with_guard", action="store_true",
+                    help="另掛 honesty trigger（加嚴；現行裁決＝不掛，見標頭）")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
     if a.selftest:
         return _selftest()
     if a.print_ddl:
-        print(build_ddl(not a.no_guard))
+        print(build_ddl(a.with_guard))
         return 0
     no_args = not (a.check or a.apply)
     if no_args:
@@ -230,7 +242,7 @@ def main(argv=None) -> int:
             return 0
     with db.connect() as conn:
         if a.apply:
-            return _apply(conn, not a.no_guard)
+            return _apply(conn, a.with_guard)
         return _check(conn)
 
 
