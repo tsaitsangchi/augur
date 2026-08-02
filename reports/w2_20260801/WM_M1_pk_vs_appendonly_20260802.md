@@ -254,3 +254,11 @@ CREATE TABLE _pk_probe_child (id serial PRIMARY KEY, concept_key text NOT NULL
 ```
 
 ⇒ **甲案不可行為實證事實**（PostgreSQL 不接受 partial unique index 作為 FK 參照鍵）。三案比較據此收斂為乙／丙之選。
+
+---
+
+## 裁決登錄（2026-08-03）
+
+> **Steward 圈選（AskUserQuestion 留痕）**：**丙案——identity／version 拆表**（主表存身分、版本表存內容；先例＝`entity_registry`＋`entity_attribute_version`）。
+> 併裁：**strangler 帳本表不掛 honesty trigger**（依計畫 §4 原文；腳本走 `--no-guard`）。
+> 施作序：PK 重構先於 Annex F 六條採認親簽——確保首筆治權簽核以 INSERT 落地、與 append-only 註記一致。
