@@ -95,6 +95,7 @@ def _apply(conn) -> int:
         if not todo:
             print("✓ 無可回填列（冪等）")
             return 0
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2b)
         for rid, st, _status, age, _n in todo:
             cur.execute(
                 "UPDATE evolution_run SET finished_at=now(), status='failed', "

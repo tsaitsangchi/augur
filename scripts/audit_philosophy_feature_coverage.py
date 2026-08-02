@@ -270,6 +270,7 @@ def write_snapshot(conn, rows: list[dict]) -> int:
                     json.dumps({"source": "audit_philosophy_feature_coverage"}),
                 ),
             )
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2b)
         cur.execute(
             "UPDATE evolution_run SET finished_at=now() WHERE run_id=%s",
             (run_id,),

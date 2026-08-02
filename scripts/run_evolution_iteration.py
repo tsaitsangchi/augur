@@ -260,6 +260,7 @@ def _do_step(cur, uid, step, dry, allow_apply, gate_ref):
 
 
 def _append_step(cur, uid, rec):
+    cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2b)
     cur.execute("""UPDATE evolution_iteration_ledger
         SET steps_json = steps_json || %s::jsonb WHERE iteration_uid=%s""",
         (json.dumps([rec], ensure_ascii=False), uid))
@@ -344,6 +345,7 @@ def close_round(dry, partial=False):
             if ver_note:
                 print(ver_note)
             return 0
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2b)
         cur.execute("""UPDATE evolution_iteration_ledger
             SET status=%s, closed_at=now(), closed_by='run_evolution_iteration(執行層)',
                 gain=%s, gain_basis=%s, gain_evidence=%s, consecutive_no_gain=%s, stop_reason=%s

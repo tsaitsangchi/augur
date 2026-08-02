@@ -393,6 +393,7 @@ def run_analogs(cell, names, seed):
             method = f"episode_analog_{name}"
             key = f"mc_{target}_{panel}_{summ.get('n_td', 0) or 1}_{method}_{seed}"
             run_id = "mc_" + hashlib.sha256(key.encode()).hexdigest()[:16]
+            cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2b:upsert 衝突分支)
             cur.execute("""INSERT INTO mc_simulation_run
                 (run_id, target_id, asof_date, horizon_td, method, block_len_td, n_paths, seed,
                  summary, is_simulation, git_sha) VALUES (%s,%s,%s,%s,%s,NULL,1,%s,%s,true,%s)
@@ -492,6 +493,7 @@ def run(cell, episodes, n_paths, seed, h):
         for method, blk, hh, summ in rows:
             key = f"mc_{target}_{panel}_{hh}_{method}_{seed}"
             run_id = "mc_" + hashlib.sha256(key.encode()).hexdigest()[:16]
+            cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2b:upsert 衝突分支)
             cur.execute("""INSERT INTO mc_simulation_run
                 (run_id, target_id, asof_date, horizon_td, method, block_len_td, n_paths, seed,
                  summary, is_simulation, git_sha) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,true,%s)

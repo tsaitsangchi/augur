@@ -5,9 +5,10 @@
    另含跨軸 hint 表(UNIQUE dedup_key+decision 單向前進)、證據協定落點 evidence_run、RAW 覆蓋快照、
    heavy-slot 積壓表、題庫漂移落表、預註冊 gate(V2-SUNSET 落點)。**pytest 斷言三表同一清單生成**
    (tests/test_evolution_ledger_ddl.py)——這是「同構」由文字變機械的落點。
-   誠實閘:三本 ledger 掛既有 honesty_delete_only_guard(C5 只擋刪除;P2b 前效力不變);
-   hint/evidence 二表已升 UPDATE-GUC honesty_ledger_guard(**B4-P2a,RULING-2026-043 併案 2026-08-01**
-   ——decision/decided_by 人簽欄裸手默改被拒;legacy 名 hint_no_*/evidence_no_* 先卸不掛回;
+   誠實閘:三本 ledger＋hint/evidence 五表已全升 UPDATE-GUC honesty_ledger_guard
+   (hint/evidence=**B4-P2a 2026-08-01**;三 ledger=**B4-P2b 2026-08-02**,RULING-2026-043 併案
+   ——UPDATE 須帶 SET LOCAL augur.honesty_write='on' 通行證,裸手默改被拒;legacy 名
+   hint_no_*/evidence_no_*/tw_iter_no_*/raw_iter_no_*/lai_iter_no_* 先卸不掛回;
    hint_decision_forward_only 獨立 domain 閘保留)。兩 guard 函式皆住 migrate_honesty_guards_ddl(#12)。
 守 #12(單一住所)· #29b(schema 由本檔常數生成、migrate 只消費)· P4.E3(append-only)。
 執行指令矩陣:
@@ -84,7 +85,8 @@ GUC_GUARD_FN = "honesty_ledger_guard"       # UPDATE-GUC 版(B4-P2a;同住 migra
 
 
 def ledger_ddl(axis: str) -> str:
-    """單軸 ledger 完整 DDL(表+gain_basis CHECK+索引+delete-only 雙 trigger)。"""
+    """單軸 ledger 完整 DDL(表+gain_basis CHECK+索引+UPDATE-GUC honesty 雙 trigger;
+    B4-P2b:legacy delete-only 名先卸不掛回——本檔冪等重跑不得把 delonly 掛回,#12/#19)。"""
     spec = AXES[axis]
     t = spec["table"]
     cols = ",\n    ".join(f"{c} {d}" for c, d in LEDGER_COMMON + spec["extra"])
@@ -95,11 +97,13 @@ def ledger_ddl(axis: str) -> str:
 );
 CREATE INDEX IF NOT EXISTS ix_{axis}_iter_status ON {t} (status, opened_at DESC);
 DROP TRIGGER IF EXISTS {axis}_iter_no_delete_row ON {t};
-CREATE TRIGGER {axis}_iter_no_delete_row BEFORE DELETE ON {t}
-    FOR EACH ROW EXECUTE FUNCTION {GUARD_FN}();
 DROP TRIGGER IF EXISTS {axis}_iter_no_truncate ON {t};
-CREATE TRIGGER {axis}_iter_no_truncate BEFORE TRUNCATE ON {t}
-    FOR EACH STATEMENT EXECUTE FUNCTION {GUARD_FN}();"""
+DROP TRIGGER IF EXISTS trg_{t}_honesty_row ON {t};
+CREATE TRIGGER trg_{t}_honesty_row BEFORE UPDATE OR DELETE ON {t}
+    FOR EACH ROW EXECUTE FUNCTION {GUC_GUARD_FN}();
+DROP TRIGGER IF EXISTS trg_{t}_honesty_trunc ON {t};
+CREATE TRIGGER trg_{t}_honesty_trunc BEFORE TRUNCATE ON {t}
+    FOR EACH STATEMENT EXECUTE FUNCTION {GUC_GUARD_FN}();"""
 
 
 HINT_FORWARD_FN = """CREATE OR REPLACE FUNCTION hint_decision_forward_only() RETURNS trigger AS $$
@@ -311,8 +315,15 @@ def _selftest():
         len({AXES[a]["gain_basis_check"] for a in AXES}) == 3)
     chk("axis 自鎖 CHECK(raw 表只能 axis='raw')", all(f"CHECK (axis = '{a}')" in ddls[a] for a in AXES))
     chk("uid regex 三軸共用", all("^(tw|lai|raw)-[0-9]{8}-r[0-9]{2}$" in ddls[a] for a in AXES))
-    chk("三 ledger delete-only 閘用既有函式(#12 不重造;C5 於 P2b 前效力不變)",
-        all(GUARD_FN in ddls[a] for a in AXES))
+    chk("三 ledger 已升 UPDATE-GUC(B4-P2b RULING-2026-043):honesty_ledger_guard 雙 trigger"
+        "+卸 legacy 名不掛回",
+        all(GUC_GUARD_FN in ddls[a] and GUARD_FN not in ddls[a]
+            and f"BEFORE UPDATE OR DELETE ON {AXES[a]['table']}" in ddls[a]
+            and f"DROP TRIGGER IF EXISTS {a}_iter_no_delete_row ON" in ddls[a]
+            and f"CREATE TRIGGER {a}_iter_no_delete_row" not in ddls[a]
+            and f"DROP TRIGGER IF EXISTS {a}_iter_no_truncate ON" in ddls[a]
+            and f"CREATE TRIGGER {a}_iter_no_truncate" not in ddls[a]
+            for a in AXES))
     chk("hint/evidence 已升 UPDATE-GUC(B4-P2a RULING-2026-043):honesty_ledger_guard 雙 trigger"
         "+卸 legacy 名不掛回",
         GUC_GUARD_FN in HINT_DDL and GUC_GUARD_FN in EVIDENCE_DDL

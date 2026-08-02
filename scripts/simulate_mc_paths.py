@@ -148,6 +148,7 @@ def run(stocks, asof, horizons, n_paths, seed, window):
                     summ = _summary(last_close, paths, h)
                     key = f"mc_{stock}_{asof}_{h}_{method}_{seed}"
                     run_id = "mc_" + hashlib.sha256(key.encode()).hexdigest()[:16]
+                    cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2b:upsert 衝突分支)
                     cur.execute("""INSERT INTO mc_simulation_run
                         (run_id, target_id, asof_date, horizon_td, method, block_len_td, n_paths, seed,
                          summary, is_simulation, git_sha) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,true,%s)

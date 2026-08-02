@@ -290,14 +290,18 @@ ALTER TABLE evolution_evidence_run ADD CONSTRAINT evolution_evidence_run_arm_che
     CHECK (arm IN ('ceiling','floor','shuffled','mismatched','robot','live'));
 """
 
-# M3:生產模擬表補 append-only(實查 0 trigger=540 列可被無痕刪)
+# M3:生產模擬表誠實閘——B4-P2b(RULING-2026-043 併案 2026-08-02)升 UPDATE-GUC honesty_ledger_guard
+# (原 delete-only 之 mcsim_no_* legacy 名先卸不掛回;upsert 衝突分支寫入者已帶通行證;#12/#19 住所同步,
+# 本檔冪等重跑不得把 delonly 掛回)。sim 專章七表維持 delete-only 不變(P2c 緩議)。
 M3_SQL = """
 DROP TRIGGER IF EXISTS mcsim_no_delete ON mc_simulation_run;
-CREATE TRIGGER mcsim_no_delete   BEFORE DELETE   ON mc_simulation_run
-    FOR EACH ROW       EXECUTE FUNCTION honesty_delete_only_guard();
 DROP TRIGGER IF EXISTS mcsim_no_truncate ON mc_simulation_run;
-CREATE TRIGGER mcsim_no_truncate BEFORE TRUNCATE ON mc_simulation_run
-    FOR EACH STATEMENT EXECUTE FUNCTION honesty_delete_only_guard();
+DROP TRIGGER IF EXISTS trg_mc_simulation_run_honesty_row ON mc_simulation_run;
+CREATE TRIGGER trg_mc_simulation_run_honesty_row BEFORE UPDATE OR DELETE ON mc_simulation_run
+    FOR EACH ROW       EXECUTE FUNCTION honesty_ledger_guard();
+DROP TRIGGER IF EXISTS trg_mc_simulation_run_honesty_trunc ON mc_simulation_run;
+CREATE TRIGGER trg_mc_simulation_run_honesty_trunc BEFORE TRUNCATE ON mc_simulation_run
+    FOR EACH STATEMENT EXECUTE FUNCTION honesty_ledger_guard();
 """
 
 EXPECT_TABLES = [name for name, _ in DDL_TABLES]
@@ -340,7 +344,7 @@ def apply(conn) -> int:
     cur.execute(M2_SQL)
     print("  ✓ M2 evidence_run（axis→FK、arm 加 robot）")
     cur.execute(M3_SQL)
-    print("  ✓ M3 mc_simulation_run append-only")
+    print("  ✓ M3 mc_simulation_run UPDATE-GUC honesty(B4-P2b;DELETE/TRUNCATE 恆拒)")
     conn.commit()
     return check(cur)
 
@@ -369,6 +373,16 @@ def _selftest() -> int:
     chk("H-1 無逐路徑/價格點位欄",
         not __import__("re").search(r"\b(price_path|daily_price|target_price|path_json)\b", all_sql))
     chk("verdict UPDATE 綁 honesty_ledger_guard", "honesty_ledger_guard" in dict(DDL_TABLES)["sim_evolution_verdict"])
+    chk("M3 已升 UPDATE-GUC（B4-P2b）:honesty_ledger_guard 雙 trigger+卸 mcsim_no_* 不掛回",
+        "honesty_ledger_guard" in M3_SQL and "honesty_delete_only_guard" not in M3_SQL
+        and "BEFORE UPDATE OR DELETE ON mc_simulation_run" in M3_SQL
+        and "DROP TRIGGER IF EXISTS mcsim_no_delete ON" in M3_SQL
+        and "CREATE TRIGGER mcsim_no_delete" not in M3_SQL
+        and "DROP TRIGGER IF EXISTS mcsim_no_truncate ON" in M3_SQL
+        and "CREATE TRIGGER mcsim_no_truncate" not in M3_SQL)
+    chk("sim 七表維持 delete-only 不變（P2c 緩議:住所歸 sim 專章、不由 honesty 機制代升）",
+        all("honesty_delete_only_guard" in sql for name, sql in DDL_TABLES
+            if name != "sim_evolution_verdict"))
     chk("M1 未收錄（registry FK 不得被退回寫死清單）",
         "evolution_prereg_gate_axis_check" not in all_sql + M2_SQL + M3_SQL)
 

@@ -206,6 +206,7 @@ def run(top_hints, dry):
         steps = [{"step": "R1_coverage", "rc": 0, "n_rows": n, "gap_counter": gaps},
                  {"step": "R3_hints", "rc": 0, "n_new_hints": made, "hint_ids": ids}]
         gain = bool(made or gaps.get("true_gap") or gaps.get("freeze_gap"))
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2b)
         cur.execute("""UPDATE raw_evolution_iteration_ledger
             SET status='succeeded', closed_at=now(), closed_by='run_raw_evolution_iteration(執行層)',
                 steps_json=%s, gain=%s, gain_basis=%s,

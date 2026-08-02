@@ -919,6 +919,7 @@ def run_evolution(
 
     final = "halted" if kill_eff == KILL_HALT else "succeeded"
     with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2b)
         cur.execute(
             "UPDATE evolution_run SET finished_at=now(), status=%s WHERE run_id=%s",
             (final, run_id),
@@ -958,6 +959,7 @@ def _abort_close(run_id, exc) -> None:
     try:
         from augur.core import db          # 本檔慣例＝函式內延遲 import（模組層無 db 名）
         with db.connect() as c2, c2.cursor() as cu:
+            cu.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2b)
             cu.execute(
                 "UPDATE evolution_run SET finished_at=now(), status=%s, "
                 "notes=COALESCE(notes||' | ','')||%s "
