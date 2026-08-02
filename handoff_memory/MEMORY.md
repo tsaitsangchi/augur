@@ -1,5 +1,6 @@
 # Memory Index
 
+- [pgrep 掃到自己（第六犯）](pgrep-self-match-sixth.md) — ⚠08-02 一日三犯（pytest 假跑/DDL 窗假警/索引假存活）;正法唯 /proc/<pid>/comm 過濾;判斷句「這個 pgrep 命中的會不會就是我自己？」
 - [裁決批執行 20260801](augur-adjudication-exec-20260801.md) — ⭐**執行現況權威**:批次一全清+批次四波1落地(全經突變驗紅);批次二/三未圈(E1 08-03 20:00 時效);F1=RULING-042 落庫待親簽;TTY 親簽包四件;波2-4 待辦序(D4 先code後DDL不可倒)
 - [深化理解 r3 20260801](augur-deep-understanding-r3-20260801.md) — ⭐**最新現況權威**:run 20 首完整輪(51 feat)+r01 failed-but-gain(close 判準失真);晉升鏈四斷點(sign 0 列/G-SIGN 未入閘/APPLY-go 未開);**口徑鎖定表**(KH0 兩把尺 138,854 vs 138,805/VE 19 列/表數兩口徑/444·445 非重複);KH8 靠 0.27% 尾巴解閘+GREATEST 再膨脹實證;L7.16 衝突零登錄;lint 真恆真 26;T7=08-02 09:00 看 0727 檔
 - [SUNSET 已結案・裁 pass](sunset-deadline-today-pending-a.md) — ✅**07-31 19:45 hugo 親簽 evaluated_pass(basis=R1)、三軸續命**;⚠**R1 使 (a) 於凍結瞬間即滿足且永遠滿足 ⇒ 下次開停損閘不可沿用 (a) 現行文字**;consequence 仍無機械載體(kill_switch 四 scope 全 clear、tw/raw runner 引用各 0);AI 證據結論與裁決不同、二者並存不刪
