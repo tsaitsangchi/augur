@@ -159,3 +159,9 @@ live 可證數字為準（承「live-vs-repo drift」教訓：驗 DB 層宣稱�
 
 （19 列對 19 列、feature＋principle 全同——世代重發為引擎常態行為之直接實證；每個 run
 邊界都會製造一批「舊世代殘留」，僅差有無人／機制去關舊列。）
+
+---
+
+## 裁決登錄（2026-08-02 夜）
+
+> **Steward 圈選**：「I5B-照建議」——丙已生效（--queue-id 逐顆旗標）＋甲案（引擎開新世代列時自動 supersede 同 feature 舊 pending_auto）繫 **run 22 前另呈引擎 diff 逐字過目**後施作；乙案備援不啟用。

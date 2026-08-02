@@ -318,6 +318,12 @@ label_date/realized_close/realized_logret/settle_mode/git_sha）→ `sim_calibra
 | R-6 | sync 斷檔/機器停擺跨格點 | catch-up 冪等補產（決定論）＋§4.3 遲產揭露；補產僅用 ≤asof 資料，無洩漏面 |
 | R-7 | 評估前門列被動 payload（trigger 護 sha 欄不護 payload） | 拒評條款＝每次評估即覆算，動 payload 必被抓（D2S §2.3 已預埋此設計） |
 
+## 拍板登錄（2026-08-02 夜）
+
+> **Steward 圈選（AskUserQuestion 留痕）**：「simW-照建議」——S-1 單一基線候選／S-2 σ 截止 2026-07-31／
+> S-3 catch-up 註記遲產／S-4 R1 人工逐次觸發，四點全採。實作授權成立（W2→W5→W3；
+> promoted 三鎖人簽欄唯 hugo；首個真產格 run 於 08-03 資料到位後）。
+
 ## §10 停手點與未定（誠實；不自裁）
 
 - **S-1｜R1 候選集合**：param_schema 封閉（additionalProperties:false、h 釘 21）⇒「spec 變體」實際空間
