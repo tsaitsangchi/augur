@@ -1,5 +1,10 @@
 # Augur 優化——逐步執行計畫書（2026-08-03 午後）
 
+> **⚠ superseded（2026-08-04）**：本檔不再作為操作執行 SSOT。後續 step／runbook 改讀  
+> [`augur_optimization_step_plan_r2_20260804.md`](augur_optimization_step_plan_r2_20260804.md)  
+> （implements [`augur_optimization_master_plan_r2_20260803.md`](augur_optimization_master_plan_r2_20260803.md)；based_on [`augur_deep_understanding_r5_20260803.md`](augur_deep_understanding_r5_20260803.md)；上游拍板 `audits/OPT-R5-R2-SSOT-APPROVED-20260803.md`；**step 拍板** `audits/OPT-STEP-R2-20260804-GO.md`＝`OPT-STEP-R2-20260804-go`）。  
+> 本檔保留為 **M-G1／舊 P0 時代** 史料（午後時間箱／舊拍板碼 `OPT-STEP-20260803-go` **已退場**）。
+
 > **性質**：[I] **後續優化之操作執行 SSOT**（CLAUDE #16/#20）。不解凍 API；不降閘；不代簽；未另句拍板前零重碼／零不可逆 APPLY。  
 > **理解基座**：[`augur_optimization_foundation_unified_20260803.md`](augur_optimization_foundation_unified_20260803.md)（心智模型＋Q 總帳）。  
 > **細項註冊表**：[`augur_optimization_master_plan_20260803.md`](augur_optimization_master_plan_20260803.md)（M-* 全表、55 可先做、車道互斥——**本檔不重抄 55 項**）。  
