@@ -232,8 +232,79 @@ def check_revision_active(repo=None) -> list:
     return out
 
 
+# ── CS 內容涵蓋版本 × 同規格多份並存 ────────────────────────────────────────
+# 起因（2026-08-03 主 session 親驗，本模組上線當日即發現射程不足）：
+# 四值全對**不代表內容跟上了**。`CS-系統架構大憲章_v1.54.0.md` 之「本版增量」段實際只寫到
+# **v1.49.0**——四值檢查看的是它「說自己幾版」，看不出它「內容涵蓋到幾版」；v1.50–v1.54
+# 五個版本的合規論證從未寫入，而該檔仍以現行 CS 之身分被引用。此即「綠燈量的不是它宣稱
+# 在量的東西」在治權層之形。另：`docs/compliance/` 同時存在 v1.47.0／v1.48.0／v1.54.0
+# 三份大憲章 CS，**皆無 SUPERSEDED 橫幅** ⇒ 引用者無從判斷孰為現行。
+_INCREMENT_LINE = re.compile(r"^.*本版增量.*$", re.M)
+
+
+def increment_version(path):
+    """回「本版增量」段所述之本檔版本＝該字樣**之後第一個**版本號（無則 None）。
+
+    ⚠ 首版曾寫成「取該行**最高**版本」以圖穩健（設想「相對 v1.48.0 新增（v1.49.0）」之寫法），
+    結果**製造真實漏報**：`CS-系統核心思想_v1.10.0.md` 之增量段引用了「大憲章 v1.51.0」，
+    取最高即抓到**別份規格的版號**（v1.51.0 > v1.10.0）而判為未落後。
+    增量段必然引用其他治權檔之版號 ⇒ 全行取最大恆不可靠。
+    改回取「本版增量」之後第一個——現況兩種實形（`本版增量**：v1.49.0 …`／
+    `本版增量（v1.9.0；…`）皆命中，而假想寫法**現況不存在**（#3 不為假想未來加抽象）。
+    """
+    text = pathlib.Path(path).read_text(encoding="utf-8")
+    m = _INCREMENT_LINE.search(text)
+    if not m:
+        return None
+    line = m.group(0)
+    after = line[line.index("本版增量"):]
+    v = _TITLE_VER.search(after)
+    return v.group(1) if v else None
+
+
+def check_cs_content_currency(repo=None) -> list:
+    """(c) 內容涵蓋版本落後檔名版本；(d) 同一規格多份非凍結 CS 並存。"""
+    root = pathlib.Path(repo) if repo else _REPO
+    out: list = []
+    by_spec: dict = {}
+    for p in sorted((root / "docs" / "compliance").glob("CS-*.md")):
+        try:
+            text = p.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        rel = str(p.relative_to(root))
+        stem_no_ver = _FNAME_VER.sub("", p.stem)
+        by_spec.setdefault(stem_no_ver, []).append((p, rel, is_frozen_banner(text)))
+
+        fname_v = (_FNAME_VER.search(p.stem) or [None, None])[1] if _FNAME_VER.search(p.stem) else None
+        if not fname_v or is_frozen_banner(text):
+            continue
+        inc = increment_version(p)
+        # 無增量段者不在本款射程（節次完備性屬 compliance_lint 之 WM.41），不重複實作。
+        if inc and _norm(inc) < _norm(fname_v):
+            line = text.count("\n", 0, _INCREMENT_LINE.search(text).start()) + 1
+            out.append(Finding(
+                "SV-3", Severity.ERROR,
+                f"CS 內容落後自己的版號：檔名 v{fname_v}，但「本版增量」只寫到 v{inc}"
+                f"——中間各版之合規論證從未寫入，而本檔仍以現行 CS 身分被引用",
+                _CS_BASIS, f"{rel}:{line}", kind="cs_content_stale",
+            ))
+
+    for spec, files in sorted(by_spec.items()):
+        live = [(p, rel) for p, rel, frozen in files if not frozen]
+        if len(live) > 1:
+            detail = "、".join(rel for _, rel in live)
+            out.append(Finding(
+                "SV-4", Severity.ERROR,
+                f"同一規格有 {len(live)} 份**皆未標 SUPERSEDED** 之 CS 並存：{detail}"
+                f"——引用者無從判斷孰為現行（凍結本須掛檔頭 SUPERSEDED 橫幅）",
+                _CS_BASIS, f"{live[0][1]}:1", kind="cs_multi_live",
+            ))
+    return out
+
+
 def check_all(repo=None) -> list:
-    return check_cs_selfversion(repo) + check_revision_active(repo)
+    return check_cs_selfversion(repo) + check_revision_active(repo) + check_cs_content_currency(repo)
 
 
 # ── 自測（合成樹；純函式餵真輸入、下游絆線、禁字面斷言——CLAUDE #35）────────────
@@ -361,6 +432,51 @@ def run_checks() -> list:
                "# 測試憲章 v9.9.9\n\n> **SUPERSEDED**：已被後版取代。\n\n"
                + _rev_body([("v1.1.0", "**ACTIVE**"), ("v9.9.9", "**現行**")]).split("\n", 1)[1])
         chk("SUPERSEDED 凍結檔須除外", not check_revision_active(root))
+
+        # (己) 內容涵蓋版本（SV-3）與同規格多份並存（SV-4）
+        _write(root, "docs/compliance/CS-內容_v1.2.0.md",
+               _cs_body("v1.2.0", "v1.2.0", "CS-內容_v1.2.0.md")
+               + "\n* **本版增量**：v1.2.0 新增某節。\n")
+        chk("增量涵蓋到本版 → 綠", not [f for f in check_cs_content_currency(root)
+                                  if f.kind == "cs_content_stale"])
+        _write(root, "docs/compliance/CS-內容_v1.2.0.md",
+               _cs_body("v1.2.0", "v1.2.0", "CS-內容_v1.2.0.md")
+               + "\n* **本版增量**：v1.1.0 新增某節。\n")
+        chk("增量落後檔名版 → 紅", any(f.kind == "cs_content_stale"
+                                for f in check_cs_content_currency(root)))
+        # **本則即 increment_version 首版之回歸鎖**：增量段必然引用其他治權檔之版號
+        # （此處模擬「承大憲章 v9.9.9」），若改回「取該行最高版本」，此處會判成未落後而漏報。
+        _write(root, "docs/compliance/CS-內容_v1.2.0.md",
+               _cs_body("v1.2.0", "v1.2.0", "CS-內容_v1.2.0.md")
+               + "\n* **本版增量（v1.1.0；承大憲章 v9.9.9 之總則）**：新增某節。\n")
+        chk("增量段引用他檔更高版號時仍須報紅（不得取全行最大）",
+            any(f.kind == "cs_content_stale" for f in check_cs_content_currency(root)))
+        chk("增量段之抽取須取『本版增量』後第一個版本",
+            increment_version(root / "docs/compliance/CS-內容_v1.2.0.md") == "1.1.0")
+        # 無增量段者不在本款射程（節次完備性屬 compliance_lint 之 WM.41，不重複實作）
+        _write(root, "docs/compliance/CS-無增量_v1.2.0.md",
+               _cs_body("v1.2.0", "v1.2.0", "CS-無增量_v1.2.0.md"))
+        chk("無增量段者不誤紅",
+            not [f for f in check_cs_content_currency(root)
+                 if f.kind == "cs_content_stale" and "無增量" in f.location])
+
+        # SV-4：同 spec 兩份皆無橫幅 → 紅；其一掛 SUPERSEDED 橫幅 → 綠
+        for rel in list((root / "docs/compliance").glob("CS-*.md")):
+            rel.unlink()
+        _write(root, "docs/compliance/CS-甲_v1.1.0.md", _cs_body("v1.1.0", "v1.1.0", "CS-甲_v1.1.0.md"))
+        _write(root, "docs/compliance/CS-甲_v1.2.0.md", _cs_body("v1.2.0", "v1.2.0", "CS-甲_v1.2.0.md"))
+        chk("同規格兩份皆未凍結 → 紅",
+            any(f.kind == "cs_multi_live" for f in check_cs_content_currency(root)))
+        _write(root, "docs/compliance/CS-甲_v1.1.0.md",
+               "# Constitutional Compliance Statement — 甲 v1.1.0\n\n"
+               "> **SUPERSEDED**：已被 v1.2.0 取代。\n\n"
+               "```\ncompliance-statement:\n  spec-version: v1.1.0\n"
+               "  archive-path: docs/compliance/CS-甲_v1.1.0.md\n```\n\n## 節\n")
+        chk("舊版掛 SUPERSEDED 橫幅後 → 綠",
+            not [f for f in check_cs_content_currency(root) if f.kind == "cs_multi_live"])
+        # 絆線：綠是因為凍結、不是因為檔案沒被讀到
+        chk("絆線：綠態下兩份檔案確實都還在",
+            len(list((root / "docs/compliance").glob("CS-甲_*.md"))) == 2)
 
     # 真實 repo 之結構性斷言（**非字面計數**——計數會隨 Steward 修正而變，寫死即自製假綠）
     if (_REPO / "docs" / "compliance").is_dir():
