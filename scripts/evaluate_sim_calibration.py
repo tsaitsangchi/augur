@@ -30,6 +30,7 @@ import json
 import math
 import statistics
 import sys
+from pathlib import Path
 from datetime import date
 from zoneinfo import ZoneInfo
 
@@ -121,8 +122,11 @@ def grid_asofs(trading_days_from_anchor, step=GRID_STEP_TD):
 def normalize_q_grid(summary: dict):
     """runner 追加之 terminal_q_grid(p1..p99 共 99 分位)→ list[99];缺/形壞=None(物理擋史料)。"""
     g = summary.get("terminal_q_grid")
-    if isinstance(g, dict) and isinstance(g.get("p"), dict):
-        g = g["p"]   # runner 實形={"unit":…,"p":{p1..p99}}（單位明示;2026-08-02 契約對齊親驗）
+    if isinstance(g, dict) and "p" in g:
+        # runner 實形＝{"unit":…, "p": list[99]}（_q_grid 回 list）。
+        # ⚠ 2026-08-02 我曾把 p 誤讀為 {p1..p99} dict 並手寫該形狀當 fixture ⇒ 測試綠、真路 None
+        #   ——#35(1)「純函式餵真輸入」之實犯；2026-08-03 r4 對抗核驗抓出、改為兩形皆收。
+        g = g["p"]
     if isinstance(g, dict):
         try:
             g = [g[f"p{i}"] for i in range(1, 100)]
@@ -739,9 +743,21 @@ def _selftest():
         and pit_from_qgrid(grid_true, grid_true[-1] + 1)[0] == PIT_CLAMP[1])
     chk("q_grid dict 形可正規化", normalize_q_grid(
         {"terminal_q_grid": {f"p{i}": grid_true[i - 1] for i in range(1, 100)}}) is not None)
-    chk("q_grid 巢狀形（runner 實形 unit+p 子鍵）可解",
+    chk("q_grid 巢狀形（dict 子鍵形）可解",
         normalize_q_grid({"terminal_q_grid": {"unit": "x",
             "p": {f"p{i}": grid_true[i - 1] for i in range(1, 100)}}}) is not None)
+    # **契約絆線**：fixture 取自 runner 之真 _q_grid 輸出（非手寫形狀）——runner 改形狀即紅。
+    try:
+        import importlib.util as _ilu
+        _sp = _ilu.spec_from_file_location(
+            "_runner_for_contract", str(Path(__file__).resolve().parent / "run_sim_calibration_cell.py"))
+        _rn = _ilu.module_from_spec(_sp); _sp.loader.exec_module(_rn)
+        _real = {"terminal_q_grid": {"unit": "terminal_simple_return_vs_asof_close",
+                                     "p": _rn._q_grid(np.asarray(grid_true))}}
+        chk("**W5→W3 契約**：evaluator 收得下 runner 真輸出（形狀變即紅）",
+            normalize_q_grid(_real) is not None)
+    except Exception as _e:                       # noqa: BLE001
+        chk(f"**W5→W3 契約**：runner 不可 import（{type(_e).__name__}）——誠實紅，不當跳過", False)
     chk("q_grid 缺=None(物理擋史料)", normalize_q_grid({"terminal": {}}) is None)
     chk("q_grid 非單調=None", normalize_q_grid({"terminal_q_grid": [1.0] + [0.0] * 98}) is None)
 
