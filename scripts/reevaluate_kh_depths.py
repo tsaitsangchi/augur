@@ -91,18 +91,21 @@ def run(conn, *, apply: bool, limit: int | None) -> int:
     print(f"射程（depth≥8）：{n_target:,} 件")
 
     if not apply:
+        # M-G14：消費側只讀 honesty usable（母體不過 ⇒ NULL，不當 raw high 訊號）
         cur.execute(
-            """SELECT s.target_id, s.admit_depth, w.confidence_band
+            """SELECT s.target_id, s.admit_depth, w.confidence_band_usable
                  FROM knowhow_auto_admit_state s
-                 LEFT JOIN LATERAL (SELECT confidence_band FROM knowhow_evidence_weight
-                                     WHERE item_id = s.target_id::bigint
-                                     ORDER BY weight_id DESC LIMIT 1) w ON true
+                 LEFT JOIN LATERAL (
+                     SELECT confidence_band_usable
+                       FROM knowhow_evidence_weight_honest
+                      WHERE item_id = s.target_id::bigint
+                      ORDER BY weight_id DESC LIMIT 1) w ON true
                 WHERE s.target_kind='item' AND coalesce(s.admit_depth,0) >= 8 LIMIT 5"""
         )
         print("抽樣裁決（前 5）：")
         for tid, d, band in cur.fetchall():
             nd, why = new_depth_for(band, disc["ok"], int(d))
-            print(f"  item={tid} {d}→{nd}｜band={band}｜{why}")
+            print(f"  item={tid} {d}→{nd}｜band_usable={band}｜{why}")
         would = 0 if disc["ok"] else n_target
         print(f"預計變更：{would:,} 件（{'無變更：母體具鑑別力' if disc['ok'] else 'depth 9/8 → 7'}）")
         print("（唯讀；跑 --apply 實作）")
@@ -117,11 +120,13 @@ def run(conn, *, apply: bool, limit: int | None) -> int:
     total = 0
     while True:
         cur.execute(
-            f"""SELECT s.target_id, s.admit_depth, w.confidence_band
+            f"""SELECT s.target_id, s.admit_depth, w.confidence_band_usable
                   FROM knowhow_auto_admit_state s
-                  LEFT JOIN LATERAL (SELECT confidence_band FROM knowhow_evidence_weight
-                                      WHERE item_id = s.target_id::bigint
-                                      ORDER BY weight_id DESC LIMIT 1) w ON true
+                  LEFT JOIN LATERAL (
+                      SELECT confidence_band_usable
+                        FROM knowhow_evidence_weight_honest
+                       WHERE item_id = s.target_id::bigint
+                       ORDER BY weight_id DESC LIMIT 1) w ON true
                  WHERE s.target_kind='item' AND coalesce(s.admit_depth,0) >= 8
                  ORDER BY s.target_id::bigint
                  LIMIT {min(BATCH, limit - total) if limit else BATCH}"""

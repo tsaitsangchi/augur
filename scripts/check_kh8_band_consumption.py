@@ -4,7 +4,15 @@
 守原則 #15（有直讀假訊號路徑就要紅）· #28（本地 grep＋唯讀 SQL）· #29a/d · #35。
 
 驗收（master 第 23 步）：今日 live **直讀路徑數 > 0 即紅**（全綠＝未通過）。
-honest view 另由 `migrate_kh8_honest_view_ddl.py` 建；本支不改消費者（遷移屬後續）。
+honest view 另由 `migrate_kh8_honest_view_ddl.py` 建；消費路徑應改讀
+`knowhow_evidence_weight_honest.confidence_band_usable`。
+
+**明示豁免（白名單，勿靜默吞）**：
+  - `evidence.py`：寫入軸（算／INSERT band）
+  - 本探針／`migrate_kh8_honest_view_ddl.py`／`migrate_kh8_kh9_min_ddl.py`：DDL／掃描自身
+  - `philosophy/retrieval.py`：M-K1 假游標絆線（模擬母體 SQL 形，非生產消費）
+
+基表名匹配採識別字邊界——避免 `compute_knowhow_evidence_weight.py` 檔名假陽性。
 
 執行指令矩陣
 ------------
@@ -26,15 +34,17 @@ import _bootstrap  # noqa: F401
 
 REPO = Path(__file__).resolve().parents[1]
 VIEW = "knowhow_evidence_weight_honest"
-# 直讀＝指向基表且取 confidence_band（排除 evidence.py 寫入軸、本二支探針／DDL、測試字樣）
+# 直讀＝指向基表且取 confidence_band（排除寫入軸、DDL／探針、診斷假游標）
 SKIP_PATH_PARTS = (
     "/knowledge/evidence.py",
     "/check_kh8_band_consumption.py",
     "/migrate_kh8_honest_view_ddl.py",
     "/migrate_kh8_kh9_min_ddl.py",
+    "/philosophy/retrieval.py",  # M-K1 FakeCur 絆線：非生產消費（豁免見檔頭）
 )
 BAND_LINE = re.compile(r"confidence_band")
-BASE_TABLE = re.compile(r"knowhow_evidence_weight(?!_honest)")
+# 識別字邊界：勿把 compute_knowhow_evidence_weight.py 檔名當基表
+BASE_TABLE = re.compile(r"(?<![A-Za-z0-9_])knowhow_evidence_weight(?!_honest)\b")
 
 
 def is_direct_read_hit(path: str, line: str) -> bool:
@@ -110,6 +120,7 @@ def _check(*, as_json=False) -> int:
         "population_ok": pop_ok,
         "usable_nonnull_n": usable_n,
         "error": err,
+        "skip_whitelist": list(SKIP_PATH_PARTS),
     }
     # 驗收：直讀 >0 必紅；view 缺亦紅
     rc = 1 if (len(hits) > 0 or not view_ok) else 0
@@ -119,11 +130,12 @@ def _check(*, as_json=False) -> int:
         return rc
 
     print("── KH8 band 消費側探針（M-G14）──")
-    print(f"  直讀嫌疑路徑：{len(hits)}（>0 即紅＝今日通過條件）")
+    print(f"  直讀嫌疑路徑：{len(hits)}（>0 即紅＝消費未遷完）")
     for h in hits[:12]:
         print(f"    {h['path']}:{h['line']}: {h['snip']}")
     if len(hits) > 12:
         print(f"    …另 {len(hits) - 12} 處")
+    print(f"  豁免：{', '.join(SKIP_PATH_PARTS)}")
     print(f"  honest view `{VIEW}`：{'在' if view_ok else '**不在**'}"
           + (f"；population_ok={pop_ok}；usable≠NULL 列={usable_n}" if view_ok else ""))
     if err:
@@ -132,7 +144,7 @@ def _check(*, as_json=False) -> int:
         print("  → **紅** rc=1：尚有基表直讀 或 view 未建——"
               "修法＝改讀 confidence_band_usable／經 discrimination gate，不是放寬探針")
     else:
-        print("  → 綠：零直讀且 view 在——⚠ 若母體仍無鑑別力卻綠＝先懷疑掃描漏檔")
+        print("  → 綠：零直讀（豁免外）且 view 在——⚠ 若母體仍無鑑別力卻綠＝先懷疑掃描漏檔")
     return rc
 
 
@@ -158,6 +170,18 @@ def _selftest() -> int:
         == [])
     chk("無基表之純字樣不計",
         classify_file_hits("scripts/x.py", ['band = "confidence_band"']) == [])
+    # #35 先驗紅：舊無邊界 regex 會把檔名當基表；修後必須空
+    chk("檔名含子串≠基表（抗假陽）",
+        classify_file_hits(
+            "scripts/compute_knowhow_evidence_weight.py",
+            ['print(w["confidence_band"])'],
+        ) == [])
+    chk("retrieval 假游標診斷豁免",
+        classify_file_hits("src/augur/philosophy/retrieval.py", fake) == [])
+    chk("BASE_TABLE 邊界：真 SQL 仍命中",
+        bool(BASE_TABLE.search("FROM knowhow_evidence_weight WHERE")))
+    chk("BASE_TABLE 邊界：_honest 不命中",
+        not BASE_TABLE.search("knowhow_evidence_weight_honest"))
     print("自測:全通過 ✓" if ok else "自測:有失敗 ✗")
     return 0 if ok else 1
 

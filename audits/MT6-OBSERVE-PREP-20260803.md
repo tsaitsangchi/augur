@@ -1,7 +1,8 @@
 # M-T6 觀察帳預稿（2026-08-03）
 
 > 位階：[I] · 工具就緒；**真正 prerun 時刻＝22:5x 再跑一次 `--prerun` 覆寫 CSV**  
-> 腳本：`scripts/observe_twevo_run22.py` · runbook：`ops/RUNBOOK-20260803-night.md`
+> 腳本：`scripts/observe_twevo_run22.py` · runbook：`ops/RUNBOOK-20260803-night.md`  
+> 今晚守門全文：`audits/NIGHT-GUARD-CHECKLIST-20260803.md`
 
 ## 已就緒
 

@@ -2,6 +2,7 @@
 
 失敗發聲：嵌入服務不可達/回應異常一律拋 EmbedError，不靜默回零向量。
 stub 模式（PROJECT_MEMORY_MCP_STUB=1）以確定性雜湊產生向量，供 selftest 無 Ollama 亦可跑。
+M-O7：非 stub 路徑持 `/tmp/augur_llm.lock`（與 local_llm_mcp 同槽）；stub 不取鎖。
 
 執行指令矩陣：
   python -m tools.project_memory_mcp.embed              # 印用途（唯讀、免外部服務）
@@ -15,6 +16,7 @@ import math
 import os
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import List
 
 _STUB_DIM = 64
@@ -78,6 +80,18 @@ def embed(texts: List[str]) -> List[List[float]]:
     if _stub_enabled():
         return [_stub_vec(t) for t in texts]
 
+    # M-O7：與 local_llm_mcp／admission-assist 同槽 /tmp/augur_llm.lock（只包 HTTP，不動 MCP 生命週期）
+    import fcntl
+    with open("/tmp/augur_llm.lock", "a") as _lk:
+        fcntl.flock(_lk, fcntl.LOCK_EX)
+        try:
+            return _embed_ollama(texts)
+        finally:
+            fcntl.flock(_lk, fcntl.LOCK_UN)
+
+
+def _embed_ollama(texts: List[str]) -> List[List[float]]:
+    """實際打 Ollama /api/embed（呼叫端已持 LLM 單槽鎖）。"""
     url = _ollama_url() + "/api/embed"
     model = embed_model()
     body = json.dumps({"model": model, "input": texts}).encode()
@@ -149,12 +163,16 @@ def _selftest() -> int:
         v3 = embed_one("world")
         ok = len(v1) == _STUB_DIM and v1 == v2 and v1 != v3
         ok = ok and embed([]) == []
+        # M-O7：stub 不持鎖；非 stub 路徑必須包 augur_llm.lock
+        src = Path(__file__).read_text(encoding="utf-8").split("def _selftest")[0]
+        ok = ok and "augur_llm.lock" in src and "fcntl.flock" in src
+        ok = ok and "def _embed_ollama" in src
     finally:
         if prev is None:
             os.environ.pop("PROJECT_MEMORY_MCP_STUB", None)
         else:
             os.environ["PROJECT_MEMORY_MCP_STUB"] = prev
-    print("embed selftest:" + (" OK" if ok else " FAIL") + "（stub 向量，不連 Ollama）")
+    print("embed selftest:" + (" OK" if ok else " FAIL") + "（stub 向量，不連 Ollama；含 M-O7 鎖配線）")
     return 0 if ok else 1
 
 

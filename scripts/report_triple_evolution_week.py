@@ -168,6 +168,31 @@ def sentinel_line(name, rc, tail_lines):
     return f"  {mark} {name}(rc={rc})｜{body}"
 
 
+def week_line_sentinel_spec(kind):
+    """週報 §7.3 --week-line 告知哨規格 → (name, script, timeout_s)。**純函式**。
+
+    M-M4／M-P12b 自測餵真 kind 驗接線與標名；禁 `"script" in src`（#35 字面恆真）。
+    """
+    specs = {
+        "M-O9": ("並行容量哨(M-O9)", "check_parallel_capacity.py", 60),
+        "M-M4": ("sim 時鐘哨(M-M4)", "check_sim_clock.py", 120),
+        "M-P12b": ("紅燈時鐘(M-P12b)", "verify_validation_evidence.py", 120),
+    }
+    return specs[kind]
+
+
+def week_line_sentinel_argv(scripts_dir, script, *, python_exe=None):
+    """組成 --week-line 哨兵 subprocess argv。**純函式**。"""
+    from pathlib import Path
+    return [python_exe or sys.executable, str(Path(scripts_dir) / script), "--week-line"]
+
+
+def week_line_sentinel_row(name, returncode, out_text):
+    """subprocess 輸出 → 週報哨兵一行（下游＝sentinel_line）。**純函式**。"""
+    lines = (out_text or "").strip().splitlines()
+    return sentinel_line(name, returncode, lines[:1] or lines[-1:])
+
+
 def live_sunset_gate(cur):
     """自 DB 取現行(非 superseded)之 SUNSET 閘 → (deadline, gate_id, status, evaluated_at)。
 
@@ -372,6 +397,23 @@ def build(days, md):
         _cap_line = (_cap.stdout or _cap.stderr or "").strip().splitlines()
         L.append(sentinel_line("並行容量哨(M-O9)", _cap.returncode, _cap_line[:1] or _cap_line[-1:]))
 
+        # M-M4 sim 時鐘哨（§7.3「sim 時鐘：K=n/3…」；告知哨，不取 heavy_slot）
+        _sd = Path(__file__).resolve().parent
+        _m4_name, _m4_script, _m4_to = week_line_sentinel_spec("M-M4")
+        _sim = subprocess.run(
+            week_line_sentinel_argv(_sd, _m4_script),
+            capture_output=True, text=True, timeout=_m4_to)
+        L.append(week_line_sentinel_row(
+            _m4_name, _sim.returncode, _sim.stdout or _sim.stderr or ""))
+
+        # M-P12(b) 紅燈時鐘一行（§7.3；欄未就位時誠實印「未知」）
+        _p12_name, _p12_script, _p12_to = week_line_sentinel_spec("M-P12b")
+        _ve = subprocess.run(
+            week_line_sentinel_argv(_sd, _p12_script),
+            capture_output=True, text=True, timeout=_p12_to)
+        L.append(week_line_sentinel_row(
+            _p12_name, _ve.returncode, _ve.stdout or _ve.stderr or ""))
+
         h1(f"R6 APPLY digest(近 {days} 日;依 gate_ref 分欄——含人閘路;請掃視認領)")
         cur.execute("""SELECT a.evidence_json->>'gate_ref', a.applied_at, q.feature, q.action,
                               a.before_status, a.after_status, a.evidence_json->>'auto_rule'
@@ -473,6 +515,24 @@ def _selftest():
     chk("哨兵:rc≠0 → 🔴(紅不被吞;哨兵回紅=週報必顯形)", sentinel_line("X", 1, ["MISMATCH=1"]).startswith("  🔴"))
     chk("哨兵:rc=0 但零輸出 → 🔴(靜默=異常,不當綠)", sentinel_line("X", 0, []).startswith("  🔴"))
     chk("哨兵:紅時原文照印不改寫", "MISMATCH=1" in sentinel_line("X", 1, ["MISMATCH=1"]))
+    # M-M4／M-P12b：純函式餵真輸入（#35；禁 `"xxx" in src`——字面自掃自測段恆綠）
+    _m4_n, _m4_s, _m4_t = week_line_sentinel_spec("M-M4")
+    _m4_argv = week_line_sentinel_argv("/tmp/scripts", _m4_s, python_exe="PY")
+    chk("M-M4:argv=script + --week-line 且 timeout=120",
+        _m4_argv == ["PY", "/tmp/scripts/check_sim_clock.py", "--week-line"] and _m4_t == 120)
+    chk("M-M4:綠路徑標名在行首",
+        week_line_sentinel_row(_m4_n, 0, "sim 時鐘：K=1/3").startswith("  🟢 sim 時鐘哨(M-M4)"))
+    chk("M-M4:rc≠0 必顯紅",
+        week_line_sentinel_row(_m4_n, 2, "boom").startswith("  🔴"))
+    _p12_n, _p12_s, _p12_t = week_line_sentinel_spec("M-P12b")
+    _p12_argv = week_line_sentinel_argv("/tmp/scripts", _p12_s, python_exe="PY")
+    chk("M-P12b:argv=script + --week-line 且 timeout=120",
+        _p12_argv == ["PY", "/tmp/scripts/verify_validation_evidence.py", "--week-line"]
+        and _p12_t == 120)
+    chk("M-P12b:綠路徑標名在行首",
+        week_line_sentinel_row(_p12_n, 0, "紅燈時鐘：未知").startswith("  🟢 紅燈時鐘(M-P12b)"))
+    chk("M-P12b:rc≠0 必顯紅",
+        week_line_sentinel_row(_p12_n, 1, "err").startswith("  🔴"))
     chk("第一行為 SUNSET(v2 §2.2 硬要求)", 'L.append(f"# V2-SUNSET' in src)
     chk("吞吐標明非成功指標", "**非成功指標**" in src)
     # A12 唯讀:掃 SQL 字面而非全檔(自測斷言字串本身含關鍵字=假紅;2026-07-27 實撞)

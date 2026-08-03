@@ -16,6 +16,15 @@
 #   `.github/workflows/`）；selftest／合規閘現況以 `report`／`--selftest` 現查為準，
 #   不得再抄本段舊阻斷敘事。舊「見 HANDOFF.md 待裁 #22」句作廢。
 #
+#   ⚠ **真正之機械阻斷＝ `--selftest` 未綠**（2026-08-03 現查 rc=**1**，唯一 FAIL＝
+#   「G10 界線：`### TR.Z …（DRAFT）` 之殘留不由本檢查代 Steward 認定」）。該 FAIL 屬
+#   **條文解釋、專屬 Steward**（`AUGUR-MC v1.6 §8.1`；優化總表 M-L7），非本 linter 可自行
+#   消除；下方 job 第一步即跑 selftest ⇒ **此刻接線＝CI 每次 push 全紅**。接線前請自行現查
+#   `python3 -m tools.constitution_lint --selftest; echo $?`，**不得抄本段之 rc**。
+#   ↳ M-N1 探針同綁：selftest 現況＝<!--probe:doc_workflow_selftest_status-->FAIL<!--/probe-->
+#     （probe `doc_workflow_selftest_status`；`read_treaty_probes.py --check` 每跑必重量、
+#     漂移即 rc≠0——本標記由探針驗證、非手抄）。
+#
 # 【實測數量】
 #   產生指令（於 monorepo 根執行，例：`/home/hugo/project/augur`）：
 #     python3 -m tools.constitution_lint report
@@ -32,6 +41,7 @@
 #         （生效本 <!--lint:corpus_effective-->7<!--/lint--> ＋ draft <!--lint:corpus_draft-->0<!--/lint-->）
 #         <!--lint:corpus_fail-->0<!--/lint--> FAIL / <!--lint:corpus_pass-->7<!--/lint--> PASS；
 #         error 合計 <!--lint:total_errors-->0<!--/lint--> 筆
+#   ↳ M-N1 探針同綁：error 合計＝<!--probe:doc_workflow_lint_errors-->0<!--/probe-->（probe `doc_workflow_lint_errors`；`read_treaty_probes.py --check` 對 report JSON total_errors 驗 diff）
 #         （全部為 WM.44-LABEL，非 LABEL error 為 <!--lint:non_label_errors-->0<!--/lint-->）
 #     L1 WORLD-MODEL          error  <!--lint:errors_L1-->0<!--/lint-->  ✅ PASS
 #     L2 ONTOLOGY             error  <!--lint:errors_L2-->0<!--/lint-->  ✅ PASS（舊橫幅誤標 FAIL——M-N14 校正）
@@ -62,7 +72,8 @@ name: constitution-lint
 #
 # 骨架階段策略：selftest 與規格 compliance-lint **接線後**將設為必過（error 阻斷）；
 # warning/info 不阻斷。（現況：本檔未接線；compliance-lint 對七份生效規格現查 **error＝0／
-# PASS 7／7**——「必過」仍為接線後之預定組態，非宣稱 CI 已在跑。selftest 現為全綠。）
+# PASS 7／7**——「必過」仍為接線後之預定組態，非宣稱 CI 已在跑。**selftest 未綠**——
+# rc=1、唯一 FAIL＝G10 界線，見上方「接線前置」段；該項專屬 Steward，非本 linter 可自消。）
 # linter 設為 merge-gate（強制）留待總綱階段 9（見 CONSTITUTIONAL-ROLLOUT-PLAN.md §六）。
 
 on:

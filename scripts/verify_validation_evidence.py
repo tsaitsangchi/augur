@@ -35,6 +35,7 @@
   python scripts/verify_validation_evidence.py --run --id E6_oos_frozen_rowcount
   python scripts/verify_validation_evidence.py --run --with-scripts   # 連 script_exit 型一起(重)
   python scripts/verify_validation_evidence.py --strict        # 任一非 green → exit 1(GATE 前置)
+  python scripts/verify_validation_evidence.py --week-line     # M-P12(b) 週報紅燈一行（告知哨）
   python scripts/verify_validation_evidence.py --selftest      # 純函式紅綠自測(免 DB 免 API)
 """
 import argparse
@@ -292,6 +293,16 @@ def _selftest():
     return 0 if ok else 1
 
 
+def week_line() -> int:
+    """M-P12(b)／§7.3：只印「紅燈：…」一行（週報掛載；告知哨 rc=0）。"""
+    from augur.core import db
+    with db.connect() as conn, conn.cursor() as cur:
+        has_rs = _has_col(cur, "red_since")
+        body = red_report(cur, has_rs)
+    print(f"紅燈：validation_evidence {body}")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--list", action="store_true")
@@ -299,10 +310,14 @@ def main():
     ap.add_argument("--id", dest="only_id")
     ap.add_argument("--with-scripts", dest="ws", action="store_true")
     ap.add_argument("--strict", action="store_true")
+    ap.add_argument("--week-line", action="store_true",
+                    help="M-P12(b) 週報一行（紅燈時鐘）")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
     if args.selftest:
         return _selftest()
+    if args.week_line:
+        return week_line()
     if args.run:
         return run(args.only_id, args.ws)
     if args.strict:

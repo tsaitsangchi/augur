@@ -33,8 +33,16 @@ def build_synthesis(
     weight: Mapping[str, Any],
     snap: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """純函式：由權重＋可選 snap 產出合成／回放工件。"""
-    band = str(weight.get("confidence_band") or "absent")
+    """純函式：由權重＋可選 snap 產出合成／回放工件。
+
+    M-G14：優先 `confidence_band_usable`（honest view）；缺鍵才退 legacy
+    `confidence_band`。usable=None ⇒ 視同 absent（母體無鑑別力不得當訊號）。
+    """
+    if "confidence_band_usable" in weight:
+        ub = weight.get("confidence_band_usable")
+        band = str(ub) if ub is not None else "absent"
+    else:
+        band = str(weight.get("confidence_band") or "absent")
     score = float(weight.get("evidence_score") or 0.0)
     snap = snap or {}
     if band == "absent":
@@ -121,9 +129,14 @@ def evaluate_item_synthesis(cur, snap: Mapping[str, Any]) -> dict[str, Any]:
     if not cur.fetchone()[0]:
         return {"verdict": "skipped", "note": "KH9 表未建"}
 
-    cur.execute("SELECT to_regclass(%s)", ("public.knowhow_evidence_weight",))
+    cur.execute(
+        "SELECT to_regclass(%s)", ("public.knowhow_evidence_weight_honest",)
+    )
     if not cur.fetchone()[0]:
-        return {"verdict": "fail", "note": "KH8 表缺→無法合成"}
+        return {
+            "verdict": "fail",
+            "note": "KH8 honest view 缺→無法誠實消費 band（見 migrate_kh8_honest_view_ddl）",
+        }
 
     from augur.knowledge import evidence as ev
 
@@ -183,7 +196,7 @@ def _selftest() -> int:
 
     rich = {
         "weight_id": 42,
-        "confidence_band": "high",
+        "confidence_band_usable": "high",
         "evidence_score": 0.85,
         "risk_flags": [],
         "components": {"formula": "test"},
@@ -196,7 +209,7 @@ def _selftest() -> int:
 
     thin = {
         "weight_id": 7,
-        "confidence_band": "absent",
+        "confidence_band_usable": "absent",
         "evidence_score": 0.05,
         "risk_flags": ["insufficient_evidence"],
         "components": {},
@@ -207,7 +220,7 @@ def _selftest() -> int:
 
     low = {
         "weight_id": 3,
-        "confidence_band": "low",
+        "confidence_band_usable": "low",
         "evidence_score": 0.2,
         "risk_flags": [],
         "components": {},
@@ -215,6 +228,18 @@ def _selftest() -> int:
     s3 = build_synthesis(item_id=3, weight=low)
     chk("low→synthesized", s3["answer_state"] == "synthesized")
     chk("states closed", set(ANSWER_STATES) == set(PASS_STATES) | {"drafted", "postmortem_needed"})
+    # M-G14：usable=None（母體不過）不得當 high
+    dead = {
+        "weight_id": 9,
+        "confidence_band_usable": None,
+        "confidence_band_raw": "high",
+        "evidence_score": 0.9,
+        "risk_flags": [],
+        "components": {},
+    }
+    s4 = build_synthesis(item_id=4, weight=dead)
+    chk("usable=None→postmortem（raw high 無效）",
+        s4["answer_state"] == "postmortem_needed")
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

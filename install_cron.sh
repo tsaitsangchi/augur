@@ -38,7 +38,9 @@ $BEGIN
 # 週一 08:00 維運健檢(VACUUM/磁碟/zram)
 0 8 * * 1 { date; cd $ROOT && set -a && . ./.env && set +a && PGPASSWORD=\$DB_PASSWORD psql -h \$DB_HOST -p \$DB_PORT -U \$DB_USER -d \$DB_NAME -c "VACUUM ANALYZE" || bash $ROOT/scripts/notify_failure.sh cron-ops-weekly-vacuum; free -h; df -h /; /usr/local/bin/ollama list || bash $ROOT/scripts/notify_failure.sh cron-ops-weekly-ollama; pg_lsclusters; zramctl; echo ----; } >> \$HOME/logs/ops_weekly.log 2>&1
 # 週一 08:40 工具自測(錯開 08:00 維運;原 08:10 過近)
-40 8 * * 1 cd $ROOT && { date; bash ops/gpu-verify/gpu_verify.sh || bash $ROOT/scripts/notify_failure.sh cron-verify-gpu; python3 -m tools.constitution_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-constitution-mcp; python3 -m tools.local_llm_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-local-llm-mcp; python3 -m tools.project_memory_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-memory-mcp; echo ----; } >> \$HOME/logs/verify_weekly.log 2>&1
+# M-O4(2026-08-03):既有班次尾掛覆蓋探針＋隔離 pytest 小樣本＋本探針自測——**零新排程**。
+#   分號銜接:MCP 自測失敗不吃掉覆蓋探針(同 arena 出單行之口徑)。勿用反引號。
+40 8 * * 1 cd $ROOT && { date; bash ops/gpu-verify/gpu_verify.sh || bash $ROOT/scripts/notify_failure.sh cron-verify-gpu; python3 -m tools.constitution_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-constitution-mcp; python3 -m tools.local_llm_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-local-llm-mcp; python3 -m tools.project_memory_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-memory-mcp; python3 scripts/check_selftest_coverage.py --check || bash $ROOT/scripts/notify_failure.sh cron-selftest-coverage; python3 -m pytest tests/test_philosophy_isolation.py tests/test_evolution_isolation.py -q || bash $ROOT/scripts/notify_failure.sh cron-isolation-pytest; echo ----; } >> \$HOME/logs/verify_weekly.log 2>&1
 # arena 每交易日出單(hugo 2026-07-26「讓 arena 的鐘重新走起來」;全鏈=sync〔freeze mdc 有界豁免 V2-FZ-scope〕
 # →特徵→對局;雙機械閘+休市誠實缺席 exit 0;取代已完成使命之 oneshot)
 # 前綴=FinMind 讀錶一步(登錄冊 E4 2026-08-01:讀錶不計額度、每交易日一行可見點;

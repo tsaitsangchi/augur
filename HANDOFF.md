@@ -18,12 +18,12 @@
 **08-01 一日要旨（接續者最速讀法＝記憶 `augur-adjudication-exec-20260801` → 終版圈選單 `reports/augur_final_adjudication_ballot_20260801.md` → 登錄冊全冊 ☑）**：
 治理迴路首次全循環——24 項問題「呈案→12 路鮮度驗證→Steward 圈選→機械施作（全程突變驗紅）→TTY 親簽→驗收落帳」一日閉環；追加迷你批 3 裁（MM 37 例／D2S sim 門 T-A／P2a+§5乙）。
 **當日落地之新機制（接續者須知其存在）**：TWEVO 八閘含 G-SIGN（77 筆乙案遷移訖）；UPDATE-GUC 閘擴至 15 表（治權表裸 UPDATE 面 20→15；kill_switch 依乙案豁免=緊急煞車零摩擦）；validation_evidence manual 90 天有效期（10-09/10-10 到期）；identity 六表生產（registry 3,503；37 例 mismatch 已裁 A/B 收 C 留）；fulltext `unattempted` 121,389；CLAUDE.md **v1.35 #35 回歸鎖三規則**＋pre-commit 假斷言第四閘；RULING-2026-042 生效（L7.16 衝突登錄）；`iid_bootstrap` 入 sim registry（門待 D2S INSERT 親簽後才可評）；週報 (b) per-(feature,h) 口徑。
-**08-02 晚已兌現**：run 21 succeeded→hugo `--queue-id` 逐顆親簽 556/599＝**首兩顆引擎自掙晉升**（prodset active=3、週報 (b) ✅）；SIM-CAL-R1 sim 門親簽生效＋四件套落地＋P0 候選落戶（`sim-clock-armed-20260802`；首格待 08-03 anchor、T-A 首判 ~11 月上旬；S-4=人工逐次觸發勿排程）；P2a+P2b 全落（裸 UPDATE 面 20→9 表）。**餘**：I5B-甲 **已落地**（`2b6350d`；run 22 首次生效）；run 22=**今晚 23:00** TWEVO 仍發車；attestation watchdog **今晚不發車**（見夜 runbook）；10-14 備料＝`reports/augur_1014_review_evidence_prep_20260801.md`。**優化**：**逐步執行**＝`reports/augur_optimization_step_plan_20260803.md`；理解＝`augur_optimization_foundation_unified_20260803.md`；細項＝`augur_optimization_master_plan_20260803.md`；今晚＝`ops/RUNBOOK-20260803-night.md`；落地帳＝`audits/MN1-MN2-LANDING-20260803.md`（探針骨架）＋本檔 M-N4 數字校正。
+**08-02 晚已兌現**：run 21 succeeded→hugo `--queue-id` 逐顆親簽 556/599＝**首兩顆引擎自掙晉升**（prodset active=3、週報 (b) ✅）；SIM-CAL-R1 sim 門親簽生效＋四件套落地＋P0 候選落戶（`sim-clock-armed-20260802`；首格待 08-03 anchor、T-A 首判 ~11 月上旬；S-4=人工逐次觸發勿排程）；P2a+P2b 全落（裸 UPDATE 面 20→9 表）。**餘**：I5B-甲 **已落地**（`2b6350d`；run 22 首次生效）；run 22=**今晚 23:00** TWEVO 仍發車；attestation watchdog **今晚不發車**（見夜 runbook）；10-14 備料＝`reports/augur_1014_review_evidence_prep_20260801.md`。**優化**：**逐步執行**＝`reports/augur_optimization_step_plan_20260803.md`；理解＝`augur_optimization_foundation_unified_20260803.md`；細項＝`augur_optimization_master_plan_20260803.md`；今晚＝`ops/RUNBOOK-20260803-night.md`；**守門就緒包**＝`audits/NIGHT-GUARD-CHECKLIST-20260803.md`（M-T5＋19:30＋22:5x `--prerun`＋隔晨 observe）；落地帳＝`audits/MN1-MN2-LANDING-20260803.md`（探針骨架）＋本檔 M-N4 數字校正。
 
 ## 重開機／接續狀態（2026-07-31 11:2x，封存點 `archive-20260731-sim-axis-live`）
 
 **重開後會自己回來**：13 個 enabled user unit（chat/admin/advisor/probability/ollama/qdrant
-＋7 個 timer）＋**15** 條 crontab（現查 `crontab -l | grep -c '^[0-9*]'`；M-N4 2026-08-03 由手抄 12 校正）。`Linger=yes` 已設，**無登入亦自起**。
+＋7 個 timer）＋**<!--probe:doc_handoff_cron_lines-->15<!--/probe-->** 條 crontab（probe `doc_handoff_cron_lines`＝`crontab -l | grep -c '^[0-9*]'`，`read_treaty_probes.py --check` 驗 diff；M-N4 2026-08-03 由手抄 12 校正）。`Linger=yes` 已設，**無登入亦自起**。
 帶 `Persistent=true` 的 timer 會在開機後補跑錯過的班次。
 
 **重開後須人工確認的三件**
@@ -47,11 +47,11 @@
 
 **未閉狀態（重開後仍在，非重開造成；數字＝2026-08-03 M-N4 現查，旁附可重跑指令）**
 - `evolution_iteration_ledger.tw-20260728-r01` status=running、closed_at NULL（殭屍輪，補跑中）。
-- `evolution_deferred_work` 未清 **0** 筆／總 9 列已清（`SELECT count(*) FROM evolution_deferred_work WHERE cleared_at IS NULL`）。
-- `validation_evidence` 現 **25** 列：green **14**／red **9**／unverified **2**（`python scripts/verify_validation_evidence.py --list`；計畫舊抄「19／red 3」已過期）。
+- `evolution_deferred_work` 未清 **<!--probe:doc_handoff_deferred_uncleared-->0<!--/probe-->** 筆／總 9 列已清（probe `doc_handoff_deferred_uncleared`＝`SELECT count(*) FROM evolution_deferred_work WHERE cleared_at IS NULL`，`read_treaty_probes.py --check` 驗 diff）。
+- `validation_evidence` 現況 <!--probe:doc_handoff_ve_status-->total=25 green=14 red=9 unverified=2<!--/probe-->（probe `doc_handoff_ve_status`，`read_treaty_probes.py --check` 驗 diff；詳表＝`python scripts/verify_validation_evidence.py --list`；計畫舊抄「19／red 3」已過期）。
 
 **接續讀序**：本檔 → **`reports/augur_optimization_step_plan_20260803.md`（逐步執行）** → `augur_optimization_foundation_unified_20260803.md`（理解）→ `augur_optimization_master_plan_20260803.md`（M-* 全表）→ `ops/RUNBOOK-20260803-night.md` → r3／建構理解。
-→ sim＝子計畫＋候選已 1 列；I5B 已落地；今晚 TWEVO 23:00 仍發、attestation watchdog **不**發。
+→ sim＝子計畫＋候選已 1 列；I5B 已落地；今晚 TWEVO 23:00 仍發、attestation watchdog **不**發（操作 checklist＝`audits/NIGHT-GUARD-CHECKLIST-20260803.md`）。
 memory 已 export 至 `handoff_memory/`，新機以 `python3 sync_memory.py restore` 還原。
 
 ## 0.5 增補快照 2026-07-18（Phase 1 憲章化收官——接續者必讀）

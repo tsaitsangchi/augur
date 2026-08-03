@@ -335,7 +335,8 @@ def evaluate_layer(cur, depth: int, snap: dict) -> dict:
         return {"verdict": "fail", "note": "無 item_text"}
 
     if depth == 1:
-        # KH1：有 qual pass，或既有原文（一律准入＝既有庫可視為 qual 已過）
+        # KH1：真路徑＝qualification=pass。其餘 has_text→pass＝**旁路**（M-G15 正名；
+        # 零變異指標、不得充當獨立證據／§P4.E7 同族於 KH8；旁路存廢待 Steward 裁，本處不改行為）。
         if _table_exists(cur, "knowledge_import_qualification"):
             cur.execute(
                 """
@@ -350,12 +351,14 @@ def evaluate_layer(cur, depth: int, snap: dict) -> dict:
             if q and q[0] == "pass":
                 return {"verdict": "pass", "note": "qualification=pass"}
             if q and q[0] in ("reject", "error"):
-                # 仍有原文 → 不擋（v1.48 一律准入）；記 escalate 否：pass with note
+                # 仍有原文 → 不擋（v1.48 一律准入）；行為不變、note 正名為旁路
                 if snap["has_text"]:
-                    return {"verdict": "pass", "note": f"qual={q[0]} 但原文在庫→准入保留"}
+                    return {"verdict": "pass",
+                            "note": f"KH1_BYPASS:qual={q[0]} 原文在庫→准入保留（零變異；存廢待裁）"}
                 return {"verdict": "fail", "note": f"qualification={q[0]}"}
         if snap["has_text"]:
-            return {"verdict": "pass", "note": "既有原文＝KH1 視同通過"}
+            return {"verdict": "pass",
+                    "note": "KH1_BYPASS:既有原文旁路（零變異指標、不得充當獨立證據；存廢待裁）"}
         return {"verdict": "fail", "note": "無 qual 且無原文"}
 
     if depth == 2:

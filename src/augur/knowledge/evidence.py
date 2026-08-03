@@ -283,6 +283,46 @@ def record_weight(
 
 
 def latest_weight_for_item(cur, item_id: int) -> dict[str, Any] | None:
+    """消費側讀最新權重：優先 honest view 之 usable band（M-G14）。
+
+    `confidence_band`＝`confidence_band_usable`（母體無鑑別力時為 None）；
+    raw 僅以 `confidence_band_raw` 暴露供診斷，不得當通過訊號。
+    """
+    cur.execute(
+        "SELECT to_regclass(%s)", ("public.knowhow_evidence_weight_honest",)
+    )
+    if cur.fetchone()[0]:
+        cur.execute(
+            """
+            SELECT weight_id, evidence_score,
+                   confidence_band_usable, confidence_band_raw,
+                   risk_flags, components,
+                   citation_count, terminal_score, contradiction_score, run_id
+              FROM knowhow_evidence_weight_honest
+             WHERE item_id=%s
+             ORDER BY weight_id DESC
+             LIMIT 1
+            """,
+            (int(item_id),),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        usable, raw = row[2], row[3]
+        return {
+            "weight_id": row[0],
+            "evidence_score": float(row[1]),
+            "confidence_band": usable,
+            "confidence_band_usable": usable,
+            "confidence_band_raw": raw,
+            "risk_flags": row[4],
+            "components": row[5],
+            "citation_count": row[6],
+            "terminal_score": float(row[7]),
+            "contradiction_score": float(row[8]),
+            "run_id": row[9],
+        }
+    # view 未建時退基表（寫入軸／舊庫）；消費遷移後應走 honest
     cur.execute(
         """
         SELECT weight_id, evidence_score, confidence_band, risk_flags, components,

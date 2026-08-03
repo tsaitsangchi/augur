@@ -108,6 +108,35 @@ cd /home/hugo/project/augur && set -a && . ./.env && set +a && PGPASSWORD="$DB_P
 
 ---
 
+## T-≈09-02｜sim settle 第一波（M-M4 日期標；人工逐次、勿排程）
+
+首格 asof≈08-03 之 label＝asof 後第 **21** 個交易日（≈**2026-09-02**）。label 入庫後才有可結算列。
+
+```bash
+cd /home/hugo/project/augur && set -a && . ./.env && set +a && venv/bin/python scripts/settle_sim_outcomes.py --dry-run
+# 乾跑分類合理後：
+venv/bin/python scripts/settle_sim_outcomes.py --apply
+```
+
+- **預期**：`sim_realized_outcome` 寫入本波可結算列（insert-only、冪等再跑 0 新增）。
+- **不對就停**：大量 `unsettleable`／收盤自檢紅＝先查 PriceAdj／因子窗，勿硬 evaluate。
+- **第二波 ≈10-02、第三波 ≈11-04**（同指令；catch-up 冪等補漏格，**不保證有人會跑**——週報 sim 時鐘哨監督）。
+
+## T-≈11-04 後｜sim evaluate → W4 判決（M-M4 日期標）
+
+K=3 齊（三格 live link 皆有 settled 證據）後：
+
+```bash
+cd /home/hugo/project/augur && set -a && . ./.env && set +a && venv/bin/python scripts/evaluate_sim_calibration.py --dry-run
+# 乾跑過後才 --apply（寫 sim_calibration_eval）；終局 verdict＝scripts/decide_sim_verdict.py（M-M5）
+```
+
+- **預期**：有可評 obs；`n_valid`／K 過門檻才寫 eval。
+- **不對就停**：`n_valid=0` 且訊息像「等 settle」——先懷疑 q_grid 契約（r4 D7），**不是**真的還沒 settle。
+- **promoted** 之人簽路徑一律 hugo 親跑 `decided_by`（AI 不代打）。
+
+---
+
 ## 護欄（三條，任一觸即停手待人）
 
 1. **kill switch**：`venv/bin/python scripts/set_evolution_kill_switch.py --status`——任一 scope=halt 時引擎不跑，屬設計非故障。

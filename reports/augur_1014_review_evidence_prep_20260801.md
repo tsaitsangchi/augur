@@ -242,3 +242,23 @@ grep 代打 CLAUDE.md               → 0（v1.35 無「不代打人簽」明文
 ```
 
 *建立：2026-08-01｜F2 唯讀備料｜下一日曆錨：2026-10-14 併審（Steward 裁決域）*
+
+---
+
+## 追記（2026-08-03，M-N1 第 19 步／M-N13——加時戳與現值對照；正文不改）
+
+本節為追加式現值對照（r4 §3.2 慣行：引用時加限定詞、不改正文）。下列數字由 M-N1 探針之
+`check_cmd` 當場導出、不手抄；`read_treaty_probes.py --check` 對本節 `<!--probe:ID-->` 標記
+與 live 值驗 diff，漂移即 rc≠0。
+
+- **§1（line 43）「Registry 表本體 → NONE」＝08-01 當日值，已過期**。live 現值：public 內
+  `relname LIKE '%concept%'` 之 base table＝<!--probe:doc_f2_registry_tables-->3<!--/probe--> 張
+  （probe `doc_f2_registry_tables`；2026-08-03 現查＝`world_concept`／`world_concept_registry_legacy`／
+  `world_concept_version`）。「零落地」敘述不再成立；惟七欄結構與 `authoritative_binding_id`
+  落值是否達 WM.36 要件仍屬 Steward 裁決域（M-W5），本節不代判。
+- **§1（line 49）／§5（line 215）「直綁 47 檔」＝08-01 當日值（其尺未載）**。live 現值
+  （尺＝`grep -rlE 'FROM\s+"Taiwan' src scripts --include='*.py' | wc -l`，已登錄為
+  `vendor_direct_bind/grep_from_taiwan_src_scripts`、authoritative=false）＝
+  <!--probe:doc_f2_vendor_bind_grep-->51<!--/probe--> 檔（probe `doc_f2_vendor_bind_grep`）。
+  **權威尺選定＝M-N7（Steward 裁決域），本節不代裁**；四把尺並存現況見
+  `reports/augur_optimization_master_plan_20260803.md` 第 20 步。

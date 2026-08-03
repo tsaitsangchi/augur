@@ -46,6 +46,71 @@ DEFAULTS = [
         "check_cmd_matrix 受檢入口數（含 scripts/ 外之 __main__；非 ls scripts/*.py）。",
         "python3 scripts/check_cmd_matrix.py 2>/dev/null | tail -3",
     ),
+    # —— doc 族（M-N1 第 19 步：文件硬編數字→探針）之尺；權威標定仍 Steward ——
+    (
+        "crontab_entries",
+        "grep_leading_numeric",
+        "使用者 crontab 之排程行數（行首為數字或 * 者；不含註解與環境變數行）。",
+        "crontab -l | grep -c '^[0-9*]'",
+    ),
+    (
+        "deferred_work_uncleared",
+        "sql_cleared_at_null",
+        "evolution_deferred_work 未清件數（cleared_at IS NULL）。",
+        "venv/bin/python -c 'from augur.core import config; import psycopg2; conn=psycopg2.connect(**config.DB_PARAMS); cur=conn.cursor(); "
+        "cur.execute(\"SELECT count(*) FROM evolution_deferred_work WHERE cleared_at IS NULL\"); "
+        "print(cur.fetchone()[0])'",
+    ),
+    (
+        "validation_evidence_status",
+        "sql_group_by_status",
+        "validation_evidence 全表列數與 green/red/unverified 分布（status GROUP BY；"
+        "verify_validation_evidence.py 同口徑）。",
+        "venv/bin/python -c 'from augur.core import config; import psycopg2; conn=psycopg2.connect(**config.DB_PARAMS); cur=conn.cursor(); "
+        "cur.execute(\"SELECT status, count(*) FROM validation_evidence GROUP BY 1\"); "
+        "d=dict(cur.fetchall()); print(\"total=%d green=%d red=%d unverified=%d\" % "
+        "(sum(d.values()), d.get(\"green\",0), d.get(\"red\",0), d.get(\"unverified\",0)))'",
+    ),
+    (
+        "lint_total_errors",
+        "report_json",
+        "constitution_lint report 機器區塊之 total_errors（github-workflow.yml 檔頭同源數）。",
+        "venv/bin/python -m tools.constitution_lint report 2>/dev/null | "
+        "grep -oE '\"total_errors\": [0-9]+' | grep -oE '[0-9]+$'",
+    ),
+    (
+        "lint_selftest_status",
+        "rc_pass_fail",
+        "constitution_lint --selftest 之 rc 化約（PASS/FAIL；取代文件手抄「selftest 現為全綠」類現況句）。",
+        "venv/bin/python -m tools.constitution_lint --selftest >/dev/null 2>&1 && echo PASS || echo FAIL",
+    ),
+    (
+        "wm36_registry_tables",
+        "pg_class_concept_like",
+        "public 內 relname LIKE '%concept%' 之 base table 數（F2 §1「Registry 表本體」同尺現查；"
+        "是否達 WM.36 七欄要件另屬 Steward 裁決域）。",
+        "venv/bin/python -c 'from augur.core import config; import psycopg2; conn=psycopg2.connect(**config.DB_PARAMS); cur=conn.cursor(); "
+        "cur.execute(\"SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
+        "WHERE n.nspname=%s AND c.relname LIKE %s AND c.relkind=%s\", (\"public\",\"%concept%\",\"r\")); "
+        "print(cur.fetchone()[0])'",
+    ),
+    (
+        "vendor_direct_bind",
+        "grep_from_taiwan_src_scripts",
+        "src+scripts 內含 FROM \"Taiwan 直綁之 .py 檔數（GROUNDING-MAP 同尺；"
+        "權威尺選定＝M-N7 未裁，本尺 authoritative=false）。",
+        "grep -rlE 'FROM\\s+\"Taiwan' src scripts --include='*.py' | wc -l",
+    ),
+    (
+        "pg_memory_settings",
+        "show_three",
+        "live PostgreSQL shared_buffers／work_mem／maintenance_work_mem 三值快照（機器漂移偵測）。",
+        "venv/bin/python -c 'from augur.core import config; import psycopg2; conn=psycopg2.connect(**config.DB_PARAMS); cur=conn.cursor(); "
+        "cur.execute(\"SHOW shared_buffers\"); a=cur.fetchone()[0]; "
+        "cur.execute(\"SHOW work_mem\"); b=cur.fetchone()[0]; "
+        "cur.execute(\"SHOW maintenance_work_mem\"); c=cur.fetchone()[0]; "
+        "print(\"shared_buffers=\"+a+\" work_mem=\"+b+\" maintenance_work_mem=\"+c)'",
+    ),
 ]
 
 
