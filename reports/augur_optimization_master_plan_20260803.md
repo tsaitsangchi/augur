@@ -486,7 +486,8 @@ llama-server RSS = 647 MB（09:55 曾量到 5,507 MB —— qwen3:8b 已退駐�
 ---
 
 **第 10 步｜M-G3　`reconcile_audit.py` 接上 library 正解**　🟢【可先做】
-- **做什麼**：`scripts/reconcile_audit.py:158` 之 `passed = vm == 0 and ex == 0 and not inc` 未納 `coverage_gap`；正解住 `src/augur/audit/reconcile.py:587`（含 `and not coverage_gap`）且已有回歸鎖，但**全 repo 零真實呼叫者**。改為呼叫 `reconcile.verdict()`。
+- **做什麼**：`scripts/reconcile_audit.py:158` 之 `passed = vm == 0 and ex == 0 and not inc` 未納 `coverage_gap`；正解住 `src/augur/audit/reconcile.py:587`（含 `and not coverage_gap`）且已有回歸鎖。改為呼叫 `reconcile.verdict()`。
+  - **⚠ 2026-08-03 更正（本檔原文事實錯誤）**：原文稱正解「**全 repo 零真實呼叫者**」——**不實**。實查（`git grep 'reconcile\.verdict(' d69452b^`，即 M-G3 落地前）已有 **4 支生產呼叫者**：`daily_maintenance.py:131`、`full_market_sync.py:93,146`、`full_universe_attest.py:105`、`refetch_fixed_tables.py:42`。**寫 `attestation_result` 的那條路早就在用正解**；M-G3 修的是另一支不寫帳本的 driver。原文若被讀成「這條判準從未生效過」，會高估 M-G3 的效力。
 - **⚠ S1 不可略**：先跑唯讀影響面掃描（全表對帳算出「改判式後由 PASS 轉 FAIL 的表清單」），否則直接改上去可能連鎖觸發 watchdog。
 - **誰**：AI
 - **前置**：無
@@ -555,7 +556,13 @@ llama-server RSS = 647 MB（09:55 曾量到 5,507 MB —— qwen3:8b 已退駐�
 - **前置**：M-G5 硬依賴 M-G3 → M-G4。M-G6 無前置（但 `--apply` 需授權）。
 - **驗收**：
   - M-G4：① 觸發一次真發車後 60 秒內 `~/audit_retry.log` mtime 前進（**現凍在 08-01 18:45:26**）；② `SELECT max(run_at) FROM attestation_result WHERE driver LIKE 'daily_maintenance%'` 前進（**現查 2026-08-01 18:43:57**）；③ **先驗紅**：以舊組態重跑，新加的閉環判式須報「發車後無產出」；④ 發車失敗與「正常冷卻」之輸出字樣**在 grep 上可區分**（現況二者皆為『冷卻中』）。
-  - M-G5：① 掛班次後連續 3 日 `SELECT count(*) FROM attestation_result WHERE run_at > now()-interval '3 days'` ≥ **3**（現 **0**）；② **接縫驗收**——其中至少一列之 `passed` 與 `coverage_gap` 一致（`missing_in_db=11,145` 這類情形必須寫 `passed=false`）。**M-G3 與 M-G5 分開驗會各自看起來都對。**
+  - M-G5：① 掛班次後連續 3 日 `SELECT count(*) FROM attestation_result WHERE run_at > now()-interval '3 days'` ≥ **3**（現 **0**）；② **接縫驗收**——其中至少一列之 `passed` 與 `coverage_gap` 一致。**M-G3 與 M-G5 分開驗會各自看起來都對。**
+  - **⚠ 2026-08-03 更正（本檔原文期待錯誤，已刪）**：原文要求「`missing_in_db=11,145` 這類情形**必須寫 `passed=false`**」——**這個期待與 attestation 的宣稱不符，照做會壞事**。
+    `src/augur/audit/reconcile.py` 檔頭第 4–10 行逐字定錨三類差異：`value_mismatch`＝同鍵值不同、`extra_in_db`＝**幻像/PK 碰撞紅旗**、`missing_in_db`＝**覆蓋缺口；重跑 sync 即補**；並明寫「attestation 通過 ＝ `value_mismatch=0 ∧ extra_in_db=0`」。
+    ⇒ attestation 宣稱的是「**DB 裡的東西沒有假的**」（無幻像），**不是**「DB 有 API 的全部」（完整）。把 `missing_in_db` 納入 `passed` 等於**改變該機制宣稱在量什麼**，屬判準變更；且實測後果為災難：`attestation_result` 全 **10** 列之 `missing_in_db` 依序 5369／5700／5700／5754／6138／7839／7839／7839／11145／**13342**，**無一為 0** ⇒ 納入後 10 列全轉 FAIL
+    〔⚠ 本行自身的小史：初稿寫「9 列」——那是 M-G3 執行線數小時前查的值；本檔付印前現查已增至 10 列（12:09 那輪 audit 寫入）。**引用他人查得的數字而未自行現查，正是本檔各處數字漂移的成因**；凡本檔數字皆附覆核指令，讀者應以現查為準〕 ⇒ watchdog 之 `fresh_pass` 恆 0 ⇒ 每 24h 冷卻窗到期即發車跑 6h selfheal、**永不收斂**。
+    **正解**：覆蓋缺口該有**獨立的可見載體**，不是塞進 attestation 的 `passed` 欄——落點＝第 17 步 M-P13 之 `validation_evidence` 新列（斷言「`missing_in_db` 之趨勢／絕對量」），該列今日必為紅。
+    ⇒ 本項**不需 Steward 裁定 `missing_in_db` 語意**（語意已定錨於 code 檔頭），只需本檔更正期待。
   - M-G6：① `crontab -l | grep -c 'notify_failure'` = **15**（現 **0**）；② `bash install_cron.sh --check` rc=0「✓ 一致」；③ **先驗紅**：刻意讓一條 cron 失敗，`~/logs/alerts.log` 必須增一行。
 - **⚠ M-G5 日班對帳時長未估、須先抽樣**——`~/audit_retry.log` 之 08-01 那輪由 16:40 發車到 18:45 完成（≈2 小時）但那是 `--heal` 全量；日班該用什麼 `--audit-days` 與抽樣股數（現 `AUDIT_SAMPLE_STOCKS=40`）須先量一次再定，不編數字。
 - **可並行**：**組內三項嚴格序列**；改 unit／期望表本身（不觸 API）可與第 10–14、16–18 步並行。**M-G5 與 M-G10 補抓共用 FinMind，須錯開日子。**
