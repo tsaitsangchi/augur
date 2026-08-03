@@ -2,6 +2,7 @@
 
 - [深化理解 r4 20260803](augur-deep-understanding-r4-20260803.md) — ⭐**現況權威（取代 r3）**:三元問題＝worktree 內 commit 完全不過五閘＋注入 CLAUDE.md 為 v1.32 舊版／我 24h 內自造兩錯皆由對抗抓回（sim 契約手寫假 fixture／RULING-043 只補編號未建檔）／「風險已非還沒做,而是量的不是宣稱在量的東西」;矛盾7 過期17 假綠12 債40 待裁30;⚠優化計畫書自陳僅收 Z1-Z6 六區
 - [完成當下未驗假設](assumption-unverified-at-completion.md) — ⚠**08-03 一日三犯之共同模式**:修契約手寫假 fixture／補編號沒建本體／建閘 regex 漏邊界——三次都只驗「假設下的推論」不驗「假設本身」;判斷句「讓我認為完成的那個假設,我驗過嗎?」
+- [判準要整段讀完](read-the-whole-criterion.md) — ⚠**08-03 同一件事連錯三次**（抄參數沒讀 help／只讀態一沒讀態二／grep 掃到自己）;共同形狀＝看了判準的一部分就以為看完;**grep 給的是索引不是內容**;改機械閘前判準必整段讀
 - [pgrep 掃到自己（第六犯）](pgrep-self-match-sixth.md) — ⚠08-02 一日三犯（pytest 假跑/DDL 窗假警/索引假存活）;正法唯 /proc/<pid>/comm 過濾;判斷句「這個 pgrep 命中的會不會就是我自己？」
 - [裁決批執行 20260801](augur-adjudication-exec-20260801.md) — ⭐**執行現況權威**:批次一全清+批次四波1落地(全經突變驗紅);批次二/三未圈(E1 08-03 20:00 時效);F1=RULING-042 落庫待親簽;TTY 親簽包四件;波2-4 待辦序(D4 先code後DDL不可倒)
 - [深化理解 r3 20260801](augur-deep-understanding-r3-20260801.md) — 〔現況權威已移交 r4〕:run 20 首完整輪(51 feat)+r01 failed-but-gain(close 判準失真);晉升鏈四斷點(sign 0 列/G-SIGN 未入閘/APPLY-go 未開);**口徑鎖定表**(KH0 兩把尺 138,854 vs 138,805/VE 19 列/表數兩口徑/444·445 非重複);KH8 靠 0.27% 尾巴解閘+GREATEST 再膨脹實證;L7.16 衝突零登錄;lint 真恆真 26;T7=08-02 09:00 看 0727 檔

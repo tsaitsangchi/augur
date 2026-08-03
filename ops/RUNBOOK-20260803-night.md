@@ -1,15 +1,28 @@
 # Runbook — 2026-08-03（週一）夜：sim 首格 ＋ run 22 全裝備首驗
 
 > **⚠ 2026-08-03 午後更新（五項變更，覆蓋原文對應段）**
-> 1. **⚠ 甲案已失效（12:09 實測）——19:14 watchdog 會發車，這是預期的，不是故障。**
->    白天 audit 已跑完（12:09，`--audit-only --audit-days 14`，log=`~/logs/audit_mt4_v2_20260803.log`），
->    但 **`passed=False`**：`value_mismatch=1979`／`missing_in_db=13,342`。
->    watchdog 判準＝「1 日內 **PASS**」，FAIL 不算 ⇒ 19:14 過冷卻窗（上次發車 08-02 18:45）後**會發車**。
->    **但發車即死**（M-G4 未修：`setsid` 不脫離 systemd cgroup），實際結果＝`~/audit_watchdog.log` 多一行、
->    `~/audit_retry.log` mtime 不動。**不需人動作**；若你想省掉這一次空轉，可在 19:00 前手動把
->    kill switch 以外的方式停掉 timer——但沒必要，空轉無害。
->    19:30 驗證改為：`tail -3 ~/logs/audit_watchdog.log` 應見「⚠ 過期→relaunch」，
->    且 `ls -l ~/audit_retry.log` 之 mtime **仍停在 2026-08-01 18:45:26**（＝ M-G4 之現場複現）。
+> 1. **甲案成功，今晚 watchdog 不發車**（13:10 三輸入現查 ＋ 六視角對抗驗證獨立同證）。
+>    ⚠ **本節前一版寫「甲案失效、19:14 會發車」——那是錯的，已作廢。** 錯因見下方 1-c。
+>    白天 audit 12:07 寫入 `attestation_result` id=11（`--audit-only`，**`passed=false`**：
+>    `value_mismatch=1979`／`missing_in_db=13,342`）。今晚 19:14 之判態逐條：
+>    　① `fresh_pass`（`passed` 且 1 日內）＝ **0** ⇒ 非態一
+>    　② `audit_selfheal.sh` 不在跑 ⇒ 非「進行中」
+>    　③ `recent_try`（24h 內任一 `daily_maintenance%` 列，**不論 passed**）＝ **1** ⇒ **態二成立**
+>    `audit_watchdog.sh:159` 之條件是 `recent_try >= 1` **OR** 冷卻窗內——`recent_try` 才是主判準，
+>    `TS_FILE` mtime 只是 OR 的第二支。⇒ **12:07 那筆 FAIL 本身就足以擋住發車**，
+>    要到 **08-04 12:07 之後** `recent_try` 才歸零。
+>    19:30 驗證：`tail -3 ~/logs/audit_watchdog.log` 應見「**冷卻中**」或「**⛔ 發車後夭折**」字樣
+>    （二者 grep 可分，M-G4 已使其互斥），**不得**出現「relaunch 已送」。
+>
+>    **1-c. 我為什麼連錯三次（留給下次讀這份 runbook 的人）**：
+>    ① 中午抄 `audit_selfheal.sh` 的參數 `--audit-all`（沒讀完旗標說明）；
+>    ② 12:12 只讀了「態一＝`passed` 且 1 日內」就宣告會發車（**沒往下讀態二的完整條件**）；
+>    ③ 13:10 用 `grep audit_selfheal` 檢測進程，**命令列自己含該字串**而誤報「進行中」。
+>    三次的共同形狀：**看了判準的一部分就下結論**。今晚任何一步若與預期不符，
+>    先把該步的判準**整段**讀完再行動。
+>    〔附帶發現：`audit_watchdog.sh:152` 用 `pgrep -f 'audit_selfheal\.sh'`，
+>    任何命令列含該字串的進程都會讓它誤判「進行中」。方向是 fail-safe（誤判只會不發車），
+>    但診斷時要知道這件事。〕
 >
 >    **1-b. audit 的真正產出（比甲案重要）**：`value_mismatch=1979` 中 **1,958 筆（99%）集中在
 >    `UKStockPrice` 一張表**，且其中 1,870 筆集中在**單一天**（窗 10 日，前 9 日累積 88 筆）。
