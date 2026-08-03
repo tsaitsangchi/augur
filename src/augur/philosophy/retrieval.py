@@ -366,14 +366,10 @@ def _finalize_items_kh_first(cur, out, k):
     """KH9-first：依 admit_depth 重排後截 k（相關度仍由 advise 閘）。"""
     if not out:
         return out
-    from augur.knowledge.auto_admit import (load_admit_depths, rank_item_citations,
-                                             set_kh_evidence_validity)
-    # 乙（2026-07-30）：深度優先須先驗 KH8 證據有效性——不具鑑別力時 rank 退回相似度序
-    try:
-        set_kh_evidence_validity(cur)
-    except Exception:
-        pass
-
+    from augur.knowledge.auto_admit import load_admit_depths, rank_item_citations
+    # M-K1（2026-08-03）：**不得**在此預灌 KH8 判準——`set_kh_evidence_validity` 清快取卻不寫
+    # `_at`，會把 `kh_evidence_valid` 的 _OK_TTL_SEC=900 記憶化打掉、每次檢索多付一趟 146k 全表掃。
+    # `rank_item_citations` 已自足取判準（自開唯讀連線＋fail-closed），呼叫端零配合。
     depths = load_admit_depths(cur, [c.item_id for c in out])
     return rank_item_citations(out, depths)[:k]
 
@@ -402,12 +398,9 @@ def retrieve_all(query, k=6, access_scope="public", scope=None):
                               is_super=is_super, owner_user_id=user_id)   # 擁有者收窄
     merged = [c for trio in zip_longest(works, pub, priv) for c in trio if c is not None]
     # KH9-first：合併後再依 admit_depth 排（深度本地 know-how 先於公版 works）
-    from augur.knowledge.auto_admit import (rank_citations_kh_first,
-                                             set_kh_evidence_validity)
-    try:
-        set_kh_evidence_validity(cur)
-    except Exception:
-        pass
+    # M-K1：原此處另有 `set_kh_evidence_validity(cur)`，但本函式作用域**無** `cur`（未定義全域名）
+    # ⇒ 每次必 NameError、被同段 `except Exception: pass` 吞成靜默死碼；判準由下游自足取得。
+    from augur.knowledge.auto_admit import rank_citations_kh_first
     return rank_citations_kh_first(merged)[:k]
 
 def verify_verbatim_item(citation):
@@ -503,8 +496,108 @@ def _selftest():
     bad = [ln for ln in call_lines if re.search(r"(?<![_\w])domain\s*=", ln)]
     chk("retrieve_all→retrieve_items 呼叫無策展 domain kw",
         bool(call_lines) and not bad)
+    for name, cond in _mk1_checks():
+        chk(name, cond)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
+
+
+def _undefined_global_names(fn):
+    """fn 於執行期會 LOAD_GLOBAL 但模組全域與 builtins 皆無之名——即「必 NameError」之死碼名。
+
+    純函式（吃真 code object，不讀原始碼文字）。`retrieve_all` 曾以 `set_kh_evidence_validity(cur)`
+    引用不存在的全域 `cur`，被 `except Exception: pass` 吞成靜默死碼（M-K1）；本檢查對**任何**
+    未定義全域名皆會亮紅，不綁特定字串。"""
+    import builtins
+    import dis
+    g = getattr(fn, "__globals__", {})
+    return sorted({ins.argval for ins in dis.get_instructions(fn)
+                   if ins.opname == "LOAD_GLOBAL"
+                   and ins.argval not in g and not hasattr(builtins, ins.argval)})
+
+
+class _DepthFakeCur:
+    """零 IO 假游標，回傳形取自 live 真查詢（2026-08-03 現查 augur 庫）：
+
+      * `SELECT to_regclass('public.X')`            → 1-tuple，表在＝表名字串、不在＝None
+      * `load_admit_depths` 之 target_id/admit_depth → [(int, int)]（`target_id::bigint`）
+      * `population_discriminates` 之 band 計數      → [(band, count)]；三分量質量 → 一列三 float
+
+    `sql` 逐句留痕，供絆線判「這條路徑到底問了 DB 什麼」。"""
+
+    def __init__(self, depths, tables=("knowhow_auto_admit_state", "knowhow_evidence_weight")):
+        self._depths = dict(depths)
+        self._tables = set(tables)
+        self.sql = []
+        self._rows, self._one = [], None
+
+    def execute(self, sql, params=None):
+        s = " ".join(str(sql).split())
+        self.sql.append(s)
+        self._rows, self._one = [], None
+        if "to_regclass" in s:
+            t = str(params[0]).split(".")[-1]
+            self._one = (t if t in self._tables else None,)
+        elif "knowhow_auto_admit_state" in s:
+            self._rows = [(int(i), int(d)) for i, d in sorted(self._depths.items())]
+        elif "confidence_band" in s:                      # KH8 band 計數（母體查詢，本路徑不該問）
+            self._rows = [("high", 145_949), ("low", 400)]
+        elif "components" in s:                           # KH8 三分量非眾數質量
+            self._one = (0.5, 0.5, 0.5)
+
+    def fetchall(self):
+        return list(self._rows)
+
+    def fetchone(self):
+        return self._one if self._one is not None else (self._rows[0] if self._rows else None)
+
+
+def _mk1_checks():
+    """M-K1 回歸鎖（零 IO）：檢索收尾不得再自行預灌 KH8 判準、亦不得留未定義全域名。
+
+    病理（2026-08-03 實測 0.577s/次）：`set_kh_evidence_validity(cur)` 清 `_kh_evidence_valid_cache`
+    卻不寫 `_at` ⇒ 下游 `kh_evidence_valid()` 的 `_OK_TTL_SEC=900` 記憶化每次被打掉、每次檢索
+    多付一趟 146k 全表掃。絆線＝(1) 假游標被問到的 SQL 裡不得出現 KH8 母體查詢；
+    (2) 事前灌入之判準快取（含 sentinel note）須原封存活。"""
+    import time as _t
+
+    from augur.knowledge import auto_admit as _aa
+
+    def _cite(item_id, score, sent_id):
+        return ItemCitation(sent_id=sent_id, itext_id=sent_id, item_id=item_id, item_title="t",
+                            domain="d", entity_type="article", char_start=0, char_end=1,
+                            source_url="", license="", text="x", score=score, via="ann")
+
+    cites = [_cite(101, 0.9, 1), _cite(102, 0.5, 2), _cite(103, 0.8, 3)]
+    depths = {101: 3, 102: 9, 103: 7}                      # 102/103 深水印、101 淺
+    cur = _DepthFakeCur(depths)
+    saved = dict(_aa._kh_evidence_valid_cache)
+    try:
+        _aa._kh_evidence_valid_cache.clear()
+        _aa._kh_evidence_valid_cache.update(
+            {"ok": True, "note": "sentinel-mk1", "_at": _t.monotonic()})
+        ranked = _finalize_items_kh_first(cur, list(cites), 3)
+        kh_sql = [s for s in cur.sql if "knowhow_evidence_weight" in s]
+        survived = _aa.kh_evidence_valid().get("note") == "sentinel-mk1"
+        order_ok = [c.item_id for c in ranked] == [102, 103, 101]
+        # 閘關（ok=False）→ 退回輸入原序、逐項同一物件
+        _aa._kh_evidence_valid_cache.clear()
+        _aa._kh_evidence_valid_cache.update({"ok": False, "_at": _t.monotonic()})
+        closed = _finalize_items_kh_first(_DepthFakeCur(depths), list(cites), 3)
+        same = len(closed) == len(cites) and all(a is b for a, b in zip(cites, closed))
+    finally:
+        _aa._kh_evidence_valid_cache.clear()
+        _aa._kh_evidence_valid_cache.update(saved)
+    return [
+        ("M-K1 收尾不重掃 KH8 母體（假游標零 knowhow_evidence_weight 查詢）", not kh_sql),
+        ("M-K1 判準記憶化存活（sentinel note 未被清）", survived),
+        ("KH9-first 序仍為 depth 9→7→3", order_ok),
+        ("閘關(ok=False)→退回輸入原序、逐項同物件", same),
+        ("retrieve_all 無未定義全域名（NameError 死碼絆線）",
+         _undefined_global_names(retrieve_all) == []),
+        ("_finalize_items_kh_first 無未定義全域名",
+         _undefined_global_names(_finalize_items_kh_first) == []),
+    ]
 
 
 if __name__ == "__main__":

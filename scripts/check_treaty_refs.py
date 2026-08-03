@@ -6,6 +6,12 @@
 起因（2026-07-30）：大憲章 v1.47→v1.48→v1.49 之末段為檔案改名，致 v1.48.0 檔案不存在，
 而 README／HANDOFF／v1.47 橫幅／CS-v1.48 共 5 處仍指向它，全靠人眼才發現。本 lint 把該類缺陷機械化。
 
+**姊妹檢查（射程互補、不重疊）**：治權檔對**自己**版本之宣告是否自洽（CS 檔名／H1 標題／
+`spec-version`／`archive-path` 四值一致、修訂表非 SUPERSEDED 者恰一列）住
+`tools/constitution_lint/selfversion_lint.py`（2026-08-03 新建）——**刻意不併入本檔**：
+本檔為 pre-commit 第一閘且現況全綠，而該二類缺陷之修正屬正文變更、專屬 Steward
+（大憲章修訂表雙現行＝M-L2 正文），併入即令 repo 立即不可 commit。掛閘與否為 M-L7 之裁。
+
 執行指令矩陣
 ------------
     python3 scripts/check_treaty_refs.py                # 全掃（唯讀、預設）；有缺陷 exit 1
@@ -147,8 +153,10 @@ def check_version_lines(root: Path) -> list[Finding]:
     # 射程＝**現況宣告站點**（入口／接續／工具規則檔），2026-07-31 W0-2 擴入 CLAUDE.md 與
     # ARCHITECTURE-OVERVIEW.md。**刻意不含 docs/ 治權檔本身**：治權檔內之版號多為合法史述
     # （修訂歷程、「雙留痕於憲章 vX 該條」之留痕指針），以正則判其新舊必生假陽性；
-    # 治權檔內部之版號一致性應由 `<!--lint:KEY-->` 綁定機制處理（債 #16／行程計畫 W2-11），
-    # 非本檔射程。**已知殘留缺口**：docs/原則精華:7「大憲章 v1.51.0」等裸引用不受檢。
+    # 治權檔內部之版號一致性非本檔射程：其「自我宣告四值一致」一段已於 2026-08-03 落於
+    # `tools/constitution_lint/selfversion_lint.py`（實掃現得 3 則；見該檔），
+    # 其餘（散文中之版號綁定）仍賴 `<!--lint:KEY-->` 機制（債 #16／行程計畫 W2-11）。
+    # **已知殘留缺口**：docs/原則精華:7「大憲章 v1.51.0」等裸引用兩者皆不受檢。
     entries = [root / "README.md", root / "HANDOFF.md", root / "HANDOFF-governance.md",
                root / "CLAUDE.md", root / "ARCHITECTURE-OVERVIEW.md"]
     superseded_files = {

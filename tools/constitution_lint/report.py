@@ -25,7 +25,7 @@ import pathlib
 import re
 import subprocess
 
-from . import annex_d_range_lint, compliance_lint, mc_clauses
+from . import annex_d_range_lint, compliance_lint, mc_clauses, selfversion_lint
 
 _HERE = pathlib.Path(__file__).resolve().parent
 _REPO = _HERE.parents[1]
@@ -299,6 +299,14 @@ def build(selftest=None, specs_dir=None, mc_path=None) -> dict:
                 rec["passed"] = False
                 break
 
+    # ── 治權檔版本自我一致性（CS 四值／修訂表現行列）──────────────────────────────
+    # **刻意不併入 `tot["error"]`**：本量之母集是 `docs/`（領域治權檔），與 spec corpus
+    # 為兩個不相交母集；併入即使 `total_errors`（已綁定於 github-workflow.yml 橫幅）
+    # 憑空跳號，而該數字自稱是「七份規格之 error 數」——那正是本模組存在所要撲滅之事。
+    sv_findings = selfversion_lint.check_all()
+    for k in ("cs_selfversion_mismatch", "revision_multi_active", "revision_status_unknown"):
+        v[f"selfversion_{k}"] = sum(1 for f in sv_findings if f.kind == k)
+
     v["corpus_total"] = len(files)
     v["corpus_effective"] = sum(1 for r in per_file if not r["is_draft"])
     v["corpus_draft"] = sum(1 for r in per_file if r["is_draft"])
@@ -375,6 +383,8 @@ def build(selftest=None, specs_dir=None, mc_path=None) -> dict:
     return {"values": v, "per_file": per_file, "corpus": [str(p) for p in files],
             "kinds": kinds, "marker_census": census, "bound_docs": BOUND_DOCS,
             "dup_mislabels": dup_groups,
+            "selfversion": [{"kind": f.kind, "location": f.location, "message": f.message}
+                            for f in sv_findings],
             "git_head": git_head(), "command": GEN_COMMAND}
 
 
@@ -470,6 +480,15 @@ def render(data: dict) -> str:
     L.append(f"  斷言總數 ： {v['selftest_assertions']} 項（含各頂層測項之 `└` 子斷言）")
     L.append(f"  → 引用時請寫「頂層 {v['selftest_top_items']} 項／斷言總數 "
              f"{v['selftest_assertions']} 項」，勿寫裸數字。")
+    L.append("")
+    L.append("【治權檔版本自我一致性】（母集＝`docs/`，**與上表七份規格不相交**，不併入 total_errors）")
+    L.append(f"  CS 四值不一致（檔名／標題／spec-version／archive-path）： {v['selfversion_cs_selfversion_mismatch']} 份")
+    L.append(f"  修訂表非 SUPERSEDED 列數 ≠ 1                        ： {v['selfversion_revision_multi_active']} 份")
+    L.append(f"  修訂表狀態欄寫法認不得                              ： {v['selfversion_revision_status_unknown']} 列")
+    for f in data["selfversion"]:
+        L.append(f"    - [{f['kind']}] {f['location']} — {f['message']}")
+    if not data["selfversion"]:
+        L.append("    （無發現）")
     L.append("")
     L.append("【[I] 文件綁定普查】（標記數；selftest 逐處比對，不一致即 FAIL）")
     for rel in data["bound_docs"]:

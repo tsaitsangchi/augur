@@ -58,7 +58,14 @@ $BEGIN
 0 9 * * 0 cd $ROOT && venv/bin/python scripts/report_triple_evolution_week.py --md > \$HOME/logs/evolution_week_\$(date +\%Y\%m\%d).md 2>&1
 # 證據帳本重驗(登錄冊 C1 2026-08-01:19 列帳本原零排程——紅燈會亮但沒人看見;
 # 每日 07:10 只跑 sql 型=秒級;週日 07:40 連 script_exit 型一起=重、錯開 09:00 週儀表)
-10 7 * * * cd $ROOT && venv/bin/python scripts/verify_validation_evidence.py --run >> \$HOME/logs/validation_evidence.log 2>&1
+# ⚠ 07:10 行**尾掛** D1 全文旗標日班(M-K3 2026-08-03:原為一次性、零排程,每日漏 21 件)。
+#   刻意**掛既有班次而非新增班次**:不增喚醒點、不占新時窗;07:10 在 embed-catchup 03:30／
+#   ata-advance 04:00／admission-assist 05:00 三個 timer 之後 ⇒ 當日新 item 與新全文皆已可見。
+#   分號銜接(非 and-and):兩者互不為前置,任一失敗不得吃掉另一(同 arena 出單行之口徑)。日誌分檔。
+#   ⚠ 本註解一度寫成反引號包住分號 ⇒ 未加引號之 heredoc 立刻命令替換、把整句吃掉——
+#     本檔頂端警語所指之坑,2026-08-03 實犯一次;區塊內一律不得出現反引號。
+#   --daily=有界回填+分批 sweep,全程庫內 DML、零外部 API(#28)、冪等可續(#6)。
+10 7 * * * cd $ROOT && venv/bin/python scripts/verify_validation_evidence.py --run >> \$HOME/logs/validation_evidence.log 2>&1; cd $ROOT && venv/bin/python scripts/backfill_fulltext_unattempted.py --daily >> \$HOME/logs/fulltext_backfill.log 2>&1
 40 7 * * 0 cd $ROOT && venv/bin/python scripts/verify_validation_evidence.py --run --with-scripts >> \$HOME/logs/validation_evidence.log 2>&1
 # 週備份(登錄冊 G1 2026-08-01:原 12 條 cron 零 pg_dump;#30 平行口徑;白名單輪替;
 # 週六 07:30=RAWEVO 09:00 前收工、避 01:30 演化鏈;dump 期間禁 DDL,鎖檔=/tmp/augur_pgdump.lock)
@@ -119,6 +126,8 @@ case "${1:-}" in
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q 'check_finmind_quota.py --read.*run_arena_daily_pipeline' && echo 1 || echo 0)"
     chk "C1:證據帳本每日+週日兩條重驗排程" \
         "$(printf '%s' "$AUGUR_BLOCK" | grep -c 'verify_validation_evidence.py --run' | awk '{print ($1>=2)?1:0}')"
+    chk "M-K3:D1 全文旗標日班掛在既有 07:10 行(不新增班次)" \
+        "$(printf '%s' "$AUGUR_BLOCK" | grep -q '^10 7 \* \* \* .*verify_validation_evidence.py --run.*backfill_fulltext_unattempted.py --daily' && echo 1 || echo 0)"
     chk "G1:週備份排程在且於 RAWEVO(09:00)之前收工" \
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q '^30 7 \* \* 6 .*backup_database.sh --run' && echo 1 || echo 0)"
     chk "無 % 未跳脫(cron 會截斷)" \

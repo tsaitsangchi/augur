@@ -4,6 +4,7 @@
   python -m tools.constitution_lint compliance <spec.md> [<spec2.md> …]   # 規格生效 lint
   python -m tools.constitution_lint audit <code-dir> [--policy legacy|greenfield]  # code 合憲 lint
   python -m tools.constitution_lint report [--json|--sync|--files]        # 全 corpus 權威數字
+  python -m tools.constitution_lint selfversion                           # 治權檔版本自我一致性（CS 四值＋修訂表現行列）
   python -m tools.constitution_lint --selftest                            # 紅綠自檢（零外部依賴）
 
 `report` 為**全 corpus 權威數字之單一產生點**（machine-readable ＋ human-readable）：受檢
@@ -19,7 +20,8 @@ import json
 import pathlib
 import sys
 
-from . import audit_lint, compliance_lint, report as report_mod, selftest as selftest_mod
+from . import (audit_lint, compliance_lint, report as report_mod,
+               selftest as selftest_mod, selfversion_lint)
 
 _HERE = pathlib.Path(__file__).resolve().parent
 _REPO = _HERE.parents[1]   # tools/constitution_lint → repo 根
@@ -77,6 +79,14 @@ def main(argv=None) -> int:
             any_error = any_error or not r.passed
     elif cmd == "report":
         return _report(rest)
+    elif cmd == "selfversion":
+        # **與 compliance／audit 同列為「判定」指令**（非度量）：其射程為治權檔對自己版本
+        # 之宣告是否自洽，紅即代表現場有兩個互斥的自稱權威版本。
+        fs = selfversion_lint.check_all()
+        print(f"── 治權檔版本自我一致性：{len(fs)} 則" if fs else "── 治權檔版本自我一致性：✓ 無發現")
+        for f in fs:
+            print(f.format())
+        any_error = bool(fs)
     elif cmd == "audit":
         policy = "legacy"
         paths = []
@@ -96,7 +106,7 @@ def main(argv=None) -> int:
             print(r.report())
             any_error = any_error or not r.passed
     else:
-        print(f"未知子命令：{cmd}（compliance | audit | report | --selftest）")
+        print(f"未知子命令：{cmd}（compliance | audit | report | selfversion | --selftest）")
         return 2
     return 1 if any_error else 0
 

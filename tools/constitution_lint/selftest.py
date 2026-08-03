@@ -16,7 +16,7 @@ import pathlib
 import re
 import tempfile
 
-from . import audit_lint, compliance_lint, mc_clauses, report
+from . import audit_lint, compliance_lint, mc_clauses, report, selfversion_lint
 
 _HERE = pathlib.Path(__file__).resolve().parent
 _FIX = _HERE / "fixtures"
@@ -601,6 +601,17 @@ def run(quiet: bool = False):
     chk("audit_lint 不對型別括號之合規行動表誤報 AUD-10（MUST-FIX C）",
         not any(f.rule == "AUD-10" for f in ar.findings))
 
+
+    # ── 治權檔版本自我一致性（CS 四值／修訂表現行列）──────────────────────────────
+    # **委派而非重抄**：斷言之單一住所在 `selfversion_lint.run_checks()`（#12）；此處只把
+    # 其紅綠納入同一份 records。**不得於此寫死「現況應報 N 則」**——那會在 Steward 修正
+    # 正文之日轉為 FAIL，並誘使後人把斷言改回當時數字（字面斷言＝自製假綠，CLAUDE #35）。
+    sv_fails = selfversion_lint.run_checks()
+    chk("selfversion_lint 合成樹自測全綠（CS 四值＋修訂表四寫法＋凍結檔除外）", not sv_fails)
+    for name in sv_fails:
+        say(f"    ↳ {name}")
+    chk("selfversion_lint 對真實 docs/ 可實掃且不拋例外（結構性、非字面計數）",
+        isinstance(selfversion_lint.check_all(), list))
 
     # ── [I] 文件權威數字綁定（本輪根治手段：把手拿掉）───────────────────────────────
     _binding_and_consistency(chk, records)

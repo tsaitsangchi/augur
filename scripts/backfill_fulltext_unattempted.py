@@ -20,7 +20,9 @@ reason 格式=「<bucket>：<人可讀說明>」——前綴機器可解析,分�
     python3 scripts/backfill_fulltext_unattempted.py --check          # 唯讀:待回填分桶統計
     python3 scripts/backfill_fulltext_unattempted.py --apply          # 分批 20,000 回填至 0(冪等可續)
     python3 scripts/backfill_fulltext_unattempted.py --apply --limit 100   # 首輪最小(#25)
-    python3 scripts/backfill_fulltext_unattempted.py --sweep-stale    # 刪已有全文之殘留 unattempted 列
+    python3 scripts/backfill_fulltext_unattempted.py --daily          # 日班:有界回填+sweep(掛 cron 用)
+    python3 scripts/backfill_fulltext_unattempted.py --daily --limit 50   # 日班改上限
+    python3 scripts/backfill_fulltext_unattempted.py --sweep-stale    # 分批刪已有全文之殘留 unattempted 列
     python3 scripts/backfill_fulltext_unattempted.py --verify [--expect-oa N]  # V1-V4 驗收(V3 交易內試 kh4 後回滾)
     python3 scripts/backfill_fulltext_unattempted.py --selftest       # 紅綠自測(免 DB 免 API)
 """
@@ -33,6 +35,7 @@ import sys
 import _bootstrap  # noqa: F401
 
 BATCH = 20_000
+DAILY_LIMIT = 5_000        # 日班失控護欄:每日增量現查 21 件,超出兩個數量級即該有人看一眼
 ENTITY_QUEUE = ("book", "report", "compound", "material")   # =fetch_entity_fulltext.ENTITIES(#19 跨檔一致)
 LOCAL_PROTOCOLS = ("local_file", "sftp")                    # =fetch_oa PENDING_WHERE 排除清單(件A隔離)
 
@@ -141,15 +144,63 @@ def _apply(conn, limit) -> int:
     return 0
 
 
-def _sweep(conn) -> int:
-    """已有全文者之殘留 unattempted 列=過期旗標,刪之(本表零 trigger,親驗 2026-08-01)。"""
+def _sweep_sql(row_id: str = "ctid", ph: str = "%s") -> str:
+    """有界 sweep 之 DELETE——**每次最多 LIMIT 列**,故可分批 commit、可續、不長交易鎖表。
+
+    純函式;`row_id`/`ph` 為方言旋鈕(PG=ctid/%s、selftest 之 sqlite=rowid/?),語意同一句。
+    刪之判準=status 仍 'unattempted' **且**該 item 已有全文 ⇒ 旗標過期。純函式。"""
+    return (f"DELETE FROM knowledge_fulltext_status WHERE {row_id} IN ("
+            f" SELECT f.{row_id} FROM knowledge_fulltext_status f"
+            f" WHERE f.status = 'unattempted'"
+            f" AND EXISTS (SELECT 1 FROM knowledge_item_text x WHERE x.item_id = f.item_id)"
+            f" LIMIT {ph})")
+
+
+def _sweep(conn, limit=None) -> int:
+    """已有全文者之殘留 unattempted 列=過期旗標,分批刪之(本表零 trigger,親驗 2026-08-01)。
+
+    改分批(#6 冪等可續):原為單句全表 DELETE——存量 121,389 列時是長交易,與 pg_dump／DDL 窗
+    互卡(#30);掛日班後每日都會跑,故一律有界。"""
     from augur.core import db
-    with db.transaction(conn) as cur:
-        cur.execute("""DELETE FROM knowledge_fulltext_status f
-                       WHERE f.status = 'unattempted'
-                         AND EXISTS (SELECT 1 FROM knowledge_item_text x WHERE x.item_id = f.item_id)""")
-        n = cur.rowcount
-    print(f"✓ sweep:刪過期 unattempted {n:,} 列(已有全文者)")
+    total = 0
+    while True:
+        batch = BATCH if limit is None else max(0, min(BATCH, limit - total))
+        if batch == 0:
+            break
+        with db.transaction(conn) as cur:
+            cur.execute(_sweep_sql(), (int(batch),))
+            n = cur.rowcount
+        total += n
+        if n:
+            print(f"  sweep 批 -{n:,}(累計 {total:,})", flush=True)
+        if n < batch:
+            break
+    print(f"✓ sweep:刪過期 unattempted {total:,} 列(已有全文者)")
+    return 0
+
+
+def _pool_count(conn) -> int:
+    """尚待回填之池大小(唯讀)。"""
+    with conn.cursor() as cur:
+        cur.execute(f"SELECT count(*) FROM knowledge_item i WHERE {_POOL_WHERE}")
+        return int(cur.fetchone()[0])
+
+
+def _daily(conn, limit) -> int:
+    """日班單一入口(#29c 同型合併):有界回填 → 有界 sweep → 一行誠實結語。
+
+    每日增量約 21 件(2026-08-03 現查),`DAILY_LIMIT` 只是失控護欄、非預期工作量;
+    池未清空時**明說剩餘**並回 0(非失敗——下一班續清,#6 冪等可續),不謊稱完成。"""
+    cap = DAILY_LIMIT if limit is None else limit
+    before = _pool_count(conn)
+    print(f"── 日班 ── 起始池={before:,}(上限 {cap:,})")
+    _apply(conn, cap)
+    _sweep(conn, cap)
+    after = _pool_count(conn)
+    if after:
+        print(f"⚠ 日班結束仍剩 {after:,} 件未回填(觸上限或新增快於清速)——下一班續清,非失敗")
+    else:
+        print("✓ 日班:池已歸零")
     return 0
 
 
@@ -224,6 +275,25 @@ def _selftest() -> int:
         < case.index(REASONS["pending_entity_queue"]) < case.index(REASONS["no_resolver"]))
     # ④ reason 前綴機器可解析(「<bucket>：…」)
     chk("reason 前綴=桶名+全形冒號", all(v.startswith(k + "：") for k, v in REASONS.items()))
+    # ⑤ M-K3 分批 sweep:**真 SQL 打 sqlite 真列**(#35(1)),鎖有界性+謂詞方向+冪等收斂
+    import sqlite3
+    db_ = sqlite3.connect(":memory:")
+    db_.execute("CREATE TABLE knowledge_fulltext_status (item_id INTEGER, status TEXT)")
+    db_.execute("CREATE TABLE knowledge_item_text (item_id INTEGER)")
+    db_.executemany("INSERT INTO knowledge_fulltext_status VALUES (?,?)",
+                    [(1, "unattempted"), (2, "unattempted"), (3, "unattempted"),
+                     (4, "fetched"), (5, "blocked")])
+    db_.executemany("INSERT INTO knowledge_item_text VALUES (?)", [(1,), (2,), (4,)])
+    sql = _sweep_sql(row_id="rowid", ph="?")
+    n1 = db_.execute(sql, (1,)).rowcount          # 有界:LIMIT 1 ⇒ 一批只刪一列
+    n2 = db_.execute(sql, (1,)).rowcount
+    n3 = db_.execute(sql, (1,)).rowcount          # 收斂:再跑=0(冪等)
+    left = sorted(r[0] for r in db_.execute(
+        "SELECT item_id FROM knowledge_fulltext_status ORDER BY item_id"))
+    chk("sweep 有界:LIMIT 1 每批恰刪 1 列", (n1, n2) == (1, 1))
+    chk("sweep 冪等收斂:第三批 0 列", n3 == 0)
+    chk("sweep 謂詞方向:只刪『unattempted 且已有全文』(1,2),留 3/4/5", left == [3, 4, 5])
+    chk("DAILY_LIMIT 有限且為正(日班護欄)", isinstance(DAILY_LIMIT, int) and 0 < DAILY_LIMIT < BATCH * 10)
     print("自測:全通過 ✓" if ok else "自測:有失敗 ✗")
     return 0 if ok else 1
 
@@ -232,7 +302,9 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="回填 fulltext 'unattempted' 旗標(D1;冪等分批)")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--apply", action="store_true")
-    ap.add_argument("--limit", type=int, default=None, help="--apply 上限(首輪最小 #25)")
+    ap.add_argument("--limit", type=int, default=None,
+                    help="--apply/--daily/--sweep-stale 上限(首輪最小 #25;--daily 未給=DAILY_LIMIT)")
+    ap.add_argument("--daily", action="store_true", help="日班:有界回填+sweep(掛 cron 用)")
     ap.add_argument("--sweep-stale", action="store_true")
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--expect-oa", type=int, default=None, help="--verify V4 之回填前基準值")
@@ -240,15 +312,17 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     if a.selftest:
         return _selftest()
-    if not (a.check or a.apply or a.sweep_stale or a.verify):
+    if not (a.check or a.apply or a.daily or a.sweep_stale or a.verify):
         print(__doc__.split("執行指令矩陣")[1].split("-----\n")[-1])
         a.check = True   # 安全預設=唯讀分桶(#29a)
     from augur.core import db
     with db.connect() as conn:
+        if a.daily:
+            return _daily(conn, a.limit)
         if a.apply:
             return _apply(conn, a.limit)
         if a.sweep_stale:
-            return _sweep(conn)
+            return _sweep(conn, a.limit)
         if a.verify:
             return _verify(conn, a.expect_oa)
         return _check(conn)
