@@ -280,7 +280,12 @@ def optimal_mode(c):
     freq = c.get("frequency")
     if freq in ("snapshot", "single-series"):          # 單一序列 / 名冊快照：一次寬查
         return ("market", 1)
-    if c.get("data_id_source") == "datalist":          # 總經 / 契約：逐維度 id 各一次全史
+    # 總經 / 契約 / 指數：逐維度 id 各一次全史。**"doc"（文檔種子）與 "datalist" 同列**——
+    # `sync._dimension_sync` 之 id 來源階層本就是「/datalist → 文檔種子 → Info roster」三段，
+    # 只認 datalist 會把文檔種子型漏判成 by-date；而這類表 data_id_required=True，by-date
+    # 這條**永遠推不動它**（M-G10：TaiwanStockTotalReturnIndex 因此停在 2026-07-09，
+    # 全 catalog 僅此一列 data_id_source='doc'）。
+    if c.get("data_id_source") in ("datalist", "doc"):
         return ("by-dim-id", c.get("n_dimension_ids") or 1)
     if freq == "single-day":                           # News / tick：逐日
         return ("single-day", c.get("n_dates") or 0)

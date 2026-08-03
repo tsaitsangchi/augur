@@ -597,8 +597,9 @@ def progressive_item(
     # 逐層：d < before 視為已達（單調不降）；d >= before 重評／推進
     for d in range(0, cap + 1):
         if d < before:
+            # M-K2：本層本輪**未重評**，只承接既有水印 ⇒ 不得蓋 pass 章（自我背書之綠燈）。
             layer_scores[str(d)] = {
-                "verdict": "pass",
+                "verdict": "not_reevaluated",
                 "note": "prior_depth",
                 "layer": LAYER_NAMES.get(d),
             }
@@ -643,7 +644,12 @@ def progressive_item(
         actions.append({"layer": "repromote", "action": "held_at_floor"})
         depth = before
 
-    raw_v = "pass" if layer_scores.get("0", {}).get("verdict") == "pass" else "fail"
+    # M-K2：層 0 之 not_reevaluated（before>0 之承接）與本輪 pass 同視為 raw 已過 ⇒ 行為不變。
+    raw_v = (
+        "pass"
+        if layer_scores.get("0", {}).get("verdict") in ("pass", "not_reevaluated")
+        else "fail"
+    )
     full_v = "pass" if depth >= 10 else ("pending" if depth < cap else "fail")
 
     run_id = None
@@ -900,6 +906,13 @@ def _selftest() -> int:
         r2 = _self.progressive_item(None, 277948, up_to=9, apply=False)
         chk("D4 clamp:未曾降級照升 7→9、零 held 標記",
             r2["admit_depth_after"] == 9 and "repromote_lock" not in r2["layer_scores"])
+        # M-K2：d<before 之承接層一律記 not_reevaluated，絕不得出現 prior_depth×pass
+        chk("M-K2:承接層記 not_reevaluated、零 prior_depth 蓋 pass",
+            r2["layer_scores"]["0"]["verdict"] == "not_reevaluated"
+            and r2["layer_scores"]["6"]["note"] == "prior_depth"
+            and all(v.get("verdict") != "pass"
+                    for v in r2["layer_scores"].values()
+                    if isinstance(v, dict) and v.get("note") == "prior_depth"))
         _lock_calls.clear()
         _self.repromotion_locked = lambda cur, iid: _lock_calls.append(iid) or True
         _self.evaluate_layer = lambda cur, d, s: (

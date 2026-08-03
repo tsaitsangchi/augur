@@ -25,8 +25,12 @@
   python scripts/run_arena_daily_pipeline.py --run              # 實跑全鏈(含 sync＝API 門;凍結下勿開)
   python scripts/run_arena_daily_pipeline.py --run --skip-sync  # 庫內預測路徑(跳過 FinMind／FRED)
   python scripts/run_arena_daily_pipeline.py --run --skip-sync --date 2026-05-31
+  AUGUR_DIM_SYNC=1 python scripts/run_arena_daily_pipeline.py --dry-run
+                                                                # M-G10:第①步改帶 --with-dim-sync(逐維度 id)
+                                                                # ⚠ 放量門,須 hugo 授權;預設關
 """
 import argparse
+import os
 import subprocess
 import sys
 from datetime import date, datetime, timedelta
@@ -39,6 +43,13 @@ from augur.core import db
 TAIPEI = ZoneInfo("Asia/Taipei")
 CATCHUP_DAYS = 14   # builders 增量窗下緣(冪等 DELETE+INSERT;涵蓋前幾日管線失敗之補齊)
 FEATURE_TABLE = "daily_direction_feature_values"
+# M-G10(2026-08-03):第①步只帶 --end ⇒ 只走 by-date ⇒ `data_id_required=True` 之表(catalog plan
+#   =by-dim-id;現 6 張、含 TaiwanStockTotalReturnIndex)**永遠推不動**。TRI 因此停在 2026-07-09,
+#   下游 run_arena_round.py:96-100 之 month_days 自 8 月起為空 ⇒ H 軌永不出手;且 series["TAIEX"]
+#   末點停 07-09 卻與 07-31 之個股序列同批餵給 market 型模型。
+#   接線已就位(daily_maintenance --with-dim-sync),**預設關**——開啟＝FinMind 放量,須 hugo 明示
+#   授權(#24/#25:先最小單位探測、再放量)。開法:AUGUR_DIM_SYNC=1(單次 env,不動 crontab/unit)。
+DIM_SYNC = os.environ.get("AUGUR_DIM_SYNC") == "1"
 
 
 def _gate_approved():
@@ -74,9 +85,11 @@ def _db_asof():
 def _steps(d, *, skip_sync=False):
     py, s = sys.executable, Path(__file__).resolve().parent
     since = (date.fromisoformat(d) - timedelta(days=CATCHUP_DAYS)).isoformat()
+    dim = ["--with-dim-sync"] if DIM_SYNC else []
     sync_pre = [
-        ("sync_all_by_date(FinMind 全市場日頻增量)[API門]",
-         [py, str(s / "daily_maintenance.py"), "--end", d]),
+        ("sync_all_by_date(FinMind 全市場日頻增量)[API門]"
+         + ("+逐維度 id[放量門]" if DIM_SYNC else ""),
+         [py, str(s / "daily_maintenance.py"), "--end", d] + dim),
         ("sync_fred(FRED 總經)[API門]", [py, str(s / "sync_macro.py"), "--no-catalog"]),
     ]
     local_pre = [

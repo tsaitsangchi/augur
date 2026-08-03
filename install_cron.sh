@@ -27,35 +27,35 @@ BAK_DIR="$HOME/backups/cron"
 AUGUR_BLOCK=$(cat <<EOF
 $BEGIN
 # 演化標準作業鏈(每日 01:30;七段:收割→求知→二遍收割→演化→備料;LLM 單槽鎖)
-30 1 * * * flock -n /tmp/augur_llm.lock bash $ROOT/run_evolution_chain.sh
+30 1 * * * flock -n /tmp/augur_llm.lock bash $ROOT/run_evolution_chain.sh || bash $ROOT/scripts/notify_failure.sh cron-evolution-chain
 # 連續演化(6h;錯開 01:30 鏈——*/6 會落在 01:15 撞鏈;LLM 單槽鎖)
-15 4,10,16,22 * * * flock -n /tmp/augur_llm.lock bash -c 'cd $ROOT && venv/bin/python scripts/evolve_cycle.py --cycle' >> \$HOME/logs/evolve_cycle.log 2>&1
+15 4,10,16,22 * * * flock -n /tmp/augur_llm.lock bash -c 'cd $ROOT && venv/bin/python scripts/evolve_cycle.py --cycle' >> \$HOME/logs/evolve_cycle.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-evolve-cycle
 # 自我求知(6h)。**入 LLM 單槽鎖**(LANE-GOV 2026-07-30,commit 5a4e473):原註「純 SQL/文字不碰
 # ollama 故不入鎖」與事實不符——本支會呼叫本地模型。用 -w 3600(有界等待)而非 -n(立即放棄):
 # 錯過一輪求知不如等,但不得無限等。**2026-07-31 回寫 SSOT**:此值先前只改 live 未回寫,
 # 任何一次 --apply 都會靜默拆掉這把鎖。
-45 */6 * * * flock -w 3600 /tmp/augur_llm.lock bash -c 'cd $ROOT && venv/bin/python scripts/evolve_self_seek.py --seek' >> \$HOME/logs/self_seek.log 2>&1
+45 */6 * * * flock -w 3600 /tmp/augur_llm.lock bash -c 'cd $ROOT && venv/bin/python scripts/evolve_self_seek.py --seek' >> \$HOME/logs/self_seek.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-self-seek
 # 週一 08:00 維運健檢(VACUUM/磁碟/zram)
-0 8 * * 1 { date; cd $ROOT && set -a && . ./.env && set +a && PGPASSWORD=\$DB_PASSWORD psql -h \$DB_HOST -p \$DB_PORT -U \$DB_USER -d \$DB_NAME -c "VACUUM ANALYZE"; free -h; df -h /; /usr/local/bin/ollama list; pg_lsclusters; zramctl; echo ----; } >> \$HOME/logs/ops_weekly.log 2>&1
+0 8 * * 1 { date; cd $ROOT && set -a && . ./.env && set +a && PGPASSWORD=\$DB_PASSWORD psql -h \$DB_HOST -p \$DB_PORT -U \$DB_USER -d \$DB_NAME -c "VACUUM ANALYZE" || bash $ROOT/scripts/notify_failure.sh cron-ops-weekly-vacuum; free -h; df -h /; /usr/local/bin/ollama list || bash $ROOT/scripts/notify_failure.sh cron-ops-weekly-ollama; pg_lsclusters; zramctl; echo ----; } >> \$HOME/logs/ops_weekly.log 2>&1
 # 週一 08:40 工具自測(錯開 08:00 維運;原 08:10 過近)
-40 8 * * 1 cd $ROOT && { date; bash ops/gpu-verify/gpu_verify.sh; python3 -m tools.constitution_mcp --selftest; python3 -m tools.local_llm_mcp --selftest; python3 -m tools.project_memory_mcp --selftest; echo ----; } >> \$HOME/logs/verify_weekly.log 2>&1
+40 8 * * 1 cd $ROOT && { date; bash ops/gpu-verify/gpu_verify.sh || bash $ROOT/scripts/notify_failure.sh cron-verify-gpu; python3 -m tools.constitution_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-constitution-mcp; python3 -m tools.local_llm_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-local-llm-mcp; python3 -m tools.project_memory_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-memory-mcp; echo ----; } >> \$HOME/logs/verify_weekly.log 2>&1
 # arena 每交易日出單(hugo 2026-07-26「讓 arena 的鐘重新走起來」;全鏈=sync〔freeze mdc 有界豁免 V2-FZ-scope〕
 # →特徵→對局;雙機械閘+休市誠實缺席 exit 0;取代已完成使命之 oneshot)
 # 前綴=FinMind 讀錶一步(登錄冊 E4 2026-08-01:讀錶不計額度、每交易日一行可見點;
 # 分號銜接=只記錄不擋道——真正的放量閘在 finmind._quota_gate,此處不重複造閘 #12)
-0 20 * * 1-5 cd $ROOT && venv/bin/python scripts/check_finmind_quota.py --read >> \$HOME/logs/finmind_quota.log 2>&1; cd $ROOT && venv/bin/python scripts/run_arena_daily_pipeline.py --run >> \$HOME/logs/arena_pipeline.log 2>&1
+0 20 * * 1-5 cd $ROOT && venv/bin/python scripts/check_finmind_quota.py --read >> \$HOME/logs/finmind_quota.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-finmind-quota; cd $ROOT && venv/bin/python scripts/run_arena_daily_pipeline.py --run >> \$HOME/logs/arena_pipeline.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-arena-pipeline
 # arena 每日結算+官方計分板(冪等;標籤到期才結;三基準並排+洩漏稽核)
-30 21 * * 1-5 cd $ROOT && venv/bin/python scripts/settle_arena_labels.py --run >> \$HOME/logs/arena_settle.log 2>&1; cd $ROOT && venv/bin/python scripts/settle_arena_labels.py --scoreboard >> \$HOME/logs/arena_settle.log 2>&1
+30 21 * * 1-5 cd $ROOT && venv/bin/python scripts/settle_arena_labels.py --run >> \$HOME/logs/arena_settle.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-arena-settle; cd $ROOT && venv/bin/python scripts/settle_arena_labels.py --scoreboard >> \$HOME/logs/arena_settle.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-arena-scoreboard
 # Steward 提問帳本 2h 增量(hugo 2026-07-27「每二個小時做一次」;純本地零 Claude token)
-17 */2 * * * cd $ROOT && venv/bin/python scripts/mine_steward_questions.py --run >> \$HOME/logs/qledger.log 2>&1 && venv/bin/python scripts/triage_questions.py --run >> \$HOME/logs/qledger.log 2>&1
+17 */2 * * * cd $ROOT && venv/bin/python scripts/mine_steward_questions.py --run >> \$HOME/logs/qledger.log 2>&1 && venv/bin/python scripts/triage_questions.py --run >> \$HOME/logs/qledger.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-qledger
 # DESKTOP→本機 進化增量拉取 2h(乙案私有通道;離線=優雅跳過、遠端排程未停即拒拉)
-37 */2 * * * cd $ROOT && bash scripts/pull_desktop_evolution_delta.sh >> \$HOME/logs/desktop_pull.log 2>&1
+37 */2 * * * cd $ROOT && bash scripts/pull_desktop_evolution_delta.sh >> \$HOME/logs/desktop_pull.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-desktop-pull
 # 週日 09:00 三軸週儀表+R6 digest(唯讀;第一行=V2-SUNSET 現況;存檔供掃視認領)
 # ⚠ 檔名之 \$(date) **必須跳脫**:本 heredoc 未加引號,寫成 \$(date) 會在**安裝當下**被命令替換
 #   而把日期凍死——live 曾出現之 evolution_week_20260727.md 即此坑之產物(每週覆寫同一檔、檔名說謊)。
 #   跳脫後 \$(...) 留到 crontab,由 cron 每次執行時才展開。\% 之跳脫則是 crontab 語法要求。
 #   同理:本區塊內**一律不得用反引號**(見下方 --allow-apply 註記;2026-07-31 撰寫本註解時實犯一次)。
-0 9 * * 0 cd $ROOT && venv/bin/python scripts/report_triple_evolution_week.py --md > \$HOME/logs/evolution_week_\$(date +\%Y\%m\%d).md 2>&1
+0 9 * * 0 cd $ROOT && venv/bin/python scripts/report_triple_evolution_week.py --md > \$HOME/logs/evolution_week_\$(date +\%Y\%m\%d).md 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-evolution-week
 # 證據帳本重驗(登錄冊 C1 2026-08-01:19 列帳本原零排程——紅燈會亮但沒人看見;
 # 每日 07:10 只跑 sql 型=秒級;週日 07:40 連 script_exit 型一起=重、錯開 09:00 週儀表)
 # ⚠ 07:10 行**尾掛** D1 全文旗標日班(M-K3 2026-08-03:原為一次性、零排程,每日漏 21 件)。
@@ -65,13 +65,13 @@ $BEGIN
 #   ⚠ 本註解一度寫成反引號包住分號 ⇒ 未加引號之 heredoc 立刻命令替換、把整句吃掉——
 #     本檔頂端警語所指之坑,2026-08-03 實犯一次;區塊內一律不得出現反引號。
 #   --daily=有界回填+分批 sweep,全程庫內 DML、零外部 API(#28)、冪等可續(#6)。
-10 7 * * * cd $ROOT && venv/bin/python scripts/verify_validation_evidence.py --run >> \$HOME/logs/validation_evidence.log 2>&1; cd $ROOT && venv/bin/python scripts/backfill_fulltext_unattempted.py --daily >> \$HOME/logs/fulltext_backfill.log 2>&1
-40 7 * * 0 cd $ROOT && venv/bin/python scripts/verify_validation_evidence.py --run --with-scripts >> \$HOME/logs/validation_evidence.log 2>&1
+10 7 * * * cd $ROOT && venv/bin/python scripts/verify_validation_evidence.py --run >> \$HOME/logs/validation_evidence.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-validation-evidence; cd $ROOT && venv/bin/python scripts/backfill_fulltext_unattempted.py --daily >> \$HOME/logs/fulltext_backfill.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-fulltext-backfill
+40 7 * * 0 cd $ROOT && venv/bin/python scripts/verify_validation_evidence.py --run --with-scripts >> \$HOME/logs/validation_evidence.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-validation-evidence-weekly
 # 週備份(登錄冊 G1 2026-08-01:原 12 條 cron 零 pg_dump;#30 平行口徑;白名單輪替;
 # 週六 07:30=RAWEVO 09:00 前收工、避 01:30 演化鏈;dump 期間禁 DDL,鎖檔=/tmp/augur_pgdump.lock)
-30 7 * * 6 cd $ROOT && bash scripts/backup_database.sh --run >> \$HOME/logs/backup.log 2>&1
+30 7 * * 6 cd $ROOT && bash scripts/backup_database.sh --run >> \$HOME/logs/backup.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-backup
 # RAWEVO 週輪(週六 09:00;V2-AUTOADVANCE R1——全程庫內唯讀、零 API;hint 一律 pending 待 H3 人閘)
-0 9 * * 6 cd $ROOT && venv/bin/python scripts/run_raw_evolution_iteration.py --run >> \$HOME/logs/rawevo.log 2>&1
+0 9 * * 6 cd $ROOT && venv/bin/python scripts/run_raw_evolution_iteration.py --run >> \$HOME/logs/rawevo.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-rawevo
 # TWEVO 夜輪(週間 23:00;V2-AUTOADVANCE R2。時點=arena 出單 20:00／結算 21:30 之後、演化鏈 01:30 之前;
 # I3 local-gates **實測 7-10 小時**(2026-07-31 晚重測:645-720 s/feature × 37 個 mapped feature;
 # panels 36→66、feature_values 2.51M→8.54M 之後果)。同日稍早註記之「60-88 分」取自 07-27 舊規模,
@@ -81,7 +81,7 @@ $BEGIN
 # 任一次完整輪;先讓它連續跑出乾淨的輪再開 APPLY(比授權更保守、不鬆動任何閘)。開啟＝於本行補
 # --allow-apply 與 --gate-ref V2-AUTOADVANCE 兩個旗標(此處不用反引號:heredoc 未加引號會命令替換)。
 # 重活互斥由 heavy_slot 負責,搶不到即落 deferred 不堆積。
-0 23 * * 1-5 cd $ROOT && venv/bin/python scripts/run_evolution_iteration.py --run --slot-wait 10800 >> \$HOME/logs/twevo.log 2>&1
+0 23 * * 1-5 cd $ROOT && venv/bin/python scripts/run_evolution_iteration.py --run --slot-wait 10800 >> \$HOME/logs/twevo.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-twevo
 $END
 EOF
 )
@@ -130,6 +130,21 @@ case "${1:-}" in
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q '^10 7 \* \* \* .*verify_validation_evidence.py --run.*backfill_fulltext_unattempted.py --daily' && echo 1 || echo 0)"
     chk "G1:週備份排程在且於 RAWEVO(09:00)之前收工" \
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q '^30 7 \* \* 6 .*backup_database.sh --run' && echo 1 || echo 0)"
+    # ↓ M-G6(2026-08-03):systemd 側 13 unit 全有 OnFailure=augur-alert@%n,cron 側 15 行**零告警**——
+    #   sink(scripts/notify_failure.sh → ~/logs/alerts.log)08-01 就上崗,生產中從未被觸發過一次。
+    #   下列三鎖使「少掛一個鉤子」必紅。_block_cmds 只吃 AUGUR_BLOCK(非本檔原始碼),故不會掃到自己。
+    _block_cmds() { printf '%s\n' "$AUGUR_BLOCK" | grep -vE '^[[:space:]]*#' | grep -E '^[0-9]'; }
+    _n_cmd=$(_block_cmds | grep -c .)
+    _n_line=$(_block_cmds | grep -c 'notify_failure')
+    _n_hook=$(_block_cmds | grep -o 'notify_failure' | grep -c .)
+    _n_lbl=$(_block_cmds | grep -o 'notify_failure\.sh [a-z0-9-]*' | sort -u | grep -c .)
+    chk "M-G6:每一條 cron 命令列都掛失敗告警($_n_line/$_n_cmd 行)" \
+        "$([ "$_n_cmd" -eq 15 ] && [ "$_n_line" -eq "$_n_cmd" ] && echo 1 || echo 0)"
+    # 只守最後一段=分號前的子命令仍靜默(與 M-G6 要治的病同型),故鉤子總數須 ≥ 子命令數
+    chk "M-G6:分號/&& 銜接之子命令各自掛鉤,不得只守最後一段(鉤子 $_n_hook 個)" \
+        "$([ "$_n_hook" -ge 22 ] && echo 1 || echo 0)"
+    chk "M-G6:告警標籤兩兩互異(alerts.log 才辨識得出是哪一支掛的;$_n_lbl 個)" \
+        "$([ "$_n_lbl" -eq "$_n_hook" ] && echo 1 || echo 0)"
     chk "無 % 未跳脫(cron 會截斷)" \
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q '[^\\]%' && echo 0 || echo 1)"
     chk "移除邏輯保留他人條目(只剝標記區間)" \

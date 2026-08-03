@@ -18,14 +18,21 @@
   python scripts/refresh_knowledge_pipeline.py --domain chemistry            # 全鏈實跑(自動 flock 單例鎖+每段心跳;背景建議 nohup ... > log 2>&1 &)
   python scripts/refresh_knowledge_pipeline.py --stage promote --domain chemistry            # 只跑單段
   python scripts/refresh_knowledge_pipeline.py --from-stage sentences --until embed --limit 1000
-  python scripts/refresh_knowledge_pipeline.py --domain finance --stage-limit embed=5000 --stage-limit stats=20000   # D7 per-stage 量
+  python scripts/refresh_knowledge_pipeline.py --domain chemistry --stage-limit embed=5000 --stage-limit stats=20000   # D7 per-stage 量
+  # ↑ 本行原範例寫 `--domain finance`(全庫無此域,#29d 矩陣須實測可執行)——service 之 ExecStart 亦帶同一字串,
+  #   疑為自本例複製而來;已改為真實域,並由下方 M-G8 閘使任何不存在之域一律 rc≠0。
   python scripts/refresh_knowledge_pipeline.py --reap                        # D7:殭屍收斂(心跳逾時/driver 亡→終止孤兒 process group+清 stale 鎖)
+  python scripts/refresh_knowledge_pipeline.py --selftest                    # 純紅綠自測(免 DB 免 API、零 usage;#18)
+  python scripts/refresh_knowledge_pipeline.py --domain no_such_domain       # M-G8:域不存在→rc=2+印可用域清單(不空轉回綠)
+  python scripts/refresh_knowledge_pipeline.py --from-stage promote --domain chemistry --min-candidates 1  # 候選數地板:待辦合計<N→rc=3
   # 段名封閉集(依序): harvest promote fulltext sentences resplit concordance stats stats_items bridge embed vector_export kip
   #   (stats_items/bridge=K 計畫 §4 2026-07-14 加段;resplit/kip=LSR-INGRESS-S2)
   # fulltext 段需環境變數 UNPAYWALL_EMAIL;--limit 映射為各 CLI 之有界旗標(promote 無界旗標=不適用)
   # vector_export 讀 knowledge_vectorstore_config(scope=sentence_items):backend=pgvector→skip(SSOT 即 serving);qdrant_*→export_qdrant_index.py
   # kip=入庫強制收束(scoped embed/kh4/admit；--needs-kip)
+  # rc 語意:0=正常 / 2=--domain 不存在(M-G8 fail-loud) / 3=候選數地板未達 / 其餘=段本身 exit code
 """
+import difflib
 import fcntl
 import os
 import signal
@@ -82,6 +89,57 @@ STAGES = (
           "LSR-INGRESS-S2:域內待補 item 跑 KIP 收束(kh4+admit≤9;sentences/embed 多為冪等空跑)"),
 )
 NAMES = tuple(s.name for s in STAGES)
+
+# ── M-G8 S1:具「待辦」語意之段(其計數隨處理而遞減)。其餘段(stats/stats_items/bridge/
+# concordance/vector_export)印的是**全庫庫存**(field_term_map 6,072、item_term_stats 188,069…),
+# 不隨 --domain 收斂——現查 `--domain finance`(不存在之域)這些數字照樣非零。故候選數地板
+# **只認本集合**;拿庫存數充待辦數會使地板恆過=正是本段要消滅的空轉假綠(#15)。
+BACKLOG_STAGES = frozenset({"harvest", "promote", "fulltext", "sentences", "resplit", "embed", "kip"})
+
+
+# ─── M-G8 S1:domain 解析(fail-loud;不存在之域不得靜默空轉回綠)───
+
+def known_domains(cur):
+    """可用域清單(SSOT=DB #29b)——registry(enabled) ∪ 四張知識表**實際落地**之域,取聯集。
+
+    為何不只認 knowledge_domain registry:現查 registry 43 列,但 quant_finance(15,552 item)、
+    software_engineering(1,685)、philosophy、economics、management、erp_semantics、solar_rd
+    等域**有資料卻未登錄**;只認 registry 會把活躍域判成「不存在」而擋掉正常週更=假紅。
+    """
+    cur.execute("""
+        SELECT domain FROM knowledge_domain   WHERE enabled
+        UNION SELECT domain FROM knowledge_item    WHERE domain IS NOT NULL
+        UNION SELECT domain FROM knowledge_query   WHERE domain IS NOT NULL
+        UNION SELECT domain FROM knowledge_source  WHERE domain IS NOT NULL
+        UNION SELECT domain FROM knowledge_staging WHERE domain IS NOT NULL
+    """)
+    return {r[0] for r in cur.fetchall()}
+
+
+def domain_verdict(domain, known):
+    """純函式(零 DB=可 --selftest 紅綠自測):回 (ok, 相近域建議)。不在 known 即 ok=False。"""
+    if domain in known:
+        return True, []
+    return False, difflib.get_close_matches(domain, sorted(known), n=5, cutoff=0.6)
+
+
+def assert_domain_known(domain):
+    """fail-loud 閘:`--domain <不存在>` 一律 exit≠0 並印可用域清單(#15 rc=0 不得代表沒做事)。
+
+    病灶(2026-08-03 M-G8):augur-knowhow-refresh.service 之 ExecStart 帶 `--domain finance`,
+    而全庫無此域(knowledge_item domain='finance' = 0)——每週準時 Finished、journal 自陳
+    「待辦(前) 0」,而同時刻全域 staging pending 102,039 筆一筆未動。
+    """
+    with db.connect() as conn, db.transaction(conn) as cur:
+        known = known_domains(cur)
+    ok, near = domain_verdict(domain, known)
+    if ok:
+        return
+    print(f"✗ --domain {domain!r} 在本庫**不存在**——中止(不空轉回綠;rc≠0 才是誠實終態)。", file=sys.stderr)
+    if near:
+        print(f"  相近可用域:{' '.join(near)}", file=sys.stderr)
+    print(f"  可用域({len(known)} 個;registry∪實際落地):{' '.join(sorted(known))}", file=sys.stderr)
+    sys.exit(2)
 
 
 # ─── D7:心跳/單例鎖/殭屍收斂(帳住 knowledge_build_meta,scope≤32/bigint 形狀內、零新表)───
@@ -206,14 +264,89 @@ def _cursors(cur, like):
     return ", ".join(f"{s}={c:,}" for s, c in rows) or "(無游標)"
 
 
-def pending_lines(cur, name, domain):
-    """單段待辦/驗收計數(唯讀純 SQL;#29b 全 DB-driven,零 Claude 判斷)。回一至二行字串。"""
+def _item_join(domain):
+    return ("JOIN knowledge_item_text x ON x.itext_id = s.itext_id "
+            "JOIN knowledge_item i USING (item_id) " if domain else "")
+
+
+def _embed_pending_rows(cur, domain):
+    """items 側未嵌句(依語言分組);顯示與地板共用同一查詢=兩者不會漂。"""
+    p = (domain,) if domain else ()
+    return _rows(cur, f"SELECT s.language, count(*) FROM knowledge_sentence s {_item_join(domain)}"
+                      "WHERE s.itext_id IS NOT NULL AND NOT EXISTS "
+                      "(SELECT 1 FROM knowledge_sentence_embedding e "
+                      "WHERE e.sent_id = s.sent_id AND e.model_tag = %s)"
+                      + (" AND i.domain = %s" if domain else "") + " GROUP BY 1 ORDER BY 1",
+                 (embedspec.MODEL_TAG, *p))
+
+
+def _fulltext_blocked_exists(cur):
+    return _n(cur, "SELECT count(*) FROM information_schema.tables "
+                   "WHERE table_name='knowledge_fulltext_status'")
+
+
+def candidate_count(cur, name, domain):
+    """單段**候選(待辦)數**;僅 BACKLOG_STAGES 有此語意,其餘段回 None(唯讀純 SQL)。
+
+    ⚠ 刻意**不**從 pending_lines 的顯示字串刮數字當地板:那些行混有全庫庫存數
+    (stats_items 188,069／bridge 65,137),不隨 domain 收斂,刮來當待辦即恆過閘=假綠。
+    顯示行由本函式供數(單一住所),兩者不會漂。
+    """
     d = " AND domain = %s" if domain else ""
     p = (domain,) if domain else ()
-    item_join = ("JOIN knowledge_item_text x ON x.itext_id = s.itext_id "
-                 "JOIN knowledge_item i USING (item_id) " if domain else "")
     if name == "harvest":
-        nq = _n(cur, "SELECT count(*) FROM knowledge_query WHERE enabled" + d, p)
+        return _n(cur, "SELECT count(*) FROM knowledge_query WHERE enabled" + d, p)
+    if name == "promote":
+        return _n(cur, "SELECT count(*) FROM knowledge_staging WHERE status = 'pending'" + d, p)
+    if name == "fulltext":
+        # 待抓=無全文且無 blocked 終態帳(#15:license/OA 阻擋者已落 knowledge_fulltext_status,
+        # 排除使計數收斂=真待辦、非漏抓;若帳表未建則退回原上限 count)。
+        blocked_clause = ("AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status b "
+                          "WHERE b.item_id = i.item_id AND b.status <> 'unattempted') "
+                          if _fulltext_blocked_exists(cur) else "")
+        return _n(cur, "SELECT count(*) FROM knowledge_item i WHERE NOT EXISTS "
+                       "(SELECT 1 FROM knowledge_item_text t WHERE t.item_id = i.item_id) "
+                       + blocked_clause
+                       + ("AND i.domain = %s" if domain else ""), p)
+    if name == "sentences":
+        return _n(cur, "SELECT count(*) FROM knowledge_item_text t JOIN knowledge_item i USING (item_id) "
+                       "WHERE NOT EXISTS (SELECT 1 FROM knowledge_sentence s WHERE s.itext_id = t.itext_id)"
+                       + (" AND i.domain = %s" if domain else ""), p)
+    if name == "resplit":
+        return _n(cur, "SELECT count(DISTINCT s.itext_id) FROM knowledge_sentence s "
+                       + _item_join(domain)
+                       + "WHERE s.itext_id IS NOT NULL AND length(s.sentence)>800"
+                       + (" AND i.domain = %s" if domain else ""), p)
+    if name == "embed":
+        return sum(n for _, n in _embed_pending_rows(cur, domain))
+    if name == "kip":
+        # 與 ingress_kip.resolve needs_kip 同精神之概數
+        return _n(cur, """
+            SELECT count(*) FROM knowledge_item i
+            WHERE EXISTS (SELECT 1 FROM knowledge_item_text t WHERE t.item_id=i.item_id)
+            """ + (" AND i.domain = %s" if domain else "") + """
+            AND (
+              NOT EXISTS (
+                SELECT 1 FROM knowledge_sentence s
+                JOIN knowledge_item_text t ON t.itext_id=s.itext_id WHERE t.item_id=i.item_id)
+              OR NOT EXISTS (
+                SELECT 1 FROM knowledge_kh4_state k
+                WHERE k.item_id=i.item_id AND k.answer_status='eligible')
+              OR NOT EXISTS (
+                SELECT 1 FROM knowhow_auto_admit_state a
+                WHERE a.target_kind='item' AND a.target_id=i.item_id::text
+                  AND a.admit_depth >= 9)
+            )
+            """, p)
+    return None
+
+
+def pending_lines(cur, name, domain):
+    """單段待辦/驗收計數(唯讀純 SQL;#29b 全 DB-driven,零 Claude 判斷)。回一至二行字串。"""
+    p = (domain,) if domain else ()
+    item_join = _item_join(domain)
+    if name == "harvest":
+        nq = candidate_count(cur, "harvest", domain)
         st = _rows(cur, "SELECT l.status, count(*) FROM knowledge_harvest_log l "
                         "JOIN knowledge_query q USING (query_id)"
                         + (" WHERE q.domain = %s" if domain else "") + " GROUP BY 1 ORDER BY 1", p)
@@ -231,55 +364,19 @@ def pending_lines(cur, name, domain):
         return [f"enabled query {nq:,} | harvest_log {log}",
                 f"檔案通道 active 源 {chan} | 通道 log(query_id=0) {clog}"]
     if name == "promote":
-        n = _n(cur, "SELECT count(*) FROM knowledge_staging WHERE status = 'pending'" + d, p)
-        return [f"staging pending {n:,}"]
+        return [f"staging pending {candidate_count(cur, 'promote', domain):,}"]
     if name == "fulltext":
-        # 待抓=無全文且無 blocked 終態帳(#15:license/OA 阻擋者已落 knowledge_fulltext_status,
-        # 排除使計數收斂=真待辦、非漏抓;若帳表未建則退回原上限 count)。
-        blocked_exists = _n(cur, "SELECT count(*) FROM information_schema.tables "
-                                 "WHERE table_name='knowledge_fulltext_status'")
-        blocked_clause = ("AND NOT EXISTS (SELECT 1 FROM knowledge_fulltext_status b "
-                          "WHERE b.item_id = i.item_id AND b.status <> 'unattempted') "
-                          if blocked_exists else "")
-        n = _n(cur, "SELECT count(*) FROM knowledge_item i WHERE NOT EXISTS "
-                    "(SELECT 1 FROM knowledge_item_text t WHERE t.item_id = i.item_id) "
-                    + blocked_clause
-                    + ("AND i.domain = %s" if domain else ""), p)
+        n = candidate_count(cur, "fulltext", domain)
         nb = _n(cur, "SELECT count(*) FROM knowledge_fulltext_status b JOIN knowledge_item i USING (item_id)"
                      " WHERE b.status <> 'unattempted'"
-                     + (" AND i.domain = %s" if domain else ""), p) if blocked_exists else 0
+                     + (" AND i.domain = %s" if domain else ""), p) if _fulltext_blocked_exists(cur) else 0
         return [f"item 待抓全文 {n:,}(已排除 blocked 終態帳 {nb:,} 筆=license/OA 阻擋非漏抓;分子照實)"]
     if name == "sentences":
-        n = _n(cur, "SELECT count(*) FROM knowledge_item_text t JOIN knowledge_item i USING (item_id) "
-                    "WHERE NOT EXISTS (SELECT 1 FROM knowledge_sentence s WHERE s.itext_id = t.itext_id)"
-                    + (" AND i.domain = %s" if domain else ""), p)
-        return [f"item_text 未切句 {n:,}"]
+        return [f"item_text 未切句 {candidate_count(cur, 'sentences', domain):,}"]
     if name == "resplit":
-        n = _n(cur, "SELECT count(DISTINCT s.itext_id) FROM knowledge_sentence s "
-                    + (item_join if domain else "")
-                    + "WHERE s.itext_id IS NOT NULL AND length(s.sentence)>800"
-                    + (" AND i.domain = %s" if domain else ""), p)
-        return [f"items 超長句 parent {n:,}"]
+        return [f"items 超長句 parent {candidate_count(cur, 'resplit', domain):,}"]
     if name == "kip":
-        # 與 ingress_kip.resolve needs_kip 同精神之概數
-        n = _n(cur, """
-            SELECT count(*) FROM knowledge_item i
-            WHERE EXISTS (SELECT 1 FROM knowledge_item_text t WHERE t.item_id=i.item_id)
-            """ + (" AND i.domain = %s" if domain else "") + """
-            AND (
-              NOT EXISTS (
-                SELECT 1 FROM knowledge_sentence s
-                JOIN knowledge_item_text t ON t.itext_id=s.itext_id WHERE t.item_id=i.item_id)
-              OR NOT EXISTS (
-                SELECT 1 FROM knowledge_kh4_state k
-                WHERE k.item_id=i.item_id AND k.answer_status='eligible')
-              OR NOT EXISTS (
-                SELECT 1 FROM knowhow_auto_admit_state a
-                WHERE a.target_kind='item' AND a.target_id=i.item_id::text
-                  AND a.admit_depth >= 9)
-            )
-            """, p)
-        return [f"待 KIP 收束 item {n:,}"]
+        return [f"待 KIP 收束 item {candidate_count(cur, 'kip', domain):,}"]
     if name == "concordance":
         langs = _rows(cur, f"SELECT s.language, count(*) FROM knowledge_sentence s {item_join}"
                            "WHERE s.itext_id IS NOT NULL"
@@ -297,12 +394,7 @@ def pending_lines(cur, name, domain):
         a = _n(cur, "SELECT count(*) FROM field_knowhow_lexical_affinity")
         return [f"field_term_map {m:,} | lexical_affinity {a:,}(--run 全量重建;cooc_sents≥30 閘在 builder)"]
     if name == "embed":
-        rows = _rows(cur, f"SELECT s.language, count(*) FROM knowledge_sentence s {item_join}"
-                          "WHERE s.itext_id IS NOT NULL AND NOT EXISTS "
-                          "(SELECT 1 FROM knowledge_sentence_embedding e "
-                          "WHERE e.sent_id = s.sent_id AND e.model_tag = %s)"
-                          + (" AND i.domain = %s" if domain else "") + " GROUP BY 1 ORDER BY 1",
-                     (embedspec.MODEL_TAG, *p))
+        rows = _embed_pending_rows(cur, domain)
         seg = " ".join(f"{lg} {n:,}" for lg, n in rows) or "0"
         lines = [f"items 側未嵌({embedspec.MODEL_TAG}) {seg}(上限;junk/CLEAN 排除另計,帳在 ledger)"]
         if not domain:
@@ -420,6 +512,55 @@ def _refresh_kh4_scope(domain, limit):
     print(f"  KH4 refresh(domain={domain}) → {n} item", flush=True)
 
 
+def enforce_candidate_floor(stages, domain, floor):
+    """M-G8 S1 候選數地板:選定段之待辦合計 < floor 即 exit≠0(空轉不得回綠)。
+
+    只累加 BACKLOG_STAGES(真待辦語意);若選定段全無待辦語意則**判紅而非略過**——
+    已請求之閘靜默失效正是本專案反覆踩的坑(記憶 guard-mechanisms-that-silently-fail)。
+    """
+    scoped = [s for s in stages if s.name in BACKLOG_STAGES]
+    if not scoped:
+        sys.exit(f"✗ --min-candidates 無從評估:選定段({' '.join(s.name for s in stages)})"
+                 f"全屬全量重建/庫存語意、無待辦數可比。具待辦語意之段:{' '.join(sorted(BACKLOG_STAGES))}"
+                 "(不靜默略過已請求之閘)")
+    with db.connect() as conn, db.transaction(conn) as cur:
+        per = {s.name: candidate_count(cur, s.name, domain) for s in scoped}
+    total = sum(per.values())
+    detail = " ".join(f"{k}={v:,}" for k, v in per.items())
+    if total < floor:
+        print(f"✗ 候選數地板未達:待辦合計 {total:,} < --min-candidates {floor}"
+              f"(domain={domain or '全部域'};逐段 {detail})——中止(空轉不回綠)", file=sys.stderr)
+        sys.exit(3)
+    print(f"候選數地板通過:待辦合計 {total:,} ≥ {floor}(逐段 {detail})", flush=True)
+
+
+def selftest():
+    """--selftest:純紅綠自測(免 DB 免 API、零 usage;#18)。鎖 domain 判準與地板段集不變式。"""
+    fails = []
+
+    def chk(cond, msg):
+        if not cond:
+            fails.append(msg)
+
+    known = {"chemistry", "finance_mgmt", "quant_finance", "erp_tiptop", "local"}
+    ok, near = domain_verdict("chemistry", known)
+    chk(ok and near == [], f"已存在域須判通過(得 ok={ok} near={near})")
+    ok, near = domain_verdict("finance", known)
+    chk(not ok, "不存在之域 finance 須判 fail-loud(本 bug 之本體:M-G8)")
+    chk("finance_mgmt" in near, f"finance 須提示相近域 finance_mgmt(得 {near})")
+    chk(domain_verdict("", known)[0] is False, "空字串域須判 fail(否則靜默退為全域放量)")
+    chk(BACKLOG_STAGES <= set(NAMES), "BACKLOG_STAGES 須為段封閉集之子集")
+    chk(not (BACKLOG_STAGES & {"stats", "stats_items", "bridge", "concordance", "vector_export"}),
+        "庫存/全量重建語意段不得列入待辦地板(庫存數冒充待辦數=地板恆過之假綠)")
+    # 非待辦語意之段須回 None(不觸 cursor=零 IO):回 0 或數字都會讓地板把庫存當待辦
+    chk(candidate_count(None, "bridge", None) is None, "bridge 須回 None(無待辦語意)")
+    chk(candidate_count(None, "stats_items", None) is None, "stats_items 須回 None(無待辦語意)")
+    for line in fails:
+        print(f"  ✗ {line}")
+    print(f"{'✗ FAIL' if fails else '✓ PASS'} refresh_knowledge_pipeline --selftest:{len(fails)} 失敗")
+    return 1 if fails else 0
+
+
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--domain")
@@ -432,7 +573,12 @@ def main():
     ap.add_argument("--reap", action="store_true")
     ap.add_argument("--stage-limit", dest="stage_limit", action="append", default=[],
                     metavar="STAGE=N", help="D7 per-stage 量(可多次;優先於 --limit)")
+    ap.add_argument("--min-candidates", dest="min_candidates", type=int, metavar="N",
+                    help="M-G8 候選數地板:選定各段待辦合計 < N 即 rc≠0(預設關閉)")
+    ap.add_argument("--selftest", action="store_true", help="純紅綠自測(免 DB 免 API)")
     args = ap.parse_args()
+    if args.selftest:
+        sys.exit(selftest())
     if args.status:
         status(); return
     if args.reap:
@@ -445,13 +591,22 @@ def main():
         stage_limits[name] = int(n)
     if args.limit is not None and args.limit <= 0:
         sys.exit("--limit 須為正整數(0/負值不得靜默轉為全量)")
+    if args.min_candidates is not None and args.min_candidates <= 0:
+        sys.exit("--min-candidates 須為正整數(0/負值=形同無地板,不得以此假裝有閘)")
 
     if len(sys.argv) == 1:   # 無參數=安全預設(#29a)
         print_matrix(None)
         print("\n用法見標頭執行指令矩陣;--dry-run 列印各段將執行指令(零執行)")
         return
 
+    # M-G8 S1:domain 解析 fail-loud——先於一切(含 --dry-run)驗域存在,不存在即 rc≠0。
+    # `is not None` 而非 truthy:`--domain ""` 原會靜默退化為全域放量(build_cmd 之 `if domain`)。
+    if args.domain is not None:
+        assert_domain_known(args.domain)
+
     stages = select_stages(args)
+    if args.min_candidates is not None:
+        enforce_candidate_floor(stages, args.domain, args.min_candidates)
     if args.dry_run:
         print_matrix(args.domain)
         print(f"\n[dry-run] 將依序執行 {len(stages)} 段(check=True,任一段非零即停;本模式零執行):")

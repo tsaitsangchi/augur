@@ -562,27 +562,88 @@ def sync_all(conn, *, roster=None, datasets=None, fred_series=None, fred_vintage
     return results
 
 
-def sync_all_by_date(conn, *, datasets=None, end=None, progress=print):
+def wants_dimension_sync(plan):
+    """catalog plan 是否指向「逐維度 id」抓法（M-G10 之路由判準；純函式、可個別驗證）。
+
+    `plan` ＝ `_catalog_plan` 回傳之 (mode, data_id_source, earliest) 或 None。
+    True ⇒ 此 dataset **不可能**被 by-date 推進（其 data_id 為必填），日班若只跑 by-date
+    就是每天空轉——`TaiwanStockTotalReturnIndex` 停更 16 個交易日即此形。"""
+    return bool(plan) and plan[0] == "by-dim-id"
+
+
+def dimension_sync_plan(conn, datasets=None, *, full_start=FULL_START):
+    """**零 API** 的逐維度 id 抓取盤點（`--dry-run` 用）：哪些 dataset 該走 `_dimension_sync`、
+    自哪一天 resume、本地已知的維度 id 有哪些。
+
+    誠實邊界：`/datalist` 之實際回應**必須真呼叫 API 才知道**，本函式不打 API 也不猜——
+    無文檔種子者其 `seed_ids` 留空、`ids_source='needs-datalist'`，另附 catalog **登錄值**
+    `n_dimension_ids`（登錄值≠本次實測值，不得當成 request 數之保證）。
+    受檢集合亦不走 `daily_datasets()`（那支會呼叫 `finmind.list_datasets()` ＝ API），改讀
+    catalog 未排除且表實存者——dry-run 必須是真的零 request。
+    """
+    with db.transaction(conn) as cur:
+        cur.execute("SELECT dataset, n_dimension_ids FROM dataset_catalog "
+                    "WHERE NOT excluded AND to_regclass(quote_ident(dataset)) IS NOT NULL "
+                    + ("AND dataset = ANY(%s) " if datasets else "")
+                    + "ORDER BY dataset", (list(datasets),) if datasets else ())
+        rows = cur.fetchall()
+    out = []
+    for ds, n_dim in rows:
+        plan = _catalog_plan(conn, ds)
+        if not wants_dimension_sync(plan):
+            continue
+        seed = _DOC_SEED_IDS.get(ds, [])
+        out.append({
+            "dataset": ds,
+            "resume_start": _max_date(conn, ds) or plan[2] or full_start,
+            "seed_ids": seed,
+            "ids_source": "doc-seed" if seed else "needs-datalist",
+            "catalog_n_dimension_ids": n_dim,
+        })
+    return out
+
+
+def sync_all_by_date(conn, *, datasets=None, end=None, progress=print, dimension_sync=False):
     """每日維護入口：對所有（或給定）日頻 dataset 跑 by-date 全市場增量（resume）。
 
     每 dataset 的 mode：`by-date`（成功增量）/ `no-baseline`（DB 無基線，需先 sync_finmind_dataset
-    逐股初載）/ `not-by-date-capable`（需 data_id，須走逐股或逐 id 路徑）/ `skip-intraday`。
+    逐股初載）/ `not-by-date-capable`（需 data_id，須走逐股或逐 id 路徑）/ `skip-intraday`
+    / `by-dimension-id`（`dimension_sync=True` 時之逐維度 id 路徑）。
+
+    `dimension_sync`（M-G10 接線，**預設 False ＝ 行為與接線前完全相同**）：
+      True  → catalog plan 為 by-dim-id 者改走 `_dimension_sync`（逐維度 id 抓取）。
+              **這是 FinMind 放量路徑**（#24／#25），須 hugo 明示授權才開。
+      False → 維持既有 by-date 呼叫（不擅自少打也不擅自多打），但當該 dataset 之 catalog plan
+              為 by-dim-id 且 by-date 這輪一列都沒進來時，於 summary 標 `needs_dimension_sync`
+              ——原缺口正是這個組合**靜默通過**：`run_arena_daily_pipeline` 只呼叫
+              `daily_maintenance --end d`，TRI 每天「成功」跑完卻永遠 0 列、沒有任何人會知道。
     """
     if datasets is None:
         datasets = daily_datasets()
     if progress:
-        progress(f"每日維護 by-date：{len(datasets)} 日頻 dataset")
+        progress(f"每日維護 by-date：{len(datasets)} 日頻 dataset"
+                 + ("（--with-dim-sync：by-dim-id 者改走逐維度 id＝FinMind 放量）"
+                    if dimension_sync else ""))
     results = []
     for i, ds in enumerate(datasets, 1):
-        try:
-            r = sync_by_date(conn, ds, end=end, progress=progress)
-        except ValueError:
-            r = {"dataset": ds, "mode": "no-baseline", "rows": 0}   # DB 無既有資料 → 需先逐股初載
+        dim = wants_dimension_sync(_catalog_plan(conn, ds))
+        if dim and dimension_sync:
+            r = (_dimension_sync(conn, ds, FULL_START, progress)
+                 or {"dataset": ds, "mode": "no-dimension-source", "rows": 0})
+        else:
+            try:
+                r = sync_by_date(conn, ds, end=end, progress=progress)
+            except ValueError:
+                r = {"dataset": ds, "mode": "no-baseline", "rows": 0}   # DB 無既有資料 → 需先逐股初載
+            if dim and not r.get("rows"):
+                r["needs_dimension_sync"] = True     # 誠實旗標：by-date 這條推不動它（M-G10）
         results.append(r)
         if progress:
             fd = r.get("failed_days")
             progress(f"[{i}/{len(datasets)}] {ds}: {r['mode']} {r.get('rows', 0)} 列 / {r.get('requests', '-')} 筆"
-                     + (f" / ⚠ 失敗 {len(fd)} 日: {fd[:5]}" if fd else ""))
+                     + (f" / ⚠ 失敗 {len(fd)} 日: {fd[:5]}" if fd else "")
+                     + (" / ⚠ 需逐維度 id 抓取（by-date 推不動;M-G10、須 --with-dim-sync 且經授權）"
+                        if r.get("needs_dimension_sync") else ""))
     return results
 
 
@@ -615,7 +676,59 @@ def _selftest():
     m = sys.modules[__name__]
     chk("公開入口齊備", all(callable(getattr(m, n, None)) for n in
         ("seed_roster", "daily_datasets", "sync_finmind_dataset", "sync_by_date",
-         "sync_fred", "sync_all", "sync_all_by_date")))
+         "sync_fred", "sync_all", "sync_all_by_date", "wants_dimension_sync",
+         "dimension_sync_plan")))
+
+    # ── M-G10 接線之回歸鎖 ─────────────────────────────────────────────────
+    # 路由判準（純函式）。plan 之形狀取自 _catalog_plan 之真實回傳 (mode, data_id_source, earliest)。
+    chk("wants_dimension_sync: by-dim-id → True",
+        wants_dimension_sync(("by-dim-id", "doc", "1999-01-05")) is True)
+    chk("wants_dimension_sync: by-date → False",
+        wants_dimension_sync(("by-date", "none", "1999-01-05")) is False)
+    chk("wants_dimension_sync: 無 catalog（None）→ False（不擅自放量）",
+        wants_dimension_sync(None) is False)
+    # catalog plan 本身：TRI 之**真實 catalog 原料列**（live 查得 2026-08-03）必須算出 by-dim-id。
+    # 這是 M-G10 之根因——原判準只認 data_id_source='datalist'，把 'doc'（文檔種子）漏成 by-date，
+    # 而 TRI data_id_required=True ⇒ by-date 永遠 0 列。
+    from augur import catalog as _cat
+    _tri_row = {"source": "finmind", "frequency": "daily", "data_id_source": "doc",
+                "n_stocks": 2, "n_dates": 5746, "n_dimension_ids": 2}
+    chk("catalog.optimal_mode(TRI 真實原料列) = by-dim-id",
+        _cat.optimal_mode(_tri_row)[0] == "by-dim-id")
+    chk("catalog.optimal_mode(USStockPrice 真實原料列) 仍為 by-date（不誤傷 by-date 表）",
+        _cat.optimal_mode({"source": "finmind", "frequency": "daily", "data_id_source": "none",
+                           "n_stocks": 3102, "n_dates": 24101, "n_dimension_ids": None})[0]
+        == "by-date")
+
+    # 行為層：真的呼叫 sync_all_by_date（以 stub 替換三個 IO 邊界，零 DB 零 API），
+    # 驗「旗標開→走 _dimension_sync；旗標關→走 sync_by_date 且標 needs_dimension_sync」。
+    # **不是只驗字面**：把 sync_all_by_date 裡的分支拿掉，下面四條會紅。
+    _orig = (_catalog_plan, _dimension_sync, sync_by_date)
+    calls = {"dim": [], "bydate": []}
+    try:
+        globals()["_catalog_plan"] = lambda conn, ds: (
+            ("by-dim-id", "doc", "1999-01-05") if ds == "TaiwanStockTotalReturnIndex"
+            else ("by-date", "none", "1999-01-05"))
+        globals()["_dimension_sync"] = lambda conn, ds, fs, pg: (
+            calls["dim"].append(ds) or {"dataset": ds, "mode": "by-dimension-id", "rows": 7})
+        globals()["sync_by_date"] = lambda conn, ds, **kw: (
+            calls["bydate"].append(ds) or {"dataset": ds, "mode": "by-date", "rows": 0})
+        two = ["TaiwanStockTotalReturnIndex", "TaiwanStockPriceAdj"]
+        on = sync_all_by_date(None, datasets=two, progress=None, dimension_sync=True)
+        chk("dimension_sync=True：TRI 走 _dimension_sync、PriceAdj 仍走 by-date",
+            calls["dim"] == ["TaiwanStockTotalReturnIndex"]
+            and calls["bydate"] == ["TaiwanStockPriceAdj"])
+        chk("dimension_sync=True：TRI summary mode=by-dimension-id 且有列數",
+            on[0]["mode"] == "by-dimension-id" and on[0]["rows"] == 7)
+        calls["dim"].clear()
+        calls["bydate"].clear()
+        off = sync_all_by_date(None, datasets=two, progress=None)
+        chk("預設（False）：不呼叫 _dimension_sync＝不擅自放量（#24）", calls["dim"] == [])
+        chk("預設（False）：TRI 之 0 列被標 needs_dimension_sync（不再靜默通過）",
+            off[0].get("needs_dimension_sync") is True
+            and off[1].get("needs_dimension_sync") is None)
+    finally:
+        globals()["_catalog_plan"], globals()["_dimension_sync"], globals()["sync_by_date"] = _orig
 
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1

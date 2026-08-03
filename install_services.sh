@@ -258,12 +258,27 @@ ExecStart=/usr/bin/flock -n /tmp/augur_llm.lock $VENV $ROOT/scripts/run_daily_de
 EOF
 
 # --- timer: audit-watchdog(每 30 分驗證 audit 執行狀況;selfheal 死且未綠→relaunch,flock 防重複) ---
+# **KillMode=process 是必要的,不是調校(M-G4 2026-08-03)**:本 unit 是 Type=oneshot,ExecStart
+# 一結束 systemd 即進入 stop;預設 KillMode=control-group 會把**該 cgroup 內剩下的全部行程**
+# SIGTERM 掉——而 audit_watchdog.sh 用 `setsid nohup … &` 送出的 selfheal **仍在同一個 cgroup 內**
+# (setsid 換的是 session 不是 cgroup;2026-08-03 親驗:子行程 sid 變了、cgroup 逐字相同)。
+# ⇒ 發車與收車在同一秒發生,那班車一個位元組都沒寫出來。
+# 實證對照(N=1 vs N=1,同一份 code、同一台機器):
+#   08-01 16:40 由**人工終端機**發車(journal 該時無 timer 觸發)→ 跑滿 2h、18:43 留下 PASS;
+#   08-02 18:45 由 **systemd timer** 發車(journal:Starting 與 Finished 同在 18:45:56)
+#               → audit_retry.log mtime 迄今仍凍在 08-01 18:45:26,零產出、靜默 39h。
+# KillMode=process ⇒ stop 時只殺主行程(它已自然結束),送出去的車留活口。
+# 替代案(乙,結構上更乾淨但需改腳本+一個觀測窗):改用
+#   systemd-run --user --unit=augur-audit-selfheal --collect …
+# 把 selfheal 放進它**自己的** transient unit,生命週期與本 unit 完全脫鉤、且 systemctl 看得到。
+# 現採甲案:一行、可逆、不動發車腳本;乙案列 residual 待 Steward 定奪。
 cat > "$UD/augur-audit-watchdog.service" <<EOF
 [Unit]
 Description=augur audit 監看看門狗(每 30 分驗證+異常 relaunch)
 
 [Service]
 Type=oneshot
+KillMode=process
 WorkingDirectory=$ROOT
 ExecStart=/usr/bin/bash $ROOT/audit_watchdog.sh
 EOF

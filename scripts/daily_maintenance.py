@@ -20,8 +20,18 @@ API byte 相等。薄 CLI——邏輯都在 src（`ingestion.sync` + `audit.reco
   python scripts/daily_maintenance.py --audit-since 2026-07-01 # 增量後對帳本次更新之表（#7,固定起日）
   python scripts/daily_maintenance.py --audit-days 14 --audit-all --heal
                                                                # 滾動窗全量 attest+差異日自動 heal(生產預設,selfheal 用)
+  python scripts/daily_maintenance.py --dim-sync-dry-run       # M-G10:列出該走逐維度 id 之表(零 API,不抓)
+  python scripts/daily_maintenance.py --with-dim-sync --end 2026-08-03
+                                                               # M-G10 接線:by-dim-id 表改走 _dimension_sync
+                                                               # ⚠ FinMind 放量路徑,須 hugo 明示授權(#24/#25)
 
-守 #6（resume 增量）· #3/#4（動態列舉去 intraday）· #17（by-date 省 request）· #7（對帳）· #15（數字皆實跑）。
+逐維度 id 缺口(M-G10,2026-08-03):`data_id_required=True` 之表(catalog plan=by-dim-id)由 by-date 這條
+  **永遠推不動**——`TaiwanStockTotalReturnIndex` 因此停在 2026-07-09、下游 H 軌與 TAIEX 序列靜默失效。
+  `--with-dim-sync` 即該路之開關;**預設關**(不擅自放量),關閉時 summary 以 `needs-dim-sync` 標出,
+  不再靜默通過。
+
+守 #6（resume 增量）· #3/#4（動態列舉去 intraday）· #17（by-date 省 request）· #7（對帳）· #15（數字皆實跑）
+· #24/#25（放量路徑預設關、須明示授權）。
 """
 import argparse
 import sys
@@ -54,6 +64,12 @@ def main():
     ap.add_argument("--full-universe", action="store_true",
                     help="roster-scoped 表逐股對帳**全真名冊**(3,114 真股、排除權證污染;非抽樣 40 股)——全宇宙真義 attest,"
                          "sampled_n 歸零、名實相符。~84k FinMind calls/~14h(#24/#25:額度充足+主機不睡眠#22 才跑;過夜須 resume-safe)")
+    ap.add_argument("--with-dim-sync", dest="with_dim_sync", action="store_true",
+                    help="M-G10 接線:catalog plan=by-dim-id 之表改走 _dimension_sync(逐維度 id)。"
+                         "**FinMind 放量路徑、預設關,須 hugo 明示授權**(#24/#25)")
+    ap.add_argument("--dim-sync-dry-run", dest="dim_dry", action="store_true",
+                    help="只列出該走逐維度 id 之表與其 resume 起日(零 API、不抓;/datalist 之實際 id 數"
+                         "須真呼叫才知,本模式不猜)")
     args = ap.parse_args()
     if args.audit_days and not args.audit_since:   # 滾動窗:啟動時計算、整輪固定(不隨跨日午夜漂移)
         args.audit_since = (date.today() - timedelta(days=args.audit_days)).isoformat()
@@ -61,6 +77,19 @@ def main():
     with db.connect() as conn:
         with db.transaction(conn) as cur:           # PHASE 1：確保 infra log 表存在（冪等）
             schema.bootstrap_infra(cur)
+
+        if args.dim_dry:                             # M-G10 --dry-run:唯讀盤點,一個 API request 都不發
+            plan = sync.dimension_sync_plan(conn, datasets=args.datasets)
+            print(f"\n逐維度 id 抓取盤點（M-G10;{len(plan)} dataset 需走 _dimension_sync）")
+            for p in plan:
+                print(f"  {p['dataset']}: resume 起日={p['resume_start']}"
+                      f"／維度 id 來源={p['ids_source']}"
+                      f"／本地已知 id={p['seed_ids'] or '（無;須 /datalist 才知）'}"
+                      f"／catalog 登錄 n_dimension_ids={p['catalog_n_dimension_ids']}")
+            print("  ⚠ request 數之誠實邊界:doc-seed 者＝len(seed_ids) 次 fetch＋1 次 /datalist 探測;"
+                  "needs-datalist 者之真實 id 集合**必須真呼叫 /datalist 才知**,catalog 登錄值為登錄值、"
+                  "非本次實測,不得當成 request 數之保證(#9/#15 不編數字)。")
+            return 0
 
         if args.audit_only:                          # #31:跳過全量 pre-sync,直接對帳現況 DB(避回填豁免表白燒額度)
             with db.transaction(conn) as cur:
@@ -73,11 +102,18 @@ def main():
                 audit_set = [{"dataset": r[0]} for r in cur.fetchall()]
             print(f"\n(--audit-only:跳過 by-date 全量 sync,直接對帳現況 DB {len(audit_set)} 表;--heal 仍 targeted 補差異日)")
         else:
-            results = sync.sync_all_by_date(conn, datasets=args.datasets, end=args.end)
+            results = sync.sync_all_by_date(conn, datasets=args.datasets, end=args.end,
+                                            dimension_sync=args.with_dim_sync)
             synced = [r for r in results if r["mode"] == "by-date" and r["rows"]]
             skipped = [r for r in results if r["mode"] != "by-date"]
             print(f"\n增量完成：{len(synced)} dataset 有更新、共 {sum(r['rows'] for r in synced):,} 列；"
                   f"{len(skipped)} dataset 略過（no-baseline / not-by-date-capable / intraday）")
+            dim_gap = [r["dataset"] for r in results if r.get("needs_dimension_sync")]
+            if dim_gap:   # M-G10:by-date 推不動之表——不再靜默通過(原缺口:每天「成功」跑完卻永遠 0 列)
+                print(f"⚠ {len(dim_gap)} dataset 之 catalog plan 為 by-dim-id 且本輪 by-date 0 列 ＝ "
+                      f"**這條路推不動它**（M-G10）：{dim_gap}")
+                print("  修法＝以 --with-dim-sync 走 _dimension_sync（FinMind 放量、須授權）；"
+                      "先看量請跑 --dim-sync-dry-run。")
             failed = [(r["dataset"], r["failed_days"]) for r in results if r.get("failed_days")]
             if failed:   # 漏抓日（單日錯被跳過;resume 只看 max(date) 不會自補）→ 印出供 scoped 重跑（#6 不掉資料）
                 print(f"⚠ {len(failed)} dataset 有失敗日（漏抓;resume 不自補,須 sync_by_date 明確 start=該日重跑補洞）：")
