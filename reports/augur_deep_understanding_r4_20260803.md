@@ -1,7 +1,8 @@
 ---
-status: current
+status: superseded
 series: deep_understanding
 round: r4
+superseded_by: reports/augur_deep_understanding_r5_20260803.md
 supersedes:
   - reports/augur_deep_understanding_optimization_base_20260730.md
   - reports/augur_deep_understanding_20260731.md
@@ -9,6 +10,8 @@ supersedes:
   - reports/augur_deep_understanding_r3_20260801.md
 ---
 # augur 深化理解報告 r4（2026-08-03 09:xx）——優化地基・第四輪
+
+> **【M-N16】** 本檔已由 `reports/augur_deep_understanding_r5_20260803.md`（`status: current`）取代為現況理解 SSOT。假綠方法論／債表／覆核指令仍高價值，請當史料＋證據索引讀。
 
 > **性質**：[I] 全專案現況之深化理解，作為後續優化之依據。**不創設治權判準**、不改任何 [N] 文字。
 > **承接**：r0（07-30 optimization_base）→ r1（07-30 deep_understanding）→ r2（07-31 重開機核驗）→ **r3（08-01 晨）** → 本檔 r4。
