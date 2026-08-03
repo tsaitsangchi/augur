@@ -1,8 +1,25 @@
 # Runbook — 2026-08-03（週一）夜：sim 首格 ＋ run 22 全裝備首驗
 
 > **⚠ 2026-08-03 午後更新（五項變更，覆蓋原文對應段）**
-> 1. **19:14:56 的 watchdog 撞車已由甲案處置**——白天已以安全速率 0.9 跑 audit（原 selfheal 用 0.7）；⚠ 首輪參數抄自 selfheal（`--audit-all`）會先補 2019 歷史、17h 跑不完 ⇒ 已停，改 `--audit-only --audit-days 14`（log=`~/logs/audit_mt4_v2_20260803.log`）。
->    19:30 後請驗：`tail -3 ~/logs/audit_watchdog.log` 應見「態一：綠(1 日內 PASS)→無需動作」，**不得**出現「發車」。
+> 1. **⚠ 甲案已失效（12:09 實測）——19:14 watchdog 會發車，這是預期的，不是故障。**
+>    白天 audit 已跑完（12:09，`--audit-only --audit-days 14`，log=`~/logs/audit_mt4_v2_20260803.log`），
+>    但 **`passed=False`**：`value_mismatch=1979`／`missing_in_db=13,342`。
+>    watchdog 判準＝「1 日內 **PASS**」，FAIL 不算 ⇒ 19:14 過冷卻窗（上次發車 08-02 18:45）後**會發車**。
+>    **但發車即死**（M-G4 未修：`setsid` 不脫離 systemd cgroup），實際結果＝`~/audit_watchdog.log` 多一行、
+>    `~/audit_retry.log` mtime 不動。**不需人動作**；若你想省掉這一次空轉，可在 19:00 前手動把
+>    kill switch 以外的方式停掉 timer——但沒必要，空轉無害。
+>    19:30 驗證改為：`tail -3 ~/logs/audit_watchdog.log` 應見「⚠ 過期→relaunch」，
+>    且 `ls -l ~/audit_retry.log` 之 mtime **仍停在 2026-08-01 18:45:26**（＝ M-G4 之現場複現）。
+>
+>    **1-b. audit 的真正產出（比甲案重要）**：`value_mismatch=1979` 中 **1,958 筆（99%）集中在
+>    `UKStockPrice` 一張表**，且其中 1,870 筆集中在**單一天**（窗 10 日，前 9 日累積 88 筆）。
+>    對照：`USStockPrice` 之 `attestation_mode='dim_only'`（豁免）而 `UKStockPrice='byte'`（不豁免）
+>    ——**同型兩張外國個股價格表口徑不一致**。
+>    台股側 VM 僅 **6 筆**：`TaiwanStockMarketValue` 4／`TaiwanStockSecuritiesLending` 1／
+>    `TaiwanStockDispositionSecuritiesPeriod` 1。**MarketValue 那 4 筆才是可能污染因子鏈的**
+>    （`market_cap_log` 由它來），UK 那 1,958 筆對台股預測零貢獻。
+>    ⇒ **數量大的不等於重要；看它在不在因子鏈上。**
+>    處置屬 Steward（是修資料還是改口徑；**AI 不擅自把 UKStockPrice 改成豁免——那是把紅燈關掉**）。
 > 2. **sim 首格不需要先開 ledger 列**——M-T1 已把 FK 焊死（`sim_run_link.iteration_uid → sim_evolution_iteration_ledger`）
 >    且 runner `--apply` 會自動 `ensure_iteration_row(planned)→running`。孤兒 uid 現在是 **DB 層物理不可能**，不再靠人記得。
 > 3. **`--apply` 之前置**：M-T1 ✅（今日完成）＋ M-M1／M-M2 驗收綠（`evaluate_sim_calibration.py`，午後施作中——按之前先確認其 `--selftest` rc=0）。
