@@ -7,7 +7,7 @@
 
 | 項 | 值 |
 |---|---|
-| **Commit** | `01245e2117b2fa2c406f047aefabbdea1bc8bdb9` |
+| **Commit** | `61496354925fad17b1cb04b5abbc015b572b8984` |
 | **Tag** | `archive-20260803-opt-landing` |
 | **Branch** | `main` → `origin/main` |
 
