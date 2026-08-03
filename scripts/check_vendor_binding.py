@@ -49,8 +49,10 @@ SELF = Path(__file__).resolve()
 SCAN_DIRS = ("src", "scripts")               # plan §1 口徑之掃描範圍
 BASELINE = ROOT / "ops" / "vendor_binding_baseline.txt"
 
-_QUOTED = re.compile(r'FROM\s+"([A-Z][A-Za-z]+)"')
-_QUOTED_ESC = re.compile(r'FROM\s+\\"([A-Z][A-Za-z]+)\\"')
+# 字元類含數字（2026-08-03 補：原 [A-Za-z]+ 漏掉含數字之表名——TaiwanStock10Year 之 2 處
+# 直綁自本閘上崗起從未進口徑＝既有假綠。由 22 表登錄草案 agent 親驗抓出）
+_QUOTED = re.compile(r'FROM\s+"([A-Z][A-Za-z0-9_]+)"')
+_QUOTED_ESC = re.compile(r'FROM\s+\\"([A-Z][A-Za-z0-9_]+)\\"')
 _FRED = re.compile(r"FROM\s+(fred_series)")
 
 

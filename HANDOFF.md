@@ -18,7 +18,7 @@
 **08-01 一日要旨（接續者最速讀法＝記憶 `augur-adjudication-exec-20260801` → 終版圈選單 `reports/augur_final_adjudication_ballot_20260801.md` → 登錄冊全冊 ☑）**：
 治理迴路首次全循環——24 項問題「呈案→12 路鮮度驗證→Steward 圈選→機械施作（全程突變驗紅）→TTY 親簽→驗收落帳」一日閉環；追加迷你批 3 裁（MM 37 例／D2S sim 門 T-A／P2a+§5乙）。
 **當日落地之新機制（接續者須知其存在）**：TWEVO 八閘含 G-SIGN（77 筆乙案遷移訖）；UPDATE-GUC 閘擴至 15 表（治權表裸 UPDATE 面 20→15；kill_switch 依乙案豁免=緊急煞車零摩擦）；validation_evidence manual 90 天有效期（10-09/10-10 到期）；identity 六表生產（registry 3,503；37 例 mismatch 已裁 A/B 收 C 留）；fulltext `unattempted` 121,389；CLAUDE.md **v1.35 #35 回歸鎖三規則**＋pre-commit 假斷言第四閘；RULING-2026-042 生效（L7.16 衝突登錄）；`iid_bootstrap` 入 sim registry（門待 D2S INSERT 親簽後才可評）；週報 (b) per-(feature,h) 口徑。
-**08-02 晚已兌現**：run 21 succeeded→hugo `--queue-id` 逐顆親簽 556/599＝**首兩顆引擎自掙晉升**（prodset active=3、週報 (b) ✅）；SIM-CAL-R1 sim 門親簽生效＋四件套落地＋P0 候選落戶（`sim-clock-armed-20260802`；首格待 08-03 anchor、T-A 首判 ~11 月上旬；S-4=人工逐次觸發勿排程）；P2a+P2b 全落（裸 UPDATE 面 20→9 表）。**餘**：I5B-甲 diff 待 hugo 過目（窗至 08-03 23:00）；run 22=08-03 23:00 全自動首驗；10-14 備料=`reports/augur_1014_review_evidence_prep_20260801.md`（⚠WM.35/36 於 10-15 自動生效——合規弧規畫進行中）。
+**08-02 晚已兌現**：run 21 succeeded→hugo `--queue-id` 逐顆親簽 556/599＝**首兩顆引擎自掙晉升**（prodset active=3、週報 (b) ✅）；SIM-CAL-R1 sim 門親簽生效＋四件套落地＋P0 候選落戶（`sim-clock-armed-20260802`；首格待 08-03 anchor、T-A 首判 ~11 月上旬；S-4=人工逐次觸發勿排程）；P2a+P2b 全落（裸 UPDATE 面 20→9 表）。**餘**：I5B-甲 diff 待 hugo 過目（窗至 08-03 23:00）；run 22=08-03 23:00 全自動首驗；10-14 備料=`reports/augur_1014_review_evidence_prep_20260801.md`（⚠WM.35/36 於 10-15 自動生效——合規弧規畫進行中）。**優化執行 SSOT（待拍）**=`reports/augur_optimization_execution_plan_20260803.md`（基座 r4；開跑碼 `OPT-EXEC-20260803-go`）。
 
 ## 重開機／接續狀態（2026-07-31 11:2x，封存點 `archive-20260731-sim-axis-live`）
 
@@ -50,9 +50,9 @@
 - `evolution_deferred_work` 未清 2 筆（drain timer 會處理）。
 - `validation_evidence` 12 條可執行檢查中 **3 條 false**（E1 真退步／E2·E4 待 Steward 裁）。
 
-**接續讀序**：本檔 → **`reports/augur_deep_understanding_r2_20260731.md`（r2 獨立核驗＋重開機後重測——基線 42 債逐項判定、07-31 治權生效鏈全景、新發現 N1-N12；最新現況權威）** → `reports/augur_deep_understanding_20260731.md`（基線，債務表實為 42 則；其 #15/#31/B1/A10 已被 r2 更正）
-→ `reports/augur_local_ai_market_sim_evolution_plan_20260731.md`（sim 軸實作計畫，P2 已完成〔⚠r2 實查：method registry 0 列＝候選物理死鎖、prereg 無 sim 列＝節點二未成立〕、P3 待做）。
-memory 已 export 至 `handoff_memory/`（74 檔），新機以 `python3 sync_memory.py restore` 還原。
+**接續讀序**：本檔 → **`reports/augur_deep_understanding_r4_20260803.md`（r4 優化基座——08-03 親驗錨＋合併 r0–r3／08-01 裁決日／08-02 晉升里程碑；後續優化以此為 SSOT）** → `reports/augur_deep_understanding_r3_20260801.md`（債表與假綠方法論）→ `reports/augur_deep_understanding_r2_20260731.md`（重開機核驗史料）→ `reports/augur_construction_understanding_20260713.md`（建構 how）
+→ sim 見 `reports/augur_local_ai_sim_evolution_impl_plan_20260731.md`／`reports/sim_w3w5_implementation_plan_20260802.md`（門已開、runner 缺口見 r4）。
+memory 已 export 至 `handoff_memory/`，新機以 `python3 sync_memory.py restore` 還原。
 
 ## 0.5 增補快照 2026-07-18（Phase 1 憲章化收官——接續者必讀）
 

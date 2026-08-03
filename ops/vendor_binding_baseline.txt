@@ -1,7 +1,7 @@
 # vendor 直綁凍結基線（WM.36 止血閘;G0 格6 准先行 2026-08-02;SSOT=reports/wm3536_vendor_registry_plan_20260802.md §7）
 # 閘只擋「新增檔/新表/增處」;清償（檔消失/處數下降）僅列印、手動移列——防棘輪反轉。
 # 格式: 相對路徑<TAB>表字面<TAB>承載形<TAB>處數（指紋零行號:行號隨編輯漂移會製造假新增）
-# 口徑=quoted CamelCase 表 ∪ fred_series;caliber_sha256=0e0e608f75122bf5（regex 弱化即與本行不符=紅）
+# 口徑=quoted CamelCase 表 ∪ fred_series;caliber_sha256=e0f072f4189be2b2（regex 弱化即與本行不符=紅）
 scripts/backfill_entity_registry.py	TaiwanStockInfo	quoted_table	3
 scripts/backfill_entity_registry.py	fred_series	fred_series	1
 scripts/backfill_lifecycle_retire.py	TaiwanStockDelisting	quoted_table	2
@@ -98,6 +98,7 @@ src/augur/arena/adapters.py	TaiwanStockPriceAdj	quoted_table	1
 src/augur/audit/feature_candidate.py	TaiwanStockInfo	quoted_table_esc	1
 src/augur/audit/feature_candidate.py	TaiwanStockPER	quoted_table	1
 src/augur/audit/field_correlation.py	TaiwanDailyShortSaleBalances	quoted_table	1
+src/augur/audit/field_correlation.py	TaiwanStock10Year	quoted_table	1
 src/augur/audit/field_correlation.py	TaiwanStockBlockTrade	quoted_table	1
 src/augur/audit/field_correlation.py	TaiwanStockDayTrading	quoted_table	3
 src/augur/audit/field_correlation.py	TaiwanStockGovernmentBankBuySell	quoted_table	1
@@ -126,6 +127,7 @@ src/augur/features/margin_cycle.py	TaiwanStockFinancialStatements	quoted_table	1
 src/augur/features/panel.py	TaiwanStockMonthRevenue	quoted_table	1
 src/augur/features/panel.py	TaiwanStockPriceAdj	quoted_table	1
 src/augur/features/phase.py	TaiwanStockInstitutionalInvestorsBuySell	quoted_table	1
+src/augur/features/valuation.py	TaiwanStock10Year	quoted_table	1
 src/augur/features/valuation.py	TaiwanStockMarketValue	quoted_table	1
 src/augur/features/valuation.py	TaiwanStockPER	quoted_table	1
 src/augur/features/valuation.py	TaiwanStockPrice	quoted_table	1
