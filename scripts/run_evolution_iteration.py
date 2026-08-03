@@ -416,6 +416,18 @@ def run_round(steps_to_run, dry, allow_apply, gate_ref, slot_wait: float = 0):
     return 0
 
 
+def backlog_uncleared(cur) -> int:
+    """未清積壓筆數。`cleared_at` 非空者已由 `drain_deferred_work` 清帳 ⇒ **不算積壓**。
+
+    2026-08-03(M-T2):原為裸 `count(*)`,自 07-27 起恆印 9 列——而 9 列全部 `cleared_at`
+    非空(08-01 16:26 清完) ⇒ 這盞燈**永遠亮著、與現實脫鉤**,正是「綠燈/紅燈量的不是它
+    宣稱在量的東西」。謂詞與 `scripts/drain_deferred_work.py` 之 `_rows` 同式(#12 單一住所)。
+    收 `cur` 而非自開連線,故自測可餵 in-memory sqlite 之真表驗真行為(非字面斷言)。
+    """
+    cur.execute("SELECT count(*) FROM evolution_deferred_work WHERE cleared_at IS NULL")
+    return cur.fetchone()[0]
+
+
 def status():
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("""SELECT iteration_uid, status, gain, gain_basis, consecutive_no_gain,
@@ -430,8 +442,7 @@ def status():
             nxt = it.next_step(got[1])
             print(f"進行中:{got[0]} → 下一步 {nxt or '(已跑完,可 --close)'}")
         print(f"停損門檻:TWEVO-N={it.STOP_N}(incomparable 不計)")
-        cur.execute("SELECT count(*) FROM evolution_deferred_work")
-        print(f"積壓(搶不到重活鎖):{cur.fetchone()[0]} 列")
+        print(f"積壓(搶不到重活鎖,未清):{backlog_uncleared(cur)} 列")
     return 0
 
 
@@ -627,6 +638,26 @@ def _selftest():
     chk("I6 未重訓未預測記明(train_ranker/predict_asof 未接)",
         "train_ranker" in STEP_SCOPE["I6"] and "predict_asof" in STEP_SCOPE["I6"])
     chk("重啟須人裁(R5)訊息在", "重啟須人裁" in body)
+    # ── 積壓謂詞回歸鎖(2026-08-03 M-T2)──
+    # 餵 **in-memory sqlite 之真表**(免 PG、零外部依賴),欄形同 evolution_deferred_work:
+    # 3 列已清 + 2 列未清 ⇒ 正解 2。突變體(拿掉 WHERE cleared_at IS NULL)必回 5 ⇒ 紅。
+    # 不用字面斷言:`"cleared_at IS NULL" in body` 會被本註解自己的副本掃中而恆綠。
+    import sqlite3 as _sq
+    _mem = _sq.connect(":memory:")
+    _mc = _mem.cursor()
+    _mc.execute("CREATE TABLE evolution_deferred_work ("
+                "defer_id INTEGER PRIMARY KEY, axis TEXT, step_key TEXT, cleared_at TEXT)")
+    _mc.executemany("INSERT INTO evolution_deferred_work VALUES (?,?,?,?)", [
+        (2, "tw", "run_evolution_iteration", "2026-07-31 09:43:44"),
+        (3, "lai", "eval_local_model", "2026-07-31 09:43:44"),
+        (4, "tw", "run_evolution_iteration", "2026-08-01 16:26:30"),
+        (5, "tw", "run_evolution_iteration", None),
+        (6, "lai", "eval_local_model", None)])
+    chk("積壓只算未清列(fixture 3 已清/2 未清 ⇒ 2;裸 count 之突變體回 5 必紅)",
+        backlog_uncleared(_mc) == 2)
+    _mc.execute("UPDATE evolution_deferred_work SET cleared_at='2026-08-03' WHERE cleared_at IS NULL")
+    chk("全部清完 ⇒ 積壓 0(舊碼在此仍印 5=恆亮假告警)", backlog_uncleared(_mc) == 0)
+    _mem.close()
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 

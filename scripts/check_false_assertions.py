@@ -24,6 +24,13 @@
 **本支不宣稱能抓型 3。** 能靜態抓的只有型 1（確定）與型 2（嫌疑）；型 3 之唯一證法是
 突變測試（把宣稱檢查之物弄壞，看它會不會紅）。誠實標明射程，不假裝覆蓋全部。
 
+## 對象數地板（M-G2，2026-08-03）
+
+本支自己也曾是同一家族：**實讀 0 檔**（ROOT 推導錯／worktree 缺目錄／`--path` 指到不存在之檔）
+時印「0 檔／ERROR 0」並回 rc=0——與「掃過都沒問題」同形。現於 `--scan`／`--gate`／
+`--write-baseline` 三路皆先過 `augur.audit.scan_floor` 之地板；`--write-baseline` 未過地板拒寫
+（否則基線被清空＝閘自己放行自己）。
+
 ## 本支自己如何避免變成同型假綠
 
 **不掃自己的原始碼**，改用 `_FIXTURES` 之合成檔（已知答案）驗真行為：
@@ -47,9 +54,20 @@ import sys
 from pathlib import Path
 
 import _bootstrap  # noqa: F401
+from augur.audit import scan_floor
 
 ROOT = Path(__file__).resolve().parents[1]
 SCAN_DIRS = ("scripts", "src", "tools", "ops")
+
+# ── 對象數地板（M-G2）：「一個檔都沒讀到」不得與「掃過都沒問題」同判 rc=0 ──
+# 現況實測 2026-08-03：實讀 975→977 檔（scripts 328+／src 119／tools 31／ops 497，ops 幾乎全來自
+# `ops/gpu-verify` 之 vendored venv）。地板取 400——即使 gpu-verify 被清掉（→≈479）仍不假紅。
+# 分組只鎖 scripts/src（結構上不可能為空之兩根）；tools／ops 之非 vendored 內容為個位數，鎖之易假紅。
+MIN_FILES = 400
+GROUP_ROOTS = ("scripts", "src")
+# 錨取**結構性長壽檔**（自己＋套件根 `__init__`，`a3674df` v1.0 起點即在）：
+# 拿新檔當錨會使舊 worktree／舊分支上跑本器變假紅。
+ANCHORS = ("scripts/check_false_assertions.py", "src/augur/__init__.py")
 
 # haystack 之賦值：讀整檔
 _FULLFILE = re.compile(
@@ -110,25 +128,62 @@ def analyse(text: str):
     return out
 
 
-def scan(paths, warn_too: bool) -> int:
-    n_err = n_warn = n_file = 0
+def _rel(p: Path) -> str:
+    try:
+        return str(p.relative_to(ROOT))
+    except ValueError:                       # --path 指到 repo 外之絕對路徑
+        return str(p)
+
+
+def _analyse_paths(paths):
+    """→ ([(rel, analyse 結果)], 實讀相對路徑集)。**實讀集**是地板判準之唯一素材。"""
+    results, read = [], set()
     for p in paths:
         try:
-            res = analyse(p.read_text(encoding="utf-8"))
+            text = p.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
             continue
+        rel = _rel(p)
+        read.add(rel)
+        results.append((rel, analyse(text)))
+    return results, read
+
+
+def floor_checks(read_rels, scope_roots):
+    """實讀相對路徑集 → 地板宣告列（純函式；餵真掃描輸出，#35(1)）。
+
+    `scope_roots` 空＝`--path` 窄範圍：地板降為「至少讀到 1 檔」——指到不存在之檔
+    在舊實作下是 0 檔、0 問題、rc=0（假綠），此處使其判紅。
+    """
+    if not scope_roots:
+        return [scan_floor.FloorCheck("--path 範圍實讀檔數", len(read_rels), 1)]
+    per_root = {r: sum(1 for p in read_rels if p.split("/")[0] == r) for r in GROUP_ROOTS}
+    return ([scan_floor.FloorCheck("實讀 .py 檔總數", len(read_rels), MIN_FILES)]
+            + scan_floor.group_checks(per_root, prefix="掃描根")
+            + scan_floor.anchor_checks(read_rels, ANCHORS))
+
+
+def _default_paths():
+    return sorted(q for d in SCAN_DIRS for q in (ROOT / d).rglob("*.py")
+                  if "__pycache__" not in q.parts)
+
+
+def scan(paths, warn_too: bool, scope_roots=SCAN_DIRS) -> int:
+    n_err = n_warn = n_file = 0
+    results, read = _analyse_paths(paths)
+    for rel, res in results:
         bad = [r for r in res if r[3] != "OK"]
         if not bad:
             continue
         n_file += 1
-        rel = p.relative_to(ROOT)
         print(f"\n{rel}")
         for lineno, lit, hay, kind in bad:
             icon = "✗" if kind == "ERROR" else "⚠"
             print(f"  {icon} :{lineno} [{kind}] \"{lit[:44]}\" in {hay}")
             n_err += kind == "ERROR"
             n_warn += kind == "WARN"
-    print(f"\n── 假斷言掃描：{n_file} 檔／ERROR {n_err}／WARN {n_warn} ──")
+    print(f"\n── 假斷言掃描：實讀 {len(read)} 檔／命中 {n_file} 檔／ERROR {n_err}／WARN {n_warn} ──")
+    rc_floor = scan_floor.enforce("check_false_assertions", floor_checks(read, scope_roots))
     if n_err:
         print("  ERROR＝haystack 含自測段本身 ⇒ 該斷言**永遠不會紅**。修法：")
         print("    (a) 首選——把判斷抽成純函式，餵真輸入驗真行為；")
@@ -136,7 +191,7 @@ def scan(paths, warn_too: bool) -> int:
         print("    (c) 測接線時在守衛**下游**注入絆線，而非拆掉守衛（拆守衛會讓壞路徑真的執行）。")
     print("  ⚠ 射程：本支只抓型 1（自我匹配，確定）與型 2（字面另有出處，嫌疑）。")
     print("     『字面在但行為被繞過』唯突變測試可證——本支不宣稱覆蓋。")
-    return 1 if (n_err or (warn_too and n_warn)) else 0
+    return 1 if (n_err or (warn_too and n_warn) or rc_floor) else 0
 
 
 # ── fixture：已知答案之合成檔（本支不掃自己的原始碼，故不會自我匹配）──
@@ -210,6 +265,18 @@ def _selftest() -> int:
     _n2, _c2 = gate_verdicts({"a\tx\tsrc"}, {"a\tx\tsrc", "z\tw\tsrc"})
     chk("gate:已清償者列提示不自動移（防棘輪反轉）", _c2 == ["z\tw\tsrc"] and _n2 == [])
     chk("gate:零新增零清償=安靜通過", gate_verdicts({"a\tx\tsrc"}, {"a\tx\tsrc"}) == ([], []))
+
+    # ── 對象數地板（M-G2）：餵**真掃描輸出**驗紅綠雙向（#35(1) 不手寫形狀）──
+    _live_read = _analyse_paths(_default_paths())[1]
+    chk(f"地板:真 repo 實讀 {len(_live_read)} 檔 ⇒ 綠（本行即掃描範圍之下游絆線）",
+        scan_floor.verdict("live", floor_checks(_live_read, SCAN_DIRS))[0] == 0)
+    _ghost_errs, _ghost_read = _collect_errors([ROOT / "scripts" / "no_such_file_mg2_probe.py"])
+    chk("地板:--path 指到不存在之檔 ⇒ 零 ERROR 但判紅（舊實作此處 rc=0 假綠）",
+        _ghost_errs == set() and _ghost_read == set()
+        and scan_floor.verdict("narrow", floor_checks(_ghost_read, ()))[0] == 1)
+    _no_src = {f"scripts/f{i}.py" for i in range(MIN_FILES + 5)}
+    chk("地板:某掃描根整個消失（實讀集無 src/）⇒ 紅，總數夠也不放行",
+        scan_floor.verdict("live", floor_checks(_no_src, SCAN_DIRS))[0] == 1)
     print("自測:全通過 ✓" if ok else "自測:有失敗 ✗")
     return 0 if ok else 1
 
@@ -233,28 +300,30 @@ def gate_verdicts(found, baseline):
 
 
 def _collect_errors(paths):
+    """→ (ERROR 指紋集, 實讀相對路徑集)。實讀集供地板判準（M-G2）。"""
     out = set()
-    for p in paths:
-        try:
-            res = analyse(p.read_text(encoding="utf-8"))
-        except (UnicodeDecodeError, OSError):
-            continue
-        rel = str(p.relative_to(ROOT))
+    results, read = _analyse_paths(paths)
+    for rel, res in results:
         for _ln, lit, hay, kind in res:
             if kind == "ERROR":
                 out.add(fingerprint(rel, lit, hay))
-    return out
+    return out, read
 
 
-def gate(paths) -> int:
-    """pre-commit 閘：僅擋**基線之外**的新 ERROR（存量 20 條指紋容忍、逐步清償）。"""
+def gate(paths, scope_roots=SCAN_DIRS) -> int:
+    """pre-commit 閘：僅擋**基線之外**的新 ERROR（存量 20 條指紋容忍、逐步清償）。
+
+    ⚠ 地板（M-G2）：實讀 0 檔時「零新增」是必然而非成就——未過地板即紅，不放行。
+    """
     if not BASELINE.exists():
         print(f"✗ 基線檔不存在（{BASELINE}）——不敢猜白名單，fail-closed。"
               "先跑 --write-baseline（過目後 commit 基線檔）。", file=sys.stderr)
         return 1
     base = {ln.rstrip("\n") for ln in BASELINE.read_text(encoding="utf-8").splitlines()
             if ln.strip() and not ln.startswith("#")}
-    new, cleared = gate_verdicts(_collect_errors(paths), base)
+    found, read = _collect_errors(paths)
+    rc_floor = scan_floor.enforce("check_false_assertions --gate", floor_checks(read, scope_roots))
+    new, cleared = gate_verdicts(found, base)
     if cleared:
         print(f"（{len(cleared)} 條基線已清償，可自 {BASELINE.name} 移除——不自動移，防棘輪反轉）")
     if new:
@@ -263,7 +332,9 @@ def gate(paths) -> int:
             print(f"  {f}", file=sys.stderr)
         print("  修法見 --scan 尾註（純函式餵真輸入／切自測段／下游絆線）。", file=sys.stderr)
         return 1
-    print(f"✓ 假斷言閘：無新增（基線容忍 {len(base)} 條存量）")
+    if rc_floor:
+        return rc_floor
+    print(f"✓ 假斷言閘：無新增（實讀 {len(read)} 檔；基線容忍 {len(base)} 條存量）")
     return 0
 
 
@@ -282,12 +353,20 @@ def main(argv=None) -> int:
         p = Path(a.path)
         p = p if p.is_absolute() else ROOT / p
         paths = sorted(p.rglob("*.py")) if p.is_dir() else [p]
+        scope_roots = ()                      # 窄範圍：地板降為「至少讀到 1 檔」
     else:
-        paths = sorted(q for d in SCAN_DIRS for q in (ROOT / d).rglob("*.py")
-                       if "__pycache__" not in q.parts)
+        paths = _default_paths()
+        scope_roots = SCAN_DIRS
     if a.write_baseline:
+        errs_set, read = _collect_errors(paths)
+        # 地板先於寫入：實讀 0 檔時重寫基線＝把存量清單清空（棘輪反轉），故未過地板即拒寫。
+        if scan_floor.enforce("check_false_assertions --write-baseline",
+                              floor_checks(read, scope_roots)):
+            print("✗ 未達對象數地板 ⇒ 拒絕以本次掃描重寫基線（否則基線被清空＝閘自己放行自己）。",
+                  file=sys.stderr)
+            return 1
         BASELINE.parent.mkdir(exist_ok=True)
-        errs = sorted(_collect_errors(paths))
+        errs = sorted(errs_set)
         BASELINE.write_text(
             "# 假斷言基線（存量容忍清單;C3 2026-08-01）——閘只擋新增,清償後手動移列。\n"
             "# 格式: 相對路徑\\t字面\\thaystack 變數名（不含行號,防編輯漂移假新增）\n"
@@ -295,8 +374,8 @@ def main(argv=None) -> int:
         print(f"✓ 基線已寫 {len(errs)} 條 → {BASELINE}（過目後 commit）")
         return 0
     if a.gate:
-        return gate(paths)
-    return scan(paths, a.warn_too)
+        return gate(paths, scope_roots)
+    return scan(paths, a.warn_too, scope_roots)
 
 
 if __name__ == "__main__":

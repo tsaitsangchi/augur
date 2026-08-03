@@ -17,6 +17,9 @@
 跳過：`.venv`／`venv`／`__pycache__`／`.git`；純 `__init__.py` 與已於本檔 `EXEMPT` 登錄之薄
 re-export（登錄需附理由，不得靜默略過）。
 
+對象數地板（M-G2）：本器**掃到 0 支入口時判紅而非綠**——「範圍消失」（REPO 推導錯／worktree
+缺目錄／目錄改名）與「掃過都沒問題」在舊實作下同為 rc=0。判準住 `augur.audit.scan_floor`。
+
 守 #7（實測）· #15（無幻像：缺漏清單為程式掃描所得，非人工估算）· #18／#29（矩陣義務）·
 守 RULING-2026-026（本器即該裁決之落地工具）。
 
@@ -32,6 +35,7 @@ import pathlib
 import sys
 
 import _bootstrap  # noqa: F401
+from augur.audit import scan_floor
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 MATRIX_STR = "執行指令矩陣"
@@ -39,6 +43,15 @@ SKIP_DIRS = {".venv", "venv", ".gpu-test-venv", "__pycache__", ".git", "node_mod
              ".mypy_cache", ".pytest_cache", ".idea", ".cache"}
 SCAN_TOP_DIRS = ("scripts", "src", "tools", "ops", "augur_proxy", "tests")
 NAMED_ENTRY_FILES = {"__main__.py", "selftest.py", "measure.py"}
+
+# ── 對象數地板（M-G2）：「掃到 0 個入口」不得與「掃過都沒問題」同判 rc=0 ──
+# 現況實測 2026-08-03：受檢 469→470 支（scripts 328+／src 102／tools 27／augur_proxy 8／ops 3／
+# tests 1；當日並行工單仍在增檔，故為區間非定值）。
+# 地板取遠低於現況、遠高於 0；分組只鎖 scripts/src（結構上不可能為空之兩根——ops/tests 為個位數，
+# 鎖之易生假紅而淪為狼來了）。錨檢抓「總數還夠但換了一棵樹」（ROOT 推導錯）。
+MIN_CHECKED = 300
+GROUP_ROOTS = ("scripts", "src")
+ANCHORS = ("scripts/check_cmd_matrix.py", "scripts/_bootstrap.py")
 
 # 薄 re-export／無 CLI 意義之豁免（附理由；新增豁免須在此登錄，不得程式外靜默略過）。
 EXEMPT = {
@@ -104,6 +117,15 @@ def scan():
     return checked, missing, exempt
 
 
+def floor_checks(checked):
+    """受檢清單 → 地板宣告列（純函式；餵 `scan()` 之真輸出，不手寫形狀 #35(1)）。"""
+    seen = {c["path"] for c in checked}
+    per_root = {r: sum(1 for p in seen if p.split(os.sep)[0] == r) for r in GROUP_ROOTS}
+    return ([scan_floor.FloorCheck("受檢入口總數", len(checked), MIN_CHECKED)]
+            + scan_floor.group_checks(per_root, prefix="掃描根")
+            + scan_floor.anchor_checks(seen, ANCHORS))
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--quiet", action="store_true", help="僅印統計摘要")
@@ -120,9 +142,12 @@ def main(argv=None) -> int:
         for e in exempt:
             print(f"  ⊘ 豁免  {e['path']}：{e['reason']}")
     print(f"── 執行指令矩陣稽核：受檢 {len(checked)} 支／缺漏 {len(missing)} 支／豁免 {len(exempt)} 支")
+    rc_floor = scan_floor.enforce("check_cmd_matrix", floor_checks(checked))
     if missing:
         print("  未通過。補齊方式見 CLAUDE.md #18／#29；裁決依據 constitution/RULING-2026-026-CMD-MATRIX.md")
         return 1
+    if rc_floor:
+        return rc_floor
     print("  ✓ 全數通過（NEED=0）")
     return 0
 
@@ -133,6 +158,13 @@ def _selftest() -> int:
     ok = _has_main('if __name__ == "__main__":\n    pass\n')
     ok = ok and not _has_main("x = 1\n")
     ok = ok and _has_main("if __name__=='__main__':\n    pass\n")
+
+    # 對象數地板（M-G2）綠側：**餵真 repo 之真掃描輸出**（非手寫 dict，#35(1)）。
+    # 這同時是 `_iter_py_files`／`scan()` 的下游絆線——掃描範圍若壞掉，這行先紅。
+    live_checked, _lm, _le = scan()
+    live_rc, live_msgs = scan_floor.verdict("check_cmd_matrix(live)", floor_checks(live_checked))
+    ok = ok and live_rc == 0
+    print(f"  {'✓' if live_rc == 0 else '✗'} 地板(真 repo 實掃 {len(live_checked)} 支)：{live_msgs[0]}")
 
     with tempfile.TemporaryDirectory() as td:
         root = pathlib.Path(td) / "scripts"
@@ -150,6 +182,10 @@ def _selftest() -> int:
             checked, missing, exempt = scan()
             ok = ok and len(checked) == 2 and len(missing) == 1
             ok = ok and missing[0]["path"] == "scripts/bad.py"
+            # 地板紅側：同一支 `scan()` 在「範圍幾乎空掉」之真輸出下必須判紅
+            tiny_rc, _tm = scan_floor.verdict("check_cmd_matrix(tiny)", floor_checks(checked))
+            ok = ok and tiny_rc == 1
+            print(f"  {'✓' if tiny_rc == 1 else '✗'} 地板(僅 {len(checked)} 支之實掃輸出必須判紅)")
         finally:
             REPO, SCAN_TOP_DIRS = prev_repo, prev_dirs
 

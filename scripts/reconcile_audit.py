@@ -11,10 +11,14 @@
 - coverage(事件流):News 同日多則文本 → reconcile_coverage(列數量級、非逐 byte)。
 - fred_series:逐 series 全史 → reconcile_fred(走 FRED 額度、不佔 FinMind)。
 全表清單 = catalog excluded=f(動態、非硬編 #18);infra log 表跳過。逐表即時印,末了彙總 #7 verdict。對帳唯讀、冪等、中斷重跑無害。
+**逐表 PASS/FAIL 判定不自算、一律交 `reconcile.verdict()`**(#12 單一住所;含 coverage_gap 空視窗擋綠之假綠 blocker);
+本 driver 只負責窗策略(未定案日不計)與誠實標註。
 
-守 #7(DB↔API 對帳)· #15(未定案/抽樣/coverage 誠實標註)· #24/#25(走 finmind 內建限速)· #16/#17(clean-room)。
+守 #7(DB↔API 對帳)· #12(判定住 library、driver 不複製判式)· #15(未定案/抽樣/coverage 誠實標註)·
+   #24/#25(走 finmind 內建限速)· #16/#17(clean-room)。
 執行指令矩陣:PYTHONPATH=src caffeinate -dimsu venv/bin/python scripts/reconcile_audit.py
       [--only by-date|roster-scoped|full-history|market|by-dim-id|coverage|fred] [--tables A,B] [--recent-days 30]
+  venv/bin/python scripts/reconcile_audit.py --selftest   # 判定接線紅綠自測(免 DB 免 API、零 FinMind 呼叫)
 """
 from __future__ import annotations
 
@@ -134,7 +138,10 @@ def _audit(conn, dataset, scope, mode, recent_days):
 
 
 def _summary(dataset, kind, agg, *, unsettled=None):
-    """統一抽出 vm/ex/mis + verdict + 誠實標註(未定案排除 / 抽樣部分覆蓋 / coverage / vintage)。"""
+    """統一抽出 vm/ex/mis + verdict + 誠實標註(未定案排除 / 抽樣部分覆蓋 / coverage / vintage)。
+
+    **判定交 `reconcile.verdict()`**(#12):本 driver 只算「未定案窗過濾後」之計數再餵進去。
+    自算判式(舊碼 `vm==0 and ex==0 and not inc`)漏 `coverage_gap` → 空視窗死 feed 可被認證 PASS(#15 假綠)。"""
     note = ""
     if kind == "by-date" and unsettled:                        # 排除未定案日(當日盤後校正,非真差異)
         per = agg.get("per_date", {})
@@ -151,11 +158,15 @@ def _summary(dataset, kind, agg, *, unsettled=None):
     if vm and "PriceAdj" in dataset:                           # 還原價隨未來除權息回溯重算(#7 類別③,以抓取時點 API 現值為準)
         note = (note + " ｜ " if note else "") + "PriceAdj VM 疑似除權息回溯重算 → 走 heal 重抓對齊現值、非幻像紅旗"
     inc = bool(agg.get("incomplete") or agg.get("errors"))
+    vres = {**agg, "table": dataset, "matched": agg.get("matched", 0),        # 其餘旗標(coverage_gap/sampled)原封帶過
+            "value_mismatch": vm, "extra_in_db": ex, "missing_in_db": mis, "incomplete": inc}
+    passed = reconcile.verdict(vres)["passed"]         # 判定住 library #12:vm/ex/incomplete/coverage_gap 一律由 verdict 判
     if kind == "coverage":
-        passed = bool(agg.get("coverage_ok"))
-        note = f"coverage {'OK' if passed else 'FAIL'}(漏 {mis}、列數量級非逐 byte)"
-    else:
-        passed = vm == 0 and ex == 0 and not inc
+        cov_ok = bool(agg.get("coverage_ok"))          # 量級覆蓋另有判準(漏抓占比容忍)→ 與 verdict 取交集,只會更嚴
+        passed = passed and cov_ok
+        note = f"coverage {'OK' if cov_ok else 'FAIL'}(漏 {mis}、列數量級非逐 byte)"
+    if agg.get("coverage_gap"):                        # 空視窗=從未比對 → 誠實揭露,不靜默(舊判式漏此即假綠)
+        note = (note + " ｜ " if note else "") + "空視窗未對帳(coverage_gap:死 feed/窗內無資料)→ 不計綠 #15"
     if agg.get("sampled"):
         note = (note + " ｜ " if note else "") + f"抽樣 {agg.get('stocks', '?')} 股(部分覆蓋 #7)"
     if agg.get("fred_vintage"):
@@ -194,7 +205,75 @@ def _parse(argv):
     return only, tables, recent
 
 
+class _EmptyCur:
+    """自測用零 DB stub cursor:任何查詢皆回空集。餵給 `reconcile_by_date` 即走「空視窗」真路徑
+    (dates=[] ⇒ 逐日迴圈零圈 ⇒ **零 finmind.fetch**),取回產生器之真輸出當 fixture。"""
+
+    def execute(self, *a, **k):
+        return None
+
+    def fetchall(self):
+        return []
+
+    def fetchone(self):
+        return None
+
+    def close(self):
+        return None
+
+
+class _EmptyConn:
+    def cursor(self):
+        return _EmptyCur()
+
+    def commit(self):
+        return None
+
+    def rollback(self):
+        return None
+
+
+def _selftest():
+    """自測(免 DB 免 API):判定接線回歸鎖——fixture 取自 `reconcile` 之**真輸出**(reconcile_by_date
+    空視窗 agg / compare 真差異計數),非手寫 dict;直接餵 `_summary` 之真判定路徑,不驗字面。"""
+    ok = True
+
+    def chk(name, cond):
+        nonlocal ok
+        ok = ok and cond
+        print(f"  {'✓' if cond else '✗FAIL'} {name}")
+
+    gap = reconcile.reconcile_by_date(_EmptyConn(), "SELFTEST_EMPTY")     # 真產生器輸出(零 API)
+    base = {**gap, "coverage_gap": False}                                 # 對照臂:僅此一欄之差
+    chk("fixture=產生器真輸出:空視窗即標 coverage_gap(產生器鍵名/語意漂移即紅)",
+        gap.get("coverage_gap") is True and gap.get("incomplete") is False)
+    r_gap, r_ok = _summary("SELFTEST_EMPTY", "by-date", gap), _summary("SELFTEST_EMPTY", "by-date", base)
+    chk("空視窗表擋綠(自算判式回 True=假綠;接 verdict 才紅)", r_gap["passed"] is False)
+    chk("對照臂:僅去 coverage_gap 即回綠(紅不是別的原因造成)", r_ok["passed"] is True)
+    chk("空視窗誠實標註、對照臂無標註(不靜默)", bool(r_gap["note"]) and not r_ok["note"])
+    chk("豁免表不因接 verdict 誤紅", _summary("X", "exempt", base)["passed"] is True)
+    chk("抓取失敗(errors)仍擋綠", _summary("X", "by-date", {**base, "errors": [{"e": 1}]})["passed"] is False)
+
+    cmp_bad = reconcile.compare([{"id": 1, "v": "10"}], [{"id": 1, "v": 11}], ["id"], ["v"])   # 真 VM 計數
+    per = {k: cmp_bad[k] for k in ("value_mismatch", "missing_in_db", "extra_in_db")}
+    r_uns = _summary("T", "by-date", {**base, "per_date": {"2026-08-03": per}}, unsettled={"2026-08-03"})
+    r_set = _summary("T", "by-date", {**base, "per_date": {"2026-08-01": per}}, unsettled={"2026-08-03"})
+    chk("窗策略保留:未定案日之差異不計 verdict", r_uns["passed"] is True and r_uns["vm"] == 0)
+    chk("窗策略保留:定案日之真 VM 擋綠且計數同 compare 真輸出",
+        r_set["passed"] is False and r_set["vm"] == cmp_bad["value_mismatch"] > 0)
+
+    cov = {**base, "coverage_ok": True}
+    chk("coverage:量級判準 FAIL 擋綠", _summary("N", "coverage", {**cov, "coverage_ok": False})["passed"] is False)
+    chk("coverage:量級 OK 且無 gap → 綠", _summary("N", "coverage", cov)["passed"] is True)
+    chk("coverage:空視窗仍擋綠(與 verdict 取交集只會更嚴)",
+        _summary("N", "coverage", {**gap, "coverage_ok": True})["passed"] is False)
+    print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
+    return 0 if ok else 1
+
+
 def main(argv):
+    if "--selftest" in argv:                 # 免 DB 免 API,須先於 db.connect
+        return _selftest()
     only, tables, recent = _parse(argv)
     results = []
     with db.connect() as conn:
@@ -216,7 +295,7 @@ def main(argv):
     all_pass = all(r["passed"] for r in results)
     _p("=" * 78)
     _p(f"#7 對帳總驗 {len(results)} 表 verdict:"
-       f"{'全表 PASS ✅(value_mismatch=0 ∧ extra_in_db=0,無幻像)' if all_pass else '有表 FAIL ❌ — 見上逐表'}")
+       f"{'全表 PASS ✅(value_mismatch=0 ∧ extra_in_db=0 ∧ 無未完整 ∧ 無空視窗,無幻像)' if all_pass else '有表 FAIL ❌ — 見上逐表'}")
     return 0 if all_pass else 1
 
 

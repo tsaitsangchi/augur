@@ -43,11 +43,22 @@ import sys
 from pathlib import Path
 
 import _bootstrap  # noqa: F401
+from augur.audit import scan_floor
 
 ROOT = Path(__file__).resolve().parents[1]
 SELF = Path(__file__).resolve()
 SCAN_DIRS = ("src", "scripts")               # plan §1 口徑之掃描範圍
 BASELINE = ROOT / "ops" / "vendor_binding_baseline.txt"
+
+# ── 對象數地板（M-G2）：本閘之假綠最兇——實讀 0 檔時 found={}，130 條基線全部「已清償」，
+# 而 new/inc 皆空 ⇒ 舊實作印 ✓ 並回 rc=0。「出血全清了」與「根本沒掃」同形。
+# 現況實測 2026-08-03：實讀 446→447 檔（scripts 328+／src 119，SELF 自檔豁免 −1；當日並行
+# 工單仍在增檔，故為區間非定值）。地板取 300。
+MIN_FILES = 300
+GROUP_ROOTS = ("src", "scripts")
+# 錨取**結構性長壽檔**（`_bootstrap` 是本器能啟動之前提、`augur/__init__` 自 v1.0 起點即在）：
+# 本器對自己有豁免，故不能自錨；拿新檔當錨則舊 worktree 上跑會假紅。
+ANCHORS = ("scripts/_bootstrap.py", "src/augur/__init__.py")
 
 # 字元類含數字（2026-08-03 補：原 [A-Za-z]+ 漏掉含數字之表名——TaiwanStock10Year 之 2 處
 # 直綁自本閘上崗起從未進口徑＝既有假綠。由 22 表登錄草案 agent 親驗抓出）
@@ -125,8 +136,12 @@ def fingerprint(rel: str, table: str, form: str) -> str:
 
 
 def _collect(paths):
-    """→ {指紋: 處數}。自檔豁免：本支 fixture 含 vendor SQL 樣本，掃到自己即假紅。"""
+    """→ ({指紋: 處數}, 實讀相對路徑集)。自檔豁免：本支 fixture 含 vendor SQL 樣本，掃到自己即假紅。
+
+    實讀集是地板判準（M-G2）之唯一素材——**零命中**與**零對象**必須分得開。
+    """
     counts: dict[str, int] = {}
+    read: set[str] = set()
     for p in paths:
         if p.resolve() == SELF:
             continue
@@ -135,10 +150,19 @@ def _collect(paths):
         except (UnicodeDecodeError, OSError):
             continue
         rel = str(p.relative_to(ROOT))
+        read.add(rel)
         for _ln, table, form in res:
             fp = fingerprint(rel, table, form)
             counts[fp] = counts.get(fp, 0) + 1
-    return counts
+    return counts, read
+
+
+def floor_checks(read_rels):
+    """實讀相對路徑集 → 地板宣告列（純函式；餵 `_collect` 之真輸出，#35(1)）。"""
+    per_root = {r: sum(1 for p in read_rels if p.split("/")[0] == r) for r in GROUP_ROOTS}
+    return ([scan_floor.FloorCheck("實讀 .py 檔總數", len(read_rels), MIN_FILES)]
+            + scan_floor.group_checks(per_root, prefix="掃描根")
+            + scan_floor.anchor_checks(read_rels, ANCHORS))
 
 
 def gate_verdicts(found: dict, base: dict):
@@ -218,14 +242,16 @@ def _default_paths():
 
 def gate(paths) -> int:
     text = BASELINE.read_text(encoding="utf-8") if BASELINE.exists() else None
-    rc, msgs = gate_report(_collect(paths), text)
+    counts, read = _collect(paths)
+    rc_floor = scan_floor.enforce("check_vendor_binding --gate", floor_checks(read))
+    rc, msgs = gate_report(counts, text)
     for m in msgs:
         print(m, file=sys.stderr if rc else sys.stdout)
-    return rc
+    return rc or rc_floor
 
 
 def scan(paths) -> int:
-    counts = _collect(paths)
+    counts, read = _collect(paths)
     by_file: dict[str, dict[str, int]] = {}
     for fp, n in counts.items():
         rel, table, form = fp.split("\t")
@@ -250,16 +276,22 @@ def scan(paths) -> int:
     for fp, n in counts.items():
         by_form[fp.split("\t")[2]] = by_form.get(fp.split("\t")[2], 0) + n
     forms = " ".join(f"{k}={v}" for k, v in sorted(by_form.items()))
-    print(f"\n合計: {len(by_file)} 檔/{total_occ} 處（{forms}）")
+    print(f"\n合計: {len(by_file)} 檔/{total_occ} 處（{forms}）;實讀 {len(read)} 檔")
+    rc_floor = scan_floor.enforce("check_vendor_binding", floor_checks(read))
     print("  對帳 plan §1（2026-08-02 grep 口徑）: quoted_table 140＋fred_series 4=52 檔/144 處;"
           "quoted_table_esc 為 grep 盲點、本支紅燈實測揭露之增量。")
     print("⚠ 射程：靜態字面掃描——動態組表名（f-string 拼 FROM）與 JOIN 直綁"
           "（親驗 2 處、檔已在清單內）不在口徑，M3 逐批 AST 親驗（plan §6）。")
-    return 1 if unclassified else 0
+    return 1 if (unclassified or rc_floor) else 0
 
 
 def write_baseline(paths) -> int:
-    counts = _collect(paths)
+    counts, read = _collect(paths)
+    # 地板先於寫入：實讀 0 檔時重寫基線＝把 130 條存量凍結清單清空（棘輪反轉），故未過地板即拒寫。
+    if scan_floor.enforce("check_vendor_binding --write-baseline", floor_checks(read)):
+        print("✗ 未達對象數地板 ⇒ 拒絕以本次掃描重寫基線（否則凍結清單被清空＝閘自己放行自己）。",
+              file=sys.stderr)
+        return 1
     if BASELINE.exists():
         _sha, old = parse_baseline(BASELINE.read_text(encoding="utf-8"))
         new, inc, cleared = gate_verdicts(counts, old)
@@ -342,8 +374,24 @@ def _selftest() -> int:
     chk("gate_report:增處 ⇒ 紅", gate_report({fpA: 2}, base_ok)[0] == 1)
 
     # 自我匹配防線（本專案五犯之型）
-    chk("自檔豁免:掃自己=零命中（fixture 樣本不得假紅）", _collect([SELF]) == {})
+    _self_counts, _self_read = _collect([SELF])
+    chk("自檔豁免:掃自己=零命中（fixture 樣本不得假紅）",
+        _self_counts == {} and _self_read == set())
     chk("round-trip:build→parse 基線無損", parse_baseline(base_ok) == (_caliber_sha(), {fpA: 1}))
+
+    # ── 對象數地板（M-G2）：餵**真掃描輸出**驗紅綠雙向（#35(1) 不手寫形狀）──
+    _live_counts, _live_read = _collect(_default_paths())
+    chk(f"地板:真 repo 實讀 {len(_live_read)} 檔 ⇒ 綠（本行即掃描範圍之下游絆線）",
+        scan_floor.verdict("live", floor_checks(_live_read))[0] == 0)
+    # **本閘最兇之假綠**：實讀 0 檔 ⇒ found={} ⇒ 基線全數「已清償」而 new/inc 皆空 ⇒ gate_report 綠
+    _empty_counts, _empty_read = _collect([ROOT / "scripts" / "no_such_file_mg2_probe.py"])
+    _base_txt = build_baseline_text({fpA: 1, fpB: 2})
+    chk("零對象時 gate_report 仍判綠（假綠之本體，故地板不可省）",
+        _empty_counts == {} and gate_report(_empty_counts, _base_txt)[0] == 0)
+    chk("地板:同一組零對象實讀集 ⇒ 紅（新加之絆線）",
+        scan_floor.verdict("empty", floor_checks(_empty_read))[0] == 1)
+    _no_src = {f"scripts/f{i}.py" for i in range(MIN_FILES + 5)}
+    chk("地板:src/ 整個不見（總數仍夠）⇒ 紅", scan_floor.verdict("x", floor_checks(_no_src))[0] == 1)
     print("自測:全通過 ✓" if ok else "自測:有失敗 ✗")
     return 0 if ok else 1
 

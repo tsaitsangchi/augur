@@ -106,6 +106,27 @@ def rcell_judge(cell, cap_cells):
     return wins, n_live, missing, incomp
 
 
+def deferred_judge(n_rc75, n_uncleared, n_total):
+    """A8 判定核心(M-T2 2026-08-03)——**純函式**,--selftest 餵 fixture 驗紅綠。
+
+    A8 要驗的是「搶不到重活鎖者**不 silent skip**」。原式拿 `evolution_deferred_work` 的
+    **總**列數判(0→N/A,否則 PASS):清帳是 `UPDATE cleared_at` 而非 `DELETE`,故總列數
+    只增不減 ⇒ 一旦有過一筆就**永遠 PASS**、結構上不可能 FAIL(「這盞綠燈量的不是它宣稱
+    在量的東西」)。改以 rc=75 事件數對照未清列數,FAIL 支路才真的可達。
+
+    ⚠ **射程(誠實揭露)**:`n_rc75` 之口徑＝三軸 ledger `steps_json` 內 `rc=75` 之**步**事件。
+    driver 自身之 slot-busy 路徑在**開輪之前**就 `return RC_SLOT_BUSY`,不寫 steps_json ⇒
+    **該路徑不在本 counter 涵蓋內**,只涵蓋「某一步之外呼腳本自行搶槽失敗」。要涵蓋 driver
+    自身路徑須另建拒絕帳(heavy_slot 只記 acquire 成功,不記 denial)——不在 M-T2 射程,列殘項。
+    """
+    ev = f"rc=75 步事件 {n_rc75} 筆｜deferred 未清 {n_uncleared}/總 {n_total} 列"
+    if n_rc75 > 0 and n_uncleared == 0:
+        return "FAIL", ev + "——有 rc=75 卻零未清積壓(落帳被吞或被靜默清帳)"
+    if n_rc75 == 0 and n_total == 0:
+        return "N/A", ev + "——無事件亦無帳,無資料可驗(誠實未通過)"
+    return "PASS", ev + "——rc=75 事件與積壓帳相符(heavy_slot v2)"
+
+
 def _q(cur, sql, params=()):
     cur.execute(sql, params)
     r = cur.fetchone()
@@ -236,9 +257,18 @@ def _checks(cur):
         f"控制流分支 {n_branch} 處(字面出現 {n_lit} 處=DDL 欄定義與本驗收器引用,屬正常)")
 
     # A8 重活互斥:搶不到鎖者有 deferred 列
-    n_def = _q(cur, "SELECT count(*) FROM evolution_deferred_work") or 0
-    add("A8", "重活互斥;搶不到鎖者於 evolution_deferred_work 有列",
-        "N/A" if n_def == 0 else "PASS", f"deferred {n_def} 列(heavy_slot v2 已上線)")
+    # 2026-08-03(M-T2):原式=「總列數 0→N/A,否則 PASS」——deferred 列**只增不減**(清帳是
+    # UPDATE cleared_at 不是 DELETE),故總列數一旦 >0 就永遠 >0 ⇒ **結構上不可能 FAIL**。
+    # 改為「rc=75 事件數 vs 未清列數」對照:有事件而無未清列 ⇒ 積壓帳被吞掉(2026-07-27
+    # UndefinedColumn 被 except 吞成 stderr、0 列落地之同型)⇒ FAIL。
+    n_unc = _q(cur, "SELECT count(*) FROM evolution_deferred_work WHERE cleared_at IS NULL") or 0
+    n_tot = _q(cur, "SELECT count(*) FROM evolution_deferred_work") or 0
+    n_rc75 = sum((_q(cur, f"""SELECT count(*) FROM {t} l,
+            LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(l.steps_json)='array'
+                THEN l.steps_json ELSE '[]'::jsonb END) s
+            WHERE (s->>'rc') = '75'""") or 0) for t in LEDGERS)
+    v8, ev8 = deferred_judge(n_rc75, n_unc, n_tot)
+    add("A8", "重活互斥;rc=75 事件皆於 evolution_deferred_work 留有未清列", v8, ev8)
 
     # A9 三軸隔離:isolation 零違規
     # 原另驗「augur_predict 對 local_model_*/raw_evolution_* 零授權」。2026-07-31 單一角色整併後
@@ -398,6 +428,19 @@ def _selftest():
         {"s": {"C2P"}})
     chk("R-CELL′-3:對照臂兩 attempt 同格不同值 ⇒ fail-loud incomparable、該格不產 win",
         w2 == [] and any("floor@C2P" in x for x in i2) and any("不可判" in x for x in m2))
+
+    # ── A8 紅綠(M-T2 2026-08-03)——純函式餵 fixture,驗**FAIL 支路真的可達** ──
+    # 舊式(總列數 0→N/A 否則 PASS)對任何 n_total>0 都回 PASS ⇒ **第一條即舊碼之突變體
+    # 偵測器**(scratch 實測:退回舊式該條轉紅、其餘三條仍綠)。
+    # ⚠ 本組只鎖**判式**;A8 取數之 SQL 謂詞(`cleared_at IS NULL`)與 rc=75 之 jsonb 展開
+    # 需 PG 才能跑,不在本自測射程——同一謂詞之行為鎖住在 run_evolution_iteration 之自測。
+    chk("A8:有 rc=75 事件而零未清積壓 ⇒ FAIL(舊式在此回 PASS=結構上不可能紅)",
+        deferred_judge(3, 0, 9)[0] == "FAIL")
+    chk("A8:有 rc=75 事件且有未清積壓 ⇒ PASS(落帳確實發生)",
+        deferred_judge(3, 3, 12)[0] == "PASS")
+    chk("A8:live 現況(0 事件/0 未清/9 已清)⇒ PASS 而非恆亮告警",
+        deferred_judge(0, 0, 9)[0] == "PASS")
+    chk("A8:零事件零帳 ⇒ N/A(空表不算通過)", deferred_judge(0, 0, 0)[0] == "N/A")
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 
