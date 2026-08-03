@@ -365,6 +365,13 @@ def build(days, md):
                      if "→" in ln or "MISMATCH" in ln]
         L.append(sentinel_line("門指紋哨(criteria_sha 覆算)", _sha.returncode, _sha_tail))
 
+        # M-O9 並行容量哨兵（master §7.3 週報「容量：…」行；唯讀、不取 heavy_slot）
+        _cap = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve().parent / "check_parallel_capacity.py"),
+             "--week-line"], capture_output=True, text=True, timeout=60)
+        _cap_line = (_cap.stdout or _cap.stderr or "").strip().splitlines()
+        L.append(sentinel_line("並行容量哨(M-O9)", _cap.returncode, _cap_line[:1] or _cap_line[-1:]))
+
         h1(f"R6 APPLY digest(近 {days} 日;依 gate_ref 分欄——含人閘路;請掃視認領)")
         cur.execute("""SELECT a.evidence_json->>'gate_ref', a.applied_at, q.feature, q.action,
                               a.before_status, a.after_status, a.evidence_json->>'auto_rule'

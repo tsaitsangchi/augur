@@ -117,13 +117,15 @@ def decide_from_eval_rows(rows: list, thresholds: dict) -> dict:
     同一 cell 之五臂列；detail 優先吃 evaluator 已寫之 k1/k2_breach/k3／undecidable_reasons。
     """
     if not rows:
-        return decide_from_bundle(
+        out = decide_from_bundle(
             n_valid=0, n_valid_min=int(thresholds["n_valid_min"]),
             k_clusters=0, date_clusters_min=int(thresholds["date_clusters_min"]),
             arms_present=[], k1=False, k2=False, k3=False,
-            evidence_eval_ids=[0],  # 佔位；caller 不得寫入——見 write_allowed／額外檢查
-            thresholds_snapshot=thresholds,
+            evidence_eval_ids=[], thresholds_snapshot=thresholds,
         )
+        out["write_allowed"] = False
+        out["note"] = "無 eval 列可作證據——拒寫"
+        return out
 
     arms = []
     ids = []
@@ -142,15 +144,11 @@ def decide_from_eval_rows(rows: list, thresholds: dict) -> dict:
 
     n_valid = int(detail0.get("n_reconcile", {}).get("n_valid")
                   or (live or rows[0]).get("n_valid") or 0)
-    # 簇數：detail k2 之任一臂 delta_per_cluster 鍵數，或 detail 粒度 note
     k_clusters = 0
     k2d = detail0.get("k2") or {}
     for arm_d in k2d.values():
         if isinstance(arm_d, dict) and arm_d.get("delta_per_cluster"):
             k_clusters = max(k_clusters, len(arm_d["delta_per_cluster"]))
-    if not k_clusters and live is not None:
-        # fallback：無 k2 結構時保守 0 → undecidable
-        k_clusters = 0
 
     if "k1" in detail0 and "k2_breach" in detail0 and "k3" in detail0:
         k1 = bool(detail0["k1"].get("breach"))
@@ -158,7 +156,6 @@ def decide_from_eval_rows(rows: list, thresholds: dict) -> dict:
         k3 = bool(detail0["k3"].get("breach"))
         k_detail = {"k1": detail0.get("k1"), "k2": detail0.get("k2"), "k3": detail0.get("k3")}
     else:
-        # 無 detail 素材時由 live 列重算 k1/k3；k2 無 LCB ⇒ 視為未勝＝breach（fail-closed）
         cov80 = float((live or {}).get("cov_p80") or 0.0)
         cov90 = float((live or {}).get("cov_p90") or 0.0)
         tol = thresholds.get("cov_tol") or {"p80": 0.05, "p90": 0.05}
@@ -166,20 +163,8 @@ def decide_from_eval_rows(rows: list, thresholds: dict) -> dict:
         pit_p = (live or {}).get("pit_ks_p")
         p_min = float((thresholds.get("pit") or {}).get("p_min") or 0.05)
         k3 = k3_breach(float(pit_p), p_min) if pit_p is not None else True
-        k2 = True  # 缺 LCB＝不得宣称勝過地板臂
+        k2 = True  # 缺 LCB＝不得宣稱勝過地板臂（fail-closed）
         k_detail = {"recomputed": True, "k2_fail_closed": "缺 detail.k2 LCB"}
-
-    # empty ids 不可寫（chk_sev_evidence_nonempty）；零列已在上面用假 id 擋
-    if ids == [0] and not rows:
-        out = decide_from_bundle(
-            n_valid=0, n_valid_min=int(thresholds["n_valid_min"]),
-            k_clusters=0, date_clusters_min=int(thresholds["date_clusters_min"]),
-            arms_present=[], k1=False, k2=False, k3=False,
-            evidence_eval_ids=[0], thresholds_snapshot=thresholds,
-        )
-        out["write_allowed"] = False
-        out["note"] = "無 eval 列可作證據——拒寫"
-        return out
 
     out = decide_from_bundle(
         n_valid=n_valid,
@@ -192,10 +177,9 @@ def decide_from_eval_rows(rows: list, thresholds: dict) -> dict:
         thresholds_snapshot=thresholds,
         k_detail=k_detail,
     )
-    # 假 id＝0 不得寫
-    if any(i <= 0 for i in ids):
+    if not ids or any(i <= 0 for i in ids):
         out["write_allowed"] = False
-        out["note"] = (out.get("note") or "") + "；evidence_eval_ids 非法"
+        out["note"] = ((out.get("note") or "") + "；evidence_eval_ids 非法").lstrip("；")
     return out
 
 

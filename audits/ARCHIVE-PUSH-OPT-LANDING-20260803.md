@@ -7,7 +7,7 @@
 
 | 項 | 值 |
 |---|---|
-| **Commit** | （最終 tip；見 tag） |
+| **Commit** | `01245e2117b2fa2c406f047aefabbdea1bc8bdb9` |
 | **Tag** | `archive-20260803-opt-landing` |
 | **Branch** | `main` → `origin/main` |
 
