@@ -1,3 +1,13 @@
+---
+status: current
+series: deep_understanding
+round: r4
+supersedes:
+  - reports/augur_deep_understanding_optimization_base_20260730.md
+  - reports/augur_deep_understanding_20260731.md
+  - reports/augur_deep_understanding_r2_20260731.md
+  - reports/augur_deep_understanding_r3_20260801.md
+---
 # augur 深化理解報告 r4（2026-08-03 09:xx）——優化地基・第四輪
 
 > **性質**：[I] 全專案現況之深化理解，作為後續優化之依據。**不創設治權判準**、不改任何 [N] 文字。

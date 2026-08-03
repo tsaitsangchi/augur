@@ -10,8 +10,10 @@
   ① **重活經 heavy_slot 單槽鎖**(I1/I2/I3/I6/I7):本機 Ollama/PG/CPU 各一份,兩支重活同時跑=結果不可比;
      搶不到鎖**不 silent skip**,寫 evolution_deferred_work 並以 rc=75 退出(積壓可見)。
   ② **I5 APPLY 需明示**:預設 `apply_allowed=false`。`--allow-apply` 走 V2-AUTOADVANCE R2 之四道機械篩
-     (雙綠∧kill clear、FAIL_SIGN 篩過、對照臂偽陽率閘、單輪上限 1 特徵),並在帳上留 gate_ref;
+     (雙綠∧kill clear、FAIL_SIGN 篩過、對照臂偽陽率閘、單輪上限 1 特徵),並在帳上留 gate_ref
+     (**M-E3**:同時把 ledger.`apply_allowed` 翻 true＋寫 `gate_ref` 正規欄——舊碼只塞 steps_json);
      **人閘碼 `TWEVO-APPLY-go` 由 hugo 親跑**時走 `--allow-apply --gate-ref TWEVO-APPLY-go`。driver 不代簽。
+     結輪另寫 `source_run_id`／`dual_green_names`／`near_miss_json`／`evidence_hash`（正規欄不再全空）。
   ③ **不可比誠實回 incomparable**:閘口徑換過(GATE-raise)或無前輪 → gain=NULL、`gain_basis='incomparable'`,
      且**不計入停損**——不可比≠沒進步(2026-07-26 量尺失效之同型防線)。
 
@@ -199,6 +201,80 @@ def _snapshot(cur):
             "source_run_id": rid}
 
 
+def _dual_green_names(cur, run_id):
+    """本 run 雙綠 feature 名（有序 list；run 缺則 []）。正規欄 `dual_green_names` 之單一住所。"""
+    if run_id is None:
+        return []
+    cur.execute("""SELECT array_agg(DISTINCT feature ORDER BY feature)
+        FROM promotion_queue
+        WHERE run_id=%s
+          AND gate_json->'G-PROM'->>'verdict'='PASS'
+          AND gate_json->'G-ECON'->>'verdict'='PASS'""", (run_id,))
+    r = cur.fetchone()
+    return list(r[0] or []) if r else []
+
+
+def _near_miss_rows(cur, run_id, limit=40):
+    """近失候選：同 run 內 G-PROM／G-ECON 恰一綠者（名＋缺哪閘；無 panel 數字）。"""
+    if run_id is None:
+        return []
+    cur.execute("""SELECT feature,
+            gate_json->'G-PROM'->>'verdict',
+            gate_json->'G-ECON'->>'verdict'
+        FROM promotion_queue
+        WHERE run_id=%s
+          AND ((gate_json->'G-PROM'->>'verdict'='PASS')
+               <> (gate_json->'G-ECON'->>'verdict'='PASS'))
+        ORDER BY feature LIMIT %s""", (run_id, limit))
+    out = []
+    for feat, gp, ge in cur.fetchall():
+        miss = "G-ECON" if gp == "PASS" else "G-PROM"
+        out.append({"feature": feat, "gate": miss,
+                    "reason": f"G-PROM={gp} G-ECON={ge}"})
+    return out
+
+
+def evidence_hash_of(uid, snap, dual_names, near_miss):
+    """內容定址短 hash（M-E3；純函式——serialization 口徑一改即紅）。"""
+    import hashlib
+    blob = json.dumps(
+        {"uid": uid, "snap": snap, "dual": dual_names, "near": near_miss},
+        ensure_ascii=False, sort_keys=True, default=str)
+    return hashlib.sha256(blob.encode()).hexdigest()[:16]
+
+
+def ledger_close_fields(cur, uid):
+    """結輪要寫入正規欄之包（M-E3）——先前只塞 gain_evidence JSON，正規欄全空。"""
+    snap = _snapshot(cur)
+    rid = snap.get("source_run_id")
+    dual = _dual_green_names(cur, rid)
+    near = _near_miss_rows(cur, rid)
+    return {
+        "source_run_id": rid,
+        "dual_green_names": dual,
+        "near_miss_json": near,
+        "evidence_hash": evidence_hash_of(uid, snap, dual, near),
+        "snapshot": snap,
+    }
+
+
+def mark_apply_allowed(cur, uid, allow_apply, gate_ref):
+    """`--allow-apply` 之正規欄留痕（M-E3）。
+
+    舊碼只在 steps_json 之 I5 步記 gate_ref、ledger.`apply_allowed` 開輪硬寫 false 且
+    **全檔無處改 true** ⇒ #26 授權四要件在正規欄永遠空。此函式在跑步前翻旗＋寫 gate_ref。
+    未帶 --allow-apply 時**不**清既有 true（resume 輪若先前已授權則保留）。
+    """
+    if not allow_apply:
+        return False
+    cur.execute("SET LOCAL augur.honesty_write = 'on'")
+    cur.execute("""UPDATE evolution_iteration_ledger
+        SET apply_allowed=true, gate_ref=%s
+        WHERE iteration_uid=%s AND status='running'""",
+                (gate_ref, uid))
+    return True
+
+
 def _tail(raw, n):
     """取末 n 行為 **str** list。`TimeoutExpired.stdout` 即使 text=True 仍是 bytes
     (CPython 以 b''.join 建例外、不經 newline translation),直接進 json.dumps 會炸
@@ -321,6 +397,10 @@ def close_round(dry, partial=False):
         prev_snap = (r[0] or {}).get("snapshot") if r else None
         prev_cnt = r[1] if r else 0
         cur_snap = _snapshot(cur)
+        close_fields = None
+        if not dry and got and got[0] != "(dry:未開輪)":
+            close_fields = ledger_close_fields(cur, uid)
+            cur_snap = close_fields["snapshot"]
         if missing:
             gain, basis = None, "incomparable"     # 不完整之輪無資格宣稱增益
         else:
@@ -346,17 +426,24 @@ def close_round(dry, partial=False):
                 print(ver_note)
             return 0
         cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2b)
+        cf = close_fields or ledger_close_fields(cur, uid)
         cur.execute("""UPDATE evolution_iteration_ledger
             SET status=%s, closed_at=now(), closed_by='run_evolution_iteration(執行層)',
-                gain=%s, gain_basis=%s, gain_evidence=%s, consecutive_no_gain=%s, stop_reason=%s
+                gain=%s, gain_basis=%s, gain_evidence=%s, consecutive_no_gain=%s, stop_reason=%s,
+                source_run_id=%s, dual_green_names=%s, near_miss_json=%s, evidence_hash=%s
             WHERE iteration_uid=%s""",
             (status, gain, basis,
              json.dumps({"suite_id": "twevo_i0i9_v1", "snapshot": cur_snap,
                          "prev_snapshot": prev_snap, "missing_steps": missing,
                          "retried_steps": retried}, ensure_ascii=False),
-             cnt, reason, uid))
+             cnt, reason,
+             cf["source_run_id"], cf["dual_green_names"],
+             json.dumps(cf["near_miss_json"], ensure_ascii=False),
+             cf["evidence_hash"], uid))
         conn.commit()
-        print(f"✓ 結輪 {uid}:{status} gain={gain}(basis={basis}) 連續無增益={cnt}")
+        print(f"✓ 結輪 {uid}:{status} gain={gain}(basis={basis}) 連續無增益={cnt}"
+              f" source_run={cf['source_run_id']} dual_green={len(cf['dual_green_names'])}"
+              f" hash={cf['evidence_hash']}")
         if basis == "incomparable":
             print("  (不可比:無前輪/摘要版本換過/閘口徑換過/輪不完整——**不計停損**,誠實非「沒進步」)")
             if ver_note:
@@ -396,6 +483,9 @@ def run_round(steps_to_run, dry, allow_apply, gate_ref, slot_wait: float = 0):
                 print("無進行中之輪(先 --open,或用 --run 自動開輪)")
                 return 1
             uid, steps = got
+            if not dry and mark_apply_allowed(cur, uid, allow_apply, gate_ref):
+                conn.commit()
+                print(f"  ✓ apply_allowed=true gate_ref={gate_ref}（M-E3 正規欄留痕）")
             for step in steps_to_run:
                 if heavy_needed and not dry:
                     slot.verify()               # 每個 heavy step 邊界重驗(掉鎖 fail-loud)
@@ -638,6 +728,37 @@ def _selftest():
     chk("I6 未重訓未預測記明(train_ranker/predict_asof 未接)",
         "train_ranker" in STEP_SCOPE["I6"] and "predict_asof" in STEP_SCOPE["I6"])
     chk("重啟須人裁(R5)訊息在", "重啟須人裁" in body)
+    # ── M-E3：正規欄留痕（2026-08-03）──
+    # 舊洞＝開輪硬寫 apply_allowed=false 且全檔無處改 true；gate_ref／source_run_id 等只活在
+    # gain_evidence JSON。驗：(a) hash 純函式穩定；(b) mark 真的會發 UPDATE apply_allowed=true；
+    # (c) 結輪 UPDATE 字面含四個正規欄（掃 SQL，非掃本註解）。
+    h1 = evidence_hash_of("tw-x", {"a": 1}, ["f1"], [])
+    h2 = evidence_hash_of("tw-x", {"a": 1}, ["f1"], [])
+    h3 = evidence_hash_of("tw-x", {"a": 1}, ["f1", "f2"], [])
+    chk("M-E3:evidence_hash 同輸入同輸出", h1 == h2 and len(h1) == 16)
+    chk("M-E3:dual_green 變 ⇒ hash 變（內容定址）", h1 != h3)
+    class _MarkCur:
+        def __init__(self):
+            self.sqls = []
+
+        def execute(self, sql, params=None):
+            self.sqls.append((sql, params))
+    _mc = _MarkCur()
+    chk("M-E3:未 --allow-apply ⇒ mark 不寫", mark_apply_allowed(_mc, "tw-x", False, "X") is False
+        and _mc.sqls == [])
+    chk("M-E3:--allow-apply ⇒ UPDATE apply_allowed=true＋gate_ref",
+        mark_apply_allowed(_mc, "tw-x", True, "TWEVO-APPLY-go") is True
+        and any("apply_allowed=true" in s and "gate_ref" in s for s, _ in _mc.sqls)
+        and any(p == ("TWEVO-APPLY-go", "tw-x") for _, p in _mc.sqls if p))
+    _close_sql = "\n".join(
+        ln for ln in body.splitlines()
+        if "source_run_id" in ln or "dual_green_names" in ln
+        or "near_miss_json" in ln or "evidence_hash" in ln)
+    chk("M-E3:結輪 UPDATE 寫四正規欄", all(
+        k in _close_sql for k in ("source_run_id", "dual_green_names",
+                                  "near_miss_json", "evidence_hash")))
+    chk("M-E3:開輪仍預設 apply_allowed=false（不得變預設開）",
+        "apply_allowed) VALUES (%s,'tw','running',%s,false)" in body)
     # ── 積壓謂詞回歸鎖(2026-08-03 M-T2)──
     # 餵 **in-memory sqlite 之真表**(免 PG、零外部依賴),欄形同 evolution_deferred_work:
     # 3 列已清 + 2 列未清 ⇒ 正解 2。突變體(拿掉 WHERE cleared_at IS NULL)必回 5 ⇒ 紅。

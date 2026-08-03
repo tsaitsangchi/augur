@@ -3,7 +3,7 @@
 
 白話:一頁掃完「這週該不該繼續、有什麼等你、機器自己決定了什麼」。唯讀(A12:對 DB 零寫入)。
   §1 V2-SUNSET 三條件現況+剩餘天數(**第一行**;吞吐指標一律排其後)
-  §2 R6 digest:本週 gate_ref='V2-AUTOADVANCE' 自動決策逐筆(表/列/時戳/規則)供 hugo 掃視認領
+  §2 R6 digest:本週 evolution_apply_log **依 gate_ref 分欄**逐筆(含 V2-AUTOADVANCE／TWEVO-APPLY-go／HUMAN-PROMOTION；舊碼只濾 AUTOADVANCE＝人閘 APPLY 失明＝M-G7)
   §3 待你裁決:qledger awaiting_hugo + hint pending + serving 晉升待處置
   §4 吞吐指標(iteration/hint/coverage 計數;**標明非成功指標**)
 守 #15(成功≠吞吐、數字皆現查)· A12(唯讀)· #28(零 token)· #29;SSOT=v2 §2.2/§3.3 C8/R6。
@@ -43,6 +43,31 @@ def recent_alerts(lines, today, days=7):
             ok = True   # 不可解析＝保留
         if ok and ln.strip():
             out.append(ln.rstrip())
+    return out
+
+
+def format_apply_digest_by_gate_ref(rows, max_per_group=20):
+    """R6 digest 列 → 依 gate_ref 分組之報表行（M-G7；**純函式**）。
+
+    `rows`＝`(gate_ref, applied_at, feature, action, before, after, rule)`。
+    舊碼 `WHERE gate_ref='V2-AUTOADVANCE'` 使 TWEVO-APPLY-go／HUMAN-PROMOTION 從 digest 消失
+    ——人閘路 APPLY 失明；本函式必須把**所有** gate_ref 印出（含 null 桶）。
+    """
+    from collections import defaultdict
+    buckets = defaultdict(list)
+    for gate_ref, ts, feat, act, b, a_, rule in rows:
+        buckets[gate_ref or "(null)"].append((ts, feat, act, b, a_, rule))
+    out = [f"  本期 APPLY 共 {len(rows)} 筆、{len(buckets)} 個 gate_ref"
+           + ("" if rows else "(無)")]
+    for ref in sorted(buckets, key=lambda k: (-len(buckets[k]), k)):
+        items = buckets[ref]
+        out.append(f"  —— gate_ref={ref}（{len(items)} 筆）")
+        for ts, feat, act, b, a_, rule in items[:max_per_group]:
+            ts_s = ts.strftime("%m-%d %H:%M") if hasattr(ts, "strftime") else str(ts)
+            rule_s = f"  [{rule}]" if rule else ""
+            out.append(f"  · {ts_s} {feat}: {act} {b}→{a_}{rule_s}")
+        if len(items) > max_per_group:
+            out.append(f"  …另 {len(items) - max_per_group} 筆(同 gate_ref)")
     return out
 
 
@@ -340,19 +365,13 @@ def build(days, md):
                      if "→" in ln or "MISMATCH" in ln]
         L.append(sentinel_line("門指紋哨(criteria_sha 覆算)", _sha.returncode, _sha_tail))
 
-        h1(f"R6 自動決策 digest(近 {days} 日;請掃視認領)")
-        cur.execute("""SELECT a.applied_at, q.feature, q.action, a.before_status, a.after_status,
-                              a.evidence_json->>'auto_rule'
+        h1(f"R6 APPLY digest(近 {days} 日;依 gate_ref 分欄——含人閘路;請掃視認領)")
+        cur.execute("""SELECT a.evidence_json->>'gate_ref', a.applied_at, q.feature, q.action,
+                              a.before_status, a.after_status, a.evidence_json->>'auto_rule'
                        FROM evolution_apply_log a JOIN promotion_queue q USING (queue_id)
-                       WHERE a.evidence_json->>'gate_ref'='V2-AUTOADVANCE'
-                         AND a.applied_at > now() - make_interval(days => %s)
+                       WHERE a.applied_at > now() - make_interval(days => %s)
                        ORDER BY a.applied_at DESC""", (days,))
-        rows = cur.fetchall()
-        L.append(f"  本期自動決策 {len(rows)} 筆" + ("" if rows else "(無)"))
-        for ts, feat, act, b, a_, rule in rows[:20]:
-            L.append(f"  · {ts:%m-%d %H:%M} {feat}: {act} {b}→{a_}  [{rule}]")
-        if len(rows) > 20:
-            L.append(f"  …另 {len(rows)-20} 筆(全量查 evolution_apply_log)")
+        L.extend(format_apply_digest_by_gate_ref(cur.fetchall()))
 
         h1(f"本週自動審批(SRC-AUTO;近 {days} 日;P5.W5 掃視認領)")
         cur.execute("""SELECT created_at, source_key, reason FROM knowledge_source_review_log
@@ -531,6 +550,30 @@ def _selftest():
         "robot 哨兵 0.5" in _ln and "不入排名" in _ln)
     chk("R-CELL′ 行:零 live run 時有效格=0(綠燈也要驗得到)",
         "capability 有效格 0" in rcell_status_line("(s/h)", {"C1"}, {}, {}))
+    # M-G7：digest 必須依 gate_ref 分欄——fixture 含人閘兩種;舊 WHERE=AUTOADVANCE 會只見 1 組
+    _g7 = [
+        ("V2-AUTOADVANCE", datetime(2026, 8, 1, 10, 0), "f_auto", "promote", "pending", "active", "r1"),
+        ("TWEVO-APPLY-go", datetime(2026, 8, 2, 11, 0), "f_twevo", "promote", "pending", "active", None),
+        ("HUMAN-PROMOTION", datetime(2026, 8, 2, 12, 0), "f_human", "promote", "pending", "active", None),
+        ("V2-AUTOADVANCE", datetime(2026, 8, 2, 13, 0), "f_auto2", "demote", "active", "retired", "r2"),
+    ]
+    _g7_lines = "\n".join(format_apply_digest_by_gate_ref(_g7))
+    chk("M-G7:總筆數=4 且分三個 gate_ref",
+        "共 4 筆、3 個 gate_ref" in _g7_lines)
+    chk("M-G7:TWEVO-APPLY-go 可見(舊濾網失明此桶)",
+        "gate_ref=TWEVO-APPLY-go" in _g7_lines and "f_twevo" in _g7_lines)
+    chk("M-G7:HUMAN-PROMOTION 可見(人閘路 APPLY)",
+        "gate_ref=HUMAN-PROMOTION" in _g7_lines and "f_human" in _g7_lines)
+    chk("M-G7:AUTOADVANCE 仍在(不得回退濾網為全丟)",
+        "gate_ref=V2-AUTOADVANCE" in _g7_lines and "2 筆" in _g7_lines)
+    # 掃 SQL 字面（不掃本自測字串；#35 同型第五犯：斷言含針則恆紅）
+    _sql_lits = " ".join(
+        ln for ln in src.splitlines()
+        if "cur.execute" in ln or ln.strip().startswith(("\"\"\"SELECT", "'SELECT", "SELECT "))
+    )
+    # 函式存在性已由上方 format_apply_digest_by_gate_ref(_g7) 真輸入斷言覆蓋（禁字面 in src）
+    chk("M-G7:生產 SQL 不再單濾 AUTOADVANCE",
+        "V2-AUTOADVANCE" not in _sql_lits)
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 

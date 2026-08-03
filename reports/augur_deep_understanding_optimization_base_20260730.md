@@ -1,3 +1,9 @@
+---
+status: superseded
+superseded_by: reports/augur_deep_understanding_r4_20260803.md
+series: deep_understanding
+round: r0
+---
 # Augur 深化理解報告——優化地基（2026-07-30 晚）
 
 > **位階**：[I] 理解／接續記憶（非 [N]；不創設治權判準）  

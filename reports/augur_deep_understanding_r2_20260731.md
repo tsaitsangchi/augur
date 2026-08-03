@@ -1,3 +1,9 @@
+---
+status: superseded
+superseded_by: reports/augur_deep_understanding_r4_20260803.md
+series: deep_understanding
+round: r2
+---
 # Augur 深化理解報告 r2——獨立核驗＋重開機後全面重測（2026-07-31 午）
 
 * **用途**：Steward 指示「深化理解此專案所有檔案內容後詳細理解並記住，並做出深化理解的專案報告，

@@ -1,3 +1,9 @@
+---
+status: superseded
+superseded_by: reports/augur_deep_understanding_r4_20260803.md
+series: deep_understanding
+round: r3
+---
 # augur 深化理解報告 r3（2026-08-01 晨）——優化地基・第三輪
 
 > **性質**：全專案現況之深化理解，作為後續優化之依據（承 r1 07-30／r2 07-31 午；本輪涵蓋 07-31 全日劇變＋08-01 晨結輪）。

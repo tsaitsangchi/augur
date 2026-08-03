@@ -20,6 +20,7 @@ Claude memory 住 ~/.claude/projects/<mangled>/memory/,機器本地、不隨 git
     python sync_memory.py scan            # 只跑密碼掃描(唯讀;export 前想先看結果時用)
     python sync_memory.py restore         # handoff_memory/ → 活 memory(新機還原;覆蓋前自動備份)
     python sync_memory.py restore --force  # 略過「已存在且相同」檢查,強制覆蓋(仍先備份)
+    python sync_memory.py --selftest      # 零 DB：閘存在／無略過旗標／假綠地板（M-O3）
 """
 import argparse
 import re
@@ -187,6 +188,44 @@ def cmd_restore(force: bool) -> int:
     return 0
 
 
+def _selftest() -> int:
+    """M-O3 回歸鎖：export 必須先掃密碼、無略過旗標、掃描器可載入（#35 先驗紅）。"""
+    ok = True
+    src = Path(__file__).read_text(encoding="utf-8")
+
+    def chk(name, cond):
+        nonlocal ok
+        print(("  ✓ " if cond else "  ✗ ") + name)
+        ok = ok and cond
+
+    chk("export 調用 run_secret_scan", "run_secret_scan(lf)" in src and "cmd_export" in src)
+    chk("掃紅則中止且不寫入", "export 已中止" in src and "快照未被更動" in src)
+    # 掃 argparse 區（_selftest 之前）——斷言字串本身含針會假紅（#35）
+    _arg_zone = src.split("def _selftest", 1)[0]
+    chk("無略過旗標於 argparse／export 路徑",
+        all(x not in _arg_zone for x in (
+            "--skip-secret", "--skip-scan", "skip_secret", "force_export")))
+    chk("判準住 plaintext_credential（#12）", "plaintext_credential" in src)
+    try:
+        pc = load_scanner()
+        chk("掃描器可 import", hasattr(pc, "scan_files") and hasattr(pc, "verdict"))
+        # 先驗紅：假檔含典型連線字串 ⇒ 必須報命中（否則掃什麼都綠＝假閘）
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "probe.md"
+            p.write_text("DB_PASSWORD=SuperSecret123!\n", encoding="utf-8")
+            findings, seen = pc.scan_files({"probe.md": p})
+            chk("M-O3 紅：明碼樣板必命中", len(findings) >= 1 and "probe.md" in seen)
+            clean = Path(td) / "clean.md"
+            clean.write_text("# 無憑證之記憶片段\n", encoding="utf-8")
+            f2, s2 = pc.scan_files({"clean.md": clean})
+            chk("M-O3 綠：乾淨檔可零命中", len(f2) == 0 and "clean.md" in s2)
+    except Exception as exc:  # noqa: BLE001
+        chk(f"掃描器可 import（{exc}）", False)
+    print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
+    return 0 if ok else 1
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Claude memory ⇄ repo 快照 傳輸器(零 Claude usage)")
     ap.add_argument("cmd", nargs="?", default="status",
@@ -194,7 +233,10 @@ def main() -> int:
                     help="status(預設唯讀比對) / scan(唯讀密碼掃描) / export(活→repo,內含掃描) "
                          "/ restore(repo→活)")
     ap.add_argument("--force", action="store_true", help="restore 時強制覆蓋(仍先備份)")
+    ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
+    if args.selftest:
+        return _selftest()
     if args.cmd == "status":
         return cmd_status()
     if args.cmd == "scan":

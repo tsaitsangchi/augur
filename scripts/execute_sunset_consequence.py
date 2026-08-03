@@ -8,9 +8,10 @@
 「三軸整體停止、帳本封存、不得換 trigger_code 重開」**無機械載體**——07-31 結算時
 `settle_sunset_gate.py` 誠實自陳不執行；封存腳本不存在。本支＝該載體。
 
-**現行處置（呈案單 F3-apply 建議、待 Steward 圈選）**：腳本落地後**不啟用**、
-僅 `--check` 常備——SUNSET 已 pass、無現行停止需求；下一個停損閘設立時一併啟用。
-證偽條件＝若下一停損閘觸發時本支已鏽（--check 紅），「不啟用」策略即證偽、改季度演練。
+**現行處置（呈案單 F3-apply 建議）**：SUNSET 已 pass、無現行停止需求 ⇒ 通常**不** `--apply`。
+M-G12（2026-08-03／r4 G10）：`--check` 之綠＝`pg_trigger` 上 `trg_sunset_seal_%` **掛齊四表**
+（SQL 計數＋rc），**不再**以「本行印得出來＝未鏽」自證。現況 0 支 seal ⇒ `--check` 必紅——
+這不是腳本鏽了，是載體「未啟用」的誠實態；週報哨會照印紅（不吞）。
 
 三成分設計：
   〔停止〕四 scope 全設 halt——複用 `set_evolution_kill_switch.set_state`；
@@ -22,8 +23,8 @@
 
 執行指令矩陣
 ------------
-    python3 scripts/execute_sunset_consequence.py            # 無參數＝--check（唯讀健檢）
-    python3 scripts/execute_sunset_consequence.py --check    # 三成分之機械現況（誠實含缺口）
+    python3 scripts/execute_sunset_consequence.py            # 無參數＝--check（唯讀；seal 未齊→rc≠0）
+    python3 scripts/execute_sunset_consequence.py --check    # SQL 查 seal＋印三成分；掛齊才 rc=0
     python3 scripts/execute_sunset_consequence.py --apply    # 執行停止＋封存（**TTY 親簽；首次=Steward**）
     python3 scripts/execute_sunset_consequence.py --unseal   # 卸封存 trigger（重開程序之機械步；TTY 親簽）
     python3 scripts/execute_sunset_consequence.py --selftest # 紅綠自測（免 DB 免 API）
@@ -65,6 +66,13 @@ def reader_coverage_note(tw_refs, raw_refs, lai_refs):
     return f"讀者覆蓋:tw {tw_refs} 處/raw {raw_refs} 處/{lai}"
 
 
+def seal_check_rc(n_sealed, n_expected=None):
+    """封存燈之 exit code（純函式；M-G12）。掛齊四表→0；少一支→1。量的是 seal，不是本腳本存在。"""
+    if n_expected is None:
+        n_expected = len(LEDGERS)
+    return 0 if n_sealed >= n_expected else 1
+
+
 def _sign(action):
     if not (sys.stdin.isatty() and sys.stdout.isatty()):
         raise SystemExit(f"P5.W2 人閘:{action} 須互動 TTY——AI 不得代簽;首次啟用=Steward")
@@ -81,11 +89,16 @@ def _seal_state(cur):
 
 
 def _check(conn) -> int:
+    """M-G12：綠＝`trg_sunset_seal_%` 覆蓋 LEDGERS 四表（SQL）；0 支即紅——不再自證「印得出來」。"""
     import subprocess
     with conn.cursor() as cur:
         cur.execute("SELECT scope||'='||state FROM evolution_kill_switch ORDER BY scope")
         ks = [r[0] for r in cur.fetchall()]
         sealed = _seal_state(cur)
+        # 與 master 驗收同形：`tgname LIKE 'trg_sunset_seal_%'`（含非 LEDGERS 孤兒亦計入普查）
+        cur.execute("SELECT count(*) FROM pg_trigger WHERE tgname LIKE %s AND NOT tgisinternal",
+                    (TRG_PREFIX + "%",))
+        n_seal_pg = cur.fetchone()[0]
     root = pathlib.Path(__file__).resolve().parents[1]
     refs = {}
     for tag, f in (("tw", "scripts/run_evolution_iteration.py"),
@@ -94,15 +107,20 @@ def _check(conn) -> int:
         r = subprocess.run(["grep", "-c", "kill_switch", f], capture_output=True,
                            text=True, cwd=str(root))
         refs[tag] = int((r.stdout or "0").strip() or 0)
-    print("── consequence 載體健檢（誠實含缺口）──")
-    print(f"  〔停止〕kill_switch: {', '.join(ks)}")
+    missing = [t for t in LEDGERS if t not in sealed]
+    rc = seal_check_rc(len(sealed))
+    print("── consequence 載體健檢（M-G12：seal SQL＋rc；誠實含缺口）──")
+    print(f"  〔停止〕kill_switch: {', '.join(ks) if ks else '（無列）'}")
     print(f"          {reader_coverage_note(refs['tw'], refs['raw'], refs['lai'])}")
-    print(f"  〔封存〕seal trigger: {len(sealed)}/{len(LEDGERS)} 表"
-          + (f"（{', '.join(sorted(sealed))}）" if sealed
-             else "——**未啟用**（現行策略=不啟用只常備健檢）"))
+    print(f"  〔封存〕seal trigger: LEDGERS {len(sealed)}/{len(LEDGERS)}"
+          f"；pg_trigger LIKE '{TRG_PREFIX}%' = {n_seal_pg}"
+          + (f"（已掛：{', '.join(sorted(sealed))}）" if sealed else "")
+          + (f"；缺：{', '.join(missing)}" if missing else ""))
+    if missing:
+        print("          → **紅**：封存未齊（策略可暫不 --apply，但 --check 不得假綠）")
     print("  〔重開〕綁定於 seal 例外訊息（新裁決＋--unseal；舊碼複活被禁）")
-    print("  本支自身健康:DDL 純函式可組、人閘在、apply 冪等——本行印得出來＝未鏽")
-    return 0
+    print(f"  → rc={rc}（0＝四表封存齊；≠0＝量到缺 seal，不是『本腳本印得出來』）")
+    return rc
 
 
 def _apply(conn) -> int:
@@ -156,19 +174,26 @@ def _selftest() -> int:
     chk("lai 零讀者之誠實句（不假裝覆蓋）",
         "零 runner 讀" in reader_coverage_note(3, 3, 0))
     chk("lai 有讀者時不誣賴", "零" not in reader_coverage_note(3, 3, 2))
+    chk("M-G12 seal_check_rc：0 支 → rc=1（先驗紅）", seal_check_rc(0) == 1)
+    chk("M-G12 seal_check_rc：齊 4 → rc=0", seal_check_rc(4) == 0)
+    chk("M-G12 seal_check_rc：缺 1 → rc=1", seal_check_rc(3) == 1)
     # 射程=getsource(_apply)（不含本段）——初版用整檔 body 被第四閘（假斷言閘）當場擋下：
     # 恆真三條，正是該閘要抓的病。閘上線第二次 commit 即抓到作者自己＝閘是真的。
     import inspect as _i
     _apply_src = _i.getsource(_apply)
+    _check_src = _i.getsource(_check)
     chk("apply 前設 lock_timeout（絕不排隊=#30）", "lock_timeout" in _apply_src)
     chk("停止複用既有 set_state（#12 不重造）",
         "import set_evolution_kill_switch" in _apply_src and "ks.set_state" in _apply_src)
+    chk("M-G12 --check 不再自證『印得出來＝未鏽』", "印得出來＝未鏽" not in _check_src)
+    chk("M-G12 --check 以 seal_check_rc 決定 rc",
+        "return rc" in _check_src and "rc = seal_check_rc" in _check_src)
     print("自測:全通過 ✓" if ok else "自測:有失敗 ✗")
     return 0 if ok else 1
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="停損 consequence 載體（現行策略=不啟用只 --check 常備）")
+    ap = argparse.ArgumentParser(description="停損 consequence 載體（--check＝seal SQL 燈；未齊即紅）")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--unseal", action="store_true")

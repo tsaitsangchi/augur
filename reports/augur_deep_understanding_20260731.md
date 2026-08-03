@@ -1,3 +1,9 @@
+---
+status: superseded
+superseded_by: reports/augur_deep_understanding_r4_20260803.md
+series: deep_understanding
+round: r1
+---
 # Augur 深化理解報告——優化地基（2026-07-31）
 
 * **用途**：Steward 指示「深化理解此專案所有檔案內容後詳細理解並記住，並做出深化理解的專案報告，
