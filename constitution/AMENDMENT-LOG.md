@@ -483,3 +483,13 @@
 * **裁決人**：Constitution Steward（tsaitsangchi）
 * **驗證**：`pytest tests/test_l716_conflict_registered.py` passed（同 commit）；先驗紅留痕 `audits/L716-RULING-042-REDRUN-20260801.md`
 * **定案**：Steward 2026-08-01 圈選 F1-同意（終版圈選單）；裁決檔簽核欄親簽後生效
+
+## AL-2026-047
+
+* **日期**：2026-08-03
+* **事項**：Steward 裁決第 2026-043 號——**誠實帳本 UPDATE 面之擴大上閘（B4）**：C5「僅 DELETE 面上閘」之**一部翻案**（C5 原文保留為史料，判死留檔）。三批共 15 表上 `honesty_ledger_guard`（P0 4 表 08-01／P2a 5 表 08-02／P2b 6 表 08-02，皆已施作並經裸拒/帶證雙向行為探針）；**`evolution_kill_switch` 依 §5 乙案排除**（緊急煞車零摩擦優先——加通行證將弱化否決可達性，CLAUDE #26 OCV 單向棘輪）；**P2c sim 七表緩議**（歸 sim 專章逐表設計，避免閘住所分裂 #12）。殘餘誠實揭露：本閘為引擎層非權限層錨定，superuser 得 `DISABLE TRIGGER` 或 `session_replication_role='replica'` 卸除（2026-08-03 r4 親驗可行），與 RULING-2026-042 主文二 2 為同一風險、不重複計亦不假關。
+* **程序瑕疵登錄**：Steward 於 08-02 指配編號「B4-043」後，AI 僅將編號補入腳本標頭而**未建裁決檔、未登錄 AL**，致 6 檔／18 處引用尚不存在之法源；經 2026-08-03 r4 對抗核驗抓出後補正。**施作在前、裁決檔在後**之事實據實記載——缺的是文件本體，實質授權來自 Steward 逐案圈選與編號指配。
+* **文件**：[RULING-2026-043-B4-UPDATE-GUC-EXPANSION.md](RULING-2026-043-B4-UPDATE-GUC-EXPANSION.md)；呈案 `reports/w2_20260801/B4_update_guc_upgrade.md`、`B4P2_remaining_tables_proposal.md`；紅證 `audits/B4-UPDATE-GUC-RED-20260801.md`、`B4-P2A-…`、`B4-P2B-…`
+* **裁決人**：Constitution Steward（tsaitsangchi）
+* **驗證**：`pg_trigger` 15 表各掛 honesty guard、legacy 名 0 殘留；`migrate_honesty_guards_ddl.py --check` rc=0；delete-only 表數 20→9
+* **定案**：**待 Steward 簽核**（裁決檔簽核欄；簽核前腳本內引用應讀為「編號已指配、本體待簽」）
