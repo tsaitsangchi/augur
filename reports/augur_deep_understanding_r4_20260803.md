@@ -528,7 +528,7 @@ principle_factor_map
 
 **今晚三個可驗證的預測（供明日自我校準）**：
 1. 23:00 run 22 起跑後，`promotion_queue` 應首次出現 `superseded` 列（I5B 生效點），且 q555 會被收斂。
-2. 20:00 arena cron 把 08-03 收盤入庫後，sim anchor 實現，runner 可產首格 52 列 `mc_simulation_run`／`sim_run_link`。
+2. 20:00 arena cron 把 08-03 收盤入庫後，sim anchor **實現**——但**首格不會自動落地**：`crontab -l | grep -i sim` 零命中、`systemctl --user list-unit-files | grep -i sim` 零命中、`run_arena_daily_pipeline._steps()` 六步不含 `run_sim_calibration_cell`（三處親驗）。首格須**人工按 `--apply`**（S-4 裁定「R1 人工逐次觸發、勿排程」）。20:00 讀為「anchor 檢查點」、`--apply` 讀為「窗關閉動作」。〔M-T7 事實更正 2026-08-03〕
 3. 若 §4/D7 未修，09 月首波 settle 完成後 evaluator 會回報 `n_valid=0` 並印「等 settle 波」——**該訊息屆時為誤導，真因是 q_grid 解析失敗**。
 
 ---

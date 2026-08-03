@@ -120,7 +120,7 @@ print(normalize_q_grid({'terminal_q_grid':{'unit':'x','p':_q_grid(np.linspace(-.
 **最毒的部分**：`evaluate_sim_calibration.py:742-744` 的自測項字面寫著「q_grid 巢狀形（**runner 實形** unit+p 子鍵）可解」，`:126` 註解寫「runner 實形=…（2026-08-02 契約**親驗**）」——**兩處都宣稱已對齊真實 runner，但 fixture 是手寫的、錯的**，於是自測永遠綠。此為 CLAUDE.md #35(1)（純函式餵真輸入）要防的型態，且該規則 08-01 入憲、本檔 08-02 新寫，**屬向前生效射程內**。
 
 **為何現在**
-今晚 20:00 cron（`run_arena_daily_pipeline.py --run`）把 08-03 收盤入庫後，anchor 實現、首格 52 列落地。**現查 `max(date) FROM "TaiwanStockPriceAdj" WHERE stock_id='TAIEX'` = 2026-07-31、`sim_run_link` = 0 列** ⇒ 時鐘尚未起跑，現在修是零遷移成本。
+今晚 20:00 cron（`run_arena_daily_pipeline.py --run`）把 08-03 收盤入庫後，anchor 實現；**首格 52 列須人工按 `--apply` 才落地，非自動**（M-T7 三處親驗：crontab／unit-files／`_steps()` 皆無 sim）。**現查 `max(date) FROM "TaiwanStockPriceAdj" WHERE stock_id='TAIEX'` = 2026-07-31、`sim_run_link` = 0 列** ⇒ 時鐘尚未起跑，現在修是零遷移成本。
 
 一旦首格落地就修不動了：runner 用 `INSERT … ON CONFLICT (run_id) DO NOTHING`，`run_id` 由 `(gate,candidate,stock,asof,h,spec_sha)` 決定、**不含 code 版本**；重跑是 DO NOTHING、UPDATE 被 `honesty_ledger_guard` 擋、換 run_id 等於換候選。⇒ **正解必須是改 evaluator（數字本身是對的，只是形狀），不是改 runner。**
 
