@@ -1,7 +1,7 @@
 # Runbook — 2026-08-03（週一）夜：sim 首格 ＋ run 22 全裝備首驗
 
 > **⚠ 2026-08-03 午後更新（五項變更，覆蓋原文對應段）**
-> 1. **19:14:56 的 watchdog 撞車已由甲案處置**——白天已以安全速率 0.9 跑完 audit（原 selfheal 用 0.7）。
+> 1. **19:14:56 的 watchdog 撞車已由甲案處置**——白天已以安全速率 0.9 跑 audit（原 selfheal 用 0.7）；⚠ 首輪參數抄自 selfheal（`--audit-all`）會先補 2019 歷史、17h 跑不完 ⇒ 已停，改 `--audit-only --audit-days 14`（log=`~/logs/audit_mt4_v2_20260803.log`）。
 >    19:30 後請驗：`tail -3 ~/logs/audit_watchdog.log` 應見「態一：綠(1 日內 PASS)→無需動作」，**不得**出現「發車」。
 > 2. **sim 首格不需要先開 ledger 列**——M-T1 已把 FK 焊死（`sim_run_link.iteration_uid → sim_evolution_iteration_ledger`）
 >    且 runner `--apply` 會自動 `ensure_iteration_row(planned)→running`。孤兒 uid 現在是 **DB 層物理不可能**，不再靠人記得。

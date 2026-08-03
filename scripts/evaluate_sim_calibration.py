@@ -9,7 +9,8 @@
    floor σ 截止 2026-07-31=S-2 裁定),逐格(asof 窗)計 coverage/pinball/CRPS/PIT-KS 與 k1-k3 判式
    素材(k2=date_cluster_block_bootstrap LCB、k3=日期簇 bootstrap KS 臨界值;B=1000/seed=42 照
    thresholds),寫 `sim_calibration_eval` 5 列(gate_id FK;uq_sce_cell 冪等)。n_valid<下限或簇<K
-   或缺臂=誠實印 undecidable 素材(合法產出、不作 pass 用;判定本身屬 W4 decide_sim_verdict)。
+   或缺臂=誠實印 undecidable 素材(合法產出、不作 pass 用;**`--apply` 一律零寫入**——證據列只承載
+   可判之尺;判定本身屬 W4 decide_sim_verdict)。kill switch(DB sim/global ∨ env)halt ⇒ 全模式拒評。
    **本評估=self-reported;promoted 須三鎖人簽**(chk_sev_promote_signed;本工具不設人名旗標)。
 
 守 #8(樣本外斷言:史料 asof<=2026-05-31 任何數字不得入證據列;q_grid 物理擋)· #9/#10(數字全出自
@@ -19,15 +20,20 @@
 執行指令矩陣:
   python scripts/evaluate_sim_calibration.py             # 無參數:現況(唯讀:門態+指紋覆算+證據水位+K 進度)
   python scripts/evaluate_sim_calibration.py --dry-run   # 全計算唯讀預演(不寫表;零 run=印「零格可評」誠實不炸)
+                                                         #   kill halt(DB sim/global 或 env)亦拒評 exit 1
   python scripts/evaluate_sim_calibration.py --apply     # 防衛全過(兩 sha+targets_sha+樣本外+五臂+kill switch)
-                                                         #   且 K>=date_clusters_min 才寫 5 列;否則 exit 1 零寫入
+                                                         #   且 undecidable 素材全清(n_valid>=下限 且 K>=下限
+                                                         #   且五臂全在)才寫 5 列;否則 exit 1 零寫入
   python scripts/evaluate_sim_calibration.py --selftest  # 零 DB:sha 拒評絆線(改一字必拒)/k1-k3 紅綠/五臂互斥
                                                          #   /derangement 無定點/合成常態回歸/LCB+KS bootstrap
+                                                         #   /寫入閘 n_valid 不足零 INSERT/kill state 吃 env
+  AUGUR_EVOLUTION_KILL_SWITCH=halt python scripts/evaluate_sim_calibration.py --dry-run   # 煞車實測(rc=1)
 """
 import argparse
 import hashlib
 import json
 import math
+import os
 import statistics
 import sys
 from pathlib import Path
@@ -330,6 +336,17 @@ def undecidable_reasons(n_valid, n_valid_min, k_clusters, clusters_min, arms_pre
     return reasons
 
 
+def apply_write_gate(n_valid, k_clusters, arms_present, thresholds):
+    """`--apply` 之寫入閘(M-M1):undecidable 素材非空 ⇒ 不允寫。回 (allowed, reasons)。
+
+    原缺口＝只擋 `k_clusters < date_clusters_min`、不擋 `n_valid < n_valid_min`,故 K 達標而
+    樣本不足時仍寫出「看起來可判」的證據列(§5.4 明文 undecidable 不得作 pass 用)。判準素材單一
+    住所＝`undecidable_reasons`(#12),此處只決定「允不允寫」不另立口徑。"""
+    reasons = undecidable_reasons(n_valid, thresholds["n_valid_min"],
+                                  k_clusters, thresholds["date_clusters_min"], arms_present)
+    return (not reasons), reasons
+
+
 def make_eval_set_id(asof_list) -> str:
     """eval_set_id='R1:h21:'+sha256(\\n.join(格點))[:12](設計 §5.5)。"""
     return "R1:h21:" + sha256_hex("\n".join(str(a) for a in sorted(asof_list)))[:12]
@@ -371,10 +388,17 @@ def _verify_frozen_targets(cur, thresholds):
     return targets
 
 
+def _env_halt() -> bool:
+    return os.environ.get("AUGUR_EVOLUTION_KILL_SWITCH", "").strip().lower() == "halt"
+
+
 def _kill_state(cur):
+    """sim 軸有效煞車態(scope sim ∨ global ∨ env;OR fail-safe)。口徑單一住所＝
+    `augur.philosophy.evolution.effective_kill_state`(#12;寫法同 propose_sim_candidate.py／
+    settle_sim_outcomes.py)。原缺口＝本支未傳 `env_halt` ⇒ sim 軸四支中唯一 fail-open。"""
     from augur.philosophy.evolution import effective_kill_state
     cur.execute("SELECT state FROM evolution_kill_switch WHERE scope IN ('sim','global')")
-    return effective_kill_state([r[0] for r in cur.fetchall()])
+    return effective_kill_state([r[0] for r in cur.fetchall()], env_halt=_env_halt())
 
 
 def _anchor_and_grid(cur, approved_at):
@@ -418,9 +442,10 @@ def _evaluate(conn, apply_mode):
     targets = _verify_frozen_targets(cur, th)
     print(f"✓ 凍結清單 sha 合({len(targets)} 檔)")
     kill = _kill_state(cur)
-    print(f"  kill_switch(sim,global 有效態)={kill}")
-    if apply_mode and kill != "clear":
-        print("✗ kill switch=halt ⇒ 零寫入 exit 1")
+    print(f"  kill_switch(sim,global,env 有效態)={kill}")
+    if kill != "clear":
+        # 煞車＝停手,不分模式:dry-run 亦拒(同 settle/propose;煞車期間連 self-reported 讀數都不產)
+        print("✗ kill switch=halt(scope sim/global 或 AUGUR_EVOLUTION_KILL_SWITCH)⇒ 拒評零寫入 exit 1")
         return 1
 
     anchor, grid = _anchor_and_grid(cur, gate["approved_at"])
@@ -547,9 +572,28 @@ def _evaluate(conn, apply_mode):
         print(f"\n  dry-run 完(零寫入)。eval_set_id={eval_set_id} eval_code_hash={code_hash[:16]}…")
         return 0
 
-    if k_clusters < th["date_clusters_min"]:
-        print(f"✗ --apply 但 K={k_clusters} < {th['date_clusters_min']}:不寫(undecidable 進度),exit 1 零寫入")
+    inserted, blocked = _insert_eval_rows(
+        cur, th=th, n_valid=n_valid, k_clusters=k_clusters,
+        arms_present=[a for a in arms if arms[a]], metrics=metrics, detail_common=detail_common,
+        candidate_id=candidate_id, eval_set_id=eval_set_id, code_hash=code_hash,
+        n_runs=n_runs, n_excluded=n_excluded, pit_p=pit_p, git_sha=_git7())
+    if blocked:
+        print(f"✗ --apply 但 undecidable(§5.4): {'; '.join(blocked)} ⇒ 零寫入 exit 1"
+              f"(undecidable 不得作 pass 用;證據列只承載可判之尺)")
         return 1
+    conn.commit()
+    print(f"✓ --apply 寫入 {inserted}/5 列(uq_sce_cell 冪等;0=同 cell 已在)。eval_set_id={eval_set_id}")
+    print(f"  {SELF_REPORTED_LINE}")
+    return 0
+
+
+def _insert_eval_rows(cur, *, th, n_valid, k_clusters, arms_present, metrics, detail_common,
+                      candidate_id, eval_set_id, code_hash, n_runs, n_excluded, pit_p, git_sha):
+    """`--apply` 之**唯一**寫入路徑:先過 `apply_write_gate`,不允寫即 0 次 cur.execute。
+    回 (inserted, blocked_reasons);blocked 非空 ⇒ inserted=0 且呼叫端不得 commit。"""
+    allowed, reasons = apply_write_gate(n_valid, k_clusters, arms_present, th)
+    if not allowed:
+        return 0, reasons
     inserted = 0
     for arm in REQUIRED_ARMS:
         m = metrics[arm]
@@ -565,12 +609,9 @@ def _evaluate(conn, apply_mode):
             (GATE_ID, candidate_id, arm, eval_set_id, code_hash, n_runs, m["n"], n_excluded,
              m["cov_p50"], m["cov_p80"], m["cov_p90"], m["pinball_mean"], m["crps_mean"],
              m["pit_ks_stat"], pit_p if arm == "live" else None,
-             json.dumps(detail, ensure_ascii=False, default=str), _git7()))
+             json.dumps(detail, ensure_ascii=False, default=str), git_sha))
         inserted += cur.rowcount
-    conn.commit()
-    print(f"✓ --apply 寫入 {inserted}/5 列(uq_sce_cell 冪等;0=同 cell 已在)。eval_set_id={eval_set_id}")
-    print(f"  {SELF_REPORTED_LINE}")
-    return 0
+    return inserted, []
 
 
 def _git7():
@@ -760,6 +801,79 @@ def _selftest():
         chk(f"**W5→W3 契約**：runner 不可 import（{type(_e).__name__}）——誠實紅，不當跳過", False)
     chk("q_grid 缺=None(物理擋史料)", normalize_q_grid({"terminal": {}}) is None)
     chk("q_grid 非單調=None", normalize_q_grid({"terminal_q_grid": [1.0] + [0.0] * 98}) is None)
+
+    # -- 6) M-M1 寫入閘:n_valid 不足即零 INSERT。fixture 全取自本檔上游真輸出
+    #      (obs → build_arms → arm_metrics;thresholds 經 _load_and_verify_gate 真解析),非手寫形狀。
+    class _CountingCursor:
+        """只數 execute 次數之假 cursor:證明「不允寫時 0 次 INSERT」是行為、不是文字。"""
+
+        def __init__(self):
+            self.executed = []
+            self.rowcount = 1
+
+        def execute(self, sql, params=None):
+            self.executed.append(sql)
+
+    def _th_of(payload_text):
+        body = "門:SELFTEST 寫入閘\nthresholds_sha=" + sha256_hex(payload_text)
+        return _load_and_verify_gate(_FakeCursor(_make_gate_row(body, payload_text)))["thresholds"]
+
+    th_strict = _th_of('{"n_valid_min": 100, "date_clusters_min": 3}')
+    th_loose = _th_of('{"n_valid_min": 10, "date_clusters_min": 3}')
+    m_real = {a: arm_metrics(arms[a]) for a in REQUIRED_ARMS}
+    present = [a for a in arms if arms[a]]
+    nv, kk = len(obs), len({o["asof"] for o in obs})
+    chk(f"M-M1 fixture 取自真上游(n_valid={nv} K={kk})", nv == m_real["live"]["n"] and kk == 3)
+
+    def _try_write(th, n_valid, k_clusters, arms_present=None):
+        c = _CountingCursor()
+        n, why = _insert_eval_rows(
+            c, th=th, n_valid=n_valid, k_clusters=k_clusters,
+            arms_present=present if arms_present is None else arms_present,
+            metrics=m_real, detail_common={"gate_id": GATE_ID}, candidate_id="SELFTEST",
+            eval_set_id="R1:h21:selftest", code_hash="0" * 64, n_runs=n_valid, n_excluded=0,
+            pit_p=0.5, git_sha="0000000")
+        return n, why, len(c.executed)
+
+    n_b, why_b, ex_b = _try_write(th_strict, nv, kk)
+    chk(f"M-M1 紅:K={kk} 達標但 n_valid={nv}<100 ⇒ 零 INSERT", n_b == 0 and ex_b == 0)
+    chk("M-M1 紅:拒寫事由指名 n_valid(K 已達標故不在事由內)",
+        any("n_valid" in r for r in why_b) and not any("date_clusters" in r for r in why_b))
+    n_g, why_g, ex_g = _try_write(th_loose, nv, kk)
+    chk("M-M1 綠:n_valid 與 K 皆達標 ⇒ 五臂全寫", n_g == 5 and ex_g == 5 and why_g == [])
+    n_k, _, ex_k = _try_write(th_loose, nv, 2)
+    chk("M-M1:原有 K 閘不得回退(K=2<3 仍零 INSERT)", n_k == 0 and ex_k == 0)
+    n_a, why_a, ex_a = _try_write(th_loose, nv, kk, arms_present=["live", "ceiling", "floor"])
+    chk("M-M1:缺臂亦零 INSERT", n_a == 0 and ex_a == 0 and any("缺臂" in r for r in why_a))
+
+    # -- 7) M-M2 煞車:_kill_state 須吃 env(evaluator 曾是 sim 軸四支中唯一 fail-open 的一支)
+    class _KillCursor:
+        def __init__(self, states):
+            self._states = states
+
+        def execute(self, sql, params=None):
+            pass
+
+        def fetchall(self):
+            return [(s,) for s in self._states]
+
+    _prev_env = os.environ.get("AUGUR_EVOLUTION_KILL_SWITCH")
+    try:
+        os.environ["AUGUR_EVOLUTION_KILL_SWITCH"] = "halt"
+        chk("M-M2 紅:DB 全 clear 但 env=halt ⇒ 有效態 halt(不傳 env_halt 即回 clear=fail-open)",
+            _kill_state(_KillCursor(["clear", "clear"])) == "halt")
+        chk("M-M2:env=halt 於零列(表無列)亦 halt", _kill_state(_KillCursor([])) == "halt")
+        os.environ["AUGUR_EVOLUTION_KILL_SWITCH"] = "  HALT "
+        chk("M-M2:env 大小寫/空白正規化後仍 halt", _kill_state(_KillCursor(["clear"])) == "halt")
+        os.environ.pop("AUGUR_EVOLUTION_KILL_SWITCH", None)
+        chk("M-M2 綠:env 未設且 DB 全 clear ⇒ clear",
+            _kill_state(_KillCursor(["clear", "clear"])) == "clear")
+        chk("M-M2:DB scope halt 仍 halt(OR 語意未因加 env 而失)",
+            _kill_state(_KillCursor(["clear", "halt"])) == "halt")
+    finally:
+        os.environ.pop("AUGUR_EVOLUTION_KILL_SWITCH", None)
+        if _prev_env is not None:
+            os.environ["AUGUR_EVOLUTION_KILL_SWITCH"] = _prev_env
 
     print("SELFTEST", "PASS" if ok else "FAIL")
     return 0 if ok else 1
