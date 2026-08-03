@@ -9,12 +9,30 @@
 # 紀律：純 shell、零新依賴（不引入 pre-commit 框架，守 #28 本地優先）。
 # 射程誠實：只掛「現況為綠且可重跑」之三閘；`constitution_lint --selftest` 現為 rc=1
 # （G10 界線 FAIL、屬治權解釋待裁）**刻意不掛**——掛了會使 repo 立即不可 commit。
-# 換機注意：.git/hooks 不隨 git 走，須由 install_services.sh 或本檔複製安裝。
+# 換機注意：.git/hooks 不隨 git 走，須由 `python3 scripts/install_git_hooks.py --apply` 安裝
+#   （resume_project.sh:53-54 已串於一鍵接續；2026-08-03 M-G1 S3 更正——舊註記之
+#    install_services.sh 早已不負責 hook 安裝，照舊註記操作會裝不上）。
 set -uo pipefail
-ROOT="$(git rev-parse --show-toplevel)"
+# ── M-G1（2026-08-03）：worktree 雙失效之修補 ────────────────────────────────
+# 病：worktree 內 `--show-toplevel` 指向 worktree 根，其下無 venv ⇒ 舊碼 `exit 0`
+#     ＝**靜默放行**；且 worktree 停在舊 commit，連本 hook 檔都可能不存在（bash 找不到
+#     檔案同樣 rc=0）。本輪 r4 深讀之四路產出全在 worktree 完成、每筆 commit 零閘。
+# 修：ROOT 改由 --git-common-dir 推導（worktree 亦指回主庫），且**找不到直譯器一律
+#     fail-closed（exit 1）**——閘的存在理由就是「不確定時擋下」，不是「找不到就放行」。
+COMMON_DIR="$(git rev-parse --git-common-dir 2>/dev/null || echo '')"
+if [ -n "$COMMON_DIR" ]; then
+  ROOT="$(cd "$COMMON_DIR/.." && pwd)"          # .git/.. ＝主庫工作樹根（worktree 亦然）
+else
+  ROOT="$(git rev-parse --show-toplevel)"
+fi
 PY="$ROOT/venv/bin/python"
-[ -x "$PY" ] || { echo "pre-commit: 無 $PY，略過（請先 pip install -e .）"; exit 0; }
-cd "$ROOT" || exit 0
+if [ ! -x "$PY" ]; then
+  echo "pre-commit: 找不到 $PY —— **fail-closed 擋下**（不是略過）。" >&2
+  echo "  修法：於主庫跑 pip install -e .；確認 $ROOT 為主庫根。" >&2
+  echo "  若確需繞過（會留在 reflog）：git commit --no-verify" >&2
+  exit 1
+fi
+cd "$ROOT" || exit 1
 fail=0
 run() {  # run <名稱> <指令…>
   local name="$1"; shift
