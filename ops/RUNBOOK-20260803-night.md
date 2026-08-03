@@ -1,5 +1,15 @@
 # Runbook — 2026-08-03（週一）夜：sim 首格 ＋ run 22 全裝備首驗
 
+> **⚠ 2026-08-03 午後更新（五項變更，覆蓋原文對應段）**
+> 1. **19:14:56 的 watchdog 撞車已由甲案處置**——白天已以安全速率 0.9 跑完 audit（原 selfheal 用 0.7）。
+>    19:30 後請驗：`tail -3 ~/logs/audit_watchdog.log` 應見「態一：綠(1 日內 PASS)→無需動作」，**不得**出現「發車」。
+> 2. **sim 首格不需要先開 ledger 列**——M-T1 已把 FK 焊死（`sim_run_link.iteration_uid → sim_evolution_iteration_ledger`）
+>    且 runner `--apply` 會自動 `ensure_iteration_row(planned)→running`。孤兒 uid 現在是 **DB 層物理不可能**，不再靠人記得。
+> 3. **`--apply` 之前置**：M-T1 ✅（今日完成）＋ M-M1／M-M2 驗收綠（`evaluate_sim_calibration.py`，午後施作中——按之前先確認其 `--selftest` rc=0）。
+> 4. **17 列 pending 不用開人裁窗**——經查標的皆已不存在（q555 之 feature 已由 q556 晉升；16 列 demote 之 feature 有 7 個已 removed、3 個從未進 prodset）。
+>    讓 run 22 自動標 superseded 即可，證據見 `reports/mt3_pending_disposition_evidence_20260803.md`。
+> 5. **20:00 不會自動產首格**（三處親驗：crontab／unit-files／`run_arena_daily_pipeline._steps()` 皆無 sim）。20:00 讀為「anchor 檢查點」。
+
 > **為什麼落成檔案**：三個時點各有不可補性（anchor 錯過走 catch-up 帳／run 22 是所有新機制的第一次無人看顧運轉），
 > 而 AI session 可能不在場或已斷。本檔讓 hugo 可獨立完成全程；每步附「預期輸出」與「不對就停」。
 > 全程零 Claude usage（#28 本地優先）。前置環境一律：`cd /home/hugo/project/augur && set -a && . ./.env && set +a`
@@ -19,6 +29,12 @@ cd /home/hugo/project/augur && set -a && . ./.env && set +a && venv/bin/python s
 - **不對就停**：任一 sha 防衛紅（門判準文與指紋分家）＝治權級，停手回報，勿 --apply。
 
 ## T-21:xx｜sim 首格產 run（S-4 人工逐次觸發；勿排程）
+
+**前置自檢**（一條，全綠才往下）：
+
+```bash
+cd /home/hugo/project/augur && set -a && . ./.env && set +a && venv/bin/python scripts/evaluate_sim_calibration.py --selftest >/dev/null 2>&1 && echo "M-M1/M-M2 前置 ✓" || echo "✗ 前置未綠——先問 AI，勿 --apply"
+```
 
 乾跑無誤後：
 
