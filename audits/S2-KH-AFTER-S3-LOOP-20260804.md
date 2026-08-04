@@ -18,6 +18,7 @@
 | §7.2c `S2-KH-OPT-AFTER-S3-go` | **已寫** |
 | 詳細 S2 KH 優化計畫 | **已寫**（觸發／16 組對映草圖／L0–L4／GO） |
 | KH mass ingest／FinMind／feature build | **未做**（約束） |
+| **2026-08-04 更新** | Steward `S2-KH-OPT-AFTER-S3-go` → GO＋**L1 EXECUTED**（backlog live 刷新）；L2／L3 另句 |
 
 ---
 

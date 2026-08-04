@@ -273,6 +273,7 @@ LOOP-S5-TO-S4-OPT-go | predict-asof-write-go | FZ/GATE-keep | no-SIM-apply | ski
 - [x] keep：GATE／NHC／API-THAW-bounded／no-SIM-apply／skip-sync
 - [ ] `predict-asof-write-go` — **未授**
 - [ ] sim `--apply` — **未授**
-- [ ] `S4-WAVE-A-EXECUTED*` 正式收口（方向臂／#14 全表另帳）
+- [ ] `S4-WAVE-A-EXECUTED*` 正式收口（方向臂／#14 全表另帳；train-matrix 已 DONE）
+- [x] 執行帳：`audits/LOOP-S4-TO-S5-EXECUTED-20260804.md` · `audits/LOOP-S5-TO-S4-OPT-EXECUTED-20260804.md` · `audits/S5-OOS-20260804.md` · `audits/S4-REOPT-BACKLOG-20260804.md`
 
 *完。self-reported（#32a）。*

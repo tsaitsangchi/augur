@@ -68,6 +68,10 @@ LOOP-S4-S5-PLAN-ack + FZ-keep + NHC-keep + no-SIM-apply
 | C1 S3→S2 | `reports/augur_s2_kh_optimize_after_s3_plan_20260804.md` |
 | C1 登錄 | `audits/S2-KH-AFTER-S3-LOOP-20260804.md` |
 | 本登錄 | `audits/SIM-S4-S5-CLOSED-LOOP-20260804.md` |
+| 三連 GO | `audits/LOOP-S4-S5-FULL-GO-20260804.md` |
+| S4→S5 EXECUTED | `audits/LOOP-S4-TO-S5-EXECUTED-20260804.md` |
+| S5 OOS | `audits/S5-OOS-20260804.md` |
+| S5→S4 OPT | `audits/LOOP-S5-TO-S4-OPT-EXECUTED-20260804.md` · backlog `audits/S4-REOPT-BACKLOG-20260804.md` |
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: S3 特徵後回頭優化 S2（KH）計畫
-status: plan-ready（待 Steward GO）
+status: Steward-approved 2026-08-04（S2-KH-OPT-AFTER-S3-go）；L1 EXECUTED；L2／L3 另句
 date: 2026-08-04
 layer: "[I]"
 role: 閉環 C1·Arc A — S3→S2 PME 式回饋／KH 缺口→S2 優化波 SSOT
@@ -9,6 +9,13 @@ closed_loop_c1: reports/augur_s1_s2_s3_closed_loop_plan_20260804.md
 s3_features: reports/augur_s3_features_for_market_model_families_20260804.md
 rki: reports/augur_raw_knowhow_interaction_probe_plan_20260728.md
 audit: audits/S2-KH-AFTER-S3-LOOP-20260804.md
+go_audit: audits/S2-KH-OPT-AFTER-S3-GO-20260804.md
+l1_executed: audits/S2-KH-OPT-AFTER-S3-EXECUTED-20260804.md
+l2_go: audits/S2-KH-L2-GO-20260804.md
+l2_executed: audits/S2-KH-L2-EXECUTED-20260804.md
+l3_go: audits/S2-KH-L3-GO-20260804.md
+l3_executed: audits/S2-KH-L3-EXECUTED-20260804.md
+backlog: audits/S2-KH-BACKLOG-20260804.md
 c2_loop: reports/augur_s4_s5_closed_loop_plan_20260804.md
 self_reported: true
 ---
@@ -64,7 +71,7 @@ S3特徵值產生後，重新回頭去看此專案需要哪些KH，再優化S2
 
 **未觸發**：僅維持 S2 衛生（D-KH 地板）；不得宣稱「S2 已依 S3 優化」。
 
-**本輪狀態**：T1 **計畫側就緒**（S3 特徵報告＋parent §0.6）；T2／T3 **未**（S3 仍 NOT_STARTED／無放量 build）——故本檔＝迴路地圖，**不**開工 ingest。
+**本輪狀態**：T1／T2／T3 **已成立**；L1／**L2**／**L3 EXECUTED**（OpenAlex→promote 19；finance OA 全文 **0**／阻擋 **19**；六針 `no_corpus` 解除但 **spurious／ungrounded** 仍高）。**L4** 人裁 PME 另句。
 
 ---
 

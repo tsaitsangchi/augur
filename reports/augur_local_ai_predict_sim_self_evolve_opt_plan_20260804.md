@@ -234,7 +234,8 @@ Steward 明示碼 > 本檔 > 便利條
 1. **範圍**＝`audits/API-THAW-20260804.md` 准許之有界日頻（＋Steward 逐次明示之窄窗），**不是** catalog 全表枚舉。  
 2. **度量**＝對熱路徑表（至少 PriceAdj 族＋特徵／arena 實際消費之 raw；FRED＝`fred_series` 日更契約 series）記錄：`max(date)`／as-of、列數或 audit heal 結果、當日缺席原因（額度／403／非交易日）。  
 3. **通過句**：上述 as-of ≥ 目標維運日（或明示豁免日）∧ 無未結致命 mismatch（對帳定義依既有 reconcile／audit）∧ **書面不宣稱**「339 表全完整」。  
-4. **與 S3–S5**：S1 未達仍可用庫內較舊 as-of 跑預測——完整度缺口＝告警／記帳，**不是**拒訓硬閘。
+4. **與 S3–S5**：S1 未達仍可用庫內較舊 as-of 跑預測——完整度缺口＝告警／記帳，**不是**拒訓硬閘。  
+5. **核心股閘（Steward 2026-08-04 再釘）**：只取**資料完整**者進核心；**不完整一律排外**（`core_universe`／`core_universe_asof`；不評分、不排名、不設 top-N）。定錨＝`audits/S1-CORE-COMPLETE-ONLY-20260804.md`；重建＝`scripts/build_core_universe.py --asof …`。**禁止**以假填把不完整股塞進核心。
 
 ### 0.6 閉環 C1：S3→S2→S1→S3（PME 式｜Steward 2026-08-04）
 
@@ -644,16 +645,25 @@ S4-WAVE-G-go | …   # hybrid／NLP／LLM／Bayesian
 S3-FEATURES-PLAN-go + GATE-keep + NHC-keep + API-THAW-bounded + no-SIM-apply
 ```
 
-Wave-A（既有表格式／價量／籌碼／估值／基本面誠實覆蓋＋提拔／#11；**仍待另句**）：
+Wave-A（既有表格式／價量／籌碼／估值／基本面誠實覆蓋＋提拔／#11；**已消費** 2026-08-04）：
 
 ```text
 S3-WAVE-A-go | FZ/GATE-keep | skip-sync | no-SIM-apply
 ```
 
+→ GO＝`audits/S3-WAVE-A-GO-20260804.md`；EXECUTED＝`audits/S3-WAVE-A-EXECUTED-20260804.md`（scoped `--panels 2026-06-30 --asof`；全史重灌另窗）。
+
+Wave-B（截面相對化＋股級 macro PIT；**已消費** 2026-08-04）：
+
+```text
+S3-WAVE-B-go | FZ/GATE-keep | skip-sync | no-SIM-apply
+```
+
+→ GO＝`audits/S3-WAVE-B-GO-20260804.md`；EXECUTED＝`audits/S3-WAVE-B-EXECUTED-20260804.md`（候選 85,050＋市場 PIT；股級 macro **SKIP**；≠ prodset 晉升）。
+
 後續波次（各需另句；缺 infra→SKIP／gated）：
 
 ```text
-S3-WAVE-B-go | …   # 截面相對化＋股級 macro PIT
 S3-WAVE-C-go | …   # 方向表↔ranker 契約／meta
 S3-WAVE-D-go | …   # 序列窗＋圖邊（plan-first）
 S3-WAVE-E-go | …   # alt／NLP／LLM／RL state／LOB（僅明示；否則 gated／N/A）

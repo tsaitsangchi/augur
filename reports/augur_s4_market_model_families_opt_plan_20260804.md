@@ -105,31 +105,33 @@ self_reported: true
 
 ### Wave A — tabular／ranker／direction
 
-| ID | 大類 | 變體族 | adapter | 建議 verify cmds（庫內；示意） | Steward |
-|---|---|---|---|---|---|
-| A-3a | #3 | LightGBM（M1／RankGBDT） | **exists**（econ `M1_gbdt`；`train_ranker --family RankGBDT`） | `train_ranker.py --run --family RankGBDT --horizon {20,60} --seed {1,2,42} --asof <asof>`；`run_economic_eval.py --h {H} --seed {s} --feature-source=prodset` | `S4-WAVE-A-go` |
-| A-3b | #3 | XGBoost | **missing**（套件或有；無 ranker 族） | SKIP until adapter；驗收後同 A-3a 多 seed／#14 | 同 A；實作另句 |
-| A-3c | #3 | CatBoost | **missing** | SKIP until adapter | 同 A |
-| A-3d | #3 | Random Forest | **missing** | SKIP until adapter（或 sklearn 薄殼） | 同 A |
-| A-4a | #4 | Ridge／線性 ranker（RankRidge≡B2） | **exists** | `train_ranker.py --run --family RankRidge --horizon {20,40,60,120} --seed 42 --asof <asof>`；`run_economic_eval.py --h {H}` | `S4-WAVE-A-go` |
-| A-4b | #4 | pairwise／listwise LTR | **missing** | SKIP | 同 A |
-| A-4c | #4 | 截面因子＋shrinkage | **partial**（B1 momentum／特徵側；非獨立 model family） | 以 baseline B1＋文件對照；不冒充新族 pass | 同 A |
-| A-2a | #2 | 線性／邏輯回歸 | **partial**（DailyLogit direction；截面 Ridge＝A-4a） | `train_daily_direction.py --run-v2 --ks 5 --seeds 3` | `S4-WAVE-A-go` |
-| A-2b | #2 | SVM | **missing** | SKIP | 同 A |
-| A-2c | #2 | KNN | **missing** | SKIP | 同 A |
-| A-2d | #2 | 樸素貝氏 | **missing** | SKIP | 同 A |
-| A-2e | #2 | 淺層 MLP | **missing** | SKIP | 同 A |
-| A-D1 | direction | DailyGBDT_cal（D 軌） | **exists** | `train_daily_direction.py --run-v2`（≥3 seeds） | `S4-WAVE-A-go` |
-| A-D2 | direction | market／stack／threelens | **exists**（scripts 在） | `train_market_direction.py`／`train_direction_stack.py`／`train_direction_threelens.py`（無參印矩陣；`--run` 依各檔） | `S4-WAVE-A-go` |
-| A-B0 | 地板 | B0_random | **exists**（baseline） | 經 `run_economic_eval`／baseline 階梯（對照臂） | 隨 A |
-| A-B1 | 地板 | B1_momentum | **exists** | 同上 | 隨 A |
+> **Wave A 執行（2026-08-04）**：Steward `S4-WAVE-A-go | FZ/GATE-keep | no-SIM-apply | skip-sync` → 帳＝`audits/S4-WAVE-A-EXECUTED-20260804.md`（as-of `2026-06-30`）。
+
+| ID | 大類 | 變體族 | adapter | 建議 verify cmds（庫內；示意） | Steward | Wave A |
+|---|---|---|---|---|---|---|
+| A-3a | #3 | LightGBM（M1／RankGBDT） | **exists**（econ `M1_gbdt`；`train_ranker --family RankGBDT`） | `train_ranker.py --run --family RankGBDT --horizon {20,60} --seed {1,2,42} --asof <asof>`；`run_economic_eval.py --h {H} --seed {s} --feature-source=prodset` | `S4-WAVE-A-go` | [x] PASS |
+| A-3b | #3 | XGBoost | **missing**（套件或有；無 ranker 族） | SKIP until adapter；驗收後同 A-3a 多 seed／#14 | 同 A；實作另句 | [x] SKIP |
+| A-3c | #3 | CatBoost | **missing** | SKIP until adapter | 同 A | [x] SKIP |
+| A-3d | #3 | Random Forest | **missing** | SKIP until adapter（或 sklearn 薄殼） | 同 A | [x] SKIP |
+| A-4a | #4 | Ridge／線性 ranker（RankRidge≡B2） | **exists** | `train_ranker.py --run --family RankRidge --horizon {20,40,60,120} --seed 42 --asof <asof>`；`run_economic_eval.py --h {H}` | `S4-WAVE-A-go` | [x] PASS |
+| A-4b | #4 | pairwise／listwise LTR | **missing** | SKIP | 同 A | [x] SKIP |
+| A-4c | #4 | 截面因子＋shrinkage | **partial**（B1 momentum／特徵側；非獨立 model family） | 以 baseline B1＋文件對照；不冒充新族 pass | 同 A | [x] PARTIAL |
+| A-2a | #2 | 線性／邏輯回歸 | **partial**（DailyLogit direction；截面 Ridge＝A-4a） | `train_daily_direction.py --run-v2 --ks 5 --seeds 3` | `S4-WAVE-A-go` | [x] PASS（併 D1／4a） |
+| A-2b | #2 | SVM | **missing** | SKIP | 同 A | [x] SKIP |
+| A-2c | #2 | KNN | **missing** | SKIP | 同 A | [x] SKIP |
+| A-2d | #2 | 樸素貝氏 | **missing** | SKIP | 同 A | [x] SKIP |
+| A-2e | #2 | 淺層 MLP | **missing** | SKIP | 同 A | [x] SKIP |
+| A-D1 | direction | DailyGBDT_cal（D 軌） | **exists** | `train_daily_direction.py --run-v2`（≥3 seeds） | `S4-WAVE-A-go` | [x] PASS |
+| A-D2 | direction | market／stack／threelens | **exists**（scripts 在） | `train_market_direction.py`／`train_direction_stack.py`／`train_direction_threelens.py`（無參印矩陣；`--run` 依各檔） | `S4-WAVE-A-go` | [x] PASS |
+| A-B0 | 地板 | B0_random | **exists**（baseline） | 經 `run_economic_eval`／baseline 階梯（對照臂） | 隨 A | [~] PARTIAL（基準臂） |
+| A-B1 | 地板 | B1_momentum | **exists** | 同上 | 隨 A | [~] PARTIAL（基準臂） |
 
 **Wave A 最低完成定義（建議）**
 
-1. RankRidge × 多 horizon（至少殘餘 H40／H120 若仍缺）artifact 可溯。  
-2. RankGBDT **train** ≥3 seed × 主 horizon＋#14 統計（非僅 econ 臂）。  
-3. direction 至少一臂 v2 多 seed 數字可陳。  
-4. XGB／Cat／RF／LTR／SVM…：**SKIP 列帳**或另授 adapter 實作後再驗——**不得**為湊數假訓。
+1. [x] RankRidge × 多 horizon（至少殘餘 H40／H120 若仍缺）artifact 可溯。  
+2. [x] RankGBDT **train** ≥3 seed × 主 horizon＋#14 統計（非僅 econ 臂）。  
+3. [x] direction 至少一臂 v2 多 seed 數字可陳。  
+4. [x] XGB／Cat／RF／LTR／SVM…：**SKIP 列帳**或另授 adapter 實作後再驗——**不得**為湊數假訓。
 
 ### Wave B — classical TS／計量（#1）
 
@@ -245,8 +247,8 @@ S4-WAVE-G-go | FZ/GATE-keep | no-SIM-apply | skip-sync
 | parent S4 enrichment | approved+s4-fam-go（本檔已拍） |
 | taxonomy 大類 | ≈12 |
 | 本矩陣變體列 | ≈35（A–G 表） |
-| 已試（基線） | 2 族 |
-| 本輪執行 | **計畫已拍**；Wave 開訓仍 **無**（待 `S4-WAVE-A-go`） |
+| 已試（基線→Wave A） | ≥5 架構臂（見 `audits/S4-MODELS-TRIED-LIST-20260804.md`） |
+| 本輪執行 | **Wave A 近滿 EXECUTED**（`audits/S4-WAVE-A-EXECUTED-20260804.md`）；Wave B+ 仍待另句 |
 
 ---
 
@@ -258,7 +260,8 @@ S4-WAVE-G-go | FZ/GATE-keep | no-SIM-apply | skip-sync
 | approved | 2026-08-04 | Steward `S4-FAMILIES-PLAN-go + GATE-keep + NHC-keep + API-THAW-bounded + no-SIM-apply` → 本檔＝SSOT；留痕 `audits/S4-FAMILIES-PLAN-GO-20260804.md`；**≠** Wave-A train |
 | crosslink-c2 | 2026-08-04 | 交叉 **C2** S4↔S5 閉環計畫指針（零開訓） |
 | crosslink-c1 | 2026-08-04 | 交叉 **C1** S1–S2–S3 閉環＋S3 特徵矩陣指針（零開訓） |
+| wave-a-exec | 2026-08-04 | Steward `S4-WAVE-A-go | FZ/GATE-keep | no-SIM-apply | skip-sync` → Wave A 矩陣勾選＋帳 `audits/S4-WAVE-A-EXECUTED-20260804.md` |
 
 ---
 
-*完。self-reported（#32a）。**已拍** `S4-FAMILIES-PLAN-go`。下一刀＝`S4-WAVE-A-go | FZ/GATE-keep | no-SIM-apply | skip-sync`；閉環＝`LOOP-S4-TO-S5-go`。*
+*完。self-reported（#32a）。**已拍** `S4-FAMILIES-PLAN-go`；**Wave A EXECUTED**。下一刀＝`S4-WAVE-B-go | FZ/GATE-keep | no-SIM-apply | skip-sync`。*

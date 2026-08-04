@@ -43,8 +43,8 @@
 | 啟動 | 2026-08-04T13:25:25+08:00 · ASOF=`2026-06-30` |
 | A1 | pid **877790／877801** 仍跑——**不殺** |
 | 已就緒（本 GO 可引用） | RankRidge H40／H120（新）；H20／H60 resume-skip（P1-C）；RankGBDT H60×seed1/2/42；RankGBDT H20×seed1 |
-| 進行中 | RankGBDT H20 seed2（及後續 seed42）——**等 partial／EXECUTED，不重跑矩陣** |
-| EXECUTED audit | **尚無** `audits/S4-WAVE-A-EXECUTED*` → S5 以 **P1-C + 已落地 Wave A 子集** 為準；完整 Wave A 收口另帳 |
+| train-matrix | **DONE** 2026-08-04T13:30:30+08:00（RankRidge H40/H120＋RankGBDT H20/H60×3seed；**不含** direction 臂） |
+| EXECUTED audit | **尚無** `audits/S4-WAVE-A-EXECUTED*`（本 LOOP **不**代寫）→ S5 消費 P1-C＋train 已落地 artifact；方向臂／正式 Wave 收口另帳 |
 
 ---
 

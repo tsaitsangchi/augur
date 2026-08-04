@@ -11,7 +11,7 @@
 
 > **約束**：零 FinMind 放量；本檔**不**開全模型訓練；存在／缺口皆須可溯 code／handoff／audit；LOB／NLP／LLM＝gated／缺 infra 誠實標示  
 > **登錄**：`audits/S3-FEATURES-MARKET-FAMILIES-20260804.md`  
-> **status**：**Steward-approved 2026-08-04**（`S3-FEATURES-PLAN-go`）→ `audits/S3-FEATURES-PLAN-GO-20260804.md`（**≠** `S3-WAVE-*-go` build）
+> **status**：**Steward-approved 2026-08-04**（`S3-FEATURES-PLAN-go`）→ `audits/S3-FEATURES-PLAN-GO-20260804.md`；**S3-WAVE-A** GO＋EXECUTED → `audits/S3-WAVE-A-GO-20260804.md`／`audits/S3-WAVE-A-EXECUTED-20260804.md`；**S3-WAVE-B** GO＋EXECUTED → `audits/S3-WAVE-B-GO-20260804.md`／`audits/S3-WAVE-B-EXECUTED-20260804.md`（截面候選＋市場 PIT；股級 macro **SKIP**；**≠** C–E；**≠** prodset 晉升）
 
 ---
 
@@ -27,8 +27,8 @@ S3「最佳化特徵完整」＝依市場 **≈12 大類** 模型族，產出／
 |---|---|---|
 | `feature_values` 價量＋籌碼＋估值＋八二／康波＋毛利循環＋roe／debt | **have**（記憶錨約 **35** 名；builder＝`panel`／`chip`／`valuation`／`concentration`／`phase`／`margin_cycle`／`fundamentals`） | `handoff_memory/augur-feature-values.md`；`src/augur/features/panel.py` |
 | prodset **active** | **3**：`cycle_position_252d`／`inst_cumflow_position_120d`／`lending_fee_rate_mean_30d` | `reports/augur_project_optimization_plan_20260804.md` |
-| 截面相對化候選（`pb_xsec_rank`／`pb_industry_demean` 等） | **partial**（候選／漏斗曾跑；多數淘汰、未進 prodset） | `src/augur/audit/feature_candidate.py`；handoff 殘留盲點 |
-| FRED macro 清單＋PIT 讀門 | **partial**：`macro.SERIES`＋`macro_vintage` **有**；`feature_values` **零** macro 股級特徵（模組自陳）；市場方向表有消費 VIX／利差 | `src/augur/features/macro.py`／`macro_vintage.py`；`scripts/build_market_direction_features.py` |
+| 截面相對化候選（`pb_xsec_rank`／`pb_industry_demean` 等） | **partial**（Wave-B：**85,050** 候選列入 `feature_candidate_values`；IC 已測；**未**進 prodset） | `audits/S3-WAVE-B-EXECUTED-20260804.md`；`scripts/validate_feature_candidates.py` |
+| FRED macro 清單＋PIT 讀門 | **partial**：`macro_vintage`＋`market_direction_feature` PIT（Wave-B 刷新 2025→2026-06-30）；`feature_values` **零** 股級 macro＝**誠實 SKIP** | `audits/S3-WAVE-B-EXECUTED-20260804.md`；`scripts/build_market_direction_features.py` |
 | 日／市場方向特徵表 | **have**（旁路表，非 canonical `feature_values`）：`daily_direction_feature_values`、`market_direction_feature` | `scripts/build_daily_direction_features.py`／`build_market_direction_features.py` |
 | 圖／LOB L2／新聞 NLP→預測特徵 | **missing／N/A／gated** | 知識圖≠股圖；LOB 無 L2 基建；knowledge **禁**當預測特徵（計畫 §1.2） |
 | 飽和定論（歷史） | 同宇宙 H20–60 曾判「勿再挖特徵」——**不**廢止本檔「按族對齊類別」；新開＝缺口族／新宇宙／新 horizon／honest SKIP | handoff 2026-06-27 戰役 |
@@ -53,7 +53,7 @@ S3「最佳化特徵完整」＝依市場 **≈12 大類** 模型族，產出／
 | 1 | 古典統計／計量 | 單序列價量路徑；波動／殘差輸入；可選利率／匯率外生 | `return_1d`、`volatility_60d`、價序列（PriceAdj raw）；外生→FRED PIT | **have**（價量）／**partial**（macro 外生進股級 panel） |
 | 2 | 古典監督式 ML | 異質表格：價量＋估值＋籌碼＋基本面；可選截面秩 | 35 名表格式特徵；`roe`／`debt_ratio`；xsec 候選 | **have**／截面 **partial** |
 | 3 | 樹集成／GBDT | 同 #2（容忍缺列／異質型）；交互／稀疏籌碼友善 | 同上；chip 族；interaction 候選腳本 | **have** |
-| 4 | 截面排序／LTR | 截面可比特徵＋**相對化**（rank／industry demean）；流動性／規模控制 | prodset 3；`market_cap_log`；`pb_xsec_rank` 候選 | **partial**（相對化弱；多數仍 raw） |
+| 4 | 截面排序／LTR | 截面可比特徵＋**相對化**（rank／industry demean）；流動性／規模控制 | prodset 3；`market_cap_log`；Wave-B xsec 候選 4 名 | **partial**（候選有；prod 仍弱／未晉升） |
 | 5 | 時序深度學習 | 固定窗**張量**（多通道價量±籌碼）；非僅扁平表 | 可由 PriceAdj／chip 重建序列；**無**正式 sequence panel builder | **partial**（原料有、契約缺） |
 | 6 | Attention／Transformer 時序 | 同 #5＋較長窗／多變量對齊；可選 macro 通道 | 同 #5；macro 通道 **partial** | **partial** |
 | 7 | 圖／關係網路 | 節點特徵（同表格）＋**邊**（產業／相關／供應鏈） | 產業欄在 Info；**無**股圖特徵／adjacency 產物進預測 | **missing**（邊）／節點 **have** |
@@ -78,8 +78,8 @@ S3「最佳化特徵完整」＝依市場 **≈12 大類** 模型族，產出／
 5. **Valuation** — PE／PB／殖利率／市值／長年分位（例：`pe_ratio`、`pb_ratio`、`dividend_yield`、`market_cap_log`、`price_to_10yr`）→ **have**（離群 winsorize 仍為已知債）
 6. **Fundamentals／quality／margin cycle** — 財報閘後品質與循環（例：`roe`、`debt_ratio`、`gross_margin_pctile`、`monthly_revenue_yoy`）→ **have**
 7. **Flow／chip／short／lending** — 法人／外資／融資券／借券費（例：`institutional_net_buy_ratio_20d`、`lending_fee_rate_mean_30d`⚠名實窗、`foreign_holding_pct`）→ **have**（名實／覆蓋債已知）
-8. **Cross-section ranks／industry relative** — 同日百分位、產業 demean、規模中性化 → **partial**（候選有、prod 弱）
-9. **Macro／FRED PIT** — 利差／VIX／匯率／通膨預期／Tier-B vintage（經 `macro_vintage`）→ 市場方向表 **partial**；股級 `feature_values` **missing**
+8. **Cross-section ranks／industry relative** — 同日百分位、產業 demean、規模中性化 → **partial**（Wave-B 候選材料化＋IC；prodset 未晉升）
+9. **Macro／FRED PIT** — 利差／VIX／匯率／通膨預期／Tier-B vintage（經 `macro_vintage`）→ 市場方向表 **have／partial**（Wave-B PIT 刷新）；股級 `feature_values` **missing／SKIP**
 10. **Market-level／regime／direction panel** — 大盤／選擇權／景氣燈號等（`market_direction_feature`、日方向 `d_*`）→ **have**（旁路表；與 ranker panel **契約分離**）
 11. **Interaction／composite candidates** — 跨鏡交互、引擎假說候選 → **partial**（腳本有；晉升嚴格）
 12. **Sequence／tensor windows** — 供 LSTM／Transformer 之對齊多通道窗 → **partial／missing**（原料有、正式 builder／表契約缺）
@@ -154,11 +154,22 @@ S3-FEATURES-PLAN-go + GATE-keep + NHC-keep + API-THAW-bounded + no-SIM-apply
 ✅ **GO-EXECUTED** ≈13:35+08 → `audits/S3-FEATURES-PLAN-GO-20260804.md`。  
 本報告＝S3 特徵類別 **approved SSOT**；本句**不**含 FinMind 放量、不含全模型訓練、不含 sim `--apply`、**不含**放量 build。
 
-### 6.2 波次 build（仍開／另句）
+### 6.2 波次 build
 
 ```text
 S3-WAVE-A-go | FZ/GATE-keep | skip-sync | no-SIM-apply
-S3-WAVE-B-go | …
+```
+
+✅ **GO＋EXECUTED** 2026-08-04 → `audits/S3-WAVE-A-GO-20260804.md`／`audits/S3-WAVE-A-EXECUTED-20260804.md`（scoped asof rebuild；≠全史重灌）。
+
+```text
+S3-WAVE-B-go | FZ/GATE-keep | skip-sync | no-SIM-apply
+```
+
+✅ **GO＋EXECUTED** 2026-08-04 → `audits/S3-WAVE-B-GO-20260804.md`／`audits/S3-WAVE-B-EXECUTED-20260804.md`（組 8 候選候選＋IC；組 9 市場 PIT＋股級 macro SKIP；≠ prodset 晉升；#11 多 seed 封帳時 in-flight）。
+
+```text
+S3-WAVE-C-go | …
 ```
 
 收口後進閉環 C1（**不**默授 ingest／sync／build）：
@@ -185,5 +196,6 @@ LOOP-CYCLE-1-go + GATE-keep + NHC-keep + API-THAW-bounded + no-SIM-apply
 | 2026-08-04 | 交叉：S4 檔已落地；§4.1 S3→S2 回饋＋`S2-KH-OPT-AFTER-S3-go` 指針 |
 | 2026-08-04 | §4.1 升格閉環 C1 Arc A／B／C；鏈 `augur_s1_s2_s3_closed_loop_plan_20260804.md` |
 | 2026-08-04 | `S3-FEATURES-PLAN-go` **GO-EXECUTED**（approved SSOT）；≠ Wave build |
+| 2026-08-04 | `S3-WAVE-A`／`S3-WAVE-B` GO＋EXECUTED；B＝組 8–9（股級 macro SKIP） |
 
-*完。self-reported（#32a）。PLAN 已拍；build 另授。*
+*完。self-reported（#32a）。PLAN 已拍；A／B 已執行；C–E 另授。*
