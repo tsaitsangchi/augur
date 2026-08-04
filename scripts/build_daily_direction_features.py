@@ -19,6 +19,7 @@
   python scripts/build_daily_direction_features.py --run-chips               # v2 籌碼五族(lag-1 值位移;scoped DELETE)
   python scripts/build_daily_direction_features.py --run-chips --stocks 20   # 小樣測試(#25)
   python scripts/build_daily_direction_features.py --run --until 2026-05-31  # as-of 上限(預設=FREEZE)
+  python scripts/build_daily_direction_features.py --selftest         # 純紅綠自測(免 DB 免 API)
 """
 import argparse
 import sys
@@ -26,11 +27,34 @@ import sys
 import _bootstrap  # noqa: F401
 import numpy as np
 import pandas as pd
+from augur.catalog.world_concept import quote_ident, resolve
 from augur.core import db
 
 START, FREEZE = "2015-01-01", "2026-05-31"
+DAY_TRADE_CONCEPT = "tw.day_trading.stock"
+DAY_TRADE_BUY_COL = "BuyAmount"
+DAY_TRADE_SELL_COL = "SellAmount"
 FEATS = ["d_ret_1", "d_ret_5", "d_ret_20", "d_vol_20", "d_dist_ma20", "d_hilo_20", "d_turnover_z",
          "m_iv", "m_taiex_ret5"]
+
+
+def daytrade_amt_sql_from_table(source_table: str, buy_col: str, sell_col: str) -> str:
+    """純函式：當沖金額日序 SQL（(buy+sell)/2；UNBIND-35-dirfeat；#35）。"""
+    return (
+        f"SELECT stock_id, date, "
+        f"({quote_ident(buy_col)}::float8 + {quote_ident(sell_col)}::float8) / 2.0 "
+        f"FROM {quote_ident(source_table)} "
+        f"WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s"
+    )
+
+
+def daytrade_amt_sql(conn=None) -> str:
+    """經 Registry resolve 組 daytrade_amt SQL（禁回退 vendor 字面）。"""
+    b = resolve(DAY_TRADE_CONCEPT, conn=conn)
+    cols = [c.strip() for c in (b.column or "").split(",") if c.strip()]
+    buy = DAY_TRADE_BUY_COL if (not cols or DAY_TRADE_BUY_COL in cols) else cols[0]
+    sell = DAY_TRADE_SELL_COL if (not cols or DAY_TRADE_SELL_COL in cols) else cols[0]
+    return daytrade_amt_sql_from_table(b.table, buy, sell)
 
 
 def _universe_pit(cur):
@@ -132,9 +156,8 @@ def _chip_series(cur, stocks, since_buf, until):
         FROM "TaiwanDailyShortSaleBalances" WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""",
         (stocks, since_buf, until))
     out["short_bal"] = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "val"])
-    cur.execute("""SELECT stock_id, date, ("BuyAmount"::float8 + "SellAmount"::float8) / 2.0
-        FROM "TaiwanStockDayTrading" WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""",
-        (stocks, since_buf, until))
+    # d_daytrade_ratio 上游：resolve tw.day_trading.stock（UNBIND-35-dirfeat；Binding.table／.column）
+    cur.execute(daytrade_amt_sql(cur.connection), (stocks, since_buf, until))
     out["daytrade_amt"] = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "val"])
     cur.execute("""SELECT stock_id, date, "ForeignInvestmentSharesRatio"::float8 FROM "TaiwanStockShareholding"
         WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""", (stocks, since_buf, until))
@@ -230,14 +253,45 @@ def status():
     return 0
 
 
+def selftest() -> int:
+    """純函式自測（免 DB 免 API；#35 真輸入／換表會紅）。"""
+    bad = []
+
+    def chk(label, cond):
+        if cond:
+            print(f"  ✓ {label}")
+        else:
+            print(f"  ✗ {label}")
+            bad.append(label)
+
+    sql_ok = daytrade_amt_sql_from_table("TaiwanStockDayTrading", "BuyAmount", "SellAmount")
+    chk("helper uses quoted table + BuyAmount/SellAmount",
+        '"TaiwanStockDayTrading"' in sql_ok and '"BuyAmount"' in sql_ok
+        and '"SellAmount"' in sql_ok and "/ 2.0" in sql_ok)
+    sql_bad = daytrade_amt_sql_from_table("OtherTable", "BuyAmount", "SellAmount")
+    chk("helper table swap changes SQL (#35 會紅)",
+        sql_bad != sql_ok and '"OtherTable"' in sql_bad)
+    sql_col = daytrade_amt_sql_from_table("TaiwanStockDayTrading", "XBuy", "XSell")
+    chk("helper column swap changes SQL (#35 會紅)",
+        sql_col != sql_ok and '"XBuy"' in sql_col and '"XSell"' in sql_col)
+    if bad:
+        print(f"selftest FAIL: {len(bad)}")
+        return 1
+    print("selftest OK")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--run-chips", action="store_true", dest="chips")   # v2 籌碼五族(revival §3.2)
+    ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--since")
     ap.add_argument("--stocks", type=int)
     ap.add_argument("--until", default=FREEZE)
     args = ap.parse_args()
+    if args.selftest:
+        return selftest()
     if args.chips:
         return run_chips(args.since, args.stocks, args.until)
     if args.run:

@@ -13,6 +13,19 @@
 ---
 
 
+## 重開機／接續狀態（2026-08-04 上午 · 優化 step r3）
+
+> **逐步執行 SSOT（現行）**：`reports/augur_optimization_step_plan_r3_20260804.md`  
+> **拍板**：`audits/OPT-STEP-R3-20260804-GO.md`（`OPT-STEP-R3-20260804-go`＋`W1-go`＋`GATE-keep`＋`NHC-keep`＋`API-THAW-bounded`）  
+> **API**：`audits/API-THAW-20260804.md`——**已解凍（有界）**；准日頻增量／`sync_macro --no-catalog`；**禁** Dividend rebuild／寬窗放量除非另授。  
+> **Registry／map**：mapped **21／98**、sc **11／98**（U0-37 COMMIT；草案 86／35／70 已 COMMIT；survey 以 audit 為準）。  
+> **解直綁**：35／70／39 **已關**（含 dirfeat／valuation／research；39 改碼＋影子）。  
+> **裁示已登**：OUT8／N7＝B／043＝B。**U0 結構俟**：80／97（37 已 Registry）。  
+> **取數**：A2 ✅；A1 🟡 `daily_maintenance --end 2026-08-04` 仍跑（pid≈877801；額度閘暫停可見；**不殺不疊**）——`audits/OPT-R3-W2PREP-A1-WATCH-20260804.md`。  
+> **下一刀便利條**：`reports/augur_opt_next_best_r5_20260804.md`（#1＝`P1-DRIFT: C-go`）；批次帳＝`audits/OPT-R3-CANDO-BATCH-20260804.md`。  
+> **預測·sim 自進化優化計畫（Steward-approved）**：`reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md` · GO＝`audits/SIM-SELF-EVOLVE-OPT-PLAN-GO-20260804.md` · 指針 `audits/SIM-SELF-EVOLVE-OPT-PLAN-20260804.md`；下一刀＝S0 Discovery（§2.7）。  
+> **舊 step r2**（`reports/augur_optimization_step_plan_r2_20260804.md`）＝史料；P0「等結輪」敘事已超車。
+
 ## 重開機／接續狀態（2026-08-02 00:xx，封存點 `adjudication-complete-20260801`＋後續 commits）
 
 **08-01 一日要旨（接續者最速讀法＝記憶 `augur-adjudication-exec-20260801` → 終版圈選單 `reports/augur_final_adjudication_ballot_20260801.md` → 登錄冊全冊 ☑）**：

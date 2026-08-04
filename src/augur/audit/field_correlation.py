@@ -22,10 +22,73 @@ import numpy as np
 import pandas as pd
 from psycopg2.extras import execute_values
 
+from augur.catalog.world_concept import quote_ident, resolve
 from augur.core import db
 
 TABLE = "field_correlation"
 MIN_OBS = 60   # 一對欄位至少 N 個共同非空 obs 才算相關（少於即不寫；operational、透明揭露 #15）
+BLOCK_TRADE_CONCEPT = "tw.block_trade.print"
+BLOCK_TRADE_FACT_COL = "trading_money"
+DAY_TRADE_CONCEPT = "tw.day_trading.stock"
+MARKET_CAP_CONCEPT = "tw.market_capitalization.stock"
+
+
+def block_money_sql_from_table(source_table: str, fact_col: str = BLOCK_TRADE_FACT_COL) -> str:
+    """純函式：權威表名 → block_money 取數 SQL（#35；不吃 vendor 字面散落於 _SRC）。"""
+    return (
+        f"SELECT date, sum({fact_col})::float8 FROM {quote_ident(source_table)} "
+        f"WHERE stock_id=%s GROUP BY date"
+    )
+
+
+def block_money_sql(conn=None) -> str:
+    """經 Registry resolve 組 block_money SQL（UNBIND-39；禁回退字面表名）。"""
+    b = resolve(BLOCK_TRADE_CONCEPT, conn=conn)
+    cols = [c.strip() for c in (b.column or "").split(",") if c.strip()]
+    fact = BLOCK_TRADE_FACT_COL if (not cols or BLOCK_TRADE_FACT_COL in cols) else cols[0]
+    return block_money_sql_from_table(b.table, fact)
+
+
+def scalar_fact_sql_from_table(source_table: str, fact_col: str) -> str:
+    """純函式：表＋欄 → 單值日序列 SQL（UNBIND-35／70）。"""
+    return (
+        f"SELECT date, {quote_ident(fact_col)}::float8 FROM {quote_ident(source_table)} "
+        f"WHERE stock_id=%s"
+    )
+
+
+def resolved_scalar_sql(concept_key: str, preferred_col: str, conn=None) -> str:
+    """resolve 概念鍵後組單值 SQL；preferred 須在 source_column 列表內（否則退第一欄）。"""
+    b = resolve(concept_key, conn=conn)
+    cols = [c.strip() for c in (b.column or "").split(",") if c.strip()]
+    fact = preferred_col if (not cols or preferred_col in cols) else cols[0]
+    return scalar_fact_sql_from_table(b.table, fact)
+
+
+def day_trade_volume_sql(conn=None) -> str:
+    return resolved_scalar_sql(DAY_TRADE_CONCEPT, "Volume", conn)
+
+
+def day_trade_buy_sql(conn=None) -> str:
+    return resolved_scalar_sql(DAY_TRADE_CONCEPT, "BuyAmount", conn)
+
+
+def day_trade_sell_sql(conn=None) -> str:
+    return resolved_scalar_sql(DAY_TRADE_CONCEPT, "SellAmount", conn)
+
+
+def market_value_sql(conn=None) -> str:
+    return resolved_scalar_sql(MARKET_CAP_CONCEPT, "market_value", conn)
+
+
+# _SRC lazy 分派（UNBIND-35／39／70）
+_RESOLVED_SRC = {
+    "block_money": block_money_sql,
+    "day_trade_volume": day_trade_volume_sql,
+    "day_trade_buy": day_trade_buy_sql,
+    "day_trade_sell": day_trade_sell_sql,
+    "market_value": market_value_sql,
+}
 
 DDL = f"""
 CREATE TABLE IF NOT EXISTS {TABLE} (
@@ -59,7 +122,7 @@ _SRC = [
     ("per",            'SELECT date, "PER"::float8 FROM "TaiwanStockPER" WHERE stock_id=%s'),
     ("pbr",            'SELECT date, "PBR"::float8 FROM "TaiwanStockPER" WHERE stock_id=%s'),
     ("dividend_yield", 'SELECT date, dividend_yield::float8 FROM "TaiwanStockPER" WHERE stock_id=%s'),
-    ("market_value",   'SELECT date, market_value::float8 FROM "TaiwanStockMarketValue" WHERE stock_id=%s'),
+    ("market_value",   None),  # → market_value_sql；tw.market_capitalization.stock（UNBIND-70）
     ("tenyr",          'SELECT date, close::float8 FROM "TaiwanStock10Year" WHERE stock_id=%s'),
     ("revenue",        'SELECT date, revenue::float8 FROM "TaiwanStockMonthRevenue" WHERE stock_id=%s'),   # 月頻 → ffill
     # ── 擴充欄位值(2026-06-27 探索更多未知相關):短券側/外資空間/散戶集中度/借券活動 ──
@@ -69,10 +132,10 @@ _SRC = [
     ("holder_count",   "SELECT date, people::float8 FROM \"TaiwanStockHoldingSharesPer\" WHERE stock_id=%s AND \"HoldingSharesLevel\"='total'"),
     ("lending_volume", 'SELECT date, sum(volume)::float8 FROM "TaiwanStockSecuritiesLending" WHERE stock_id=%s GROUP BY date'),
     # ── 擴充未檢視域(2026-06-28、制度資產驅動):當沖投機 / 鉅額 / 融資券 flow ──
-    ("day_trade_volume", 'SELECT date, "Volume"::float8 FROM "TaiwanStockDayTrading" WHERE stock_id=%s'),
-    ("day_trade_buy",    'SELECT date, "BuyAmount"::float8 FROM "TaiwanStockDayTrading" WHERE stock_id=%s'),
-    ("day_trade_sell",   'SELECT date, "SellAmount"::float8 FROM "TaiwanStockDayTrading" WHERE stock_id=%s'),
-    ("block_money",      'SELECT date, sum(trading_money)::float8 FROM "TaiwanStockBlockTrade" WHERE stock_id=%s GROUP BY date'),
+    ("day_trade_volume", None),  # → day_trade_volume_sql；tw.day_trading.stock（UNBIND-35）
+    ("day_trade_buy",    None),
+    ("day_trade_sell",   None),
+    ("block_money",      None),  # → block_money_sql(conn)；概念鍵 tw.block_trade.print（UNBIND-39）
     ("margin_buy",       'SELECT date, "MarginPurchaseBuy"::float8 FROM "TaiwanStockMarginPurchaseShortSale" WHERE stock_id=%s'),
     ("margin_sell",      'SELECT date, "MarginPurchaseSell"::float8 FROM "TaiwanStockMarginPurchaseShortSale" WHERE stock_id=%s'),
     ("short_sell",       'SELECT date, "ShortSaleSell"::float8 FROM "TaiwanStockMarginPurchaseShortSale" WHERE stock_id=%s'),
@@ -100,6 +163,8 @@ def build_stock_panel(conn, stock_id):
         df = pd.DataFrame(prows, columns=["date", "close", "volume", "money", "turnover", "high", "low", "spread"]).set_index("date")
         df = df.astype(float)
         for col, sql in _SRC:
+            if col in _RESOLVED_SRC:
+                sql = _RESOLVED_SRC[col](conn)
             cur.execute(sql, (stock_id,))
             rows = cur.fetchall()
             s = pd.Series({d: (float(v) if v is not None else np.nan) for d, v in rows}, dtype=float, name=col)
@@ -296,7 +361,28 @@ def _selftest():
         and LEADLAG_HORIZONS == (1, 5, 20) and isinstance(MIN_OBS, int))
     chk("public entries present", all(callable(g) for g in (
         build_stock_panel, compute_correlations, analyze_stock, compute_leadlag,
-        analyze_stock_leadlag, cross_stock_leadlag_summary, cross_stock_summary, bootstrap)))
+        analyze_stock_leadlag, cross_stock_leadlag_summary, cross_stock_summary, bootstrap,
+        block_money_sql, block_money_sql_from_table, scalar_fact_sql_from_table,
+        resolved_scalar_sql, day_trade_volume_sql, market_value_sql)))
+
+    # UNBIND-39／35／70：_SRC 不得直綁 vendor 表名；純函式組 SQL（#35 真輸入）
+    for key in ("block_money", "day_trade_volume", "day_trade_buy", "day_trade_sell", "market_value"):
+        chk(f"{key} _SRC is lazy", dict(_SRC).get(key) is None)
+    chk("no unbound vendor tables in _SRC strings",
+        not any(isinstance(s, str) and t in s
+                for _, s in _SRC
+                for t in ("TaiwanStockBlockTrade", "TaiwanStockDayTrading", "TaiwanStockMarketValue")))
+    sql_ok = block_money_sql_from_table("TaiwanStockBlockTrade")
+    chk("helper uses quoted table + trading_money",
+        '"TaiwanStockBlockTrade"' in sql_ok and "sum(trading_money)" in sql_ok)
+    sql_bad = block_money_sql_from_table("OtherTable")
+    chk("helper table swap changes SQL (#35 會紅)", sql_bad != sql_ok and '"OtherTable"' in sql_bad)
+    dt = scalar_fact_sql_from_table("TaiwanStockDayTrading", "Volume")
+    chk("day_trade helper Volume", '"Volume"' in dt and '"TaiwanStockDayTrading"' in dt)
+    mv = scalar_fact_sql_from_table("TaiwanStockMarketValue", "market_value")
+    chk("market_value helper", '"market_value"' in mv and '"TaiwanStockMarketValue"' in mv)
+    chk("market_value table swap 會紅",
+        scalar_fact_sql_from_table("OtherCap", "market_value") != mv)
 
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1

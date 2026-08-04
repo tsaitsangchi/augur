@@ -91,18 +91,26 @@ def _snapshot(conn) -> dict:
         produced = {r[0] for r in by_asof}
         pending = sum(r[2] for r in by_asof)
         # anchor＝approved 次一已實現交易日（與 runner 同口徑；表經 registry、禁 vendor 直綁）
-        from augur.catalog.world_concept import resolve_sql
-        cal_tbl = resolve_sql("tw.daily_bar", conn=conn)
-        cur.execute(
-            f"SELECT date FROM {cal_tbl} WHERE stock_id=%s AND date > %s ORDER BY date",
-            ("TAIEX", approved),
-        )
-        cal = [r[0] for r in cur.fetchall()]
-        anchor = cal[0] if cal else None
-        nxt = next_grid_asof(cal, produced, anchor) if status == "approved" else None
+        # 權威未採認 → 誠實降級（週報可印、日曆不可猜）；不得回退 vendor 表名字面（WM.35／GATE-keep）
+        from augur.catalog.world_concept import UnmappedConcept, resolve_sql
+        cal_note = None
+        try:
+            cal_tbl = resolve_sql("tw.daily_bar", conn=conn)
+        except UnmappedConcept as e:
+            cal_note = f"tw.daily_bar UnmappedConcept: {e}"
+            cal, anchor = [], None
+            nxt = None
+        else:
+            cur.execute(
+                f"SELECT date FROM {cal_tbl} WHERE stock_id=%s AND date > %s ORDER BY date",
+                ("TAIEX", approved),
+            )
+            cal = [r[0] for r in cur.fetchall()]
+            anchor = cal[0] if cal else None
+            nxt = next_grid_asof(cal, produced, anchor) if status == "approved" else None
         k = k_progress(produced)
         line = format_week_line(k=k, k_max=K_TARGET, next_asof=nxt, pending=pending)
-        return {
+        out = {
             "gate": GATE_ID,
             "status": status,
             "approved": str(approved) if approved else None,
@@ -114,6 +122,10 @@ def _snapshot(conn) -> dict:
             "next_asof": None if nxt is None else str(nxt),
             "week_line": line,
         }
+        if cal_note:
+            out["calendar_unmapped"] = True
+            out["calendar_note"] = cal_note
+        return out
 
 
 def _check(*, as_json=False, week_line_only=False) -> int:
@@ -130,6 +142,11 @@ def _check(*, as_json=False, week_line_only=False) -> int:
     print("── sim 時鐘哨（M-M4；告知哨，rc 恆 0）──")
     print(f"  gate={snap.get('gate')} status={snap.get('status')}")
     print(f"  anchor={snap.get('anchor')} produced={snap.get('produced')}")
+    if snap.get("calendar_unmapped"):
+        print("  ⚠ calendar：tw.daily_bar 權威未採認（不下沉 vendor；下一格＝未實現）")
+        note = snap.get("calendar_note")
+        if note:
+            print(f"  note={note}")
     print(f"  {snap['week_line']}")
     return 0
 
@@ -162,6 +179,10 @@ def _selftest() -> int:
     body = open(__file__, encoding="utf-8").read().split("def _selftest")[0]
     chk("不 acquire heavy_slot", "HeavySlot" not in body and ".acquire(" not in body)
     chk("閘 id 定錨 SIM-CAL-R1", GATE_ID == "SIM-CAL-R1")
+    # 下游絆線：Unmapped 路徑必須存在；禁 vendor 直綁（弄掉 except／寫入 raw 表名字面 → 紅）
+    vendor_lit = "Taiwan" + "StockPrice"
+    chk("UnmappedConcept 誠實降級路徑在", "UnmappedConcept" in body and "calendar_unmapped" in body)
+    chk("禁 vendor 直綁 raw 日 K 表名字面", vendor_lit not in body)
 
     print("自測:全通過 ✓" if ok else "自測:有失敗 ✗")
     return 0 if ok else 1

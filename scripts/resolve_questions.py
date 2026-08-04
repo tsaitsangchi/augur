@@ -17,13 +17,21 @@
   python scripts/resolve_questions.py --classify      # 實際分類(只動 status='pending' 列)
   python scripts/resolve_questions.py --solve --limit 5      # 解 mechanical 題(本地引擎)
   python scripts/resolve_questions.py --selftest      # 零 DB 純紅綠(判準錨=今日真實樣本)
+  python scripts/resolve_questions.py --sweep-awaiting --dry-run   # 噪音/片段/逾齡預覽
+  python scripts/resolve_questions.py --sweep-awaiting             # 寫庫(須 G13 臂准)
+  python scripts/resolve_questions.py --sweep-awaiting --max-age-days 30
 """
 import argparse
 import re
 import sys
+from datetime import date, datetime
 
 import _bootstrap  # noqa: F401
 from augur.core import db
+from check_steward_question_backlog import (
+    DEFAULT_MAX_AGE_DAYS,
+    age_days as _backlog_age_days,
+)
 
 # 疑問語式:有其一才可能是「可獨立回答的問題」
 INTERROGATIVE = ("?", "？", "嗎", "什麼", "如何", "怎麼", "為什麼", "哪些", "哪個", "多少",
@@ -213,34 +221,75 @@ def sweep_queued(dry):
     return 0
 
 
-def sweep_awaiting(dry):
+def awaiting_age_supersede_ok(age: int, max_age_days: int = DEFAULT_MAX_AGE_DAYS) -> bool:
+    """逾齡（懸置日數 > max_age；與 backlog 探針同口徑）→ 准年齡門 supersede。純函式。"""
+    return int(age) > int(max_age_days)
+
+
+def _asked_on(v) -> date | None:
+    if v is None:
+        return None
+    if isinstance(v, datetime):
+        return v.date()
+    if isinstance(v, date):
+        return v
+    return date.fromisoformat(str(v)[:10])
+
+
+def sweep_awaiting(dry, max_age_days=DEFAULT_MAX_AGE_DAYS, as_of=None):
     """v3 掃帚擴 awaiting_hugo(hugo 2026-07-28「順手擴到 awaiting_hugo」):
-    只降級**噪音與片段**(harness 系統事件塊/終端貼文/行程指令)——真決策題一律保留給人。
-    噪音詞彙單一住所=mine_steward_questions.NOISE_*(#12,import 重用不另抄)。"""
+    降級**噪音／片段**＋**逾齡**（懸置 > max_age_days，預設＝backlog 探針 30 日）。
+    ≤門檻之真決策題一律保留給人（fail-closed：無年齡規則不得靜默清庫）。
+    噪音詞彙單一住所=mine_steward_questions.NOISE_*(#12,import 重用不另抄)。
+    Q22／G13：寫入須 `ops/steward_opt_arms.json` 臂＝machine-supersede-ok（P5.W2）；
+    dry-run 永遠可預覽。"""
     import mine_steward_questions as msq
-    n_noise = n_frag = n_keep = 0
+    from _steward_opt_arms import load_arms, machine_supersede_authorized, arm_of, G13_KEY
+
+    as_of = as_of or date.today()
+    arms = load_arms()
+    auth = machine_supersede_authorized(arms)
+    print(f"  G13-Q22 臂={arm_of(arms, G13_KEY) or '（未登錄）'}；"
+          f"機器 supersede 寫入={'准' if auth else '否（fail-closed）'}；"
+          f"年齡門 >{max_age_days} 日（as_of={as_of.isoformat()}）")
+    if not dry and not auth:
+        print("  → 拒寫：需 Steward `G13-Q22: machine-supersede-ok` 登錄 ops/steward_opt_arms.json"
+              "（dry-run 可預覽）")
+        return 2
+
+    n_noise = n_frag = n_aged = n_keep = 0
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SET LOCAL augur.honesty_write = 'on'")   # 誠實帳本閘通行證(B4-P2a)
-        cur.execute("""SELECT qid, question FROM steward_question_ledger
+        cur.execute("""SELECT qid, question, asked_at FROM steward_question_ledger
             WHERE status='awaiting_hugo' ORDER BY qid""")
-        for qid, q in cur.fetchall():
+        for qid, q, asked_at in cur.fetchall():
             s2 = " ".join((q or "").split())
-            if any(m in s2 for m in msq.NOISE_SUBSTRINGS) or                any(s2.startswith(pfx) for pfx in msq.NOISE_PREFIXES):
-                kind, ref = "noise", "noise:harness 系統事件塊誤入(v3 掃帚)"
+            if any(m in s2 for m in msq.NOISE_SUBSTRINGS) or \
+                    any(s2.startswith(pfx) for pfx in msq.NOISE_PREFIXES):
+                ref = "noise:harness 系統事件塊誤入(v3 掃帚)"
                 n_noise += 1
             elif is_fragment(q):
-                kind, ref = "frag", "context_bound:v3 規則(終端貼文/行程指令/拍板碼)"
+                ref = "context_bound:v3 規則(終端貼文/行程指令/拍板碼)"
                 n_frag += 1
             else:
-                n_keep += 1
-                continue
+                ad = _asked_on(asked_at)
+                if ad is not None and awaiting_age_supersede_ok(
+                        _backlog_age_days(ad, as_of), max_age_days):
+                    age = _backlog_age_days(ad, as_of)
+                    ref = (f"age_gate:懸置 {age} 日>{max_age_days}"
+                           f"（machine-supersede-ok／as_of={as_of.isoformat()}）")
+                    n_aged += 1
+                else:
+                    n_keep += 1
+                    continue
             if not dry:
                 cur.execute("""UPDATE steward_question_ledger SET status='superseded',
                     resolution_ref=%s, resolved_by='rules_v3_sweep_awaiting', resolved_at=now()
                     WHERE qid=%s AND status='awaiting_hugo'""", (ref, qid))
         if not dry:
             conn.commit()
-    print(f"{'[dry-run] ' if dry else ''}awaiting_hugo 掃帚:噪音 {n_noise}、片段 {n_frag} → "
+    print(f"{'[dry-run] ' if dry else ''}awaiting_hugo 掃帚:"
+          f"噪音 {n_noise}、片段 {n_frag}、逾齡 {n_aged} → "
           f"**留給 hugo 的真決策題 {n_keep}**")
     return 0
 
@@ -261,6 +310,32 @@ def _selftest():
         nonlocal ok
         print(("  ✓ " if cond else "  ✗ ") + name)
         ok = ok and cond
+
+    from _steward_opt_arms import (
+        machine_supersede_authorized, always_enable_authorized, probe_only_active,
+        ARM_MACHINE_SUPERSEDE_OK, ARM_ENABLE_PROBE_ONLY, ARM_ENABLE_ALWAYS_GO,
+        G13_KEY, G16_KEY,
+    )
+    # #35：純函式餵真臂；壞臂必紅（先驗紅）
+    chk("Q22：machine-supersede-ok → 准寫",
+        machine_supersede_authorized({G13_KEY: {"arm": ARM_MACHINE_SUPERSEDE_OK}}))
+    chk("Q22：keep-awaiting → 拒寫（先驗紅）",
+        not machine_supersede_authorized({G13_KEY: {"arm": "keep-awaiting"}}))
+    chk("Q22：缺臂 → 拒寫",
+        not machine_supersede_authorized({}))
+    chk("G16：enable-probe-only → 不准 ENABLE ALWAYS",
+        not always_enable_authorized({G16_KEY: {"arm": ARM_ENABLE_PROBE_ONLY}})
+        and probe_only_active({G16_KEY: {"arm": ARM_ENABLE_PROBE_ONLY}}))
+    chk("G16：enable-always-go → 准（對照臂）",
+        always_enable_authorized({G16_KEY: {"arm": ARM_ENABLE_ALWAYS_GO}}))
+
+    # #35：年齡門純函式——邊＝拒；壞成 ≥ 會讓 30 日邊變准（先驗紅對偶）
+    chk("年齡門：31>30 → 准 supersede", awaiting_age_supersede_ok(31, 30))
+    chk("年齡門：30 日邊 → 拒（僅 > 才准）", not awaiting_age_supersede_ok(30, 30))
+    chk("年齡門：0 日 → 拒", not awaiting_age_supersede_ok(0, 30))
+    chk("年齡門：門檻參數化（45 閾、42 齡→拒）",
+        not awaiting_age_supersede_ok(42, 45))
+    chk("年齡門：與 backlog 預設門檻一致", DEFAULT_MAX_AGE_DAYS == 30)
 
     # 錨=今日 pending 佇列真實樣本
     chk("片段:「全批照案」", is_fragment("「全批照案」"))
@@ -291,12 +366,15 @@ def main():
     ap.add_argument("--classify", action="store_true")
     ap.add_argument("--solve", action="store_true")
     ap.add_argument("--sweep-awaiting", action="store_true",
-                    help="v3 掃帚擴 awaiting_hugo(只降噪音/片段;真決策題保留給人)")
+                    help="v3 掃帚擴 awaiting_hugo(噪音/片段/逾齡;≤門檻真決策題保留)")
     ap.add_argument("--sweep-queued", action="store_true",
                     help="v3 規則掃 queued_for_claude 積壓(貼文/指令降級,不生成答案)")
     ap.add_argument("--solve-knowledge", action="store_true",
                     help="knowledge 題→advisor(8b 重活;批跑空檔才跑,每題 flock 禮讓)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--max-age-days", type=int, default=DEFAULT_MAX_AGE_DAYS,
+                    help=f"年齡門：懸置超過此日數才 supersede（預設 {DEFAULT_MAX_AGE_DAYS}＝backlog 探針）")
+    ap.add_argument("--as-of", help="年齡門比較日 YYYY-MM-DD（預設今天）")
     ap.add_argument("--limit", type=int)
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
@@ -311,7 +389,8 @@ def main():
     if a.sweep_queued:
         return sweep_queued(a.dry_run)
     if a.sweep_awaiting:
-        return sweep_awaiting(a.dry_run)
+        as_of = date.fromisoformat(a.as_of) if a.as_of else None
+        return sweep_awaiting(a.dry_run, max_age_days=a.max_age_days, as_of=as_of)
     print((__doc__ or "").strip())
     print()
     return status()

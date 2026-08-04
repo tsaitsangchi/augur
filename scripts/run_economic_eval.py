@@ -8,12 +8,19 @@
 守 #8 · #12 · #14 · #15(gross/net 雙報、換手揭露)· #28(本地零 usage)。
 執行指令矩陣:
   python scripts/run_economic_eval.py --since 2021-01-01 --h 60 --cost 0.00585
+  python scripts/run_economic_eval.py --since 2021-01-01 --until 2026-06-30 --h 60 --feature-source=prodset  # PME 現役集終關
   python scripts/run_economic_eval.py --since 2021-04-01 --h 60 --add-features lending_fee_rate_mean_20d  # A2 終關:同 --since 兩跑(有/無候選)同尺互比
 """
 import argparse
 
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db
+from augur.core.prodset_contract import (
+    FEATURE_SOURCE_CANONICAL,
+    FEATURE_SOURCE_PRODSET,
+    FEATURE_SOURCES,
+    ProdsetEmptyError,
+)
 from augur.evaluation import portfolio
 
 COST_TW = 0.00585   # 台股來回:手續費 2×0.1425% + 證交稅 0.3%(保守、未計折讓)
@@ -50,15 +57,23 @@ def main():
                     help="生產集外加候選特徵(逗號分隔;讀 staged 值,A2 經濟終關用——同 --since 兩跑同尺互比)")
     ap.add_argument("--drop-features", default=None, dest="drop_feats",
                     help="自 canonical 剔除特徵(逗號分隔)——已入 canonical 之成員做終關對照時用(vs 全集兩跑)")
+    ap.add_argument(
+        "--feature-source",
+        default=FEATURE_SOURCE_CANONICAL,
+        choices=list(FEATURE_SOURCES),
+        dest="feature_source",
+        help="特徵來源:canonical=預設研究尺;prodset=PME 現役 active∩覆蓋(P1-DRIFT C 終關)",
+    )
+    ap.add_argument("--seed", type=int, default=42, help="M1_gbdt random_state(B2_ridge 無視;多 seed 請外層重跑)")
     args = ap.parse_args()
     inter = [s.strip() for s in args.interactions.split(",")] if args.interactions else None
     adds = [s.strip() for s in args.add_feats.split(",")] if args.add_feats else None
     drops = set(s.strip() for s in args.drop_feats.split(",")) if args.drop_feats else None
+    src = (args.feature_source or FEATURE_SOURCE_CANONICAL).strip().lower()
 
     with db.connect() as conn:
         with db.transaction(conn) as cur:
             if args.panels_list:
-                from datetime import date as _d
                 cur.execute("SELECT DISTINCT panel_date FROM feature_values WHERE panel_date = ANY(%s::date[]) ORDER BY panel_date",
                             ([s.strip() for s in args.panels_list.split(",")],))
             elif args.until:
@@ -71,31 +86,48 @@ def main():
         import hashlib as _hl
         print(f"panel 清單 hash={_hl.sha256(','.join(map(str, panels)).encode()).hexdigest()[:10]}"
               f"(兩跑同 hash=同尺自證)")
+        from augur.evaluation import baseline
         feats = None
-        if adds or drops:
-            from augur.evaluation import baseline
+        if src == FEATURE_SOURCE_PRODSET:
+            if adds or drops:
+                print("✗ --feature-source=prodset 不可併用 --add-features/--drop-features;中止。")
+                return 1
+            try:
+                feats = baseline.resolve_train_feats(conn, panels, source=FEATURE_SOURCE_PRODSET)
+            except ProdsetEmptyError as e:
+                print(f"✗ prodset empty (FC-empty): {e};中止。")
+                return 1
+            if not feats:
+                print("✗ prodset 特徵集為空;中止。")
+                return 1
+        elif adds or drops:
             feats = baseline.canonical_features(conn, panels)
             if drops:
                 feats = [f for f in feats if f not in drops]
             if adds:
                 feats = feats + [a for a in adds if a not in feats]   # 防重名(2026-07-29 齊=0 教訓)
         print(f"經濟回測:{len(panels)} 非重疊 panel（{args.since}+）× h={args.h} × 來回成本 {args.cost:.3%}（as-of、purged walk-forward）"
-              + (f" / interactions={inter}" if inter else "") + (f" / +候選={adds}" if adds else ""))
+              + f" / feature_source={src}"
+              + (f" feats={feats}" if feats is not None else "")
+              + (f" / interactions={inter}" if inter else "") + (f" / +候選={adds}" if adds else "")
+              + f" / seed={args.seed}")
         for model in ("B2_ridge", "M1_gbdt"):
             print(f"\n══ {model}（long-only）══")
             for top in (0.1, 0.2, 0.3):
                 for wt in ("equal", "pred"):
-                    r = portfolio.run_backtest(conn, panels, args.h, feats=feats, model=model, top_frac=top, weight=wt, cost=args.cost, interactions=inter)
+                    r = portfolio.run_backtest(conn, panels, args.h, feats=feats, model=model, top_frac=top, weight=wt, cost=args.cost, interactions=inter, seed=args.seed)
                     if not r:
                         continue
                     tag = f"top{top:.0%}/{wt}"
                     print(f"  {tag:12s} 換手 {r['avg_turnover']:>4.0%} | gross[{_fmt(r['portfolio_gross'])}]")
                     print(f"  {'':12s}            | net  [{_fmt(r['portfolio_net'])}]")
-            rb = portfolio.run_backtest(conn, panels, args.h, feats=feats, model=model, top_frac=0.2, cost=args.cost, interactions=inter)
+            rb = portfolio.run_backtest(conn, panels, args.h, feats=feats, model=model, top_frac=0.2, cost=args.cost, interactions=inter, seed=args.seed)
             if rb:
                 print(f"  {'基準(淨)':12s} 換手 {rb['bench_turnover']:>4.0%} | net  [{_fmt(rb['benchmark_net'])}]  ({rb['n_periods']}期/{rb['periods_per_year']}per-yr)")
         print("\n判讀(#14):net(扣成本)Sharpe/Calmar 仍優於基準 net → 真可交易;若成本吃掉邊際 → IC 非真 alpha。最佳 top/加權看 net。")
+        print("≠確立級／可交易宣稱——本輸出僅經濟尺；direction_gate／人裁另層。")
+        return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main() or 0)

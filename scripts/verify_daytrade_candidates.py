@@ -6,9 +6,12 @@
 
 cutoff-free(比率/不均、20d 均;#9)、as-of ≤t(#8)、算不出缺列(#1)。實驗 x_ 前綴、驗後 --clear。
 守 #8 · #9 · #11 · #12 · #15 · #28。
-執行指令矩陣:python scripts/verify_daytrade_candidates.py --seeds 3 --h 20,60 [--clear]
+執行指令矩陣:
+  python scripts/verify_daytrade_candidates.py --seeds 3 --h 20,60 [--clear]
+  python scripts/verify_daytrade_candidates.py --selftest   # 純紅綠自測(免 DB 免 API)
 """
 import argparse
+import sys
 
 import numpy as np
 from psycopg2.extras import execute_values
@@ -16,14 +19,39 @@ from psycopg2.extras import execute_values
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.audit import feature_candidate as fc
 from augur.audit import feature_diagnostics as fd
+from augur.catalog.world_concept import quote_ident, resolve
 from augur.core import db
 from augur.evaluation import baseline, metrics
 from augur.evaluation import label as label_mod
 
 CANDS = ["x_day_trade_ratio_20d", "x_day_trade_imbalance_20d"]
-_SQL = ('SELECT d.date, d."Volume"::float8, p."Trading_Volume"::float8, d."BuyAmount"::float8, d."SellAmount"::float8 '
-        'FROM "TaiwanStockDayTrading" d JOIN "TaiwanStockPrice" p ON p.stock_id=d.stock_id AND p.date=d.date '
-        'WHERE d.stock_id=%s ORDER BY d.date')
+DAY_TRADE_CONCEPT = "tw.day_trading.stock"
+DAY_TRADE_VOL_COL = "Volume"
+DAY_TRADE_BUY_COL = "BuyAmount"
+DAY_TRADE_SELL_COL = "SellAmount"
+
+
+def daytrade_candidate_sql_from_table(
+    source_table: str, vol_col: str, buy_col: str, sell_col: str
+) -> str:
+    """純函式：當沖候選 JOIN 價量表 SQL（UNBIND-35-research；#35）。Price 側仍直綁（非本刀）。"""
+    return (
+        f'SELECT d.date, d.{quote_ident(vol_col)}::float8, p."Trading_Volume"::float8, '
+        f'd.{quote_ident(buy_col)}::float8, d.{quote_ident(sell_col)}::float8 '
+        f'FROM {quote_ident(source_table)} d JOIN "TaiwanStockPrice" p '
+        f'ON p.stock_id=d.stock_id AND p.date=d.date '
+        f'WHERE d.stock_id=%s ORDER BY d.date'
+    )
+
+
+def daytrade_candidate_sql(conn=None) -> str:
+    """經 Registry resolve 組當沖候選 SQL（禁回退 vendor 字面）。"""
+    b = resolve(DAY_TRADE_CONCEPT, conn=conn)
+    cols = [c.strip() for c in (b.column or "").split(",") if c.strip()]
+    vol = DAY_TRADE_VOL_COL if (not cols or DAY_TRADE_VOL_COL in cols) else cols[0]
+    buy = DAY_TRADE_BUY_COL if (not cols or DAY_TRADE_BUY_COL in cols) else cols[0]
+    sell = DAY_TRADE_SELL_COL if (not cols or DAY_TRADE_SELL_COL in cols) else cols[0]
+    return daytrade_candidate_sql_from_table(b.table, vol, buy, sell)
 
 
 def _asof_panels(cur):
@@ -37,10 +65,11 @@ def _compute(conn, panels):
         cur.execute("SELECT DISTINCT stock_id FROM core_universe_asof")
         stocks = [str(r[0]) for r in cur.fetchall()]
     pset = sorted(panels)
+    sql = daytrade_candidate_sql(conn)
     written = 0
     for sid in stocks:
         with db.transaction(conn) as cur:
-            cur.execute(_SQL, (sid,))
+            cur.execute(sql, (sid,))
             rows = cur.fetchall()
         if len(rows) < 20:
             continue
@@ -89,12 +118,58 @@ def _ic(conn, panels, h, feat, cal):
     return out
 
 
+def selftest() -> int:
+    """純函式自測（免 DB 免 API；#35 真輸入／換表會紅）。"""
+    bad = []
+
+    def chk(label, cond):
+        if cond:
+            print(f"  ✓ {label}")
+        else:
+            print(f"  ✗ {label}")
+            bad.append(label)
+
+    sql_ok = daytrade_candidate_sql_from_table(
+        "TaiwanStockDayTrading", "Volume", "BuyAmount", "SellAmount"
+    )
+    chk(
+        "helper uses quoted DayTrading + Volume/Buy/Sell + Price join",
+        '"TaiwanStockDayTrading"' in sql_ok
+        and '"Volume"' in sql_ok
+        and '"BuyAmount"' in sql_ok
+        and '"SellAmount"' in sql_ok
+        and '"TaiwanStockPrice"' in sql_ok,
+    )
+    sql_bad = daytrade_candidate_sql_from_table(
+        "OtherTable", "Volume", "BuyAmount", "SellAmount"
+    )
+    chk(
+        "helper table swap changes SQL (#35 會紅)",
+        sql_bad != sql_ok and '"OtherTable"' in sql_bad,
+    )
+    sql_col = daytrade_candidate_sql_from_table(
+        "TaiwanStockDayTrading", "XVol", "XBuy", "XSell"
+    )
+    chk(
+        "helper column swap changes SQL (#35 會紅)",
+        sql_col != sql_ok and '"XVol"' in sql_col and '"XBuy"' in sql_col,
+    )
+    if bad:
+        print(f"selftest FAIL: {len(bad)}")
+        return 1
+    print("selftest OK")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--h", default="20,60")
     ap.add_argument("--clear", action="store_true")
+    ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
+    if args.selftest:
+        return selftest()
     hs = [int(x) for x in args.h.split(",")]
     with db.connect() as conn:
         if args.clear:
@@ -139,4 +214,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

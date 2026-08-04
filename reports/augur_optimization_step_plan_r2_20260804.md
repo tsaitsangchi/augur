@@ -26,7 +26,8 @@ m_t5: watch
 |---|---|
 | **碼** | `OPT-STEP-R2-20260804-go` ＋ `FZ-keep` ＋ `GATE-keep` ＋ `M-T5-watch` |
 | **效力** | 本檔＝後續優化之 **step／runbook 執行 SSOT**（細節註冊仍讀 r2 master；理解讀 r5） |
-| **Step 1** | **`wait_done`**——等 Step 0 結輪（run22／I5B 收口）後再開 65 triage；**現在不開工** Lane-R |
+| **Step 1** | **`wait_done`**——等 Step 0 結輪（run22／I5B 收口）後再開 65 triage；**現在不開工** Lane-R；**喚醒＝auto**（結輪 ping，非自動開 triage） |
+| **Step1 喚醒** | **auto**——觀察 succeeded／morning 可寫 → ping（sentinel）；**不**自動開 65 triage、**不**代寫 morning audit |
 | **硬守** | 不跑 morning（輪未結）；不搶 `heavy_slot`；不開 65 triage SQL 報告；不解凍 API；不降閘；不代簽 |
 | **audit** | `audits/OPT-STEP-R2-20260804-GO.md` |
 

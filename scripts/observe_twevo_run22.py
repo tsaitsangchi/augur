@@ -33,7 +33,7 @@ import _bootstrap  # noqa: F401
 
 REPO = Path(__file__).resolve().parents[1]
 DEFAULT_CSV = REPO / "audits" / "prerun22_pending_snapshot_20260803.csv"
-DEFAULT_AUDIT = REPO / "audits" / "OPT-W0-RUN22-20260803.md"
+DEFAULT_AUDIT = REPO / "audits" / "OPT-W0-RUN22-FINAL-20260804.md"
 EXPECTED_NEXT_RUN = 22
 
 
@@ -124,8 +124,11 @@ def _prerun(path: Path) -> int:
 def _morning_scan(conn, *, apply_since: datetime | None) -> dict:
     with conn.cursor() as cur:
         snap = _baseline(cur)
+        # M-E3 起 basis 寫正規欄 gain_basis；gain_evidence 為 snapshot 包、無 'basis' 鍵。
+        # 舊探針只讀 JSON → 結輪後仍報 None＝假紅（#15）。COALESCE 兼容史料列。
         cur.execute(
-            "SELECT gain_evidence->>'basis' FROM evolution_iteration_ledger "
+            "SELECT COALESCE(gain_basis, gain_evidence->>'basis') "
+            "FROM evolution_iteration_ledger "
             "ORDER BY opened_at DESC NULLS LAST LIMIT 1"
         )
         r = cur.fetchone()
@@ -261,6 +264,26 @@ def _selftest() -> int:
         "apply_log_new_since_prerun": 0,
     })
     chk("gain incomparable → 紅", bad_gain["ok"] is False)
+    bad_null_gain = morning_verdict({
+        "latest_run_status": "succeeded",
+        "latest_run_id": 22,
+        "n_superseded": 1,
+        "n_pending_auto": 0,
+        "pending_by_run": {},
+        "gain_basis": None,
+        "apply_log_new_since_prerun": 0,
+    })
+    chk("gain_basis=None → 紅", bad_null_gain["ok"] is False)
+    good_none = morning_verdict({
+        "latest_run_status": "succeeded",
+        "latest_run_id": 22,
+        "n_superseded": 1,
+        "n_pending_auto": 0,
+        "pending_by_run": {},
+        "gain_basis": "none",
+        "apply_log_new_since_prerun": 0,
+    })
+    chk("gain_basis='none'（可比無增益）→ 綠", good_none["ok"] is True)
     bad_pending = morning_verdict({
         "latest_run_status": "succeeded",
         "latest_run_id": 22,

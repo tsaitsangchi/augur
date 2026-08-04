@@ -1,0 +1,16 @@
+{
+  "G13-Q22": {
+    "arm": "machine-supersede-ok",
+    "steward_string": "G13-Q22: machine-supersede-ok",
+    "decided_at": "2026-08-04",
+    "audit": "audits/OPT-R3-G13-G16-ARMS-EXECUTED-20260804.md",
+    "meaning": "允許機器路徑將逾齡／可機械判定項 supersede；年齡門＝backlog 探針 >30 日（見 AGE-G16-ALWAYS audit）"
+  },
+  "G16-ALWAYS": {
+    "arm": "enable-always-go",
+    "steward_string": "G16-ALWAYS: enable-always-go",
+    "decided_at": "2026-08-04",
+    "audit": "audits/OPT-R3-G13-AGE-G16-ALWAYS-EXECUTED-20260804.md",
+    "meaning": "准 ENABLE ALWAYS（執行層硬化）；探針仍量 ALWAYS≥1；DDL＝enable_trigger_always_mode.py（須本臂）"
+  }
+}

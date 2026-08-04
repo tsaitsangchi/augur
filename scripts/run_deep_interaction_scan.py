@@ -7,18 +7,41 @@
 - **多 horizon**(H=5/20/60)× 單欄 + 全對 z-乘積交互
 - **直接算 Newey-West HAC Eff-t**(去相關顯著性,審查 G8)——crude 高 t 不採信、只認 HAC
 判讀:HAC-t |≥2.5| + 跨 horizon 一致 + 交互>>成分 才標候選(需再過完整提拔關卡才入生產)。本地零 usage(#28)、#8 t+1 還原。
-執行指令矩陣:python scripts/run_deep_interaction_scan.py
+執行指令矩陣:
+  python scripts/run_deep_interaction_scan.py
+  python scripts/run_deep_interaction_scan.py --selftest   # 純紅綠自測(免 DB 免 API)
 """
+import argparse
 import itertools
+import sys
 
 import numpy as np
 
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
+from augur.catalog.world_concept import quote_ident, resolve
 from augur.core import db
 from augur.evaluation import label as label_mod
 from augur.evaluation import metrics
 
 HS = (5, 20, 60)
+DAY_TRADE_CONCEPT = "tw.day_trading.stock"
+DAY_TRADE_VOL_COL = "Volume"
+
+
+def daytrade_volume_cross_sql_from_table(source_table: str, vol_col: str) -> str:
+    """純函式：當沖量橫截面 SQL（UNBIND-35-research；#35）。"""
+    return (
+        f"SELECT stock_id, {quote_ident(vol_col)} FROM {quote_ident(source_table)} "
+        f"WHERE date::text=%s AND stock_id=ANY(%s)"
+    )
+
+
+def daytrade_volume_cross_sql(conn=None) -> str:
+    """經 Registry resolve 組當沖量橫截面 SQL（禁回退 vendor 字面）。"""
+    b = resolve(DAY_TRADE_CONCEPT, conn=conn)
+    cols = [c.strip() for c in (b.column or "").split(",") if c.strip()]
+    vol = DAY_TRADE_VOL_COL if (not cols or DAY_TRADE_VOL_COL in cols) else cols[0]
+    return daytrade_volume_cross_sql_from_table(b.table, vol)
 
 
 def _wz(d):
@@ -96,7 +119,8 @@ def main():
                     if mt is not None and my is not None: mchg[sid] = float(mt) - float(my)
                     if st_ is not None and sy is not None: schg[sid] = float(st_) - float(sy)
                 sbl = _col(cur, 'SELECT stock_id,"SBLShortSalesCurrentDayBalance" FROM "TaiwanDailyShortSaleBalances" WHERE date::text=%s AND stock_id=ANY(%s)', (ps, stk))
-                dtv = _col(cur, 'SELECT stock_id,"Volume" FROM "TaiwanStockDayTrading" WHERE date::text=%s AND stock_id=ANY(%s)', (ps, stk))
+                # daytrade_r 上游：resolve tw.day_trading.stock（UNBIND-35-research）
+                dtv = _col(cur, daytrade_volume_cross_sql(conn), (ps, stk))
                 # 動能/波動窗:adj close cal[i-120..i]
                 wdates = [str(cal[j]) for j in range(max(0, i - 120), i + 1)]
                 cur.execute('SELECT stock_id,date,close FROM "TaiwanStockPriceAdj" WHERE date::text=ANY(%s) AND stock_id=ANY(%s) AND close>0', (wdates, stk))
@@ -183,5 +207,43 @@ def main():
         print(f"  {a+'×'+b:30s} {h:>3d} {m:>+8.4f} {t:>+6.1f} {comp:>7.4f} {flag:>8s}")
 
 
+def selftest() -> int:
+    """純函式自測（免 DB 免 API；#35 真輸入／換表會紅）。"""
+    bad = []
+
+    def chk(label, cond):
+        if cond:
+            print(f"  ✓ {label}")
+        else:
+            print(f"  ✗ {label}")
+            bad.append(label)
+
+    sql_ok = daytrade_volume_cross_sql_from_table("TaiwanStockDayTrading", "Volume")
+    chk(
+        "helper uses quoted table + Volume",
+        '"TaiwanStockDayTrading"' in sql_ok and '"Volume"' in sql_ok,
+    )
+    sql_bad = daytrade_volume_cross_sql_from_table("OtherTable", "Volume")
+    chk(
+        "helper table swap changes SQL (#35 會紅)",
+        sql_bad != sql_ok and '"OtherTable"' in sql_bad,
+    )
+    sql_col = daytrade_volume_cross_sql_from_table("TaiwanStockDayTrading", "XVol")
+    chk(
+        "helper column swap changes SQL (#35 會紅)",
+        sql_col != sql_ok and '"XVol"' in sql_col,
+    )
+    if bad:
+        print(f"selftest FAIL: {len(bad)}")
+        return 1
+    print("selftest OK")
+    return 0
+
+
 if __name__ == "__main__":
+    ap = argparse.ArgumentParser(add_help=False)
+    ap.add_argument("--selftest", action="store_true")
+    args, _ = ap.parse_known_args()
+    if args.selftest:
+        sys.exit(selftest())
     main()
