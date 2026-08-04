@@ -20,8 +20,10 @@
 - `scratchpad/` 臨時檔（未入庫）  
 - DB dump 實體  
 
-## Git
+## Git（已推）
 
-- branch：`main`  
-- tag（建立於 push 後）：見同日 commit／tag 訊息  
-- 遠端：`origin` → `tsaitsangchi/augur`
+- branch：`main` → `origin/main`（`0287a25..ea1067b`）
+- commits：`330fadf`（主封存批次）· `ea1067b`（平行窗補齊）
+- tag：`archive/2026-08-04-s1s5-self-evolve`
+- 遠端：https://github.com/tsaitsangchi/augur
+- 未入庫：`scratchpad/`（臨時）· `.env`
