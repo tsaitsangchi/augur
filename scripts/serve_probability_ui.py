@@ -18,6 +18,8 @@
 執行指令矩陣:
   python scripts/serve_probability_ui.py --serve            # 起 UI(127.0.0.1:8600;帳密取 app_user)
   python scripts/serve_probability_ui.py --check            # 唯讀自檢:資料就位 + 誠實不變式(不起服務)
+  python scripts/serve_probability_ui.py --selftest         # 零 DB: p50 排名純函式 + 頁面片段合約
+  python scripts/serve_probability_ui.py                    # 無參數:印矩陣並跑 --check(需 DB)
 """
 import argparse
 import html
@@ -150,23 +152,124 @@ _SIM_CSS = """.simwrap{max-width:1000px;margin:0 auto;padding:16px;font-family:s
  border-radius:8px;margin-bottom:12px}.simwm{position:absolute;font-size:.7em;color:#b8860b;opacity:.55;
  transform:rotate(-6deg);pointer-events:none}.simcard{background:#201a10;border:1px solid #6b5416;
  border-radius:10px;padding:14px;margin:10px 0}.simk{display:block;font-size:.8em;color:#c8a95a;margin-top:3px}
-.simstat{display:inline-block;min-width:120px;margin:6px 12px 6px 0}.simstat b{font-size:1.5em;color:#ffd873}"""
+.simstat{display:inline-block;min-width:120px;margin:6px 12px 6px 0}.simstat b{font-size:1.5em;color:#ffd873}
+.simgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:720px){.simgrid{grid-template-columns:1fr}}
+.simrank table{width:100%;border-collapse:collapse;font-size:.9em}
+.simrank th,.simrank td{border-bottom:1px solid #3a3018;padding:5px 8px;text-align:left;color:#e8d9a8}
+.simrank th{color:#c8a95a;font-weight:600}.simrank .up{color:#9fdf9f}.simrank .dn{color:#e8a0a0}
+.simrank a{color:#ffd873}"""
+
+# 漲跌幅榜口徑(Steward 2026-08-04):一律用終值 p50 相對 as-of 收盤價之報酬率
+SIM_RANK_HORIZON = 30
+SIM_RANK_METHOD = "block_bootstrap"
+SIM_RANK_NOTE = ("口徑:漲／跌幅比率 = MC 終值 p50 相對 as-of 收盤價之報酬率 "
+                 f"(ret_p50＝px_p50/last_close−1；horizon={SIM_RANK_HORIZON} 交易日；"
+                 f"方法優先 {SIM_RANK_METHOD})。"
+                 "漲幅 Top10＝ret_p50 最高前 10；跌幅 Top10＝ret_p50 最低(最負)前 10。"
+                 "模擬非預測・非可交易訊號。")
 
 
 def _mc_targets(cur):
-    cur.execute("SELECT DISTINCT target_id FROM mc_simulation_run ORDER BY target_id")
+    # 本頁只呈個股分位錐；組合／episode 等無 cone 摘要不得進下拉（否則 KeyError→空回應白屏）
+    cur.execute("SELECT DISTINCT target_id FROM mc_simulation_run "
+                "WHERE summary ? 'cone' ORDER BY target_id")
     return [r[0] for r in cur.fetchall()]
 
 
 def _mc_run(cur, sid, h, method="block_bootstrap"):
     cur.execute("SELECT summary, n_paths, seed, method, block_len_td, asof_date FROM mc_simulation_run "
-                "WHERE target_id=%s AND horizon_td=%s AND method=%s", (sid, h, method))
+                "WHERE target_id=%s AND horizon_td=%s AND method=%s AND summary ? 'cone'",
+                (sid, h, method))
+    row = cur.fetchone()
+    if row:
+        return row
+    cur.execute("SELECT summary, n_paths, seed, method, block_len_td, asof_date FROM mc_simulation_run "
+                "WHERE target_id=%s AND horizon_td=%s AND summary ? 'cone' "
+                "ORDER BY method LIMIT 1", (sid, h))
     return cur.fetchone()
 
 
 def _mc_horizons(cur, sid):
-    cur.execute("SELECT DISTINCT horizon_td FROM mc_simulation_run WHERE target_id=%s ORDER BY horizon_td", (sid,))
+    cur.execute("SELECT DISTINCT horizon_td FROM mc_simulation_run "
+                "WHERE target_id=%s AND summary ? 'cone' ORDER BY horizon_td", (sid,))
     return [r[0] for r in cur.fetchall()]
+
+
+def _ret_p50_from_summary(summ):
+    """由 cone 型 summary 取終值 ret_p50；缺欄／無 cone 回 None(跳過、勿炸)。"""
+    if not isinstance(summ, dict) or "cone" not in summ or "terminal" not in summ:
+        return None
+    term = summ.get("terminal") or {}
+    if "ret_p50" in term:
+        try:
+            return float(term["ret_p50"])
+        except (TypeError, ValueError):
+            return None
+    last, px = summ.get("last_close"), term.get("px_p50")
+    if last in (None, 0) or px is None:
+        return None
+    try:
+        return float(px) / float(last) - 1.0
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+
+def _mc_p50_rankings(cur, horizon=SIM_RANK_HORIZON, limit=10, method=SIM_RANK_METHOD):
+    """h 日 cone 各股終值 ret_p50 排名。優先指定 method；該股無此 method 則退任一 cone 列。
+    回 (ups, dns, n_ranked)；ups=ret_p50 高→低、dns=低→高(最負在前)。無 cone 列跳過。"""
+    cur.execute(
+        "SELECT DISTINCT ON (target_id) target_id, method, asof_date, summary "
+        "FROM mc_simulation_run "
+        "WHERE horizon_td=%s AND summary ? 'cone' "
+        "ORDER BY target_id, "
+        "  CASE WHEN method=%s THEN 0 ELSE 1 END, method",
+        (horizon, method))
+    rows = []
+    for tid, meth, asof, summ in cur.fetchall():
+        ret = _ret_p50_from_summary(summ)
+        if ret is None:
+            continue
+        last = (summ or {}).get("last_close")
+        px = ((summ or {}).get("terminal") or {}).get("px_p50")
+        rows.append({"stock": tid, "ret_p50": ret, "last_close": last,
+                     "px_p50": px, "method": meth, "asof": asof})
+    ups = sorted(rows, key=lambda r: r["ret_p50"], reverse=True)[:limit]
+    dns = sorted(rows, key=lambda r: r["ret_p50"])[:limit]
+    return ups, dns, len(rows)
+
+
+def _rank_table_html(title, rows, css_cls, horizon=SIM_RANK_HORIZON):
+    if not rows:
+        return (f'<div class="simcard simrank"><h3 style="color:#ffd873;margin:0 0 8px">{html.escape(title)}</h3>'
+                f'<p class="simk">尚無 horizon={horizon} 且含 cone 之 MC 列可排名。</p></div>')
+    trs = ""
+    for i, r in enumerate(rows, 1):
+        sid = html.escape(str(r["stock"]))
+        ret = r["ret_p50"]
+        last = r.get("last_close")
+        px = r.get("px_p50")
+        last_s = f"{float(last):.1f}" if last is not None else "—"
+        px_s = f"{float(px):.0f}" if px is not None else "—"
+        trs += (
+            f'<tr><td>{i}</td><td><a href="/simulate?stock={sid}&h={horizon}">{sid}</a></td>'
+            f'<td class="{css_cls}">{ret:+.1%}</td><td>{last_s}→{px_s}</td></tr>')
+    return (
+        f'<div class="simcard simrank"><h3 style="color:#ffd873;margin:0 0 8px">{html.escape(title)}</h3>'
+        f'<table><tr><th>#</th><th>股</th><th>ret_p50</th><th>收盤→p50</th></tr>{trs}</table></div>')
+
+
+def _p50_rank_boards_html(cur, horizon=SIM_RANK_HORIZON):
+    ups, dns, n = _mc_p50_rankings(cur, horizon=horizon)
+    return (
+        f'<div class="simcard"><h2 style="color:#ffd873;margin:0 0 6px">'
+        f'{horizon} 交易日 p50 報酬 Top10（模擬非預測）</h2>'
+        f'<span class="simk">{html.escape(SIM_RANK_NOTE)}</span>'
+        f'<span class="simk">本榜納入 {n} 檔具 cone 之標的；無 cone／缺 ret_p50 者已跳過。</span></div>'
+        f'<div class="simgrid">'
+        f'{_rank_table_html(f"{horizon}日後漲幅比率 Top10（ret_p50 高→低）", ups, "up", horizon)}'
+        f'{_rank_table_html(f"{horizon}日後跌幅比率 Top10（ret_p50 低→高／最負在前）", dns, "dn", horizon)}'
+        f'</div>')
 
 
 def _fan_svg(summary):
@@ -212,6 +315,8 @@ def _fan_svg(summary):
 def simulate_page(cur, sid, h):
     targets = _mc_targets(cur)
     opts = "".join(f'<option value="{html.escape(s)}"{" selected" if s==sid else ""}>{html.escape(s)}</option>' for s in targets)
+    # 榜固定 h=30(Steward);個股錐仍依 query h
+    rank_boards = _p50_rank_boards_html(cur, horizon=SIM_RANK_HORIZON)
     body = ""
     if sid:
         hs = _mc_horizons(cur, sid)
@@ -220,33 +325,38 @@ def simulate_page(cur, sid, h):
         run = _mc_run(cur, sid, h) if h else None
         if run:
             summ, n_paths, seed, method, blk, asof = run
-            t = summ["terminal"]
-            body = (
-                f'<div class="simcard"><h2 style="color:#ffd873">{html.escape(sid)} · {h} 交易日情境錐（as-of {asof}）</h2>'
-                f'<div style="position:relative">{_fan_svg(summ)}</div>'
-                f'<div style="margin-top:10px">'
-                f'<span class="simstat">as-of 收盤<br><b>{summ["last_close"]:.1f}</b></span>'
-                f'<span class="simstat">中位情境<br><b>{t["px_p50"]:.0f}</b></span>'
-                f'<span class="simstat">5%–95% 終值報酬<br><b>{t["ret_p5"]:+.1%} ~ {t["ret_p95"]:+.1%}</b></span>'
-                f'<span class="simstat">模擬 P(終值&gt;0)<br><b>{summ["sim_stat_p_terminal_up"]:.0%}</b><span class="simk">※歷史統計非預測</span></span>'
-                f'</div>'
-                f'<span class="simk">horizon:{hlinks}</span>'
-                f'<span class="simk">方法:{html.escape(method)}｜區塊 {blk or "-"} td｜n_paths={n_paths}｜seed={seed}(可重現)｜純歷史重抽、零模型 tilt</span>'
-                f'</div>')
+            if not isinstance(summ, dict) or "cone" not in summ or "terminal" not in summ:
+                kind = html.escape(str((summ or {}).get("kind", "?"))) if isinstance(summ, dict) else "?"
+                body = (f'<div class="simcard">此列 summary 無分位錐（kind={kind}）；'
+                        f'本頁只渲染個股 cone 型模擬。horizon:{hlinks}</div>')
+            else:
+                t = summ["terminal"]
+                body = (
+                    f'<div class="simcard"><h2 style="color:#ffd873">{html.escape(sid)} · {h} 交易日情境錐（as-of {asof}）</h2>'
+                    f'<div style="position:relative">{_fan_svg(summ)}</div>'
+                    f'<div style="margin-top:10px">'
+                    f'<span class="simstat">as-of 收盤<br><b>{summ["last_close"]:.1f}</b></span>'
+                    f'<span class="simstat">中位情境<br><b>{t["px_p50"]:.0f}</b></span>'
+                    f'<span class="simstat">5%–95% 終值報酬<br><b>{t["ret_p5"]:+.1%} ~ {t["ret_p95"]:+.1%}</b></span>'
+                    f'<span class="simstat">模擬 P(終值&gt;0)<br><b>{summ["sim_stat_p_terminal_up"]:.0%}</b><span class="simk">※歷史統計非預測</span></span>'
+                    f'</div>'
+                    f'<span class="simk">horizon:{hlinks}</span>'
+                    f'<span class="simk">方法:{html.escape(method)}｜區塊 {blk or "-"} td｜n_paths={n_paths}｜seed={seed}(可重現)｜純歷史重抽、零模型 tilt</span>'
+                    f'</div>')
         else:
-            body = f'<div class="simcard">查無 {html.escape(sid)} 之模擬(先跑 simulate_mc_paths.py)。可選 horizon:{hlinks}</div>'
+            body = f'<div class="simcard">查無 {html.escape(sid)} 之分位錐模擬(先跑 simulate_mc_paths.py)。可選 horizon:{hlinks}</div>'
     else:
-        body = '<div class="simcard">選一檔看其蒙地卡羅逐日情境錐（模擬非預測）。</div>'
+        body = '<div class="simcard">選一檔看其蒙地卡羅逐日情境錐（模擬非預測）；下方為全宇宙 p50 報酬 Top10。</div>'
     return (f'<!doctype html><html><head><meta charset="utf-8"><title>蒙地卡羅模擬情境（模擬非預測）</title>'
             f'<style>{_CSS}{_SIM_CSS}</style></head><body><div class="simwrap">'
             f'<div class="simband">⚠ {html.escape(SIM_WATERMARK)}</div>'
             f'<div class="simcard" style="color:#e8d9a8">{html.escape(SIM_DISCLAIMER)}</div>'
+            f'{rank_boards}'
             f'<form method="get" action="/simulate"><label>個股 <select name="stock" onchange="this.form.submit()">'
             f'<option value="">—選股—</option>{opts}</select></label> '
             f'<a href="/">← 相對機率頁</a> · <a href="/logout">登出</a></form>'
             f'{body}<p class="simk">資料 as-of {AS_OF} · 唯讀 · is_simulation 硬綁 · 只存分位錐摘要(不存逐路徑)</p>'
             f'</div></body></html>')
-
 
 # ── 方向 GATE 誠實頁(展示分級:never_shown=不出方向機率、但據實揭露判決;死亡證明研究級呈現)──────
 DIR_BANNER = ("⚠ 方向軸(絕對漲跌機率)六門全 evaluated_fail —— 依展示分級,**不輸出任何個股方向機率數字**。"
@@ -326,9 +436,11 @@ class ProbHandler(BaseHTTPRequestHandler):
                 return part.strip()[5:]
         return None
 
-    def _send(self, code, body, ctype="text/html; charset=utf-8", cookie=None):
+    def _send(self, code, body, ctype="text/html; charset=utf-8", cookie=None, location=None):
         raw = body.encode() if isinstance(body, str) else body
         self.send_response(code)
+        if location:
+            self.send_header("Location", location)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(raw)))
         if cookie:
@@ -337,39 +449,97 @@ class ProbHandler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_GET(self):
-        from urllib.parse import urlparse, parse_qs
-        u = urlparse(self.path)
-        if u.path == "/logout":
-            tok = self._token()
-            if tok:
-                identity.revoke_session(tok)
-            return self._send(302, "", cookie="psid=; Max-Age=0; Path=/") or self.send_header("Location", "/")
-        if identity.verify_session(self._token()) is None:
-            return self._send(200, login_html())
-        q = parse_qs(u.query)
-        sid = (q.get("stock") or [None])[0] or None
-        with db.connect() as conn, db.transaction(conn) as cur:
-            if u.path == "/simulate":
-                h = int((q.get("h") or [30])[0])
-                return self._send(200, simulate_page(cur, sid, h))
-            if u.path == "/direction":
-                return self._send(200, _direction_page(cur))
-            return self._send(200, dashboard(cur, sid))
+        try:
+            from urllib.parse import urlparse, parse_qs
+            u = urlparse(self.path)
+            if u.path == "/logout":
+                tok = self._token()
+                if tok:
+                    identity.revoke_session(tok)
+                return self._send(303, "", cookie="psid=; Max-Age=0; Path=/", location="/")
+            if identity.verify_session(self._token()) is None:
+                return self._send(200, login_html())
+            q = parse_qs(u.query)
+            sid = (q.get("stock") or [None])[0] or None
+            with db.connect() as conn, db.transaction(conn) as cur:
+                if u.path == "/simulate":
+                    h = int((q.get("h") or [30])[0])
+                    return self._send(200, simulate_page(cur, sid, h))
+                if u.path == "/direction":
+                    return self._send(200, _direction_page(cur))
+                return self._send(200, dashboard(cur, sid))
+        except Exception as ex:
+            # 禁止未處理例外留下空回應白屏；錯誤頁仍標模擬非預測脈絡
+            msg = html.escape(f"{type(ex).__name__}: {ex}")[:400]
+            return self._send(500, (f'<!doctype html><html><head><meta charset="utf-8"><title>錯誤</title>'
+                                    f'<style>{_CSS}</style></head><body><div class="wrap">'
+                                    f'<div class="card dead">頁面渲染失敗（已截斷，非空頁）</div>'
+                                    f'<pre class="mk">{msg}</pre>'
+                                    f'<p><a href="/simulate">← 蒙地卡羅情境</a> · <a href="/">相對機率</a></p>'
+                                    f'</div></body></html>'))
 
     def do_POST(self):
-        from urllib.parse import parse_qs
-        if self.path != "/login":
-            return self._send(404, "not found")
-        n = int(self.headers.get("Content-Length", 0))
-        form = parse_qs(self.rfile.read(n).decode())
-        user = (form.get("username") or [""])[0]
-        pw = (form.get("password") or [""])[0]
-        u = identity.authenticate(user, pw)
-        if not u:
-            return self._send(200, login_html("帳密錯誤或帳號停用"))
-        tok = identity.issue_session(u["user_id"], client_note="prob_ui")
-        self._send(302, "", cookie=f"psid={tok}; HttpOnly; SameSite=Strict; Path=/")
-        self.send_header("Location", "/")
+        try:
+            from urllib.parse import parse_qs
+            if self.path != "/login":
+                return self._send(404, "not found")
+            n = int(self.headers.get("Content-Length", 0))
+            form = parse_qs(self.rfile.read(n).decode())
+            user = (form.get("username") or [""])[0]
+            pw = (form.get("password") or [""])[0]
+            u = identity.authenticate(user, pw)
+            if not u:
+                return self._send(200, login_html("帳密錯誤或帳號停用"))
+            tok = identity.issue_session(u["user_id"], client_note="prob_ui")
+            return self._send(303, "", cookie=f"psid={tok}; HttpOnly; SameSite=Strict; Path=/",
+                              location="/simulate")
+        except Exception as ex:
+            msg = html.escape(f"{type(ex).__name__}: {ex}")[:400]
+            return self._send(500, login_html(f"登入處理失敗：{msg}"))
+
+
+def _selftest():
+    """零 DB：p50 抽取／跳過無 cone、排名表 HTML 合約、口徑文案硬綁。#35 純函式餵真輸入。"""
+    fails = []
+    # (1) 真 cone summary → ret_p50
+    ok_summ = {"cone": [{"td": 1, "px_p50": 110}], "last_close": 100.0,
+               "terminal": {"ret_p50": 0.12, "px_p50": 112.0}}
+    if abs(_ret_p50_from_summary(ok_summ) - 0.12) > 1e-9:
+        fails.append("ret_p50 直取失敗")
+    # (2) 缺 ret_p50 時由 px/last 推回
+    derived = {"cone": [{}], "last_close": 50.0, "terminal": {"px_p50": 55.0}}
+    if abs(_ret_p50_from_summary(derived) - 0.1) > 1e-9:
+        fails.append("px/last 推回失敗")
+    # (3) 無 cone／組合型 → None(跳過)
+    for bad in (None, {}, {"kind": "portfolio"}, {"cone": [], "terminal": {}},
+                {"cone": [{}], "terminal": {"ret_p50": "x"}}):
+        if _ret_p50_from_summary(bad) is not None:
+            fails.append(f"應跳過卻有值:{bad!r}")
+    # (4) 排名表 HTML：高→低／最負在前 + 口徑句 + 可點進個股
+    rows = [
+        {"stock": "2330", "ret_p50": 0.25, "last_close": 100, "px_p50": 125},
+        {"stock": "2317", "ret_p50": -0.18, "last_close": 100, "px_p50": 82},
+    ]
+    up_html = _rank_table_html("漲", rows[:1], "up", 30)
+    dn_html = _rank_table_html("跌", rows[1:], "dn", 30)
+    if "2330" not in up_html or "+25.0%" not in up_html or "/simulate?stock=2330&h=30" not in up_html:
+        fails.append("漲幅表缺股／數字／連結")
+    if "2317" not in dn_html or "-18.0%" not in dn_html:
+        fails.append("跌幅表缺股／數字")
+    # (5) 口徑常數文案合約(禁僅字面自我匹配——句意須含 Steward 裁)
+    must = ("ret_p50", "相對 as-of 收盤價", "最高前 10", "最低", "模擬非預測")
+    if any(m not in SIM_RANK_NOTE for m in must):
+        fails.append("SIM_RANK_NOTE 缺口徑要件")
+    # (6) 先驗紅：弄壞抽取應失敗——故意餵錯型不得被當 0
+    if _ret_p50_from_summary({"cone": [{}], "last_close": 0, "terminal": {"px_p50": 10}}) is not None:
+        fails.append("last_close=0 應回 None")
+    if fails:
+        for f in fails:
+            print(f"✗ {f}")
+        print(f"SELFTEST FAIL ({len(fails)})")
+        return 1
+    print("✓ --selftest: ret_p50 抽取／跳過／排名 HTML／口徑合約 全過（零 DB）")
+    return 0
 
 
 def _check():
@@ -384,12 +554,15 @@ def _check():
     with db.connect() as conn, db.transaction(conn) as cur:
         sample = _stock_ids(cur)[0]
         page = dashboard(cur, sid=sample)
+        sim = simulate_page(cur, sid=None, h=30)
     forbidden = [w for w in ("上漲機率", "會漲的機率", "下跌機率", "會漲的機會") if w in page]
     markers = all(mk in page for mk in ("① 口徑", "② 日曆", "③ 經濟裁決", "④ 同族近似", "勝過 同儕"))
-    ok = bad == 0 and not forbidden and markers
+    sim_ok = all(x in sim for x in ("漲幅比率 Top10", "跌幅比率 Top10", "ret_p50", SIM_RANK_NOTE[:20]))
+    ok = bad == 0 and not forbidden and markers and sim_ok
     print(f"✓ 資料就位:{n} 列 / {s} 股 / {h} horizon（as-of {AS_OF}）；校準器 {len(cal)} 個")
     print(f"  誠實不變式:p_beat_median∈[0,1] 越界={bad}（應 0）；口徑硬綁={CANON(asof=AS_OF, h=60)}")
     print(f"  render 自檢({sample}):禁語出現={forbidden or '無'}；四標記硬綁={'✓' if markers else '✗'}")
+    print(f"  /simulate Top10 板:{'✓' if sim_ok else '✗'}（含漲／跌榜＋ret_p50 口徑）")
     print(f"  render:100% 伺服端、零 LLM、零寫路徑（route 僅 GET 讀 + POST /login）")
     return 0 if ok else 1
 
@@ -398,7 +571,10 @@ def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--serve", action="store_true")
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
+    if args.selftest:
+        return _selftest()
     if args.check:
         return _check()
     if args.serve:
@@ -407,7 +583,6 @@ def main():
         return 0
     print(__doc__.split("執行指令矩陣:")[1])
     return _check()
-
 
 if __name__ == "__main__":
     sys.exit(main())
