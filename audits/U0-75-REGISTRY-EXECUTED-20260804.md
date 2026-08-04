@@ -54,8 +54,12 @@
 ✓ --resolve tw.daily_bar
   → Binding(concept_key='tw.daily_bar', binding_id=75, table='TaiwanStockPrice', column=None, role='observation')
 ✓ check_sim_clock.py --check
-  → gate=SIM-CAL-R1 status=approved；anchor=2026-08-03；無 calendar_unmapped 阻斷敘事
+  → gate=SIM-CAL-R1 status=approved；anchor=2026-08-03
+  → week_line：`sim 時鐘：K=0/3，下一格 2026-08-03，待結算 0 列`
+  → `calendar_unmapped` 未置 true（僅 Unmapped 路徑設）
 ```
+
+重驗（同日後續窗）：resolve／clock／mapped=21／sc=11／auth_concepts=12 — 與上表一致；未觸 81。
 
 ---
 

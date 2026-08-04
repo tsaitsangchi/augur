@@ -138,12 +138,14 @@ P1-DRIFT: C-go | FZ/GATE-keep | no-SIM-apply | skip-sync
 SIM-S0-RESIDUAL: tw.daily_bar authoritative-binding | GATE-keep | no-SIM-apply
 ```
 - [x] **殘差窗已接**（2026-08-04）：診斷＝權威應指 binding **75**（`TaiwanStockPrice`；Annex F §2.1）；`check_sim_clock` 已誠實降級可印週報（`calendar_unmapped`）；DRY＋呈請已備。  
-- [ ] **Registry COMMIT 仍待**另句 `REGISTRY-GO: binding=75 + honesty=75 + decided_by=hugo`（殘差句本身≠COMMIT）。  
-  帳：`audits/SIM-S0-RESIDUAL-TW-DAILY-BAR-20260804.md` · DRY：`audits/SIM-S0-RESIDUAL-TW-DAILY-BAR-DRY-SQL-20260804.md`
+- [x] **Registry COMMIT 已落地**（2026-08-04）：`REGISTRY-GO: binding=75 + honesty=75 + decided_by=hugo` → `authoritative_binding_id=75`（`decided_at=2026-08-04 13:37:44+08`）；`--resolve tw.daily_bar`→`TaiwanStockPrice`；時鐘週報 `下一格 2026-08-03`（`calendar_unmapped` 未置）。  
+  帳：`audits/U0-75-REGISTRY-EXECUTED-20260804.md` · honesty：`audits/U0-75-HONESTY-ISSUED-20260804.md` · 殘差：`audits/SIM-S0-RESIDUAL-TW-DAILY-BAR-20260804.md`
 
 3. **S1**：無需新放量碼——維持既有 A1 雙監看＋THAW-bounded；403→停。
 
-4. **sim 首格**：仍待明示 `SIM-FIRST-CELL-go`（且 A1／econ 錯峰後）。
+4. **sim 首格**：~~仍待明示 `SIM-FIRST-CELL-go`（且 A1／econ 錯峰後）~~——
+   - [x] **已執行**（2026-08-04；A1／econ H20 皆已收工後）：`run_sim_calibration_cell.py --apply` 產格點 `2026-08-03`（52/52 檔）；`check_sim_clock` 現讀 `K=1/3，下一格 未實現，待結算 52 列`。
+     帳：`audits/SIM-FIRST-CELL-GO-20260804.md` · `audits/SIM-FIRST-CELL-EXECUTED-20260804.md`
 
 ---
 

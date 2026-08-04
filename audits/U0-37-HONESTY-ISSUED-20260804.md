@@ -21,6 +21,10 @@ REGISTRY-GO: binding=37 + honesty=37 + decided_by=hugo
 | Q-R1=(a) 原地 UPDATE；W2-1=(a) 分隔字串；observation＝`Open,High,Low,Close,Volume` | 登 `Adj_Close`；supersede 重編 |
 | 本批 one-shot；COMMIT 後本證**已消費** | 複用 7／65／39／50／86／35／70 舊證 |
 
+## 消費狀態
+
+COMMIT 後本證 **已消費**（`audits/U0-37-REGISTRY-EXECUTED-20260804.md` @11:34+08）。不得複用於 80／97。
+
 ## 不做
 
 - 未解凍／未跑 daily_maintenance／sync／FinMind  

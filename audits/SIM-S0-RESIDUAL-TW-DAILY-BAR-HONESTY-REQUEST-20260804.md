@@ -23,5 +23,5 @@ REGISTRY-GO: binding=75 + honesty=75 + decided_by=hugo
 
 ## 現況
 
-- **未發證** · **未 COMMIT**  
-- 時鐘哨已誠實降級可印週報行（見主 audit）；Registry 權威仍 NULL  
+- ✅ **已發證**（`audits/U0-75-HONESTY-ISSUED-20260804.md`）· ✅ **已 COMMIT**（`audits/U0-75-REGISTRY-EXECUTED-20260804.md`；`decided_at=2026-08-04 13:37:44+08`）  
+- 權威＝**75** `TaiwanStockPrice`；通行證 **已消費**  

@@ -54,9 +54,9 @@ S3「最佳化特徵完整」＝依市場 **≈12 大類** 模型族，產出／
 | 2 | 古典監督式 ML | 異質表格：價量＋估值＋籌碼＋基本面；可選截面秩 | 35 名表格式特徵；`roe`／`debt_ratio`；xsec 候選 | **have**／截面 **partial** |
 | 3 | 樹集成／GBDT | 同 #2（容忍缺列／異質型）；交互／稀疏籌碼友善 | 同上；chip 族；interaction 候選腳本 | **have** |
 | 4 | 截面排序／LTR | 截面可比特徵＋**相對化**（rank／industry demean）；流動性／規模控制 | prodset 3；`market_cap_log`；Wave-B xsec 候選 4 名 | **partial**（候選有；prod 仍弱／未晉升） |
-| 5 | 時序深度學習 | 固定窗**張量**（多通道價量±籌碼）；非僅扁平表 | 可由 PriceAdj／chip 重建序列；**無**正式 sequence panel builder | **partial**（原料有、契約缺） |
-| 6 | Attention／Transformer 時序 | 同 #5＋較長窗／多變量對齊；可選 macro 通道 | 同 #5；macro 通道 **partial** | **partial** |
-| 7 | 圖／關係網路 | 節點特徵（同表格）＋**邊**（產業／相關／供應鏈） | 產業欄在 Info；**無**股圖特徵／adjacency 產物進預測 | **missing**（邊）／節點 **have** |
+| 5 | 時序深度學習 | 固定窗**張量**（多通道價量±籌碼）；非僅扁平表 | `features/sequence.py`（複用 `build_stock_panel`，225/225 核心股足窗） | **have**（契約解除；adapter 訓練碼仍另計） |
+| 6 | Attention／Transformer 時序 | 同 #5＋較長窗／多變量對齊；可選 macro 通道 | 同 #5；macro 通道 **partial** | **have**（序列契約同 #5）／macro 通道 **partial** |
+| 7 | 圖／關係網路 | 節點特徵（同表格）＋**邊**（產業／相關／供應鏈） | `stock_graph_edge`（已寫入 13,021 邊＠2026-06-30） | **have**（邊資料已落地；GNN adapter 仍另計）／節點 **have** |
 | 8 | 強化學習交易 | 狀態＝市場＋部位＋約束特徵；獎勵對齊 #14 尺 | 預測特徵可複用；**無**專用 RL state／portfolio-state 特徵集 | **partial**（觀測）／**missing**（RL 狀態契約） |
 | 9 | 混合／堆疊集成 | 各臂輸出＋底層特徵並存（meta-features） | direction stack／P_mkt 計畫路徑；ranker＋econ 臂 | **partial** |
 | 10 | 另類資料／情緒 NLP | 文本情緒／事件強度（時點對齊、license 終態） | knowledge 管線存在；**禁** embedding 當預測特徵 | **gated**（治權）／另類 raw **missing** |
@@ -82,8 +82,8 @@ S3「最佳化特徵完整」＝依市場 **≈12 大類** 模型族，產出／
 9. **Macro／FRED PIT** — 利差／VIX／匯率／通膨預期／Tier-B vintage（經 `macro_vintage`）→ 市場方向表 **have／partial**（Wave-B PIT 刷新）；股級 `feature_values` **missing／SKIP**
 10. **Market-level／regime／direction panel** — 大盤／選擇權／景氣燈號等（`market_direction_feature`、日方向 `d_*`）→ **have**（旁路表；與 ranker panel **契約分離**）
 11. **Interaction／composite candidates** — 跨鏡交互、引擎假說候選 → **partial**（腳本有；晉升嚴格）
-12. **Sequence／tensor windows** — 供 LSTM／Transformer 之對齊多通道窗 → **partial／missing**（原料有、正式 builder／表契約缺）
-13. **Graph inputs** — 產業／相關／供應邊＋節點對齊 → **missing**（邊產物）
+12. **Sequence／tensor windows** — 供 LSTM／Transformer 之對齊多通道窗 → **have（library／CLI，唯讀）**：`features/sequence.py`＋`build_sequence_panel.py`，225/225 核心股 3 窗長皆足窗（S3-WAVE-D Phase 1 EXECUTED；不建新表、複用既有 `build_stock_panel`）
+13. **Graph inputs** — 產業／相關／供應邊＋節點對齊 → **have（資料已落地）**：`stock_graph_edge` 已寫入 13,021 邊（產業共群 1,831＋報酬相關性 5,089/6,101）＠2026-06-30（S3-WAVE-D Phase 2c EXECUTED）；殘餘＝無 GNN adapter 消費此表
 14. **Alt-data／NLP／LLM-derived（gated）** — 僅在 Steward 明示＋license＋提拔閘後；預設 **gated**
 15. **LOB／microstructure L2（N/A）** — **N/A** 直至有真來源基建
 16. **RL state／portfolio context** — 部位、約束、成本狀態（≠純 alpha 特徵）→ **missing**（專用契約）
@@ -172,6 +172,14 @@ S3-WAVE-B-go | FZ/GATE-keep | skip-sync | no-SIM-apply
 S3-WAVE-C-go | …
 ```
 
+```text
+S3-WAVE-D-go | FZ/GATE-keep | skip-sync | no-SIM-apply
+```
+
+plan-first → `reports/augur_s3_wave_d_sequence_graph_plan_20260804.md`（組 12 序列窗＝不建新表、複用 `audit.field_correlation.build_stock_panel`；組 13 圖邊＝新表 `stock_graph_edge`，分 Phase 1/2a/2b/2c，首次寫庫另需 Steward 明示）。
+
+✅ **GO＋EXECUTED**（Phase 1+2a+2b+2c 全數完成）2026-08-04 → `audits/S3-WAVE-D-GO-20260804.md`／`audits/S3-WAVE-D-EXECUTED-20260804.md`（序列窗 library／CLI 唯讀；圖邊 DDL＋**13,021 邊已寫入** `stock_graph_edge`＠2026-06-30，經 `AskQuestion` 明示授權後執行）。
+
 收口後進閉環 C1（**不**默授 ingest／sync／build）：
 
 ```text
@@ -197,5 +205,8 @@ LOOP-CYCLE-1-go + GATE-keep + NHC-keep + API-THAW-bounded + no-SIM-apply
 | 2026-08-04 | §4.1 升格閉環 C1 Arc A／B／C；鏈 `augur_s1_s2_s3_closed_loop_plan_20260804.md` |
 | 2026-08-04 | `S3-FEATURES-PLAN-go` **GO-EXECUTED**（approved SSOT）；≠ Wave build |
 | 2026-08-04 | `S3-WAVE-A`／`S3-WAVE-B` GO＋EXECUTED；B＝組 8–9（股級 macro SKIP） |
+| 2026-08-04 | S3-WAVE-D plan-first 完稿（`reports/augur_s3_wave_d_sequence_graph_plan_20260804.md`）——解 S4 Wave C/D/E SKIP 根因之計畫；待 GO |
+| 2026-08-04 | `S3-WAVE-D` Phase 1+2a+2b GO＋EXECUTED——組 12 序列窗契約解除（library／CLI 唯讀）；組 13 圖邊 DDL＋dry-run（13,021 邊，未寫入）；Phase 2c 待另授 |
+| 2026-08-04 | `S3-WAVE-D` Phase 2c 經 `AskQuestion` 明示授權後 EXECUTED——`stock_graph_edge` 13,021 列已寫入＠2026-06-30；組 12/13 皆轉 **have** |
 
-*完。self-reported（#32a）。PLAN 已拍；A／B 已執行；C–E 另授。*
+*完。self-reported（#32a）。PLAN 已拍；A／B／D（Phase1-2c 全數）已執行；C／E 另授。*

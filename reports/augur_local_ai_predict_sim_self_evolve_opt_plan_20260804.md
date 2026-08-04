@@ -406,7 +406,7 @@ flowchart TB
 | **scripts** | `build_feature_panel.py`；`build_*_features.py` 族（含 direction）；`build_interaction_candidates.py`；`verify_candidate_promotion.py`；消費 `augur.features.*`／`macro_vintage`／`field_correlation`（解直綁後 resolve） |
 | **tables** | `feature_values`；`feature_candidate_values`；`daily_direction_feature_values`／`market_direction_feature`（旁路）；panel／universe as-of；（讀）raw＋prodset 契約欄 |
 | **不變式** | anti-leakage；source-pure；**零 live API**；knowledge／embedding **不當**預測特徵；LOB L2／未授權 NLP＝N/A／gated；Registry concepts **消費** mapped 鍵（本檔不 COMMIT） |
-| **現況錨** | 表格式／籌碼／估值等 **have**（記憶錨≈35）；prodset active **3**；股級 macro／圖邊／序列契約／RL state＝**partial／missing**；詳特徵報告 §1–3 |
+| **現況錨** | 表格式／籌碼／估值等 **have**（記憶錨≈35）；prodset active **3**；序列窗契約＝**have**（S3-WAVE-D，2026-08-04）；圖邊＝**have**（`stock_graph_edge` 13,021 邊已寫入）；股級 macro／RL state＝**partial／missing**；詳特徵報告 §1–3 |
 | **驗收（特徵完整＋重覆驗証）** | 見 §0.5 S3＋特徵報告 §5：12 大類可追溯狀態；多組入漏斗；提拔＋#11；誠實覆蓋；完整≠可交易；gated 不假綠 |
 | **回饋義務** | 波次收口（或特徵庫存可引用）後 **必須**觸發 §0.6 **C1** 對映——產出 KH backlog／S2 優化波（可選 S1 記帳），**不得**只往 S4 單向前進；C2 可選下鑽特徵缺口時亦回本段 |
 | **Steward** | 先 `S3-FEATURES-PLAN-go`（採納矩陣）→ 逐波 `S3-WAVE-A-go`… 才 rebuild／放量 build；收口後 `S2-KH-OPT-AFTER-S3-go`；預設可與 S1 錯峰、不互為硬閘 |
@@ -436,9 +436,9 @@ flowchart TB
 |---|---|---|---|
 | **A** tabular／ranker／direction | #3 樹集成／GBDT · #4 截面 LTR · #2 古典監督（表格式）· direction 臂 | 多 seed／horizon；#14；既有 CLI 優先 | —（adapter 多已存在；缺則記 missing 不假訓） |
 | **B** classical TS／計量 | #1 ARIMA／GARCH／VAR／Kalman／協整 | 庫內價量 as-of；多窗重覆；#14 或明示「非截面任務尺」 | 缺單序列足夠歷史→SKIP |
-| **C** sequence DL | #5 RNN／LSTM／GRU／TCN… | GPU／序列窗契約；≥3 seed；anti-leakage 窗 | 無序列 builder／OOM→SKIP |
-| **D** Attention／Transformer TS | #6 Transformer／Informer／PatchTST… | 同 C＋長窗記憶契約 | 無 adapter／無足夠 T→SKIP |
-| **E** 圖／關係 | #7 GCN／GAT／產業圖 | 需圖建構（產業／相關性）as-of | 無圖邊表→SKIP |
+| **C** sequence DL | #5 RNN／LSTM／GRU／TCN… | GPU／序列窗契約；≥3 seed；anti-leakage 窗 | 序列 builder **已解**（S3-WAVE-D，2026-08-04）；殘餘＝無 adapter→SKIP |
+| **D** Attention／Transformer TS | #6 Transformer／Informer／PatchTST… | 同 C＋長窗記憶契約 | 同 C；殘餘＝無 adapter→SKIP |
+| **E** 圖／關係 | #7 GCN／GAT／產業圖 | 需圖建構（產業／相關性）as-of | 圖邊資料**已落地**（S3-WAVE-D，13,021 邊）；殘餘＝無 GNN 套件／adapter→SKIP |
 | **F** RL 交易 | #8 DQN／PPO／portfolio RL… | **≠純點預測**；須另尺；禁與 #14 混稱可交易 | 無 env／禁自動下單→SKIP 或 defer |
 | **G** 混合＋另類＋LLM＋貝氏 | #9–#12 | stacking／NLP／LLM 輔／GP 等；license／資料門 | LOB L2／未授權全文／無新聞 raw→**SKIP not fake pass** |
 
@@ -615,22 +615,63 @@ P1-DRIFT: C-go | FZ/GATE-keep | no-SIM-apply | skip-sync
 S4-FAMILIES-PLAN-go + GATE-keep + NHC-keep + API-THAW-bounded + no-SIM-apply
 ```
 
-Wave-1（tabular／ranker／direction；庫內 as-of；可與殘餘 RankGBDT／H40·H120 併跑）——**下一刀待貼**：
+Wave-A（tabular／ranker／direction；**已消費** 2026-08-04）：
 
 ```text
 S4-WAVE-A-go | FZ/GATE-keep | no-SIM-apply | skip-sync
 ```
 
-後續波次（各需另句；缺資料／adapter→SKIP）：
+→ EXECUTED＝`audits/S4-WAVE-A-EXECUTED-20260804.md`。
+
+Wave-B（classical TS／計量；**已消費** 2026-08-04）：
 
 ```text
-S4-WAVE-B-go | …   # classical TS
-S4-WAVE-C-go | …   # sequence DL
-S4-WAVE-D-go | …   # Transformer TS
-S4-WAVE-E-go | …   # graph
-S4-WAVE-F-go | …   # RL（另尺；禁混可交易）
-S4-WAVE-G-go | …   # hybrid／NLP／LLM／Bayesian
+S4-WAVE-B-go | FZ/GATE-keep | no-SIM-apply | skip-sync
 ```
+
+→ GO＝`audits/S4-WAVE-B-GO-20260804.md`；EXECUTED＝`audits/S4-WAVE-B-EXECUTED-20260804.md`（B-1a…e **誠實 SKIP**／GARCH＝n/a-sim；≠假訓）。
+
+Wave-C（sequence DL；**已消費** 2026-08-04）：
+
+```text
+S4-WAVE-C-go | FZ/GATE-keep | no-SIM-apply | skip-sync
+```
+
+→ GO＝`audits/S4-WAVE-C-GO-20260804.md`；EXECUTED＝`audits/S4-WAVE-C-EXECUTED-20260804.md`（C-5a…e **誠實 SKIP**；缺 sequence panel）。
+
+Wave-D（Attention／Transformer TS；**已消費** 2026-08-04）：
+
+```text
+S4-WAVE-D-go | FZ/GATE-keep | no-SIM-apply | skip-sync
+```
+
+→ GO＝`audits/S4-WAVE-D-GO-20260804.md`；EXECUTED＝`audits/S4-WAVE-D-EXECUTED-20260804.md`（D-6a…c **誠實 SKIP**；`transformers` 套件在≠adapter）。
+
+Wave-E（圖／關係；**已消費** 2026-08-04）：
+
+```text
+S4-WAVE-E-go | FZ/GATE-keep | no-SIM-apply | skip-sync
+```
+
+→ GO＝`audits/S4-WAVE-E-GO-20260804.md`；EXECUTED＝`audits/S4-WAVE-E-EXECUTED-20260804.md`（E-7a／b **誠實 SKIP**；KH 知識圖≠股票圖邊）。
+
+Wave-F（RL；**已消費** 2026-08-04；**另尺**）：
+
+```text
+S4-WAVE-F-go | FZ/GATE-keep | no-SIM-apply | skip-sync | RL-separate-ruler
+```
+
+→ GO＝`audits/S4-WAVE-F-GO-20260804.md`；EXECUTED＝`audits/S4-WAVE-F-EXECUTED-20260804.md`（F-8a…c **誠實 SKIP／defer**；碼庫確認無 RL 套件／自動下單路徑）。
+
+Wave-G（混合／另類／NLP／LLM／貝氏；**已消費** 2026-08-04；**S4 A–G 收官波**）：
+
+```text
+S4-WAVE-G-go | FZ/GATE-keep | no-SIM-apply | skip-sync
+```
+
+→ GO＝`audits/S4-WAVE-G-GO-20260804.md`；EXECUTED＝`audits/S4-WAVE-G-EXECUTED-20260804.md`（2 partial 既有＋8 誠實 SKIP；advisor／LLM 明註非價預測器）。
+
+**S4 taxonomy A–G 全波次收口**——生產熱路徑仍＝Wave A 三臂（RankRidge／RankGBDT／direction）；後續非「新 Wave」而是回饋（C2 消費 S5 OOS）或 adapter 訓練碼（S3-WAVE-D 已解契約缺口，2026-08-04；殘餘＝各族 adapter 本體）。
 
 - 詳細矩陣＝`reports/augur_s4_market_model_families_opt_plan_20260804.md`（**approved SSOT**）  
 - **不含**：全 40 族一次開訓、sim `--apply`、放量 API、假確立級、未授 APPLY
@@ -661,11 +702,18 @@ S3-WAVE-B-go | FZ/GATE-keep | skip-sync | no-SIM-apply
 
 → GO＝`audits/S3-WAVE-B-GO-20260804.md`；EXECUTED＝`audits/S3-WAVE-B-EXECUTED-20260804.md`（候選 85,050＋市場 PIT；股級 macro **SKIP**；≠ prodset 晉升）。
 
-後續波次（各需另句；缺 infra→SKIP／gated）：
+Wave-D（序列窗張量＋圖邊；**Phase 1+2a+2b+2c 全數已消費** 2026-08-04）：
+
+```text
+S3-WAVE-D-go | FZ/GATE-keep | skip-sync | no-SIM-apply
+```
+
+→ plan-first＝`reports/augur_s3_wave_d_sequence_graph_plan_20260804.md`；GO＝`audits/S3-WAVE-D-GO-20260804.md`；EXECUTED＝`audits/S3-WAVE-D-EXECUTED-20260804.md`（組 12 序列窗＝不建新表、`features/sequence.py` 複用既有 `build_stock_panel`，225/225 核心股足窗；組 13 圖邊＝新表 `stock_graph_edge` **已寫入 13,021 邊**＠2026-06-30，Phase 2c 經 `AskQuestion` 明示授權後執行）。S4 Wave C/D/E 之 SKIP 理由自此由「缺契約」轉「缺 adapter」。
+
+其餘波次（各需另句；缺 infra→SKIP／gated）：
 
 ```text
 S3-WAVE-C-go | …   # 方向表↔ranker 契約／meta
-S3-WAVE-D-go | …   # 序列窗＋圖邊（plan-first）
 S3-WAVE-E-go | …   # alt／NLP／LLM／RL state／LOB（僅明示；否則 gated／N/A）
 ```
 
@@ -742,13 +790,14 @@ LOOP-S4-S5-PLAN-ack + FZ-keep + NHC-keep + no-SIM-apply
 
 ```text
 predict-asof-write-go
-SIM-FIRST-CELL-go
 SIM-DASHBOARD-impl-go
 SIM-FP-B-go
 Q-R8=jp-ok
 U0-97: 不登
 U0-80-SPLIT-BOUND: second_binding=<id> + role=price_limit_ref
 ```
+
+**`SIM-FIRST-CELL-go`** ✅ **已執行**（2026-08-04；Steward 經 `AskQuestion` 選定）——格點 `2026-08-03`、候選 `simc_r1_iid_baseline`、52/52 檔已產（`mc_simulation_run`＋`sim_run_link`）、迭代帳本 `sim-20260803-r01` running；時鐘 `check_sim_clock.py --week-line`＝`K=1/3，下一格 未實現，待結算 52 列`；settle／evaluate／decide 三段誠實回報「未到」、**0 自動 promoted**；GO＝`audits/SIM-FIRST-CELL-GO-20260804.md`；執行＝`audits/SIM-FIRST-CELL-EXECUTED-20260804.md`。**勿重貼當開工**——下一動作＝等 label 日（≈21 個交易日後）才有列可 `settle`，或人工節奏補產格點 2／3。
 
 ### 7.4 只 S0 Discovery
 
@@ -822,7 +871,8 @@ SIM-SELF-EVOLVE-OPT-PLAN-20260804-ack + P0-DISCOVERY-go
 | approved+c2-loop | 2026-08-04 | Steward mandate：S4→S5 同樣閉環；§0.6 升格 **C1**（含可選 S1）＋§0.7 **C2**＋§0.8 **C0**；§7.2d `LOOP-S4-TO-S5-go`／`LOOP-S5-TO-S4-OPT-go`／`LOOP-FULL-CHAIN-go`；詳細＝`augur_s4_s5_closed_loop_plan_20260804.md`；登錄 `SIM-S4-S5-CLOSED-LOOP`；**不撤** §7.1；**本輪零 train／零 predict 寫／零 sim-apply** |
 | approved+c1-full | 2026-08-04 | Steward mandate：S3→S2→擴大 S1→計畫閉環；§0.6 **C1 Arc A／B／C**＋§7.2c `LOOP-S3-TO-S2-go`／`LOOP-S2-TO-S1-EXPAND-go`／`LOOP-CYCLE-N-go`；詳細＝`augur_s1_s2_s3_closed_loop_plan_20260804.md`；登錄 `SIM-S1-S2-S3-CLOSED-LOOP`；**不撤** §7.1；**本輪零 sync／零 build／不殺 A1** |
 | approved+essence-loop | 2026-08-04 | Steward 定錨：本質＝**S1→S5 自我進化閉環計畫書**；§0 統一 C0／C1／C2 為單一連續閉環主敘事（前向＋回饋弧）；標題／subtitle／front matter；薄審計 `SIM-SELF-EVOLVE-ESSENCE-S1S5-LOOP`；交叉 S3／S4（已拍）／S2-after-S3／S1–S2–S3／S4–S5；**不撤** §7.1；**本輪零碼／零 API／零 train** |
+| executed+sim-first-cell | 2026-08-04 | Steward `SIM-FIRST-CELL-go`（經 `AskQuestion` 選定）→ §7.3 生效並**已執行**：`run_sim_calibration_cell.py --apply` 產格點 `2026-08-03`（52/52 檔）＋開迭代帳本 `sim-20260803-r01`；`check_sim_clock` 時鐘＝K=1/3；settle／evaluate／decide 誠實回報未到、0 自動 promoted；GO＝`audits/SIM-FIRST-CELL-GO-20260804.md`；執行＝`audits/SIM-FIRST-CELL-EXECUTED-20260804.md`；**不撤** §7.1；**S5 sim 子閉環首次有真實回饋資料落地**（S1→S5 主線 predict 側仍待 `predict-asof-write-go`） |
 
 ---
 
-*完。self-reported（#32a）。**本質**＝S1→S5 自我進化**閉環**（非線性 checklist）。**已拍** §7.1（GO 仍生效）＋§0.5 驗收 enrichment＋**S4-FAMILIES-PLAN-go**＋S3 特徵矩陣＋閉環地圖（C1／C2＝弧段別名；待各 loop／Wave GO）。不含全族訓練／特徵放量 build／KH mass ingest／sync 放量／kill A1／predict 寫／sim apply／Registry。*
+*完。self-reported（#32a）。**本質**＝S1→S5 自我進化**閉環**（非線性 checklist）。**已拍** §7.1（GO 仍生效）＋§0.5 驗收 enrichment＋**S4-FAMILIES-PLAN-go**＋S3 特徵矩陣＋閉環地圖（C1／C2＝弧段別名；待各 loop／Wave GO）＋**SIM-FIRST-CELL 已執行**（sim 子閉環 K=1/3）。不含全族訓練／特徵放量 build／KH mass ingest／sync 放量／kill A1／predict 寫／sim apply（首格外）／Registry。*

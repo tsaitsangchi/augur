@@ -1,5 +1,6 @@
 -- U0-37 COMMIT — Steward: Q-R8=jp-ok + REGISTRY-GO: binding=37 + honesty=37 + decided_by=hugo
 -- Dry twin: audits/U0-37-DRY-SQL-20260804.md (ROLLBACK form)
+-- APPLIED 2026-08-04 11:34+08 (see audits/U0-37-REGISTRY-EXECUTED-20260804.md) — DO NOT RE-RUN
 BEGIN;
 SET LOCAL augur.honesty_write = 'on';
 

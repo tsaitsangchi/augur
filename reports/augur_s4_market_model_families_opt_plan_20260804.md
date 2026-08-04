@@ -135,64 +135,76 @@ self_reported: true
 
 ### Wave B — classical TS／計量（#1）
 
+> **Wave B 執行（2026-08-04）**：Steward `S4-WAVE-B-go | FZ/GATE-keep | no-SIM-apply | skip-sync` → 帳＝`audits/S4-WAVE-B-EXECUTED-20260804.md`（**誠實 SKIP 普查**；無預測 adapter 假訓）。
+
 | ID | 變體族 | adapter | verify／SKIP | Steward |
 |---|---|---|---|---|
-| B-1a | ARIMA／SARIMA | **missing**（預測熱路徑） | SKIP→statsmodels 薄殼＋單股／截面彙總尺另書 | `S4-WAVE-B-go` |
-| B-1b | GARCH 族 | **n/a-sim**（`simulate_*` 風險）／預測 **missing** | **禁止**用 sim GARCH 綠冒充 S4 預測通過；預測側需獨立 adapter 或 SKIP | 同 B |
-| B-1c | VAR／VECM | **missing** | SKIP（需多序列面板契約） | 同 B |
-| B-1d | 狀態空間／Kalman | **missing** | SKIP | 同 B |
-| B-1e | 協整 | **missing** | SKIP | 同 B |
+| B-1a | ARIMA／SARIMA | **missing**（預測熱路徑） | **SKIP**（本窗已列帳）→statsmodels 薄殼＋單股／截面彙總尺**另書** | `S4-WAVE-B-go` ✅ |
+| B-1b | GARCH 族 | **n/a-sim**（`simulate_*` 風險）／預測 **missing** | **SKIP（預測）**；**禁止**用 sim GARCH 綠冒充 S4 預測通過 | 同 B ✅ |
+| B-1c | VAR／VECM | **missing** | **SKIP**（需多序列面板契約） | 同 B ✅ |
+| B-1d | 狀態空間／Kalman | **missing** | **SKIP** | 同 B ✅ |
+| B-1e | 協整 | **missing** | **SKIP** | 同 B ✅ |
 
 ### Wave C — sequence DL（#5）
 
+> **Wave C 執行（2026-08-04）**：Steward `S4-WAVE-C-go | FZ/GATE-keep | no-SIM-apply | skip-sync` → 帳＝`audits/S4-WAVE-C-EXECUTED-20260804.md`（**誠實 SKIP**；torch 在≠adapter）。
+
 | ID | 變體族 | adapter | verify／SKIP | Steward |
 |---|---|---|---|---|
-| C-5a | RNN | **missing** | SKIP（需 sequence panel builder） | `S4-WAVE-C-go` |
-| C-5b | LSTM／BiLSTM | **missing** | SKIP | 同 C |
-| C-5c | GRU | **missing** | SKIP | 同 C |
-| C-5d | CNN-LSTM | **missing** | SKIP | 同 C |
-| C-5e | TCN | **missing** | SKIP | 同 C |
+| C-5a | RNN | **missing** | **SKIP**（需 sequence panel builder） | `S4-WAVE-C-go` ✅ |
+| C-5b | LSTM／BiLSTM | **missing** | **SKIP** | 同 C ✅ |
+| C-5c | GRU | **missing** | **SKIP** | 同 C ✅ |
+| C-5d | CNN-LSTM | **missing** | **SKIP** | 同 C ✅ |
+| C-5e | TCN | **missing** | **SKIP** | 同 C ✅ |
 
-驗收加碼：序列窗 as-of、embargo、≥3 seed；GPU 不可用→CPU smoke 或 SKIP。
+驗收加碼：序列窗 as-of、embargo、≥3 seed；GPU 不可用→CPU smoke 或 SKIP——**本窗因缺契約一律 SKIP、未冒煙**。
 
 ### Wave D — Attention／Transformer TS（#6）
 
+> **Wave D 執行（2026-08-04）**：Steward `S4-WAVE-D-go | FZ/GATE-keep | no-SIM-apply | skip-sync` → 帳＝`audits/S4-WAVE-D-EXECUTED-20260804.md`（**誠實 SKIP**；`transformers` 套件在≠adapter）。
+
 | ID | 變體族 | adapter | verify／SKIP | Steward |
 |---|---|---|---|---|
-| D-6a | Transformer（時序） | **missing**（transformers 套件≠預測 adapter） | SKIP | `S4-WAVE-D-go` |
-| D-6b | Informer／Autoformer 類 | **missing** | SKIP | 同 D |
-| D-6c | PatchTST 類 | **missing** | SKIP | 同 D |
+| D-6a | Transformer（時序） | **missing**（transformers 套件≠預測 adapter） | **SKIP** | `S4-WAVE-D-go` ✅ |
+| D-6b | Informer／Autoformer 類 | **missing** | **SKIP** | 同 D ✅ |
+| D-6c | PatchTST 類 | **missing** | **SKIP** | 同 D ✅ |
 
 ### Wave E — 圖／關係（#7）
 
+> **Wave E 執行（2026-08-04）**：Steward `S4-WAVE-E-go | FZ/GATE-keep | no-SIM-apply | skip-sync` → 帳＝`audits/S4-WAVE-E-EXECUTED-20260804.md`（**誠實 SKIP**；`knowledge_edge`＝KH 知識圖，**≠**股票／產業圖邊）。
+
 | ID | 變體族 | adapter | verify／SKIP | Steward |
 |---|---|---|---|---|
-| E-7a | GCN／GAT | **missing** | SKIP until 圖邊 as-of 表 | `S4-WAVE-E-go` |
-| E-7b | 股權／產業／相關性圖＋時序混合 | **missing** | 無產業圖／相關性邊→**SKIP** | 同 E |
+| E-7a | GCN／GAT | **missing** | **SKIP**（無圖神經網路套件；無圖邊 as-of 表） | `S4-WAVE-E-go` ✅ |
+| E-7b | 股權／產業／相關性圖＋時序混合 | **missing** | 無產業圖／相關性邊→**SKIP** | 同 E ✅ |
 
 ### Wave F — RL（#8）
 
+> **Wave F 執行（2026-08-04）**：Steward `S4-WAVE-F-go | FZ/GATE-keep | no-SIM-apply | skip-sync | RL-separate-ruler` → 帳＝`audits/S4-WAVE-F-EXECUTED-20260804.md`（**誠實 SKIP／defer**；碼庫確認無 RL 套件／自動下單路徑）。
+
 | ID | 變體族 | adapter | verify／SKIP | Steward |
 |---|---|---|---|---|
-| F-8a | DQN／PPO／A2C | **missing** | SKIP／defer；**禁自動下單** | `S4-WAVE-F-go`（另尺） |
-| F-8b | portfolio RL | **missing** | 同上；不得與 #14 混稱 | 同 F |
-| F-8c | MARL | **missing** | 同上 | 同 F |
+| F-8a | DQN／PPO／A2C | **missing** | **SKIP／defer**；**禁自動下單** | `S4-WAVE-F-go`（另尺） ✅ |
+| F-8b | portfolio RL | **missing** | 同上；不得與 #14 混稱 | 同 F ✅ |
+| F-8c | MARL | **missing** | 同上 | 同 F ✅ |
 
 ### Wave G — 混合／另類／LLM／貝氏（#9–#12）
 
+> **Wave G 執行（2026-08-04；S4 A–G 收官波）**：Steward `S4-WAVE-G-go | FZ/GATE-keep | no-SIM-apply | skip-sync` → 帳＝`audits/S4-WAVE-G-EXECUTED-20260804.md`（**2 partial 既有文件化＋8 誠實 SKIP**；advisor／LLM 明註非價預測器）。
+
 | ID | 變體族 | adapter | verify／SKIP | Steward |
 |---|---|---|---|---|
-| G-9a | ML+DL stacking | **partial**（direction stack scripts；截面 stacking **missing**） | 有則多 seed；無則 SKIP | `S4-WAVE-G-go` |
-| G-9b | GBDT+LSTM | **missing** | SKIP | 同 G |
-| G-9c | blending／ensemble | **missing**／partial | SKIP or 文件化既有 ensemble | 同 G |
-| G-10a | 新聞／社群情緒 | **partial**（knowledge 管線≠預測頭） | 無授權全文／無預測頭→**SKIP** | 同 G |
-| G-10b | 事件抽取→預測頭 | **missing** | SKIP | 同 G |
-| G-10c | 主題模型＋下游頭 | **missing** | SKIP | 同 G |
-| G-11a | LLM 特徵／情緒 | **partial**（advisor／Ollama；**非**價預測器） | 不得自稱 S4 價預測 Verified；輔助流程另帳 | 同 G |
-| G-11b | RAG 假說／agentic 研究 | **partial**（advisor） | 同上；**不加權** runtime | 同 G |
-| G-12a | 貝氏層級 | **missing** | SKIP | 同 G |
-| G-12b | GP | **missing** | SKIP | 同 G |
-| G-12c | 遺傳規劃／符號回歸 | **missing**／partial（進化側≠本族） | 勿把 TWEVO 假稱為 GP 族 pass | 同 G |
+| G-9a | ML+DL stacking | **partial**（`DirStackM` 已落地；Logit 無隨機性→seed=0） | **既有**，不重訓 | `S4-WAVE-G-go` ✅ |
+| G-9b | GBDT+LSTM | **missing** | **SKIP** | 同 G ✅ |
+| G-9c | blending／ensemble（多模型融合） | **missing**（`threelens`＝特徵層融合，非真 ensemble） | **SKIP** | 同 G ✅ |
+| G-10a | 新聞／社群情緒 | **partial**（knowledge 管線≠預測頭） | 無授權全文／無預測頭→**SKIP** | 同 G ✅ |
+| G-10b | 事件抽取→預測頭 | **missing** | **SKIP** | 同 G ✅ |
+| G-10c | 主題模型＋下游頭 | **missing** | **SKIP** | 同 G ✅ |
+| G-11a | LLM 特徵／情緒 | **partial**（advisor／Ollama；**非**價預測器；DDL 明禁流入 `feature_values`） | 不得自稱 S4 價預測 Verified；輔助流程另帳 | 同 G ✅ |
+| G-11b | RAG 假說／agentic 研究 | **partial**（advisor） | 同上；**不加權** runtime | 同 G ✅ |
+| G-12a | 貝氏層級 | **missing** | **SKIP** | 同 G ✅ |
+| G-12b | GP | **missing** | **SKIP** | 同 G ✅ |
+| G-12c | 遺傳規劃／符號回歸 | **missing**（`src/augur/evolution/`僅`behavior_rubric.py`——非 GP 族） | **SKIP**；未把 TWEVO 假稱為 GP 族 pass | 同 G ✅ |
 
 **LOB Level-2**：taxonomy 未單列但常見——**DB 無 L2 → 凡依賴 L2 之族一律 SKIP**。
 
@@ -248,7 +260,7 @@ S4-WAVE-G-go | FZ/GATE-keep | no-SIM-apply | skip-sync
 | taxonomy 大類 | ≈12 |
 | 本矩陣變體列 | ≈35（A–G 表） |
 | 已試（基線→Wave A） | ≥5 架構臂（見 `audits/S4-MODELS-TRIED-LIST-20260804.md`） |
-| 本輪執行 | **Wave A 近滿 EXECUTED**（`audits/S4-WAVE-A-EXECUTED-20260804.md`）；Wave B+ 仍待另句 |
+| 本輪執行 | **Wave A–G 全波次 EXECUTED**（B–G＝誠實 SKIP／defer／既有 partial 文件化；帳 `S4-WAVE-{B,C,D,E,F,G}-EXECUTED-20260804.md`）；**S4 taxonomy 收口** |
 
 ---
 
@@ -261,7 +273,13 @@ S4-WAVE-G-go | FZ/GATE-keep | no-SIM-apply | skip-sync
 | crosslink-c2 | 2026-08-04 | 交叉 **C2** S4↔S5 閉環計畫指針（零開訓） |
 | crosslink-c1 | 2026-08-04 | 交叉 **C1** S1–S2–S3 閉環＋S3 特徵矩陣指針（零開訓） |
 | wave-a-exec | 2026-08-04 | Steward `S4-WAVE-A-go | FZ/GATE-keep | no-SIM-apply | skip-sync` → Wave A 矩陣勾選＋帳 `audits/S4-WAVE-A-EXECUTED-20260804.md` |
+| wave-b-exec | 2026-08-04 | Steward `S4-WAVE-B-go | …` → 五族誠實 SKIP／n/a-sim；帳 `audits/S4-WAVE-B-EXECUTED-20260804.md` |
+| wave-c-exec | 2026-08-04 | Steward `S4-WAVE-C-go | …` → sequence DL 五族誠實 SKIP；帳 `audits/S4-WAVE-C-EXECUTED-20260804.md` |
+| wave-d-exec | 2026-08-04 | Steward `S4-WAVE-D-go | …` → Transformer TS 三族誠實 SKIP；帳 `audits/S4-WAVE-D-EXECUTED-20260804.md` |
+| wave-e-exec | 2026-08-04 | Steward `S4-WAVE-E-go | …` → 圖／關係兩族誠實 SKIP（KH 知識圖≠股票圖）；帳 `audits/S4-WAVE-E-EXECUTED-20260804.md` |
+| wave-f-exec | 2026-08-04 | Steward `S4-WAVE-F-go | … \| RL-separate-ruler` → RL 三族誠實 SKIP／defer（碼庫確認無 RL 套件／自動下單）；帳 `audits/S4-WAVE-F-EXECUTED-20260804.md` |
+| wave-g-exec | 2026-08-04 | Steward `S4-WAVE-G-go | …` → 混合／NLP／LLM／貝氏 2 partial（既有）＋8 SKIP；帳 `audits/S4-WAVE-G-EXECUTED-20260804.md`；**S4 A–G 全波次收口** |
 
 ---
 
-*完。self-reported（#32a）。**已拍** `S4-FAMILIES-PLAN-go`；**Wave A EXECUTED**。下一刀＝`S4-WAVE-B-go | FZ/GATE-keep | no-SIM-apply | skip-sync`。*
+*完。self-reported（#32a）。**已拍** `S4-FAMILIES-PLAN-go`；**Wave A–G 全波次 EXECUTED**（taxonomy ≈12 大類／≈35 變體族普查收官；多誠實 SKIP，生產熱路徑仍＝Wave A 三臂）。下一刀（另句）＝`LOOP-S5-TO-S4-OPT-go`（消費 OOS 回饋）或 `S3-WAVE-D-go`（序列窗契約，解 C／D 根因）。*
