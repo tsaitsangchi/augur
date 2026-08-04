@@ -26,6 +26,7 @@
 
 ## 執行結果
 
-- commit SHA：`<pending，見下方指令輸出>`
-- tag：`archive-20260804-s3waved-s4full-r6-simcell`
-- push 分支／tag：`<pending>`
+- commit SHA：`b266e26e27d21be75220d0446a9fd8a61035bab9`（`779305d..b266e26`，38 檔變更：2750 insertions/104 deletions）
+- tag：`archive-20260804-s3waved-s4full-r6-simcell`（已 push）
+- push 分支／tag：`main` 與 tag 皆已成功 push 至 `https://github.com/tsaitsangchi/augur.git`
+- 本次 commit 使用 `--no-verify`（Steward 明示授權，見上節）；其餘三道閘（治權引用稽核／執行指令矩陣／假斷言閘）於失敗那次嘗試中已確認通過，僅「vendor 直綁閘」被跳
