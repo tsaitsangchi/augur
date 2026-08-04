@@ -21,6 +21,11 @@ REGISTRY-GO: binding=75 + honesty=75 + decided_by=hugo
 | `tw.daily_bar.authoritative_binding_id` → **75** `TaiwanStockPrice`（observation） | 改指 **81** `TaiwanStockPriceAdj` |
 | 本批 one-shot；COMMIT 後本證**已消費** | 複用他證／擴 Annex F 未採認概念 |
 
+## 消費狀態
+
+✅ **已消費**（COMMIT ≈13:37:44+08）→ `audits/U0-75-REGISTRY-EXECUTED-20260804.md`。  
+本證 one-shot，不得複用於其他 binding。
+
 ## 不做
 
 - 未解凍／未跑 daily_maintenance／sync／FinMind  

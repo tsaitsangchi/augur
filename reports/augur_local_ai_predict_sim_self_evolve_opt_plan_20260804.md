@@ -14,7 +14,7 @@ self_reported: true
 axis: Steward pipeline S1–S5 closed loop（S0＝定錨）
 acceptance_enrichment: 2026-08-04 Steward latest parentheses（多種＋重覆驗証）→ per-stage 驗收；不撤 GO
 essence_audit: audits/SIM-SELF-EVOLVE-ESSENCE-S1S5-LOOP-20260804.md
-s3_features: reports/augur_s3_features_for_market_model_families_20260804.md
+s3_features: Steward-approved 2026-08-04（S3-FEATURES-PLAN-go）→ reports/augur_s3_features_for_market_model_families_20260804.md；go_audit=audits/S3-FEATURES-PLAN-GO-20260804.md
 s4_market_families: Steward-approved 2026-08-04（S4-FAMILIES-PLAN-go）→ reports/augur_s4_market_model_families_opt_plan_20260804.md；go_audit=audits/S4-FAMILIES-PLAN-GO-20260804.md
 s2_after_s3: reports/augur_s2_kh_optimize_after_s3_plan_20260804.md（回饋弧·KH）
 s1_s2_s3_loop: reports/augur_s1_s2_s3_closed_loop_plan_20260804.md（S1–S2–S3 全弧細節）
@@ -61,7 +61,7 @@ s4_s5_loop_audit: audits/SIM-S4-S5-CLOSED-LOOP-20260804.md
 | 一般優化 step／runbook | `reports/augur_optimization_step_plan_r3_20260804.md` | Registry／A 取數車道 |
 | sim 校準專項（已拍） | `reports/augur_local_ai_sim_evolution_plan_20260804.md`（`OPT-SIM-EVO-20260804-go`） | **complement**；S5 旁軸繼承 |
 | **本檔（閉環 SSOT）** | `reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md` | **S1→S5 閉環自我進化**（Steward-approved 2026-08-04） |
-| S3 特徵類別矩陣 | `reports/augur_s3_features_for_market_model_families_20260804.md` | 市場族→特徵組（待 `S3-FEATURES-PLAN-go`／波次） |
+| S3 特徵類別矩陣 | `reports/augur_s3_features_for_market_model_families_20260804.md` | 市場族→特徵組（**Steward-approved**／`S3-FEATURES-PLAN-go`；build 待 `S3-WAVE-*-go`） |
 | S4 市場族詳細 | `reports/augur_s4_market_model_families_opt_plan_20260804.md` | taxonomy 波次矩陣（**Steward-approved**；`S4-FAMILIES-PLAN-go`；`S4-WAVE-A` in-flight／train-matrix DONE 2026-08-04——方向臂另帳） |
 | 回饋弧·S2-after-S3（KH） | `reports/augur_s2_kh_optimize_after_s3_plan_20260804.md` | S3→KH 缺口→S2（≡ `S2-KH-OPT-AFTER-S3-go`／C1 Arc A） |
 | 回饋弧·S1–S2–S3 全弧 | `reports/augur_s1_s2_s3_closed_loop_plan_20260804.md` | S3→S2→擴大 S1→再進 S2／S3（C1 Arc A／B／C；待 loop GO） |
@@ -636,13 +636,15 @@ S4-WAVE-G-go | …   # hybrid／NLP／LLM／Bayesian
 
 ### 7.2c S3 市場族特徵類別計畫＋波次
 
-採納特徵類別矩陣（**不**默授放量 build）：
+> **狀態**：**Steward-approved 2026-08-04**——採納句已消費（`audits/S3-FEATURES-PLAN-GO-20260804.md`）。**≠** Wave build。
+
+採納特徵類別矩陣（**不**默授放量 build）——已消費：
 
 ```text
 S3-FEATURES-PLAN-go + GATE-keep + NHC-keep + API-THAW-bounded + no-SIM-apply
 ```
 
-Wave-A（既有表格式／價量／籌碼／估值／基本面誠實覆蓋＋提拔／#11）：
+Wave-A（既有表格式／價量／籌碼／估值／基本面誠實覆蓋＋提拔／#11；**仍待另句**）：
 
 ```text
 S3-WAVE-A-go | FZ/GATE-keep | skip-sync | no-SIM-apply
@@ -806,6 +808,7 @@ SIM-SELF-EVOLVE-OPT-PLAN-20260804-ack + P0-DISCOVERY-go
 | approved+s3-feat | 2026-08-04 | Steward mandate：為同 taxonomy 列出所需特徵類別並納入 S3；§0.5／§2 S3 擴張＋§7.2c GO；詳細＝`augur_s3_features_for_market_model_families_20260804.md`；**不撤** §7.1；**本輪零 build／零 FinMind 放量／零開訓** |
 | approved+s3s2-loop | 2026-08-04 | Steward mandate：S3 特徵後**回頭**優化 S2（PME 式）；§0.6＋§2 S2／S3 回饋義務＋§7.2c `S2-KH-OPT-AFTER-S3-go`；詳細＝`augur_s2_kh_optimize_after_s3_plan_20260804.md`；登錄 `S2-KH-AFTER-S3-LOOP`；**不撤** §7.1；**本輪零 KH ingest／零 FinMind／零 feature build** |
 | approved+s4-fam-go | 2026-08-04 | Steward `S4-FAMILIES-PLAN-go + GATE-keep + NHC-keep + API-THAW-bounded + no-SIM-apply` → §7.2b／families 計畫 **Steward-approved**；留痕 `audits/S4-FAMILIES-PLAN-GO-20260804.md`；**≠** Wave-A train／sim-apply／FinMind 放量／kill A1 |
+| approved+s3-feat-go | 2026-08-04 | Steward `S3-FEATURES-PLAN-go + GATE-keep + NHC-keep + API-THAW-bounded + no-SIM-apply` → §7.2c／特徵類別矩陣 **Steward-approved**；留痕 `audits/S3-FEATURES-PLAN-GO-20260804.md`；**≠** `S3-WAVE-*-go` build／FinMind 放量／sim-apply |
 | approved+c2-loop | 2026-08-04 | Steward mandate：S4→S5 同樣閉環；§0.6 升格 **C1**（含可選 S1）＋§0.7 **C2**＋§0.8 **C0**；§7.2d `LOOP-S4-TO-S5-go`／`LOOP-S5-TO-S4-OPT-go`／`LOOP-FULL-CHAIN-go`；詳細＝`augur_s4_s5_closed_loop_plan_20260804.md`；登錄 `SIM-S4-S5-CLOSED-LOOP`；**不撤** §7.1；**本輪零 train／零 predict 寫／零 sim-apply** |
 | approved+c1-full | 2026-08-04 | Steward mandate：S3→S2→擴大 S1→計畫閉環；§0.6 **C1 Arc A／B／C**＋§7.2c `LOOP-S3-TO-S2-go`／`LOOP-S2-TO-S1-EXPAND-go`／`LOOP-CYCLE-N-go`；詳細＝`augur_s1_s2_s3_closed_loop_plan_20260804.md`；登錄 `SIM-S1-S2-S3-CLOSED-LOOP`；**不撤** §7.1；**本輪零 sync／零 build／不殺 A1** |
 | approved+essence-loop | 2026-08-04 | Steward 定錨：本質＝**S1→S5 自我進化閉環計畫書**；§0 統一 C0／C1／C2 為單一連續閉環主敘事（前向＋回饋弧）；標題／subtitle／front matter；薄審計 `SIM-SELF-EVOLVE-ESSENCE-S1S5-LOOP`；交叉 S3／S4（已拍）／S2-after-S3／S1–S2–S3／S4–S5；**不撤** §7.1；**本輪零碼／零 API／零 train** |

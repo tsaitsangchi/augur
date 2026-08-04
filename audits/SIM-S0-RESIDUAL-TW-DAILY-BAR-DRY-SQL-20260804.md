@@ -2,7 +2,7 @@
 
 > **位階**：[I] DRY 備料（非 [N]）。  
 > **授權殘差**：`SIM-S0-RESIDUAL: tw.daily_bar authoritative-binding | GATE-keep | no-SIM-apply`  
-> **尚缺（COMMIT 硬門）**：`REGISTRY-GO: binding=75 + honesty=75 + decided_by=hugo`（Steward **未**貼此形；本檔**停在 COMMIT 前**）  
+> **COMMIT 硬門**：`REGISTRY-GO: binding=75 + honesty=75 + decided_by=hugo` → ✅ **已 EXECUTED**（`audits/U0-75-REGISTRY-EXECUTED-20260804.md` · 2026-08-04 13:37:44+08）；本檔保留 DRY 原文備查  
 > **上游備料**：`reports/wm_annexf_authoritative_binding_prep_20260803.md` §2.1／§5.1（建議案＝**75** `TaiwanStockPrice` observation；**不**採 81 derived／Adj）  
 > **硬界**：GATE-keep · no-SIM-apply · 零 FinMind 放量 · AI 不代填 `decided_by`／不代 `COMMIT`
 

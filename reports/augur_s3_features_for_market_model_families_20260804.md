@@ -10,7 +10,8 @@
 > **閉環 C2／C0**：S5 可選下鑽特徵缺口→本檔／C1——`reports/augur_s4_s5_closed_loop_plan_20260804.md` · `audits/SIM-S4-S5-CLOSED-LOOP-20260804.md`  
 
 > **約束**：零 FinMind 放量；本檔**不**開全模型訓練；存在／缺口皆須可溯 code／handoff／audit；LOB／NLP／LLM＝gated／缺 infra 誠實標示  
-> **登錄**：`audits/S3-FEATURES-MARKET-FAMILIES-20260804.md`
+> **登錄**：`audits/S3-FEATURES-MARKET-FAMILIES-20260804.md`  
+> **status**：**Steward-approved 2026-08-04**（`S3-FEATURES-PLAN-go`）→ `audits/S3-FEATURES-PLAN-GO-20260804.md`（**≠** `S3-WAVE-*-go` build）
 
 ---
 
@@ -142,21 +143,22 @@ S4 SSOT＝`reports/augur_s4_market_model_families_opt_plan_20260804.md` §2 Wave
 
 ---
 
-## 6. 開工授權（本檔不自動開工）
+## 6. 開工授權
 
-Paste-ready（Steward 稍後明示）：
+### 6.1 計畫採納（已消費）
 
 ```text
-S3-FEATURES-PLAN-go
+S3-FEATURES-PLAN-go + GATE-keep + NHC-keep + API-THAW-bounded + no-SIM-apply
 ```
 
-意義：採納本報告為 S3 特徵類別 SSOT，並允許依 **S3-A→E** 波次另句授權實際 build／提拔（本句**不**含 FinMind 放量、不含全模型訓練、不含 sim `--apply`）。
+✅ **GO-EXECUTED** ≈13:35+08 → `audits/S3-FEATURES-PLAN-GO-20260804.md`。  
+本報告＝S3 特徵類別 **approved SSOT**；本句**不**含 FinMind 放量、不含全模型訓練、不含 sim `--apply`、**不含**放量 build。
 
-後續建議細句（示例，非已授）：
+### 6.2 波次 build（仍開／另句）
 
 ```text
-S3-WAVE-A-go
-S3-WAVE-B-go
+S3-WAVE-A-go | FZ/GATE-keep | skip-sync | no-SIM-apply
+S3-WAVE-B-go | …
 ```
 
 收口後進閉環 C1（**不**默授 ingest／sync／build）：
@@ -182,5 +184,6 @@ LOOP-CYCLE-1-go + GATE-keep + NHC-keep + API-THAW-bounded + no-SIM-apply
 | 2026-08-04 | 初版：12 大類×特徵類別矩陣＋16 組 master list＋S3↔S4 對齊；零碼零 API |
 | 2026-08-04 | 交叉：S4 檔已落地；§4.1 S3→S2 回饋＋`S2-KH-OPT-AFTER-S3-go` 指針 |
 | 2026-08-04 | §4.1 升格閉環 C1 Arc A／B／C；鏈 `augur_s1_s2_s3_closed_loop_plan_20260804.md` |
+| 2026-08-04 | `S3-FEATURES-PLAN-go` **GO-EXECUTED**（approved SSOT）；≠ Wave build |
 
-*完。self-reported（#32a）。*
+*完。self-reported（#32a）。PLAN 已拍；build 另授。*
