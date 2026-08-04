@@ -205,15 +205,17 @@ def _mc_targets(cur):
 
 
 def _mc_run(cur, sid, h, method="block_bootstrap"):
+    # 同股多 asof 並存時優先最新 asof（05-31 與 08-03 並存勿抽舊列）
     cur.execute("SELECT summary, n_paths, seed, method, block_len_td, asof_date FROM mc_simulation_run "
-                "WHERE target_id=%s AND horizon_td=%s AND method=%s AND summary ? 'cone'",
+                "WHERE target_id=%s AND horizon_td=%s AND method=%s AND summary ? 'cone' "
+                "ORDER BY asof_date DESC LIMIT 1",
                 (sid, h, method))
     row = cur.fetchone()
     if row:
         return row
     cur.execute("SELECT summary, n_paths, seed, method, block_len_td, asof_date FROM mc_simulation_run "
                 "WHERE target_id=%s AND horizon_td=%s AND summary ? 'cone' "
-                "ORDER BY method LIMIT 1", (sid, h))
+                "ORDER BY asof_date DESC, method LIMIT 1", (sid, h))
     return cur.fetchone()
 
 
@@ -250,7 +252,7 @@ def _mc_p50_rankings(cur, horizon=SIM_RANK_HORIZON, limit=10, method=SIM_RANK_ME
         "SELECT DISTINCT ON (target_id) target_id, method, asof_date, summary "
         "FROM mc_simulation_run "
         "WHERE horizon_td=%s AND summary ? 'cone' "
-        "ORDER BY target_id, "
+        "ORDER BY target_id, asof_date DESC, "
         "  CASE WHEN method=%s THEN 0 ELSE 1 END, method",
         (horizon, method))
     rows = []
