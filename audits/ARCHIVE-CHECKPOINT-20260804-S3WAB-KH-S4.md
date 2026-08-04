@@ -30,13 +30,13 @@
 | `archive/2026-08-04-s1s5-self-evolve` | `ea1067b` |
 | `archive-20260804-steward-reseal` | `ed5e103`（後續 chore `9df0a5a` 去追蹤 scratchpad） |
 
-## Git（push 後回填）
+## Git（已推）
 
 | 項 | 值 |
 |---|---|
-| branch | `main` → `origin/main` |
-| HEAD | _（push 後填）_ |
-| tag | `archive-20260804-s3wab-kh-s4` |
+| branch | `main` → `origin/main`（`9df0a5a..35a4727`） |
+| HEAD | `35a4727c78b4bc56ea7dc2d440305ea0083fdba3` |
+| tag | `archive-20260804-s3wab-kh-s4`（annotated → `35a4727`） |
 | 遠端 | https://github.com/tsaitsangchi/augur |
 
 ---
