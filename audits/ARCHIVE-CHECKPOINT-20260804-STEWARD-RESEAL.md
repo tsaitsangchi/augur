@@ -22,9 +22,13 @@ working tree 於前次 S1→S5 封存後已乾淨且已推；本點＝再確認 
 - 主批次：`330fadf` · 平行窗補齊：`ea1067b` · 補記：`17fb4f8`
 - 帳：`audits/ARCHIVE-CHECKPOINT-20260804-S1S5-SELF-EVOLVE.md`
 
-## Git（本封存寫入後補）
+## Git（已推）
 
-- branch：`main` → `origin/main`
-- HEAD：*(push 後填)*
-- tag：`archive-20260804-steward-reseal`
+- branch：`main` → `origin/main`（`17fb4f8..ed5e103`）
+- HEAD：`ed5e1036696633b90e79b8980d2a06687156a91a`
+- tag：`archive-20260804-steward-reseal`（annotated → `ed5e103`）
 - 遠端：https://github.com/tsaitsangchi/augur
+
+## 誠實註記
+
+- `archive_push.sh` 當次將 `scratchpad/w2_expand_log.tsv`、`scratchpad/w2_red_proof.py` 一併 stage（前次封存慣例為不含 `scratchpad/`）。後續 commit 已自追蹤移除，見同日 follow-up。

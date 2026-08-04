@@ -55,3 +55,4 @@ ref_augur/
 ops/gpu-verify/.gpu-test-venv/
 ops/gpu-verify/saxpy
 var/
+scratchpad/
