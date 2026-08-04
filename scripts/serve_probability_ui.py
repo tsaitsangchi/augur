@@ -23,6 +23,7 @@
 """
 import argparse
 import html
+import re
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -160,14 +161,40 @@ _SIM_CSS = """.simwrap{max-width:1000px;margin:0 auto;padding:16px;font-family:s
 .simrank th{color:#c8a95a;font-weight:600}.simrank .up{color:#9fdf9f}.simrank .dn{color:#e8a0a0}
 .simrank a{color:#ffd873}"""
 
-# 漲跌幅榜口徑(Steward 2026-08-04):一律用終值 p50 相對 as-of 收盤價之報酬率
+# 漲跌幅榜口徑(Steward 2026-08-04):一律用終值 p50 相對 as-of 收盤價之報酬率；as-of 真日期自 DB
 SIM_RANK_HORIZON = 30
 SIM_RANK_METHOD = "block_bootstrap"
-SIM_RANK_NOTE = ("口徑:漲／跌幅比率 = MC 終值 p50 相對 as-of 收盤價之報酬率 "
-                 f"(ret_p50＝px_p50/last_close−1；horizon={SIM_RANK_HORIZON} 交易日；"
-                 f"方法優先 {SIM_RANK_METHOD})。"
-                 "漲幅 Top10＝ret_p50 最高前 10；跌幅 Top10＝ret_p50 最低(最負)前 10。"
-                 "模擬非預測・非可交易訊號。")
+
+
+def _fmt_asof(asof):
+    """mc_simulation_run.asof_date → YYYY-MM-DD；缺則 None（禁推測）。"""
+    if asof is None:
+        return None
+    if hasattr(asof, "isoformat"):
+        return asof.isoformat()[:10]
+    s = str(asof).strip()
+    return s[:10] if s else None
+
+
+def _sim_rank_note(asof_lo, asof_hi, horizon=SIM_RANK_HORIZON, method=SIM_RANK_METHOD):
+    """榜級口徑句：含真 as-of 日、模擬自該收盤之後往前 roll H 交易日。"""
+    lo, hi = _fmt_asof(asof_lo), _fmt_asof(asof_hi)
+    if lo and hi:
+        asof_span = lo if lo == hi else f"{lo}～{hi}"
+        asof_line = (f"as-of＝{asof_span} 該日（≤as-of 最近成交日）收盤價 last_close 當基準；"
+                     f"模擬自 as-of 收盤之後往前 roll {horizon} 交易日"
+                     + ("（各檔 as-of 不同時見表欄／上方範圍）" if lo != hi else "") + "。")
+    else:
+        asof_line = (f"as-of＝（本榜尚無有效 cone 列）；模擬自 as-of 收盤之後往前 roll {horizon} 交易日。")
+    return (f"口徑:漲／跌幅比率 = MC 終值 p50 相對 as-of 收盤價之報酬率 "
+            f"(ret_p50＝px_p50/last_close−1；horizon={horizon} 交易日；"
+            f"方法優先 {method})。{asof_line}"
+            "漲幅 Top10＝ret_p50 最高前 10；跌幅 Top10＝ret_p50 最低(最負)前 10。"
+            "模擬非預測・非可交易訊號。")
+
+
+# 零 DB selftest／字面合約用的代表句（真日於渲染時由 _sim_rank_note 灌入）
+SIM_RANK_NOTE = _sim_rank_note("2026-05-31", "2026-05-31")
 
 
 def _mc_targets(cur):
@@ -217,7 +244,8 @@ def _ret_p50_from_summary(summ):
 
 def _mc_p50_rankings(cur, horizon=SIM_RANK_HORIZON, limit=10, method=SIM_RANK_METHOD):
     """h 日 cone 各股終值 ret_p50 排名。優先指定 method；該股無此 method 則退任一 cone 列。
-    回 (ups, dns, n_ranked)；ups=ret_p50 高→低、dns=低→高(最負在前)。無 cone 列跳過。"""
+    回 (ups, dns, n_ranked, asof_lo, asof_hi)；asof 取自納入排名之全宇宙列（非僅 Top10）。
+    ups=ret_p50 高→低、dns=低→高(最負在前)。無 cone 列跳過。"""
     cur.execute(
         "SELECT DISTINCT ON (target_id) target_id, method, asof_date, summary "
         "FROM mc_simulation_run "
@@ -236,7 +264,10 @@ def _mc_p50_rankings(cur, horizon=SIM_RANK_HORIZON, limit=10, method=SIM_RANK_ME
                      "px_p50": px, "method": meth, "asof": asof})
     ups = sorted(rows, key=lambda r: r["ret_p50"], reverse=True)[:limit]
     dns = sorted(rows, key=lambda r: r["ret_p50"])[:limit]
-    return ups, dns, len(rows)
+    asofs = [_fmt_asof(r["asof"]) for r in rows if _fmt_asof(r["asof"])]
+    asof_lo = min(asofs) if asofs else None
+    asof_hi = max(asofs) if asofs else None
+    return ups, dns, len(rows), asof_lo, asof_hi
 
 
 def _rank_table_html(title, rows, css_cls, horizon=SIM_RANK_HORIZON):
@@ -249,27 +280,34 @@ def _rank_table_html(title, rows, css_cls, horizon=SIM_RANK_HORIZON):
         ret = r["ret_p50"]
         last = r.get("last_close")
         px = r.get("px_p50")
+        asof_s = html.escape(_fmt_asof(r.get("asof")) or "—")
         last_s = f"{float(last):.1f}" if last is not None else "—"
         px_s = f"{float(px):.0f}" if px is not None else "—"
         trs += (
             f'<tr><td>{i}</td><td><a href="/simulate?stock={sid}&h={horizon}">{sid}</a></td>'
+            f'<td>{asof_s}</td>'
             f'<td class="{css_cls}">{ret:+.1%}</td><td>{last_s}→{px_s}</td></tr>')
     return (
         f'<div class="simcard simrank"><h3 style="color:#ffd873;margin:0 0 8px">{html.escape(title)}</h3>'
-        f'<table><tr><th>#</th><th>股</th><th>ret_p50</th><th>收盤→p50</th></tr>{trs}</table></div>')
+        f'<table><tr><th>#</th><th>股</th><th>as-of</th><th>ret_p50</th><th>收盤→p50</th></tr>{trs}</table></div>')
 
 
 def _p50_rank_boards_html(cur, horizon=SIM_RANK_HORIZON):
-    ups, dns, n = _mc_p50_rankings(cur, horizon=horizon)
-    return (
+    """回 (html, asof_lo, asof_hi, n_ranked)——as-of 取自 MC 列、禁硬編。"""
+    ups, dns, n, asof_lo, asof_hi = _mc_p50_rankings(cur, horizon=horizon)
+    note = _sim_rank_note(asof_lo, asof_hi, horizon=horizon)
+    asof_footer = (asof_lo if asof_lo == asof_hi else f"{asof_lo}～{asof_hi}") if asof_lo else "—"
+    html_out = (
         f'<div class="simcard"><h2 style="color:#ffd873;margin:0 0 6px">'
         f'{horizon} 交易日 p50 報酬 Top10（模擬非預測）</h2>'
-        f'<span class="simk">{html.escape(SIM_RANK_NOTE)}</span>'
-        f'<span class="simk">本榜納入 {n} 檔具 cone 之標的；無 cone／缺 ret_p50 者已跳過。</span></div>'
+        f'<span class="simk">{html.escape(note)}</span>'
+        f'<span class="simk">本榜納入 {n} 檔具 cone 之標的（as-of {html.escape(asof_footer)}）；'
+        f'無 cone／缺 ret_p50 者已跳過。</span></div>'
         f'<div class="simgrid">'
         f'{_rank_table_html(f"{horizon}日後漲幅比率 Top10（ret_p50 高→低）", ups, "up", horizon)}'
         f'{_rank_table_html(f"{horizon}日後跌幅比率 Top10（ret_p50 低→高／最負在前）", dns, "dn", horizon)}'
         f'</div>')
+    return html_out, asof_lo, asof_hi, n
 
 
 def _fan_svg(summary):
@@ -315,8 +353,12 @@ def _fan_svg(summary):
 def simulate_page(cur, sid, h):
     targets = _mc_targets(cur)
     opts = "".join(f'<option value="{html.escape(s)}"{" selected" if s==sid else ""}>{html.escape(s)}</option>' for s in targets)
-    # 榜固定 h=30(Steward);個股錐仍依 query h
-    rank_boards = _p50_rank_boards_html(cur, horizon=SIM_RANK_HORIZON)
+    # 榜固定 h=30(Steward);個股錐仍依 query h；as-of 真日自 MC 列
+    rank_boards, asof_lo, asof_hi, n_rank = _p50_rank_boards_html(cur, horizon=SIM_RANK_HORIZON)
+    if asof_lo and asof_hi:
+        foot_asof = asof_lo if asof_lo == asof_hi else f"{asof_lo}～{asof_hi}"
+    else:
+        foot_asof = "—"
     body = ""
     if sid:
         hs = _mc_horizons(cur, sid)
@@ -331,8 +373,9 @@ def simulate_page(cur, sid, h):
                         f'本頁只渲染個股 cone 型模擬。horizon:{hlinks}</div>')
             else:
                 t = summ["terminal"]
+                asof_s = html.escape(_fmt_asof(asof) or str(asof))
                 body = (
-                    f'<div class="simcard"><h2 style="color:#ffd873">{html.escape(sid)} · {h} 交易日情境錐（as-of {asof}）</h2>'
+                    f'<div class="simcard"><h2 style="color:#ffd873">{html.escape(sid)} · {h} 交易日情境錐（as-of {asof_s}）</h2>'
                     f'<div style="position:relative">{_fan_svg(summ)}</div>'
                     f'<div style="margin-top:10px">'
                     f'<span class="simstat">as-of 收盤<br><b>{summ["last_close"]:.1f}</b></span>'
@@ -355,7 +398,7 @@ def simulate_page(cur, sid, h):
             f'<form method="get" action="/simulate"><label>個股 <select name="stock" onchange="this.form.submit()">'
             f'<option value="">—選股—</option>{opts}</select></label> '
             f'<a href="/">← 相對機率頁</a> · <a href="/logout">登出</a></form>'
-            f'{body}<p class="simk">資料 as-of {AS_OF} · 唯讀 · is_simulation 硬綁 · 只存分位錐摘要(不存逐路徑)</p>'
+            f'{body}<p class="simk">MC 榜 as-of {html.escape(foot_asof)}（n={n_rank}）· 唯讀 · is_simulation 硬綁 · 只存分位錐摘要(不存逐路徑)</p>'
             f'</div></body></html>')
 
 # ── 方向 GATE 誠實頁(展示分級:never_shown=不出方向機率、但據實揭露判決;死亡證明研究級呈現)──────
@@ -515,10 +558,10 @@ def _selftest():
                 {"cone": [{}], "terminal": {"ret_p50": "x"}}):
         if _ret_p50_from_summary(bad) is not None:
             fails.append(f"應跳過卻有值:{bad!r}")
-    # (4) 排名表 HTML：高→低／最負在前 + 口徑句 + 可點進個股
+    # (4) 排名表 HTML：高→低／最負在前 + as-of 欄 + 可點進個股
     rows = [
-        {"stock": "2330", "ret_p50": 0.25, "last_close": 100, "px_p50": 125},
-        {"stock": "2317", "ret_p50": -0.18, "last_close": 100, "px_p50": 82},
+        {"stock": "2330", "ret_p50": 0.25, "last_close": 100, "px_p50": 125, "asof": "2026-05-31"},
+        {"stock": "2317", "ret_p50": -0.18, "last_close": 100, "px_p50": 82, "asof": "2026-05-31"},
     ]
     up_html = _rank_table_html("漲", rows[:1], "up", 30)
     dn_html = _rank_table_html("跌", rows[1:], "dn", 30)
@@ -526,10 +569,19 @@ def _selftest():
         fails.append("漲幅表缺股／數字／連結")
     if "2317" not in dn_html or "-18.0%" not in dn_html:
         fails.append("跌幅表缺股／數字")
-    # (5) 口徑常數文案合約(禁僅字面自我匹配——句意須含 Steward 裁)
-    must = ("ret_p50", "相對 as-of 收盤價", "最高前 10", "最低", "模擬非預測")
-    if any(m not in SIM_RANK_NOTE for m in must):
-        fails.append("SIM_RANK_NOTE 缺口徑要件")
+    if "<th>as-of</th>" not in up_html or "2026-05-31" not in up_html:
+        fails.append("漲幅表缺 as-of 欄／真日期")
+    # (5) 口徑句：真 as-of 日＋自收盤之後 roll H（餵真輸入，非整段字面自匹配）
+    note_one = _sim_rank_note("2026-05-31", "2026-05-31")
+    note_span = _sim_rank_note("2026-05-01", "2026-05-31")
+    for m in ("ret_p50", "相對 as-of 收盤價", "最高前 10", "最低", "模擬非預測",
+              "as-of＝2026-05-31", "之後往前 roll 30 交易日"):
+        if m not in note_one:
+            fails.append(f"單日口径缺口徑要件:{m}")
+    if "2026-05-01～2026-05-31" not in note_span or "各檔 as-of 不同" not in note_span:
+        fails.append("跨日 as-of 範圍句失敗")
+    if _fmt_asof(__import__("datetime").date(2026, 5, 31)) != "2026-05-31":
+        fails.append("_fmt_asof(date) 失敗")
     # (6) 先驗紅：弄壞抽取應失敗——故意餵錯型不得被當 0
     if _ret_p50_from_summary({"cone": [{}], "last_close": 0, "terminal": {"px_p50": 10}}) is not None:
         fails.append("last_close=0 應回 None")
@@ -538,7 +590,7 @@ def _selftest():
             print(f"✗ {f}")
         print(f"SELFTEST FAIL ({len(fails)})")
         return 1
-    print("✓ --selftest: ret_p50 抽取／跳過／排名 HTML／口徑合約 全過（零 DB）")
+    print("✓ --selftest: ret_p50 抽取／跳過／排名 HTML／as-of 口徑合約 全過（零 DB）")
     return 0
 
 
@@ -557,12 +609,17 @@ def _check():
         sim = simulate_page(cur, sid=None, h=30)
     forbidden = [w for w in ("上漲機率", "會漲的機率", "下跌機率", "會漲的機會") if w in page]
     markers = all(mk in page for mk in ("① 口徑", "② 日曆", "③ 經濟裁決", "④ 同族近似", "勝過 同儕"))
-    sim_ok = all(x in sim for x in ("漲幅比率 Top10", "跌幅比率 Top10", "ret_p50", SIM_RANK_NOTE[:20]))
-    ok = bad == 0 and not forbidden and markers and sim_ok
+    sim_ok = all(x in sim for x in (
+        "漲幅比率 Top10", "跌幅比率 Top10", "ret_p50", "之後往前 roll", "as-of＝", "<th>as-of</th>"))
+    # 真日期須來自頁面（#9）；不得硬編猜測
+    sim_dates = re.findall(r"20\d{2}-\d{2}-\d{2}", sim)
+    sim_date_ok = bool(sim_dates)
+    ok = bad == 0 and not forbidden and markers and sim_ok and sim_date_ok
     print(f"✓ 資料就位:{n} 列 / {s} 股 / {h} horizon（as-of {AS_OF}）；校準器 {len(cal)} 個")
     print(f"  誠實不變式:p_beat_median∈[0,1] 越界={bad}（應 0）；口徑硬綁={CANON(asof=AS_OF, h=60)}")
     print(f"  render 自檢({sample}):禁語出現={forbidden or '無'}；四標記硬綁={'✓' if markers else '✗'}")
-    print(f"  /simulate Top10 板:{'✓' if sim_ok else '✗'}（含漲／跌榜＋ret_p50 口徑）")
+    print(f"  /simulate Top10 板:{'✓' if sim_ok and sim_date_ok else '✗'}"
+          f"（含漲／跌榜＋ret_p50＋as-of 真日 {sorted(set(sim_dates))[:3]}）")
     print(f"  render:100% 伺服端、零 LLM、零寫路徑（route 僅 GET 讀 + POST /login）")
     return 0 if ok else 1
 
