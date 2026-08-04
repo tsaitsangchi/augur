@@ -1,0 +1,80 @@
+---
+description: FinMind 官方 Agent Skill（augur 接線）— 意圖→dataset；解凍以 Steward／API-THAW 為準；取數經 augur.ingestion.finmind，禁旁路狂打
+alwaysApply: false
+---
+
+# FinMind Agent Skill（官方＋augur 護欄）[I]
+
+> **來源**：FinMind 官方 skill／文件（2026-08-04 接線）  
+> - SPA：https://finmindtrade.com/analysis/#/data/ai_agent_skill  
+> - 靜態文件：https://finmind.github.io/tutor/ai/AgentSkill/  
+> - skill raw：https://raw.githubusercontent.com/FinMind/FinMind/master/.claude/commands/finmind.md  
+> - llms.txt：https://finmind.github.io/llms.txt  
+> **位階**：[I] 工具規則（非憲章 [N]）· 對照筆記：`reports/augur_finmind_ai_agent_skill_notes_20260804.md`  
+> **本輪不掛** `finmind-mcp`；**不改** `src/augur/ingestion/finmind.py` 行為。
+
+## 0. augur 硬閘（先於官方樣板）
+
+1. **解凍狀態**：以 Steward 明示＋`audits/API-THAW-*` 為準。若仍凍（見 `finmind-fred-api-freeze.mdc`）→ **零外部 FinMind 請求**（本 skill **不**覆寫凍結）。解凍後本 skill 可用於有界查詢／探索，**仍**須守下條。
+2. **取數唯一生產收口**：sync／probe／audit／heal／日維／放量一律走 `augur.ingestion.finmind`（`_pace`／`_quota_gate`／`QUOTA_COOLDOWN`＝CLAUDE #24；健康檢查最小單位＝#25）。**禁止** agent 用裸 `requests`／官方 `DataLoader`／`use_async`／另開連線**旁路**狂打 API。
+3. **解凍 ≠ 無限速**：解凍後仍限速；見 **403／ban／額度滿** → **停、不重試風暴**（與 freeze rule、#24 同精神）。402＝額度；讀 `/v2/user_info` 錶、不自計 usage。
+4. **探索 ≠ ingestion**：本 skill 意圖對照可助選 dataset；**真正落地寫庫**必須經既有 sync／`daily_maintenance` 入口，且不得與長跑 sync 並開第二條打 API 路徑。
+5. **預測正交**：預測／訓練／回測走庫內 as-of（`predict-vs-market-api.mdc`）；本 skill **不**讓預測熱路徑依賴 live FinMind。
+
+## 1. Auth／Endpoint（官方）
+
+- Token：`$FINMIND_TOKEN`（或專案 `.env`／`config.FINMIND_TOKEN`）；註冊 https://finmindtrade.com/
+- Header 慣例（官方）：`Authorization: Bearer {token}`（augur `/data` 現況仍可 query `token=`——雙軌合法，**勿為對齊官方而改 production client**）
+- Base：`https://api.finmindtrade.com/api/v4`
+  - `GET /data` — dataset／data_id／start_date／end_date
+  - `GET /datalist` · `GET /translation`
+- 專屬 path（勿硬塞 `/data` → 422）：分點報導、tick／期選 snapshot 等（詳 skill raw）
+- Sponsor Pro 整日 parquet：`GET /v4/storage_objects?dataset=&date=`（本 client 未實作 → **另案計畫**，勿 ad-hoc 繞）
+- 額度：`GET https://api.web.finmindtrade.com/v2/user_info` → `user_count`／`api_request_limit`
+
+### Rate limits（官方文件面）
+
+| Tier | req/hr |
+|---|---|
+| Free | 600 |
+| Backer | 1,600 |
+| Sponsor | 6,000 |
+| SponsorPro | 20,000 |
+
+`llms.txt` 簡寫：有 token 600／hr。**操作值**以 `finmind.py` 內 `_pace`／HEADROOM 為準，**勿**依文件數字自動放鬆間隔。
+
+## 2. 意圖 → dataset（常用）
+
+| 意圖 | Dataset |
+|---|---|
+| 股價／OHLCV | `TaiwanStockPrice` |
+| 還原股價 | `TaiwanStockPriceAdj` |
+| PER／PBR | `TaiwanStockPER` |
+| 三大法人 | `TaiwanStockInstitutionalInvestorsBuySell` |
+| 融資融券 | `TaiwanStockMarginPurchaseShortSale` |
+| 外資持股 | `TaiwanStockShareholding` |
+| 月營收 | `TaiwanStockMonthRevenue` |
+| 財報／EPS | `TaiwanStockFinancialStatements` |
+| 股利 | `TaiwanStockDividend`／`TaiwanStockDividendResult` |
+| 期貨／選擇權日報 | `TaiwanFuturesDaily`／`TaiwanOptionDaily` |
+| 匯率／利率／金／油 | `TaiwanExchangeRate`／`InterestRate`／`GoldPrice`／`CrudeOilPrices` |
+| 查代號 | `TaiwanStockInfo` |
+
+常用代號：2330 台積電、2317 鴻海、2454 聯發科、0050。完整表見官方 skill raw／`llms-full.txt`。
+
+## 3. Agent 行為（augur 改寫官方「直接 requests」）
+
+1. 先對意圖選 dataset；股票名先查 `TaiwanStockInfo`。
+2. **有界探測**：單股＋單日（#25）；確認 IP／額度健康後才談放量——放量**只**經 ingestion／已授權 script。
+3. 日期未指定 → 近 3 個月；「最近一個月」自今日回推。
+4. 錯誤：402／403／429 → **停並回報**，不短退避重試風暴；`status!=200` 印 `msg`；空 `data` 誠實說明。
+5. 圖表標題／軸標用繁中；缺 CJK 字型再裝，勿為畫圖另開 API 放量。
+6. 套件安裝本專案仍以既有環境為準（官方偏好 `uv`，**不**強制改掉 `pip install -e .` 流程）。
+
+## 4. 三路串接（官方分流；本專案現況）
+
+| 路 | 用途 | augur |
+|---|---|---|
+| llms.txt | 讓模型懂 API | 可讀；不代打 |
+| Agent Skill（本檔） | 編輯器代查 | ✅ 已接；受 §0 硬閘 |
+| `finmind-mcp` | MCP 代打 | **未掛**（須另拍板） |
