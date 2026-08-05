@@ -67,13 +67,13 @@ def main(argv=None):
     if not secret and not args.insecure_loopback_admin:
         print("⚠ 未設 AUGUR_INTERNAL_SECRET 且未開 --insecure-loopback-admin:所有請求 fail-closed deny(無引文);"
               "請設機密(前台送 X-Augur-Session)或單機測試加 --insecure-loopback-admin。", flush=True)
-    # D4(計畫 §5.2):選股題 → build_prediction_payload(真實 as-of H60 投組,唯讀 prediction_values);
-    # 一般/知識題 → empty_payload(去雜訊);分派由 oai_compat 依 relevance.picking_intent 判定。
+    # D4 選股 + PRED-KH(auto_rel_topn／單股 B2):oai_compat 依意图注入真兆 payload。
     srv = oai_compat.make_server(args.host, port, llm_fn, payload_fn=empty_payload, retrieve_fn=retrieve_all, k=args.k,
                                  internal_secret=secret, insecure_loopback_admin=args.insecure_loopback_admin,
                                  picking_payload_fn=build_prediction_payload)
     print(f"augur-advisor 殼啟動 http://{args.host}:{port}/v1 "
-          f"(llm={'mock' if args.mock_llm else model};payload=empty/選股題=真實 H60 預測;唯讀零寫;Ctrl-C 停)",
+          f"(llm={'mock' if args.mock_llm else model};"
+          f"payload=empty/選股=H60/相對TopK‧單股;唯讀零寫;Ctrl-C 停)",
           flush=True)
     try:
         srv.serve_forever()

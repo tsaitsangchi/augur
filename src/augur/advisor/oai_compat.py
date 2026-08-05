@@ -145,10 +145,25 @@ def chat_completion(body, llm_fn, payload_fn=empty_payload, retrieve_fn=None,
                         retrieve_fn=lambda q, k=k, scope=None: retrieve_attached(q, doc_text, doc_title, k=k),
                         prompt_fn=build_attached_prompt, scope=scope)
     else:
-        # D4 payload 分派(計畫 §5.2-2):選股意圖 → 真實 as-of 預測 payload;否則 → payload_fn(去雜訊)。
-        from augur.advisor.relevance import picking_intent
-        active_fn = picking_payload_fn if (picking_payload_fn is not None and picking_intent(query)) else payload_fn
-        result = advise(query, active_fn(), llm_fn, k=k, retrieve_fn=retrieve_fn, scope=scope)
+        # 預測通道分派(D4 選股 ∪ PRED-KH TopK／單股):有真兆 picks 才注入,否則 empty。
+        from augur.advisor.relevance import (
+            picking_intent, rel_prob_topk_intent, single_ticker_rel_intent,
+        )
+        from augur.advisor.payload import (
+            build_rel_prob_topk_payload, build_single_ticker_rel_payload,
+        )
+        if picking_payload_fn is not None and picking_intent(query):
+            pl = picking_payload_fn()
+        else:
+            topk = rel_prob_topk_intent(query)
+            sti = single_ticker_rel_intent(query)
+            if topk is not None:
+                pl = build_rel_prob_topk_payload(topk[0], topk[1])
+            elif sti is not None:
+                pl = build_single_ticker_rel_payload(sti[0], sti[1])
+            else:
+                pl = payload_fn()
+        result = advise(query, pl, llm_fn, k=k, retrieve_fn=retrieve_fn, scope=scope)
     content = _reply_text(result)
     if prefix_note:                     # ultracode 不合格題之誠實 fallback 說明(機械一行、前置)
         content = prefix_note + _SEP + content

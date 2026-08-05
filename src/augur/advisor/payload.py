@@ -10,6 +10,24 @@
 """
 from dataclasses import dataclass
 
+from augur.catalog import world_concept
+
+# WM.36：股名經 registry；不字面直綁供應商表（binding 104／audits/WM36-STOCK-DISPLAY-NAME-EXECUTED-20260805.md）
+NAME_CONCEPT = "tw.stock_display_name"
+
+
+def _lookup_stock_names(conn, cur, sids):
+    """stock_id → 顯示名（fail-closed：resolve 失敗即拋，不回退字面）。"""
+    if not sids:
+        return {}
+    info_sql = world_concept.resolve_sql(NAME_CONCEPT, conn=conn)
+    cur.execute(
+        f"SELECT DISTINCT ON (stock_id) stock_id, stock_name FROM {info_sql} "
+        "WHERE stock_id = ANY(%s)",
+        (list(sids),),
+    )
+    return {str(s): n for s, n in cur.fetchall()}
+
 
 @dataclass(frozen=True)
 class StockPick:
@@ -17,7 +35,7 @@ class StockPick:
     rank: int
     score: float
     source_ref: str          # trace 回真實模型輸出(如 eval/portfolio.py 之某 as-of run)
-    name: str = ""           # 公司名(TaiwanStockInfo;#1 給模型正確名、防幻覺股名——guard 查輸出股名 ∈ 此)
+    name: str = ""           # 公司名( registry tw.stock_display_name;#1 防幻覺股名)
 
 
 @dataclass(frozen=True)
@@ -197,13 +215,9 @@ def build_prediction_payload(as_of=None, horizon=60, top_n=None):
                         (as_of, model_id))
         rows = cur.fetchall()
         pick_ref = "prediction_values:panel=%s,model=%s" % (as_of, model_id)
-        # 股名(TaiwanStockInfo、DISTINCT 取一列;#1 給模型正確名、防幻覺股名——advisor 對此唯讀)
+        # 股名(WM.36／tw.stock_display_name；DISTINCT 取一列;#1 防幻覺——advisor 唯讀)
         sids = [str(sid) for sid, _, _ in rows]
-        names = {}
-        if sids:
-            cur.execute('SELECT DISTINCT ON (stock_id) stock_id, stock_name FROM "TaiwanStockInfo" '
-                        'WHERE stock_id = ANY(%s)', (sids,))
-            names = {str(s): n for s, n in cur.fetchall()}
+        names = _lookup_stock_names(conn, cur, sids)
         picks = tuple(StockPick(str(sid), int(rk), float(sc), pick_ref, names.get(str(sid), ""))
                       for sid, rk, sc in rows)
         vals, missing = _read_validation(cur, horizon)
@@ -264,6 +278,154 @@ def build_prediction_payload(as_of=None, horizon=60, top_n=None):
         picks=picks, validation=validation, probs=probs, prob_note=prob_note)
 
 
+def build_rel_prob_topk_payload(k=3, horizon=20, as_of=None):
+    """口語「上漲機率 topK」→ 相對機率 TopK（auto_rel_topn）。score=p_beat_median。"""
+    from augur.core import db
+    k = max(1, min(int(k), 20))
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SELECT to_regclass('prediction_probability')")
+        if not cur.fetchone()[0]:
+            return PredictionPayload(
+                as_of="—", horizon=horizon, model="(無表)", picks=(),
+                validation={"note": "prediction_probability 未遷移"}, probs=(), prob_note="")
+        if as_of is None:
+            cur.execute(
+                "SELECT max(panel_date) FROM prediction_probability WHERE horizon=%s",
+                (horizon,),
+            )
+            as_of = (cur.fetchone() or [None])[0]
+        if as_of is None:
+            return PredictionPayload(
+                as_of="—", horizon=horizon, model="(無機率列)", picks=(),
+                validation={"note": "無 panel"}, probs=(), prob_note="")
+        cur.execute(
+            "SELECT stock_id, p_beat_median, rank_pctile, econ_verdict, calendar_days "
+            "FROM prediction_probability WHERE panel_date=%s AND horizon=%s "
+            "ORDER BY p_beat_median DESC NULLS LAST LIMIT %s",
+            (as_of, horizon, k),
+        )
+        rows = cur.fetchall()
+        if not rows:
+            return PredictionPayload(
+                as_of=str(as_of), horizon=horizon, model="(空)", picks=(),
+                validation={"note": "該 as-of/H 無列"}, probs=(), prob_note="")
+        sids = [str(r[0]) for r in rows]
+        names = _lookup_stock_names(conn, cur, sids)
+        ref = "prediction_probability:panel=%s,H=%s,order=p_beat_median_desc" % (as_of, horizon)
+        picks, probs = [], []
+        for i, (sid, pv, rp, ev, cd) in enumerate(rows, 1):
+            sid = str(sid)
+            picks.append(StockPick(sid, i, float(pv), ref, names.get(sid, "")))
+            probs.append((sid, horizon, float(pv), ev, int(cd)))
+        cd0 = int(rows[0][4])
+        evs = sorted({r[3] for r in rows})
+        prob_note = (
+            "【改寫說明】你問的「上漲機率」在本系統**無可用絕對方向機率**"
+            "(direction_gate evaluated_pass=0)；下列數字是 "
+            "P(報酬勝過同儕橫斷面中位數|as-of %s, H%d≈%d 日曆日)——"
+            "**不是**上漲／會漲的機率。econ_verdict∈%s 與數字硬綁；dead/thin≠可交易。"
+            "MC 扇形見 :8600/simulate（模擬非預測、數字不進對話）。"
+            % (as_of, horizon, cd0, evs)
+        )
+        validation = {
+            "note": "auto_rel_topn;source=%s;k=%d" % (ref, k),
+            "topk": float(k),
+            "horizon": float(horizon),
+        }
+        for i, (_s, _h, pv, _e, _c) in enumerate(probs):
+            validation["p_beat_%d" % (i + 1)] = round(float(pv), 4)
+        return PredictionPayload(
+            as_of=str(as_of), horizon=horizon,
+            model="相對機率Top%d/H%d" % (k, horizon),
+            picks=tuple(picks), validation=validation,
+            probs=tuple(probs), prob_note=prob_note,
+        )
+
+
+def build_single_ticker_rel_payload(stock_id, horizon=20, as_of=None):
+    """B2:單股相對機率 payload。"""
+    from augur.core import db
+    sid = str(stock_id)
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SELECT to_regclass('prediction_probability')")
+        if not cur.fetchone()[0]:
+            return PredictionPayload(
+                as_of="—", horizon=horizon, model="(無表)", picks=(),
+                validation={"note": "無 prediction_probability"}, probs=(), prob_note="")
+        if as_of is None:
+            cur.execute(
+                "SELECT max(panel_date) FROM prediction_probability "
+                "WHERE stock_id=%s AND horizon=%s",
+                (sid, horizon),
+            )
+            as_of = (cur.fetchone() or [None])[0]
+        if as_of is None:
+            cur.execute(
+                "SELECT max(panel_date) FROM prediction_probability WHERE stock_id=%s",
+                (sid,),
+            )
+            as_of = (cur.fetchone() or [None])[0]
+        if as_of is None:
+            return PredictionPayload(
+                as_of="—", horizon=horizon, model="(該股無機率)", picks=(),
+                validation={"note": "stock 無列"}, probs=(), prob_note="")
+        cur.execute(
+            "SELECT p_beat_median, rank_pctile, econ_verdict, calendar_days, model_id "
+            "FROM prediction_probability WHERE panel_date=%s AND stock_id=%s AND horizon=%s",
+            (as_of, sid, horizon),
+        )
+        prow = cur.fetchone()
+        if prow is None:
+            cur.execute(
+                "SELECT horizon, p_beat_median, rank_pctile, econ_verdict, calendar_days, model_id "
+                "FROM prediction_probability WHERE panel_date=%s AND stock_id=%s "
+                "ORDER BY horizon LIMIT 1",
+                (as_of, sid),
+            )
+            alt = cur.fetchone()
+            if alt is None:
+                return PredictionPayload(
+                    as_of=str(as_of), horizon=horizon, model="(缺列)", picks=(),
+                    validation={"note": "缺列"}, probs=(), prob_note="")
+            horizon = int(alt[0])
+            pv, rp, ev, cd, mid = float(alt[1]), float(alt[2]), alt[3], int(alt[4]), alt[5]
+        else:
+            pv, rp, ev, cd, mid = float(prow[0]), float(prow[1]), prow[2], int(prow[3]), prow[4]
+        rk, sc = 1, float(pv)
+        cur.execute(
+            "SELECT pv.rank, pv.score FROM prediction_values pv "
+            "JOIN model_registry mr ON mr.model_id=pv.model_id "
+            "WHERE pv.panel_date=%s AND pv.stock_id=%s AND mr.horizon=%s "
+            "ORDER BY mr.created_at DESC LIMIT 1",
+            (as_of, sid, horizon),
+        )
+        vrow = cur.fetchone()
+        if vrow:
+            rk, sc = int(vrow[0]), float(vrow[1])
+        name = _lookup_stock_names(conn, cur, [sid]).get(sid, "") or ""
+        ref = "prediction_probability:panel=%s,stock=%s,H=%s" % (as_of, sid, horizon)
+        prob_note = (
+            "P=勝過同儕中位數之機率(as-of %s、H%d≈%d 日曆日、非絕對漲跌);"
+            "econ_verdict=%s;rank_pctile=%.4f。"
+            "絕對方向 GATE 未過不得確立漲跌;MC 見 :8600/simulate。"
+            % (as_of, horizon, cd, ev, float(rp))
+        )
+        validation = {
+            "note": "B2 single;%s;model_id=%s" % (ref, mid),
+            "p_beat_median": round(pv, 4),
+            "rank_pctile": round(float(rp), 4),
+            "econ_calendar_days": float(cd),
+        }
+        return PredictionPayload(
+            as_of=str(as_of), horizon=horizon,
+            model="相對機率/單股 H%d" % horizon,
+            picks=(StockPick(sid, rk, sc, ref, name),),
+            validation=validation,
+            probs=((sid, horizon, pv, ev, cd),),
+            prob_note=prob_note,
+        )
+
+
 def _selftest():
     """自測（零 DB/零 API、可個別驗證 #29a）：合成 payload 紅綠測 frozen 不變式 + numbers() 白名單口徑——
     guard 之數字白名單正確與否直繫 #1(輸出數字必 ∈ 此集合),故固化為回歸鎖。"""
@@ -301,6 +463,8 @@ def _selftest():
     ex = example_payload()
     chk("example_payload 3 picks", len(ex.picks) == 3)
     chk("example score(0.87)∈ numbers", round(0.87, 4) in ex.numbers())
+    chk("公開入口含 rel_topk／single",
+        callable(build_rel_prob_topk_payload) and callable(build_single_ticker_rel_payload))
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 
@@ -311,5 +475,5 @@ if __name__ == "__main__":
         sys.exit(_selftest())
     print((__doc__ or __name__).split("🎯")[0].strip())
     print("入口:StockPick / PredictionPayload / KnowledgePayload / example_payload / empty_payload /"
-          " build_prediction_payload")
+          " build_prediction_payload / build_rel_prob_topk_payload / build_single_ticker_rel_payload")
     print("(自測:python -m augur.advisor.payload --selftest;免 DB 免 API)")

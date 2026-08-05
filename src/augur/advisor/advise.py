@@ -147,14 +147,13 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     from augur.philosophy.retrieval import retrieve_all, lexicon_lookup, verify_verbatim, is_low_content
     from augur.advisor.relevance import relevant_citations
     from augur.advisor.prompt import _asks_direction_or_path, build_direction_refusal
-    # lock②/閘⑥:方向/逐日價格/目標價/準確率排名題 → 短路弱 LLM,直回固定誠實句(gate 狀態 SSOT=
-    #   direction_gate 表、逐日價格永久除外)。**不論 picking_intent 是否誤建 picks 皆短路**:此類問句
-    #   (每日/準確率/漲跌/未來N天)本就該誠實 decline;純相對問(如「報酬最高前N」不含這些詞)不觸
-    #   _DIR_PAT、照走選股主路徑。Mode B(附檔)不套。
-    #   此處無 cur(advise() 不持 DB 連線)→ build_direction_refusal 自連唯讀查 direction_gate;
-    #   DB 例外退回 hardcode 常數(fail-closed,句不消失)。
-    if prompt_fn is None and _asks_direction_or_path(query):
-        return {"response": build_direction_refusal(), "guard": {"pass": True, "issues": []},
+    # lock②/閘⑥:方向/逐日價格/目標價題 → 固定誠實句。**例外(PRED-KH)**:若已注入真實
+    # PredictionPayload.picks(相對機率 TopK／單股 B2／選股),則不短路——改走真兆主路徑
+    # (auto_rel_topn：口語「上漲機率」改答相對機率,disclaimer 在 prob_note)。
+    # Mode B(附檔)不套。DB 例外時 build_direction_refusal fail-closed。
+    has_pred_picks = bool(getattr(payload, "picks", ()))
+    if prompt_fn is None and _asks_direction_or_path(query) and not has_pred_picks:
+        return {"response": build_direction_refusal(query=query), "guard": {"pass": True, "issues": []},
                 "citations": [], "lex_entries": [], "prompt": None}
     # KH-XDOM-S01：預設合併檢索＝retrieve_all（works∪items；不傳策展 domain=）；服器亦可顯式注入同函。
     src_fn = retrieve_all if retrieve_fn is None else retrieve_fn
@@ -162,36 +161,43 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     lex_entries = [e for t in lex_terms for e in lex_fn(t)]
     def _clean(cits):                                    # 機械攔 stale/非逐字(#1,M2)+ 濾 junk 低內容 chunk(B-1)
         return [c for c in cits if verify_verbatim(c) and not is_low_content(c.text)]
-    # RBAC scope 一路傳達(P3,§4.4)。
-    # T1-a 檢索相關度閘 + translate-for-RETRIEVAL(N9,2026-07-07,誠實優先、只更嚴):
-    #   e5-small 對 out-of-corpus(MBB/太陽能/半導體…)硬回離題高分 chunk → 誤當有料令 LLM confabulate。
-    #   relevant_citations 以零 usage 內容詞重疊逐條判「命中且相關」——**只留與 query 共享夠強辨識性專詞
-    #   (perovskite/solar/孔子/知行合一…)者**,泛用字(system/energy/research/what)與單 CJK 字(能/太/心)
-    #   之巧合共現不算(擋前版「系統分析/能源效率/MBB」死因)。全數不相關 → 視同空檢索、走誠實 decline。
-    # translate-for-RETRIEVAL(**fallback**):augur 技術/財經文獻多為英文,e5-small 對 CJK 問句跨語 kNN 常把
-    #   英文正解沉在哲學/ERP 雜訊裡撈不上來。故 CJK 查詢**先以原文檢索+過濾**;哲學題此時已命中即止(不引英文
-    #   噪);**僅當**過濾後無相關引文,**才**譯英文、以英文 query 檢索+過濾(技術跨語題如 solar 靠此撈回)。
-    #   譯文**只決定用哪個 query 檢索**——不入 citation/答案/guard(命門);譯失敗(None:OOM/逾時/無 CJK)→
-    #   只有原查詢結果(誠實基線,多半 decline)、絕不 raise。Mode B 附加檔(prompt_fn)不套本閘/不翻譯。
-    raw = _clean(src_fn(query, k=k, scope=scope))
-    if prompt_fn is not None:
-        citations = raw                                  # Mode B:附檔由用戶負責相關性,不過濾、不翻譯
+    # picks_skip_A（2026-08-05）:有真兆 picks 且非 Mode B → 跳過向量檢索／譯英
+    # （11GB 機上 embed↔8b 互擠實證撞死 llama-server）。lexicon 仍可跑（輕量、非 embed）。
+    # Mode B(prompt_fn)不套——附檔檢索由用戶負責。
+    has_picks = has_pred_picks
+    if has_picks and prompt_fn is None:
+        citations = []
     else:
-        citations = relevant_citations(query, raw)
-        if not citations:                                # 原文檢索無相關 → 英文 fallback(技術跨語題)
-            from augur.advisor.query_translation import translate_for_retrieval
-            en_query = translate_for_retrieval(query)    # 無 CJK / OOM / 逾時 → None(fail-closed,不 raise)
-            if en_query:
-                # min_terms=2:誤譯之 en_query 靠單一泛詞巧撞離題引文→過閘→LLM 瞎掰(實證 多主柵→multi-master
-                # bus 撞「advantage」一詞令 qwen3 瞎掰光通信);要求 ≥2 辨識詞共享,誤譯 fallback 收斂為誠實 decline。
-                citations = relevant_citations(en_query, _clean(src_fn(en_query, k=k, scope=scope)), min_terms=2)
-        # KH0 底線：相關度／譯英仍空，但 raw 已有 item 原文共現 → 保留作「內文基本理解」（非通識瞎掰）
-        if not citations:
-            from augur.advisor.relevance import kh0_floor_citations
-            citations = kh0_floor_citations(query, raw)
-        # KH9-first：相關度閘後依 admit_depth 重排（不放寬相關、不改 RBAC）
-        from augur.knowledge.auto_admit import rank_citations_kh_first
-        citations = rank_citations_kh_first(citations)
+        # RBAC scope 一路傳達(P3,§4.4)。
+        # T1-a 檢索相關度閘 + translate-for-RETRIEVAL(N9,2026-07-07,誠實優先、只更嚴):
+        #   e5-small 對 out-of-corpus(MBB/太陽能/半導體…)硬回離題高分 chunk → 誤當有料令 LLM confabulate。
+        #   relevant_citations 以零 usage 內容詞重疊逐條判「命中且相關」——**只留與 query 共享夠強辨識性專詞
+        #   (perovskite/solar/孔子/知行合一…)者**,泛用字(system/energy/research/what)與單 CJK 字(能/太/心)
+        #   之巧合共現不算(擋前版「系統分析/能源效率/MBB」死因)。全數不相關 → 視同空檢索、走誠實 decline。
+        # translate-for-RETRIEVAL(**fallback**):augur 技術/財經文獻多為英文,e5-small 對 CJK 問句跨語 kNN 常把
+        #   英文正解沉在哲學/ERP 雜訊裡撈不上來。故 CJK 查詢**先以原文檢索+過濾**;哲學題此時已命中即止(不引英文
+        #   噪);**僅當**過濾後無相關引文,**才**譯英文、以英文 query 檢索+過濾(技術跨語題如 solar 靠此撈回)。
+        #   譯文**只決定用哪個 query 檢索**——不入 citation/答案/guard(命門);譯失敗(None:OOM/逾時/無 CJK)→
+        #   只有原查詢結果(誠實基線,多半 decline)、絕不 raise。Mode B 附加檔(prompt_fn)不套本閘/不翻譯。
+        raw = _clean(src_fn(query, k=k, scope=scope))
+        if prompt_fn is not None:
+            citations = raw                                  # Mode B:附檔由用戶負責相關性,不過濾、不翻譯
+        else:
+            citations = relevant_citations(query, raw)
+            if not citations:                                # 原文檢索無相關 → 英文 fallback(技術跨語題)
+                from augur.advisor.query_translation import translate_for_retrieval
+                en_query = translate_for_retrieval(query)    # 無 CJK / OOM / 逾時 → None(fail-closed,不 raise)
+                if en_query:
+                    # min_terms=2:誤譯之 en_query 靠單一泛詞巧撞離題引文→過閘→LLM 瞎掰(實證 多主柵→multi-master
+                    # bus 撞「advantage」一詞令 qwen3 瞎掰光通信);要求 ≥2 辨識詞共享,誤譯 fallback 收斂為誠實 decline。
+                    citations = relevant_citations(en_query, _clean(src_fn(en_query, k=k, scope=scope)), min_terms=2)
+            # KH0 底線：相關度／譯英仍空，但 raw 已有 item 原文共現 → 保留作「內文基本理解」（非通識瞎掰）
+            if not citations:
+                from augur.advisor.relevance import kh0_floor_citations
+                citations = kh0_floor_citations(query, raw)
+            # KH9-first：相關度閘後依 admit_depth 重排（不放寬相關、不改 RBAC）
+            from augur.knowledge.auto_admit import rank_citations_kh_first
+            citations = rank_citations_kh_first(citations)
     # 誠實保守白名單通識路(v1.35.0 + B-1 收尾):通識/B2 題(general_safe_answerable)即使檢索到
     # (量測證實多為不相關之非-junk)citations,亦走乾淨通識路——忽略雜訊、避免不相關 citation 令 LLM
     # 非決定性答壞(實證:「有沒有穩賺不賠的股票」撈到王充/韓非子/沉香 → 主路徑時好時壞)。
@@ -200,7 +206,6 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     # 路(否則選股題永遠回「知識庫中無此內容」、picks 永不呈現)。picks 走主路徑 → build_prompt 渲染
     # picks 區塊 + guard() 機械強制數字 ∈ payload.numbers()(捏造數字被擋);此判斷不鬆動 guard、
     # 不繞過任何閘,只是讓「有真兆 payload」不被當成「無 context」。has_picks 對 KnowledgePayload/empty 恆 False。
-    has_picks = bool(getattr(payload, "picks", ()))
     if not has_picks and (whitelist_route or (not citations and not lex_entries)):
         # 三級誠實分級(憲章 v1.25.0):以空 citations 判分級(sidecar 旁查 title-mention 優先;
         # 白名單一律忽略不相關檢索)——level-2(隔離館藏未驗)恆不放行。
@@ -229,10 +234,11 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     if prompt_fn is None and lex_entries:                    # W2:主路徑+有定義詞才接(Mode B 不套,同其餘閘)
         concept_links = _concept_links(lex_terms, scope=scope)
         prompt += _concept_block(concept_links)
-    if prompt_fn is None:                                    # K1 橋:欄位/特徵問句之 know-how 詞面關聯(免責硬綁)
+    # K1 橋：有 picks 時略過（預測通道自足、免再開庫；與 picks_skip_A 同精神）
+    if prompt_fn is None and not has_picks:
         prompt += _bridge_block(_bridge_links(query, None))
-    # PME S4：進化結果單向注入解讀塊（零寫回預測；Mode B 不套）
-    if prompt_fn is None and include_evolution:
+    # PME S4：進化塊；有 picks 時關閉（Steward picks_skip：再省 IO／檔案讀）
+    if prompt_fn is None and include_evolution and not has_picks:
         from augur.philosophy.interpretation import (
             evolution_prompt_block,
             load_interpretation_markdown,
@@ -305,6 +311,43 @@ def _selftest():
         base, prompt_fn=None, include_evolution=False, evolution_md="## PME S4"))
     chk("S4 Mode B(prompt_fn) 不注入", "PME S4" not in _maybe_append(
         base, prompt_fn=lambda *a: "", include_evolution=True, evolution_md="## PME S4"))
+
+    # picks_skip_A：有 picks → retrieve 絆線不得被呼叫；evolution 不注入（#35 下游絆線）
+    from augur.advisor.payload import PredictionPayload, StockPick
+    hit = []
+
+    def boom_retrieve(*_a, **_k):
+        hit.append(1)
+        raise AssertionError("retrieve must not run when picks present")
+
+    pl = PredictionPayload(
+        as_of="2026-05-31", horizon=20, model="T",
+        picks=(StockPick("2330", 1, 0.5874, "ref", "台積電"),),
+        validation={"note": "t"},
+        probs=(("2330", 20, 0.5874, "dead", 29),),
+        prob_note="相對機率 disclaimer",
+    )
+    out = advise(
+        "2330個股未來30天走勢?", pl,
+        llm_fn=lambda _p: "說明:相對機率 0.5874，非可交易確立級。",
+        retrieve_fn=boom_retrieve,
+        include_evolution=True,
+        evolution_md="## PME S4\n> ≠可交易",
+    )
+    chk("picks→retrieve 零呼叫(絆線)", hit == [])
+    chk("picks→citations 空", out["citations"] == [])
+    chk("picks→prompt 無 evolution", "PME S4" not in (out.get("prompt") or ""))
+    chk("picks→response 含確定性表", "2330" in out["response"] and "0.5874" in out["response"])
+
+    hit2 = []
+
+    def count_retrieve(*_a, **_k):
+        hit2.append(1)
+        return []
+
+    advise("什麼是知行合一", empty_payload(),
+           llm_fn=lambda _p: "x", retrieve_fn=count_retrieve)
+    chk("無 picks→仍呼叫 retrieve", len(hit2) >= 1)
 
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1

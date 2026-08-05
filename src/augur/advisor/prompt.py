@@ -79,11 +79,12 @@ _GATE_STATUS_SQL = ("SELECT count(*), "
                     "count(*) FILTER (WHERE status='evaluated_pass') FROM direction_gate")
 
 
-def _compose_direction_refusal(total, n_fail, n_pass):
+def _compose_direction_refusal(total, n_fail, n_pass, *, market_binary=False):
     """據 direction_gate 即時狀態組拒答句(guard 全閘可過:無 ≥8 字引號、無小數、無禁詞、無《》)。
-    n_pass>0 → fail-closed 保守句(不自動宣稱可答);零通過 → 現行句型、門數動態。"""
+    n_pass>0 → fail-closed 保守句(不自動宣稱可答);零通過 → 現行句型、門數動態。
+    market_binary=True：無股號之「漲還是跌」＝大盤絕對方向題——標【預測知識通道】周邊真兆、仍不給可交易漲跌機率。"""
     if n_pass > 0:
-        return (
+        body = (
             "關於未來逐日股價變化、絕對漲跌方向、或方向準確率排名——\n\n"
             f"方向軸預註冊關卡共 {total} 道,偵測到 {n_pass} 道評估通過:部分關卡狀態變更,"
             "方向輸出依展示分級閉集處理——在人工核定展示分級前,我仍**不提供**任何方向機率、"
@@ -91,25 +92,44 @@ def _compose_direction_refusal(total, n_fail, n_pass):
             "・逐日**價格點位/路徑**永久不是本系統的預測產物。想看歷史波動下的可能區間,"
             "請用**蒙地卡羅模擬情境**頁(明確標示模擬非預測、只給不確定性扇形,不是明牌)。\n"
             "・若你要的是**相對強弱排名**(哪些股相對同儕較強),系統有相對機率頁可查。")
-    judged = (f"共 {total} 道預註冊關卡已**全部**經機械驗證**統計判死**" if n_fail == total else
-              f"共 {total} 道預註冊關卡中 {n_fail} 道經機械驗證**統計判死**、其餘無一評估通過(輸出維持不可用)")
-    return (
-        "關於未來逐日股價變化、絕對漲跌方向、或方向準確率排名——我誠實說明:\n\n"
-        f"本系統的**絕對漲跌方向**預測(H/D 兩軌){judged}"
-        "——勝率不顯著優於永遠猜多數方向、且機率品質不達標。因此**沒有可信、可交易的方向或準確率**"
-        "可以給你,也**無法**列出準確率或報酬最高的前幾名及其預測股價。這不是功能缺失,是誠實:"
-        "方向在這份資料上不可預測。\n\n"
-        "・逐日**價格點位/路徑**永久不是本系統的預測產物。想看歷史波動下的可能區間,"
-        "請用**蒙地卡羅模擬情境**頁(明確標示模擬非預測、只給不確定性扇形,不是明牌)。\n"
-        "・若你要的是**相對強弱排名**(哪些股相對同儕較強),那是另一回事,系統有相對機率頁可查。\n\n"
-        "系統建議、人決策——我不會編一個看起來很準的假數字給你。")
+    else:
+        judged = (f"共 {total} 道預註冊關卡已**全部**經機械驗證**統計判死**" if n_fail == total else
+                  f"共 {total} 道預註冊關卡中 {n_fail} 道經機械驗證**統計判死**、其餘無一評估通過(輸出維持不可用)")
+        body = (
+            "關於未來逐日股價變化、絕對漲跌方向、或方向準確率排名——我誠實說明:\n\n"
+            f"本系統的**絕對漲跌方向**預測(H/D 兩軌){judged}"
+            "——勝率不顯著優於永遠猜多數方向、且機率品質不達標。因此**沒有可信、可交易的方向或準確率**"
+            "可以給你,也**無法**列出準確率或報酬最高的前幾名及其預測股價。這不是功能缺失,是誠實:"
+            "方向在這份資料上不可預測。\n\n"
+            "・逐日**價格點位/路徑**永久不是本系統的預測產物。想看歷史波動下的可能區間,"
+            "請用**蒙地卡羅模擬情境**頁(明確標示模擬非預測、只給不確定性扇形,不是明牌)。\n"
+            "・若你要的是**相對強弱排名**(哪些股相對同儕較強),那是另一回事,系統有相對機率頁可查。\n\n"
+            "系統建議、人決策——我不會編一個看起來很準的假數字給你。")
+    if market_binary:
+        body += (
+            "\n\n【預測知識通道・大盤】未指定股號 → 本題視為**大盤絕對漲跌**。"
+            "知識結論與上列相同:**不能**回答「未來比較會長還是跌」的可交易機率"
+            f"(方向閘通過道數為零、判死 {n_fail} 道)。"
+            "周邊真兆(非漲跌裁決、不可解讀成明牌):個股相對機率的截面中位接近一半"
+            "(校準定義使然、不是大盤漲跌訊號);"
+            "研究用大盤方向列若存在亦**未過閘、不納入決策**。"
+            "若要個股相對強弱請寫四碼股號;情境扇形見蒙地卡羅頁。")
+    return body
 
 
-def build_direction_refusal(cur=None):
+def build_direction_refusal(cur=None, query=None):
     """lock② 拒答句之 DB 驅動版(#29b:gate 門數/狀態=DB 資料,不寫死)——即時查 direction_gate。
     全 fail → 現行句型+動態門數;任何 evaluated_pass → fail-closed 保守句(不自動宣稱可答);
     DB 例外或空表 → 退回 hardcode 常數(fail-closed)。句尾一律附模擬頁指引(純導引、零預測數字)。
+    query:可選;無股號且「漲還是跌」類 → 大盤知識通道 enrich。
     cur=None → 自連唯讀 SELECT(advise() 短路處無 cur;同 payload.build_prediction_payload 之唯讀模式)。"""
+    market_binary = False
+    if query:
+        try:
+            from augur.advisor.relevance import market_binary_dir_intent
+            market_binary = bool(market_binary_dir_intent(query))
+        except Exception:
+            market_binary = False
     try:
         if cur is None:
             from augur.core import db
@@ -120,8 +140,18 @@ def build_direction_refusal(cur=None):
             cur.execute(_GATE_STATUS_SQL)
             total, n_fail, n_pass = cur.fetchone()
         if not total:
-            return DIRECTION_PATH_FIXED_RESPONSE + _SIM_HINT
-        return _compose_direction_refusal(int(total), int(n_fail), int(n_pass)) + _SIM_HINT
+            base = DIRECTION_PATH_FIXED_RESPONSE + _SIM_HINT
+            if market_binary:
+                base = (
+                    DIRECTION_PATH_FIXED_RESPONSE
+                    + "\n\n【預測知識通道・大盤】未指定股號 → 大盤絕對漲跌題;"
+                    "閘狀態讀取失敗時仍**不**提供可交易漲跌機率。"
+                    + _SIM_HINT
+                )
+            return base
+        return _compose_direction_refusal(
+            int(total), int(n_fail), int(n_pass), market_binary=market_binary,
+        ) + _SIM_HINT
     except Exception:
         return DIRECTION_PATH_FIXED_RESPONSE + _SIM_HINT
 

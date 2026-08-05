@@ -209,6 +209,118 @@ def picking_intent(query):
     return bool(_PICK_INTENT.search(query or ""))
 
 
+# ── 單股相對機率意圖(ADVISOR-PRED-KH Phase 1；乙案 B2 優於 C)──
+# 「2330 未來約 30 天走勢」類 → (stock_id, horizon_td)；目標價/逐日點位仍交 C 短路。
+_STOCK_ID_RE = re.compile(r"(?<!\d)([1-9]\d{3})(?!\d)")  # 台股 4 碼、禁前導 0 連號膨脹
+_TICKER_ABS_EXCLUDE = re.compile(r"目標價|逐日|每日路徑|漲多少|跌多少")
+_TICKER_REL_SIGNAL = re.compile(
+    r"相對|同儕|強弱|排名|機率|走勢|展望|預測|未來.{0,5}(天|日)|"
+    r"\d{1,3}\s*個?(天|日|交易日)|約\s*\d{1,3}\s*天"
+)
+
+
+def single_ticker_rel_intent(query):
+    """回 (stock_id, horizon) 或 None。
+
+    horizon 映射：≈30 日曆日→20 交易日；未寫清但有走勢/相對訊號→60(部署主尺)。
+    含目標價/逐日點位且無「相對／同儕」→ None（留給方向短路）。
+    """
+    q = query or ""
+    if _TICKER_ABS_EXCLUDE.search(q) and not re.search(r"相對|同儕|強弱|排名", q):
+        return None
+    m = _STOCK_ID_RE.search(q)
+    if not m:
+        return None
+    if not _TICKER_REL_SIGNAL.search(q):
+        return None
+    sid = m.group(1)
+    h = 60
+    if re.search(r"120\s*(天|日|交易日)|H\s*120|半年", q, re.I):
+        h = 120
+    elif re.search(r"40\s*(天|日|交易日)|H\s*40", q, re.I):
+        h = 40
+    elif re.search(r"60\s*(天|日|交易日)|H\s*60|兩個?月", q, re.I):
+        h = 60
+    elif re.search(
+        r"30\s*(天|日|交易日)|約\s*30|未來.{0,4}30|一個?月|20\s*(天|日|交易日)|H\s*20",
+        q,
+        re.I,
+    ):
+        h = 20
+    return (sid, h)
+
+
+_CN_NUM = {"一": 1, "二": 2, "兩": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+           "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+
+
+def _horizon_from_query(q, default=60):
+    if re.search(r"120\s*(天|日|交易日)|H\s*120|半年", q, re.I):
+        return 120
+    if re.search(r"40\s*(天|日|交易日)|H\s*40", q, re.I):
+        return 40
+    if re.search(r"60\s*(天|日|交易日)|H\s*60|兩個?月", q, re.I):
+        return 60
+    if re.search(
+        r"30\s*(天|日|交易日)|約\s*30|未來.{0,4}30|一個?月|20\s*(天|日|交易日)|H\s*20",
+        q, re.I,
+    ):
+        return 20
+    return default
+
+
+def rel_prob_topk_intent(query):
+    """回 (k, horizon) 或 None——「未來N天(上漲)機率最高 topK」→ 改答相對機率 TopK。
+
+    Steward auto_rel_topn：口語「上漲機率」改寫為 P(勝過同儕中位)，非絕對方向。
+    """
+    q = query or ""
+    if re.search(r"目標價|逐日路徑|每日路徑", q):
+        return None
+    if not re.search(r"機率|相對|強弱|排名", q):
+        return None
+    m = re.search(r"top\s*(\d+)", q, re.I)
+    if m:
+        k = int(m.group(1))
+    else:
+        m2 = re.search(r"前\s*([一二三四五六七八九十兩两\d]+)\s*(名|支|檔|個)?", q)
+        if not m2:
+            # 「最高的top」已由 top 分支；「機率最高」+ 數字三
+            m3 = re.search(r"(最高|前茅).{0,6}(?:的)?\s*top\s*(\d+)", q, re.I)
+            if m3:
+                k = int(m3.group(2))
+            else:
+                return None
+        else:
+            tok = m2.group(1)
+            k = int(tok) if tok.isdigit() else _CN_NUM.get(tok, 0)
+    if k < 1 or k > 20:
+        return None
+    # 需有 horizon／未來 或 「機率最高」排名意圖
+    if not (
+        re.search(r"未來|\d+\s*(天|日)|最高|top|前\s*", q, re.I)
+    ):
+        return None
+    h = _horizon_from_query(q, default=20 if re.search(r"30|未來", q) else 60)
+    return (k, h)
+
+
+def market_binary_dir_intent(query):
+    """無股號＋「上漲還是下跌／漲或跌」→ 大盤絕對方向題(預測知識通道 enrich;仍不給可交易機率)。"""
+    q = query or ""
+    if _STOCK_ID_RE.search(q):
+        return False
+    if re.search(r"目標價|逐日路徑", q):
+        return False
+    return bool(
+        re.search(
+            r"上漲還是下跌|漲還是跌|漲或跌|下跌還是上漲|"
+            r"會漲還是會跌|漲的機率高還是跌|上漲.*下跌.*機率|下跌.*上漲.*機率",
+            q,
+        )
+    )
+
+
 def _selftest():
     """自測(零 DB/零 API、純函式紅綠 #29a):固化本閘核心不變式——單 CJK 字不算辨識詞(Tier-2
     死因回歸鎖)、專詞共現才判相關、空檢索必 decline、選股意圖判定;僅用本地 textnorm、零 IO。"""
@@ -260,6 +372,18 @@ def _selftest():
     # picking_intent:選股意圖 True、知識/定義題 False(純正則)
     chk("picking_intent 選股題→True", picking_intent("該買什麼股票") and picking_intent("which stocks to buy"))
     chk("picking_intent 知識題→False", not picking_intent("什麼是知行合一"))
+    # single_ticker_rel_intent(B2)
+    chk("單股30天走勢→(2330,20)", single_ticker_rel_intent("2330個股未來30天走勢?") == ("2330", 20))
+    chk("單股相對機率→命中", single_ticker_rel_intent("2330 相對機率如何")[0] == "2330")
+    chk("目標價→None(交 C)", single_ticker_rel_intent("2330 目標價多少") is None)
+    chk("純哲學→None", single_ticker_rel_intent("什麼是知行合一") is None)
+    chk("選股組合題不誤觸四碼假股", single_ticker_rel_intent("該買什麼股票") is None)
+    # rel_prob_topk_intent(auto_rel_topn)
+    chk("上漲機率 top3→(3,20)", rel_prob_topk_intent("未來30天上漲機率最高的top 3") == (3, 20))
+    chk("相對機率前三→(3,*)", rel_prob_topk_intent("未來30天相對機率前三") == (3, 20))
+    chk("目標價排名→None", rel_prob_topk_intent("目標價最高 top 3") is None)
+    chk("大盤漲跌→True", market_binary_dir_intent("未來30天上漲還是下跌的機率高?") is True)
+    chk("有股號漲跌→False(非大盤)", market_binary_dir_intent("2330上漲還是下跌?") is False)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

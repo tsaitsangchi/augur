@@ -45,7 +45,7 @@ SSOT＝`audits/S3-WAVE-B-EXECUTED-20260804.md` §3。
 
 **推薦預設**：**β5 停**或 **β2 窄做一顆交互**（若要動碼）；**禁 β＝重跑四名 verify**。
 
-> **執行追記（2026-08-05）**：Steward `S3-BETA-beta2 | FZ/GATE-keep | skip-sync | no-SIM-apply` → 材料化＋IC 見 `audits/S3-BETA-BETA2-EXECUTED-20260805.md`（partial；#11 in-flight at archive）。
+> **執行追記（2026-08-05）**：Steward `S3-BETA-beta2 | FZ/GATE-keep | skip-sync | no-SIM-apply` → 材料化＋IC 見 `audits/S3-BETA-BETA2-EXECUTED-20260805.md`（partial；#11 後為顧聊天 **KeyboardInterrupt**）。波次 A 呈裁＝`reports/augur_s3_beta5_stop_and_beta2_pause_plan_20260805.md`。
 
 ---
 

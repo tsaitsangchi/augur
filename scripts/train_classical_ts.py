@@ -18,14 +18,21 @@ import sys
 import _bootstrap  # noqa: F401
 import numpy as np
 
+from augur.catalog import world_concept
 from augur.models.classical_ts import ArimaUnivariate
+
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36；不直綁還原價表字面
 
 
 def _load_close(conn, stock_id, asof, lookback=252):
-    """讀 ≤asof 之還原收盤;不足則回空陣列(呼叫端誠實 SKIP)。"""
+    """讀 ≤asof 之還原收盤;不足則回空陣列(呼叫端誠實 SKIP)。
+
+    表名經 registry `tw.daily_bar_adjusted` 解析（WM.36／binding 100），fail-closed。
+    """
+    adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
     with conn.cursor() as cur:
         cur.execute(
-            """SELECT close FROM "TaiwanStockPriceAdj"
+            f"""SELECT close FROM {adj_sql}
                WHERE stock_id=%s AND date<=%s AND close IS NOT NULL AND close>0
                ORDER BY date DESC LIMIT %s""",
             (stock_id, asof, lookback),

@@ -46,4 +46,8 @@ pan-hist／H20 同向負、|HAC|亦 ≥2。對照母因子 `pb_self_pctile_252d`
 - 不 promote／不 SIM-apply／不 sync  
 - 候選表 `--keep` 保留  
 
+## 6. #11 verify 暫停（2026-08-05）
+
+聊天 UI「(無回覆)」診斷：Ollama／CPU／swap 被 `#11` 多 seed＋philosophy evolution 塞滿；advise 另需 embed＋聊天模型。Steward 選 `pause_beta2_retry`＋`pause_evo_too`→中止 verify（log `KeyboardInterrupt`）與 evolution。**Δ 終表未產**——續跑須另 GO／重掛 verify。後續已重啟 ollama／advisor 並載入 `qwen3:8b`（keep_alive）。
+
 *部分 EXECUTED 2026-08-05（封存前切片）。*

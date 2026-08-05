@@ -18,7 +18,10 @@ import warnings
 import _bootstrap  # noqa: F401
 import numpy as np
 
+from augur.catalog import world_concept
 from augur.models.classical_ts import ArimaUnivariate
+
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36；不直綁還原價表字面
 
 
 def _core_stocks(conn, asof, n):
@@ -32,10 +35,10 @@ def _core_stocks(conn, asof, n):
     return [r[0] for r in rows]
 
 
-def _series(conn, sid, asof):
+def _series(conn, sid, asof, adj_sql):
     with conn.cursor() as cur:
         cur.execute(
-            """SELECT date, close FROM "TaiwanStockPriceAdj"
+            f"""SELECT date, close FROM {adj_sql}
                WHERE stock_id=%s AND date<=%s AND close>0
                ORDER BY date""",
             (sid, asof),
@@ -101,12 +104,16 @@ def main(argv=None):
           f"max_folds={args.max_folds} train_window=504",
           flush=True)
     with db.connect() as conn:
+        adj_binding = world_concept.resolve(ADJ_CONCEPT, conn=conn)
+        adj_sql = world_concept.quote_ident(adj_binding.table)
+        print(f"registry：{ADJ_CONCEPT} → {adj_binding.table}"
+              f"（binding_id={adj_binding.binding_id}）", flush=True)
         stocks = _core_stocks(conn, args.asof, args.n_stocks)
         if len(stocks) < 5:
-            # fallback: distinct from PriceAdj
+            # fallback: distinct from registry-resolved adjusted bar
             with conn.cursor() as cur:
                 cur.execute(
-                    """SELECT DISTINCT stock_id FROM "TaiwanStockPriceAdj"
+                    f"""SELECT DISTINCT stock_id FROM {adj_sql}
                        WHERE date<=%s ORDER BY 1 LIMIT %s""",
                     (args.asof, args.n_stocks),
                 )
@@ -115,7 +122,7 @@ def main(argv=None):
               flush=True)
         per = []
         for sid in stocks:
-            dates, closes = _series(conn, sid, args.asof)
+            dates, closes = _series(conn, sid, args.asof, adj_sql)
             if closes is None or len(closes) < args.min_train + args.horizon + 10:
                 print(f"  SKIP {sid}: 序列不足", flush=True)
                 continue
