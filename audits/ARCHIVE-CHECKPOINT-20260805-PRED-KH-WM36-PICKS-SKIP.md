@@ -8,7 +8,8 @@ depends_on:
 # 封存點：PRED-KH／WM36／picks_skip／β5／wave-A（2026-08-05）
 
 > **授權**：AskQuestion `next=1_archive`（封存 push），decided_by=hugo。  
-> **self-reported（#32a）**：下文 SHA／tag 以 `archive_push.sh` 實推後回填為準。
+> **實推**：HEAD **`74ce20a`** · tag **`archive-20260805-predkh-wm36-picks-skip`** · `origin/main`。  
+> **self-reported（#32a）**。
 
 ## 範圍要旨
 
@@ -25,4 +26,4 @@ depends_on:
 - 不 SIM-apply／不解凍 API  
 - β2 `#11` **未**終表（KeyboardInterrupt）  
 
-*封存當下回填 SHA／tag 於下節。*
+*封存完成。*
