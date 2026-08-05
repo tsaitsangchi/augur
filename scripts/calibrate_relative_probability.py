@@ -22,12 +22,17 @@
   python scripts/calibrate_relative_probability.py --emit --horizon 60 --asof 2026-05-31  # → prediction_probability
   python scripts/calibrate_relative_probability.py --emit --all --asof 2026-05-31
   python scripts/calibrate_relative_probability.py --report              # 可靠度報告(逐折 Brier/ECE/分箱)
+  python scripts/calibrate_relative_probability.py --fit --horizon 60 --model-family RankXGB  # 另族(Phase 1 條件觸發)
+  python scripts/calibrate_relative_probability.py --fit --horizon 60 --asof 2026-05-31  # 快照錨(=FREEZE;預設釘死)
+
+紀律(P6 選項 D 精神,2026-08-05):預設歷史快照;全量 --fit/--emit 建議 Steward 明示。選項 C=--asof 參數化,預設仍釘 DEFAULT_FREEZE。
 """
 import argparse
 import json
 import math
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
@@ -36,8 +41,9 @@ import numpy as np
 from augur.core import db
 
 HORIZONS = (20, 40, 60, 82, 120)   # 82 啟用=P2-1 A 案(120 天誠實錨=H82,119 日曆日)
-FREEZE = "2026-05-31"
-MODEL_FAMILY = "RankRidge"
+DEFAULT_FREEZE = "2026-05-31"      # 預設快照錨(P6 選項 C:--asof 覆寫;滾動須另句授權)
+FREEZE = DEFAULT_FREEZE            # 相容別名;runtime fit 以 CLI --asof 為準
+MODEL_FAMILY = "RankRidge"   # 預設族;--model-family 可選其他 Wave-A 族(S4-DIRFAMILY-GENERALIZE Phase 0,2026-08-04)
 CAL_DAYS = {20: 29, 40: 58, 60: 87, 82: 119, 120: 174}   # 日曆日近似(§1.2;A-27 呈現偏差推導 SSOT)
 # D2/§1.2 經濟裁決標籤:SSOT=DB 表 econ_verdict_rule(2026-07-11 拍板「3遷」,#29b 決定行為的資料住 DB;
 # 種子=migrate_probability_ddl.py 一次性遷移、改裁決=UPDATE 一列零改碼);emit_horizon 讀表、缺列 fail-loud。
@@ -66,17 +72,25 @@ def _sigmoid(a, b, x):
     return 1.0 / (1.0 + math.exp(-(a * x + b)))
 
 
-def _load(cur, h):
+def _load(cur, h, model_family):
     cur.execute("SELECT panel_date, rank_pctile, label_beat_median, exit_date "
                 "FROM probability_oos_sample WHERE horizon=%s AND model_family=%s "
-                "ORDER BY panel_date, stock_id", (h, MODEL_FAMILY))
+                "ORDER BY panel_date, stock_id", (h, model_family))
     return cur.fetchall()
 
 
-def fit_horizon(cur, h, git7):
-    rows = _load(cur, h)
+def fit_horizon(cur, h, git7, model_family=MODEL_FAMILY, freeze=DEFAULT_FREEZE):
+    rows = _load(cur, h, model_family)
     if not rows:
         print(f"  ✗ H{h}: 對樣本空(先跑 build_probability_oos_sample --run)"); return None
+    freeze_date = date.fromisoformat(freeze)
+    # 選項 B 防禦性雙保險(S4-PROB-ASOF-BOUNDARY-FIX-20260804):serve fit 自身亦過濾 exit_date>freeze。
+    n_before = len(rows)
+    rows = [r for r in rows if r[3] <= freeze_date]
+    if len(rows) < n_before:
+        print(f"  ⚠ H{h}: 過濾 {n_before - len(rows)} 列 exit_date>freeze(防禦性選項 B;非 0 需查上游)")
+    if not rows:
+        print(f"  ✗ H{h}: 過濾後對樣本空"); return None
     panels = sorted({r[0] for r in rows})
     # expanding purge 逐折品質
     fold_brier, fold_base, preds = [], [], []   # preds=(p,label) pooled(供 ECE/分箱;逐折口徑產生)
@@ -108,11 +122,12 @@ def fit_horizon(cur, h, git7):
             b_["y_rate"] /= b_["n"]
             ece += (b_["n"] / len(preds)) * abs(b_["p_mean"] - b_["y_rate"])
         b_["p_mean"], b_["y_rate"] = round(b_["p_mean"], 4), round(b_["y_rate"], 4)
-    # serve 校準器:全樣本 fit(全部 exit_date ≤ FREEZE=建構保證;機械斷言)
-    cur.execute("SELECT count(*) FROM probability_oos_sample WHERE horizon=%s AND exit_date > %s", (h, FREEZE))
+    # serve 校準器:全樣本 fit(全部 exit_date ≤ freeze=建構保證;機械斷言)
+    cur.execute("SELECT count(*) FROM probability_oos_sample WHERE horizon=%s AND exit_date > %s", (h, freeze))
     purge_ok = cur.fetchone()[0] == 0
     a, b = _platt_fit([r[1] for r in rows], [r[2] for r in rows])
-    cid = f"platt_h{h}_asof{FREEZE}_g{git7}"
+    # R1 修法(S4-DIRFAMILY-GENERALIZE Phase 0):id 含 family
+    cid = f"platt_{model_family}_h{h}_asof{freeze}_g{git7}"
     cur.execute("""
         INSERT INTO probability_calibrator (calibrator_id, horizon, method, fit_asof, n_fit_samples,
           n_fit_folds, purge_verified, params, brier, brier_baseline, ece, reliability_bins, family_note, git_sha)
@@ -120,7 +135,7 @@ def fit_horizon(cur, h, git7):
         ON CONFLICT (calibrator_id) DO UPDATE SET params=EXCLUDED.params, brier=EXCLUDED.brier,
           brier_baseline=EXCLUDED.brier_baseline, ece=EXCLUDED.ece, reliability_bins=EXCLUDED.reliability_bins,
           n_fit_samples=EXCLUDED.n_fit_samples, n_fit_folds=EXCLUDED.n_fit_folds, purge_verified=EXCLUDED.purge_verified""",
-        (cid, h, FREEZE, len(rows), folds_used, purge_ok, json.dumps({"a": a, "b": b}),
+        (cid, h, freeze, len(rows), folds_used, purge_ok, json.dumps({"a": a, "b": b}),
          round(float(np.mean(fold_brier)), 6) if fold_brier else None,
          round(float(np.mean(fold_base)), 6) if fold_base else None,
          round(ece, 6) if preds else None, json.dumps(bins), FAMILY_NOTE, git7))
@@ -129,7 +144,7 @@ def fit_horizon(cur, h, git7):
     return cid
 
 
-def emit_horizon(cur, h, asof, git7):
+def emit_horizon(cur, h, asof, git7, model_family=MODEL_FAMILY):
     cur.execute("SELECT calibrator_id, params FROM probability_calibrator WHERE horizon=%s "
                 "ORDER BY created_at DESC LIMIT 1", (h,))
     row = cur.fetchone()
@@ -140,7 +155,7 @@ def emit_horizon(cur, h, asof, git7):
     cur.execute("SELECT pv.model_id, pv.stock_id, pv.rank FROM prediction_values pv "
                 "JOIN model_registry mr USING (model_id) "
                 "WHERE pv.panel_date=%s AND mr.family=%s AND mr.horizon=%s ORDER BY pv.rank",
-                (asof, MODEL_FAMILY, h))
+                (asof, model_family, h))
     rows = cur.fetchall()
     if not rows:
         print(f"  ✗ H{h}: prediction_values 無 {asof} 列"); return 0
@@ -201,7 +216,12 @@ def main():
     ap.add_argument("--report", action="store_true")
     ap.add_argument("--horizon", type=int, choices=HORIZONS)
     ap.add_argument("--all", action="store_true")
-    ap.add_argument("--asof", default=FREEZE)
+    ap.add_argument("--asof", default=DEFAULT_FREEZE,
+                     help=f"快照錨／emit 之日(預設 {DEFAULT_FREEZE};--fit 時同作 FREEZE 上界;"
+                          "P6 選項 C——滾動須 Steward 明示)")
+    ap.add_argument("--model-family", default=MODEL_FAMILY,
+                     help="校準對樣本／prediction_values 所屬族(預設 RankRidge;Phase 1 條件觸發才用其他"
+                          " Wave-A 族,見 augur_s4_dirfamily_generalize_plan_20260804.md)")
     args = ap.parse_args()
     hs = list(HORIZONS) if args.all else ([args.horizon] if args.horizon else None)
     git7 = _git7()
@@ -211,14 +231,14 @@ def main():
             if not hs:
                 sys.exit("--fit 需 --horizon 或 --all")
             for h in hs:
-                fit_horizon(cur, h, git7)
+                fit_horizon(cur, h, git7, model_family=args.model_family, freeze=args.asof)
             conn.commit()
             return 0
         if args.emit:
             if not hs:
                 sys.exit("--emit 需 --horizon 或 --all")
             for h in hs:
-                emit_horizon(cur, h, args.asof, git7)
+                emit_horizon(cur, h, args.asof, git7, model_family=args.model_family)
             conn.commit()
             return 0
         if args.report:

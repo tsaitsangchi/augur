@@ -1,4 +1,4 @@
-# Constitutional Compliance Statement — 系統架構大憲章 v1.53.0
+# Constitutional Compliance Statement — 系統架構大憲章 v1.54.0
 
 * **性質**：領域治權檔之 Constitutional Compliance Statement（[N] 聲明；**不上收** docs 進 META）
 * **依據**：`AUGUR-MC v1.6 §8.3`；`AUGUR-WM v1.0 §WM.39–45`；RULING-2026-002 主文二（補正期至 **2026-10-14**）
@@ -10,7 +10,7 @@
 ```
 compliance-statement:
   spec: Augur Domain Architecture Charter（系統架構大憲章）
-  spec-version: v1.53.0
+  spec-version: v1.54.0
   layer: 7
   mc-version: AUGUR-MC v1.6
   upper-specs: [AUGUR-WM v1.0, AUGUR-ONT v1.0, AUGUR-ID v1.0, AUGUR-KS v1.1, AUGUR-L5 v1.0, AUGUR-L6 v1.2]

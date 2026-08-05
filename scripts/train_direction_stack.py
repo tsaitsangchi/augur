@@ -18,6 +18,9 @@
   python scripts/train_direction_stack.py --run                 # 全可合成 horizon → direction_oos_sample
   python scripts/train_direction_stack.py --run --horizons 20   # 指定 horizon
   python scripts/train_direction_stack.py --run-v2              # v2:DirStackM 月頻(H20/40/82;revival §3.4)
+  python scripts/train_direction_stack.py --run --horizons 20 --model-family RankSVM
+    # Phase 1 條件觸發研究比較(S4-DIRFAMILY-GENERALIZE):寫入新 model_id="DirStack_RankSVM"(自動衍生,
+    # 不覆蓋既有 "DirStack"/RankRidge 列);僅供研究比較,不得直接視為 direction_gate/arena 候選。
 """
 import argparse
 import subprocess
@@ -43,10 +46,13 @@ def _git7():
         return "unknown"
 
 
-def _load_joined(cur, h):
+def _load_joined(cur, h, model_family="RankRidge"):
     """join probability_oos_sample(相對,季度再平衡 panel)× market_direction_probability(市場,每日)。
     相對 panel 常落日曆期末(可能非交易日)→ 市場分量取「最近交易日 ≤ 相對 panel 之 P_mkt」(as-of 對齊,
     #8 安全:panel_date≤s.panel_date 於 s.panel_date 當下可見、且該 P_mkt 本身已 walk-forward OOS)。
+    **R2 修法(S4-DIRFAMILY-GENERALIZE Phase 0)**:加 model_family 過濾——原查詢零過濾,若
+    probability_oos_sample 未來同時存在 ≥2 個 family 之列,合成器會 fit 於混族攤平之訓練集(不同族分數
+    尺度/誤差結構不同,非同一量);預設值 "RankRidge" 保留現況行為(現況僅此一族,過濾為 no-op)。
     回 list[(panel_date, stock_id, rank_pctile, fwd_ret, p_mkt)]。"""
     cur.execute("""
         SELECT s.panel_date, s.stock_id, s.rank_pctile, s.fwd_ret, m.p_mkt_up
@@ -56,8 +62,8 @@ def _load_joined(cur, h):
             WHERE horizon = s.horizon AND model_id = %s AND panel_date <= s.panel_date
             ORDER BY panel_date DESC LIMIT 1
         ) m ON true
-        WHERE s.horizon = %s AND s.rank_pctile IS NOT NULL AND s.fwd_ret IS NOT NULL
-        ORDER BY s.panel_date, s.stock_id""", (MKT_MODEL, h))
+        WHERE s.horizon = %s AND s.model_family = %s AND s.rank_pctile IS NOT NULL AND s.fwd_ret IS NOT NULL
+        ORDER BY s.panel_date, s.stock_id""", (MKT_MODEL, h, model_family))
     return cur.fetchall()
 
 
@@ -79,14 +85,17 @@ def _fit_predict(Xtr, ytr, Xte):
     return clf.predict_proba(sc.transform(Xte))[:, 1]
 
 
-def run(horizons, min_train):
+def run(horizons, min_train, model_family="RankRidge", model_id=MODEL_ID):
+    """model_id 預設沿用既有 "DirStack"(RankRidge 現況行為零改動);傳入非預設 model_family 時,
+    呼叫端(main)須同步傳入衍生 model_id(如 "DirStack_RankSVM")——避免 direction_oos_sample 之
+    ON CONFLICT(model_id,...) 靜默覆蓋既有族之列(S4-DIRFAMILY-GENERALIZE Phase 1,2026-08-04)。"""
     git7 = _git7()
     with db.connect() as conn:
         cur = conn.cursor()
         cal = _label.full_calendar(conn)
         done = []
         for h in horizons:
-            rows = _load_joined(cur, h)
+            rows = _load_joined(cur, h, model_family)
             if not rows:
                 print(f"  H{h:<3} 無可合成列(需 probability_oos_sample h={h} + P_mkt 皆就位)—略")
                 continue
@@ -113,7 +122,7 @@ def run(horizons, min_train):
                         "ON CONFLICT (model_id, target_id, panel_date, horizon, seed) DO UPDATE SET "
                         "p_up=EXCLUDED.p_up, y_up=EXCLUDED.y_up, fwd_abs_ret=EXCLUDED.fwd_abs_ret, "
                         "fold_id=EXCLUDED.fold_id, git_sha=EXCLUDED.git_sha, created_at=now()",
-                        (MODEL_ID, sid, fold["test"], h, float(pr), 1 if fr > 0 else 0, fr, fid, git7))
+                        (model_id, sid, fold["test"], h, float(pr), 1 if fr > 0 else 0, fr, fid, git7))
                     wrote += 1
             conn.commit()
             ally = [1 if x[2] > 0 else 0 for r in by_panel.values() for x in r]
@@ -121,7 +130,7 @@ def run(horizons, min_train):
             print(f"  H{h:<3} folds={len(folds)} 寫 OOS {wrote} 列 | 個股絕對上漲基率 p̄={base:.3f} "
                   f"多數類基線 max(p̄,1−p̄)={max(base,1-base):.3f} n={len(ally)}")
             done.append(h)
-    print(f"✓ DirStack 合成完成 horizon={done}(下一棒:evaluate_direction_gate.py --evaluate 判 GATE)")
+    print(f"✓ {model_id} 合成完成 horizon={done}(下一棒:evaluate_direction_gate.py --evaluate 判 GATE)")
     return 0
 
 
@@ -263,11 +272,16 @@ def main():
     ap.add_argument("--run-v2", action="store_true", dest="v2")   # DirStackM 月頻(revival §3.4)
     ap.add_argument("--horizons", nargs="*", type=int)
     ap.add_argument("--min-train", dest="min_train", type=int)
+    ap.add_argument("--model-family", dest="model_family", default="RankRidge",
+                     help="相對分量 model_family(預設 RankRidge=現況;非預設族自動衍生 "
+                          "model_id=DirStack_<family>,見 S4-DIRFAMILY-GENERALIZE Phase 1)")
     args = ap.parse_args()
     if args.v2:
         return run_v2(args.horizons or [20, 40, 82], args.min_train or 24)
     if args.run:
-        return run(args.horizons or list(H_HORIZONS), args.min_train or 8)
+        model_id = MODEL_ID if args.model_family == "RankRidge" else f"{MODEL_ID}_{args.model_family}"
+        return run(args.horizons or list(H_HORIZONS), args.min_train or 8,
+                   model_family=args.model_family, model_id=model_id)
     return status()
 
 

@@ -799,6 +799,8 @@ U0-80-SPLIT-BOUND: second_binding=<id> + role=price_limit_ref
 
 **`SIM-FIRST-CELL-go`** ✅ **已執行**（2026-08-04；Steward 經 `AskQuestion` 選定）——格點 `2026-08-03`、候選 `simc_r1_iid_baseline`、52/52 檔已產（`mc_simulation_run`＋`sim_run_link`）、迭代帳本 `sim-20260803-r01` running；時鐘 `check_sim_clock.py --week-line`＝`K=1/3，下一格 未實現，待結算 52 列`；settle／evaluate／decide 三段誠實回報「未到」、**0 自動 promoted**；GO＝`audits/SIM-FIRST-CELL-GO-20260804.md`；執行＝`audits/SIM-FIRST-CELL-EXECUTED-20260804.md`。**勿重貼當開工**——下一動作＝等 label 日（≈21 個交易日後）才有列可 `settle`，或人工節奏補產格點 2／3。
 
+**`predict-asof-write-go`** ✅ **已執行**（2026-08-04；Steward 經 `AskQuestion` 選定，dry-run 過目後 apply）——`predict_asof.py --run`（預設 RankRidge H60、asof=2026-06-30、top10% equal）寫入 `prediction_values` **225 列**（新 model_id＝registry 最新 `RankRidge_H60_2026-06-30_seed42_56d03625463b3eba`，今日訓練；不覆蓋既有 2373 列 D4 候選資料，純新增）；投組建議 22 檔（top10%）；feature_source=prodset（3 現行特徵）、零漂移警告。GO＝`audits/PREDICT-ASOF-WRITE-GO-20260804.md`。**S1→S5 主線 predict 出單口自此有真實落地資料**（S1→S5 全鏈：predict 側與 sim 側**皆已首次落地**）。
+
 ### 7.4 只 S0 Discovery
 
 ```text
@@ -872,6 +874,7 @@ SIM-SELF-EVOLVE-OPT-PLAN-20260804-ack + P0-DISCOVERY-go
 | approved+c1-full | 2026-08-04 | Steward mandate：S3→S2→擴大 S1→計畫閉環；§0.6 **C1 Arc A／B／C**＋§7.2c `LOOP-S3-TO-S2-go`／`LOOP-S2-TO-S1-EXPAND-go`／`LOOP-CYCLE-N-go`；詳細＝`augur_s1_s2_s3_closed_loop_plan_20260804.md`；登錄 `SIM-S1-S2-S3-CLOSED-LOOP`；**不撤** §7.1；**本輪零 sync／零 build／不殺 A1** |
 | approved+essence-loop | 2026-08-04 | Steward 定錨：本質＝**S1→S5 自我進化閉環計畫書**；§0 統一 C0／C1／C2 為單一連續閉環主敘事（前向＋回饋弧）；標題／subtitle／front matter；薄審計 `SIM-SELF-EVOLVE-ESSENCE-S1S5-LOOP`；交叉 S3／S4（已拍）／S2-after-S3／S1–S2–S3／S4–S5；**不撤** §7.1；**本輪零碼／零 API／零 train** |
 | executed+sim-first-cell | 2026-08-04 | Steward `SIM-FIRST-CELL-go`（經 `AskQuestion` 選定）→ §7.3 生效並**已執行**：`run_sim_calibration_cell.py --apply` 產格點 `2026-08-03`（52/52 檔）＋開迭代帳本 `sim-20260803-r01`；`check_sim_clock` 時鐘＝K=1/3；settle／evaluate／decide 誠實回報未到、0 自動 promoted；GO＝`audits/SIM-FIRST-CELL-GO-20260804.md`；執行＝`audits/SIM-FIRST-CELL-EXECUTED-20260804.md`；**不撤** §7.1；**S5 sim 子閉環首次有真實回饋資料落地**（S1→S5 主線 predict 側仍待 `predict-asof-write-go`） |
+| executed+predict-asof-write | 2026-08-04 | Steward `predict-asof-write-go`（經 `AskQuestion` 選定，dry-run 過目後 apply）→ §7.3 生效並**已執行**：`predict_asof.py --run` 寫 `prediction_values` 225 列（RankRidge H60、asof=2026-06-30、registry 最新模型、新 model_id 不覆蓋既有列）；GO＝`audits/PREDICT-ASOF-WRITE-GO-20260804.md`；**不撤** §7.1；**S1→S5 主線 predict 出單口首次落地**（與 SIM-FIRST-CELL 並列，S5 predict／sim 兩子線皆已有真實資料） |
 
 ---
 

@@ -3,7 +3,8 @@
 
 🎯 這支在做什麼(白話):對 ≤as-of 之所有已實現 label 的核心 panel,用 **prodset active∩覆蓋**
    （預設；PME 熱路徑）或 canonical 交集（`--feature-source=canonical` 僅研究對照）fit 生產
-   RankRidge(或挑戰者 RankGBDT),存成 artifact + 登錄 registry,供 predict_asof 載回出單。
+   RankRidge(或挑戰者:RankGBDT/RankXGB/RankCat/RankRF/RankSVM/RankKNN/RankMLP,見
+   `augur.models.ranker.ALL_FAMILIES`),存成 artifact + 登錄 registry,供 predict_asof 載回出單。
    **複用鐵律**:特徵矩陣/label/as-of 名單全複用 evaluation.baseline 之同一 helper
    （resolve_train_feats/_fold_xy/_asof_stocks）→ 離線驗證與上線預測同組態、零雙軌漂移(#12);
    RankRidge estimator 與 baseline B2_ridge 逐值等同(已冒煙驗證)。
@@ -18,7 +19,7 @@
   python scripts/train_ranker.py --run                             # 訓練(預設 prodset／RankRidge H=60 seed=42)
   python scripts/train_ranker.py --run --horizon 20 --family RankRidge --asof 2026-05-31
   python scripts/train_ranker.py --run --feature-source=canonical  # 研究對照（非 PME 熱路徑）
-  python scripts/train_ranker.py --run --family RankGBDT --seed 1  # 挑戰者
+  python scripts/train_ranker.py --run --family RankGBDT --seed 1  # 挑戰者(同理可 --family RankXGB/RankCat/...)
   python scripts/train_ranker.py --run --resume                    # 同 model_id 已登錄則跳過(冪等)
 """
 import argparse
@@ -34,9 +35,9 @@ from augur.core.prodset_contract import (
 )
 from augur.evaluation import baseline, label as label_mod
 from augur.models import artifact, registry
-from augur.models.ranker import RankGBDT, RankRidge
+from augur.models.ranker import ALL_FAMILIES
 
-FAMILIES = {"RankRidge": RankRidge, "RankGBDT": RankGBDT}
+FAMILIES = {cls.family: cls for cls in ALL_FAMILIES}
 
 
 def _train_note(horizon, feature_source):
@@ -98,7 +99,7 @@ def train(horizon, family, seed, asof, resume=False, feature_source=FEATURE_SOUR
         X, y = baseline._fold_xy(conn, panels, None, feats, horizon, calendar=cal, asof=True)
         if len(y) < 50:
             print(f"✗ 可用訓練樣本 {len(y)}<50(label 未實現/覆蓋不足);中止。"); return None
-        est = est_cls(seed=seed) if family == "RankGBDT" else est_cls()
+        est = est_cls(seed=seed)  # 全族統一接受 seed(#12;RankRidge/RankKNN 忽略,見 ranker.py)
         est.fit(X, y)
         path, fh2 = artifact.save(est, feats, horizon, asof, family, seed)
         metrics = {

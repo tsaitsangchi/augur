@@ -41,7 +41,7 @@ from augur.core.prodset_contract import (
     resolve_prodset_feats,
 )
 from augur.evaluation import baseline, label as label_mod, portfolio
-from augur.execution import risk_control
+from augur.execution import action_log, risk_control
 from augur.models import artifact, registry
 
 COST_TW = 0.00585   # 台股來回成本(換手扣、同 portfolio 回測口徑 #12)
@@ -211,6 +211,19 @@ def predict(horizon, family, asof, top_n=20, top_frac=0.1, weight="equal", dry_r
                     "INSERT INTO prediction_values (panel_date,model_id,stock_id,score,rank,in_portfolio,weight) "
                     "VALUES (%s,%s,%s,%s,%s,%s,%s)",
                     [(asof, reg["model_id"], sid, sc, rk, inp, w) for rk, sid, sc, inp, w in rows])
+                # P5.E1 六元組(C軌P1,2026-08-05):真寫 prediction_values 才留痕;dry-run 不算行動
+                auth_ref = action_log.resolve_grant_id(cur, "predict_values_write")
+                aid = action_log.log_action(
+                    cur,
+                    actor_identity="predict_asof",
+                    authorization_ref=auth_ref,
+                    knowledge_basis={"asof": str(asof), "model_id": reg["model_id"],
+                                    "horizon": horizon, "n_rows": len(rows)},
+                    action_type="predict_values_write",
+                    target=f"{asof}:{reg['model_id']}",
+                    expected_effect={"table": "prediction_values", "n": len(rows)},
+                )
+                action_log.link_observed_effect(cur, aid, None, status="completed")
     tag = "(dry-run 未寫庫)" if dry_run else f"→ prediction_values ({len(rows)} 列)"
     n_port = len(port)
     print(f"✓ as-of {asof} 預測 model={reg['model_id']} feature_source={feature_source} "

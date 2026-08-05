@@ -58,7 +58,7 @@ supersedes:
 
 **一句話現況（相對 r5「執行力在元閘與 WM 試點上已動刀」）**：r6 補一句——**S1→S5 predict 閉環的「普查覆蓋」在單日內大幅推進（S3/S4 全波次、C2 雙向），但「生產熱路徑」幾乎未變（仍 Wave A 三臂＋prodset 3）**——普查廣度與生產深度是兩條不同曲線，前者今日衝很快，後者仍受 dgate pass=0／#14 經濟終關把關，尚未有新族翻越。
 
-**架構體檢一句話（本輪首次全量結構盤點）**：augur 的**機械閘密度與治權留痕紀律**遠高於一般專案（16 package 全數不變式寫成程式、104 模組 100% 具自測、334 份 audit 逐步留痕、四層治權地圖），但**體積只增不減**（scripts/ 12 桶多處同型冗餘未收斂、audits/ 帳本式增長）與**少數接線斷點**（`action_log` 零消費端、`l2-deliberation`/`knowhow-refresh` timer 待開、CS 版號漂移）並存——結構強項是「閘在、留痕在」，結構債是「閘與閘之間的收斂／接線」尚未追上普查速度。
+**架構體檢一句話（本輪首次全量結構盤點）**：augur 的**機械閘密度與治權留痕紀律**遠高於一般專案（16 package 全數不變式寫成程式、104 模組 100% 具自測、334 份 audit 逐步留痕、四層治權地圖），但**體積只增不減**（scripts/ 12 桶多處同型冗餘未收斂、audits/ 帳本式增長）與**少數接線斷點**（~~`action_log` 零消費端~~→**2026-08-05 已接線**見 `audits/C-TRACK-ACTION-LOG-WIRED-20260805.md`；`l2-deliberation`/`knowhow-refresh` timer 待開、循環依賴仍待盤）並存——結構強項是「閘在、留痕在」，結構債是「閘與閘之間的收斂／接線」尚未追上普查速度。
 
 ---
 
@@ -184,7 +184,7 @@ W5（`run_sim_calibration_cell.py` 產格／`settle_sim_outcomes.py` 結算）�
 | `identity` | 5 | 世界實體身份 | `resolve.py`（resolve-or-mint）／`attribute_version.py`（SCD-2） |
 | `ingestion` | 4 | 取數通道（API 門側） | `finmind.py`（`_quota_gate`／`QUOTA_COOLDOWN=1800s`）／`fred.py` |
 | `models` | 3 | 預測模型層 | `artifact.py`／`ranker.py`／`registry.py` |
-| `execution` | 2 | 部署執行層 | `risk_control.py`（✅ predict_asof 熱）／`action_log.py`（**零消費端**） |
+| `execution` | 2 | 部署執行層 | `risk_control.py`（✅ predict_asof 熱）／`action_log.py`（✅ 2026-08-05 已接線） |
 | `arena`／`evolution`／`catalog`／`universe` | 各 1 | 單模組 package | `adapters.py`／`behavior_rubric.py`／`world_concept.py`／`core_gate.py` |
 
 ### 4.2 生產熱路徑 trace（四支關鍵 script 實測）
@@ -211,10 +211,10 @@ scripts 全量最熱排序：`core.db`（380+）≫ `evaluation.label`（21+）>
 
 ### 4.5 缺口／債（併入 §7 綜合債表）
 
-1. **`execution/action_log.py` 零消費端**——六元組留痕 helper 已建、DDL 已遷，但無任何程式呼叫寫入；AUD-10/11 接線未完。
+1. ~~**`execution/action_log.py` 零消費端**~~——**已 EXECUTED（2026-08-05）**：grant×3＋`predict_asof`／`decide_sim_verdict` 留痕；帳＝`audits/C-TRACK-ACTION-LOG-WIRED-20260805.md`。
 2. **兩處輕微循環依賴**：`advisor↔deliberation`、`core↔audit`（地基層回頭依賴稽核層）。
 3. `models/registry.py` 命名觸 #18 禁用詞邊界（語境為 model registry 領域概念，屬可接受邊界案例）。
-4. `evaluation/portfolio.py` 有 `SyntaxWarning`（docstring `\w` 未 raw-string，小 lint 債）。
+4. ~~`evaluation/portfolio.py` 有 `SyntaxWarning`（docstring `\w` 未 raw-string，小 lint 債）~~——**2026-08-04 復驗證偽**：`PYTHONPATH=src venv/bin/python3 -W error::SyntaxWarning -c "import augur.evaluation.portfolio"` 乾淨無警告；`\w` 字面亦不存在於檔內。原判讀誤（子代理誤植或誤讀他檔），本項**非真實債**、不需修正。
 5. `knowledge/evidence.py`／`synthesis.py`／`interaction_probe.py`／`kh7_eligibility.py` 自標「min-LAND／最小 slice」——設計上漸進落地，非爛尾，屬已知 partial 另帳（與 §2.2 呼應）。
 
 ---
@@ -322,7 +322,7 @@ scripts 全量最熱排序：`core.db`（380+）≫ `evaluation.label`（21+）>
 
 | # | 債 | 標記 | 影響 | 來源 |
 |---|---|---|---|---|
-| 1 | `direction_gate` evaluated_pass=0；治權檔「≥60」vs 凍結值「250」判準級矛盾**已呈裁未裁** | [測][治] | 禁假確立級；arena live 門物理不可達 | §2.5／§3.3／§6.4 |
+| 1 | `direction_gate` evaluated_pass=0；治權檔「≥60」vs 凍結值「250」判準級矛盾 | [測][治] | 禁假確立級；arena live 門物理不可達 | §2.5／§3.3／§6.4——**2026-08-04 live 復查降級**：`criteria->>'min_clusters'` 現況 250×11（approved 9／evaluated_fail 2，250≥60 非違憲）；原 36×6（07-31 曾為 approved、疑「放寬未走程序」）**現況皆 superseded**，現無任一 approved 門低於 60。殘餘僅條文字面是否明文對齊 250 之文字層問題，非安全違規 |
 | 2 | V2-SUNSET deadline 2026-10-31 續命三條全未達成 | [治][模] | 三軸自進化存續之治理風險 | §2.3／§6.4 |
 | 3 | SUNSET consequence 無機械載體（kill_switch 四 scope 全 clear、無封存腳本） | [治][構] | 若真觸發 SUNSET，缺程式強制執行 | §2.3 |
 | 4 | RULING-2026-043 待 Steward 簽核；HANDOFF「043＝B」為圈選裁示非親簽 | [治] | B4 UPDATE-GUC 擴閘（15 表）效力未定 | §6.4 |
@@ -348,11 +348,11 @@ scripts 全量最熱排序：`core.db`（380+）≫ `evaluation.label`（21+）>
 
 | # | 債 | 標記 | 影響 | 來源 |
 |---|---|---|---|---|
-| 17 | `execution/action_log.py` 零消費端——六元組留痕 helper 已建、DDL 已遷，無程式呼叫寫入 | [構] | AUD-10/11 接線未完，留痕義務空轉 | §4.5 |
+| 17 | ~~`execution/action_log.py` 零消費端~~ | [構] | **2026-08-05 已接線**（`C-TRACK-ACTION-LOG-WIRED`）——本項結案 | §4.5 |
 | 18 | 兩處輕微循環依賴：`advisor↔deliberation`、`core↔audit`（地基層回頭依賴稽核層） | [構] | 分層倒置，長期維護風險 | §4.5 |
 | 19 | `models/registry.py` 命名觸 #18 禁用詞邊界（語境可接受但邊界案例） | [構] | 命名慣例稽核之灰區 | §4.5 |
-| 20 | `evaluation/portfolio.py` docstring `\w` 未 raw-string 之 SyntaxWarning | [構] | 小 lint 債 | §4.5 |
-| 21 | `sync_memory.sh` 外來殘片：寫死他人他機路徑＋自動 `git commit`/`push origin main` | [腳][治] | **直接牴觸 CLAUDE #14**（commit/push 須明示授權） | §5.3 |
+| 20 | ~~`evaluation/portfolio.py` docstring `\w` 未 raw-string 之 SyntaxWarning~~ | [構] | **2026-08-04 復驗證偽**（見 §4.5 修正）——非真實債 | §4.5 |
+| 21 | ~~`sync_memory.sh` 外來殘片：寫死他人他機路徑＋自動 `git commit`/`push origin main`~~ | [腳][治] | **2026-08-04 已刪除**（確認零引用、`sync_memory.py` 已覆蓋功能） | §5.3 |
 | 22 | 自標過時未刪：`drain_knowhow_admit_to_ceiling.sh`／`arena_settle_oneshot.sh` | [腳] | 已被取代仍在庫，誤用風險 | §5.3 |
 | 23 | Milvus vs Qdrant 雙軌殘留（`export_milvus_index.py` 疑似死碼） | [腳] | serving 索引已全面轉 Qdrant | §5.3 |
 | 24 | 全文抓取族八代同堂（早期 hardcode 種子批 vs 現行通用化 `fetch_*fulltext`） | [腳] | #29(c) 收斂空間 | §5.3 |

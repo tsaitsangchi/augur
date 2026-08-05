@@ -42,6 +42,7 @@ import sys
 import _bootstrap  # noqa: F401
 from augur.core import db
 from augur.core.heavy_slot import HeavySlot, SlotLost
+from augur.execution import action_log
 from augur.philosophy import iteration as it
 
 TRIGGER_CODE = "TWEVO-S2-go"        # 開輪碼(拍板碼非人名);APPLY 之人閘碼另計=TWEVO-APPLY-go
@@ -327,9 +328,28 @@ def _do_step(cur, uid, step, dry, allow_apply, gate_ref):
     argv = list(STEP_CMD[step])
     if step == "I5":
         argv.append("--dry-run") if dry else None
+    # P5.E1 六元組留痕(C軌P1):I5 為本 driver 唯一「真寫生產表」之步
+    # (apply_evolution_promotions.py 改 evolution_production_feature_set);dry-run 只是預覽、
+    # 未真寫,不留痕(六元組記的是對 Reality 之行動,零效果之預演不算行動)。
+    action_id = None
+    if step == "I5" and not dry:
+        auth_ref = action_log.resolve_grant_id(cur, "evolution_apply") if cur is not None else None
+        action_id = action_log.log_action(
+            cur,
+            actor_identity="evolution_iteration:I5",
+            authorization_ref=auth_ref,
+            knowledge_basis={"gate_ref": gate_ref, "iteration_uid": uid},
+            action_type="evolution_apply",
+            target=str(uid),
+            expected_effect={"script": "apply_evolution_promotions.py"},
+        )
     rec = _run_cmd(step, argv, dry)
     if step == "I5" and not dry and rec["rc"] == 0:
         rec["gate_ref"] = gate_ref
+    if action_id is not None:
+        action_log.link_observed_effect(cur, action_id, None,
+                                        status="completed" if rec["rc"] == 0 else "failed")
+        rec["action_id"] = action_id
     if step in STEP_SCOPE:
         rec["scope_note"] = STEP_SCOPE[step]      # 射程窄於計畫者,帳上逐字說明(不以 rc=0 掩蓋)
     return rec
@@ -779,6 +799,35 @@ def _selftest():
     _mc.execute("UPDATE evolution_deferred_work SET cleared_at='2026-08-03' WHERE cleared_at IS NULL")
     chk("全部清完 ⇒ 積壓 0(舊碼在此仍印 5=恆亮假告警)", backlog_uncleared(_mc) == 0)
     _mem.close()
+
+    # ── action_log 六元組留痕(C軌P1,2026-08-04)──
+    # 下游絆線:換掉 action_log.log_action/link_observed_effect 記真呼叫序(非字面掃 body),
+    # 並換掉 _run_cmd 避免自測真打 subprocess(I5 argv 為 apply_evolution_promotions.py,
+    # 真跑會真寫生產表,違 #18 自測零 DB 零 API)。cur=None:兩處真正碰 cur 的呼叫皆已換身。
+    _al_calls = []
+    _orig_log_action, _orig_link = action_log.log_action, action_log.link_observed_effect
+    _orig_run_cmd = globals()["_run_cmd"]
+    action_log.log_action = lambda cur, **kw: (_al_calls.append(("log", kw)), 42)[1]
+    action_log.link_observed_effect = lambda cur, aid, oid, **kw: _al_calls.append(("link", aid, kw))
+    globals()["_run_cmd"] = lambda step, argv, dry: it.step_record(step, argv[0], argv[1:], 0, "t0", "t1")
+    try:
+        rec_apply = _do_step(None, "tw-x", "I5", False, True, "TEST-GATE")
+        chk("I5 真寫時 log_action 有被呼叫(actor 含 I5)",
+            len(_al_calls) == 2 and _al_calls[0][0] == "log"
+            and "I5" in _al_calls[0][1].get("actor_identity", ""))
+        chk("I5 真寫時 link_observed_effect 收尾且 status=completed(rc=0)",
+            _al_calls[1][0] == "link" and _al_calls[1][2].get("status") == "completed")
+        chk("action_id 寫回 step_record(可溯源;R6 週掃視)", rec_apply.get("action_id") == 42)
+        _al_calls.clear()
+        _do_step(None, "tw-x", "I5", True, True, "TEST-GATE")
+        chk("I5 dry-run 不留痕(未真寫、零效果之預演不算行動)", _al_calls == [])
+        _al_calls.clear()
+        _do_step(None, "tw-x", "I0", False, True, "TEST-GATE")
+        chk("非 I5 步不留痕(僅 APPLY 真寫生產表才記)", _al_calls == [])
+    finally:
+        action_log.log_action, action_log.link_observed_effect = _orig_log_action, _orig_link
+        globals()["_run_cmd"] = _orig_run_cmd
+
     print("自測:" + ("全通過 ✓" if ok else "有失敗 ✗"))
     return 0 if ok else 1
 

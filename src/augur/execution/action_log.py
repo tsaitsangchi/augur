@@ -18,6 +18,16 @@ from __future__ import annotations
 import json
 
 
+def resolve_grant_id(cur, action_type):
+    """依 scope_params.action_type 取最新 authorization_id;無則 None(過渡期允 NULL ref)。"""
+    cur.execute(
+        "SELECT authorization_id FROM authorization_grant "
+        "WHERE scope_params->>'action_type'=%s ORDER BY authorization_id DESC LIMIT 1",
+        (action_type,))
+    row = cur.fetchone()
+    return row[0] if row else None
+
+
 def log_action(cur, actor_identity, authorization_ref, knowledge_basis, action_type,
                target=None, expected_effect=None) -> int:
     """寫一列行動起始(六元組之五:Actor/Authorization/Knowledge/Expected/started_at);回 action_id。
@@ -73,7 +83,7 @@ def _selftest():
         raises(log_action, None, "", None, {}, "kill"))
     chk("log_action 缺 action_type → ValueError",
         raises(log_action, None, "watchdog", None, {}, ""))
-    chk("公開入口皆存在", all(callable(f) for f in (log_action, link_observed_effect)))
+    chk("公開入口皆存在", all(callable(f) for f in (log_action, link_observed_effect, resolve_grant_id)))
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

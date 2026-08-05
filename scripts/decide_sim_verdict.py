@@ -302,12 +302,26 @@ def status_or_check(*, apply: bool, check: bool, gate_id: str,
                 if not cand:
                     print("✗ --apply 缺 candidate_id")
                     return 1
+                from augur.execution import action_log
                 vid = _insert_verdict(
                     cur, candidate_id=cand, gate_id=gate_id,
                     decision=decision, git_sha=_git7(),
                 )
+                # P5.E1 六元組(C軌P1,2026-08-05):僅 killed／undecidable 真寫才留痕;promoted 本就不寫
+                auth_ref = action_log.resolve_grant_id(cur, "sim_verdict_write")
+                aid = action_log.log_action(
+                    cur,
+                    actor_identity="decide_sim_verdict",
+                    authorization_ref=auth_ref,
+                    knowledge_basis={"gate_id": gate_id, "candidate_id": cand,
+                                    "verdict": decision["verdict"], "verdict_id": vid},
+                    action_type="sim_verdict_write",
+                    target=f"{gate_id}:{cand}",
+                    expected_effect={"table": "sim_evolution_verdict", "verdict": decision["verdict"]},
+                )
+                action_log.link_observed_effect(cur, aid, None, status="completed")
                 conn.commit()
-                print(f"✓ 寫入 verdict_id={vid} verdict={decision['verdict']}")
+                print(f"✓ 寫入 verdict_id={vid} verdict={decision['verdict']} action_id={aid}")
                 return 0
             return 0
     except Exception as e:

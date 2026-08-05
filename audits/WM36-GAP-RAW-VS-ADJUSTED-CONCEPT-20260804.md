@@ -3,6 +3,7 @@
 > **位階**：[I] 發現／追蹤留痕（非 META-CONSTITUTION [N]；非新裁決，僅呈報現況待 Steward 選擇）。
 > **觸發**：`archive_push.sh`（本次封存 `archive-20260804-s3waved-s4full-r6-simcell`）pre-commit「WM.36 vendor 直綁止血閘」（`scripts/check_vendor_binding.py --gate`）擋下 `scripts/build_stock_graph_edges.py` 之 2 處新增直綁（`TaiwanStockInfo`、`TaiwanStockPriceAdj`）。
 > **本次處置**：Steward 經 `AskQuestion` 選定「本次 commit `--no-verify` 跳過（明示一次性）；先完成封存；另開追蹤項」——本檔即該追蹤項。
+> **✅ 2026-08-04 後續已解決（選項 A 執行）**：Steward 經 `AskQuestion` 選 `new_concept_card`；新概念卡 `tw.daily_bar_adjusted`（binding_id=100）已登錄並接線 `build_stock_graph_edges.py`，行為不變性已驗證（13,021 邊逐項比對零差異）。詳見 `audits/WM36-GAP-OPTION-A-EXECUTED-20260804.md`。**殘留**：`TaiwanStockInfo`（產業分類來源）語意錯配為獨立新缺口，未含在本次授權範圍，另案處理。
 
 ## 一句結論
 

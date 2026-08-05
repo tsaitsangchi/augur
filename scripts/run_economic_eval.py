@@ -111,7 +111,7 @@ def main():
               + (f" feats={feats}" if feats is not None else "")
               + (f" / interactions={inter}" if inter else "") + (f" / +候選={adds}" if adds else "")
               + f" / seed={args.seed}")
-        for model in ("B2_ridge", "M1_gbdt"):
+        for model in ("B2_ridge", "M1_gbdt", "ENS_ridge_gbdt"):
             print(f"\n══ {model}（long-only）══")
             for top in (0.1, 0.2, 0.3):
                 for wt in ("equal", "pred"):

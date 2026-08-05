@@ -141,6 +141,11 @@ def vol_target_series(series, ppy, target_ann_vol=None, lookback=4, max_scale=1.
     return [float(s[t] * scales[t]) for t in range(n)], scales, dormant
 
 
+# S4-Wave-A(2026-08-04):6 族同構挑戰者,直接複用 augur.models.ranker 之 class(非另抄超參字面)——
+# 保證評測與生產訓練(train_ranker.py)零漂移(#12;比手動抄兩份參數更不會走岔)。
+_WAVE_A_SKLEARN_FAMILIES = ("RankXGB", "RankCat", "RankRF", "RankSVM", "RankKNN", "RankMLP")
+
+
 def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
                  long_short=False, weight="equal", seed=42, asof=True, cost=0.0, interactions=None,
                  short_borrow=0.0, exit_frac=None):
@@ -187,6 +192,10 @@ def run_backtest(conn, panels, h, *, feats=None, model="B2_ridge", top_frac=0.2,
             p_g = LGBMRegressor(n_estimators=200, learning_rate=0.05, num_leaves=15, min_child_samples=30,
                                 subsample=0.8, colsample_bytree=0.8, random_state=seed, verbose=-1).fit(Xtr, ytr).predict(Xc)
             pred = (rankdata(p_r) + rankdata(p_g)) / 2.0
+        elif model in _WAVE_A_SKLEARN_FAMILIES:   # 6 族同構挑戰者(plan: augur_s4_wave_a_sklearn_adapters_plan_20260804.md)
+            from augur.models import ranker as ranker_mod
+            est_cls = {c.family: c for c in ranker_mod.ALL_FAMILIES}[model]
+            pred = est_cls(seed=seed).fit(Xtr, ytr).predict(Xc)
         else:
             pred = LGBMRegressor(n_estimators=200, learning_rate=0.05, num_leaves=15,
                                  min_child_samples=30, subsample=0.8, colsample_bytree=0.8,
