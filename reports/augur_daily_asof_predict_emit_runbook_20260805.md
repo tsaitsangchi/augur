@@ -13,6 +13,7 @@ ssot_validations:
 # 日頻 as-of 出單 runbook（2026-08-05）
 
 > **一句**：把庫內最新交易日 `D` 做成可顧問消費的相對機率／排序——**不是**自動 cron；每步須 Steward GO（或本 runbook 明示一句）。  
+> **編排薄殼（B3）**：`bash scripts/run_daily_asof_predict.sh --date YYYY-MM-DD [--dry-plan]`（core 預設 B1 incremental；**禁** cron）。只刷 core 可加 `--force-core --skip-feat --skip-predict --skip-emit`。  
 > **經濟冠軍尺**：RankRidge **H60**（OOS）；**≈30 日題**：H20。兩尺可同日面板並存。  
 > **硬邊界**：`FZ/GATE-keep` · `skip-sync` · `no-SIM-apply` · 禁假確立級（dgate pass=0 仍誠實）。
 
@@ -44,13 +45,34 @@ venv/bin/python scripts/build_feature_panel.py --panels <D> --asof
 
 ## 2. 核心宇宙 asof
 
+**日更偏好（B1 · 2026-08-05）**：
+
+```bash
+venv/bin/python scripts/build_core_universe.py \
+  --since 2014-01-01 --liquidity-pct 25 --exempt-revenue-financial \
+  --asof --incremental --asof-date <D> --skip-pan-hist
+```
+
+- 只 upsert `as_of_date=<D>`（**不** `DELETE` 全表）；須表內已有 asof 史且 `max(asof)→D` 無缺中間 panel。  
+- 對照臂（不寫）：同上加 `--asof-compare-only`（期望差分∅）。  
+- 週修／空表／缺中間日：改全量：
+
+```bash
+venv/bin/python scripts/build_core_universe.py \
+  --since 2014-01-01 --liquidity-pct 25 --exempt-revenue-financial --asof
+# 或明示：
+#   … --asof --full-rebuild
+```
+
+**全量（舊路徑，仍保留）**：
+
 ```bash
 venv/bin/python scripts/build_core_universe.py \
   --since 2014-01-01 --liquidity-pct 25 --exempt-revenue-financial --asof
 ```
 
 - **必須** `--since 2014-01-01`（對齊 S1；勿省略→會把 2007 面板灌進來收斂過度）。  
-- `build_universe_asof` 會 **DELETE 全表再灌**——故須帶齊全部 ≥2014 之 `feature_values` panel（含新建的 `D`）。  
+- 全量 `build_universe_asof` 會 **DELETE 全表再灌**——故須帶齊全部 ≥2014 之 `feature_values` panel（含新建的 `D`）。  
 - 預期：`core_universe_asof` 於 `D` 有列（近窗常 ≈200 檔量級）。
 
 ## 3. 出單（`prediction_values`）

@@ -65,6 +65,8 @@ depends_on:
 | 相對機率＝P(勝過同儕中位｜as-of,H) | 絕對漲跌明牌；方向 GATE pass=0 時仍禁確立宣稱 |
 | MC＝模擬情境頁／disclaimer | 把 `ret_p50`／cone **寫進顧問 payload 白名單當預測**（違四鎖） |
 
+> **憲政切片／未來修憲目標（2026-08-05）**：絕對方向題＝誠實拒答 **或** 改寫相對＋GATE 未過——見 `reports/augur_advisor_absolute_direction_honesty_constitutional_slice_20260805.md`（未動 MC [N]）。
+
 ---
 
 ## 4. 建議架構（拍板後實作目標）

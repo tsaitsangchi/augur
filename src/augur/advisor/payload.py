@@ -320,10 +320,10 @@ def build_rel_prob_topk_payload(k=3, horizon=20, as_of=None):
         cd0 = int(rows[0][4])
         evs = sorted({r[3] for r in rows})
         prob_note = (
-            "【改寫說明】你問的「上漲機率」在本系統**無可用絕對方向機率**"
+            "【改寫說明】你問的「上漲機率／漲跌幅 TopN」在本系統**無可用絕對方向機率**"
             "(direction_gate evaluated_pass=0)；下列數字是 "
             "P(報酬勝過同儕橫斷面中位數|as-of %s, H%d≈%d 日曆日)——"
-            "**不是**上漲／會漲的機率。econ_verdict∈%s 與數字硬綁；dead/thin≠可交易。"
+            "**不是**上漲／會漲／漲跌幅的機率或預期幅度。econ_verdict∈%s 與數字硬綁；dead/thin≠可交易。"
             "MC 扇形見 :8600/simulate（模擬非預測、數字不進對話）。"
             % (as_of, horizon, cd0, evs)
         )

@@ -210,6 +210,9 @@ def build_universe_asof(conn, panel_dates, *, features=None, liquidity_pct=None,
     不以「未來才知道完整」之 pan-historical 名單回填歷史（後者 = look-ahead，IC 會高估）。canonical 特徵集固定取全期
     （feats 跨全 panel_dates，與 M-1 可比），完整度則逐 t 用該 t 之子集判定。liquidity 用各 t 當時分位（point-in-time）。
     回 {as_of_date: core 數量}。
+
+    **全量路徑（B1c `--full-rebuild`）**：`DELETE` 整表後逐 t 重灌——週修／對照臂用；日更應改
+    `build_universe_asof_incremental`（B1a）。
     """
     pds = sorted(panel_dates)
     summary = {}
@@ -233,8 +236,107 @@ def build_universe_asof(conn, panel_dates, *, features=None, liquidity_pct=None,
     return summary
 
 
+def asof_panels_for_date(panel_dates, as_of_date):
+    """≤ as_of_date 之 panel 子集（排序）。D 不在全集時仍回 ≤D（呼叫端須另驗 D∈全集）。"""
+    d = as_of_date
+    return [p for p in sorted(panel_dates) if p <= d]
+
+
+def assert_incremental_preconditions(cur, panel_dates, as_of_date):
+    """B1a fail-closed：D 必須是 feature panel；表非空；max(asof)<D 之間不可缺 asof 列。
+
+    回 {"max_asof": date|None, "gap_panels": [dates]}。違規 raise ValueError。
+    """
+    pds = sorted(panel_dates)
+    if as_of_date not in pds:
+        raise ValueError(
+            f"as_of_date={as_of_date} 不在 feature_values panel 全集 "
+            f"({pds[0] if pds else '∅'}..{pds[-1] if pds else '∅'})——拒絕 incremental")
+    cur.execute(DDL_ASOF)
+    cur.execute(f"SELECT max(as_of_date) FROM {ASOF_TABLE}")
+    mx = cur.fetchone()[0]
+    if mx is None:
+        raise ValueError(
+            "core_universe_asof 為空——拒絕 incremental；請先 --full-rebuild／全量 --asof 灌史")
+    gaps = [p for p in pds if mx < p < as_of_date]
+    if gaps:
+        raise ValueError(
+            f"incremental 缺中間 asof（max_asof={mx} → D={as_of_date} 間有 {len(gaps)} 個 feature panel "
+            f"無 asof 列，首缺 {gaps[0]}）——fail-closed；請 --full-rebuild 或先補齊")
+    return {"max_asof": mx, "gap_panels": gaps}
+
+
+def compute_core_at_asof(conn, panel_dates, as_of_date, *, features=None, liquidity_pct=None, conditional=None):
+    """只算不寫：與全量路徑在 t=as_of_date 同一公式的 core stock_id 列表（對照臂）。
+
+    feats 取自**完整** panel_dates（與 build_universe_asof 全量一致）；完整度只用 ≤D 子集。
+    """
+    pds = sorted(panel_dates)
+    if as_of_date not in pds:
+        raise ValueError(f"as_of_date={as_of_date} 不在 panel_dates")
+    sub = asof_panels_for_date(pds, as_of_date)
+    with db.transaction(conn) as cur:
+        feats = sorted(features) if features else canonical_features(cur, pds)
+        core, extra = _select_core(cur, sub, feats, liquidity_pct=liquidity_pct, conditional=conditional)
+    return {"as_of_date": as_of_date, "stock_ids": core, "panels": len(sub),
+            "canonical_features": len(feats), **extra}
+
+
+def read_core_at_asof(conn, as_of_date):
+    """讀表上既有 as_of 核心集合（對照臂用）。"""
+    with db.transaction(conn) as cur:
+        cur.execute(DDL_ASOF)
+        cur.execute(f"SELECT stock_id FROM {ASOF_TABLE} WHERE as_of_date=%s ORDER BY stock_id",
+                    (as_of_date,))
+        return [r[0] for r in cur.fetchall()]
+
+
+def build_universe_asof_incremental(conn, panel_dates, as_of_date, *, features=None,
+                                   liquidity_pct=None, conditional=None):
+    """B1a：只 upsert 單一 as_of_date=D——`DELETE WHERE as_of_date=D`＋INSERT；**禁止**全表 DELETE。
+
+    `panel_dates` 須與全量路徑相同之 since 窗（≥2014 全集），以使 canonical feats 對齊。
+    前置：`assert_incremental_preconditions`。回 {as_of_date, core, stock_ids, ...}。
+    """
+    pds = sorted(panel_dates)
+    with db.transaction(conn) as cur:
+        pre = assert_incremental_preconditions(cur, pds, as_of_date)
+        feats = sorted(features) if features else canonical_features(cur, pds)
+        sub = asof_panels_for_date(pds, as_of_date)
+        core, extra = _select_core(cur, sub, feats, liquidity_pct=liquidity_pct, conditional=conditional)
+        cur.execute(f"DELETE FROM {ASOF_TABLE} WHERE as_of_date=%s", (as_of_date,))
+        if core:
+            execute_values(
+                cur,
+                f"INSERT INTO {ASOF_TABLE} (as_of_date, stock_id, panels, features) VALUES %s",
+                [(as_of_date, s, len(sub), len(feats)) for s in core])
+        _write_build_meta(cur, "asof_incr", sub, feats, liquidity_pct,
+                          extra.get("liquidity_threshold"), conditional, len(core))
+    return {"as_of_date": as_of_date, "core": len(core), "stock_ids": core,
+            "panels": len(sub), "canonical_features": len(feats),
+            "max_asof_before": pre["max_asof"], **extra}
+
+
+def validate_asof_cli_flags(*, asof, incremental, full_rebuild, asof_date):
+    """零 DB：B1c 旗標互斥／缺參。回 None＝OK，否則錯誤字串。"""
+    if incremental and full_rebuild:
+        return "--incremental 與 --full-rebuild 互斥"
+    if incremental and not asof:
+        return "--incremental 須搭配 --asof"
+    if full_rebuild and not asof:
+        return "--full-rebuild 須搭配 --asof"
+    if incremental and not asof_date:
+        return "--incremental 須給 --asof-date YYYY-MM-DD"
+    if asof_date and not asof:
+        return "--asof-date 須搭配 --asof"
+    if asof_date and not incremental and not full_rebuild:
+        return "--asof-date 僅用於 --incremental（全量路徑不需此參）"
+    return None
+
+
 def _selftest():
     import re
+    from datetime import date
     ok = True
     def chk(name, cond):
         nonlocal ok; ok = ok and cond
@@ -255,6 +357,25 @@ def _selftest():
     chk("CORE_TABLE 名", CORE_TABLE == "core_universe")
     chk("三張 DDL 皆 CREATE IF NOT EXISTS",
         all("CREATE TABLE IF NOT EXISTS" in d for d in (DDL, DDL_ASOF, DDL_META)))
+    # B1 helpers / CLI 旗標（零 DB）
+    pds = [date(2014, 1, 31), date(2014, 2, 28), date(2026, 8, 4)]
+    chk("asof_panels_for_date 截斷",
+        asof_panels_for_date(pds, date(2014, 2, 28)) == pds[:2])
+    chk("flag OK incremental",
+        validate_asof_cli_flags(asof=True, incremental=True, full_rebuild=False,
+                                asof_date="2026-08-04") is None)
+    chk("flag 互斥",
+        validate_asof_cli_flags(asof=True, incremental=True, full_rebuild=True,
+                                asof_date="2026-08-04") is not None)
+    chk("flag 缺 asof-date",
+        validate_asof_cli_flags(asof=True, incremental=True, full_rebuild=False,
+                                asof_date=None) is not None)
+    chk("flag 全量不用 asof-date",
+        validate_asof_cli_flags(asof=True, incremental=False, full_rebuild=False,
+                                asof_date="2026-08-04") is not None)
+    chk("flag 僅 asof OK",
+        validate_asof_cli_flags(asof=True, incremental=False, full_rebuild=False,
+                                asof_date=None) is None)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

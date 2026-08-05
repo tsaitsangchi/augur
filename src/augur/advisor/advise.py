@@ -145,13 +145,30 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     回:{response, guard, citations, lex_entries, prompt}
     """
     from augur.philosophy.retrieval import retrieve_all, lexicon_lookup, verify_verbatim, is_low_content
-    from augur.advisor.relevance import relevant_citations
+    from augur.advisor.relevance import (
+        relevant_citations, rel_prob_topk_intent, single_ticker_rel_intent,
+    )
     from augur.advisor.prompt import _asks_direction_or_path, build_direction_refusal
     # lock②/閘⑥:方向/逐日價格/目標價題 → 固定誠實句。**例外(PRED-KH)**:若已注入真實
     # PredictionPayload.picks(相對機率 TopK／單股 B2／選股),則不短路——改走真兆主路徑
-    # (auto_rel_topn：口語「上漲機率」改答相對機率,disclaimer 在 prob_note)。
+    # (auto_rel_topn：口語「上漲機率／漲跌幅 TopN」改答相對機率,disclaimer 在 prob_note)。
     # Mode B(附檔)不套。DB 例外時 build_direction_refusal fail-closed。
+    # 防衛：呼叫端漏注入時，advise 內仍依意圖補相對 payload，禁止空拒「漲跌幅 topN」。
     has_pred_picks = bool(getattr(payload, "picks", ()))
+    if prompt_fn is None and not has_pred_picks:
+        try:
+            topk = rel_prob_topk_intent(query)
+            sti = single_ticker_rel_intent(query)
+            if topk is not None:
+                from augur.advisor.payload import build_rel_prob_topk_payload
+                payload = build_rel_prob_topk_payload(topk[0], topk[1])
+                has_pred_picks = bool(getattr(payload, "picks", ()))
+            elif sti is not None:
+                from augur.advisor.payload import build_single_ticker_rel_payload
+                payload = build_single_ticker_rel_payload(sti[0], sti[1])
+                has_pred_picks = bool(getattr(payload, "picks", ()))
+        except Exception:
+            has_pred_picks = bool(getattr(payload, "picks", ()))
     if prompt_fn is None and _asks_direction_or_path(query) and not has_pred_picks:
         return {"response": build_direction_refusal(query=query), "guard": {"pass": True, "issues": []},
                 "citations": [], "lex_entries": [], "prompt": None, "picks_ground_truth": False}

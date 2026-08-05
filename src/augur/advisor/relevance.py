@@ -272,12 +272,17 @@ def _horizon_from_query(q, default=60):
 def rel_prob_topk_intent(query):
     """回 (k, horizon) 或 None——「未來N天(上漲)機率最高 topK」→ 改答相對機率 TopK。
 
-    Steward auto_rel_topn：口語「上漲機率」改寫為 P(勝過同儕中位)，非絕對方向。
+    Steward auto_rel_topn／憲政切片：口語「上漲機率／漲跌幅 TopN」一律改寫為
+    P(勝過同儕中位) 排名，**不是**絕對漲跌幅；仍注入 picks 以免方向短路空拒。
     """
     q = query or ""
     if re.search(r"目標價|逐日路徑|每日路徑", q):
         return None
-    if not re.search(r"機率|相對|強弱|排名", q):
+    # 相對語 ∪ 口語絕對幅度排名（改寫觸發；禁目標價／逐日）
+    if not re.search(
+        r"機率|相對|強弱|排名|漲跌幅|漲幅|跌幅|報酬率?|漲最多|跌最多|賺最多",
+        q,
+    ):
         return None
     m = re.search(r"top\s*(\d+)", q, re.I)
     if m:
@@ -285,7 +290,6 @@ def rel_prob_topk_intent(query):
     else:
         m2 = re.search(r"前\s*([一二三四五六七八九十兩两\d]+)\s*(名|支|檔|個)?", q)
         if not m2:
-            # 「最高的top」已由 top 分支；「機率最高」+ 數字三
             m3 = re.search(r"(最高|前茅).{0,6}(?:的)?\s*top\s*(\d+)", q, re.I)
             if m3:
                 k = int(m3.group(2))
@@ -296,12 +300,16 @@ def rel_prob_topk_intent(query):
             k = int(tok) if tok.isdigit() else _CN_NUM.get(tok, 0)
     if k < 1 or k > 20:
         return None
-    # 需有 horizon／未來 或 「機率最高」排名意圖
     if not (
-        re.search(r"未來|\d+\s*(天|日)|最高|top|前\s*", q, re.I)
+        re.search(r"未來|\d+\s*(天|日)|最高|top|前\s*|今天之後|之後|近日|短期", q, re.I)
     ):
         return None
-    h = _horizon_from_query(q, default=20 if re.search(r"30|未來", q) else 60)
+    # 漲跌幅／今天之後類 → 顧問主尺 H20；其餘走 _horizon_from_query
+    if re.search(r"漲跌幅|漲幅|跌幅|今天之後|之後|近日|短期", q):
+        default_h = 20
+    else:
+        default_h = 20 if re.search(r"30|未來", q) else 60
+    h = _horizon_from_query(q, default=default_h)
     return (k, h)
 
 
@@ -381,6 +389,11 @@ def _selftest():
     # rel_prob_topk_intent(auto_rel_topn)
     chk("上漲機率 top3→(3,20)", rel_prob_topk_intent("未來30天上漲機率最高的top 3") == (3, 20))
     chk("相對機率前三→(3,*)", rel_prob_topk_intent("未來30天相對機率前三") == (3, 20))
+    chk("漲跌幅 top10→(10,20)",
+        rel_prob_topk_intent("在今天之後漲跌幅最top 10分别是什麼個股?") == (10, 20))
+    chk("10天內漲跌幅+幅度→(10,20)",
+        rel_prob_topk_intent("在今天之後10天內漲跌幅最top 10分别是什麼個股?幅度為多少?") == (10, 20))
+    chk("漲跌幅前十→(10,*)", rel_prob_topk_intent("漲跌幅前十名個股") == (10, 20))
     chk("目標價排名→None", rel_prob_topk_intent("目標價最高 top 3") is None)
     chk("大盤漲跌→True", market_binary_dir_intent("未來30天上漲還是下跌的機率高?") is True)
     chk("有股號漲跌→False(非大盤)", market_binary_dir_intent("2330上漲還是下跌?") is False)
