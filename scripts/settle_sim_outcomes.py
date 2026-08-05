@@ -32,12 +32,14 @@ from datetime import timedelta
 from pathlib import Path
 
 import _bootstrap  # noqa: F401
+from augur.catalog import world_concept
 from settle_arena_labels import (FACTOR_TOL, TAIPEI, UNSETTLE_GAP_DAYS, WAIT_DAYS,
                                  _at, _last_le, _prices)
 
 GATE_ID = "SIM-CAL-R1"
 LOOKBACK_DAYS = 40      # 價格抓取下緣緩衝(涵蓋 asof 前最後成交與 30 日 gap 判定;同藍本)
 CLOSE_TOL = 0.011       # summary.last_close 存 2 位小數 ⇒ 捨入上界 0.005+浮點餘裕;超過=印警告
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 
 def _git7():
@@ -140,7 +142,8 @@ def settle(apply):
             print("無未結算列(冪等:無事可做)")
             return 0
         lo = min(r[2] for r in rows) - timedelta(days=LOOKBACK_DAYS)
-        cur.execute('SELECT date FROM "TaiwanStockPriceAdj" WHERE stock_id=%s AND date >= %s ORDER BY date',
+        adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+        cur.execute(f"SELECT date FROM {adj_sql} WHERE stock_id=%s AND date >= %s ORDER BY date",
                     ("TAIEX", lo))
         cal = [r[0] for r in cur.fetchall()]
         market_max = cal[-1] if cal else None

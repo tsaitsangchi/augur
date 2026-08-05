@@ -42,6 +42,9 @@ from zoneinfo import ZoneInfo
 
 import _bootstrap  # noqa: F401
 import numpy as np
+from augur.catalog import world_concept
+
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 GATE_ID = "SIM-CAL-R1"
 HISTORY_FREEZE = date(2026, 5, 31)          # 史料上限:此前 asof 之任何數字不得入證據列(criteria_text 明文)
@@ -67,10 +70,14 @@ SQL_FROZEN_TARGETS = """
 SELECT DISTINCT target_id FROM mc_simulation_run
 WHERE target_id ~ '^[0-9]+$' AND asof_date = %s ORDER BY target_id
 """
-SQL_SIGMA_FLOOR = """
+
+
+def _sql_sigma_floor(adj_sql: str) -> str:
+    """floor σ 查詢；表經 tw.daily_bar_adjusted（WM.36）。"""
+    return f"""
 WITH r AS (
   SELECT ln(close / lag(close) OVER (PARTITION BY stock_id ORDER BY date)) AS lr
-  FROM "TaiwanStockPriceAdj"
+  FROM {adj_sql}
   WHERE stock_id = ANY(%s) AND date <= %s AND close > 0
 ) SELECT stddev_samp(lr), count(lr) FROM r WHERE lr IS NOT NULL
 """
@@ -403,7 +410,8 @@ def _kill_state(cur):
 
 def _anchor_and_grid(cur, approved_at):
     approved_date = approved_at.astimezone(ZoneInfo("Asia/Taipei")).date()
-    cur.execute("""SELECT date FROM "TaiwanStockPriceAdj"
+    adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
+    cur.execute(f"""SELECT date FROM {adj_sql}
                    WHERE stock_id='TAIEX' AND date > %s ORDER BY date""", (approved_date,))
     days = [r[0] for r in cur.fetchall()]
     if not days:
@@ -425,11 +433,13 @@ def _collect(cur):
 
 
 def _sigma_floor(cur, targets):
-    cur.execute(SQL_SIGMA_FLOOR, (targets, FLOOR_SIGMA_CUTOFF))
+    adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
+    sql = _sql_sigma_floor(adj_sql)
+    cur.execute(sql, (targets, FLOOR_SIGMA_CUTOFF))
     sigma, n = cur.fetchone()
     if sigma is None:
         raise GateRefusal("floor σ 無法計算(pooled 日報酬空集)")
-    return float(sigma), int(n)
+    return float(sigma), int(n), sql
 
 
 def _evaluate(conn, apply_mode):
@@ -503,7 +513,7 @@ def _evaluate(conn, apply_mode):
         print(SELF_REPORTED_LINE)
         return 1 if apply_mode else 0
 
-    sigma, sigma_n = _sigma_floor(cur, targets)
+    sigma, sigma_n, sigma_sql = _sigma_floor(cur, targets)
     print(f"  floor σ(pooled 日報酬, ≤{FLOOR_SIGMA_CUTOFF}, {len(targets)} 檔, n={sigma_n})={sigma:.6f}(S-2)")
     arms, arm_notes = build_arms(obs, normal_q_grid(sigma))
     assert_arms_complete(arms)
@@ -554,7 +564,7 @@ def _evaluate(conn, apply_mode):
         "criteria_sha": gate["criteria_sha"], "thresholds_sha": gate["thresholds_sha"],
         "anchor": str(anchor), "grid_evaluated": sorted(str(o) for o in {o["asof"] for o in obs}),
         "sigma_floor": sigma, "sigma_floor_cutoff": str(FLOOR_SIGMA_CUTOFF), "sigma_floor_n": sigma_n,
-        "sigma_floor_sql": " ".join(SQL_SIGMA_FLOOR.split()),
+        "sigma_floor_sql": " ".join(sigma_sql.split()),
         "n_reconcile": {"n_runs": n_runs, "n_valid": n_valid, "n_excluded_unsettleable": n_excluded,
                         "n_unsettled": n_unsettled, "n_no_qgrid": n_no_qgrid},
         "k1": {"breach": k1, "cov_p80": live["cov_p80"], "cov_p90": live["cov_p90"], "tol": th["cov_tol"]},

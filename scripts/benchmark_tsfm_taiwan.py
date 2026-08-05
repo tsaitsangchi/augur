@@ -26,10 +26,12 @@ from datetime import date
 import _bootstrap  # noqa: F401
 import numpy as np
 
+from augur.catalog import world_concept
 from augur.core import db
 
 STOCKS = ["2330", "2454", "2308", "2317", "3711"]   # 市值 top5 @2026-07-16(DB 實查)
 ASOF = "2026-06-30"      # G1-PIN 對齊:已結算段、固定標靶
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 CONTEXT = 512            # 論文 L
 H = 20                   # 論文 H(交易日)
 N_WIN = 10               # 論文 10 windows
@@ -79,7 +81,8 @@ def sign_hit(pred, actual):
 # ── 資料 ──────────────────────────────────────────────────────────────────────
 def load_logret(conn, sid):
     with db.transaction(conn) as cur:
-        cur.execute('SELECT close FROM "TaiwanStockPriceAdj" WHERE stock_id=%s AND date<=%s ORDER BY date',
+        adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+        cur.execute(f"SELECT close FROM {adj_sql} WHERE stock_id=%s AND date<=%s ORDER BY date",
                     (sid, ASOF))
         px = np.array([float(r[0]) for r in cur.fetchall()])
     return np.diff(np.log(px))

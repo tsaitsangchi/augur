@@ -43,9 +43,11 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import _bootstrap  # noqa: F401
+from augur.catalog import world_concept
 from augur.core import db
 
 GATE_TRIGGER_CLUSTERS = 60   # 確立門檻(口徑=已結算 pred_date 數,與計分板同源;達標自動送裁判)
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36；日曆／價查詢不直綁還原價表字面
 
 
 def _gate_autotrigger(n_clusters, dry=False):
@@ -113,7 +115,8 @@ def _classify(cur):
         return [], {}, [], {}, 0
 
     lo = min(r[2] for r in rows) - timedelta(days=LOOKBACK_DAYS)
-    cur.execute('SELECT date FROM "TaiwanStockPriceAdj" WHERE stock_id=%s AND date >= %s ORDER BY date',
+    adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
+    cur.execute(f"SELECT date FROM {adj_sql} WHERE stock_id=%s AND date >= %s ORDER BY date",
                 ("TAIEX", lo))
     cal = [r[0] for r in cur.fetchall()]
     market_max = cal[-1] if cal else None
@@ -282,7 +285,8 @@ def scoreboard():
         cur.execute("SELECT DISTINCT pred_date FROM direction_arena_prediction")
         _preds = [r[0] for r in cur.fetchall()]
         if _preds:
-            cur.execute('SELECT date FROM "TaiwanStockPriceAdj" WHERE stock_id=%s '
+            adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
+            cur.execute(f"SELECT date FROM {adj_sql} WHERE stock_id=%s "
                         "AND date >= %s AND date <= now()::date ORDER BY date",
                         ("TAIEX", min(_preds)))
             _gaps = _ledger_gaps([r[0] for r in cur.fetchall()], _preds)

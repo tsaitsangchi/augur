@@ -154,7 +154,7 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     has_pred_picks = bool(getattr(payload, "picks", ()))
     if prompt_fn is None and _asks_direction_or_path(query) and not has_pred_picks:
         return {"response": build_direction_refusal(query=query), "guard": {"pass": True, "issues": []},
-                "citations": [], "lex_entries": [], "prompt": None}
+                "citations": [], "lex_entries": [], "prompt": None, "picks_ground_truth": False}
     # KH-XDOM-S01：預設合併檢索＝retrieve_all（works∪items；不傳策展 domain=）；服器亦可顯式注入同函。
     src_fn = retrieve_all if retrieve_fn is None else retrieve_fn
     lex_fn = lexicon_fn or lexicon_lookup
@@ -222,13 +222,16 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
             verdict = {"pass": vk["pass"] and va["pass"], "issues": vk["issues"] + va["issues"]}
             if verdict["pass"]:
                 return {"response": gen_resp, "guard": verdict,
-                        "citations": [], "lex_entries": [], "prompt": gen_prompt}
+                        "citations": [], "lex_entries": [], "prompt": gen_prompt,
+                        "picks_ground_truth": False}
             resp = NO_KNOWLEDGE_RESPONSE                 # guard 不過 → fail-closed
             return {"response": resp, "guard": guard_empty_retrieval(resp, []),
-                    "citations": [], "lex_entries": [], "prompt": gen_prompt}
+                    "citations": [], "lex_entries": [], "prompt": gen_prompt,
+                    "picks_ground_truth": False}
         verdict = guard_empty_retrieval(resp, [])
         return {"response": resp, "guard": verdict,
-                "citations": [], "lex_entries": [], "prompt": None}
+                "citations": [], "lex_entries": [], "prompt": None,
+                "picks_ground_truth": False}
     prompt = (prompt_fn or build_prompt)(query, payload, citations, lex_entries)
     concept_links = []
     if prompt_fn is None and lex_entries:                    # W2:主路徑+有定義詞才接(Mode B 不套,同其餘閘)
@@ -264,7 +267,7 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
         response = _render_picks_table(payload) + "\n\n---\n" + response
     return {"response": response, "guard": verdict,
             "citations": citations, "lex_entries": lex_entries, "prompt": prompt,
-            "concept_links": concept_links}
+            "concept_links": concept_links, "picks_ground_truth": bool(has_picks)}
 
 
 def _selftest():

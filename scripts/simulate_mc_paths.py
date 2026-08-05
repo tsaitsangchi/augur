@@ -26,8 +26,10 @@ from pathlib import Path
 
 import _bootstrap  # noqa: F401
 import numpy as np
+from augur.catalog import world_concept
 from augur.core import db
 
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 FREEZE = "2026-05-31"
 DEFAULT_HORIZONS = (21, 42, 63, 126)
 HIST_WINDOW_TD = 756          # 歷史重抽窗:近 3 年(反映當前波動 regime;#8 僅 ≤as-of)
@@ -46,7 +48,8 @@ def _git7():
 
 def _hist_logrets(cur, stock, asof, window):
     """該股 ≤asof 之日對數報酬(近 window td;#8 不看未來)。回 (last_close, np.array logrets)。"""
-    cur.execute("""SELECT date, close FROM "TaiwanStockPriceAdj"
+    adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
+    cur.execute(f"""SELECT date, close FROM {adj_sql}
         WHERE stock_id=%s AND date <= %s AND close > 0 ORDER BY date DESC LIMIT %s""",
         (stock, asof, window + 1))
     rows = cur.fetchall()[::-1]                       # 升冪

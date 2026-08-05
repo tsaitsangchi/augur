@@ -24,7 +24,10 @@ from datetime import date
 
 import _bootstrap  # noqa: F401
 import numpy as np
+from augur.catalog import world_concept
 from augur.core import db
+
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 FEATURES = [
     "inst_gross_x_turnover_level", "inst_gross_x_volume_level", "inst_gross_x_money_change",
@@ -85,9 +88,11 @@ def zscore_cs(m):
 
 def _load_field(cur, field, sid, sql_map):
     if field in PRICE_FIELDS:
-        cur.execute('SELECT date, "%s"::float8 FROM "TaiwanStockPriceAdj" WHERE stock_id=%%s ORDER BY date'
-                    % {"close": "close", "volume": "Trading_Volume", "money": "Trading_money",
-                       "turnover": "Trading_turnover"}[field], (sid,))  # noqa: S608  欄名白名單映射
+        adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
+        col = {"close": "close", "volume": "Trading_Volume", "money": "Trading_money",
+               "turnover": "Trading_turnover"}[field]
+        cur.execute(f'SELECT date, "{col}"::float8 FROM {adj_sql} WHERE stock_id=%s ORDER BY date',
+                    (sid,))
     else:
         cur.execute(sql_map[field] + " ORDER BY 1", (sid,))
     ds, vs = [], []

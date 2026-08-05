@@ -18,7 +18,7 @@ import sys
 import numpy as np
 
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
-from augur.catalog.world_concept import quote_ident, resolve
+from augur.catalog.world_concept import quote_ident, resolve, resolve_sql
 from augur.core import db
 from augur.evaluation import label as label_mod
 from augur.evaluation import metrics
@@ -26,6 +26,7 @@ from augur.evaluation import metrics
 HS = (5, 20, 60)
 DAY_TRADE_CONCEPT = "tw.day_trading.stock"
 DAY_TRADE_VOL_COL = "Volume"
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 
 def daytrade_volume_cross_sql_from_table(source_table: str, vol_col: str) -> str:
@@ -121,9 +122,10 @@ def main():
                 sbl = _col(cur, 'SELECT stock_id,"SBLShortSalesCurrentDayBalance" FROM "TaiwanDailyShortSaleBalances" WHERE date::text=%s AND stock_id=ANY(%s)', (ps, stk))
                 # daytrade_r 上游：resolve tw.day_trading.stock（UNBIND-35-research）
                 dtv = _col(cur, daytrade_volume_cross_sql(conn), (ps, stk))
-                # 動能/波動窗:adj close cal[i-120..i]
+                # 動能/波動窗:adj close cal[i-120..i]（經 tw.daily_bar_adjusted）
                 wdates = [str(cal[j]) for j in range(max(0, i - 120), i + 1)]
-                cur.execute('SELECT stock_id,date,close FROM "TaiwanStockPriceAdj" WHERE date::text=ANY(%s) AND stock_id=ANY(%s) AND close>0', (wdates, stk))
+                adj_sql = resolve_sql(ADJ_CONCEPT, conn=conn)
+                cur.execute(f"SELECT stock_id,date,close FROM {adj_sql} WHERE date::text=ANY(%s) AND stock_id=ANY(%s) AND close>0", (wdates, stk))
                 series = {}
                 for sid, d, c in cur.fetchall():
                     series.setdefault(str(sid), {})[str(d)] = float(c)

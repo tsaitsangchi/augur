@@ -30,6 +30,7 @@ import numpy as np
 import pandas as pd
 from psycopg2.extras import execute_values
 
+from augur.catalog import world_concept
 from augur.core import db
 from augur.features import (  # F2b 籌碼 + F2c 估值 + 八二集中度 + 康波相位/毛利循環 + 發布日 gate + 基本面
     chip,
@@ -54,11 +55,16 @@ CREATE TABLE IF NOT EXISTS {FEATURE_TABLE} (
     PRIMARY KEY (panel_date, stock_id, feature)
 )"""
 
-_PRICE_SQL = (
-    'SELECT date, close, "Trading_Volume" AS volume, "Trading_money" AS money, '
-    '"Trading_turnover" AS turnover, "max" AS high, "min" AS low '
-    'FROM "TaiwanStockPriceAdj" WHERE stock_id = %s AND date <= %s AND close > 0 ORDER BY date'
-)
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36；不直綁還原價表字面
+
+
+def _price_sql(conn) -> str:
+    adj = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+    return (
+        f'SELECT date, close, "Trading_Volume" AS volume, "Trading_money" AS money, '
+        f'"Trading_turnover" AS turnover, "max" AS high, "min" AS low '
+        f'FROM {adj} WHERE stock_id = %s AND date <= %s AND close > 0 ORDER BY date'
+    )
 # 基本面 D:月營收 YoY(log)——最近月 vs 12 個月前;算不出(無歷史 / revenue≤0 / 缺 -12 月那筆)→ 缺列(#1)
 _REVENUE_SQL = (
     'SELECT date, revenue FROM "TaiwanStockMonthRevenue" '
@@ -135,12 +141,13 @@ def compute_features(df):
 
 def build_panel(conn, panel_date, stock_ids, *, progress=None):
     """對 panel_date 之每股算特徵 → 存 feature_values（算不出之特徵缺列、整股無特徵則整股不出現）。"""
+    price_sql = _price_sql(conn)
     with db.transaction(conn) as cur:
         bootstrap(cur)
     written = stocks = 0
     for i, sid in enumerate(stock_ids, 1):
         with db.transaction(conn) as cur:
-            cur.execute(_PRICE_SQL, (sid, panel_date))
+            cur.execute(price_sql, (sid, panel_date))
             rows = cur.fetchall()
             cur.execute(_REVENUE_SQL, (sid, panel_date))                 # D:月營收(部分股無 → 自然缺列)
             rev_rows = cur.fetchall()

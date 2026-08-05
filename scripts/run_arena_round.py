@@ -25,7 +25,10 @@ import time
 
 import _bootstrap  # noqa: F401
 import numpy as np
+from augur.catalog import world_concept
 from augur.core import db
+
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 
 def smoke_synthetic(only):
@@ -83,10 +86,11 @@ def live_round():
             print("✗ live 對局拒跑:arena_admission_gate G1-G2 硬前置未 evaluated_pass(G1-G5 計畫 §3.3;"
                   "fail-closed——preregister → hugo --freeze → evaluate;unfreeze GATE 已退史料)。")
             return 1
-        cur.execute('SELECT max(date) FROM "TaiwanStockPriceAdj"')
+        adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+        cur.execute(f"SELECT max(date) FROM {adj_sql}")
         as_of = cur.fetchone()[0]
         if as_of is None:
-            print("✗ TaiwanStockPriceAdj 無列;無法以庫內 as-of 對局。"); return 1
+            print("✗ 還原價表(經 tw.daily_bar_adjusted)無列;無法以庫內 as-of 對局。"); return 1
         lag = (datetime.date.today() - as_of).days
         if lag > 7:
             # PREDICT-ORTHOGONAL：預測與 FinMind／FRED 無關——缺增量用 DB as-of，禁「先 sync」硬拒
@@ -103,7 +107,7 @@ def live_round():
         snap = cur.fetchone()[0]
         cur.execute("SELECT stock_id FROM core_universe_asof WHERE as_of_date = %s", (snap,))
         uni = [r[0] for r in cur.fetchall()]
-        cur.execute("""SELECT stock_id, date, close FROM "TaiwanStockPriceAdj"
+        cur.execute(f"""SELECT stock_id, date, close FROM {adj_sql}
             WHERE stock_id = ANY(%s) AND date <= %s AND date >= %s ORDER BY stock_id, date""",
             (uni, as_of, str(as_of - datetime.timedelta(days=900))))
         series = {}

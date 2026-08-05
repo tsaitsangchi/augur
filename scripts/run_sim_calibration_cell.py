@@ -40,6 +40,9 @@ from datetime import date
 
 import _bootstrap  # noqa: F401
 import numpy as np
+from augur.catalog import world_concept
+
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 GATE_ID = "SIM-CAL-R1"
 H_TD = 21                      # 首輪 horizon(門 thresholds.horizon_td=[21];變更=換尺=新 gate_id)
@@ -169,7 +172,8 @@ def _frozen_targets(cur):
 
 def _load_calendar(cur, approved_date):
     """anchor=approved 次一(已實現)交易日=回傳序列首元素;空=尚未實現(等 T+1 sync)。"""
-    cur.execute('SELECT date FROM "TaiwanStockPriceAdj" WHERE stock_id=%s AND date > %s ORDER BY date',
+    adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
+    cur.execute(f"SELECT date FROM {adj_sql} WHERE stock_id=%s AND date > %s ORDER BY date",
                 ("TAIEX", approved_date))
     return [r[0] for r in cur.fetchall()]
 

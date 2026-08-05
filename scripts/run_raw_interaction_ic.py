@@ -14,12 +14,14 @@ import itertools
 import numpy as np
 
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
+from augur.catalog import world_concept
 from augur.core import db
 from augur.evaluation import label
 
 H = 20
 STEP = 21          # panel 間隔(交易日)≈月頻
 START = "2022-01-01"
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 
 def _zscore(d):
@@ -100,8 +102,9 @@ def main():
                 if i - back >= 0:
                     need_dates.add(str(cal[i - back]))
         with db.transaction(conn) as cur:
-            cur.execute('SELECT date, stock_id, close FROM "TaiwanStockPriceAdj" '
-                        'WHERE date::text = ANY(%s) AND stock_id = ANY(%s) AND close > 0',
+            adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+            cur.execute(f"SELECT date, stock_id, close FROM {adj_sql} "
+                        "WHERE date::text = ANY(%s) AND stock_id = ANY(%s) AND close > 0",
                         (sorted(need_dates), stocks))
             adj = {(str(d), str(s)): float(c) for d, s, c in cur.fetchall()}
 

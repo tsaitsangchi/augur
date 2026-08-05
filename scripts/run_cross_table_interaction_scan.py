@@ -17,11 +17,13 @@ import itertools
 import numpy as np
 
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
+from augur.catalog import world_concept
 from augur.core import db
 from augur.evaluation import baseline, label, metrics
 from augur.features import release_lag
 
 HS = [20, 60, 120]
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 
 # ---------- 橫斷面工具 ----------
@@ -81,10 +83,11 @@ def _asof_inst_net(cur, panel, stocks, who):
 def _adj_close_asof(cur, panel, stocks, back_days):
     """取 panel 當下與往前 back_days 交易日之還原收盤,算 log 動能 → {sid: mom}。
     用 as-of:close@latest(date<=panel) / close@(latest 之前第 back 列)。"""
+    adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
     cur.execute(
-        'SELECT stock_id, date, close FROM "TaiwanStockPriceAdj" '
-        'WHERE date <= %s AND stock_id = ANY(%s) AND close > 0 '
-        'ORDER BY stock_id, date DESC', (panel, stocks))
+        f"SELECT stock_id, date, close FROM {adj_sql} "
+        "WHERE date <= %s AND stock_id = ANY(%s) AND close > 0 "
+        "ORDER BY stock_id, date DESC", (panel, stocks))
     by = {}
     for s, d, c in cur.fetchall():
         by.setdefault(str(s), []).append(float(c))   # 已 date DESC

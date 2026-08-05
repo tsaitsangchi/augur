@@ -16,6 +16,10 @@
 """
 import numpy as np
 
+from augur.catalog import world_concept
+
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36；adapter live 臂讀價經 registry
+
 WINDOW_MOMENTUM = 20      # 基線參數=慣例值、隨 code_sha 凍結(非資料挑選;arena plan §2.1)
 BLOCK_BOOT_WEEKS = 52
 N_BOOT = 2000
@@ -423,7 +427,8 @@ class OwnThreelensInteract:
                        .reset_index())
                 asof = X.panel_date.max()
                 sids = sorted(X.stock_id.unique())
-                cur.execute('SELECT stock_id, date, close FROM "TaiwanStockPriceAdj" '
+                adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+                cur.execute(f"SELECT stock_id, date, close FROM {adj_sql} "
                             "WHERE stock_id = ANY(%s) AND date >= '2016-06-01' ORDER BY stock_id, date", (sids,))
                 px = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "close"])
             lab = []

@@ -38,7 +38,10 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import _bootstrap  # noqa: F401
+from augur.catalog import world_concept
 from augur.core import db
+
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36；不直綁還原價表字面
 
 TAIPEI = ZoneInfo("Asia/Taipei")
 CATCHUP_DAYS = 14   # builders 增量窗下緣(冪等 DELETE+INSERT;涵蓋前幾日管線失敗之補齊)
@@ -75,9 +78,10 @@ def _admission_pass():
 
 
 def _db_asof():
-    """庫內 PriceAdj max(date)；無列→None。"""
+    """庫內還原價 max(date)（經 tw.daily_bar_adjusted）；無列→None。"""
     with db.connect() as conn, db.transaction(conn) as cur:
-        cur.execute('SELECT max(date) FROM "TaiwanStockPriceAdj"')
+        adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+        cur.execute(f"SELECT max(date) FROM {adj_sql}")
         r = cur.fetchone()[0]
         return r.isoformat() if r else None
 

@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 from psycopg2.extras import execute_values
 
-from augur.catalog.world_concept import quote_ident, resolve
+from augur.catalog.world_concept import quote_ident, resolve, resolve_sql
 from augur.core import db
 
 TABLE = "field_correlation"
@@ -31,6 +31,16 @@ BLOCK_TRADE_CONCEPT = "tw.block_trade.print"
 BLOCK_TRADE_FACT_COL = "trading_money"
 DAY_TRADE_CONCEPT = "tw.day_trading.stock"
 MARKET_CAP_CONCEPT = "tw.market_capitalization.stock"
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
+
+
+def _price_sql(conn) -> str:
+    adj = resolve_sql(ADJ_CONCEPT, conn=conn)
+    return (
+        f'SELECT date, close, "Trading_Volume" volume, "Trading_money" money, '
+        f'"Trading_turnover" turnover, "max" high, "min" low, spread '
+        f'FROM {adj} WHERE stock_id=%s AND close>0 ORDER BY date'
+    )
 
 
 def block_money_sql_from_table(source_table: str, fact_col: str = BLOCK_TRADE_FACT_COL) -> str:
@@ -104,10 +114,7 @@ CREATE TABLE IF NOT EXISTS {TABLE} (
 )"""
 
 # ── 欄位源（每項：欄名 → SQL 取 (date, 值...)；多列表已於 SQL GROUP BY 聚合）──
-# 價量一次取多欄；其餘逐欄/逐源。皆 WHERE stock_id=%s。
-_PRICE_SQL = ('SELECT date, close, "Trading_Volume" volume, "Trading_money" money, '
-              '"Trading_turnover" turnover, "max" high, "min" low, spread '
-              'FROM "TaiwanStockPriceAdj" WHERE stock_id=%s AND close>0 ORDER BY date')
+# 價量一次取多欄（經 tw.daily_bar_adjusted）；其餘逐欄/逐源。皆 WHERE stock_id=%s。
 # (欄位, SQL) — SQL 回 (date, value) 單值序列；多列表 GROUP BY date 聚合
 _SRC = [
     ("inst_net",       'SELECT date, (sum(buy)-sum(sell))::float8 FROM "TaiwanStockInstitutionalInvestorsBuySell" WHERE stock_id=%s GROUP BY date'),
@@ -156,7 +163,7 @@ def bootstrap(cur):
 def build_stock_panel(conn, stock_id):
     """組單股每日對齊面板（DataFrame，index=date，欄=各 raw 欄位 + 衍生）。無價量列 → None。"""
     with db.transaction(conn) as cur:
-        cur.execute(_PRICE_SQL, (stock_id,))
+        cur.execute(_price_sql(conn), (stock_id,))
         prows = cur.fetchall()
         if not prows:
             return None

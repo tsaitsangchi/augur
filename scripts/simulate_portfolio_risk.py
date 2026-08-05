@@ -29,10 +29,13 @@ import sys
 import _bootstrap  # noqa: F401
 import numpy as np
 
+from augur.catalog import world_concept
 from augur.core import db
 from augur.evaluation.portfolio import drawdown_series
 from augur.execution.risk_control import load_policies
 from simulate_mc_paths import BLOCK_LEN, PCTS, _garch_fhs_paths, _git7, _simulate, _stationary_paths
+
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 BOOT_METHODS = ("iid_bootstrap", "block_bootstrap", "stationary_bootstrap", "garch_fhs")
 
@@ -68,7 +71,8 @@ def _load_cell_portfolio(cur, cell):
 
 
 def _member_closes(cur, sids, since, until):
-    cur.execute("""SELECT stock_id, date, close FROM "TaiwanStockPriceAdj"
+    adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
+    cur.execute(f"""SELECT stock_id, date, close FROM {adj_sql}
         WHERE stock_id = ANY(%s) AND date BETWEEN %s AND %s AND close > 0
         ORDER BY date""", (list(sids), since, until))
     by_stock = {}
@@ -424,7 +428,8 @@ def run(cell, episodes, n_paths, seed, h):
         meta = {"cell": cell, "panel_date": str(panel), "n_members": len(members),
                 "note_candidate": "in_portfolio=候選組合成員(非部署事實;predict_asof D4 語意)"}
         # 聚合(≤panel、共同覆蓋、零補值)
-        cur.execute("""SELECT DISTINCT date FROM "TaiwanStockPriceAdj"
+        adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+        cur.execute(f"""SELECT DISTINCT date FROM {adj_sql}
             WHERE stock_id=%s AND date<=%s AND close>0 ORDER BY date DESC LIMIT %s""",
             (members[0][0], panel, WINDOW_TD + 1))
         dates_win = [r[0] for r in cur.fetchall()][::-1]
@@ -481,7 +486,7 @@ def run(cell, episodes, n_paths, seed, h):
             print(f"  [參考] evt_pot_hybrid     {evt['note']}")
         for ep in episodes:
             s, e = EPISODES[ep]
-            cur.execute("""SELECT DISTINCT date FROM "TaiwanStockPriceAdj"
+            cur.execute(f"""SELECT DISTINCT date FROM {adj_sql}
                 WHERE date BETWEEN %s AND %s ORDER BY date""", (s, e))
             ep_dates = [r[0] for r in cur.fetchall()]
             ep_closes = _member_closes(cur, [x for x, _ in members], s, e)

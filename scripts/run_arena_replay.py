@@ -26,7 +26,10 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import _bootstrap  # noqa: F401
+from augur.catalog import world_concept
 from augur.core import db
+
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 CLEAN_TEAMS = ("majority", "momentum_20", "mc_bootstrap", "own_daily_rolling")
 H_TD = 5
@@ -94,7 +97,8 @@ def run(model, w_from, w_to, allow_pretrained=False, probe=False):
         cur.execute("SELECT as_of_date, array_agg(stock_id::text) FROM core_universe_asof GROUP BY 1 ORDER BY 1")
         snaps = cur.fetchall()
         snap_dates = [s[0] for s in snaps]
-        cur.execute("""SELECT stock_id, date, close FROM "TaiwanStockPriceAdj"
+        adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+        cur.execute(f"""SELECT stock_id, date, close FROM {adj_sql}
             WHERE date >= %s ORDER BY stock_id, date""", (w_from - timedelta(days=900),))
         sd, sc = {}, {}
         for sid, d_, c_ in cur.fetchall():

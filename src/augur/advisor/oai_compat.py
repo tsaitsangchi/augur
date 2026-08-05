@@ -2,7 +2,8 @@
 
 🎯 讓任何 OpenAI client(Open WebUI/curl)接上 augur 顧問:殼只做協定翻譯,
    **唯一編排出口=advisor.advise()**(不重造管線、無第二編排器——含空檢索誠實句分支全在 advise 內);
-   guard fail → 回固定誠實句閉集 NO_KNOWLEDGE_RESPONSE(P9 建議值:沿用不擴;非 LLM 原輸出);
+   guard fail → 回固定誠實句閉集 NO_KNOWLEDGE_RESPONSE(P9;沿用不擴);**例外**=已有確定性 picks 真兆表時
+   保留表、丟掉未過閘白話(不得謊稱「知識庫中無此內容」—PRED-KH／D4 UX);
    guard verdict 以**機械模板**附於回覆尾部(分隔線區隔、零 LLM 內容);
    偽 SSE:先回 role chunk(keepalive)、全文過閘後才分塊 emit(stream:true × guard 全文後置閘之唯一合規形);
    API key 收任意值(本地);**對諮詢資料面(knowledge_*/philosophy_*/feature/prediction/chat_*)唯讀零寫
@@ -28,6 +29,21 @@ from augur.advisor.payload import empty_payload
 MODEL_ID = "augur-advisor"
 DEFAULT_PORT = 8399
 _SEP = "\n\n---\n"          # LLM 文本與機械尾註之分隔線(尾註零 LLM 內容)
+# picks 表確定性注入後之分隔(advise._render_picks_table + "\n\n---\n" + LLM)
+_PICKS_SPLIT = "\n\n---\n"
+PICKS_CAVEAT_BLOCKED = "（白話解讀未過機械閘，僅保留上列真兆表。系統建議、人決策。）"
+
+
+def _picks_only_on_guard_fail(response):
+    """guard 失敗時剝掉 LLM 段，只留 advise 預先注入之確定性 picks 表(+固定說明)。"""
+    text = (response or "").strip()
+    if _PICKS_SPLIT in text:
+        table = text.split(_PICKS_SPLIT, 1)[0].strip()
+    else:
+        table = text
+    if not table:
+        return NO_KNOWLEDGE_RESPONSE
+    return table + "\n\n" + PICKS_CAVEAT_BLOCKED
 
 
 def models_payload(cfg=None):
@@ -96,7 +112,8 @@ def _reply_text(result):
     """對外回覆文本(R2 架構:模型只給白話解讀)。**公版「引經據典」逐字區塊一律不顯示**(用戶 directive
     2026-07-05 入憲/憲章 v1.30.0)——guard 內部仍以 citations 逐字校驗(honesty gate 不變、只隱藏呈現);
     Mode B 附加檔區塊【保留】(用戶自帶文件之助讀、非公版引經據典)。
-    guard pass → LLM 解讀;guard fail(公版)→ 系統狀態句(不倒原文、不謊稱「無此內容」);皆附機械尾註。"""
+    guard pass → LLM 解讀(+已注入 picks 表);guard fail(公版)→ 誠實閉集;
+    **例外** picks_ground_truth：保留確定性真兆表、丟未過閘白話——不得改口「知識庫中無此內容」。"""
     passed = result["guard"]["pass"]
     cites = result["citations"]
     attached = bool(cites) and all((getattr(c, "source_url", "") or "").startswith("附加文件:") for c in cites)
@@ -104,9 +121,10 @@ def _reply_text(result):
         body = result["response"]
     elif attached:
         body = "(顧問白話解讀因不合逐字引用規則被機械閘攔下;以下為附加檔原文,供你自行研讀)"
+    elif result.get("picks_ground_truth"):
+        body = _picks_only_on_guard_fail(result.get("response") or "")
     else:
-        # guard fail(公版):不倒引經據典原文(用戶 directive)→ 回誠實固定句閉集(不自造新句;
-        # 閉集受憲章 v1.25.0 控、不得執行層自改;此為既有測試 guard_fail_returns_fixed_honest_closed_set 之判準)
+        # guard fail(公版無 picks):不倒引經據典原文→誠實固定句閉集(憲章 v1.25.0;既有測試不變)
         body = NO_KNOWLEDGE_RESPONSE
     parts = [body]
     if attached:                        # 僅 Mode B 附加檔顯示逐字區塊;公版引經據典一律不顯示(用戶 directive)
@@ -414,6 +432,23 @@ def _selftest():
     chk("reply:pass 顯 response", "白話解讀" in rp and _SEP in rp)
     rf = _reply_text(fake_fail)
     chk("reply:fail 回誠實閉集", NO_KNOWLEDGE_RESPONSE in rf and "原文不倒" not in rf)
+    # PRED-KH／D4：有 picks 真兆時 guard fail 不得謊稱知識庫空（#35：合成輸入餵真行為）
+    fake_picks_fail = {
+        "response": "根據模型 as-of 2026-05-31(相對機率/單股 H20)之相對強弱排序,看好 top 1:\n"
+                    "1. 2330 台積電(score 0.5874)\n\n---\n"
+                    "此組合已可交易(禁語)",
+        "guard": {"pass": False, "issues": ["措辭黑名單(C7)"]},
+        "citations": [], "lex_entries": [], "picks_ground_truth": True,
+    }
+    rpf = _reply_text(fake_picks_fail)
+    body_rpf = rpf.split(_SEP)[0]
+    chk("reply:picks+fail 保留真兆表", "2330" in body_rpf and "0.5874" in body_rpf)
+    chk("reply:picks+fail 不喊知識庫無", NO_KNOWLEDGE_RESPONSE not in body_rpf)
+    chk("reply:picks+fail 丟禁語白話", "已可交易" not in body_rpf)
+    chk("reply:picks+fail 附機械說明", PICKS_CAVEAT_BLOCKED in body_rpf)
+    # TEMP-RED 對偶：拿掉 picks_ground_truth 旗標 → 應回知識庫無(親證會紅後恢復)
+    fake_picks_noflag = dict(fake_picks_fail, picks_ground_truth=False)
+    chk("reply:無旗標 fail→仍閉集(TEMP-RED 對偶)", NO_KNOWLEDGE_RESPONSE in _reply_text(fake_picks_noflag))
 
     # _chunk:偽 SSE 一塊=「data: 」前綴 + 合法 JSON + 雙換行結尾
     ck = _chunk("cid", 1, {"content": "x"}, model_id="m")
