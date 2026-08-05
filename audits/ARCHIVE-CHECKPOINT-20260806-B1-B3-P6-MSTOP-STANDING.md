@@ -52,6 +52,6 @@ depends_on:
 
 ## 4. Tag／SHA（封後填）
 
-- commit：`(pending)`
+- commit：`68abfdda01971ee1e91dc406308a241847384bcc`
 - tag：`archive-20260806-b1-b3-p6-other-h-mstop-standing`
 - remote：`https://github.com/tsaitsangchi/augur`
