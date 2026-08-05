@@ -1,16 +1,18 @@
 ---
-status: draft
+status: nf_pause_accepted
 series: s4_models
 depends_on:
   - reports/augur_s4_market_model_families_opt_plan_20260804.md
   - audits/S4-WAVE-B-ADAPTER-PHASE0B-EXECUTED-20260805.md
   - audits/S3-WAVE-D-EXECUTED-20260804.md
+  - audits/S4-NF-PAUSE-ACCEPTED-20260805.md
 ---
 
 # S4 下一族 adapter plan-first（2026-08-05）
 
 > **性質**：[I] plan-first（波次 A · 項 8）。**本檔不開訓、不寫 adapter 業務碼。**  
 > **背景**：taxonomy Wave A–G **普查／誠實 SKIP** 已收官；真評測已試 RankEnsemble／SeqLSTM／sklearn 族／ARIMA Phase 0b。  
+> **裁示（2026-08-05）**：Steward `docs_first` → **`NF-pause`**（見 `audits/S4-NF-PAUSE-ACCEPTED-20260805.md`）——停新族；ARIMA P1／NF-E 須另句。  
 > **self-reported（#32a）**。
 
 ---
@@ -69,11 +71,11 @@ NF-B-VAR：同 ARIMA 模式——單／多股序列契約＋naive／常數地板
 
 ---
 
-## 5. 請 Steward 裁示
+## 5. Steward 裁示（已結）
 
-1. **NF-E-go-plan** — 核准以 GNN 為下一族詳細設計（仍不開訓）  
-2. **NF-B-VAR-go-plan** — 核准 VAR 詳細設計  
-3. **NF-pause** — 暫停新族  
-4. **defer_to_item4** — 下一手改走 ARIMA Phase 1（清單 #4 另句）  
+1. ~~NF-E-go-plan~~  
+2. ~~NF-B-VAR-go-plan~~  
+3. **NF-pause** — **已採**（`audits/S4-NF-PAUSE-ACCEPTED-20260805.md`）  
+4. ~~defer_to_item4~~（ARIMA P1 仍另句，非本 pause 默授）  
 
-*定版草稿（2026-08-05 波次 A）。*
+*定版＋pause 接受（2026-08-05）。*

@@ -19,10 +19,12 @@ import _bootstrap  # noqa: F401
 import numpy as np
 import pandas as pd
 
+from augur.catalog import world_concept
 from augur.core import db
 
 SEEDS = (7, 42, 2026)
 HORIZONS = (20, 40, 82)
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 
 def load(cur):
@@ -30,7 +32,8 @@ def load(cur):
     f = pd.DataFrame(cur.fetchall(), columns=["panel_date", "stock_id", "feature", "value"])
     X = f.pivot_table(index=["panel_date", "stock_id"], columns="feature", values="value").reset_index()
     sids = sorted(X["stock_id"].unique())
-    cur.execute('SELECT stock_id, date, close FROM "TaiwanStockPriceAdj" '
+    adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
+    cur.execute(f'SELECT stock_id, date, close FROM {adj_sql} '
                 "WHERE stock_id = ANY(%s) AND date >= '2016-06-01' ORDER BY stock_id, date", (sids,))
     px = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "close"])
     return X, px

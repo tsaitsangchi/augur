@@ -32,11 +32,13 @@ from pathlib import Path
 import _bootstrap  # noqa: F401
 import numpy as np
 import pandas as pd
+from augur.catalog import world_concept
 from augur.core import db
 
 warnings.filterwarnings("ignore")
 K_SET = (1, 5)
 FREEZE = "2026-05-31"
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 
 def _git7():
@@ -67,7 +69,8 @@ def _load_features(cur):
 
 def _labels(cur, stocks, k):
     """close(t+k)/close(t)−1>0 之方向標籤,逐股 groupby shift(交易日序)。回 {(date,stock): y}。"""
-    cur.execute("""SELECT stock_id, date, close FROM "TaiwanStockPriceAdj"
+    adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
+    cur.execute(f"""SELECT stock_id, date, close FROM {adj_sql}
         WHERE stock_id = ANY(%s) AND date >= '2014-06-01' AND date <= %s ORDER BY stock_id, date""",
         (list(stocks), FREEZE))
     px = pd.DataFrame(cur.fetchall(), columns=["stock", "date", "close"])

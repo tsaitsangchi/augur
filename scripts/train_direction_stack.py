@@ -29,10 +29,12 @@ from pathlib import Path
 
 import _bootstrap  # noqa: F401
 import numpy as np
+from augur.catalog import world_concept
 from augur.core import db
 from augur.evaluation import label as _label
 from augur.evaluation import walkforward
 
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36；不直綁還原價表字面
 H_HORIZONS = (20, 40, 82, 120)
 MODEL_ID = "DirStack"
 MKT_MODEL = "MktLogit"
@@ -165,8 +167,9 @@ def run_v2(horizons, min_train):
                     (model_id, "[2017-01-01,2026-05-31]", "2026-05-31", fh,
                      "walk_forward_refit_per_fold(monthly stack)", git7))
         conn.commit()
-        # 日價 → 每股 date→close 序(標籤自算)
-        cur.execute("""SELECT stock_id, date, close FROM "TaiwanStockPriceAdj"
+        # 日價 → 每股 date→close 序(標籤自算；表經 tw.daily_bar_adjusted)
+        adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+        cur.execute(f"""SELECT stock_id, date, close FROM {adj_sql}
             WHERE stock_id = ANY(%s) AND date >= '2016-06-01' AND date <= '2026-05-31'
             ORDER BY stock_id, date""", (stocks,))
         px = {}

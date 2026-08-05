@@ -26,8 +26,10 @@ from pathlib import Path
 import _bootstrap  # noqa: F401
 import numpy as np
 import pandas as pd
+from augur.catalog import world_concept
 from augur.core import db
 
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 START, FREEZE = "2017-01-01", "2026-05-31"
 H_RANKS = (20, 40, 82)
 FEATS = ["m_vol_60", "m_mom_60", "m_beta_252", "m_inst_net_z"] + [f"rank_pctile_h{h}" for h in H_RANKS]
@@ -72,7 +74,8 @@ def run(since, n_months):
         stocks = sorted(rk["stock"].unique())
         # 日價(含 400 天緩衝供 252td 窗)
         buf = str(pd.Timestamp(mes[0]) - pd.Timedelta(days=550)).split()[0]
-        cur.execute("""SELECT stock_id, date, close FROM "TaiwanStockPriceAdj"
+        adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+        cur.execute(f"""SELECT stock_id, date, close FROM {adj_sql}
             WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s ORDER BY stock_id, date""",
             (stocks, buf, FREEZE))
         px = pd.DataFrame(cur.fetchall(), columns=["stock", "date", "close"])

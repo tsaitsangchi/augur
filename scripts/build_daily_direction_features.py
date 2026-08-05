@@ -27,10 +27,11 @@ import sys
 import _bootstrap  # noqa: F401
 import numpy as np
 import pandas as pd
-from augur.catalog.world_concept import quote_ident, resolve
+from augur.catalog.world_concept import quote_ident, resolve, resolve_sql
 from augur.core import db
 
 START, FREEZE = "2015-01-01", "2026-05-31"
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 DAY_TRADE_CONCEPT = "tw.day_trading.stock"
 DAY_TRADE_BUY_COL = "BuyAmount"
 DAY_TRADE_SELL_COL = "SellAmount"
@@ -90,8 +91,9 @@ def run(since, n_stocks, until=FREEZE):
         print(f"宇宙:{len(all_stocks)} 檔(PIT 成分,{len(snaps)} 快照);建置段 since={since}")
         ctx = _market_context(cur)
 
-        # 價量:多拉 60 td 緩衝(trailing 窗)後於 since 起算特徵
-        cur.execute("""SELECT stock_id, date, close, "Trading_money" FROM "TaiwanStockPriceAdj"
+        # 價量:多拉 60 td 緩衝(trailing 窗)後於 since 起算特徵（表經 tw.daily_bar_adjusted）
+        adj_sql = resolve_sql(ADJ_CONCEPT, conn=conn)
+        cur.execute(f"""SELECT stock_id, date, close, "Trading_money" FROM {adj_sql}
             WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s ORDER BY stock_id, date""",
             (all_stocks, str(pd.Timestamp(since) - pd.Timedelta(days=120)).split()[0], until))
         px = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "close", "money"])
@@ -203,7 +205,8 @@ def run_chips(since, n_stocks, until=FREEZE):
         f["feat"] = g["val"].pct_change(5).groupby(f["stock_id"]).shift(1)
         feats_frames.append(("d_short_bal_chg_5", f))
         # d_daytrade_ratio:當沖金額/該股成交額(同日),再 lag-1
-        cur.execute("""SELECT stock_id, date, "Trading_money"::float8 FROM "TaiwanStockPriceAdj"
+        adj_sql = resolve_sql(ADJ_CONCEPT, conn=conn)
+        cur.execute(f"""SELECT stock_id, date, "Trading_money"::float8 FROM {adj_sql}
             WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s""", (all_stocks, since_buf, until))
         money = pd.DataFrame(cur.fetchall(), columns=["stock_id", "date", "money"])
         money["money"] = money["money"].astype(float)

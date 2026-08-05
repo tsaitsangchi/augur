@@ -21,7 +21,10 @@ import argparse
 import sys
 
 import _bootstrap  # noqa: F401
+from augur.catalog import world_concept
 from augur.core import db
+
+ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 CONFIG_DDL = """
 CREATE TABLE IF NOT EXISTS direction_product_config (
@@ -36,10 +39,12 @@ CREATE TABLE IF NOT EXISTS direction_econ_verdict (
   source text NOT NULL);
 """
 
-VOL_SQL = """
+
+def _vol_sql(adj_sql: str) -> str:
+    return f"""
 WITH r AS (
   SELECT stock_id, abs(close / NULLIF(lag(close, %s) OVER (PARTITION BY stock_id ORDER BY date), 0) - 1) AS aret
-  FROM "TaiwanStockPriceAdj" WHERE stock_id = ANY(%s) AND date >= (SELECT max(date) - 400 FROM "TaiwanStockPriceAdj")
+  FROM {adj_sql} WHERE stock_id = ANY(%s) AND date >= (SELECT max(date) - 400 FROM {adj_sql})
 )
 SELECT stock_id, percentile_cont(0.5) WITHIN GROUP (ORDER BY aret) FROM r WHERE aret IS NOT NULL GROUP BY stock_id
 """
@@ -97,7 +102,8 @@ def main():
             preds = cur.fetchall()
             ids = [p[0] for p in preds]
             h_td = preds[0][3] if preds else 20
-            cur.execute(VOL_SQL, (h_td, ids))
+            adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
+            cur.execute(_vol_sql(adj_sql), (h_td, ids))
             vol = dict(cur.fetchall())
             for tid, pdate, p_up, htd in preds:
                 v = vol.get(tid)
