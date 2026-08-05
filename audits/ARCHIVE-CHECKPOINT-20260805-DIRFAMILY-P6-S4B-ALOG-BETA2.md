@@ -31,12 +31,23 @@
 - `archive-20260804-s3waved-s4full-r6-simcell`（`b266e26`）
 - 帳：`audits/ARCHIVE-CHECKPOINT-20260804-S3WAVED-S4FULL-SIMCELL.md`
 
-## Push 實況（腳本後回填）
+## Push 實況（已回填）
 
 | 項 | 值 |
 |---|---|
 | slug | `dirfamily-p6-s4b-alog-beta2` |
-| tag | `archive-20260805-dirfamily-p6-s4b-alog-beta2`（預期） |
-| commit／tag SHA | *（push 後補）* |
+| tag | `archive-20260805-dirfamily-p6-s4b-alog-beta2` |
+| commit | `4a21cda`（full `4a21cda8d65a5492666f5c816f51b31935e84f6e`） |
+| tag object | `0b5b073cd99918782c822179db8d51aed76f4ca0` |
+| remote | `https://github.com/tsaitsangchi/augur.git` `main` |
 
-*封存腳本：`bash scripts/archive_push.sh --slug dirfamily-p6-s4b-alog-beta2`。*
+### WM.36 處置（本封存）
+
+pre-commit vendor 直綁閘擋新增：
+- `scripts/probe_classical_ts_phase0b.py` → `TaiwanStockPriceAdj`
+- `scripts/train_classical_ts.py` → `TaiwanStockPriceAdj`
+
+Steward 經 AskQuestion 選定：**本次 commit 明示 `--no-verify`**（同 `ARCHIVE-CHECKPOINT-20260804-S3WAVED-S4FULL-SIMCELL` 先例）；其餘閘（治權引用／指令矩陣／#8 AST／假斷言）已綠。兩處 PriceAdj 直綁併入 WM.36 追蹤（需 `tw.*.adjusted` 權威，不可 silently 改 registry→raw）。
+
+*手動複刻 `archive_push.sh`（rename pathspec 腳本尚不能 stage `R old -> new`；且無 `--no-verify` 透傳）。*
+
