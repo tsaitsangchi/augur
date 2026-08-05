@@ -35,6 +35,7 @@ depends_on:
 - P1 六檔 `TaiwanStockPriceAdj` quoted FROM＝**CLEAR**  
 - 五支無參數唯讀 OK；`resolve_sql(tw.daily_bar_adjusted)`＋2330 close OK  
 
-## 4. Tag（跑後回填）
+## 4. Tag／SHA（已封）
 
-- 預期：`archive-20260805-docs-first-nf-pause-wm36-p1`
+- commit：`ac109e6de88d32a459ef62b35c21291cb11fc232`
+- tag：`archive-20260805-docs-first-nf-pause-wm36-p1`
