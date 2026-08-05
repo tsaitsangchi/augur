@@ -43,5 +43,5 @@ depends_on:
 
 ## 4. Tag／SHA（封後填）
 
-- commit：（push 後寫入）  
+- commit：`88994464b91f5103a376e103b432d7c2bc20ac00`  
 - tag：`archive-20260805-wm36-p3-daily-runbook-h60`
