@@ -189,6 +189,18 @@ def make_llm_fn(model=None, base=None, timeout=None, retries=1, options=None, th
                     time.sleep(1.0 * (attempt + 1))        # 有界短退避,僅連線層
         raise RuntimeError(f"Ollama 連線失敗 @ {url} model={tag}: {last_err}") from last_err
 
+    # compact 等下游可合併 options／timeout（保留同一 model，不重建亂吃 OLLAMA_MODEL）
+    def _augur_bind_options(extra_opts=None, *, timeout=None):
+        merged = dict(options or {})
+        if extra_opts:
+            merged.update(extra_opts)
+        return make_llm_fn(
+            model=tag, base=base, timeout=limit if timeout is None else timeout,
+            retries=retries, options=merged or None, think=think, strip_quotes=strip_quotes,
+        )
+
+    llm_fn._augur_bind_options = _augur_bind_options  # type: ignore[attr-defined]
+    llm_fn._augur_model = tag  # type: ignore[attr-defined]
     return llm_fn
 
 

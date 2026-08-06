@@ -54,11 +54,11 @@ def main(argv=None):
               f"payload=一般題 empty_payload / 選股題 build_prediction_payload(真實 as-of H60 投組,D4)")
         return 0
 
-    # R2 調校 2026-07-04:低溫(0.15)=忠實照抄真兆原文少觸 guard 逐字閘;think=False=關 qwen3 推理段
-    # (弱 4GB GPU 上大幅提速、避 400s 逾時);num_predict 上限=有界輸出。
+    # R2 調校 2026-07-04:低溫=忠實；think=False；num_predict 預設 900。
+    # 緊湊路徑 advise 會經 wrap_compact_llm bind 成 AUGUR_COMPACT_NUM_PREDICT（預設 480）。
     llm_fn = _mock_llm if args.mock_llm else ollama.make_llm_fn(
         model=model, timeout=args.timeout, think=False, strip_quotes=True,
-        options={"temperature": 0.15, "num_predict": 900})
+        options={"temperature": 0.15, "num_predict": int(os.environ.get("AUGUR_SERVE_NUM_PREDICT", "900"))})
     # 死點① 接線(計畫 §三):對話端組合檢索=work(哲學/文學)+item(知識/財經/本機檔),
     # 否則抓來的知識/item 零命中(retrieve_fn=None 只走 work 側)。access_scope='public'(對外)。
     from augur.philosophy.retrieval import retrieve_all

@@ -51,9 +51,9 @@ self_reported: true
 | **4** | H82 ghost | — | — | 🟢 |
 | **5** | r7／r8／r9 文檔地盤 | — | — | 🟢（Phase0 push） |
 | **6** | Phase1 ARMED 帳未 push | commit／push 該帳 | **可∥ #1** | 📄 |
-| **7** | 圖**消費端**是否讀新 asof | `GRAPH-CONSUME-plan-first` | ∥文件；碼另 GO | 🔴 |
-| **8** | C1 EXPAND／CYCLE | 另 `LOOP-*-go`；重活讓 #1 | 與 #1 互斥時讓日更 | 🔴 |
-| **9** | P6 週 fit H20／H60 | 累積實現後另 GO | 閒時 | 🔴 |
+| **7** | 圖**消費端**是否讀新 asof | G0+G1 ✅；下一 **G2 stub** 另 GO（∥#1；禁 train） | ∥文件 | 🟡 G1✅／G2🔴 |
+| **8** | C1 EXPAND／CYCLE | EXPAND ✅＠08-05；CYCLE／殘 gap **讓 #1** | 與 #1 互斥時讓日更 | 🟡 EXPAND✅／CYCLE🔴 |
+| **9** | P6 週 fit H20／H60 | FREEZE 08-04 ✅；下一 asof **閒時另 GO** | 閒時·⊥日更 | 🟡 08-04✅／滾動🔴 |
 | **10** | M／β5／NF | 只輕監 | **∥ #1** | ❄ |
 | **11** | Dividend／dim-sync | 另 auth | 旁車道 | ❄ |
 | **12** | sim apply | 禁；時鐘旁軸 | — | ❄／🟡 |
@@ -62,6 +62,7 @@ self_reported: true
 | **15** | 10-14 治權日曆 | 10 月初複核 | 排程 | 🟡 |
 | **16** | H40／120 納每日 B | 不改 standing | 延後 | ❄敘事 |
 | **17** | dgate evaluate | 另明示 GO | 延後 | 🟡 |
+| **18** | **其他模型驗証** | 矩陣 ADOPTED；**V5＋V1·H60 EXECUTED**（M1 不升格；pass=0）；待 **V3**／H20 另句；新族須撤 NF | ∥#1；重跑讓 B3 | `S4-V1-REVERIFY-EXECUTED` · `S5-OOS-VERIFY-EXECUTED` |
 
 ---
 

@@ -133,14 +133,20 @@ def run_batch(*, up_to: int, limit: int, apply: bool, item_id: int | None,
         stuck = sum(
             1 for r in results
             if r.get("ok") and r["admit_depth_after"] == r["admit_depth_before"]
+            and not r.get("seeded")
         )
+        seeded = sum(1 for r in results if r.get("ok") and r.get("seeded"))
         ok_n = sum(1 for r in results if r.get("ok"))
         held = count_repromote_held(results)
-        print(f"done ok={ok_n} advanced={advanced} unchanged={stuck} repromote_held={held}")
+        print(
+            f"done ok={ok_n} advanced={advanced} seeded={seeded} "
+            f"unchanged={stuck} repromote_held={held}"
+        )
         return {
             "n": len(ids),
             "ok": ok_n,
             "advanced": advanced,
+            "seeded": seeded,
             "unchanged": stuck,
             "held": held,
         }
@@ -157,6 +163,7 @@ def run_until_empty(*, up_to: int, limit: int, activate_source: bool,
             f"（gate／KH10 治理列另議）；≠approve≠tradable"
         )
     total_adv = 0
+    total_seed = 0
     for rnd in range(1, max_rounds + 1):
         ts = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
         print(f"=== round {rnd}/{max_rounds} {ts} ===")
@@ -170,17 +177,24 @@ def run_until_empty(*, up_to: int, limit: int, activate_source: bool,
             quiet=True,
         )
         total_adv += stats["advanced"]
+        total_seed += stats.get("seeded", 0)
         if stats["n"] == 0:
-            print(f"queue empty after {rnd} rounds; total_advanced={total_adv}")
+            print(
+                f"queue empty after {rnd} rounds; total_advanced={total_adv} "
+                f"total_seeded={total_seed}"
+            )
             break
-        if stats["advanced"] == 0:
+        if stats["advanced"] == 0 and stats.get("seeded", 0) == 0:
             print(
                 f"no advance (stuck queue) after round {rnd}; "
-                f"total_advanced={total_adv}"
+                f"total_advanced={total_adv} total_seeded={total_seed}"
             )
             break
     else:
-        print(f"hit max_rounds={max_rounds}; total_advanced={total_adv}")
+        print(
+            f"hit max_rounds={max_rounds}; total_advanced={total_adv} "
+            f"total_seeded={total_seed}"
+        )
     return check()
 
 

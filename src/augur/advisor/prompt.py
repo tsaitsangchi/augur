@@ -312,6 +312,59 @@ def build_prompt(query, payload, citations, lex_entries=()):
 請依上方回答原則作答:引文**相關才標 [編號]、不相關就不要硬引**(原文由系統附上、你不必抄)。**切記:不打任何引號、不照抄古文原句。**"""
 
 
+COMPACT_KNOWHOW_PROMPT = """你是本地知識庫的簡短技術助讀。只能根據下方「檢索引文」用白話回答使用者問題。
+
+## 硬約束（違反會被機器閘攔）
+- (a) 只依據下方引文；沒有的就說「知識庫中無此內容」——不憑記憶補。
+- (b) **完全不要打引號**（「」『』""）；不要複述或照抄使用者問題原文。
+- (c) **禁止開場想題／複述本提示**：不要寫「首先我需要…」「使用者要求我…」「硬約束」「關鍵點」這類過程。
+- (d) **第一行起即用編號逐步條列**：`1.` `2.` `3.` …；**每一行一步**；不要寫成一整段摘要；不要整篇照抄引文。
+- (e) 只列引文裡有的操作／設定／路徑／驗證；約 5～12 步、總長約 200～500 字；提某段可標 [N]。
+- (f) 不要套投資三姿態；這不是選股題。
+"""
+
+COMPACT_KNOWHOW_PROMPT_SUMMARY = """你是本地知識庫的簡短技術助讀。只能根據下方「檢索引文」用白話回答使用者問題。
+
+## 硬約束（違反會被機器閘攔）
+- (a) 只依據下方引文；沒有的就說「知識庫中無此內容」——不憑記憶補。
+- (b) **完全不要打引號**（「」『』""）；不要複述或照抄使用者問題原文。
+- (c) **禁止開場想題／複述本提示**：不要寫「首先我需要…」「使用者要求我…」「硬約束」「關鍵點」這類過程。
+- (d) **第一行就寫實質內容**（文件在講什麼／步驟要點）；技術用條列；總長約 150～400 字；提某段標 [N]。
+- (e) 不要套投資三姿態；這不是選股題。
+"""
+
+
+def _compact_stepwise_enabled() -> bool:
+    """預設開；AUGUR_COMPACT_STEPWISE=0/off/false 可關（短摘要口吻）。"""
+    v = (os.environ.get("AUGUR_COMPACT_STEPWISE") or "1").strip().lower()
+    return v not in ("0", "off", "false", "no")
+
+
+def build_compact_knowhow_prompt(query, payload, citations, lex_entries=()):
+    """緊湊知-how／讀出 prompt：短答、禁想題、禁引號；預設逐步條列（本機 LLM 生成）。"""
+    cites = _render_cites(citations, f"  (無檢索結果 — 明說「{NO_KNOWLEDGE_RESPONSE}」)")
+    if _compact_stepwise_enabled():
+        body = COMPACT_KNOWHOW_PROMPT
+        out_hint = (
+            "【輸出】從第一行開始用 1. 2. 3. 逐步條列。每一行一步。"
+            "禁止一段式摘要、禁止自我提醒或複述上方硬約束。不打引號。"
+        )
+    else:
+        body = COMPACT_KNOWHOW_PROMPT_SUMMARY
+        out_hint = "【輸出】從第一行開始寫實質摘要／步驟。禁止任何自我提醒或複述上方硬約束。不打引號。"
+    return f"""{body}
+
+{_payload_block(payload)}
+
+## 檢索引文（逐字、只能用這些）
+{cites}
+
+## 使用者問題
+{query}
+
+{out_hint}"""
+
+
 # ── Mode B(對話「+」附加檔只問這次)之 prompt:文件助讀人格,不套投資大師框架 ──
 ATTACHED_NOTFOUND = "附加文件中找不到相關內容"
 
@@ -351,6 +404,27 @@ def _selftest():
     chk("四位代號→analysis", _query_kind("1234 如何") == "analysis")
     chk("定義訊號→definition", _query_kind("本益比是什麼") == "definition")
     chk("無訊號→general", _query_kind("你好") == "general")
+    # compact know-how prompt（零 IO）
+    from types import SimpleNamespace as S
+    from augur.advisor.payload import empty_payload
+    cp = build_compact_knowhow_prompt(
+        "國碩請讀出", empty_payload(),
+        [S(text="正文RMAN /u5", item_title="t", source_url="")], ())
+    chk("compact 禁想題", "禁止開場想題" in cp and "RMAN" in cp)
+    chk("compact 禁引號指令", "不要打引號" in cp)
+    chk("compact 預設逐步", "1. 2. 3." in cp and "每一行一步" in cp)
+    old = os.environ.get("AUGUR_COMPACT_STEPWISE")
+    os.environ["AUGUR_COMPACT_STEPWISE"] = "0"
+    try:
+        cp0 = build_compact_knowhow_prompt(
+            "國碩請讀出", empty_payload(),
+            [S(text="正文RMAN /u5", item_title="t", source_url="")], ())
+        chk("compact stepwise off→摘要", "實質摘要" in cp0 and "每一行一步" not in cp0)
+    finally:
+        if old is None:
+            os.environ.pop("AUGUR_COMPACT_STEPWISE", None)
+        else:
+            os.environ["AUGUR_COMPACT_STEPWISE"] = old
     # _asks_direction_or_path:方向詞命中;horizon 單獨不算、須與方向詞共現
     chk("方向詞→True", _asks_direction_or_path("明天會漲嗎") is True)
     chk("horizon 單獨→False", _asks_direction_or_path("未來5天") is False)

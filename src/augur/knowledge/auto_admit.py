@@ -1,10 +1,12 @@
 """KH10 漸進自動入庫編排 — admit_depth 0…10 水印（憲章 v1.48.0）。
 
-🎯 這支在做什麼(白話):對已在庫的 knowledge_item（原文已准入）逐層評估／UPDATE
-   KH1→KH10 精準度水印；每過一層立刻寫 knowhow_auto_admit_state，深層 fail／未建
-   則停在當前 depth、不回滾原文。可選機械 activate 來源（system=True）。
-   另供顧問／檢索：依 admit_depth 作答排序（KH9＞KH8＞KH7…；≥7 本地 know-how 優於公版 works）。
-守 憲章 v1.48.0(一律准入)· #12· #15(誠實 skip／fail)· FZ-keep· PME-GATE-keep· NHC-keep。
+🎯 這支在做什麼(白話):對已在庫的 knowledge_item 逐層評估／UPDATE KH0→KH10 精準度水印；
+   每過一層立刻寫 knowhow_auto_admit_state，深層 fail／未建則停在當前 depth、不回滾原文。
+   KH0（A.1）：有原文 **或** 非空 title/title_zh 即 pass（憲章普遍底線；無內容才 fail）。
+   可選機械 activate 來源（system=True）。另供顧問／檢索：依 admit_depth 作答排序
+   （KH9＞KH8＞KH7…；≥7 本地 know-how 優於公版 works）。
+守 憲章 v1.48.0(一律准入)· v1.53(KH0 普遍)· #12· #15(誠實 skip／fail)· FZ-keep· PME-GATE-keep· NHC-keep。
+
 
 執行指令矩陣(本檔=library #18；免 DB 可個別驗證):
   python -m augur.knowledge.auto_admit
@@ -102,6 +104,18 @@ def get_admit_depth(cur, target_kind: str, target_id: str) -> int:
     )
     row = cur.fetchone()
     return int(row[0]) if row else 0
+
+
+def has_admit_state(cur, target_kind: str, target_id: str) -> bool:
+    """是否已有 admit_state 列（≠ depth 值；供 KH0 破口 seeded 計數）。"""
+    if not _table_exists(cur, "knowhow_auto_admit_state"):
+        return False
+    cur.execute(
+        "SELECT 1 FROM knowhow_auto_admit_state "
+        "WHERE target_kind=%s AND target_id=%s LIMIT 1",
+        (target_kind, str(target_id)),
+    )
+    return bool(cur.fetchone())
 
 
 def repromotion_locked(cur, item_id: int) -> bool:
@@ -283,6 +297,40 @@ def upsert_state(cur, *, target_kind, target_id, channel, admit_depth,
     )
 
 
+def _title_nonzero(snap: dict) -> str | None:
+    """回第一個非空白標題欄（title 優先於 title_zh）；皆空→None。"""
+    for key in ("title", "title_zh"):
+        val = snap.get(key)
+        if val is None:
+            continue
+        s = str(val).strip()
+        if s:
+            return s
+    return None
+
+
+def _kh0_understandable(snap: dict) -> dict:
+    """憲章普遍 KH0：有原文 **或** 有標題語意 → pass；否則 fail-closed。
+
+    A.1（`KH0-UNIVERSAL-A1-go`）：撤回「僅 has_text 才算理解」之 runtime 落差——
+    Steward／大憲章 v1.53：標題即有語意；無原文不豁免。
+    """
+    if snap.get("has_text"):
+        return {"verdict": "pass", "note": "item_text 在庫", "action": "raw_present"}
+    if _title_nonzero(snap):
+        which = "title" if (snap.get("title") or "").strip() else "title_zh"
+        return {
+            "verdict": "pass",
+            "note": f"{which} 可理解（KH0 普遍底線／A.1）",
+            "action": "title_understandable",
+        }
+    return {
+        "verdict": "fail",
+        "note": "無可理解內容（無原文且無 title/title_zh）",
+        "action": "kh0_empty",
+    }
+
+
 def _item_snapshot(cur, item_id: int) -> dict | None:
     cur.execute(
         """
@@ -297,7 +345,8 @@ def _item_snapshot(cur, item_id: int) -> dict | None:
                  SELECT 1 FROM knowledge_item_text x
                  JOIN knowledge_sentence s ON s.itext_id=x.itext_id
                  JOIN knowledge_sentence_embedding e ON e.sent_id=s.sent_id
-                 WHERE x.item_id=i.item_id)
+                 WHERE x.item_id=i.item_id),
+               i.title, i.title_zh
         FROM knowledge_item i
         LEFT JOIN knowledge_source ks ON ks.source_key=i.source_key
         WHERE i.item_id=%s
@@ -318,6 +367,8 @@ def _item_snapshot(cur, item_id: int) -> dict | None:
         "has_text": bool(row[7]),
         "has_sentence": bool(row[8]),
         "has_embedding": bool(row[9]),
+        "title": row[10],
+        "title_zh": row[11],
     }
 
 
@@ -330,13 +381,12 @@ def evaluate_layer(cur, depth: int, snap: dict) -> dict:
         return {"verdict": "skipped", "note": f"{LAYER_NAMES[depth]} 未 LAND"}
 
     if depth == 0:
-        if snap["has_text"]:
-            return {"verdict": "pass", "note": "item_text 在庫", "action": "raw_present"}
-        return {"verdict": "fail", "note": "無 item_text"}
-
+        return _kh0_understandable(snap)
     if depth == 1:
-        # KH1：真路徑＝qualification=pass。其餘 has_text→pass＝**旁路**（M-G15 正名；
-        # 零變異指標、不得充當獨立證據／§P4.E7 同族於 KH8；旁路存廢待 Steward 裁，本處不改行為）。
+        # KH1：真路徑＝qualification=pass。
+        # 旁路 A：has_text（M-G15 既有）。
+        # 旁路 B（2026-08-06 Steward global_title_kh1）：非空 title/title_zh
+        #   → 與憲章「標題即語意」上延；≠來源 approve。
         if _table_exists(cur, "knowledge_import_qualification"):
             cur.execute(
                 """
@@ -351,15 +401,26 @@ def evaluate_layer(cur, depth: int, snap: dict) -> dict:
             if q and q[0] == "pass":
                 return {"verdict": "pass", "note": "qualification=pass"}
             if q and q[0] in ("reject", "error"):
-                # 仍有原文 → 不擋（v1.48 一律准入）；行為不變、note 正名為旁路
                 if snap["has_text"]:
                     return {"verdict": "pass",
                             "note": f"KH1_BYPASS:qual={q[0]} 原文在庫→准入保留（零變異；存廢待裁）"}
+                if _title_nonzero(snap):
+                    return {
+                        "verdict": "pass",
+                        "note": f"KH1_TITLE:qual={q[0]} 標題可理解→KH1（global_title_kh1）",
+                        "action": "kh1_title_understandable",
+                    }
                 return {"verdict": "fail", "note": f"qualification={q[0]}"}
         if snap["has_text"]:
             return {"verdict": "pass",
                     "note": "KH1_BYPASS:既有原文旁路（零變異指標、不得充當獨立證據；存廢待裁）"}
-        return {"verdict": "fail", "note": "無 qual 且無原文"}
+        if _title_nonzero(snap):
+            return {
+                "verdict": "pass",
+                "note": "KH1_TITLE:標題可理解（global_title_kh1／憲章語意上延）",
+                "action": "kh1_title_understandable",
+            }
+        return {"verdict": "fail", "note": "無 qual、無原文、無標題"}
 
     if depth == 2:
         # KH2：assist 無硬擋，或來源已 active／無 assist 表
@@ -581,6 +642,7 @@ def progressive_item(
         return {"ok": False, "error": f"item {item_id} 不存在"}
 
     channel = channel_for_adapter(snap["adapter"], snap["protocol"])
+    had_state = has_admit_state(cur, "item", str(item_id))
     before = get_admit_depth(cur, "item", str(item_id))
     layer_scores: dict[str, Any] = {}
     actions: list = []
@@ -700,6 +762,8 @@ def progressive_item(
         "actions": actions,
         "run_id": run_id,
         "dry_run": not apply,
+        # BREACH-DRAIN：首評寫入 state 時 after 可能仍=0（標題僅達 KH0）——須計入進度
+        "seeded": bool(apply and not had_state),
     }
 
 
@@ -710,28 +774,35 @@ def list_candidate_item_ids(
     max_depth_lt: int | None = None,
     min_depth: int | None = None,
 ) -> list[int]:
-    """有原文且 admit_depth ∈ [min_depth, max_depth_lt) 的 item。
+    """可理解內容（有原文 **或** 非空 title/title_zh）且 admit_depth ∈ [min_depth, max_depth_lt)。
 
-    預設 ORDER BY depth ASC（先抬淺層）。若指定 min_depth（如 4），專掃已達該層、
-    要繼續往上衝的佇列（避免 depth 0 海量占滿 limit）。
+    預設 ORDER：無 admit_state（KH0 破口）優先，再 depth ASC。  
+    A.1／BREACH-DRAIN：若只 JOIN item_text，普遍破口（多為標題件）永遠進不了佇列。
     """
     gate = load_gate(cur)
     cap = gate["max_auto_depth"]
     if max_depth_lt is None:
         max_depth_lt = cap
     lo = int(min_depth) if min_depth is not None else 0
+    understand = """(
+                EXISTS (SELECT 1 FROM knowledge_item_text x WHERE x.item_id=i.item_id)
+                OR NULLIF(BTRIM(i.title), '') IS NOT NULL
+                OR NULLIF(BTRIM(i.title_zh), '') IS NOT NULL
+              )"""
     if _table_exists(cur, "knowhow_auto_admit_state"):
         cur.execute(
-            """
+            f"""
             SELECT i.item_id
             FROM knowledge_item i
-            JOIN knowledge_item_text x ON x.item_id=i.item_id
             LEFT JOIN knowhow_auto_admit_state st
               ON st.target_kind='item' AND st.target_id=i.item_id::text
             WHERE COALESCE(st.admit_depth, 0) >= %s
               AND COALESCE(st.admit_depth, 0) < %s
-            GROUP BY i.item_id, st.admit_depth
-            ORDER BY COALESCE(st.admit_depth, 0) ASC, i.item_id
+              AND {understand}
+            ORDER BY
+              CASE WHEN st.target_id IS NULL THEN 0 ELSE 1 END,
+              COALESCE(st.admit_depth, 0) ASC,
+              i.item_id
             LIMIT %s
             """,
             (lo, max_depth_lt, limit),
@@ -740,10 +811,9 @@ def list_candidate_item_ids(
         if lo > 0:
             return []
         cur.execute(
-            """
+            f"""
             SELECT i.item_id FROM knowledge_item i
-            JOIN knowledge_item_text x ON x.item_id=i.item_id
-            GROUP BY i.item_id
+            WHERE {understand}
             ORDER BY i.item_id
             LIMIT %s
             """,
@@ -765,6 +835,11 @@ def _selftest() -> int:
     chk("channel local", channel_for_adapter("local_files") == "local_files")
     chk("channel topic", channel_for_adapter("openalex_works") == "topic_harvest")
     chk("ACTOR", ACTOR == "system:kh10_auto_admit")
+    import inspect as _inspect
+    _cand_src = _inspect.getsource(list_candidate_item_ids)
+    chk("candidates include title（A.1/BREACH）", "title_zh" in _cand_src)
+    chk("candidates prefer no-state breach", "st.target_id IS NULL" in _cand_src)
+    chk("candidates not text-only JOIN", "JOIN knowledge_item_text x ON x.item_id=i.item_id\n            LEFT JOIN" not in _cand_src)
 
     class _Cur:
         """模擬：表未建 → evaluate 8/9 誠實 skipped。"""
@@ -793,6 +868,8 @@ def _selftest() -> int:
         "adapter": "local_files",
         "protocol": "local_file",
         "entity_type": "doc",
+        "title": None,
+        "title_zh": None,
     }
     ev8 = evaluate_layer(_Cur(), 8, snap)
     chk("depth8 表未建→skipped", ev8["verdict"] == "skipped")
@@ -801,6 +878,23 @@ def _selftest() -> int:
     ev0 = evaluate_layer(_Cur(), 0, snap)
     chk("depth0 pass with text", ev0["verdict"] == "pass")
 
+    # A.1：憲章普遍 KH0——無原文但有標題／title_zh → pass；皆空 → fail-closed
+    ev_title = evaluate_layer(_Cur(), 0, {**snap, "has_text": False, "title": "僅標題亦可理解"})
+    chk("depth0 pass with title only (A.1)", ev_title["verdict"] == "pass"
+        and ev_title.get("action") == "title_understandable")
+    ev_zh = evaluate_layer(_Cur(), 0, {**snap, "has_text": False, "title": "  ", "title_zh": "中文題"})
+    chk("depth0 pass with title_zh only (A.1)", ev_zh["verdict"] == "pass")
+    ev_empty = evaluate_layer(_Cur(), 0, {**snap, "has_text": False, "title": None, "title_zh": ""})
+    chk("depth0 fail when empty (A.1 fail-closed)", ev_empty["verdict"] == "fail"
+        and ev_empty.get("action") == "kh0_empty")
+    # global_title_kh1：無原文、無 qual 表（_Cur to_regclass→None）時標題仍過 KH1
+    ev1_title = evaluate_layer(_Cur(), 1, {**snap, "has_text": False, "title": "僅標題過 KH1"})
+    chk("depth1 pass with title only (global_title_kh1)", ev1_title["verdict"] == "pass"
+        and ev1_title.get("action") == "kh1_title_understandable")
+    ev1_empty = evaluate_layer(_Cur(), 1, {**snap, "has_text": False, "title": None, "title_zh": ""})
+    chk("depth1 fail when empty", ev1_empty["verdict"] == "fail")
+    chk("_title_nonzero strips", _title_nonzero({"title": "  x  "}) == "x")
+    chk("_title_nonzero empty", _title_nonzero({"title": " ", "title_zh": None}) is None)
     from types import SimpleNamespace as S
 
     cites = [
@@ -889,7 +983,7 @@ def _selftest() -> int:
 
     import augur.knowledge.auto_admit as _self
     _orig = (_self.load_gate, _self._item_snapshot, _self.get_admit_depth,
-             _self.evaluate_layer, _self.repromotion_locked)
+             _self.has_admit_state, _self.evaluate_layer, _self.repromotion_locked)
     _lock_calls: list = []
     try:
         _self.load_gate = lambda cur: {
@@ -897,6 +991,7 @@ def _selftest() -> int:
             "max_auto_depth": 9, "require_kh8": True, "require_kh9": True}
         _self._item_snapshot = lambda cur, iid: dict(snap, item_id=iid, source_key=None)
         _self.get_admit_depth = lambda cur, k, i: 7
+        _self.has_admit_state = lambda cur, k, i: True
         _self.evaluate_layer = lambda cur, d, s: {"verdict": "pass", "note": "fixture"}
         _self.repromotion_locked = lambda cur, iid: _lock_calls.append(iid) or True
         r = _self.progressive_item(None, 277948, up_to=9, apply=False)
@@ -925,9 +1020,10 @@ def _selftest() -> int:
         chk("D4 clamp:無升深不觸鎖（謂詞零呼叫＝零成本）",
             r3["admit_depth_after"] == 7 and not _lock_calls
             and "repromote_lock" not in r3["layer_scores"])
+        chk("seeded False when had_state", r3.get("seeded") is False)
     finally:
         (_self.load_gate, _self._item_snapshot, _self.get_admit_depth,
-         _self.evaluate_layer, _self.repromotion_locked) = _orig
+         _self.has_admit_state, _self.evaluate_layer, _self.repromotion_locked) = _orig
 
     from augur.knowledge import evidence as kh8
     from augur.knowledge import synthesis as kh9

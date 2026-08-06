@@ -128,7 +128,7 @@ def _bridge_block(links):
 
 
 def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_fn=None, prompt_fn=None,
-           scope=None, evolution_md=None, include_evolution=True):
+           scope=None, evolution_md=None, include_evolution=True, auto_lift=None, answer_mode=None):
     """顧問一次問答。
 
     query:      用戶問題
@@ -142,7 +142,11 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
                 guard 不變、只換人格框架與檢索語料,誠實三敵防護一致
     evolution_md: PME S4 解讀 markdown（注入則優先；None 且 include_evolution 時 fail-soft 載入）
     include_evolution: 主路徑是否附加 S4 進化解讀（Mode B／prompt_fn 覆寫時一律不附加）
-    回:{response, guard, citations, lex_entries, prompt}
+    auto_lift:  KH0-ANSWER-AUTO-LIFT 熱路徑（None＝讀 AUGUR_KH0_ANSWER_AUTO_LIFT；預設關）。
+                僅 guard.pass ∧ item 引文 ∧ 非 Mode B ∧ 非 picks；fail-soft 不炸問答。
+    answer_mode: None/auto｜compact｜full｜two_phase——知-how／讀出自動緊湊（凍結引文＋短答；
+                對症本機 LLM／prompt 體積，非 KH 入庫）。two_phase＝先凍結再短答（同一回合完成）。
+    回:{response, guard, citations, lex_entries, prompt, auto_lift?, readout?, compact?}
     """
     from augur.philosophy.retrieval import retrieve_all, lexicon_lookup, verify_verbatim, is_low_content
     from augur.advisor.relevance import (
@@ -182,37 +186,47 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     # （11GB 機上 embed↔8b 互擠實證撞死 llama-server）。lexicon 仍可跑（輕量、非 embed）。
     # Mode B(prompt_fn)不套——附檔檢索由用戶負責。
     has_picks = has_pred_picks
+    readout_meta = None
+    compact_meta = None
     if has_picks and prompt_fn is None:
         citations = []
     else:
         # RBAC scope 一路傳達(P3,§4.4)。
-        # T1-a 檢索相關度閘 + translate-for-RETRIEVAL(N9,2026-07-07,誠實優先、只更嚴):
-        #   e5-small 對 out-of-corpus(MBB/太陽能/半導體…)硬回離題高分 chunk → 誤當有料令 LLM confabulate。
-        #   relevant_citations 以零 usage 內容詞重疊逐條判「命中且相關」——**只留與 query 共享夠強辨識性專詞
-        #   (perovskite/solar/孔子/知行合一…)者**,泛用字(system/energy/research/what)與單 CJK 字(能/太/心)
-        #   之巧合共現不算(擋前版「系統分析/能源效率/MBB」死因)。全數不相關 → 視同空檢索、走誠實 decline。
-        # translate-for-RETRIEVAL(**fallback**):augur 技術/財經文獻多為英文,e5-small 對 CJK 問句跨語 kNN 常把
-        #   英文正解沉在哲學/ERP 雜訊裡撈不上來。故 CJK 查詢**先以原文檢索+過濾**;哲學題此時已命中即止(不引英文
-        #   噪);**僅當**過濾後無相關引文,**才**譯英文、以英文 query 檢索+過濾(技術跨語題如 solar 靠此撈回)。
-        #   譯文**只決定用哪個 query 檢索**——不入 citation/答案/guard(命門);譯失敗(None:OOM/逾時/無 CJK)→
-        #   只有原查詢結果(誠實基線,多半 decline)、絕不 raise。Mode B 附加檔(prompt_fn)不套本閘/不翻譯。
-        raw = _clean(src_fn(query, k=k, scope=scope))
+        # KH-READOUT-RESOLVE：標題／檔名＋讀出意圖 → 有界原文引文，優先於 ANN 雜訊。
+        citations = []
+        if prompt_fn is None and not has_picks:
+            try:
+                from augur.knowledge.readout import advise_readout_citations, is_readout_intent
+                if is_readout_intent(query):
+                    ro = advise_readout_citations(query, scope=scope)
+                    # readout 已標題／檔名定位：勿套 ANN junk 的 is_low_content
+                    # （PDF TOC／寬空白會被誤判密度不足，如 aap.pdf 應付帳款手冊）
+                    keep = [c for c in (ro or []) if verify_verbatim(c)]
+                    if keep:
+                        citations = keep
+                        readout_meta = {
+                            "via": "readout",
+                            "item_ids": sorted({int(c.item_id) for c in keep if getattr(c, "item_id", None)}),
+                        }
+            except Exception:
+                readout_meta = None
+                citations = []
         if prompt_fn is not None:
-            citations = raw                                  # Mode B:附檔由用戶負責相關性,不過濾、不翻譯
-        else:
+            raw = _clean(src_fn(query, k=k, scope=scope))
+            citations = raw  # Mode B
+        elif not citations:
+            # T1-a 檢索相關度閘 + translate-for-RETRIEVAL（非 readout 路徑）
+            raw = _clean(src_fn(query, k=k, scope=scope))
             citations = relevant_citations(query, raw)
-            if not citations:                                # 原文檢索無相關 → 英文 fallback(技術跨語題)
+            if not citations:
                 from augur.advisor.query_translation import translate_for_retrieval
-                en_query = translate_for_retrieval(query)    # 無 CJK / OOM / 逾時 → None(fail-closed,不 raise)
+                en_query = translate_for_retrieval(query)
                 if en_query:
-                    # min_terms=2:誤譯之 en_query 靠單一泛詞巧撞離題引文→過閘→LLM 瞎掰(實證 多主柵→multi-master
-                    # bus 撞「advantage」一詞令 qwen3 瞎掰光通信);要求 ≥2 辨識詞共享,誤譯 fallback 收斂為誠實 decline。
-                    citations = relevant_citations(en_query, _clean(src_fn(en_query, k=k, scope=scope)), min_terms=2)
-            # KH0 底線：相關度／譯英仍空，但 raw 已有 item 原文共現 → 保留作「內文基本理解」（非通識瞎掰）
+                    citations = relevant_citations(
+                        en_query, _clean(src_fn(en_query, k=k, scope=scope)), min_terms=2)
             if not citations:
                 from augur.advisor.relevance import kh0_floor_citations
                 citations = kh0_floor_citations(query, raw)
-            # KH9-first：相關度閘後依 admit_depth 重排（不放寬相關、不改 RBAC）
             from augur.knowledge.auto_admit import rank_citations_kh_first
             citations = rank_citations_kh_first(citations)
     # 誠實保守白名單通識路(v1.35.0 + B-1 收尾):通識/B2 題(general_safe_answerable)即使檢索到
@@ -249,23 +263,50 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
         return {"response": resp, "guard": verdict,
                 "citations": [], "lex_entries": [], "prompt": None,
                 "picks_ground_truth": False}
-    prompt = (prompt_fn or build_prompt)(query, payload, citations, lex_entries)
-    concept_links = []
-    if prompt_fn is None and lex_entries:                    # W2:主路徑+有定義詞才接(Mode B 不套,同其餘閘)
-        concept_links = _concept_links(lex_terms, scope=scope)
-        prompt += _concept_block(concept_links)
-    # K1 橋：有 picks 時略過（預測通道自足、免再開庫；與 picks_skip_A 同精神）
+    # 緊湊作答（readout／local 知-how 自動）：凍結引文＋短答 prompt＋抛光輸出
+    compact_meta = None
+    use_compact = False
     if prompt_fn is None and not has_picks:
-        prompt += _bridge_block(_bridge_links(query, None))
-    # PME S4：進化塊；有 picks 時關閉（Steward picks_skip：再省 IO／檔案讀）
-    if prompt_fn is None and include_evolution and not has_picks:
-        from augur.philosophy.interpretation import (
-            evolution_prompt_block,
-            load_interpretation_markdown,
+        from augur.knowledge.compact_answer import freeze_citations, should_compact, wrap_compact_llm
+        use_compact = should_compact(
+            query, citations, readout_meta=readout_meta, answer_mode=answer_mode,
         )
-        md = evolution_md if evolution_md is not None else load_interpretation_markdown()
-        prompt += evolution_prompt_block(md)
+        if use_compact:
+            prefer = (readout_meta or {}).get("item_ids") or []
+            citations = freeze_citations(citations, prefer_item_ids=prefer)
+            compact_meta = {
+                "mode": (answer_mode or "auto"),
+                "n_cites": len(citations),
+                "prefer_item_ids": list(prefer),
+                "cite_chars": sum(len(getattr(c, "text", "") or "") for c in citations),
+            }
+            llm_fn = wrap_compact_llm(llm_fn)
+
+    if use_compact and prompt_fn is None:
+        from augur.advisor.prompt import build_compact_knowhow_prompt
+        prompt = build_compact_knowhow_prompt(query, payload, citations, lex_entries)
+        concept_links = []
+    else:
+        prompt = (prompt_fn or build_prompt)(query, payload, citations, lex_entries)
+        concept_links = []
+        if prompt_fn is None and lex_entries:                    # W2:主路徑+有定義詞才接(Mode B 不套,同其餘閘)
+            concept_links = _concept_links(lex_terms, scope=scope)
+            prompt += _concept_block(concept_links)
+        # K1 橋：有 picks 時略過（預測通道自足、免再開庫；與 picks_skip_A 同精神）
+        if prompt_fn is None and not has_picks:
+            prompt += _bridge_block(_bridge_links(query, None))
+        # PME S4：進化塊；有 picks 時關閉（Steward picks_skip：再省 IO／檔案讀）
+        if prompt_fn is None and include_evolution and not has_picks:
+            from augur.philosophy.interpretation import (
+                evolution_prompt_block,
+                load_interpretation_markdown,
+            )
+            md = evolution_md if evolution_md is not None else load_interpretation_markdown()
+            prompt += evolution_prompt_block(md)
     response = llm_fn(prompt)
+    if use_compact:
+        from augur.knowledge.compact_answer import polish_compact_response
+        response = polish_compact_response(response)
     if isinstance(payload, KnowledgePayload):
         # P8 域條款(已拍板 2026-07-04):雙源=payload.numbers() ∪ 本回合檢索真兆數字集
         verdict = guard_knowledge(response, payload, citations,
@@ -282,9 +323,54 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
         verdict["pass"] = not verdict["issues"]
     if has_picks:      # D4b 確定性 picks 注入:picks 由 payload ground truth 排版(不經弱 LLM 幻覺)+ LLM caveat 敘述
         response = _render_picks_table(payload) + "\n\n---\n" + response
-    return {"response": response, "guard": verdict,
-            "citations": citations, "lex_entries": lex_entries, "prompt": prompt,
-            "concept_links": concept_links, "picks_ground_truth": bool(has_picks)}
+    auto_lift_out = _maybe_wire_auto_lift(
+        query=query,
+        response=response,
+        citations=citations,
+        verdict=verdict,
+        prompt_fn=prompt_fn,
+        has_picks=has_picks,
+        auto_lift=auto_lift,
+    )
+    out = {"response": response, "guard": verdict,
+           "citations": citations, "lex_entries": lex_entries, "prompt": prompt,
+           "concept_links": concept_links, "picks_ground_truth": bool(has_picks)}
+    if auto_lift_out is not None:
+        out["auto_lift"] = auto_lift_out
+    if readout_meta is not None:
+        out["readout"] = readout_meta
+    if compact_meta is not None:
+        out["compact"] = compact_meta
+    return out
+
+
+def _maybe_wire_auto_lift(*, query, response, citations, verdict, prompt_fn, has_picks, auto_lift):
+    """wire-advise：旗開＋guard 過＋item 引文 → R-hybrid 抬層。fail-soft。"""
+    from augur.knowledge.answer_auto_lift import (
+        auto_lift_enabled, item_ids_from_citations, maybe_auto_lift_after_answer,
+    )
+    if not auto_lift_enabled(auto_lift):
+        return None
+    if not (verdict or {}).get("pass"):
+        return {"ok": True, "skipped": "guard_fail"}
+    if prompt_fn is not None or has_picks:
+        return {"ok": True, "skipped": "mode_b_or_picks"}
+    if not item_ids_from_citations(citations or ()):
+        return {"ok": True, "skipped": "no_item_citations"}
+    try:
+        from augur.core import db as _db
+        with _db.connect() as _conn, _conn.cursor() as _cur:
+            out = maybe_auto_lift_after_answer(
+                _cur,
+                query=query or "",
+                answer=response or "",
+                citations=citations,
+                apply=True,
+            )
+            _conn.commit()
+            return out
+    except Exception as e:  # noqa: BLE001 — 抬層不得炸主答
+        return {"ok": False, "error": str(e), "skipped": "exception"}
 
 
 def _selftest():
@@ -368,6 +454,17 @@ def _selftest():
     advise("什麼是知行合一", empty_payload(),
            llm_fn=lambda _p: "x", retrieve_fn=count_retrieve)
     chk("無 picks→仍呼叫 retrieve", len(hit2) >= 1)
+
+    # wire-advise：預設旗關 → 主路徑不附 auto_lift 鍵；explicit False 同；不開庫
+    from augur.knowledge.answer_auto_lift import auto_lift_enabled
+    chk("AUTO-LIFT 旗預設關", auto_lift_enabled() is False)
+    out_off = advise(
+        "什麼是知行合一", empty_payload(),
+        llm_fn=lambda _p: "知識庫中無可靠原文佐證此題。",
+        retrieve_fn=lambda *_a, **_k: [],
+        auto_lift=False,
+    )
+    chk("旗關無 auto_lift 鍵", "auto_lift" not in out_off)
 
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1

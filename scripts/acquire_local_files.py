@@ -42,16 +42,19 @@ def _detect_lang(text):
 
 
 def ingest_file(cur, path, *, license, access_scope, domain, source_key, source_type,
-                owner_user_id=None, source_url=None):
+                owner_user_id=None, source_url=None, ocr_pdf=False):
     """單檔逐字入庫(可重用;acquire_remote_files SFTP 通道復用之,#12 不複製 INSERT)。
     抽 fileparse → sha1 冪等去重 → INSERT knowledge_item(source_key 回填)+ knowledge_item_text(分段)。
     回 (item_id|None, n_rows, status);status∈{'ok','dup','short','skip:<reason>'};dup 回既有 item_id。
     source_url 預設 file://realpath;SFTP 傳 'sftp://host/remotepath'(暫存檔會刪、file:// 不穩)。
+    ocr_pdf：弱／掃描 PDF 可開 Tesseract（PDF-C；預設 False）。
     ⚠ 呼叫端須在同一 transaction(cur)內用,並先過 admission_gate(本函式不重複判閘、專責入庫)。"""
-    text, reason = fileparse.extract_text(path)
+    text, reason = fileparse.extract_text(path, ocr_pdf=bool(ocr_pdf))
     if text is None:
         return None, 0, "skip:" + reason
     text = text.strip()
+    if reason == "pdf_ocr":
+        text = fileparse.S0_OCR_MARK + text
     if len(text) < MIN_CHARS:
         return None, 0, "short"
     sha1 = hashlib.sha1(text.encode("utf-8", "replace")).hexdigest()
@@ -101,6 +104,8 @@ def main():
     ap.add_argument("--kip-qdrant-url", default=None,
                     help="KIP 段匯出 Qdrant URL;未給則 skip_qdrant(私有預設)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--ocr", action="store_true",
+                    help="PDF 字層弱／空時 Tesseract 補抽（PDF-C；預設 off；禁 ASR／caption）")
     args, _ = ap.parse_known_args()
 
     if not args.dir and not args.source_key:              # graceful:無寫入標的 → 先印用法(免 DB)、再試統計(#29a)
@@ -177,7 +182,8 @@ def main():
                 stats["scanned"] += 1
                 with db.transaction(conn) as cur:
                     qid = import_qualification.create_qualification(cur, job_id=job_id, abs_path=path, rel_path=rel)
-                    pf = import_qualification.preflight(path, min_chars=MIN_CHARS)
+                    pf = import_qualification.preflight(
+                        path, min_chars=MIN_CHARS, ocr_pdf=bool(args.ocr))
                     import_qualification.mark_preflight(cur, qid, pf)
                     if args.dry_run:                       # 掃描預覽:試抽取判可入否、仍寫 qualification
                         import_qualification.mark_dry_run(cur, qid)
@@ -213,7 +219,7 @@ def main():
                         item_id, n, status = ingest_file(
                             cur, path, license=license, access_scope=access_scope, domain=domain,
                             source_key=args.source_key, source_type=args.source_type,
-                            owner_user_id=args.owner_user_id)
+                            owner_user_id=args.owner_user_id, ocr_pdf=bool(args.ocr))
                         if status == "ok":
                             import_qualification.mark_ingest(cur, qid, ingest_status="inserted",
                                                              item_id=item_id, segment_rows=n)

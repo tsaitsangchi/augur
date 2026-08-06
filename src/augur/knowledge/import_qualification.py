@@ -90,9 +90,9 @@ def create_qualification(cur, *, job_id, abs_path, rel_path):
     return cur.fetchone()[0]
 
 
-def preflight(path, *, min_chars):
+def preflight(path, *, min_chars, ocr_pdf=False):
     """回 preflight dict：抽取結果、字數、sha1、建議 verdict/reason。"""
-    text, reason = fileparse.extract_text(path)
+    text, reason = fileparse.extract_text(path, ocr_pdf=bool(ocr_pdf))
     out = {
         "extract_reason": reason,
         "text_chars": 0,
@@ -105,6 +105,8 @@ def preflight(path, *, min_chars):
         out["reason_code"] = SKIP_REASON_MAP.get(reason, REASON_SKIP_OTHER)
         return out
     stripped = text.strip()
+    if reason == "pdf_ocr":
+        stripped = (fileparse.S0_OCR_MARK + stripped).strip()
     out["text_chars"] = len(stripped)
     out["sha1"] = hashlib.sha1(stripped.encode("utf-8", "replace")).hexdigest()
     if len(stripped) < min_chars:

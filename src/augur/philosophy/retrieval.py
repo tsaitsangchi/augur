@@ -259,6 +259,24 @@ def _guess_language(text):
     return "zh" if any("一" <= ch <= "鿿" for ch in text or "") else "en"
 
 
+def _item_query_terms(query, language=None) -> list[str]:
+    """items exact 用之辨識詞：CJK≥2 字＋拉丁詞；丟單字噪音（否則 exact 占滿 k、ANN 永不跑）。
+
+    zh tokenize 只收 CJK，混合 know-how 問句會丟 ERP／Oracle／RMAN——補 en tokenize。
+    """
+    lang = language or _guess_language(query)
+    terms: set[str] = set()
+    for t, _ in textnorm.tokenize(query or "", lang):
+        if len(t) >= 2:
+            terms.add(t)
+    # 混合問句：以 CJK 判為 zh 時仍補拉丁／數字詞
+    if lang != "en":
+        for t, _ in textnorm.tokenize(query or "", "en"):
+            if len(t) >= 2:
+                terms.add(t)
+    return list(terms)
+
+
 def _item_citations(cur, where, params, order, scores, via):
     cur.execute(f"SELECT {_ITEM_COLS} {_ITEM_JOIN} WHERE {where} ORDER BY {order}", params)
     return [ItemCitation(sent_id=r[0], itext_id=r[1], item_id=r[2], item_title=r[3], domain=r[4],
@@ -292,8 +310,10 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
     with db.connect() as conn, db.transaction(conn) as cur:
         if not _tables_exist(cur, "knowledge_item", "knowledge_item_text", "knowledge_sentence", "knowledge_kh4_state"):
             return []
-        terms = list({t for t, _ in textnorm.tokenize(query, language or _guess_language(query))})
+        terms = _item_query_terms(query, language)
         if terms and _tables_exist(cur, "knowledge_concordance"):
+            # exact 上限：弱詞不得占滿 k（無 concordance 之 local 件只能靠 ANN）
+            exact_cap = max(1, k // 2)
             cur.execute(f"""SELECT c.sent_id, count(DISTINCT c.term) AS n
                 FROM knowledge_concordance c
                 JOIN knowledge_sentence s ON s.sent_id = c.sent_id
@@ -301,8 +321,10 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
                 JOIN knowledge_item i ON i.item_id = x.item_id
                 JOIN knowledge_kh4_state k4 ON k4.item_id = i.item_id
                 WHERE c.term = ANY(%s) AND {cfrag}{extra} AND k4.answer_status = 'eligible'
-                GROUP BY c.sent_id ORDER BY n DESC, c.sent_id LIMIT %s""",
-                        (terms, *cparams, *extra_params, k))
+                GROUP BY c.sent_id
+                HAVING count(DISTINCT c.term) >= %s
+                ORDER BY n DESC, c.sent_id LIMIT %s""",
+                        (terms, *cparams, *extra_params, 2 if len(terms) >= 2 else 1, exact_cap))
             scores = {sid: n / len(terms) for sid, n in cur.fetchall()}
             if scores:
                 out = _item_citations(cur, f"s.sent_id = ANY(%s) AND {cfrag} AND k4.answer_status = 'eligible'",
@@ -473,6 +495,11 @@ def _selftest():
     chk("is_low_content 實質引文放行", is_low_content("這是一段有實質內容的哲學引文段落") is False)
     chk("_guess_language CJK→zh", _guess_language("道德經") == "zh")
     chk("_guess_language 拉丁→en", _guess_language("virtue") == "en")
+    # local know-how 問句：丟 CJK 單字噪音、補拉丁詞（否則 exact 占滿、ANN 餓死）
+    qt = _item_query_terms("國碩 ERP-GP DR Oracle r-man 還原", "zh")
+    chk("item terms 含拉丁 ERP/oracle", "erp" in qt or "oracl" in {t.rstrip("e") for t in qt} or any("oracle" in t or t.startswith("oracl") for t in qt))
+    chk("item terms 無單字『國』", "國" not in qt)
+    chk("item terms 保≥2字 CJK", any(len(t) >= 2 and all("一" <= c <= "鿿" for c in t) for t in qt) or "方式" in _item_query_terms("還原方式", "zh"))
     txt = "line1\nline2\nline3\n"
     segs = _passages(txt, size=8)
     chk("_passages 段逐字對位(seg==text[start:start+len])",

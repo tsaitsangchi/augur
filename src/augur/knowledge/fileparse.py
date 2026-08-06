@@ -4,10 +4,12 @@
    供知識層切句/嵌入/檢索。每格式一個抽取器;抽不出(未知/二進位/損壞/加密/超大)= **誠實跳過並分類記數**,
    絕不硬湊內容(#1 逐字 · #15 誠實)。惡意檔防護:大小上限(防 OOM)、符號連結不跟(防逃逸)、
    解析例外吞為 skip(防單檔崩整批)。
+   PDF-C：`extract_text(..., ocr_pdf=True)` 對弱／空字層 PDF 走 Tesseract（預設關；禁 ASR／caption）。
 守 #1(逐字、禁 AI 生成/改寫)· #15(抽不出誠實跳過、不杜撰)· #5(惡意檔/大小/符號連結防護)· #29。
 
-執行指令矩陣(本檔=library;CLI 見 scripts/acquire_local_files.py):
+執行指令矩陣(本檔=library;CLI 見 scripts/acquire_local_files.py / backfill_pdf_ocr.py):
   python -c "from augur.knowledge.fileparse import extract_text; print(extract_text('X.pdf'))"
+  python -c "from augur.knowledge.fileparse import extract_text; print(extract_text('X.pdf', ocr_pdf=True))"
 
 自測（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.knowledge.fileparse              # 印用途+公開入口（唯讀）
@@ -28,7 +30,8 @@ _IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".tif", ".tiff", ".bmp"}
 _OLE_OFFICE_EXT = {".doc", ".xls", ".ppt"}
 # skip 分類(誠實記數,計畫 §三):
 SKIP = ("oversize", "symlink", "empty", "decode_error", "parse_error",
-        "encrypted", "unknown_ext", "no_text", "missing_ocr", "missing_parser")
+        "encrypted", "unknown_ext", "no_text", "missing_ocr", "missing_parser",
+        "ocr_quality")
 # 人類可讀（UI／摘要；reason key 仍用 SKIP 英文碼）
 SKIP_LABEL_ZH = {
     "oversize": "超過單檔大小上限",
@@ -41,7 +44,17 @@ SKIP_LABEL_ZH = {
     "no_text": "無可抽文字（如掃描圖）",
     "missing_ocr": "缺 OCR 引擎（需 pytesseract+tesseract）",
     "missing_parser": "缺解析器或系統轉檔器",
+    "ocr_quality": "OCR 品質未過閘（過短／空白頁過多）",
 }
+
+# PDF-C OCR（code-go）：預設關；extract_text(..., ocr_pdf=True) 或 backfill 才開
+OCR_TRIGGER_CHARS_DEFAULT = 200
+OCR_MAX_PAGES_DEFAULT = 40
+OCR_MIN_CHARS = 80          # 弱於 pypdf 字層則寧可保留字層／跳過
+OCR_BLANK_PAGE_RATIO_MAX = 0.50
+OCR_DPI = 200
+OCR_LANGS = "chi_tra+eng"
+S0_OCR_MARK = "<!-- via=pdf_ocr -->\n"   # source_mark=S0；仍用 local_upload
 
 
 def _read_text(path):
@@ -74,7 +87,78 @@ def _read_pdf(path):
         except Exception:
             return None, "encrypted"
     txt = "\n".join((p.extract_text() or "") for p in r.pages)
-    return (txt, "pdf") if txt.strip() else (None, "no_text")   # 掃描檔無文字層 → no_text(P5 OCR)
+    return (txt, "pdf") if txt.strip() else (None, "no_text")   # 弱／空字層可走 ocr_pdf
+
+
+def ocr_pdf_pages(
+    path,
+    *,
+    max_pages: int = OCR_MAX_PAGES_DEFAULT,
+    dpi: int = OCR_DPI,
+    langs: str = OCR_LANGS,
+):
+    """PDF 頁光柵 → Tesseract。回 (text|None, reason, meta:dict)。
+
+    reason 成功＝`pdf_ocr`；失敗∈ SKIP。禁 ASR／caption；不經 LLM（PDF-C）。
+    """
+    meta = {
+        "n_pages": 0, "n_ocr_pages": 0, "blank_pages": 0,
+        "chars": 0, "truncated": False, "dpi": dpi, "langs": langs,
+    }
+    try:
+        import fitz  # pymupdf
+        import pytesseract
+        from PIL import Image
+    except Exception:
+        return None, "missing_ocr", meta
+    try:
+        doc = fitz.open(path)
+    except Exception:
+        return None, "parse_error", meta
+    try:
+        n_all = len(doc)
+        meta["n_pages"] = n_all
+        limit = max(1, int(max_pages))
+        if n_all > limit:
+            meta["truncated"] = True
+        n = min(n_all, limit)
+        parts = []
+        blank = 0
+        for i in range(n):
+            page = doc.load_page(i)
+            pix = page.get_pixmap(dpi=dpi)
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            try:
+                s = pytesseract.image_to_string(img, lang=langs) or ""
+            except pytesseract.TesseractNotFoundError:
+                return None, "missing_ocr", meta
+            except Exception:
+                return None, "parse_error", meta
+            if not s.strip():
+                blank += 1
+            parts.append(s)
+            meta["n_ocr_pages"] = i + 1
+        meta["blank_pages"] = blank
+        if n > 0 and (blank / n) > OCR_BLANK_PAGE_RATIO_MAX:
+            return None, "ocr_quality", meta
+        text = "\n".join(parts).strip()
+        meta["chars"] = len(text)
+        if len(text) < OCR_MIN_CHARS:
+            return None, "ocr_quality", meta
+        return text, "pdf_ocr", meta
+    finally:
+        try:
+            doc.close()
+        except Exception:
+            pass
+
+
+def _pdf_needs_ocr(text, reason, *, trigger_chars: int) -> bool:
+    if reason == "encrypted":
+        return False
+    if reason == "no_text" or text is None:
+        return True
+    return len((text or "").strip()) < int(trigger_chars)
 
 
 def _read_docx(path):
@@ -196,10 +280,17 @@ def _read_epub(path):
     return (txt, "epub") if txt.strip() else (None, "no_text")
 
 
-def extract_text(path):
+def extract_text(
+    path,
+    *,
+    ocr_pdf: bool = False,
+    ocr_trigger_chars: int | None = None,
+    ocr_max_pages: int | None = None,
+):
     """回 (text|None, method_or_skipreason)。text 非 None = 抽取成功;None = 跳過(reason ∈ SKIP)。
 
-    純規則、逐字;任何解析例外 → ('parse_error') 不外拋(單檔不崩整批,#5/#15)。"""
+    純規則、逐字;任何解析例外 → ('parse_error') 不外拋(單檔不崩整批,#5/#15)。
+    ocr_pdf：PDF 字層弱／空時用 Tesseract 補抽（預設 False；PDF-C；禁 ASR／caption）。"""
     try:
         if os.path.islink(path):
             return None, "symlink"                 # 不跟符號連結(防逃逸/迴圈)
@@ -212,7 +303,19 @@ def extract_text(path):
         if ext in _TEXT_EXT:
             return _read_text(path)
         if ext == ".pdf":
-            return _read_pdf(path)
+            text, reason = _read_pdf(path)
+            trigger = (ocr_trigger_chars if ocr_trigger_chars is not None
+                       else OCR_TRIGGER_CHARS_DEFAULT)
+            max_pages = (ocr_max_pages if ocr_max_pages is not None
+                         else OCR_MAX_PAGES_DEFAULT)
+            if ocr_pdf and _pdf_needs_ocr(text, reason, trigger_chars=trigger):
+                ocr_text, ocr_reason, _meta = ocr_pdf_pages(path, max_pages=max_pages)
+                if ocr_reason == "pdf_ocr" and ocr_text:
+                    if len(ocr_text.strip()) > len((text or "").strip()):
+                        return ocr_text, "pdf_ocr"
+                elif text is None and ocr_reason in SKIP:
+                    return None, ocr_reason
+            return (text, reason) if text is not None else (None, reason)
         if ext == ".docx":
             return _read_docx(path)
         if ext == ".doc":
@@ -257,9 +360,9 @@ def _selftest():
         nonlocal ok; ok = ok and cond
         print(f"  {'✓' if cond else '✗FAIL'} {name}")
     chk("MAX_BYTES=50MB", MAX_BYTES == 50 * 1024 * 1024)
-    chk("SKIP 全十類齊備", set(SKIP) == {"oversize", "symlink", "empty", "decode_error",
+    chk("SKIP 全十一類齊備", set(SKIP) == {"oversize", "symlink", "empty", "decode_error",
                                         "parse_error", "encrypted", "unknown_ext", "no_text",
-                                        "missing_ocr", "missing_parser"})
+                                        "missing_ocr", "missing_parser", "ocr_quality"})
     chk("SKIP_LABEL_ZH 覆蓋 SKIP", set(SKIP_LABEL_ZH) == set(SKIP))
     chk("encrypted 標籤含密碼提示", "密碼" in SKIP_LABEL_ZH["encrypted"])
     chk(".pdf 不在 _TEXT_EXT(走專屬抽取器)", ".pdf" not in _TEXT_EXT)
@@ -267,6 +370,11 @@ def _selftest():
     chk("常見 image 副檔名納入 OCR 集", {".jpg", ".png", ".webp", ".gif", ".tiff", ".bmp"} <= _IMAGE_EXT)
     chk("舊版 Office 副檔名納入辨識", {".doc", ".xls", ".ppt"} <= _OLE_OFFICE_EXT)
     chk("公開入口 extract_text 存在", callable(extract_text))
+    chk("ocr_pdf_pages 公開", callable(ocr_pdf_pages))
+    chk("needs_ocr 弱字層", _pdf_needs_ocr("x" * 50, "pdf", trigger_chars=200) is True)
+    chk("needs_ocr 足字層否", _pdf_needs_ocr("x" * 500, "pdf", trigger_chars=200) is False)
+    chk("needs_ocr encrypted 否", _pdf_needs_ocr(None, "encrypted", trigger_chars=200) is False)
+    chk("S0 mark", S0_OCR_MARK.startswith("<!-- via=pdf_ocr"))
     chk("各格式抽取器齊備", all(callable(f) for f in
                               (_read_text, _read_pdf, _read_docx, _read_doc, _read_pptx,
                                _read_ppt, _read_xlsx, _read_xls, _read_image, _read_epub)))
