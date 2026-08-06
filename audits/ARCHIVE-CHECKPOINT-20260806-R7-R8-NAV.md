@@ -22,7 +22,7 @@ self_reported: true
 
 ## Tag／SHA（封後填）
 
-- commit：`(pending)`
+- commit：`c01e961e7543cbd0fd1446318fa018fe6e18a9d3`
 - tag：`archive-20260806-r7-r8-nav`
 
 *候 push。*
