@@ -36,9 +36,9 @@ self_reported: true
 - 撤 NF-pause／新族 train；C1 EXPAND 放量；sim `--apply`  
 - 默開 KH AUTO-LIFT 生產旗  
 
-## 4. Tag／SHA（封後填）
+## 4. Tag／SHA
 
-- commit：`待填`
+- commit：`a4f23398c7d560fc8ecc31894ec24246761aa024`
 - tag：`archive-20260806-kh-s4s5-pdf-ocr-verify`
 
-*候 commit／push。*
+*sealed。*
