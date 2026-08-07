@@ -91,7 +91,7 @@ def _compose_direction_refusal(total, n_fail, n_pass, *, market_binary=False):
             "預測股價或準確率排名(關卡通過不等於自動可答;系統建議、人決策)。\n\n"
             "・逐日**價格點位/路徑**永久不是本系統的預測產物。想看歷史波動下的可能區間,"
             "請用**蒙地卡羅模擬情境**頁(明確標示模擬非預測、只給不確定性扇形,不是明牌)。\n"
-            "・若你要的是**相對強弱排名**(哪些股相對同儕較強),系統有相對機率頁可查。")
+            "・若你要的是**相對強弱排名**(哪些股相對同儕較強),那是另一回事,系統有相對機率頁可查。")
     else:
         judged = (f"共 {total} 道預註冊關卡已**全部**經機械驗證**統計判死**" if n_fail == total else
                   f"共 {total} 道預註冊關卡中 {n_fail} 道經機械驗證**統計判死**、其餘無一評估通過(輸出維持不可用)")
@@ -117,11 +117,232 @@ def _compose_direction_refusal(total, n_fail, n_pass, *, market_binary=False):
     return body
 
 
+# 權值／常出現在台股寬基相關討論之流動大型股（非官方 0050 成分表；宇宙交集後陳報）
+_PEER_SNAPSHOT_CANDIDATES = (
+    "2330", "2317", "2454", "2308", "2382", "2303", "3711", "2881", "2882",
+    "2891", "2886", "2884", "2885", "2880", "2892", "2801", "5871", "2207",
+    "2912", "1301", "1303", "2002", "2412", "3008", "2357", "3034", "2327",
+    "2345", "2379", "2395", "2408", "2474", "2615", "3037", "3231", "3661",
+)
+
+
+def _hist_calendar_move_stats(stock_id, days=10, cur=None):
+    """歷史「約 N 日曆日」報酬頻度（描述過去、≠未來機率）。回 dict 或 None。"""
+    from datetime import timedelta
+    from augur.catalog import world_concept
+
+    def _run(c, conn=None):
+        # WM.36：價表經 registry，不字面直綁供應商表
+        bar_sql = world_concept.resolve_sql("tw.daily_bar", conn=conn)
+        c.execute(
+            f'SELECT "date", "close" FROM {bar_sql} '
+            "WHERE stock_id=%s ORDER BY 1",
+            (str(stock_id),),
+        )
+        rows = c.fetchall()
+        if len(rows) < 30:
+            return None
+        rets = []
+        for i, (d, px) in enumerate(rows[:-1]):
+            target = d + timedelta(days=int(days))
+            j = None
+            for k in range(i + 1, len(rows)):
+                if rows[k][0] >= target:
+                    j = k
+                    break
+            if j is None:
+                continue
+            p0, p1 = float(px), float(rows[j][1])
+            if p0 > 0:
+                rets.append(p1 / p0 - 1.0)
+        if len(rets) < 50:
+            return None
+        rets.sort()
+        n = len(rets)
+        up = sum(1 for r in rets if r > 0) / n
+        med = rets[n // 2]
+        p25, p75 = rets[n // 4], rets[(3 * n) // 4]
+        last_d, last_px = rows[-1][0], float(rows[-1][1])
+        return {
+            "n": n, "up_rate": up, "median": med, "p25": p25, "p75": p75,
+            "last_date": str(last_d), "last_close": last_px, "days": int(days),
+        }
+
+    try:
+        if cur is not None:
+            return _run(cur, conn=getattr(cur, "connection", None))
+        from augur.core import db
+        with db.connect() as conn, conn.cursor() as c:
+            return _run(c, conn=conn)
+    except Exception:
+        return None
+
+
+def _peer_rel_snapshot(horizon=20, as_of=None, cur=None, limit=5):
+    """宇宙內權值候選之相對機率快照（≠ ETF 方向）。回 dict 或 None。"""
+
+    def _run(c):
+        ao = as_of
+        if ao is None:
+            c.execute(
+                "SELECT max(panel_date) FROM prediction_probability WHERE horizon=%s",
+                (int(horizon),),
+            )
+            ao = (c.fetchone() or [None])[0]
+        if ao is None:
+            return None
+        c.execute(
+            "SELECT stock_id, p_beat_median, rank_pctile, econ_verdict FROM prediction_probability "
+            "WHERE panel_date=%s AND horizon=%s AND stock_id = ANY(%s) "
+            "ORDER BY p_beat_median DESC NULLS LAST",
+            (ao, int(horizon), list(_PEER_SNAPSHOT_CANDIDATES)),
+        )
+        rows = c.fetchall()
+        if not rows:
+            return None
+        beats = [float(r[1]) for r in rows if r[1] is not None]
+        if not beats:
+            return None
+        beats_s = sorted(beats)
+        med = beats_s[len(beats_s) // 2]
+        frac = sum(1 for x in beats if x > 0.5) / len(beats)
+        top = [
+            (str(r[0]), round(float(r[1]) * 100, 1), r[3])
+            for r in rows[: int(limit)]
+        ]
+        return {
+            "as_of": str(ao), "horizon": int(horizon), "n": len(rows),
+            "median_pct": round(med * 100, 1),
+            "frac_above_half": round(frac * 100, 1),
+            "top": top,
+        }
+
+    try:
+        if cur is not None:
+            return _run(cur)
+        from augur.core import db
+        with db.connect() as conn, conn.cursor() as c:
+            return _run(c)
+    except Exception:
+        return None
+
+
+def _advice_bundle_for_query(query, cur=None):
+    """絕對方向拒答後之誠實建議包（憲政切片路徑 2 旁側）：相對真兆／宇宙缺口／窗對齊／MC。
+    **禁**輸出看漲／看跌絕對％；有 p_beat 時硬綁 GATE 未過＋econ_verdict。
+    宇宙外（如 0050）加：歷史頻度＋權值相對快照＋行動清單。"""
+    from augur.advisor.relevance import (
+        extract_tw_tickers, single_ticker_rel_intent, _horizon_from_query,
+    )
+    lines = ["", "【系統可給的誠實建議・非看漲／看跌％】"]
+    q = query or ""
+    tickers = extract_tw_tickers(q)
+    sti = single_ticker_rel_intent(q)
+    h_ask = _horizon_from_query(q, default=60)
+    want_short = bool(re.search(r"(1[0-4]|[7-9])\s*(天|日)|兩\s*週|两\s*周|10\s*天", q))
+    if want_short:
+        lines.append(
+            f"・窗口:你問約短窗（如十天）——系統**無**十交易日確立產物；"
+            f"最接近短尺為 **H{h_ask}**（交易日、約對應月曆更長），下列相對尺皆依此、**不是**十日絕對漲跌。"
+        )
+    if not tickers:
+        lines.append(
+            "・未偵測到四碼股號:若要**個股相對強弱**建議,請寫如 2330 相對同儕 H20;"
+            "若只要情景扇形,用蒙地卡羅頁(模擬非預測)。"
+        )
+    else:
+        sid = tickers[0]
+        h = sti[1] if sti else h_ask
+        lines.append(f"・偵測股號 **{sid}**(H{h} 相對尺嘗試):")
+        has_rel = False
+        try:
+            from augur.advisor.payload import build_single_ticker_rel_payload
+            pl = build_single_ticker_rel_payload(sid, h)
+            if pl.probs:
+                has_rel = True
+                p_sid, p_h, p_beat, ev, cd = pl.probs[0]
+                pct = round(float(p_beat) * 100, 1)
+                lines.append(
+                    f"  — 相對真兆:as-of {pl.as_of}、H{p_h}≈{cd} 日曆日、"
+                    f"**P(勝過同儕中位)≈{pct}%**、econ_verdict={ev}。"
+                    f"**這不是**看漲／看跌絕對機率;direction_gate 未過,不得確立漲跌;系統建議、人決策。"
+                )
+            else:
+                note = (pl.validation or {}).get("note", "無列")
+                lines.append(
+                    f"  — 現役**相對機率宇宙無此代號**({note})。"
+                    f"常見於 ETF／非 train 宇宙:**不能**捏造該檔漲跌％或假相對％。"
+                )
+        except Exception:
+            lines.append(
+                "  — 相對真兆讀取失敗(fail-soft);仍**不**提供絕對漲跌％。"
+            )
+        # 歷史頻度（短窗問句或宇宙外代號）
+        if want_short or not has_rel:
+            hist = _hist_calendar_move_stats(sid, days=10, cur=cur)
+            if hist:
+                lines.append(
+                    f"  — **歷史描述**(非預測):約 {hist['days']} 日曆日持有、樣本 n={hist['n']}、"
+                    f"過去上漲頻度約 **{hist['up_rate']*100:.1f}%**、"
+                    f"報酬中位約 {hist['median']*100:+.2f}%、"
+                    f"四分位約 [{hist['p25']*100:+.2f}%, {hist['p75']*100:+.2f}%];"
+                    f"最新收盤 as-of {hist['last_date']}≈{hist['last_close']:.2f}。"
+                    f"**過去頻度≠未來機率**;不可當看漲／看跌％。"
+                )
+        # 權值相對快照（ETF／無列時必給；有相對時可略）
+        if not has_rel:
+            snap = _peer_rel_snapshot(horizon=h, cur=cur, limit=5)
+            if snap:
+                tops = "、".join(
+                    f"{t} P(中位)≈{p}%({ev})" for t, p, ev in snap["top"]
+                )
+                lines.append(
+                    f"  — **權值股相對快照**(非正式成分表;as-of {snap['as_of']} H{snap['horizon']};"
+                    f"命中 {snap['n']} 檔):**≠{sid} 漲跌方向**。"
+                    f"樣本中位 P(勝同儕中位)≈{snap['median_pct']}%;"
+                    f"P>50% 占比約 {snap['frac_above_half']}%;"
+                    f"相對較強例:{tops}。"
+                    f"econ 多為 dead／thin 時更不可當可交易絕對方向。"
+                )
+        # 行動建議（人決策）
+        lines.append("  — **行動建議**(系統建議、人決策;非下單指令):")
+        if not has_rel:
+            lines.append(
+                "    (1) 若你要的是 ETF 點位不確定性:開蒙地卡羅頁對 0050／同標的做扇形"
+                f"({DIRECTION_SIM_URL}),硬讀『模擬非預測』。"
+            )
+            lines.append(
+                "    (2) 若你要可引用數字:改問宇宙內個股相對強弱"
+                "(例:2330／2317／2454 相對同儕 H20),再自己組合成「權值籃」觀點——"
+                "**組合觀點仍≠0050 確立漲跌％**。"
+            )
+            lines.append(
+                "    (3) 歷史上漲頻度偏高**只**表示樣本內常正報酬,不含择時優勢;"
+                "方向閘未過 → **不建議**把任何％當成進場依據。"
+            )
+        else:
+            lines.append(
+                "    (1) 只用相對 P 與同儕比較,莫改寫成會漲／會跌％;"
+                "(2) 看 econ_verdict=dead／thin 則當成研究標註而非下單;"
+                f"(3) 情景:{DIRECTION_SIM_URL}。"
+            )
+    lines.append(
+        "・系統研究尺(投組 OOS、**非**你問的那一檔預測):短／中窗以 RankRidge 為主;"
+        "方向閘通過數為零時任何「會漲％」皆不可用。"
+    )
+    lines.append(
+        "・下一步可怎麼問才拿得到更多個股數字:"
+        "「2330 相對同儕未來約二十交易日」或相對機率頁;"
+        f"情景扇形:{DIRECTION_SIM_URL}"
+    )
+    return "\n".join(lines)
+
+
 def build_direction_refusal(cur=None, query=None):
     """lock② 拒答句之 DB 驅動版(#29b:gate 門數/狀態=DB 資料,不寫死)——即時查 direction_gate。
     全 fail → 現行句型+動態門數;任何 evaluated_pass → fail-closed 保守句(不自動宣稱可答);
     DB 例外或空表 → 退回 hardcode 常數(fail-closed)。句尾一律附模擬頁指引(純導引、零預測數字)。
-    query:可選;無股號且「漲還是跌」類 → 大盤知識通道 enrich。
+    query:可選;無股號且「漲還是跌」類 → 大盤知識通道 enrich；有股號 → 附誠實建議包。
     cur=None → 自連唯讀 SELECT(advise() 短路處無 cur;同 payload.build_prediction_payload 之唯讀模式)。"""
     market_binary = False
     if query:
@@ -148,12 +369,19 @@ def build_direction_refusal(cur=None, query=None):
                     "閘狀態讀取失敗時仍**不**提供可交易漲跌機率。"
                     + _SIM_HINT
                 )
-            return base
-        return _compose_direction_refusal(
-            int(total), int(n_fail), int(n_pass), market_binary=market_binary,
-        ) + _SIM_HINT
+        else:
+            base = _compose_direction_refusal(
+                int(total), int(n_fail), int(n_pass), market_binary=market_binary,
+            ) + _SIM_HINT
     except Exception:
-        return DIRECTION_PATH_FIXED_RESPONSE + _SIM_HINT
+        base = DIRECTION_PATH_FIXED_RESPONSE + _SIM_HINT
+    # Steward：拒絕對方向後仍要能給建議——同屏 bundle（有股號或相對意圖時）
+    if query:
+        try:
+            base = base + _advice_bundle_for_query(query, cur=cur)
+        except Exception:
+            pass
+    return base
 
 SYSTEM_PROMPT = f"""你是 augur 的「博學投資大師」顧問。你的工作是把**已算好的真實預測數字**與**哲學素養庫的逐字引文**,翻成有智慧脈絡、引經據典的解讀。你不預測、不算分,只解讀已算好的。
 

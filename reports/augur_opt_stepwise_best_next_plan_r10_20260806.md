@@ -23,7 +23,7 @@ self_reported: true
 > **疊用**：現況→理解 r8；**選刀→本檔 r10**；准否／驗收→S1→S5 SSOT＋ARCHIVE／standing。  
 > **日更**：A 軌 standing／B3／B1；`skip-sync-B` · `no-SIM-apply` · 誠實 econ。  
 > **相對 r9**：Phase 0 ✅；Phase 1 **armed**；H82／graph／F ✅；§1 狀態列刷新。  
-> **LIVE**（(b) ≈08:33+08）：價／fv／core／pp／graph 頂＝**2026-08-05**；A＠08-06＝**WAIT**；H82 artifact ✅；dgate 無 evaluated_pass。
+> **LIVE**（≈09:32+08 **2026-08-07**）：價／pp／pv 頂＝**2026-08-06**；B3＠06＝**DONE**；A＠08-07＝**WAIT**（ARMED）；dgate `evaluated_pass=0`；H20 econ=dead。
 
 ---
 
@@ -45,24 +45,24 @@ self_reported: true
 
 | # | 問題 | 最佳下一步 | 可先／∥？ | 狀態 |
 |---|---|---|---|---|
-| **1** | 日更＠**2026-08-06** | 候 A 價→自動 B3（已 armed） | **主軸**；∥ #10 | 🟡 WAIT |
-| **2** | econ／dgate 誠實形 | 不修綠；日更照常 | ∥ | 🟡（非 bug） |
-| **3** | graph asof 錯位 | — | — | 🟢＠08-05（33,695） |
+| **1** | 日更＠**2026-08-07** | 候 A 價→自動 B3（已 armed） | **主軸**；∥ #10 | 🟡 ARMED／WAIT |
+| **2** | econ／dgate 誠實形 | 不修綠；日更照常 | ∥ | 🟡（pass=0；H20 dead） |
+| **3** | graph asof 錯位 | — | — | 🟢＠08-05+ |
 | **4** | H82 ghost | — | — | 🟢 |
-| **5** | r7／r8／r9 文檔地盤 | — | — | 🟢（Phase0 push） |
-| **6** | Phase1 ARMED 帳未 push | commit／push 該帳 | **可∥ #1** | 📄 |
-| **7** | 圖**消費端**是否讀新 asof | G0+G1 ✅；下一 **G2 stub** 另 GO（∥#1；禁 train） | ∥文件 | 🟡 G1✅／G2🔴 |
-| **8** | C1 EXPAND／CYCLE | EXPAND ✅＠08-05；CYCLE／殘 gap **讓 #1** | 與 #1 互斥時讓日更 | 🟡 EXPAND✅／CYCLE🔴 |
-| **9** | P6 週 fit H20／H60 | FREEZE 08-04 ✅；下一 asof **閒時另 GO** | 閒時·⊥日更 | 🟡 08-04✅／滾動🔴 |
-| **10** | M／β5／NF | 只輕監 | **∥ #1** | ❄ |
+| **5** | r7／r8／r9 文檔地盤 | — | — | 🟢 |
+| **6** | Phase1 ARMED 帳 | 已封存波；可略 | — | 🟢 |
+| **7** | 圖消費端 | 下一 **G2 stub** 另 GO（∥；禁 train） | ∥文件 | 🟡 G1✅／G2🔴 |
+| **8** | C1 EXPAND／CYCLE | CYCLE／殘 gap **閒時** | ∥日更後 | 🟡 EXPAND✅／CYCLE🔴 |
+| **9** | P6 週 fit | 下一 asof **閒時另 GO** | 閒時·⊥日更 | 🟡 |
+| **10** | M／β5／NF | 只輕監 | **∥** | ❄ |
 | **11** | Dividend／dim-sync | 另 auth | 旁車道 | ❄ |
-| **12** | sim apply | 禁；時鐘旁軸 | — | ❄／🟡 |
-| **13** | 循環依賴 | explore-only 先 | 低優先∥ | 🔴 |
+| **12** | sim apply | 禁 | — | ❄ |
+| **13** | 循環依賴 | explore-only | 低優先∥ | 🔴 |
 | **14** | scripts 冗餘 | #29 另計畫 | 延後 | 🔴 |
 | **15** | 10-14 治權日曆 | 10 月初複核 | 排程 | 🟡 |
-| **16** | H40／120 納每日 B | 不改 standing | 延後 | ❄敘事 |
+| **16** | H40／120 納每日 B | 不改 standing | 延後 | ❄ |
 | **17** | dgate evaluate | 另明示 GO | 延後 | 🟡 |
-| **18** | **其他模型驗証** | 矩陣 ADOPTED；**V5＋V1·H60 EXECUTED**（M1 不升格；pass=0）；待 **V3**／H20 另句；新族須撤 NF | ∥#1；重跑讓 B3 | `S4-V1-REVERIFY-EXECUTED` · `S5-OOS-VERIFY-EXECUTED` |
+| **18** | **其他模型驗証** | 依 INVENTORY；V0–V3／V1·H20 ✅；**V2 歷史排隊文件** ✅；V4 須撤 NF | ∥文件 | `S4-V2-SKIP-HIST-QUEUE-20260807` · INVENTORY |
 
 ---
 

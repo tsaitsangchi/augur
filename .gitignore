@@ -24,6 +24,7 @@ augur-data/
 *.log
 logs/
 .db_export/
+/_db_dump/
 
 # 報告產出（JSON dump 等；.md 報告視情況 force-add）
 reports/*.json

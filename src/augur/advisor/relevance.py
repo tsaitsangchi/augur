@@ -211,43 +211,55 @@ def picking_intent(query):
 
 # ── 單股相對機率意圖(ADVISOR-PRED-KH Phase 1；乙案 B2 優於 C)──
 # 「2330 未來約 30 天走勢」類 → (stock_id, horizon_td)；目標價/逐日點位仍交 C 短路。
-_STOCK_ID_RE = re.compile(r"(?<!\d)([1-9]\d{3})(?!\d)")  # 台股 4 碼、禁前導 0 連號膨脹
+# 台股 4 碼含 ETF 0xxx；剔除年號 1900–2100 以防「2026年」誤當股號。
+_STOCK_ID_RE = re.compile(r"(?<!\d)(\d{4})(?!\d)")
 _TICKER_ABS_EXCLUDE = re.compile(r"目標價|逐日|每日路徑|漲多少|跌多少")
 _TICKER_REL_SIGNAL = re.compile(
-    r"相對|同儕|強弱|排名|機率|走勢|展望|預測|未來.{0,5}(天|日)|"
+    r"相對|同儕|強弱|排名|機率|走勢|展望|預測|看漲|看跌|漲跌|"
+    r"未來.{0,5}(天|日)|"
     r"\d{1,3}\s*個?(天|日|交易日)|約\s*\d{1,3}\s*天"
 )
+
+
+def _plausible_tw_ticker(sid):
+    """四碼可當台股／ETF；1900–2100 視為年號碰撞（非股號）。"""
+    try:
+        n = int(sid)
+    except (TypeError, ValueError):
+        return False
+    if 1900 <= n <= 2100:
+        return False
+    return True
+
+
+def extract_tw_tickers(query):
+    """問句內合理台股／ETF 四碼（去重、保序）。"""
+    out, seen = [], set()
+    for m in _STOCK_ID_RE.finditer(query or ""):
+        sid = m.group(1)
+        if not _plausible_tw_ticker(sid) or sid in seen:
+            continue
+        seen.add(sid)
+        out.append(sid)
+    return out
 
 
 def single_ticker_rel_intent(query):
     """回 (stock_id, horizon) 或 None。
 
-    horizon 映射：≈30 日曆日→20 交易日；未寫清但有走勢/相對訊號→60(部署主尺)。
+    horizon 映射：≈7–14／10 日／約月→20 交易日；未寫清但有走勢/相對訊號→60(部署主尺)。
     含目標價/逐日點位且無「相對／同儕」→ None（留給方向短路）。
     """
     q = query or ""
     if _TICKER_ABS_EXCLUDE.search(q) and not re.search(r"相對|同儕|強弱|排名", q):
         return None
-    m = _STOCK_ID_RE.search(q)
-    if not m:
+    tickers = extract_tw_tickers(q)
+    if not tickers:
         return None
     if not _TICKER_REL_SIGNAL.search(q):
         return None
-    sid = m.group(1)
-    h = 60
-    if re.search(r"120\s*(天|日|交易日)|H\s*120|半年", q, re.I):
-        h = 120
-    elif re.search(r"40\s*(天|日|交易日)|H\s*40", q, re.I):
-        h = 40
-    elif re.search(r"60\s*(天|日|交易日)|H\s*60|兩個?月", q, re.I):
-        h = 60
-    elif re.search(
-        r"30\s*(天|日|交易日)|約\s*30|未來.{0,4}30|一個?月|20\s*(天|日|交易日)|H\s*20",
-        q,
-        re.I,
-    ):
-        h = 20
-    return (sid, h)
+    sid = tickers[0]
+    return (sid, _horizon_from_query(q, default=60))
 
 
 _CN_NUM = {"一": 1, "二": 2, "兩": 2, "两": 2, "三": 3, "四": 4, "五": 5,
@@ -261,8 +273,12 @@ def _horizon_from_query(q, default=60):
         return 40
     if re.search(r"60\s*(天|日|交易日)|H\s*60|兩個?月", q, re.I):
         return 60
+    # 短窗口語（10 天／兩週／今天之後 N 天≤14）→ 最近部署短尺 H20（非十交易日精確產物）
     if re.search(
-        r"30\s*(天|日|交易日)|約\s*30|未來.{0,4}30|一個?月|20\s*(天|日|交易日)|H\s*20",
+        r"(?:今天之後|未來)?.{0,4}(1[0-4]|[7-9])\s*(天|日|交易日)|"
+        r"兩\s*週|两\s*周|约?\s*10\s*天|約\s*10|"
+        r"30\s*(天|日|交易日)|約\s*30|未來.{0,4}30|一個?月|"
+        r"20\s*(天|日|交易日)|H\s*20",
         q, re.I,
     ):
         return 20
@@ -316,7 +332,7 @@ def rel_prob_topk_intent(query):
 def market_binary_dir_intent(query):
     """無股號＋「上漲還是下跌／漲或跌」→ 大盤絕對方向題(預測知識通道 enrich;仍不給可交易機率)。"""
     q = query or ""
-    if _STOCK_ID_RE.search(q):
+    if extract_tw_tickers(q):
         return False
     if re.search(r"目標價|逐日路徑", q):
         return False
@@ -383,6 +399,10 @@ def _selftest():
     # single_ticker_rel_intent(B2)
     chk("單股30天走勢→(2330,20)", single_ticker_rel_intent("2330個股未來30天走勢?") == ("2330", 20))
     chk("單股相對機率→命中", single_ticker_rel_intent("2330 相對機率如何")[0] == "2330")
+    chk("ETF 0050+漲跌機率→命中H20",
+        single_ticker_rel_intent("在今天之後10天內0050漲跌的機率為何?") == ("0050", 20))
+    chk("0050相對同儕→命中", single_ticker_rel_intent("0050相對同儕強弱")[0] == "0050")
+    chk("年號剔除保真股", extract_tw_tickers("2026年展望2330") == ["2330"])
     chk("目標價→None(交 C)", single_ticker_rel_intent("2330 目標價多少") is None)
     chk("純哲學→None", single_ticker_rel_intent("什麼是知行合一") is None)
     chk("選股組合題不誤觸四碼假股", single_ticker_rel_intent("該買什麼股票") is None)

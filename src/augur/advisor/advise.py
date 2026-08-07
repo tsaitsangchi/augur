@@ -171,6 +171,24 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
                 from augur.advisor.payload import build_single_ticker_rel_payload
                 payload = build_single_ticker_rel_payload(sti[0], sti[1])
                 has_pred_picks = bool(getattr(payload, "picks", ()))
+                # ETF／宇宙外代號:無 picks 時仍給誠實建議包（禁假漲跌％）
+                if not has_pred_picks and prompt_fn is None:
+                    from augur.advisor.prompt import build_direction_refusal
+                    body = build_direction_refusal(query=query)
+                    if not _asks_direction_or_path(query):
+                        # 純相對問句:不要套「方向判死」開場,只留建議包＋短拒
+                        from augur.advisor.prompt import _advice_bundle_for_query, _SIM_HINT
+                        body = (
+                            f"關於 **{sti[0]}** 的相對強弱:現役相對機率宇宙**沒有此代號**的可引用列 "
+                            f"(H{sti[1]})——常見於 ETF／未納入 train 宇宙標的。"
+                            "我**不能**捏造該檔「相對％」或「看漲／看跌％」。"
+                            + _advice_bundle_for_query(query)
+                            + _SIM_HINT
+                        )
+                    return {"response": body, "guard": {"pass": True, "issues": []},
+                            "citations": [], "lex_entries": [], "prompt": None,
+                            "picks_ground_truth": False,
+                            "rel_miss": {"stock_id": sti[0], "horizon": sti[1]}}
         except Exception:
             has_pred_picks = bool(getattr(payload, "picks", ()))
     if prompt_fn is None and _asks_direction_or_path(query) and not has_pred_picks:

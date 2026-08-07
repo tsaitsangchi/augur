@@ -4,7 +4,8 @@
 > **窗**：P1-DRIFT A＋C ＋ **S4-WAVE-A…G**（**全波次收口**） ＋ LOOP-S4-TO-S5 OOS（若有）。  
 > **證據**：`/tmp/s4-wave-{a,b,c,d,e,f}-20260804/` · Wave A–G EXECUTED。  
 > **計畫對照**：`reports/augur_s4_market_model_families_opt_plan_20260804.md` Wave A–G（taxonomy ≈12 大類普查收官；≠逐族全訓練）。  
-> **as-of**：`2026-06-30` prodset。
+> **as-of**：`2026-06-30` prodset。  
+> **全量刷新（含 registry＋taxonomy）**：→ `audits/S4-ALL-PREDICTION-MODELS-INVENTORY-20260807.md`（Steward 2026-08-07）。
 
 ---
 

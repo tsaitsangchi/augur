@@ -63,9 +63,9 @@ S4-OTHER-VERIFY-matrix-plan | FZ/GATE-keep | NF-pause | hold-#1 | skip-sync-B | 
 | 軌 | 名稱 | 客體 | 驗收尺 | ∥ #1？ | 須 GO |
 |---|---|---|---|---|---|
 | **V0** | 盤點刷新 | TRIED-LIST↔庫內 artifact／prodset | 表一致；無幻造 id | ✅ 唯讀 | 本檔即 V0 敘事；可另 probe |
-| **V1** | 既有族重覆驗 | RankRidge／RankGBDT／M1／Direction 三臂 | #11 ≥3 seed（隨機臂）；#14 分布；禁單 seed 勝 | ⚠️ CPU 重→**A 後或閒時** | `S4-V1-REVERIFY-go` → **H60 EXECUTED** `audits/S4-V1-REVERIFY-EXECUTED-20260806.md`（H20 另句） |
-| **V2** | 缺 adapter 排隊 | Wave A SKIP 八族→B→C… | 誠實 missing 清單＋優先 1～3 族 | ✅ 文件 | 開訓前：`NF-*-go-plan` 撤 pause＋族 GO |
-| **V3** | S5↔S4 回饋驗 | 既有 predict／OOS → 重選 horizon／族 | OOS 漲跌比 folds；回寫優先帳；禁假 pass | ⚠️ 讓 B3 | `LOOP-S5-TO-S4-OPT-run`（已有 loop GO 史料；重跑另句） |
+| **V1** | 既有族重覆驗 | RankRidge／RankGBDT／M1／Direction 三臂 | #11 ≥3 seed（隨機臂）；#14 分布；禁單 seed 勝 | ⚠️ CPU 重→**A 後或閒時** | H60＋**H20 EXECUTED**（`S4-V1-REVERIFY-EXECUTED-20260806`／`…-H20-EXECUTED-20260807`） |
+| **V2** | 缺 adapter 排隊 | Wave A SKIP 八族→B→C… | 誠實 missing 清單＋優先 1～3 族 | ✅ 文件 | **ADOPTED** `audits/S4-V2-SKIP-HIST-QUEUE-ADOPTED-20260807.md`（零開訓） |
+| **V3** | S5↔S4 回饋驗 | 既有 predict／OOS → 重選 horizon／族 | OOS 漲跌比 folds；回寫優先帳；禁假 pass | ⚠️ 讓 B3 | `LOOP-S5-TO-S4-OPT-run` → **EXECUTED** `audits/LOOP-S5-TO-S4-OPT-EXECUTED-20260807.md`／`S4-REOPT-BACKLOG-20260807.md` |
 | **V4** | 新族解凍 | ARIMA／VAR／Seq／Graph 股邊 | adapter＋多 seed＋#14／SKIP | ❌ 與 pause 衝突 | `NF-E-go-plan`／`S4-ARIMA-P1-go` 等 |
 | **V5** | S5-only 尺 | 不新訓；既有 pp／econ | direction／漲跌比 OOS；dgate 唯讀 | ✅ 輕量可∥ | `S5-OOS-VERIFY-go` → **EXECUTED** `audits/S5-OOS-VERIFY-EXECUTED-20260806.md` |
 

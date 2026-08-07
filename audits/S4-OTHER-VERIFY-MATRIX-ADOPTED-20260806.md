@@ -21,9 +21,9 @@ S4-OTHER-VERIFY-matrix-adopt | FZ/GATE-keep | NF-pause | hold-#1
 |---|---|
 | V0 矩陣 | **生效** |
 | **V5** | **EXECUTED** `audits/S5-OOS-VERIFY-EXECUTED-20260806.md`（read-mostly；pass=0） |
-| **V1** | **H60 EXECUTED** `audits/S4-V1-REVERIFY-EXECUTED-20260806.md`（三 seed；M1 不升格；H20 未跑） |
-| V3 | **未授跑**——`LOOP-S5-TO-S4-OPT-run` |
+| **V1** | **H60＋H20 EXECUTED**（M1 兩窗皆不升格） |
+| **V3** | **EXECUTED** → `S4-REOPT-BACKLOG-20260807` |
 | V2／V4 | 維持 **NF-pause** |
-| #1 | **hold** watcher |
+| #1 | B3＠**08-06** ✅；候 **08-07** |
 
 *adopted。*
