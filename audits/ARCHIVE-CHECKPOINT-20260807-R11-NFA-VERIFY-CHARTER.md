@@ -32,7 +32,7 @@ self_reported: true
 
 ## 3. Tag／SHA
 
-- commit：`4deb0ddbef6bb69165bf70c13728687db6fcd1d3`
+- commit：`c2edc1b3baf3def47fa62dae7ed4f45c30a11009`
 - tag：`archive-20260807-r11-nfa-verify-charter`
 
 *sealed。*
