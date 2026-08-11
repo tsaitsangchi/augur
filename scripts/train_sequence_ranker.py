@@ -33,9 +33,22 @@ import numpy as np
 from augur.core import db
 from augur.evaluation import baseline, label as label_mod, portfolio, walkforward
 from augur.features.sequence import stack_windows
+from augur.models.sequence_patchtst import SeqPatchTSTSmall
 from augur.models.sequence_ranker import SeqLSTM
+from augur.models.sequence_transformer import SeqTransformerSmall
 
 COST_TW = 0.00585
+FAMILIES = {
+    "SeqLSTM": SeqLSTM,
+    "SeqTransformerSmall": SeqTransformerSmall,
+    "SeqPatchTSTSmall": SeqPatchTSTSmall,
+}
+
+
+def _make_model(family, seed):
+    cls = FAMILIES[family]
+    # 0b 預設＝0a 薄殼；CPU-only 友善
+    return cls(seed=seed)
 
 
 def _nonoverlap(panels, h):
@@ -102,8 +115,9 @@ def _build_xy(conn, panels, asof_dates, window_len, channels, h, calendar):
     return np.concatenate(Xs, axis=0), np.concatenate(ys)
 
 
-def _one_fold(conn, panels, fold, window_len, channels, h, calendar, seed, prev_w=None, prev_ret=None):
-    """單折:build train xy→fit SeqLSTM→predict test→共用選股/報酬(#12)。
+def _one_fold(conn, panels, fold, window_len, channels, h, calendar, seed,
+              prev_w=None, prev_ret=None, family="SeqLSTM"):
+    """單折:build train xy→fit family→predict test→共用選股/報酬(#12)。
 
     `prev_w`/`prev_ret`：上一折投組權重 dict／報酬 dict，給了才算真實漂移換手
     (鏈式,同 `portfolio.run_backtest` 口徑,含 prev_ret 加權漂移);皆 None＝初次建倉(turnover=1.0，
@@ -117,7 +131,7 @@ def _one_fold(conn, panels, fold, window_len, channels, h, calendar, seed, prev_
         return None, None, prev_w, prev_ret, {"build_xy": t_build, "n_train": len(ytr)}
 
     t0 = time.time()
-    model = SeqLSTM(seed=seed).fit(Xtr, ytr)
+    model = _make_model(family, seed).fit(Xtr, ytr)
     t_fit = time.time() - t0
 
     Xte, ok_ids, excluded, _ = stack_windows(panels, fold["test"], window_len, channels)
@@ -145,7 +159,7 @@ def _one_fold(conn, panels, fold, window_len, channels, h, calendar, seed, prev_
     return gross, turn, cur_w, ret_by_id, timings
 
 
-def smoke(since, until, h, window_len, seed, nan_threshold):
+def smoke(since, until, h, window_len, seed, nan_threshold, family="SeqLSTM"):
     """Phase 0a:只跑訓練樣本最多之最後一折、單一 seed，量實測耗時（可行性判斷，非完整 OOS）。"""
     with db.connect() as conn:
         cal = label_mod.full_calendar(conn)
@@ -156,7 +170,8 @@ def smoke(since, until, h, window_len, seed, nan_threshold):
         if not folds:
             print("✗ 無可用折(min_train 未達);中止。"); return 1
         fold = folds[-1]   # 最後一折=train 樣本最多、CPU 耗時最壞情境(#15 保守估計方向)
-        print(f"Phase 0a 煙測 | 全量折數={len(folds)}(僅跑最後一折) | fold train={len(fold['train'])} panels "
+        print(f"Phase 0a 煙測 | family={family} | 全量折數={len(folds)}(僅跑最後一折) | "
+              f"fold train={len(fold['train'])} panels "
               f"test={fold['test']} | h={h} window={window_len} seed={seed}")
 
         all_dates = fold["train"] + [fold["test"]]
@@ -176,7 +191,8 @@ def smoke(since, until, h, window_len, seed, nan_threshold):
         if len(kept) < 3:
             print(f"✗ 保留通道數 {len(kept)}<3（過稀，不硬湊）；中止，誠實回報。"); return 1
 
-        gross, turn, _cur_w, _prev_ret, timings = _one_fold(conn, panels, fold, window_len, kept, h, cal, seed)
+        gross, turn, _cur_w, _prev_ret, timings = _one_fold(
+            conn, panels, fold, window_len, kept, h, cal, seed, family=family)
         t_total = t_uni + t_fetch + timings.get("build_xy", 0) + timings.get("fit", 0) + timings.get("predict", 0)
         print(f"\n  n_train={timings.get('n_train', 0)} n_test={timings.get('n_test', 0)} "
               f"n_port={timings.get('n_port', 0)}")
@@ -203,7 +219,7 @@ def smoke(since, until, h, window_len, seed, nan_threshold):
     return 0
 
 
-def run_full(since, until, h, window_len, seeds, nan_threshold):
+def run_full(since, until, h, window_len, seeds, nan_threshold, family="SeqLSTM"):
     """Phase 0b:全量折×seed walk-forward 評測(唯讀、不寫庫;面板僅全域抓取一次,折鏈同 run_backtest 換手口徑)。"""
     with db.connect() as conn:
         cal = label_mod.full_calendar(conn)
@@ -214,7 +230,9 @@ def run_full(since, until, h, window_len, seeds, nan_threshold):
         if not folds:
             print("✗ 無可用折(min_train 未達);中止。"); return 1
         seed_list = [int(s) for s in str(seeds).split(",") if s.strip()]
-        print(f"Phase 0b 全量評測 | 折數={len(folds)} | seeds={seed_list} | h={h} window={window_len}")
+        print(f"Phase 0b 全量評測 | family={family} | 折數={len(folds)} | seeds={seed_list} | "
+              f"h={h} window={window_len}")
+        print("  預凍門：3-seed min net Sharpe > RankRidge_H60 1.3016 → else STOP promote")
 
         all_dates = sorted(set(d for f in folds for d in (f["train"] + [f["test"]])))
         t0 = time.time()
@@ -230,12 +248,14 @@ def run_full(since, until, h, window_len, seeds, nan_threshold):
             print(f"✗ 保留通道數 {len(kept)}<3（過稀）；中止。"); return 1
 
         t_run0 = time.time()
+        seed_net = []
         for seed in seed_list:
             gross_list, net_list, used_dates = [], [], []
             prev_w, prev_ret = None, None
             for fold in folds:
                 gross, turn, prev_w, prev_ret, _t = _one_fold(
-                    conn, panels, fold, window_len, kept, h, cal, seed, prev_w, prev_ret)
+                    conn, panels, fold, window_len, kept, h, cal, seed, prev_w, prev_ret,
+                    family=family)
                 if gross is None:
                     continue
                 gross_list.append(gross)
@@ -249,12 +269,21 @@ def run_full(since, until, h, window_len, seeds, nan_threshold):
             print(f"  seed={seed} n_folds={len(gross_list)}｜gross_sharpe={mg.get('sharpe')}"
                   f" gross_hit={mg.get('hit_rate')}｜net_sharpe={mn.get('sharpe')} net_hit={mn.get('hit_rate')}"
                   f" net_cagr={mn.get('cagr')}")
+            seed_net.append(float(mn.get("sharpe") or float("nan")))
         print(f"\n  全量評測總耗時={time.time() - t_run0:.1f}s（不含前置面板抓取）")
+        valid = [x for x in seed_net if np.isfinite(x)]
+        if len(valid) >= 3:
+            mn_sh = min(valid)
+            champ = 1.3016
+            verdict = "PASS promote-gate" if mn_sh > champ else "STOP promote"
+            print(f"  閘：min net Sharpe={mn_sh:.4f} vs RankRidge_H60 {champ} → {verdict}")
+        else:
+            print("  閘：可用 seed<3 → STOP promote（不足樣本）")
     return 0
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="序列 DL(SeqLSTM)walk-forward 評測(Phase 0;唯讀、不寫庫)")
+    ap = argparse.ArgumentParser(description="序列 DL walk-forward 評測(Phase 0;唯讀、不寫庫)")
     ap.add_argument("--run", action="store_true", help="Phase 0b:執行全量折×seed 評測(建議先--smoke過門)")
     ap.add_argument("--smoke", action="store_true", help="Phase 0a:僅跑最後一折、單一 seed,量耗時判可行性")
     ap.add_argument("--since", default="2021-01-01")
@@ -263,6 +292,8 @@ def main(argv=None):
     ap.add_argument("--window", type=int, default=60, dest="window_len")
     ap.add_argument("--seed", type=int, default=42, help="--smoke 用單一 seed")
     ap.add_argument("--seeds", default="1,2,42", help="--run 用逗號分隔多 seed(#11)")
+    ap.add_argument("--family", default="SeqLSTM", choices=sorted(FAMILIES.keys()),
+                    help="模型族：SeqLSTM／SeqTransformerSmall（NF-C-TFM）／SeqPatchTSTSmall（NF-D-PATCH）")
     ap.add_argument("--nan-threshold", type=float, default=0.3, dest="nan_threshold",
                     help="通道篩選:NaN 率≥此值即排除(預設 0.3)")
     args = ap.parse_args(argv)
@@ -270,11 +301,14 @@ def main(argv=None):
     if not args.smoke and not args.run:
         print(__doc__)
         print(f"目前操作值:since={args.since} until={args.until} horizon={args.h} window={args.window_len} "
-              f"nan_threshold={args.nan_threshold} smoke_seed={args.seed} run_seeds={args.seeds}")
+              f"family={args.family} nan_threshold={args.nan_threshold} "
+              f"smoke_seed={args.seed} run_seeds={args.seeds}")
         return 0
     if args.smoke:
-        return smoke(args.since, args.until, args.h, args.window_len, args.seed, args.nan_threshold)
-    return run_full(args.since, args.until, args.h, args.window_len, args.seeds, args.nan_threshold)
+        return smoke(args.since, args.until, args.h, args.window_len, args.seed,
+                     args.nan_threshold, family=args.family)
+    return run_full(args.since, args.until, args.h, args.window_len, args.seeds,
+                    args.nan_threshold, family=args.family)
 
 
 if __name__ == "__main__":

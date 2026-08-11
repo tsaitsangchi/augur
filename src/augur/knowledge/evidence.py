@@ -43,47 +43,62 @@ def band_for_score(score: float) -> str:
     return "absent"
 
 
-def compute_evidence_weight(
+# 公式鍵（A2-L1：入碼；默認仍 legacy，主表重算另 L3 明示）
+FORMULA_LEGACY = "legacy"
+FORMULA_A2_V1 = "A2-v1"
+DEFAULT_FORMULA = FORMULA_LEGACY
+
+
+def _plumbing_inputs(
     *,
     citation_count: int,
     has_text: bool,
     has_sentence: bool,
     has_embedding: bool,
-    kh4_answer_status: str | None = None,
+    kh4_answer_status: str | None,
 ) -> dict[str, Any]:
-    """純函式：由可觀測輸入算出權重向量（不碰 DB）。"""
     cite_n = max(0, int(citation_count))
-    cite_norm = min(cite_n / 5.0, 1.0)  # 5 句＝滿檔；非神奇常數，僅正規化尺度
     terminal = 1.0 if has_sentence else (0.5 if has_text else 0.0)
     embed = 1.0 if has_embedding else 0.0
     status = (kh4_answer_status or "").strip().lower()
     kh4_ok = 1.0 if status == "eligible" else 0.0
     contra = 1.0 if status in _RISKY_ANSWER else 0.0
+    return {
+        "cite_n": cite_n,
+        "terminal": terminal,
+        "embed": embed,
+        "status": status,
+        "kh4_ok": kh4_ok,
+        "contra": contra,
+        "kh4_answer_status": kh4_answer_status,
+    }
 
-    evidence_score = max(
-        0.0,
-        min(
-            1.0,
-            0.35 * cite_norm
-            + 0.25 * terminal
-            + 0.25 * embed
-            + 0.15 * kh4_ok
-            - 0.40 * contra,
-        ),
-    )
+
+def _pack_weight(
+    *,
+    cite_n: int,
+    terminal: float,
+    contra: float,
+    evidence_score: float,
+    cite_norm: float,
+    embed: float,
+    kh4_ok: float,
+    status: str,
+    kh4_answer_status: str | None,
+    formula: str,
+) -> dict[str, Any]:
     band = band_for_score(evidence_score)
     risk_flags: list[str] = []
     if cite_n == 0:
         risk_flags.append("no_citations")
-    if not has_sentence:
+    if terminal < 1.0:
         risk_flags.append("no_sentence")
-    if not has_embedding:
+    if embed < 1.0:
         risk_flags.append("no_embedding")
     if status in _RISKY_ANSWER:
         risk_flags.append(f"kh4_{status}")
     if band == "absent":
         risk_flags.append("insufficient_evidence")
-
     return {
         "citation_count": cite_n,
         "terminal_score": terminal,
@@ -98,10 +113,125 @@ def compute_evidence_weight(
             "kh4_ok": kh4_ok,
             "contra": contra,
             "kh4_answer_status": kh4_answer_status,
-            "formula": "0.35*cite_norm+0.25*terminal+0.25*embed+0.15*kh4_ok-0.40*contra",
+            "formula": formula,
         },
         "status": "confidence_banded" if band != "absent" else "unweighted",
     }
+
+
+def compute_evidence_weight_legacy(
+    *,
+    citation_count: int,
+    has_text: bool,
+    has_sentence: bool,
+    has_embedding: bool,
+    kh4_answer_status: str | None = None,
+) -> dict[str, Any]:
+    """現行公式（齊備底≈0.65；+1句常 ≥0.72→high）。回滚／默认路径。"""
+    p = _plumbing_inputs(
+        citation_count=citation_count,
+        has_text=has_text,
+        has_sentence=has_sentence,
+        has_embedding=has_embedding,
+        kh4_answer_status=kh4_answer_status,
+    )
+    cite_norm = min(p["cite_n"] / 5.0, 1.0)
+    evidence_score = max(
+        0.0,
+        min(
+            1.0,
+            0.35 * cite_norm
+            + 0.25 * p["terminal"]
+            + 0.25 * p["embed"]
+            + 0.15 * p["kh4_ok"]
+            - 0.40 * p["contra"],
+        ),
+    )
+    return _pack_weight(
+        cite_n=p["cite_n"],
+        terminal=p["terminal"],
+        contra=p["contra"],
+        evidence_score=evidence_score,
+        cite_norm=cite_norm,
+        embed=p["embed"],
+        kh4_ok=p["kh4_ok"],
+        status=p["status"],
+        kh4_answer_status=kh4_answer_status,
+        formula="0.35*cite_norm+0.25*terminal+0.25*embed+0.15*kh4_ok-0.40*contra",
+    )
+
+
+def compute_evidence_weight_a2_v1(
+    *,
+    citation_count: int,
+    has_text: bool,
+    has_sentence: bool,
+    has_embedding: bool,
+    kh4_answer_status: str | None = None,
+) -> dict[str, Any]:
+    """A2-v1（land-spec §2.2）：齐备顶 plumbing=0.35；满档 cite/8；禁几乎无引文却 high。
+
+    不改 band 阈值；不碰 DB。默认调用路径仍走 legacy（A2-L1）。
+    """
+    p = _plumbing_inputs(
+        citation_count=citation_count,
+        has_text=has_text,
+        has_sentence=has_sentence,
+        has_embedding=has_embedding,
+        kh4_answer_status=kh4_answer_status,
+    )
+    cite_n = p["cite_n"]
+    cite_norm = min(cite_n / 8.0, 1.0)
+    plumbing = 0.12 * p["terminal"] + 0.12 * p["embed"] + 0.11 * p["kh4_ok"]
+    evidence_score = plumbing + 0.50 * cite_norm + 0.15 * p["embed"] * cite_norm - 0.40 * p["contra"]
+    if cite_n == 0:
+        evidence_score = min(evidence_score, 0.35)
+    elif cite_n <= 1:
+        evidence_score = min(evidence_score, 0.55)
+    evidence_score = max(0.0, min(1.0, evidence_score))
+    return _pack_weight(
+        cite_n=cite_n,
+        terminal=p["terminal"],
+        contra=p["contra"],
+        evidence_score=evidence_score,
+        cite_norm=cite_norm,
+        embed=p["embed"],
+        kh4_ok=p["kh4_ok"],
+        status=p["status"],
+        kh4_answer_status=kh4_answer_status,
+        formula=(
+            "A2-v1:plumbing(0.12T+0.12E+0.11K)+0.50*cite_norm(/8)"
+            "+0.15*E*cite_norm-0.40*C;caps cite0≤0.35 cite≤1≤0.55"
+        ),
+    )
+
+
+def compute_evidence_weight(
+    *,
+    citation_count: int,
+    has_text: bool,
+    has_sentence: bool,
+    has_embedding: bool,
+    kh4_answer_status: str | None = None,
+    formula: str = DEFAULT_FORMULA,
+) -> dict[str, Any]:
+    """純函式：由可觀測輸入算出權重向量（不碰 DB）。
+
+    formula 默认 **legacy**（A2-L1：入码不切默认；主表 UPDATE 另 L3）。
+    """
+    key = (formula or DEFAULT_FORMULA).strip()
+    kwargs = dict(
+        citation_count=citation_count,
+        has_text=has_text,
+        has_sentence=has_sentence,
+        has_embedding=has_embedding,
+        kh4_answer_status=kh4_answer_status,
+    )
+    if key in (FORMULA_A2_V1, "a2", "A2", "a2-v1", "A2-V1"):
+        return compute_evidence_weight_a2_v1(**kwargs)
+    if key in (FORMULA_LEGACY, "legacy", "LEGACY"):
+        return compute_evidence_weight_legacy(**kwargs)
+    raise ValueError(f"unknown evidence formula: {formula!r}")
 
 
 # ── C-2 補正（2026-07-30；hugo「甲成立」＋自毀條款當日到期）────────────────
@@ -357,7 +487,9 @@ def evaluate_item_evidence(cur, snap: Mapping[str, Any]) -> dict[str, Any]:
         return {"verdict": "skipped", "note": "KH8 表未建"}
 
     item_id = int(snap["item_id"])
-    if not snap.get("has_text"):
+    # M3 pool-gate：無全文不得進加權 pass 路徑（weight≠答池；見 pool_gate.CONTRACT）
+    from augur.knowledge import pool_gate as _pg
+    if not _pg.kh8_evaluate_requires_text(snap):
         return {"verdict": "fail", "note": "無 item_text＝無法加權", "action": "kh8_no_text"}
 
     # 丙-1（核驗 F-bypass-1）：鑑別力檢定必須在 record_weight **之前**、且排除受判 item，
@@ -416,6 +548,50 @@ def _selftest() -> int:
     )
     chk("rich band pass", rich["confidence_band"] in PASS_BANDS)
     chk("rich score>0.7", rich["evidence_score"] >= 0.70)
+    chk("default formula=legacy", DEFAULT_FORMULA == FORMULA_LEGACY)
+    chk(
+        "default path = legacy",
+        rich["components"]["formula"].startswith("0.35*cite_norm"),
+    )
+
+    # A2-L1：齐备+1句不得 high；0句 score≤0.35；默认不切 A2
+    a2_one = compute_evidence_weight(
+        citation_count=1,
+        has_text=True,
+        has_sentence=True,
+        has_embedding=True,
+        kh4_answer_status="eligible",
+        formula=FORMULA_A2_V1,
+    )
+    chk("A2 齐备+1句 not high", a2_one["confidence_band"] != "high")
+    chk("A2 齐备+1句 score≤0.55", a2_one["evidence_score"] <= 0.55)
+    a2_zero = compute_evidence_weight(
+        citation_count=0,
+        has_text=True,
+        has_sentence=True,
+        has_embedding=True,
+        kh4_answer_status="eligible",
+        formula=FORMULA_A2_V1,
+    )
+    chk("A2 0句 score≤0.35", a2_zero["evidence_score"] <= 0.35)
+    chk("A2 0句 not medium+", a2_zero["confidence_band"] in ("low", "absent"))
+    a2_rich = compute_evidence_weight_a2_v1(
+        citation_count=8,
+        has_text=True,
+        has_sentence=True,
+        has_embedding=True,
+        kh4_answer_status="eligible",
+    )
+    chk("A2 formula tag", a2_rich["components"]["formula"].startswith("A2-v1:"))
+    # legacy 齐备+1句仍可 high（既有墙——对照用）
+    leg_one = compute_evidence_weight_legacy(
+        citation_count=1,
+        has_text=True,
+        has_sentence=True,
+        has_embedding=True,
+        kh4_answer_status="eligible",
+    )
+    chk("legacy 齐备+1句 still high", leg_one["confidence_band"] == "high")
 
     # 僅 text、無句／無 embed → absent → fail
     thin = compute_evidence_weight(

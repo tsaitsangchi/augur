@@ -21,8 +21,8 @@ self_reported: true
 # augur 深化理解＋專案優化計畫書 r11（2026-08-07）
 
 > **性質**：[I]；**不創** [N]；不解凍；不掛 cron；不 sim `--apply`；不假關確立級。  
-> **一句**：把「專案是什麼／現在卡在哪／下一步怎麼排」收成**同一份後續優化地基**——之後選刀以本檔為導航 SSOT（刷新 r10）。  
-> **疊用**：准否／閉環 enrichment → 仍以 S1→S5 SSOT（`augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md`）＋ ARCHIVE／standing 為準。  
+> **一句**：把「專案是什麼／現在卡在哪」收成**理解地基**；**選刀自 2026-08-07 起以 r12 為準**。  
+> **疊用**：人話 → 本檔理解 → **`reports/augur_opt_stepwise_best_next_plan_r12_20260807.md` 選刀** → 准否／驗收＝S1→S5 SSOT＋ARCHIVE／standing。  
 > **人話憲章對閱**：[I] `reports/augur_project_charter_plain_zh_r11_20260807.md`（**不**取代元憲章／領域大憲章）。  
 > **覆蓋誠實**：非整庫逐檔複讀（reports≈429／audits≈536／scripts≈723）；本輪＝**結構地圖＋LIVE 親查＋08-06→08-07 增量收斂**；細節長表回 r6／r8／INVENTORY。
 
@@ -156,11 +156,13 @@ FZ/GATE-keep | skip-sync-B | no-SIM-apply | NF-pause
 
 ```text
 現況理解 → 本檔第一部
-選刀     → 本檔第二部 §9–§11
+選刀     → reports/augur_opt_stepwise_best_next_plan_r12_20260807.md（ADOPTED）
 准否／驗收 → S1→S5 SSOT ＋ 最近 ARCHIVE／standing
 人話對齊 → charter_plain_zh_r11（[I]）
 日更     → skip-sync-B · no-SIM-apply · 誠實 econ · 不假 B3
 ```
+
+> **註**：下列 §9–§11 為 2026-08-07 寫進 r11 時之選刀快照；**執行以 r12 為準**（含 #20🟢／#21 收官等刷新）。
 
 1. 選刀＝§9 編號或 Phase 步。  
 2. 缺 GO → AskQuestion；禁默訓／默升格。  

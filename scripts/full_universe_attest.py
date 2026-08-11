@@ -22,6 +22,7 @@ from datetime import date, timedelta
 
 from augur.core import db, schema
 from augur.audit import reconcile
+from augur.features import macro
 from augur.ingestion import sync, finmind
 
 PROGRESS_DDL = """
@@ -148,6 +149,7 @@ def run(args, dry=False):
             print("(--dry-run:0 FinMind call)")
             return 0
         probe_day = _probe_day(conn)
+        _fred_vmap = macro.vintage_map()  # 呼叫端注入；禁 audit→features
         for i, (ds, scope, mode, lag) in enumerate(plan, 1):
             if ds in done:
                 continue
@@ -161,7 +163,8 @@ def run(args, dry=False):
             try:
                 kind, res = reconcile.attest_route(conn, ds, scope=scope, mode=mode, since=since,
                                                    until=until, sample_n=None, roster_only=True,
-                                                   progress=lambda msg: print(msg, flush=True))
+                                                   progress=lambda msg: print(msg, flush=True),
+                                                   vintage_map=_fred_vmap)
                 if kind == "exempt":
                     print(f"    豁免({res['mode']}——{res['reason']})", flush=True)
                     _persist(conn, run_id, ds, {"kind": "exempt", "table": ds, "mode": res["mode"]})
@@ -175,7 +178,8 @@ def run(args, dry=False):
                             sync.sync_by_date(conn, ds, start=d, end=d, snapshot_reason="full_universe_heal")
                         _, res = reconcile.attest_route(conn, ds, scope=scope, mode=mode, since=since,
                                                         until=until, sample_n=None, roster_only=True,
-                                                        progress=lambda msg: print(msg, flush=True))
+                                                        progress=lambda msg: print(msg, flush=True),
+                                                        vintage_map=_fred_vmap)
                 clean = _clean(res)
                 _persist(conn, run_id, ds, clean)
                 # ban 偵測:單表大量 fetch 錯 → 探測確認;失敗即停(不 plow 過所有表)

@@ -38,88 +38,21 @@
 """
 import re
 
-from augur.knowledge import textnorm
+from augur.knowledge.token_overlap import (
+    _EN_GENERIC,
+    _cite_text,
+    _cjk_ngrams,
+    _content_tokens,
+    _is_strong,
+    _strong_distinctive,
+)
 
 # 內容詞重疊地板(本機語料實測校準;調整屬執行層品質工程,守則同 safe_general 詞表——
 # guard 機械下限不變、安全繫於 decline 機制而非此值,比照 v1.34.0/憲章 v1.35.0 精神)。
 RELEVANCE_FLOOR = 0.30
 
-# CJK 語法虛詞(單字):重疊時剔除,否則離題引文靠「的/是/多/心」等虛字虛高、混淆相關判定
-# (實測 MBB↔王陽明未剔虛字=0.22 假陽性、剔後=0.13)。純內容單字(道/仁/知…)保留。
-_STOP = set("的是了而之也其以於与與為爲在有無不人上下這那我你他它們就都會要說到得着着過"
-            "麼嗎呢吧啊哦且或如何個把被讓從向對比很更最只還又再")
+# token／泛用字／CJK 窗 SSOT＝knowledge.token_overlap（STRUCT 斷 knowledge→advisor）
 
-
-# ── 通用泛域字停詞(en Porter stem;Tier-2 硬化,2026-07-07,配 translate-for-retrieval 上線)──
-# 何以需要(前版死因):CJK query 譯英文檢索後,「有沒有關於系統分析的研究/能源效率的研究」等只含
-#   泛用字之問句,會撞任何逐字含 system/analysis/research/energy/efficiency 之離題文獻(黑格爾論神經
-#   「系統」、斯賓格勒 footnote、太陽能材料摘要)→ 泛用字重疊虛高、假放行 → 系統誤當有料令 LLM 憑弱
-#   知識 confabulate(踩 #1/#15)。故:泛用字**不算作「命中相關」之判據**——相關性須繫於**稀有專詞**
-#   (perovskite/photovoltaic/silicon/仁/知行…)之共現,泛用字僅泛在學術骨架、不帶主題辨識力。
-# 為何選詞表(方案 b)而非 IDF(方案 a):本機 concordance df 為部分索引、log 壓縮後 research(df1258)
-#   vs perovskite(df251)僅 5× 差、IDF 4.8~8.8 窄帶分不開(實測),閾值不可靠;詞表是可列舉、可離線
-#   稽核、確定性、直擊已知失效模式之機械閘,且**屬邏輯側品質工程**(比照 safe_general 白名單、憲章
-#   v1.35.0「詞表不鎖=執行層、安全繫於機械閘非詞表」)——寫 code 裡合規、非 #29b 資料鎖。
-# 邊界:只收「泛在學術骨架 + 英文虛詞 + 疑問/意圖詞」;domain 專名(perovskite/solar/silicon)一律不收。
-_EN_GENERIC = set("""
-system analysi analyz research studi method process design approach result review paper articl
-chapter section develop applic use base gener overview introduct report perform problem solut
-effect factor field level type form framework structur function theori scienc main core master
-multi whether energi effici technologi innov optim advantag technic benefit product manag manufactur qualiti industri
-techniqu materi properti characterist paramet condit measur estim comput simul evalu impact
-influenc relationship compar improv enhanc model data valu case work part number general
-there ani ar on of the a an in to for and or with by is at about into over under between within
-what how whi where when who which do doe did can could would should mean definit concept
-topic subject question relat relev exist avail""".split())
-
-
-def _content_tokens(text):
-    """內容詞集合:textnorm zh 全形集 ∪ en Porter stem;剔單字虛詞、剔未切斷之整串長 token(>12)。
-    (zh tokenizer 丟 latin、en tokenizer 丟 CJK,故雙語 union 才完整——實測 MBB 混寫查詢憑此撈全。)"""
-    zh = {t for t, _ in textnorm.tokenize(text, "zh")}
-    en = {t for t, _ in textnorm.tokenize(text, "en")}
-    return {t for t in (zh | en) if len(t) <= 12 and not (len(t) == 1 and t in _STOP)}
-
-
-def _is_strong(tok):
-    """辨識性專詞是否「夠強」可作相關判據:
-      · latin/en 詞:長度 ≥2(單字母已在 _EN_GENERIC,此僅擋殘餘噪);
-      · CJK:多字詞(2~8,jieba 切出之詞如 效率/知行合一/孔子)——**單一 CJK 字不算**。
-    為何排單 CJK 字:單字(能/太/心/道/仁)跨語料巧合共現極高(能=can、太=too),技術/亂問 query 之
-    單字會巧撞哲學原文(能↔傳習錄、心↔王陽明)→ 假放行/污染(實測 MBB 單字 核/心 撞王陽明);多字詞
-    才具主題辨識力。代價=純單字哲學問句(「仁」「道」單獨)退為 decline(誠實優先方向,前版即標此為
-    洩漏弱點;實務多由 lexicon_lookup/safe_general 白名單另路服務,非本閘職責)。剔 >8 之未切斷長串。"""
-    if tok.isascii():
-        return len(tok) >= 2
-    return 2 <= len(tok) <= 8
-
-
-def _cjk_ngrams(text, lo=2, hi=4):
-    """連續 CJK 段之 2..hi 字窗（補 jieba 未切開之連寫問句，如「ERP災難還原演練」）。"""
-    out = set()
-    for m in re.finditer(r"[\u4e00-\u9fff]+", text or ""):
-        s = m.group(0)
-        n = len(s)
-        for length in range(lo, min(hi, n) + 1):
-            for i in range(n - length + 1):
-                out.add(s[i : i + length])
-    return out
-
-
-def _strong_distinctive(text):
-    """夠強之辨識性專詞集:內容詞剔 _EN_GENERIC、過 _is_strong；並**一律**併入 CJK 2..4 字窗。
-    連寫問句／引文常被切成單字或過長黏詞，缺窗則「災難」「還原」無法共現 → 假 decline。"""
-    toks = {t for t in (_content_tokens(text) - _EN_GENERIC) if _is_strong(t)}
-    toks |= {t for t in _cjk_ngrams(text) if _is_strong(t)}
-    return toks
-
-
-def _cite_text(cite):
-    """citation 之可比對內容:逐字原文 + 出處著作名 + 思想家/domain(型別感知,Citation/ItemCitation 相容)。"""
-    parts = [getattr(cite, "text", "") or "",
-             getattr(cite, "work_title", "") or getattr(cite, "item_title", "") or "",
-             getattr(cite, "thinker", "") or getattr(cite, "domain", "") or ""]
-    return " ".join(parts)
 
 
 def best_overlap(query, citations):

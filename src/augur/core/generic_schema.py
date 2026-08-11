@@ -26,8 +26,7 @@
 
 執行指令矩陣（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.core.generic_schema              # 印用途+公開入口（唯讀）
-  python -m augur.core.generic_schema --selftest   # 純紅綠自測（零 IO；AUD-02 _supersessions 鎖需共用
-                                                   #  reconcile._norm，未裝 psycopg2 時誠實 skip、其餘全綠）
+  python -m augur.core.generic_schema --selftest   # 純紅綠自測（零 IO；含 AUD-02 _supersessions 鎖）
 """
 from __future__ import annotations
 
@@ -60,7 +59,7 @@ KEY_CANDIDATES = (
 FORCE_STR = frozenset({"stock_id", "securities_trader_id", "year", "cb_id"})  # 數值樣貌之識別碼/期別
 FORCE_DATE = frozenset({"date"})                                             # 純日期欄（#4 日為最小單位）
 
-# 統一 NULL 語意（取樣/主鍵判定/寫入三處共用，否則「判為有值進主鍵但寫入轉 None → NOT NULL 違反」）
+# 統一 NULL 語意（取樣/主鍵判定/寫入／比對正規化共用，否則「判為有值進主鍵但寫入轉 None → NOT NULL 違反」）
 _NULL = ("", "none", "null", "nan", "nat")
 _NUM_RE = re.compile(r"^-?\d+(\.\d+)?([eE][+-]?\d+)?$")
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -68,6 +67,28 @@ _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 def _is_null(v) -> bool:
     return v is None or (isinstance(v, str) and v.strip().lower() in _NULL)
+
+
+def _norm(v):
+    """比對正規化 SSOT（STRUCT audit↔core 斷環）：null/placeholder→None；bool→小寫字串；
+    可轉數字→round(float,6)；前導零識別碼保留 str；其餘→str.strip()。
+
+    audit.reconcile 再匯出同物件（BC：既有 `reconcile._norm` 呼叫點語意不變）。
+    """
+    if v is None:
+        return None
+    if isinstance(v, bool):                 # bool 須在 float 前判（float(True)=1.0）
+        return str(v).lower()
+    if isinstance(v, str):
+        s = v.strip()
+        if s.lower() in _NULL:
+            return None
+        if len(s) > 1 and s[0] == "0" and s.isdigit():   # 前導零識別碼保留 str
+            return s
+    try:
+        return round(float(v), 6)
+    except (TypeError, ValueError):
+        return str(v).strip()
 
 
 def _is_num(v) -> bool:
@@ -276,10 +297,9 @@ def upsert(cur, table, rows, schema, keys):
 
 def _supersessions(cols, keys, rows, db_rows):
     """純邏輯（零 IO、可個別驗證 #29a）：incoming rows × DB 現值 pre-image → 「值真異」之 supersession 三元組。
-    共用 `reconcile._norm`（同語意比對，防 Decimal/date/前導零口徑漂移致假/漏 supersession）——**不另實作**。
+    值差判定用本模組 `_norm` SSOT（audit.reconcile 再匯出；禁第二套口徑）。
     純 insert（DB 無此 PK、無 pre-image）與 no-op（值未變）皆不入帳（P4.E5：只裁決衝突、不記純新增/未變）。
     回 [(pk, old_row, new_row), …]：old_row=敗方 DB pre-image、new_row=勝方 incoming（_coerce 對齊寫入口徑）。"""
-    from augur.audit.reconcile import _norm   # 延遲 import：避 reconcile→generic_schema 循環
     valcols = [c for c in cols if c not in keys]
     db_by_key = {tuple(_norm(d.get(k)) for k in keys): d for d in db_rows}
     dedup = {}                                # 批內去重：鏡射 upsert 261–263（同鍵保留最後一筆＝API 最新）
@@ -427,31 +447,22 @@ def _selftest():
     sch = infer_schema(rows)
     chk("detect_keys 單日 sample stock_id 即唯一", detect_keys(rows, sch) == ["stock_id"])
     chk("detect_keys require 補回 date", detect_keys(rows, sch, require=("date",)) == ["stock_id", "date"])
-    # AUD-02 快照純邏輯紅綠鎖（_supersessions 零 IO；byte-differ 入帳、no-op/純 insert 不入帳，P4.E5）。
-    # _supersessions 共用 reconcile._norm（硬約束:不另實作）→ 拖入 reconcile→core.db→psycopg2；未裝該相依時
-    # 誠實 skip（issue 9:還原「免 DB 免 API」可驗性，不讓 ModuleNotFoundError 崩掉整組自測）。
-    try:
-        from augur.audit.reconcile import _norm as _probe_norm   # noqa: F401  探共用 _norm 依賴鏈可用性
-        _have_norm = True
-    except ImportError:
-        _have_norm = False
-        print("  ⏭ SKIP AUD-02 _supersessions 紅綠鎖（未裝 psycopg2/dotenv；共用 reconcile._norm 依賴鏈不可用）")
-    if _have_norm:
-        scols, skeys = ["stock_id", "date", "close"], ["stock_id", "date"]
-        sdb = [{"stock_id": "1101", "date": "2026-06-30", "close": 12.5}]
-        chk("_supersessions no-op（_norm 等價 '12.5'==12.5）不入帳",
-            _supersessions(scols, skeys, [{"stock_id": "1101", "date": "2026-06-30", "close": "12.5"}], sdb) == [])
-        _sup = _supersessions(scols, skeys, [{"stock_id": "1101", "date": "2026-06-30", "close": "9.9"}], sdb)
-        chk("_supersessions byte-differ 入帳恰 1、old=pre-image/new=incoming",
-            len(_sup) == 1 and str(_sup[0][1]["close"]) == "12.5" and str(_sup[0][2]["close"]) == "9.9")
-        chk("_supersessions 純 insert（DB 無此 PK）不留痕",
-            _supersessions(scols, skeys, [{"stock_id": "9999", "date": "2026-06-30", "close": "1"}], sdb) == [])
-        # issue 4:混合型別複合鍵（date 為 date 型 vs str、close 為 float vs str）——共用 _norm 對齊 join，
-        # 既有列不漏抓致靜默滅失；值真異入帳恰 1（鎖「pre-image 抓取口徑 vs 比對口徑一致」不變式）。
-        mdb = [{"stock_id": "1101", "date": datetime.date(2026, 6, 30), "close": 12.5}]
-        minc = [{"stock_id": "1101", "date": "2026-06-30", "close": "9.9"}]
-        chk("_supersessions 混合型別複合鍵（date/str、float/str）_norm 對齊、值真異入帳恰 1",
-            len(_supersessions(scols, skeys, minc, mdb)) == 1)
+    # AUD-02 快照純邏輯紅綠鎖（_supersessions 零 IO；本模組 _norm，不經 audit）
+    chk("_norm 數字等價('1.0'==1)", _norm("1.0") == _norm(1))
+    chk("_norm placeholder→None", _norm("NaN") is None and _norm("") is None)
+    scols, skeys = ["stock_id", "date", "close"], ["stock_id", "date"]
+    sdb = [{"stock_id": "1101", "date": "2026-06-30", "close": 12.5}]
+    chk("_supersessions no-op（_norm 等價 '12.5'==12.5）不入帳",
+        _supersessions(scols, skeys, [{"stock_id": "1101", "date": "2026-06-30", "close": "12.5"}], sdb) == [])
+    _sup = _supersessions(scols, skeys, [{"stock_id": "1101", "date": "2026-06-30", "close": "9.9"}], sdb)
+    chk("_supersessions byte-differ 入帳恰 1、old=pre-image/new=incoming",
+        len(_sup) == 1 and str(_sup[0][1]["close"]) == "12.5" and str(_sup[0][2]["close"]) == "9.9")
+    chk("_supersessions 純 insert（DB 無此 PK）不留痕",
+        _supersessions(scols, skeys, [{"stock_id": "9999", "date": "2026-06-30", "close": "1"}], sdb) == [])
+    mdb = [{"stock_id": "1101", "date": datetime.date(2026, 6, 30), "close": 12.5}]
+    minc = [{"stock_id": "1101", "date": "2026-06-30", "close": "9.9"}]
+    chk("_supersessions 混合型別複合鍵（date/str、float/str）_norm 對齊、值真異入帳恰 1",
+        len(_supersessions(scols, skeys, minc, mdb)) == 1)
     # issue 7:JSONB 序列化契約（_jdump）——psycopg2 Json 經 dumps= 注入、非 default=（Json 無 default 參數）。
     # 免 psycopg2 亦可驗序列化本身:Decimal 保精度尾零、date→ISO、None→null、float 仍數字（產出合法 JSON）。
     import decimal

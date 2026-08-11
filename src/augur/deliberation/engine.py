@@ -13,7 +13,7 @@
 """
 import time
 
-from augur.advisor.ollama import make_structured_llm_fn
+from augur.llm.ollama import make_structured_llm_fn
 from augur.core import db
 from augur.deliberation import ledger
 from augur.deliberation.anchors import CLAIM_SCHEMA

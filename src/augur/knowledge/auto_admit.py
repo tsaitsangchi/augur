@@ -790,23 +790,42 @@ def list_candidate_item_ids(
                 OR NULLIF(BTRIM(i.title_zh), '') IS NOT NULL
               )"""
     if _table_exists(cur, "knowhow_auto_admit_state"):
-        cur.execute(
-            f"""
-            SELECT i.item_id
-            FROM knowledge_item i
-            LEFT JOIN knowhow_auto_admit_state st
-              ON st.target_kind='item' AND st.target_id=i.item_id::text
-            WHERE COALESCE(st.admit_depth, 0) >= %s
-              AND COALESCE(st.admit_depth, 0) < %s
-              AND {understand}
-            ORDER BY
-              CASE WHEN st.target_id IS NULL THEN 0 ELSE 1 END,
-              COALESCE(st.admit_depth, 0) ASC,
-              i.item_id
-            LIMIT %s
-            """,
-            (lo, max_depth_lt, limit),
-        )
+        # up_to=0／apply-raw：COALESCE(無列→0) 會讓「破口」看起來已在 depth0，
+        # 再配 max_depth_lt=0 → `0 < 0` 永空。KH0 種子批只掃無 state 列。
+        if int(max_depth_lt) <= 0:
+            if lo > 0:
+                return []
+            cur.execute(
+                f"""
+                SELECT i.item_id
+                FROM knowledge_item i
+                LEFT JOIN knowhow_auto_admit_state st
+                  ON st.target_kind='item' AND st.target_id=i.item_id::text
+                WHERE st.target_id IS NULL
+                  AND {understand}
+                ORDER BY i.item_id
+                LIMIT %s
+                """,
+                (limit,),
+            )
+        else:
+            cur.execute(
+                f"""
+                SELECT i.item_id
+                FROM knowledge_item i
+                LEFT JOIN knowhow_auto_admit_state st
+                  ON st.target_kind='item' AND st.target_id=i.item_id::text
+                WHERE COALESCE(st.admit_depth, 0) >= %s
+                  AND COALESCE(st.admit_depth, 0) < %s
+                  AND {understand}
+                ORDER BY
+                  CASE WHEN st.target_id IS NULL THEN 0 ELSE 1 END,
+                  COALESCE(st.admit_depth, 0) ASC,
+                  i.item_id
+                LIMIT %s
+                """,
+                (lo, max_depth_lt, limit),
+            )
     else:
         if lo > 0:
             return []
@@ -840,6 +859,7 @@ def _selftest() -> int:
     chk("candidates include title（A.1/BREACH）", "title_zh" in _cand_src)
     chk("candidates prefer no-state breach", "st.target_id IS NULL" in _cand_src)
     chk("candidates not text-only JOIN", "JOIN knowledge_item_text x ON x.item_id=i.item_id\n            LEFT JOIN" not in _cand_src)
+    chk("candidates KH0-seed branch when max_depth_lt<=0", "int(max_depth_lt) <= 0" in _cand_src)
 
     class _Cur:
         """模擬：表未建 → evaluate 8/9 誠實 skipped。"""

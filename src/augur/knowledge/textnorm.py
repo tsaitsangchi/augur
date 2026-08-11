@@ -1,4 +1,4 @@
-"""term 正規化契約(SSOT)— L2 concordance / L3 lexicon / L5 advisor 三方共用 JOIN 鍵。
+r"""term 正規化契約(SSOT)— L2 concordance / L3 lexicon / L5 advisor 三方共用 JOIN 鍵。
 
 🎯 這支在做什麼(白話):把「字/詞/詞條」變成唯一且可重現的正規化形,讓 knowledge_concordance、
    knowledge_lexicon、advisor 檢索三方用**同一個函式**產 term——同輸入必同輸出,才 JOIN 得起來。

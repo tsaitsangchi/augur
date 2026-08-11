@@ -18,7 +18,7 @@ import os
 import re
 from typing import Any, Sequence
 
-from augur.advisor import relevance as rel
+from augur.knowledge import token_overlap as tok
 from augur.knowledge import auto_admit as aa
 
 RULER_HYBRID = "R-hybrid"
@@ -48,7 +48,7 @@ def query_hash(query: str) -> str:
 
 def _answer_tokens(answer: str) -> set[str]:
     """答側強辨識詞 ∪ 數字字面（供 R-cite）。"""
-    toks = set(rel._strong_distinctive(answer or ""))
+    toks = set(tok.strong_distinctive(answer or ""))
     for m in re.findall(r"\d+(?:\.\d+)?", answer or ""):
         toks.add(m)
     return toks
@@ -57,7 +57,7 @@ def _answer_tokens(answer: str) -> set[str]:
 def _cite_blob(citations: Sequence[Any]) -> str:
     parts = []
     for c in citations or []:
-        parts.append(rel._cite_text(c))
+        parts.append(tok.cite_text(c))
     return "\n".join(parts)
 
 
@@ -142,12 +142,15 @@ def lift_items(
         snap = aa._item_snapshot(cur, int(iid))
         allow_act = False
         sk = (snap or {}).get("source_key")
+        # M3 pool-gate：機械 activate 須 has_text（權重／標題件不可單獨放行源）
+        from augur.knowledge import pool_gate as _pg
         if (
             activate_source
             and apply
             and snap
-            and sk
-            and snap.get("has_text")
+            and _pg.activate_source_eligible(
+                has_text=bool(snap.get("has_text")), source_key=sk,
+            )
             and sk not in armed_keys
             and sources_armed < max_sources
         ):

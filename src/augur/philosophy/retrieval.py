@@ -22,6 +22,7 @@ from itertools import zip_longest
 
 from augur.core import db
 from augur.knowledge import corpus, embedspec, textnorm
+from augur.knowledge.citations import ItemCitation  # SSOT；再匯出保 BC
 
 
 @dataclass
@@ -227,23 +228,7 @@ def concordance_lookup(term, limit=10):
 
 
 # ── items 側(N7,e2e 計畫 §3-S7)──────────────────────────────────────────────
-
-@dataclass
-class ItemCitation:
-    """一筆逐字可溯源的知識文獻句引用(items 側)。"""
-    sent_id: int
-    itext_id: int
-    item_id: int
-    item_title: str
-    domain: str
-    entity_type: str
-    char_start: int      # 相對 item_text.content 之定位(verify_verbatim_item 他證基準)
-    char_end: int
-    source_url: str
-    license: str
-    text: str            # 逐字原句(== item_text.content[char_start:char_end])
-    score: float         # via='exact':查詢詞命中比(counts 類);via='ann':cosine 相似度
-    via: str             # 'exact' | 'ann'
+# ItemCitation SSOT＝knowledge.citations（STRUCT 斷 knowledge↔philosophy）
 
 
 _ITEM_COLS = """s.sent_id, s.itext_id, i.item_id, COALESCE(i.title_zh, i.title), i.domain,
@@ -295,7 +280,11 @@ def retrieve_items(query, k=8, domain=None, language=None, access_scope="public"
     ='local_private'→擁有者收窄(owner_user_id=登入者)。
     **`domain=`（KH-XDOM-S01）**：可選**策展標籤**硬濾；預設 None＝不作答分域閘。
     顧問合併路 `retrieve_all` **永不傳**此參數；僅 UI「只搜某標籤」明示時才開。
-    語料空/表未建 → 誠實回空 []。回 [ItemCitation](exact 先、ann 補位)。"""
+    語料空/表未建 → 誠實回空 []。回 [ItemCitation](exact 先、ann 補位)。
+
+    M3 pool-gate：JOIN knowledge_item_text＋eligible；禁止以 knowhow_evidence_weight
+    當答池命中（weight≠可答；見 augur.knowledge.pool_gate）。
+    """
     if not (query or "").strip():
         return []
     cfrag, cparams = corpus.clean_item_sql("i", "x", access_scope=access_scope,

@@ -40,6 +40,7 @@ from datetime import date, timedelta
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 from augur.core import db, schema
 from augur.audit import reconcile
+from augur.features import macro
 from augur.ingestion import sync
 
 AUDIT_SAMPLE_STOCKS = 40   # roster-scoped 抽樣股數(等距確定性;全 roster ~2600/dataset 太貴——抽樣=部分覆蓋,印出誠實知會 #7)
@@ -134,11 +135,13 @@ def main():
                 cat = {d: (sc, m, lg) for d, sc, m, lg in cur.fetchall()}
             today = date.today()
             recs, exempt = [], []
+            _fred_vmap = macro.vintage_map()  # 呼叫端注入；禁 audit→features
             def _route(ds, scope, mode, until):     # 共用政策路由(#12,(B)):豁免+端點皆走 reconcile.attest_route
                 return reconcile.attest_route(conn, ds, scope=scope, mode=mode, since=args.audit_since,
                                               until=until,
                                               sample_n=None if args.full_universe else AUDIT_SAMPLE_STOCKS,
-                                              roster_only=args.full_universe, progress=_plog)
+                                              roster_only=args.full_universe, progress=_plog,
+                                              vintage_map=_fred_vmap)
             for i, r in enumerate(audit_set, 1):
                 ds = r["dataset"]
                 scope, mode, lag = cat.get(ds, ("by-date", "byte", 1))

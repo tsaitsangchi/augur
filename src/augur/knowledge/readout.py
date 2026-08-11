@@ -16,8 +16,9 @@ import re
 import unicodedata
 from typing import Any, Sequence
 
+from augur.knowledge.citations import ItemCitation
 from augur.knowledge import corpus
-from augur.philosophy.retrieval import ItemCitation
+
 
 # 有界：單答最多灌入 LLM 的原文總字元（仍可被 prompt 層再截）
 MAX_CHARS_DEFAULT = 6000
@@ -33,12 +34,24 @@ _READOUT_RE = re.compile(
     r"(讀出|具體內容|全文|整份|整篇|原文內容|請讀|讀一遍|內容是什麼|說了什麼)"
 )
 _SPLIT_RE = re.compile(r"[：:]")
-_EXT_RE = re.compile(r"\.(docx|pdf|xlsx|txt|md|DOCX|PDF)\s*$")
+_EXT_RE = re.compile(r"\.(docx|pdf|xlsx|txt|md|ppt|pptx|DOCX|PDF|PPT|PPTX)\s*$")
 
 
 _ASK_RE = re.compile(
     r"(嗎|呢|如何|怎麼|為什么|為什麼|什么|什麼|該不該|可不可以|怎辦|请问|請問|为什么)"
 )
+# UI／口語常在手冊題後多打 ? —— 不當真假問句語氣（對症：tiptop 應付帳款系統說明?）
+_TRAIL_ASK_PUNCT_RE = re.compile(r"[?？\s]+$")
+_ERP_PREFIX_RE = re.compile(r"^(tiptop|erp)\s*", re.I)
+# 文首產品名別名：aap.pdf 內建＝「應付帳款管理系統」（裸「應付帳款」會被大量雜件洗掉）
+_HANDBOOK_ALIASES: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"應付帳款.*(系統)?(說明|手冊|介紹|指南)?"), "應付帳款管理系統"),
+    (re.compile(r"应付账款.*(系统)?(说明|手册|介绍|指南)?"), "應付帳款管理系統"),
+]
+
+
+def _strip_trail_ask_punct(q: str) -> str:
+    return _TRAIL_ASK_PUNCT_RE.sub("", (q or "").strip())
 
 
 def is_readout_intent(query: str) -> bool:
@@ -54,12 +67,12 @@ def is_readout_intent(query: str) -> bool:
         return True
     # 純貼檔名／標題（無問句語氣）→ 視為讀出／依文作答（對症：UI 複製標題卻回「知識庫中無此內容」）
     # 有副檔名時：檔名常含「如何／什麼」（如 TIPTOP如何新增使用者.pdf）→ 勿當問句否決
+    # 尾綴 ?／？：手冊題口語標點，剝掉後再判 bare-title（勿因單一字元翻 intent）
+    bare = _strip_trail_ask_punct(q)
     if (
-        len(q) <= 160
-        and _looks_like_title(q)
-        and (bool(_EXT_RE.search(q)) or not _ASK_RE.search(q))
-        and "?" not in q
-        and "？" not in q
+        len(bare) <= 160
+        and _looks_like_title(bare)
+        and (bool(_EXT_RE.search(bare)) or not _ASK_RE.search(bare))
     ):
         return True
     return False
@@ -80,7 +93,7 @@ def _looks_like_title(s: str) -> bool:
 
 def extract_title_hint(query: str) -> str:
     """自問句抽出標題／檔名提示（去副檔名、去讀出套語）。"""
-    q = (query or "").strip()
+    q = _strip_trail_ask_punct(query or "")
     parts = _SPLIT_RE.split(q, maxsplit=1)
     head = parts[0].strip() if parts else q
     if len(parts) == 2 and _looks_like_title(parts[0]):
@@ -99,7 +112,33 @@ def extract_title_hint(query: str) -> str:
         hint = re.sub(r"[：:].*$", "", q).strip()
         if not _EXT_RE.search(hint):
             hint = _EXT_RE.sub("", hint).strip()
-    return hint
+    return _strip_trail_ask_punct(hint)
+
+
+def _resolve_hint_variants(hint: str) -> list[str]:
+    """標題／產品別名候選（去 ERP 前綴＋手冊別名）。保序去重。"""
+    h0 = _strip_trail_ask_punct(hint or "")
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def add(s: str) -> None:
+        s = (s or "").strip()
+        if len(s) < 2:
+            return
+        key = s.casefold()
+        if key in seen:
+            return
+        seen.add(key)
+        out.append(s)
+
+    add(h0)
+    stripped = _ERP_PREFIX_RE.sub("", h0).strip()
+    add(stripped)
+    for blob in (h0, stripped):
+        for pat, alias in _HANDBOOK_ALIASES:
+            if pat.search(blob):
+                add(alias)
+    return out
 
 
 def _scope_tuple(scope) -> tuple[bool, Any, Any]:
@@ -267,14 +306,22 @@ def _resolve_by_content_head(cur, hint: str, *, scope=None, limit: int = RESOLVE
 
 
 def resolve_item_ids(cur, hint: str, *, scope=None, limit: int = RESOLVE_LIMIT) -> list[int]:
-    """標題／檔名优先；落空則文首產品名／內文標題（eligible＋CLEAN＋RBAC public）。"""
+    """標題／檔名优先；落空則文首產品名／內文標題（eligible＋CLEAN＋RBAC public）。
+
+    M3 pool-gate：resolve／citations 路徑必 JOIN knowledge_item_text——
+    有 weight／標題列 ≠ 可答（見 augur.knowledge.pool_gate）。
+    """
     hint = (hint or "").strip()
     if len(hint) < 2:
         return []
-    ids = _resolve_by_title(cur, hint, scope=scope, limit=limit)
-    if ids:
-        return ids
-    return _resolve_by_content_head(cur, hint, scope=scope, limit=limit)
+    for cand in _resolve_hint_variants(hint):
+        ids = _resolve_by_title(cur, cand, scope=scope, limit=limit)
+        if ids:
+            return ids
+        ids = _resolve_by_content_head(cur, cand, scope=scope, limit=limit)
+        if ids:
+            return ids
+    return []
 
 
 def _chunk_text(content: str, *, max_chars: int, chunk: int) -> list[tuple[int, int, str]]:
@@ -389,12 +436,24 @@ def _selftest() -> int:
     chk("intent how-ask no", is_readout_intent("國碩 DR 演練要怎麼做") is False)
     chk("intent 檔名含如何", is_readout_intent("TIPTOP如何新增使用者.pdf") is True)
     chk("intent 無副檔名含如何當問句", is_readout_intent("TIPTOP如何新增使用者") is False)
+    chk(
+        "intent 手冊題尾綴?",
+        is_readout_intent("tiptop 應付帳款系統說明?") is True,
+    )
+    chk(
+        "hint 剝尾綴?",
+        extract_title_hint("tiptop 應付帳款系統說明?") == "tiptop 應付帳款系統說明",
+    )
+    variants = _resolve_hint_variants("tiptop 應付帳款系統說明?")
+    chk("alias 含應付帳款管理系統", "應付帳款管理系統" in variants)
 
     hint = extract_title_hint(q)
     chk("hint 含國碩", "國碩" in hint and "ERP" in hint)
     chk("hint 無請讀出", "請讀出" not in hint)
     chk("hint 保留 pdf", extract_title_hint("aap.pdf：請讀出具體內容") == "aap.pdf")
     chk("hint 保留 docx", extract_title_hint("報告.docx：請讀出") == "報告.docx")
+    chk("intent bare ppt", is_readout_intent("TIPTOP GP5.3-生產管理.ppt") is True)
+    chk("hint 保留 ppt", extract_title_hint("TIPTOP GP5.3-生產管理.ppt") == "TIPTOP GP5.3-生產管理.ppt")
     chk("hint 無副檔名仍去", ".pdf" not in extract_title_hint("無檔名長標題說明文件：請讀出.pdf附註"))
     chk("nfkc 理→理", _nfkc_compact("管理") == _nfkc_compact("管理"))
     chk("nfkc 去空白", "應付帳款" in _nfkc_compact("應 付 帳 款"))

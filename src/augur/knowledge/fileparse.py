@@ -200,16 +200,23 @@ def _soffice_bin():
 
 
 def _read_via_soffice(path, out_ext, method):
+    """soffice 轉檔再抽字。輸入先複製成 ASCII 暫名（避 CJK／空白路徑載入失敗）。"""
     soffice = _soffice_bin()
     if not soffice:
         return None, "missing_parser"
     with tempfile.TemporaryDirectory() as td:
-        cmd = [soffice, "--headless", "--convert-to", out_ext.lstrip("."), "--outdir", td, path]
+        in_ext = os.path.splitext(path)[1].lower() or ".bin"
+        src = os.path.join(td, "src" + in_ext)
         try:
-            subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=True)
+            shutil.copy2(path, src)
+        except OSError:
+            return None, "parse_error"
+        cmd = [soffice, "--headless", "--convert-to", out_ext.lstrip("."), "--outdir", td, src]
+        try:
+            subprocess.run(cmd, capture_output=True, text=True, timeout=120, check=True)
         except (OSError, subprocess.SubprocessError):
             return None, "parse_error"
-        out = os.path.join(td, os.path.splitext(os.path.basename(path))[0] + out_ext)
+        out = os.path.join(td, "src" + out_ext)
         if not os.path.isfile(out):
             return None, "parse_error"
         if out_ext == ".txt":
@@ -225,7 +232,11 @@ def _read_doc(path):
 
 
 def _read_ppt(path):
-    return _read_via_soffice(path, ".txt", "ppt")
+    # 舊 .ppt：Impress 可載入，但常缺 Writer 的 txt 匯出濾鏡 → 先轉 pptx 再走 python-pptx。
+    txt, status = _read_via_soffice(path, ".pptx", "ppt")
+    if txt is not None:
+        return txt, "ppt"
+    return None, status
 
 
 def _read_xls(path):

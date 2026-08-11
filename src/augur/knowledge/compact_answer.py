@@ -14,7 +14,7 @@ import os
 import re
 from typing import Any, Sequence
 
-from augur.advisor.ollama import strip_quote_marks
+from augur.llm.ollama import strip_quote_marks
 
 # 凍結預算（經驗：全量 inline＋4b 易 900s 逾時；~2.4k 字＋短答可在可接受時間）
 MAX_CITE_CHARS = int(os.environ.get("AUGUR_COMPACT_CITE_CHARS", "2000"))
@@ -278,7 +278,7 @@ def _selftest() -> int:
     pol = polish_compact_response(live_leak)
     chk("polish 中段想題截斷", "我需要" not in pol and "關鍵是" not in pol)
     chk("polish 點列→編號", pol.startswith("1.") and "2." in pol)
-    from augur.advisor.ollama import make_llm_fn
+    from augur.llm.ollama import make_llm_fn
     base_fn = make_llm_fn(model="qwen3:4b", think=False, options={"num_predict": 900})
     chk("ollama fn 可 bind", callable(getattr(base_fn, "_augur_bind_options", None)))
     bound = base_fn._augur_bind_options({"num_predict": 480})

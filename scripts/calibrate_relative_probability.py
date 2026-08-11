@@ -152,10 +152,20 @@ def emit_horizon(cur, h, asof, git7, model_family=MODEL_FAMILY):
         print(f"  ✗ H{h}: 無校準器(先 --fit)"); return 0
     cid, params = row[0], row[1]
     a, b = params["a"], params["b"]
-    cur.execute("SELECT pv.model_id, pv.stock_id, pv.rank FROM prediction_values pv "
-                "JOIN model_registry mr USING (model_id) "
-                "WHERE pv.panel_date=%s AND mr.family=%s AND mr.horizon=%s ORDER BY pv.rank",
-                (asof, model_family, h))
+    # 同 panel 可並存多個 asof 之 model_id（repredict 常見）。只取 max(asof_snapshot)
+    # 那一槍，否則雙倍列 → 同 stock 重複 INSERT → UniqueViolation。
+    cur.execute(
+        "SELECT pv.model_id, pv.stock_id, pv.rank FROM prediction_values pv "
+        "JOIN model_registry mr USING (model_id) "
+        "WHERE pv.panel_date=%s AND mr.family=%s AND mr.horizon=%s "
+        "  AND mr.asof_snapshot = ("
+        "    SELECT max(mr2.asof_snapshot) FROM prediction_values pv2 "
+        "    JOIN model_registry mr2 USING (model_id) "
+        "    WHERE pv2.panel_date=%s AND mr2.family=%s AND mr2.horizon=%s"
+        "  ) "
+        "ORDER BY pv.rank",
+        (asof, model_family, h, asof, model_family, h),
+    )
     rows = cur.fetchall()
     if not rows:
         print(f"  ✗ H{h}: prediction_values 無 {asof} 列"); return 0
@@ -164,6 +174,11 @@ def emit_horizon(cur, h, asof, git7, model_family=MODEL_FAMILY):
     if not er:
         raise RuntimeError(f"econ_verdict_rule 無 H{h} 列(fail-loud #15):先 migrate_probability_ddl.py --run 種子")
     econ = er[0]
+    model_ids = {r[0] for r in rows}
+    if len(model_ids) != 1:
+        raise RuntimeError(
+            f"emit H{h}@{asof} 預期單一 model_id，得 {sorted(model_ids)}（選 max asof 後仍歧義）"
+        )
     n = len(rows)
     model_id = rows[0][0]
     out = []

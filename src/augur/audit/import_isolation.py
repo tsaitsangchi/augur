@@ -83,9 +83,8 @@ PREDICT_CONSUMERS = ("features", "models", "universe", "evaluation")   # 純消�
 # 急迫性來自單一角色整併(2026-07-31):`#8` 隔離之 DB 層已不存在且原理上無法重建,
 # 本 AST 閘成為**唯一**防線 ⇒ 其射程外的每一個 package 都是實質缺口。
 OUTER_PKGS = ("arena", "execution", "identity")
-# `deliberation` 另列:其 engine.py 依設計 import `augur.advisor.ollama`(審議引擎需本地 LLM 通道,
-# 見 deliberation/__init__.py 之鐵則)。**明文開洞優於默默不掃**——只放行 advisor,其餘同禁。
-DELIB_FORBIDDEN = ("augur.philosophy", "augur.knowledge", "augur.evolution")
+# `deliberation`：禁素養層／evolution／**advisor**（LLM 通道改走 `augur.llm`；STRUCT 斷環後不再例外）。
+DELIB_FORBIDDEN = ("augur.philosophy", "augur.knowledge", "augur.evolution", "augur.advisor")
 # grep-lint 面:預測管線 + core 皆禁字面引用 RBAC/chat(擋不 import 但字串旁路)
 SCAN_STR = PIPELINE + ("core",)
 # 蒸餾/審議表禁被觸及之範圍=預測管線 + core + 素養層寫入者(產物零回流真兆庫,界線-A)
@@ -245,7 +244,7 @@ def check_isolation() -> list[str]:
         + _ast_import_scan([_AUGUR_ROOT / p for p in OUTER_PKGS], FORBIDDEN,
                            "outer-import", "arena/execution/identity 禁 import 素養層/evolution")
         + _ast_import_scan([_AUGUR_ROOT / "deliberation"], DELIB_FORBIDDEN,
-                           "delib-import", "deliberation 禁 import 素養層/evolution(advisor 為設計例外)")
+                           "delib-import", "deliberation 禁 import 素養層/evolution/advisor（LLM＝augur.llm）")
         + _string_ref_violations([_AUGUR_ROOT / "evolution"], EVOLUTION_PANEL_LITERALS, "evolution-panel")
         + _placement_violations()
         + _scripts_predict_leak_violations()

@@ -18,7 +18,7 @@ attestation 通過 = **value_mismatch=0 ∧ extra_in_db=0**（API 即權威 #2�
 
 職責複用：schema/PK 查 DB（不另立白名單 #2）、finmind/fred 抓 API。**對帳函式唯讀**；唯 `heal_by_date`
 為「偵測 + 重跑 sync」orchestrator——**寫入仍走 `sync_by_date` 的 upsert 路徑（非 hand-patch，守 #1/#6）**。
-比對正規化對齊 `generic_schema`（null/placeholder→None、數字 float 比到 6 位）避免型別假性 mismatch。
+比對正規化＝`generic_schema._norm` SSOT（本檔再匯出 `_norm` 保 BC；STRUCT 斷 audit↔core 環）。
 
 守 #7（DB↔API 對帳）· #2（schema/真值以 API 為準）· #1（無幻像之可驗證鐵證）· #15（差異留存供 audit）。
 
@@ -44,28 +44,12 @@ EXEMPT_REASON = {
     "intraday": "tick 串流:全欄 PK+API 回不同 tick 子集→byte 逐日假 EX、非定案 as-of、零預測用途→豁免",
 }
 
-_NULL = {"", "none", "null", "nan", "nat"}
 _EXAMPLES_CAP = 10
 COVERAGE_SAMPLE = 5            # coverage 對帳抽樣日曆日數(新聞流逐日)
 COVERAGE_MISS_TOL = 0.2       # coverage:DB 漏抓占 API 容忍比(新聞去重/時序差、非逐條 byte)
 
-
-def _norm(v):
-    """比對正規化：null/placeholder→None；bool→小寫字串；可轉數字→round(float,6)；其餘→str.strip()。"""
-    if v is None:
-        return None
-    if isinstance(v, bool):                 # bool 須在 float 前判（float(True)=1.0 把布林誤轉數值 →
-        return str(v).lower()               # DB varchar 'true' vs API bool True 之 PK key 永不匹配 → 100% false EX≡MIS，Dealer is_after_hour 實證 2026-06-24）
-    if isinstance(v, str):
-        s = v.strip()
-        if s.lower() in _NULL:
-            return None
-        if len(s) > 1 and s[0] == "0" and s.isdigit():   # 前導零識別碼（ETF '0050'、'009802'）→ 保留 str、不轉 float
-            return s                                       # （否則 float('009802')=9802.0 與 '9802' 碰撞 → 假 VM/EX/MIS，DayTrading 實證 2026-06-24）
-    try:
-        return round(float(v), 6)
-    except (TypeError, ValueError):
-        return str(v).strip()
+# SSOT＝generic_schema._norm（斷 core→audit）；再匯出保 `reconcile._norm` BC
+_norm = generic_schema._norm
 
 
 def _key(row, pk):
@@ -543,21 +527,28 @@ def reconcile_fred(conn, series_ids, *, vintage_map=None, progress=None):
     return agg
 
 
-def attest_route(conn, dataset, *, scope, mode, since=None, until=None, sample_n=None, roster_only=False, progress=None):
+def attest_route(conn, dataset, *, scope, mode, since=None, until=None, sample_n=None,
+                 roster_only=False, progress=None, vintage_map=None):
     """catalog 驅動之單表 attestation 路由——**attestation 政策單一住所**(#12,(B) 2026-07-14 hugo 拍板)。
     daily_maintenance(日常維運,rolling 窗+heal)與 reconcile_audit(E1 gate,recent 窗+未定案緩衝)共用此→
     豁免與端點路由**兩驅動器一致、不分歧**(先前 reconcile_audit 不認 attestation_mode→tick 假 EX 分歧之根治)。
     回 (kind, result):kind∈{exempt,fred,coverage,market,roster,dim,byte};
     exempt→result={table,mode,reason}(呼叫端誠實列印、不計 verdict);餘→result=標準 reconcile agg。
-    **窗參數(since/until)+ heal 由呼叫端驅動**(兩驅動器窗策略不同,故不入本函式)。"""
+    **窗參數(since/until)+ heal 由呼叫端驅動**(兩驅動器窗策略不同,故不入本函式)。
+    **FRED**：`vintage_map` 須由呼叫端注入（通常 `features.macro.vintage_map()`）——audit 不 import features
+    （STRUCT 斷 audit↔features 環）。
+    """
     if mode in EXEMPT_MODES:                    # attestation_mode 豁免(SSOT)——政策一致之關鍵
         return "exempt", {"table": dataset, "mode": mode, "reason": EXEMPT_REASON[mode]}
     if dataset == FRED_TABLE:                   # FRED 資料走 FRED API(reconcile_fred;不佔 FinMind、非 FinMind by-dim-id)
-        from augur.features import macro       # 延遲 import:audit→features(皆預測側、隔離內);vintage_map 政策
+        if vintage_map is None:
+            raise ValueError(
+                "attest_route FRED 需 vintage_map=（由呼叫端注入；禁 audit→features 環）"
+            )
         with db.transaction(conn) as cur:
             cur.execute(f'SELECT DISTINCT series_id FROM "{FRED_TABLE}" ORDER BY series_id')
             sids = [r[0] for r in cur.fetchall()]
-        return "fred", reconcile_fred(conn, sids, vintage_map=macro.vintage_map(), progress=progress)
+        return "fred", reconcile_fred(conn, sids, vintage_map=vintage_map, progress=progress)
     if mode == "coverage" or aggregate_method(dataset, conn) == "all":   # 事件流(News)→量級對帳
         return "coverage", reconcile_coverage(conn, dataset, progress=progress)
     if scope == "market":                       # snapshot/單一序列 date-insensitive → 單批寬查(逐日對帳=假 EX/MIS)
@@ -624,6 +615,11 @@ def _selftest():
         chk("since>until fail-loud", False)
     except ValueError:
         chk("since>until fail-loud", True)
+    try:
+        attest_route(None, FRED_TABLE, scope="by-date", mode="byte")
+        chk("FRED 缺 vintage_map fail-loud", False)
+    except ValueError:
+        chk("FRED 缺 vintage_map fail-loud", True)
     # #29-1+撤列容忍回歸鎖(預填 cache→零 IO、不觸 finmind):值等→credit;值不符→VM;by-date 成功但無→retracted;抓失敗→留 EX
     pk2, val2 = ["sid", "date"], ["v"]
     extra = [{"sid": "A", "date": "2026-07-06", "v": "10"},   # by-date 有、值相等 → credit
