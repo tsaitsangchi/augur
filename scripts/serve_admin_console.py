@@ -298,7 +298,7 @@ _SCOPE_OPTIONS = "".join(f"<option>{v}</option>" for v in _SCOPES)
 PANELS = ("""
 <div class=card>
 <b>選擇檔案或資料夾入庫</b>
-<div style="font-size:13px;color:#73726c;margin-bottom:12px">點按鈕開啟檔案管理員選取(Windows 或 WSL 內的檔皆可),逐字入知識庫。license 白名單：公版／CC／<code>owned_local</code>（自有私有須配 <code>local_private</code>）。同內容再匯＝重複（已在庫、非失敗）。圖檔需 tesseract；舊 .doc/.ppt 需 libreoffice。大夾顯示上傳／解析進度(第 k／N)。</div>
+<div style="font-size:13px;color:#73726c;margin-bottom:12px">點按鈕開檔案管理員選取(Windows 或 WSL 內的檔皆可),逐字入知識庫。license 白名單：公版／CC／<code>owned_local</code>（自有私有須配 <code>local_private</code>）。同內容再匯＝重複（已在庫、非失敗）。圖檔需 tesseract；舊 .doc/.ppt 需 libreoffice。<b>影音／音訊</b>（.avi/.mp4/.mp3 等）走本機 ASR：須選 <code>owned_local</code>＋<code>local_private</code>、單檔≤200MB、需 ffmpeg＋faster-whisper；不當授權會略過。大夾顯示上傳／解析進度(第 k／N)。</div>
 <div style="margin-bottom:12px">授權 <select id=inlic style="padding:8px;background:#faf9f5;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:6px">"""
 + _LIC_OPTIONS + """</select>
  範圍 <select id=inscope style="padding:8px;background:#faf9f5;color:#1f1e1d;border:1px solid #dcd8cc;border-radius:6px">"""
@@ -348,20 +348,36 @@ async function doUpload(files){
   var br=await fetch('/api/upload/begin',{method:'POST',body:bd,headers:{'Content-Type':'application/x-www-form-urlencoded'}})
   var bj=await br.json()
   if(!bj.ok){res.textContent='無法開始上傳:'+(bj.error||br.status);_setBusy(false);return}
-  var job=bj.job_id,uploaded=0,big=0,bad=0,BATCH=6
-  for(var i=0;i<list.length;i+=BATCH){
+  var job=bj.job_id,uploaded=0,big=0,bad=0
+  var AV=/\\.(avi|mp4|mov|mkv|webm|mp3|wav|m4a|flac|ogg|aac)$/i
+  for(var i=0;i<list.length;){
+   var f0=list[i]
+   var isAv=AV.test((f0.webkitRelativePath||f0.name||''))
+   var BATCH=isAv?1:6
    var chunk=list.slice(i,i+BATCH)
+   i+=chunk.length
    var cur=chunk[chunk.length-1]
    var curName=(cur.webkitRelativePath||cur.name||'')
-   _showProg('上傳中 '+Math.min(i+chunk.length,total)+'／'+total,Math.min(i+chunk.length,total),total,'目前:'+curName)
+   _showProg('上傳中 '+Math.min(i,total)+'／'+total,Math.min(i,total),total,'目前:'+curName+(isAv?' (影音單檔)':''))
    var fd=new FormData();fd.append('job_id',job)
    for(var j=0;j<chunk.length;j++){var f=chunk[j];fd.append('file',f,f.webkitRelativePath||f.name)}
-   var ur=await fetch('/api/upload/file',{method:'POST',body:fd})
+   var ur
+   try{ur=await fetch('/api/upload/file',{method:'POST',body:fd})}
+   catch(netErr){
+    res.textContent='上傳網路中斷@'+i+'（'+curName+'）：'+(netErr&&netErr.message?netErr.message:netErr)
+      +'。影音請單檔、≤200MB、授權選 owned_local＋local_private；文件單檔≤50MB。'
+    _setBusy(false);return
+   }
+   if(!ur.ok){
+    var tip=(ur.status===413)?'本批過大(單次上傳總量上限)':'HTTP '+ur.status
+    res.textContent='上傳失敗@'+i+'（'+curName+'）：'+tip
+    _setBusy(false);return
+   }
    var uj=await ur.json()
-   if(!uj.ok){res.textContent='上傳失敗@'+(i+1)+':'+(uj.error||ur.status);_setBusy(false);return}
+   if(!uj.ok){res.textContent='上傳失敗@'+i+':'+(uj.error||ur.status);_setBusy(false);return}
    uploaded=uj.uploaded;big=uj.big;bad=uj.bad
   }
-  if(!uploaded){res.textContent='無有效檔案(過大跳 '+big+'、非法名跳 '+bad+')';_setBusy(false);_showProg('結束',total,total,'無有效檔');return}
+  if(!uploaded){res.textContent='無有效檔案(過大跳 '+big+'、非法名跳 '+bad+'；影音≤200MB／文件≤50MB)';_setBusy(false);_showProg('結束',total,total,'無有效檔');return}
   _showProg('解析入庫 0／'+uploaded,0,uploaded,'上傳完成(存 '+uploaded+'、過大跳 '+big+'、非法名跳 '+bad+')…開始解析')
   var cd=new URLSearchParams();cd.append('job_id',job)
   var cr=await fetch('/api/upload/commit',{method:'POST',body:cd,headers:{'Content-Type':'application/x-www-form-urlencoded'}})

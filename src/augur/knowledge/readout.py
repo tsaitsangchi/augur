@@ -34,7 +34,10 @@ _READOUT_RE = re.compile(
     r"(讀出|具體內容|全文|整份|整篇|原文內容|請讀|讀一遍|內容是什麼|說了什麼)"
 )
 _SPLIT_RE = re.compile(r"[：:]")
-_EXT_RE = re.compile(r"\.(docx|pdf|xlsx|txt|md|ppt|pptx|DOCX|PDF|PPT|PPTX)\s*$")
+_EXT_RE = re.compile(
+    r"\.(docx|pdf|xlsx|txt|md|ppt|pptx|avi|mp4|mov|mkv|webm|mp3|wav|m4a|"
+    r"DOCX|PDF|PPT|PPTX|AVI|MP4|MOV|MKV|WEBM|MP3|WAV|M4A)\s*$"
+)
 
 
 _ASK_RE = re.compile(
@@ -149,6 +152,24 @@ def _scope_tuple(scope) -> tuple[bool, Any, Any]:
     return bool(is_super), allowed, user_id
 
 
+def _rbac_clean_sql(scope) -> tuple[str, list]:
+    """CLEAN＋RBAC：public 一律；有 super／登入 owner 再 OR local_private（擁有者收窄）。
+
+    對齊 retrieve_all 雙軌；禁未登入可見私有（#5）。回 (frag, params)。"""
+    is_super, allowed, uid = _scope_tuple(scope)
+    pub_f, pub_p = corpus.clean_item_sql(
+        "i", "x", access_scope="public",
+        is_super=is_super, allowed_domains=allowed,
+    )
+    if not (is_super or uid is not None):
+        return pub_f, list(pub_p)
+    priv_f, priv_p = corpus.clean_item_sql(
+        "i", "x", access_scope="local_private",
+        is_super=is_super, allowed_domains=allowed, owner_user_id=uid,
+    )
+    return f"({pub_f} OR {priv_f})", list(pub_p) + list(priv_p)
+
+
 def _nfkc_compact(s: str) -> str:
     """NFKC＋去空白＋casefold：對 PDF 相容字（理→理）與字間空白。"""
     s = unicodedata.normalize("NFKC", s or "")
@@ -192,11 +213,7 @@ def _resolve_by_title(cur, hint: str, *, scope=None, limit: int = RESOLVE_LIMIT)
     hint = (hint or "").strip()
     if len(hint) < 2:
         return []
-    is_super, allowed, _uid = _scope_tuple(scope)
-    cfrag, cparams = corpus.clean_item_sql(
-        "i", "x", access_scope="public",
-        is_super=is_super, allowed_domains=allowed,
-    )
+    cfrag, cparams = _rbac_clean_sql(scope)
     like = f"%{hint}%"
     stem = _EXT_RE.sub("", hint).strip()
     # 短 stem（aap）會撞 aapt*；有副檔名時只打完整檔名／title_zh
@@ -255,11 +272,7 @@ def _resolve_by_content_head(cur, hint: str, *, scope=None, limit: int = RESOLVE
     strong = [t for t in strong if len(t) >= 2][:2]
     if not strong or (len(strong) == 1 and len(strong[0]) < 4):
         return []
-    is_super, allowed, _uid = _scope_tuple(scope)
-    cfrag, cparams = corpus.clean_item_sql(
-        "i", "x", access_scope="public",
-        is_super=is_super, allowed_domains=allowed,
-    )
+    cfrag, cparams = _rbac_clean_sql(scope)
     where_tok = " AND ".join(
         [f"left(x.content, {CONTENT_HEAD_CHARS}) ILIKE %s" for _ in strong]
     )
@@ -306,7 +319,7 @@ def _resolve_by_content_head(cur, hint: str, *, scope=None, limit: int = RESOLVE
 
 
 def resolve_item_ids(cur, hint: str, *, scope=None, limit: int = RESOLVE_LIMIT) -> list[int]:
-    """標題／檔名优先；落空則文首產品名／內文標題（eligible＋CLEAN＋RBAC public）。
+    """標題／檔名优先；落空則文首產品名／內文標題（eligible＋CLEAN＋RBAC public∪私有）。
 
     M3 pool-gate：resolve／citations 路徑必 JOIN knowledge_item_text——
     有 weight／標題列 ≠ 可答（見 augur.knowledge.pool_gate）。
@@ -454,6 +467,12 @@ def _selftest() -> int:
     chk("hint 保留 docx", extract_title_hint("報告.docx：請讀出") == "報告.docx")
     chk("intent bare ppt", is_readout_intent("TIPTOP GP5.3-生產管理.ppt") is True)
     chk("hint 保留 ppt", extract_title_hint("TIPTOP GP5.3-生產管理.ppt") == "TIPTOP GP5.3-生產管理.ppt")
+    chk("intent bare avi", is_readout_intent("WebService程式撰寫(I).avi") is True)
+    chk("hint 保留 avi", extract_title_hint("WebService程式撰寫(I).avi：請讀出具體內容") == "WebService程式撰寫(I).avi")
+    pub_f, _ = _rbac_clean_sql(None)
+    chk("未登入僅 public", "local_private" not in pub_f and "access_scope = 'public'" in pub_f)
+    both_f, _ = _rbac_clean_sql((True, frozenset(), 1))
+    chk("super OR private", "local_private" in both_f and " OR " in both_f)
     chk("hint 無副檔名仍去", ".pdf" not in extract_title_hint("無檔名長標題說明文件：請讀出.pdf附註"))
     chk("nfkc 理→理", _nfkc_compact("管理") == _nfkc_compact("管理"))
     chk("nfkc 去空白", "應付帳款" in _nfkc_compact("應 付 帳 款"))

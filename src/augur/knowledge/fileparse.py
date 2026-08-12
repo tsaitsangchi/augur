@@ -4,12 +4,14 @@
    供知識層切句/嵌入/檢索。每格式一個抽取器;抽不出(未知/二進位/損壞/加密/超大)= **誠實跳過並分類記數**,
    絕不硬湊內容(#1 逐字 · #15 誠實)。惡意檔防護:大小上限(防 OOM)、符號連結不跟(防逃逸)、
    解析例外吞為 skip(防單檔崩整批)。
-   PDF-C：`extract_text(..., ocr_pdf=True)` 對弱／空字層 PDF 走 Tesseract（預設關；禁 ASR／caption）。
+   PDF-C：`extract_text(..., ocr_pdf=True)` 對弱／空字層 PDF 走 Tesseract（預設關；**PDF 軌禁 ASR／caption**）。
+   AVI-ASR 窄切：影音／音訊副檔名走本機 faster-whisper（見 transcribe_asr；入庫須 owned_local）。
 守 #1(逐字、禁 AI 生成/改寫)· #15(抽不出誠實跳過、不杜撰)· #5(惡意檔/大小/符號連結防護)· #29。
 
 執行指令矩陣(本檔=library;CLI 見 scripts/acquire_local_files.py / backfill_pdf_ocr.py):
   python -c "from augur.knowledge.fileparse import extract_text; print(extract_text('X.pdf'))"
   python -c "from augur.knowledge.fileparse import extract_text; print(extract_text('X.pdf', ocr_pdf=True))"
+  python -c "from augur.knowledge.fileparse import extract_text; print(extract_text('X.avi'))"
 
 自測（本檔=library #18；免 DB 免 API 可個別驗證）：
   python -m augur.knowledge.fileparse              # 印用途+公開入口（唯讀）
@@ -28,10 +30,14 @@ _TEXT_EXT = {".txt", ".md", ".markdown", ".csv", ".tsv", ".log", ".json", ".xml"
              ".py", ".js", ".ts", ".java", ".c", ".cpp", ".h", ".go", ".rs", ".sh", ".sql", ".r"}
 _IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".tif", ".tiff", ".bmp"}
 _OLE_OFFICE_EXT = {".doc", ".xls", ".ppt"}
+_AV_EXT = {
+    ".avi", ".mp4", ".mov", ".mkv", ".webm",
+    ".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aac",
+}
 # skip 分類(誠實記數,計畫 §三):
 SKIP = ("oversize", "symlink", "empty", "decode_error", "parse_error",
         "encrypted", "unknown_ext", "no_text", "missing_ocr", "missing_parser",
-        "ocr_quality")
+        "ocr_quality", "asr_quality", "asr_requires_owned_local")
 # 人類可讀（UI／摘要；reason key 仍用 SKIP 英文碼）
 SKIP_LABEL_ZH = {
     "oversize": "超過單檔大小上限",
@@ -43,8 +49,10 @@ SKIP_LABEL_ZH = {
     "unknown_ext": "未支援副檔名",
     "no_text": "無可抽文字（如掃描圖）",
     "missing_ocr": "缺 OCR 引擎（需 pytesseract+tesseract）",
-    "missing_parser": "缺解析器或系統轉檔器",
+    "missing_parser": "缺解析器或系統轉檔器（含 ffmpeg／whisper）",
     "ocr_quality": "OCR 品質未過閘（過短／空白頁過多）",
+    "asr_quality": "ASR 品質未過閘（過短／疑幻覺／近靜音）",
+    "asr_requires_owned_local": "影音 ASR 僅准 owned_local＋local_private",
 }
 
 # PDF-C OCR（code-go）：預設關；extract_text(..., ocr_pdf=True) 或 backfill 才開
@@ -55,6 +63,7 @@ OCR_BLANK_PAGE_RATIO_MAX = 0.50
 OCR_DPI = 200
 OCR_LANGS = "chi_tra+eng"
 S0_OCR_MARK = "<!-- via=pdf_ocr -->\n"   # source_mark=S0；仍用 local_upload
+S0_ASR_MARK = "<!-- via=asr_transcribe -->\n"  # AVI-ASR；入庫 source_type=asr_transcribe
 
 
 def _read_text(path):
@@ -228,7 +237,14 @@ def _read_via_soffice(path, out_ext, method):
 
 
 def _read_doc(path):
-    return _read_via_soffice(path, ".txt", "doc")
+    # 舊 .doc：優先 txt；若缺 Writer 匯出濾鏡則轉 docx 再走 python-docx（對齊 .ppt→pptx）。
+    txt, status = _read_via_soffice(path, ".txt", "doc")
+    if txt is not None:
+        return txt, "doc"
+    txt2, status2 = _read_via_soffice(path, ".docx", "doc")
+    if txt2 is not None:
+        return txt2, "doc"
+    return None, status if status != "parse_error" else status2
 
 
 def _read_ppt(path):
@@ -291,6 +307,17 @@ def _read_epub(path):
     return (txt, "epub") if txt.strip() else (None, "no_text")
 
 
+def max_bytes_for_ext(ext: str) -> int:
+    """單檔大小上限：影音／音訊用 ASR 軌（200MB）；其餘文件 50MB。"""
+    e = (ext or "").lower()
+    if not e.startswith("."):
+        e = "." + e if e else ""
+    if e in _AV_EXT:
+        from augur.knowledge.transcribe_asr import MAX_AV_BYTES
+        return MAX_AV_BYTES
+    return MAX_BYTES
+
+
 def extract_text(
     path,
     *,
@@ -301,16 +328,21 @@ def extract_text(
     """回 (text|None, method_or_skipreason)。text 非 None = 抽取成功;None = 跳過(reason ∈ SKIP)。
 
     純規則、逐字;任何解析例外 → ('parse_error') 不外拋(單檔不崩整批,#5/#15)。
-    ocr_pdf：PDF 字層弱／空時用 Tesseract 補抽（預設 False；PDF-C；禁 ASR／caption）。"""
+    ocr_pdf：PDF 字層弱／空時用 Tesseract 補抽（預設 False；PDF-C；禁 ASR／caption）。
+    影音／音訊副檔名 → faster-whisper（reason=`asr`；入庫側須 owned_local）。"""
     try:
         if os.path.islink(path):
             return None, "symlink"                 # 不跟符號連結(防逃逸/迴圈)
         size = os.path.getsize(path)
         if size == 0:
             return None, "empty"
-        if size > MAX_BYTES:
-            return None, "oversize"
         ext = os.path.splitext(path)[1].lower()
+        if size > max_bytes_for_ext(ext):
+            return None, "oversize"
+        if ext in _AV_EXT:
+            from augur.knowledge.transcribe_asr import asr_file
+            text, reason, _meta = asr_file(path)
+            return (text, reason) if text is not None else (None, reason)
         if ext in _TEXT_EXT:
             return _read_text(path)
         if ext == ".pdf":
@@ -371,21 +403,25 @@ def _selftest():
         nonlocal ok; ok = ok and cond
         print(f"  {'✓' if cond else '✗FAIL'} {name}")
     chk("MAX_BYTES=50MB", MAX_BYTES == 50 * 1024 * 1024)
-    chk("SKIP 全十一類齊備", set(SKIP) == {"oversize", "symlink", "empty", "decode_error",
+    chk("SKIP 含 ASR 類齊備", set(SKIP) == {"oversize", "symlink", "empty", "decode_error",
                                         "parse_error", "encrypted", "unknown_ext", "no_text",
-                                        "missing_ocr", "missing_parser", "ocr_quality"})
+                                        "missing_ocr", "missing_parser", "ocr_quality",
+                                        "asr_quality", "asr_requires_owned_local"})
     chk("SKIP_LABEL_ZH 覆蓋 SKIP", set(SKIP_LABEL_ZH) == set(SKIP))
     chk("encrypted 標籤含密碼提示", "密碼" in SKIP_LABEL_ZH["encrypted"])
     chk(".pdf 不在 _TEXT_EXT(走專屬抽取器)", ".pdf" not in _TEXT_EXT)
     chk(".txt/.md/.csv/.json 屬純文字集", {".txt", ".md", ".csv", ".json"} <= _TEXT_EXT)
     chk("常見 image 副檔名納入 OCR 集", {".jpg", ".png", ".webp", ".gif", ".tiff", ".bmp"} <= _IMAGE_EXT)
     chk("舊版 Office 副檔名納入辨識", {".doc", ".xls", ".ppt"} <= _OLE_OFFICE_EXT)
+    chk("影音副檔名納入 ASR 集", {".avi", ".mp4", ".mp3", ".wav"} <= _AV_EXT)
+    chk("avi 單檔上限>文件", max_bytes_for_ext(".avi") > MAX_BYTES)
     chk("公開入口 extract_text 存在", callable(extract_text))
     chk("ocr_pdf_pages 公開", callable(ocr_pdf_pages))
     chk("needs_ocr 弱字層", _pdf_needs_ocr("x" * 50, "pdf", trigger_chars=200) is True)
     chk("needs_ocr 足字層否", _pdf_needs_ocr("x" * 500, "pdf", trigger_chars=200) is False)
     chk("needs_ocr encrypted 否", _pdf_needs_ocr(None, "encrypted", trigger_chars=200) is False)
     chk("S0 mark", S0_OCR_MARK.startswith("<!-- via=pdf_ocr"))
+    chk("S0 ASR mark", S0_ASR_MARK.startswith("<!-- via=asr_transcribe"))
     chk("各格式抽取器齊備", all(callable(f) for f in
                               (_read_text, _read_pdf, _read_docx, _read_doc, _read_pptx,
                                _read_ppt, _read_xlsx, _read_xls, _read_image, _read_epub)))

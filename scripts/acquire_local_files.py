@@ -9,7 +9,8 @@
      (DB CHECK chk_itext_owned_local_private 綁死、永不公開;安全繫於本機+私有+自有,**非拿來繞他人版權**)。
    - `access_scope`：CLI 明示優先；未給 → `adapter_config.access_scope` → 再預設 `local_private`
      (不入對外對話池,拍板P2；**禁**把「CLI 預設 local_private」覆寫成源 cfg 的 public——否則私有意圖靜默公開)。
-     `source_type='local_upload'`(DB CHECK<>ai_generated)。
+     `source_type='local_upload'`(DB CHECK<>ai_generated)；影音 ASR 成功時覆寫為 `asr_transcribe`
+     （僅 `owned_local`＋`local_private`，否則 skip:asr_requires_owned_local）。
    - 逐字入庫、禁 AI 摘要改寫(#1);抽不出=誠實跳過分類(fileparse,#15);符號連結不跟、大小上限(#5)。
 守 #1 · #15 · #5 · #6(sha1 冪等 resume)· #29。SSOT 落地模板=fetch_oa_fulltext.py;抽取器=augur.knowledge.fileparse。
 
@@ -55,6 +56,12 @@ def ingest_file(cur, path, *, license, access_scope, domain, source_key, source_
     text = text.strip()
     if reason == "pdf_ocr":
         text = fileparse.S0_OCR_MARK + text
+    if reason == "asr":
+        # AVI-ASR：僅自有私有軌；覆寫 source_type + S0 標記（PDF-C 不經此）
+        if license != "owned_local" or access_scope != "local_private":
+            return None, 0, "skip:asr_requires_owned_local"
+        text = fileparse.S0_ASR_MARK + text
+        source_type = "asr_transcribe"
     if len(text) < MIN_CHARS:
         return None, 0, "short"
     sha1 = hashlib.sha1(text.encode("utf-8", "replace")).hexdigest()

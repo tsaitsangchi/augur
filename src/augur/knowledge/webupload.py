@@ -98,7 +98,8 @@ def append_upload(updir, files):
     if not safe:
         return {"updir": updir, "saved": 0, "big": 0, "bad": len(files or [])}
     for filename, body in files:
-        if len(body) > fileparse.MAX_BYTES:
+        ext = os.path.splitext(os.path.basename((filename or "").replace("\\", "/")))[1].lower()
+        if len(body) > fileparse.max_bytes_for_ext(ext):
             big += 1
             continue
         rel = sanitize_relpath(filename)
@@ -130,11 +131,11 @@ def extract_texts(files):
     import tempfile
     parts, titles, parsed, skipped = [], [], 0, 0
     for filename, body in files:
-        if len(body) > fileparse.MAX_BYTES:
-            skipped += 1
-            continue
         base = os.path.basename((filename or "").replace("\\", "/")) or "file"
         ext = os.path.splitext(base)[1] or ".bin"
+        if len(body) > fileparse.max_bytes_for_ext(ext):
+            skipped += 1
+            continue
         with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tf:
             tf.write(body)
             tmp = tf.name
@@ -183,6 +184,7 @@ def _selftest():
     # 常數結構斷言(SCOPES 對映 access_scope、LICENSES 承 corpus SSOT)
     chk("SCOPES 含 public/local_private", set(SCOPES) == {"public", "local_private"})
     chk("LICENSES 非空", isinstance(LICENSES, (tuple, list)) and len(LICENSES) > 0)
+    chk("avi 上限>文件 50MB", fileparse.max_bytes_for_ext(".avi") > fileparse.MAX_BYTES)
     # safe_updir:空／逃逸／非目錄 → None(分批上傳 job 圍欄)
     chk("safe_updir 空 → None", safe_updir("") is None)
     chk("safe_updir 逃逸 → None", safe_updir("/tmp") is None)

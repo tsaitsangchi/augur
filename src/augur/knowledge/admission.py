@@ -31,6 +31,7 @@ from augur.knowledge import corpus
 SOURCE_TYPE_WHITELIST = (
     "erp_extract", "local_upload", "remote_sftp", "apk_decompile", "abstract",
     "cod_desc", "chembl_desc", "uniprot_desc", "gbif_desc", "pubchem_desc", "pd_fetch",
+    "asr_transcribe",  # AVI-ASR 窄切：影音／音訊本機轉錄；admission+ingest 須 owned_local
 )
 
 
