@@ -119,12 +119,27 @@ def _reply_text(result):
     attached = bool(cites) and all((getattr(c, "source_url", "") or "").startswith("附加文件:") for c in cites)
     if passed:
         body = result["response"]
+        # 弱模型在有引文時仍吐閉集句：機器閘改有界摘錄（對症假「無此內容」）
+        if cites and not attached:
+            try:
+                from augur.knowledge.compact_answer import ensure_cite_backed_response
+                body = ensure_cite_backed_response(body, cites)
+            except Exception:
+                pass
     elif attached:
         body = "(顧問白話解讀因不合逐字引用規則被機械閘攔下;以下為附加檔原文,供你自行研讀)"
     elif result.get("picks_ground_truth"):
         body = _picks_only_on_guard_fail(result.get("response") or "")
+    elif cites and (result.get("readout") or any(
+            getattr(c, "item_id", None) is not None for c in cites)):
+        # guard fail 但庫內已命中 item：不得謊稱無此內容 → 有界摘錄（對齊 picks 例外精神）
+        try:
+            from augur.knowledge.compact_answer import extractive_cite_reply
+            body = extractive_cite_reply(cites)
+        except Exception:
+            body = NO_KNOWLEDGE_RESPONSE
     else:
-        # guard fail(公版無 picks):不倒引經據典原文→誠實固定句閉集(憲章 v1.25.0;既有測試不變)
+        # guard fail(公版無 picks／無 item 引文):不倒原文→誠實固定句閉集(憲章 v1.25.0)
         body = NO_KNOWLEDGE_RESPONSE
     parts = [body]
     if attached:                        # 僅 Mode B 附加檔顯示逐字區塊;公版引經據典一律不顯示(用戶 directive)
@@ -459,6 +474,28 @@ def _selftest():
     chk("reply:pass 顯 response", "白話解讀" in rp and _SEP in rp)
     rf = _reply_text(fake_fail)
     chk("reply:fail 回誠實閉集", NO_KNOWLEDGE_RESPONSE in rf and "原文不倒" not in rf)
+    # item 引文＋guard fail → 不得謊稱無此內容（假 decline 閘）
+    class _C:
+        item_id = 1818824
+        text = "Client端程式\nfglwsdl 產碼"
+        source_url = "file://x"
+        work_title = "t"
+        thinker = ""
+        chapter = ""
+    fake_fail_cite = {
+        "response": "原文不倒", "guard": {"pass": False, "issues": ["逐字不符"]},
+        "citations": [_C()], "lex_entries": [], "readout": {"via": "readout", "item_ids": [1818824]},
+    }
+    rfc = _reply_text(fake_fail_cite)
+    chk("reply:fail+item cite→摘錄非無內容",
+        "fglwsdl" in rfc and NO_KNOWLEDGE_RESPONSE not in rfc.split(_SEP)[0])
+    fake_pass_decline = {
+        "response": NO_KNOWLEDGE_RESPONSE, "guard": {"pass": True, "issues": []},
+        "citations": [_C()], "lex_entries": [],
+    }
+    rpd = _reply_text(fake_pass_decline)
+    chk("reply:pass 假 decline→摘錄",
+        "fglwsdl" in rpd and NO_KNOWLEDGE_RESPONSE not in rpd.split(_SEP)[0])
     # PRED-KH／D4：有 picks 真兆時 guard fail 不得謊稱知識庫空（#35：合成輸入餵真行為）
     fake_picks_fail = {
         "response": "根據模型 as-of 2026-05-31(相對機率/單股 H20)之相對強弱排序,看好 top 1:\n"

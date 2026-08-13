@@ -318,6 +318,79 @@ def ensure_fill_kv_in_response(
     return "\n".join(block_lines) + body
 
 
+def is_false_no_knowledge(text: str) -> bool:
+    """答文實質＝誠實閉集句（可帶空白／尾註前綴）。"""
+    from augur.advisor.guard import NO_KNOWLEDGE_RESPONSE
+    body = (text or "").strip()
+    if not body:
+        return False
+    if body == NO_KNOWLEDGE_RESPONSE:
+        return True
+    if body.startswith(NO_KNOWLEDGE_RESPONSE + "\n"):
+        return True
+    # 僅閉集句＋極短尾（無實作答）
+    head = body.split("\n", 1)[0].strip()
+    return head == NO_KNOWLEDGE_RESPONSE and len(body) <= len(NO_KNOWLEDGE_RESPONSE) + 24
+
+
+def extractive_cite_reply(
+    citations: Sequence[Any] | None,
+    *,
+    max_chars: int = 1600,
+    max_steps: int = 12,
+) -> str:
+    """有界摘錄作答（機器閘；不經 LLM）。垂直定位字／空白正規化後取條列。"""
+    blobs: list[str] = []
+    for c in citations or ():
+        t = getattr(c, "text", "") or ""
+        t = t.replace("\x0b", "\n").replace("\r", "\n")
+        t = re.sub(r"[ \t]+\n", "\n", t)
+        t = re.sub(r"\n{3,}", "\n\n", t).strip()
+        if t:
+            blobs.append(t)
+    if not blobs:
+        from augur.advisor.guard import NO_KNOWLEDGE_RESPONSE
+        return NO_KNOWLEDGE_RESPONSE
+    joined = "\n".join(blobs)
+    # 先收「有資訊密度」列；過短標題列僅在無長列時回退
+    dense: list[str] = []
+    short: list[str] = []
+    for raw in joined.splitlines():
+        ln = raw.strip()
+        if not ln or len(ln) < 2:
+            continue
+        if ln.startswith("------") or ln.startswith("===="):
+            continue
+        if len(ln) >= 10 or re.search(r"[A-Za-z_]{3,}|\d", ln):
+            dense.append(ln)
+        else:
+            short.append(ln)
+    steps = (dense or short)[:max_steps]
+    if not steps:
+        steps = [joined[:400].strip()]
+    lines = ["依庫內原文（有界摘錄；非模型臆造）："]
+    budget = max_chars - 40
+    for i, s in enumerate(steps, 1):
+        piece = f"{i}. {s}"
+        if sum(len(x) + 1 for x in lines) + len(piece) > budget:
+            break
+        lines.append(piece)
+    return "\n".join(lines).strip()
+
+
+def ensure_cite_backed_response(
+    text: str,
+    citations: Sequence[Any] | None = None,
+) -> str:
+    """已有檢索／readout 引文卻吐「知識庫中無此內容」→ 改有界摘錄（對症假 decline）。"""
+    body = (text or "").strip()
+    if not citations:
+        return body
+    if not is_false_no_knowledge(body):
+        return body
+    return extractive_cite_reply(citations)
+
+
 def wrap_compact_llm(llm_fn, *, num_predict: int | None = None, timeout: float | None = None):
     """緊湊路徑：保留呼叫端 model；能 bind 則鎖 num_predict；一律外包抛光。
 
@@ -419,6 +492,21 @@ def _selftest() -> int:
     )
     kvs = extract_fill_kvs_from_citations([fill_cite])
     chk("fill 自引文抽 kv", ("wsj02", "10.1.2.30") in kvs and ("wsj04", "EFGP_PROD") in kvs)
+    genero = S(
+        item_id=1818824,
+        item_title="Genero Web Services 教育訓練(Clinet端程式-for TP 3x).ppt",
+        text="TIPTOP 3X\nClient端程式開發技巧\n取得 WSDL 資訊\n使用工具程式：fglwsdl\n撰寫 Client 端程式並呼叫服務\n",
+    )
+    chk(
+        "假 decline→有界摘錄",
+        is_false_no_knowledge("知識庫中無此內容")
+        and "fglwsdl" in ensure_cite_backed_response("知識庫中無此內容", [genero])
+        and "知識庫中無此內容" not in ensure_cite_backed_response("知識庫中無此內容", [genero]),
+    )
+    chk(
+        "真答不改寫",
+        ensure_cite_backed_response("1. 用 fglwsdl 產碼\n", [genero]).startswith("1."),
+    )
     from augur.llm.ollama import make_llm_fn
     base_fn = make_llm_fn(model="qwen3:4b", think=False, options={"num_predict": 900})
     chk("ollama fn 可 bind", callable(getattr(base_fn, "_augur_bind_options", None)))

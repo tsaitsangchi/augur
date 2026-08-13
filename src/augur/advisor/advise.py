@@ -379,12 +379,19 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     response = llm_fn(prompt)
     if use_compact:
         from augur.knowledge.compact_answer import (
+            ensure_cite_backed_response,
             ensure_fill_kv_in_response,
             polish_compact_response,
         )
         response = polish_compact_response(response)
         # D-FillAuto：弱模型常只寫「改 wsj02」→ 機器閘從凍引文注入欄位=值
         response = ensure_fill_kv_in_response(response, query, citations)
+        # 假 decline：已有引文卻吐「知識庫中無此內容」→ 有界摘錄
+        response = ensure_cite_backed_response(response, citations)
+    elif citations:
+        # 非 compact 主路徑同樣擋假 decline（readout／ANN 皆然）
+        from augur.knowledge.compact_answer import ensure_cite_backed_response
+        response = ensure_cite_backed_response(response, citations)
     if isinstance(payload, KnowledgePayload):
         # P8 域條款(已拍板 2026-07-04):雙源=payload.numbers() ∪ 本回合檢索真兆數字集
         verdict = guard_knowledge(response, payload, citations,
