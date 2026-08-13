@@ -218,21 +218,9 @@ def _horizon_from_query(q, default=60):
     return default
 
 
-def rel_prob_topk_intent(query):
-    """回 (k, horizon) 或 None——「未來N天(上漲)機率最高 topK」→ 改答相對機率 TopK。
-
-    Steward auto_rel_topn／憲政切片：口語「上漲機率／漲跌幅 TopN」一律改寫為
-    P(勝過同儕中位) 排名，**不是**絕對漲跌幅；仍注入 picks 以免方向短路空拒。
-    """
+def _rel_prob_topk_k(query):
+    """自問句抽 TopK；無則 None。"""
     q = query or ""
-    if re.search(r"目標價|逐日路徑|每日路徑", q):
-        return None
-    # 相對語 ∪ 口語絕對幅度排名（改寫觸發；禁目標價／逐日）
-    if not re.search(
-        r"機率|相對|強弱|排名|漲跌幅|漲幅|跌幅|報酬率?|漲最多|跌最多|賺最多",
-        q,
-    ):
-        return None
     m = re.search(r"top\s*(\d+)", q, re.I)
     if m:
         k = int(m.group(1))
@@ -248,6 +236,86 @@ def rel_prob_topk_intent(query):
             tok = m2.group(1)
             k = int(tok) if tok.isdigit() else _CN_NUM.get(tok, 0)
     if k < 1 or k > 20:
+        return None
+    return k
+
+
+def _mentions_h20(q: str) -> bool:
+    return bool(re.search(r"20\s*(天|日|交易日)|H\s*20", q, re.I))
+
+
+def _mentions_h60(q: str) -> bool:
+    return bool(re.search(r"60\s*(天|日|交易日)|H\s*60|兩個?月", q, re.I))
+
+
+def rel_prob_board_intent(query):
+    """雙窗／漲+跌 TopN 看板意圖 → dict 或 None。
+
+    對症：問「20天與60天漲幅 top10與跌幅 top10＋都存在」時，舊路徑只取單一 H60、
+    且弱 LLM 複誦造成重複列；改走確定性雙窗看板（免 LLM）。
+    回 {"k", "horizons": tuple[int,...], "include_bottom": bool, "include_intersect": bool}
+    """
+    q = query or ""
+    if re.search(r"目標價|逐日路徑|每日路徑", q):
+        return None
+    if not re.search(
+        r"機率|相對|強弱|排名|漲跌幅|漲幅|跌幅|報酬率?|漲最多|跌最多|賺最多",
+        q,
+    ):
+        return None
+    k = _rel_prob_topk_k(q)
+    if k is None:
+        return None
+    if not (
+        re.search(r"未來|\d+\s*(天|日)|最高|top|前\s*|今天之後|之後|近日|短期", q, re.I)
+    ):
+        return None
+    want_up = bool(re.search(r"漲跌幅|漲幅|漲最多|上漲|起漲|看好|相對強", q))
+    want_down = bool(re.search(r"漲跌幅|跌幅|跌最多|相對弱|看空|看淡", q))
+    dual = _mentions_h20(q) and _mentions_h60(q)
+    want_intersect = bool(re.search(r"都存在|兩窗|同時|交集|皆入選|都在", q)) or dual
+    # 雙窗、或同句要漲+跌榜 → 看板（確定性）
+    if not (dual or (want_up and want_down) or want_intersect):
+        return None
+    if dual:
+        horizons = (20, 60)
+    else:
+        if re.search(r"漲跌幅|漲幅|跌幅|今天之後|之後|近日|短期", q):
+            default_h = 20
+        else:
+            default_h = 20 if re.search(r"30|未來", q) else 60
+        horizons = (_horizon_from_query(q, default=default_h),)
+    include_bottom = bool(want_down)
+    if re.search(r"漲跌幅", q):
+        include_bottom = True
+    return {
+        "k": k,
+        "horizons": horizons,
+        "include_bottom": include_bottom,
+        "include_intersect": bool(want_intersect and len(horizons) >= 2),
+    }
+
+
+def rel_prob_topk_intent(query):
+    """回 (k, horizon) 或 None——「未來N天(上漲)機率最高 topK」→ 改答相對機率 TopK。
+
+    Steward auto_rel_topn／憲政切片：口語「上漲機率／漲跌幅 TopN」一律改寫為
+    P(勝過同儕中位) 排名，**不是**絕對漲跌幅；仍注入 picks 以免方向短路空拒。
+    若命中雙窗看板（rel_prob_board_intent）→ 回 None，改由看板路徑承接。
+    """
+    q = query or ""
+    if rel_prob_board_intent(q) is not None:
+        return None
+    if re.search(r"目標價|逐日路徑|每日路徑", q):
+        return None
+    # 相對語 ∪ 口語絕對幅度排名（改寫觸發；禁目標價／逐日）
+    if not re.search(
+        r"機率|相對|強弱|排名|漲跌幅|漲幅|跌幅|報酬率?|漲最多|跌最多|賺最多",
+        q,
+    ):
+        return None
+    k = _rel_prob_topk_k(q)
+    if k is None:
         return None
     if not (
         re.search(r"未來|\d+\s*(天|日)|最高|top|前\s*|今天之後|之後|近日|短期", q, re.I)
@@ -342,11 +410,18 @@ def _selftest():
     # rel_prob_topk_intent(auto_rel_topn)
     chk("上漲機率 top3→(3,20)", rel_prob_topk_intent("未來30天上漲機率最高的top 3") == (3, 20))
     chk("相對機率前三→(3,*)", rel_prob_topk_intent("未來30天相對機率前三") == (3, 20))
-    chk("漲跌幅 top10→(10,20)",
-        rel_prob_topk_intent("在今天之後漲跌幅最top 10分别是什麼個股?") == (10, 20))
-    chk("10天內漲跌幅+幅度→(10,20)",
-        rel_prob_topk_intent("在今天之後10天內漲跌幅最top 10分别是什麼個股?幅度為多少?") == (10, 20))
-    chk("漲跌幅前十→(10,*)", rel_prob_topk_intent("漲跌幅前十名個股") == (10, 20))
+    # 漲+跌／雙窗 → 看板意圖（topk 讓路）
+    q_board = "在今天之後開始起漲，20天與60天後漲幅top 10與跌幅top 10，並列出都存在的個股"
+    bi = rel_prob_board_intent(q_board)
+    chk("雙窗漲跌看板意圖", bi is not None and bi["k"] == 10 and bi["horizons"] == (20, 60)
+        and bi["include_bottom"] and bi["include_intersect"])
+    chk("雙窗問句 topk 讓路", rel_prob_topk_intent(q_board) is None)
+    chk("漲跌幅 top10→看板(非單向 topk)",
+        rel_prob_topk_intent("在今天之後漲跌幅最top 10分别是什麼個股?") is None
+        and rel_prob_board_intent("在今天之後漲跌幅最top 10分别是什麼個股?") is not None)
+    chk("10天內僅漲幅 top→仍 topk",
+        rel_prob_topk_intent("未來10天相對機率最高 top 10") == (10, 20))
+    chk("漲跌幅前十→看板", rel_prob_board_intent("漲跌幅前十名個股") is not None)
     chk("目標價排名→None", rel_prob_topk_intent("目標價最高 top 3") is None)
     chk("大盤漲跌→True", market_binary_dir_intent("未來30天上漲還是下跌的機率高?") is True)
     chk("有股號漲跌→False(非大盤)", market_binary_dir_intent("2330上漲還是下跌?") is False)

@@ -309,6 +309,15 @@ def build_rel_prob_topk_payload(k=3, horizon=20, as_of=None):
             return PredictionPayload(
                 as_of=str(as_of), horizon=horizon, model="(空)", picks=(),
                 validation={"note": "該 as-of/H 無列"}, probs=(), prob_note="")
+        # 去重（同股多列時只留首次）
+        seen, deduped = set(), []
+        for r in rows:
+            sid = str(r[0])
+            if sid in seen:
+                continue
+            seen.add(sid)
+            deduped.append(r)
+        rows = deduped
         sids = [str(r[0]) for r in rows]
         names = _lookup_stock_names(conn, cur, sids)
         ref = "prediction_probability:panel=%s,H=%s,order=p_beat_median_desc" % (as_of, horizon)
@@ -336,8 +345,184 @@ def build_rel_prob_topk_payload(k=3, horizon=20, as_of=None):
             validation["p_beat_%d" % (i + 1)] = round(float(pv), 4)
         return PredictionPayload(
             as_of=str(as_of), horizon=horizon,
-            model="相對機率Top%d/H%d" % (k, horizon),
+            model="相對機率Top%d" % k,
             picks=tuple(picks), validation=validation,
+            probs=tuple(probs), prob_note=prob_note,
+        )
+
+
+def _fetch_rel_prob_ends(cur, as_of, horizon, k, *, descending: bool):
+    """回 [(stock_id, p_beat, rank_pctile, econ, cal_days), ...] 已去重。"""
+    order = "DESC" if descending else "ASC"
+    cur.execute(
+        f"""
+        SELECT stock_id, p_beat_median, rank_pctile, econ_verdict, calendar_days
+        FROM prediction_probability
+        WHERE panel_date=%s AND horizon=%s
+        ORDER BY p_beat_median {order} NULLS LAST
+        LIMIT %s
+        """,
+        (as_of, horizon, max(k * 3, k)),
+    )
+    seen, out = set(), []
+    for r in cur.fetchall():
+        sid = str(r[0])
+        if sid in seen:
+            continue
+        seen.add(sid)
+        out.append((sid, float(r[1]), float(r[2]), r[3], int(r[4])))
+        if len(out) >= k:
+            break
+    return out
+
+
+def build_rel_prob_board_payload(
+    k=10,
+    horizons=(20, 60),
+    as_of=None,
+    *,
+    include_bottom=True,
+    include_intersect=True,
+):
+    """雙窗／漲+跌相對機率看板（確定性全文；禁弱 LLM 複誦）。
+
+    validation['board_text']=完整條列；picks/probs 供 guard 白名單與 picks_ground_truth。
+    """
+    from augur.core import db
+    k = max(1, min(int(k), 20))
+    horizons = tuple(int(h) for h in horizons) or (20,)
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute("SELECT to_regclass('prediction_probability')")
+        if not cur.fetchone()[0]:
+            return PredictionPayload(
+                as_of="—", horizon=horizons[0], model="(無表)", picks=(),
+                validation={"note": "prediction_probability 未遷移"}, probs=(), prob_note="")
+        if as_of is None:
+            cur.execute(
+                "SELECT max(panel_date) FROM prediction_probability WHERE horizon=ANY(%s)",
+                (list(horizons),),
+            )
+            as_of = (cur.fetchone() or [None])[0]
+        if as_of is None:
+            return PredictionPayload(
+                as_of="—", horizon=horizons[0], model="(無機率列)", picks=(),
+                validation={"note": "無 panel"}, probs=(), prob_note="")
+
+        boards = {}  # h -> {"up": [...], "down": [...], "cd": int, "ev": set}
+        all_sids = []
+        for h in horizons:
+            up = _fetch_rel_prob_ends(cur, as_of, h, k, descending=True)
+            down = _fetch_rel_prob_ends(cur, as_of, h, k, descending=False) if include_bottom else []
+            if not up and not down:
+                continue
+            sample = up or down
+            boards[h] = {
+                "up": up,
+                "down": down,
+                "cd": sample[0][4] if sample else 0,
+                "ev": {r[3] for r in (up + down)},
+            }
+            all_sids.extend([r[0] for r in up + down])
+
+        if not boards:
+            return PredictionPayload(
+                as_of=str(as_of), horizon=horizons[0], model="(空)", picks=(),
+                validation={"note": "該 as-of 無列"}, probs=(), prob_note="")
+
+        names = _lookup_stock_names(conn, cur, sorted(set(all_sids)))
+        evs = sorted({e for b in boards.values() for e in b["ev"]})
+        cds = sorted({b["cd"] for b in boards.values() if b["cd"]})
+        hs_label = "+".join(f"H{h}" for h in boards)
+        lines = [
+            f"根據模型 as-of {as_of}（相對機率看板 {hs_label}）之橫斷面排序。",
+            "數字＝p_beat_median＝P(報酬勝過同儕中位數)；**不是**預期漲跌幅％。",
+            f"econ_verdict∈{evs}；dead/thin≠可交易。系統建議、人決策。",
+            "",
+        ]
+
+        def _blk(title, rows):
+            lines.append(title)
+            if not rows:
+                lines.append("（無）")
+                return
+            for i, (sid, pv, _rp, _ev, _cd) in enumerate(rows, 1):
+                nm = names.get(sid, "") or ""
+                lines.append(f"{i}. {sid} {nm}（p_beat {pv:.4f}／{pv * 100:.2f}%）")
+            lines.append("")
+
+        for h in horizons:
+            if h not in boards:
+                continue
+            cd = boards[h]["cd"]
+            _blk(f"### H{h}（≈{cd} 日曆日）相對強 Top{k}", boards[h]["up"])
+            if include_bottom:
+                _blk(f"### H{h}（≈{cd} 日曆日）相對弱 Top{k}", boards[h]["down"])
+
+        if include_intersect and len(boards) >= 2:
+            hs = list(boards.keys())
+            up_sets = {h: {r[0] for r in boards[h]["up"]} for h in hs}
+            both_up = sorted(set.intersection(*up_sets.values())) if up_sets else []
+            lines.append(f"### 兩窗都在相對強 Top{k}（{len(both_up)} 檔）")
+            if not both_up:
+                lines.append("（無）")
+            else:
+                for sid in both_up:
+                    parts = []
+                    for h in hs:
+                        pv = next(r[1] for r in boards[h]["up"] if r[0] == sid)
+                        parts.append(f"H{h}={pv * 100:.2f}%")
+                    lines.append(
+                        f"- {sid} {names.get(sid, '')}｜" + "｜".join(parts)
+                    )
+            lines.append("")
+            if include_bottom:
+                dn_sets = {h: {r[0] for r in boards[h]["down"]} for h in hs}
+                both_dn = sorted(set.intersection(*dn_sets.values())) if dn_sets else []
+                lines.append(f"### 兩窗都在相對弱 Top{k}（{len(both_dn)} 檔）")
+                if not both_dn:
+                    lines.append("（無）")
+                else:
+                    for sid in both_dn:
+                        parts = []
+                        for h in hs:
+                            pv = next(r[1] for r in boards[h]["down"] if r[0] == sid)
+                            parts.append(f"H{h}={pv * 100:.2f}%")
+                        lines.append(
+                            f"- {sid} {names.get(sid, '')}｜" + "｜".join(parts)
+                        )
+                lines.append("")
+
+        board_text = "\n".join(lines).rstrip() + "\n"
+        # picks：以第一窗相對強為代表（picks_ground_truth／表頭相容）
+        h0 = next(h for h in horizons if h in boards)
+        ref = "prediction_probability:board:panel=%s,H=%s" % (as_of, hs_label)
+        picks = tuple(
+            StockPick(sid, i, pv, ref, names.get(sid, ""))
+            for i, (sid, pv, _rp, _ev, _cd) in enumerate(boards[h0]["up"], 1)
+        )
+        probs = []
+        for h, b in boards.items():
+            for sid, pv, _rp, ev, cd in b["up"] + b["down"]:
+                probs.append((sid, h, pv, ev, cd))
+        prob_note = (
+            "【改寫說明】「漲跌幅 TopN」無可用絕對方向機率"
+            "(direction_gate evaluated_pass=0)；看板數字是 "
+            "P(勝過同儕中位數|as-of %s, horizons=%s, 日曆日≈%s)——"
+            "**不是**預期漲跌幅。econ∈%s；dead/thin≠可交易。"
+            % (as_of, list(boards.keys()), cds, evs)
+        )
+        validation = {
+            "note": "auto_rel_board;k=%d;H=%s" % (k, list(boards.keys())),
+            "board_text": board_text,
+            "topk": float(k),
+            "horizon": float(h0),
+        }
+        for i, (_s, _h, pv, _e, _c) in enumerate(probs[:40]):
+            validation["p_beat_%d" % (i + 1)] = round(float(pv), 4)
+        return PredictionPayload(
+            as_of=str(as_of), horizon=h0,
+            model="相對機率看板/%s" % hs_label,
+            picks=picks, validation=validation,
             probs=tuple(probs), prob_note=prob_note,
         )
 
@@ -463,8 +648,10 @@ def _selftest():
     ex = example_payload()
     chk("example_payload 3 picks", len(ex.picks) == 3)
     chk("example score(0.87)∈ numbers", round(0.87, 4) in ex.numbers())
-    chk("公開入口含 rel_topk／single",
-        callable(build_rel_prob_topk_payload) and callable(build_single_ticker_rel_payload))
+    chk("公開入口含 rel_topk／single／board",
+        callable(build_rel_prob_topk_payload)
+        and callable(build_single_ticker_rel_payload)
+        and callable(build_rel_prob_board_payload))
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 
@@ -475,5 +662,6 @@ if __name__ == "__main__":
         sys.exit(_selftest())
     print((__doc__ or __name__).split("🎯")[0].strip())
     print("入口:StockPick / PredictionPayload / KnowledgePayload / example_payload / empty_payload /"
-          " build_prediction_payload / build_rel_prob_topk_payload / build_single_ticker_rel_payload")
+          " build_prediction_payload / build_rel_prob_topk_payload / build_single_ticker_rel_payload /"
+          " build_rel_prob_board_payload")
     print("(自測:python -m augur.advisor.payload --selftest;免 DB 免 API)")

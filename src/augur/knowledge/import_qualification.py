@@ -107,6 +107,9 @@ def preflight(path, *, min_chars, ocr_pdf=False):
     stripped = text.strip()
     if reason == "pdf_ocr":
         stripped = (fileparse.S0_OCR_MARK + stripped).strip()
+    elif reason == "image_ocr":
+        if not stripped.startswith("<!-- via=image_ocr"):
+            stripped = (fileparse.IMAGE_OCR_MARK + stripped).strip()
     out["text_chars"] = len(stripped)
     out["sha1"] = hashlib.sha1(stripped.encode("utf-8", "replace")).hexdigest()
     if len(stripped) < min_chars:

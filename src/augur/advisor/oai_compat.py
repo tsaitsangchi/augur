@@ -166,16 +166,25 @@ def chat_completion(body, llm_fn, payload_fn=empty_payload, retrieve_fn=None,
         # 預測通道分派(D4 選股 ∪ PRED-KH TopK／單股):有真兆 picks 才注入,否則 empty。
         from augur.advisor.relevance import (
             picking_intent, rel_prob_topk_intent, single_ticker_rel_intent,
+            rel_prob_board_intent,
         )
         from augur.advisor.payload import (
             build_rel_prob_topk_payload, build_single_ticker_rel_payload,
+            build_rel_prob_board_payload,
         )
         if picking_payload_fn is not None and picking_intent(query):
             pl = picking_payload_fn()
         else:
+            board = rel_prob_board_intent(query)
             topk = rel_prob_topk_intent(query)
             sti = single_ticker_rel_intent(query)
-            if topk is not None:
+            if board is not None:
+                pl = build_rel_prob_board_payload(
+                    board["k"], board["horizons"],
+                    include_bottom=board["include_bottom"],
+                    include_intersect=board["include_intersect"],
+                )
+            elif topk is not None:
                 pl = build_rel_prob_topk_payload(topk[0], topk[1])
             elif sti is not None:
                 pl = build_single_ticker_rel_payload(sti[0], sti[1])
@@ -288,6 +297,9 @@ class AdvisorHandler(BaseHTTPRequestHandler):
                 tier = effort.resolve_tier(body.get("model"), tiers_cfg)
             except effort.UnknownTierError as e:
                 return self._send_json(400, {"error": {"message": str(e), "type": "invalid_request_error"}})
+            # K7 產品：步驟／操作題若選 4b → 升同 effort 8b（可 AUGUR_STEPWISE_FORCE_8B=0）
+            tier = effort.prefer_8b_for_stepwise(
+                tier, _last_user_content(body.get("messages")), tiers_cfg)
 
         def _run(cmpl_id=None, created=None, progress_cb=None):
             """一次完整回覆(tier 感知);tier=None → legacy 逐位元同現行。"""
@@ -325,46 +337,61 @@ class AdvisorHandler(BaseHTTPRequestHandler):
             mid = tier.id if tier else None
             self.wfile.write(role_event(cmpl_id, created, model_id=mid).encode("utf-8"))
             self.wfile.flush()
-            if tier and tier.effort == "ultra":
-                # worker thread + progress queue(§2.4):進度行=零-LLM 機械模板段;閒置發 heartbeat
-                import queue as _q
-                import threading as _t
-                q = _q.Queue()
-                out = {}
+            # 所有 stream（含 fast／think）：worker＋heartbeat——長 LLM 期間勿空線，否則前台易得空包→(無回覆)
+            import queue as _q
+            import threading as _t
+            q = _q.Queue()
+            out = {}
+            use_progress = bool(tier and tier.effort == "ultra")
 
-                def work():
+            def work():
+                try:
+                    cb = (lambda m: q.put(("p", m)) if use_progress else None)
+                    out["c"] = _run(cmpl_id, created, progress_cb=cb)
+                except Exception as e:
+                    out["c"] = {"id": cmpl_id, "created": created, "model": mid,
+                                "choices": [{"message": {"content": f"[augur-error] {e}"}}]}
+                finally:
+                    q.put(("done", None))
+
+            _t.Thread(target=work, daemon=True).start()
+            idle = 15.0
+            if tiers_cfg and isinstance(tiers_cfg.get("progress"), dict):
+                try:
+                    idle = float(tiers_cfg["progress"].get("heartbeat_idle_s", 15) or 15)
+                except (TypeError, ValueError):
+                    idle = 15.0
+            while True:
+                try:
+                    kind, m = q.get(timeout=idle)
+                except _q.Empty:
                     try:
-                        out["c"] = _run(cmpl_id, created, progress_cb=lambda m: q.put(m))
-                    except Exception as e:
-                        out["c"] = {"id": cmpl_id, "created": created, "model": mid,
-                                    "choices": [{"message": {"content": f"[augur-error] {e}"}}]}
-                    finally:
-                        q.put(None)
-                _t.Thread(target=work, daemon=True).start()
-                idle = float(tiers_cfg.get("progress", {}).get("heartbeat_idle_s", 15))
-                while True:
-                    try:
-                        m = q.get(timeout=idle)
-                    except _q.Empty:
                         self.wfile.write(_chunk(cmpl_id, created, {}, model_id=mid).encode("utf-8"))
                         self.wfile.flush()
-                        continue
-                    if m is None:
-                        break
+                    except (BrokenPipeError, ConnectionResetError, OSError):
+                        self.close_connection = True
+                        return
+                    continue
+                if kind == "done":
+                    break
+                try:
                     self.wfile.write(_chunk(cmpl_id, created,
                                             {"content": f"\n---\n[augur-progress] {m}"},
                                             model_id=mid).encode("utf-8"))
                     self.wfile.flush()
-                completion = out["c"]
-            else:
-                try:
-                    completion = _run(cmpl_id, created)
-                except Exception as e:                                       # 串流已開 → 內容 chunk 誠實揭露
-                    completion = {"id": cmpl_id, "created": created, "model": mid,
-                                  "choices": [{"message": {"content": f"[augur-error] {e}"}}]}
-            for ev in content_events(completion):
-                self.wfile.write(ev.encode("utf-8"))
-            self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError, OSError):
+                    self.close_connection = True
+                    return
+            completion = out.get("c") or {
+                "id": cmpl_id, "created": created, "model": mid,
+                "choices": [{"message": {"content": "[augur-error] 空完成"}}],
+            }
+            try:
+                for ev in content_events(completion):
+                    self.wfile.write(ev.encode("utf-8"))
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                pass
             self.log_message("chat.completion(stream) %.1fs", time.time() - t0)
             self.close_connection = True
             return

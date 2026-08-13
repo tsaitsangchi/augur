@@ -19,7 +19,8 @@ from augur.llm.ollama import strip_quote_marks
 # 凍結預算（經驗：全量 inline＋4b 易 900s 逾時；~2.4k 字＋短答可在可接受時間）
 MAX_CITE_CHARS = int(os.environ.get("AUGUR_COMPACT_CITE_CHARS", "2000"))
 MAX_CITE_N = int(os.environ.get("AUGUR_COMPACT_CITE_N", "3"))
-COMPACT_NUM_PREDICT = int(os.environ.get("AUGUR_COMPACT_NUM_PREDICT", "480"))
+# 產品預設 960（K7：8b 逐步口吻達標）；可 env 覆寫回 480 等
+COMPACT_NUM_PREDICT = int(os.environ.get("AUGUR_COMPACT_NUM_PREDICT", "960"))
 
 _META_HEAD = re.compile(
     r"^(?:首先[，,\s]*我需要|"
@@ -89,16 +90,30 @@ def freeze_citations(
     citations: Sequence[Any],
     *,
     prefer_item_ids: Sequence[int] | None = None,
+    prefer_terms: Sequence[str] | None = None,
     max_chars: int = MAX_CITE_CHARS,
     max_n: int = MAX_CITE_N,
 ) -> list:
-    """凍結引文：prefer item 優先且可獨占；再裁字數／條數。"""
+    """凍結引文：prefer item 優先且可獨占；問句詞密高者優先；再裁字數／條數。"""
     cites = list(citations or [])
     prefer = {int(i) for i in (prefer_item_ids or []) if i is not None}
     if prefer:
         primary = [c for c in cites if getattr(c, "item_id", None) in prefer]
         if primary:
             cites = primary  # 丢掉 works／雜訊 item，對症「命中卻混進 271659」
+    terms = [t for t in (prefer_terms or []) if t]
+
+    def _dens(c) -> int:
+        blob = (getattr(c, "text", "") or "").casefold()
+        if not terms:
+            return 0
+        s = sum(1 for t in terms if t.casefold() in blob)
+        if "fgl_ws" in blob:
+            s += 3
+        return s
+
+    if terms:
+        cites = sorted(cites, key=_dens, reverse=True)
     out, total = [], 0
     for c in cites:
         t = getattr(c, "text", "") or ""
@@ -195,10 +210,12 @@ def _prefer_step_lines(text: str) -> str:
 
 
 def _normalize_cite_bullets(text: str) -> str:
-    """把 `- [N]：…` 收成 `N. …`（模型常用引文點列替代 1.2.3.）。"""
+    """把 `- [N]：…`／`- [N] …` 收成 `N. …`（模型常用引文點列替代 1.2.3.）。"""
     def repl(m):
         return f"{m.group(1)}. {m.group(2)}"
-    return re.sub(r"(?m)^\s*[-•・]\s*\[(\d+)\]\s*[：:]\s*(.*)$", repl, text or "")
+    out = re.sub(r"(?m)^\s*[-•・]\s*\[(\d+)\]\s*[：:]\s*(.*)$", repl, text or "")
+    out = re.sub(r"(?m)^\s*[-•・]\s*\[(\d+)\]\s+(.*)$", repl, out)
+    return out
 
 
 def polish_compact_response(text: str) -> str:
@@ -209,6 +226,96 @@ def polish_compact_response(text: str) -> str:
     out = _prefer_step_lines(out)
     out = _normalize_cite_bullets(out)
     return out.strip()
+
+
+# 設定填值機器閘：弱 LLM 常只寫「改 wsj02」不給字串 → 從凍引文抽出欄位=值強制注入
+_FILL_KV_LINE = re.compile(
+    r"(?im)^\s*(wsj0[1-9]|wsj\d{2})\s*=\s*(\S+)"
+)
+_FILL_KV_INLINE = re.compile(
+    r"(?i)\b(wsj0[1-9]|wsj\d{2})\s*=\s*([^\s`|，,；;]+)"
+)
+_FILL_TABLE_KV = re.compile(
+    r"\*\*(wsj\d+)\*\*[^\n`|]*`([^`]+)`",
+    re.I,
+)
+_FILL_QUERY_RE = re.compile(
+    r"(?i)(wsj\d+|填寫|填什麼|要填|VARCHAR2?|站台\s*IP|SOAP|設定檔|欄位|具體內容)",
+)
+_RESP_HAS_KV = re.compile(r"(?i)\bwsj\d+\s*=\s*\S+")
+
+
+def extract_fill_kvs_from_citations(citations: Sequence[Any] | None) -> list[tuple[str, str]]:
+    """自凍引文抽出可照抄 `欄位=值`（程式塊列優先，其次表列 backtick）。"""
+    seen: dict[str, str] = {}
+    order: list[str] = []
+    for c in citations or ():
+        blob = getattr(c, "text", "") or ""
+        for m in _FILL_KV_LINE.finditer(blob):
+            k, v = m.group(1).lower(), m.group(2).strip().rstrip("`")
+            if k not in seen:
+                order.append(k)
+            seen[k] = v
+        for m in _FILL_TABLE_KV.finditer(blob):
+            k, v = m.group(1).lower(), m.group(2).strip()
+            if k not in seen:
+                order.append(k)
+                seen[k] = v
+        for m in _FILL_KV_INLINE.finditer(blob):
+            k, v = m.group(1).lower(), m.group(2).strip().rstrip("`")
+            if k not in seen:
+                order.append(k)
+                seen[k] = v
+    return [(k, seen[k]) for k in order]
+
+
+def response_has_fill_kv(text: str) -> bool:
+    return bool(_RESP_HAS_KV.search(text or ""))
+
+
+def ensure_fill_kv_in_response(
+    text: str,
+    query: str,
+    citations: Sequence[Any] | None = None,
+) -> str:
+    """設定／wsj 題：若引文有範例而答文無 `欄位=值`，前置注入（機器閘，不靠弱模型守約）。"""
+    q = query or ""
+    kvs = extract_fill_kvs_from_citations(citations)
+    if not kvs:
+        return (text or "").strip()
+    want = bool(_FILL_QUERY_RE.search(q)) or any(
+        "填寫範例" in (getattr(c, "item_title", "") or "")
+        or "wsj_file" in (getattr(c, "item_title", "") or "")
+        for c in (citations or ())
+    )
+    if not want:
+        return (text or "").strip()
+    body = (text or "").strip()
+    # 弱模型有時在已有引文時仍吐誠實閉集句 → 整句換掉再注入
+    from augur.advisor.guard import NO_KNOWLEDGE_RESPONSE
+    if body == NO_KNOWLEDGE_RESPONSE or body.startswith(NO_KNOWLEDGE_RESPONSE + "\n"):
+        body = ""
+    if response_has_fill_kv(body):
+        # 已有任一欄=值仍可能缺關鍵欄；問句點名 wsj02 卻無 wsj02= → 補齊
+        asked = re.findall(r"(?i)wsj\d+", q)
+        missing = [
+            (k, v) for k, v in kvs
+            if asked and k in {a.lower() for a in asked} and not re.search(
+                rf"(?i)\b{re.escape(k)}\s*=", body
+            )
+        ]
+        if not missing and asked:
+            return body
+        if not asked:
+            return body
+        # 問了特定欄但答缺該欄 → 仍注入全組對照（同列 wsj02+wsj04）
+    block_lines = [
+        "【填寫範例｜格式示範，非貴司實機值】",
+        *[f"{k}={v}" for k, v in kvs],
+        "（把 IP／庫名／URL 換成維運提供的實機值後再存檔；同一列須同時有 wsj02 與 wsj04。）",
+        "",
+    ]
+    return "\n".join(block_lines) + body
 
 
 def wrap_compact_llm(llm_fn, *, num_predict: int | None = None, timeout: float | None = None):
@@ -278,11 +385,46 @@ def _selftest() -> int:
     pol = polish_compact_response(live_leak)
     chk("polish 中段想題截斷", "我需要" not in pol and "關鍵是" not in pol)
     chk("polish 點列→編號", pol.startswith("1.") and "2." in pol)
+    fill_cite = S(
+        item_id=1956038,
+        item_title="EasyFlow整合站台設定-填寫範例-wsj_file.md",
+        text=(
+            "wsj02=10.1.2.30\nwsj04=EFGP_PROD\n"
+            "| **wsj03** | x | `http://10.1.2.30:8080/efgp/services/SOAP` |"
+        ),
+    )
+    bad_ans = (
+        "1. 打開 EasyFlow 整合站台設定檔\n"
+        "2. 找到欄位 wsj02 並修改其值為目標 IP 位址\n"
+        "3. 保存設定檔後重新啟動 EasyFlow 服務\n"
+    )
+    fixed = ensure_fill_kv_in_response(bad_ans, "wsj02如何填寫", [fill_cite])
+    chk(
+        "fill 機器閘注入",
+        fixed.startswith("【填寫範例")
+        and "wsj02=10.1.2.30" in fixed
+        and "wsj04=EFGP_PROD" in fixed
+        and "目標 IP" in fixed,
+    )
+    chk(
+        "fill 已有 kv 不重複注入",
+        ensure_fill_kv_in_response(
+            "1. 設 wsj02=10.1.2.30\n", "wsj02如何填寫", [fill_cite],
+        ).startswith("1."),
+    )
+    nok = ensure_fill_kv_in_response("知識庫中無此內容", "wsj02如何填寫?", [fill_cite])
+    chk(
+        "fill 誤吐無內容句→改注入",
+        "wsj02=10.1.2.30" in nok and "知識庫中無此內容" not in nok,
+    )
+    kvs = extract_fill_kvs_from_citations([fill_cite])
+    chk("fill 自引文抽 kv", ("wsj02", "10.1.2.30") in kvs and ("wsj04", "EFGP_PROD") in kvs)
     from augur.llm.ollama import make_llm_fn
     base_fn = make_llm_fn(model="qwen3:4b", think=False, options={"num_predict": 900})
     chk("ollama fn 可 bind", callable(getattr(base_fn, "_augur_bind_options", None)))
     bound = base_fn._augur_bind_options({"num_predict": 480})
     chk("bind 保留 model", getattr(bound, "_augur_model", None) == "qwen3:4b")
+    # ensure_* / extract_* 已於上方 fill 閘測用（同模組）
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

@@ -3,7 +3,8 @@
 🎯 這支在做什麼(白話):用 R-cite（答中辨識詞 ⊆ 引文）判定答對後，對 item 引文
    跑 progressive_item(up_to=2)。T2：可機械 activate 來源（system actor；每批最多 1 源；
    需 has_text——沿用 maybe_activate_source）。R-human 可覆寫邊界案。
-   **不**經 web／對話裸放行。advise 熱路徑須 `AUGUR_KH0_ANSWER_AUTO_LIFT=1`（預設關）。
+   **不**經 web／對話裸放行。advise 熱路徑須 `AUGUR_KH0_ANSWER_AUTO_LIFT=1`
+   （碼／裸行程預設關；ops 可經 systemd 常駐開——`AUTO-LIFT-RESIDENT-GO`）。
 守 憲章 KH0·v1.48·T2-go·wire-advise-go· FZ-keep· #15。
 
 執行指令矩陣(本檔=library #18):

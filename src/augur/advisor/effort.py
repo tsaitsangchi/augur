@@ -14,6 +14,8 @@
   python -m augur.advisor.effort              # 印用途+公開入口（唯讀）
   python -m augur.advisor.effort --selftest   # 純紅綠自測（零 IO）
 """
+import os
+import re
 import sys
 import threading
 from collections import namedtuple
@@ -22,6 +24,9 @@ from pathlib import Path
 from augur.core import db
 from augur.advisor import ollama
 from augur.deliberation import engine_config
+
+# 產品：步驟／操作題遇 4b → 升 8b（K7；可 AUGUR_STEPWISE_FORCE_8B=0 關）
+_STEPWISE_Q = re.compile(r"(逐步|每行一步|操作步驟|1\.\s*2\.\s*3\.|編號)")
 
 REPO = Path(__file__).resolve().parents[3]
 
@@ -56,6 +61,26 @@ def resolve_tier(model_field, cfg):
         raise UnknownTierError(f"未知 tier {model_field!r}(可用:{sorted(tiers)})")
     t = tiers[key]
     return Tier(key, t["model"], t["effort"])
+
+
+def prefer_8b_for_stepwise(tier, query, cfg):
+    """步驟／操作題且 model 為 4b → 改同 effort 的 8b tier（產品預設；可關）。
+
+    無對應 8b id 時改 model_tag 為 qwen3:8b、保留 id/effort。非 4b／非步驟題／旗關 → 原樣。
+    """
+    v = (os.environ.get("AUGUR_STEPWISE_FORCE_8B") or "1").strip().lower()
+    if v in ("0", "off", "false", "no"):
+        return tier
+    if tier is None or "4b" not in (tier.model or ""):
+        return tier
+    if not _STEPWISE_Q.search(query or ""):
+        return tier
+    new_id = (tier.id or "").replace("4b", "8b")
+    tiers = (cfg or {}).get("tiers") or {}
+    if new_id in tiers:
+        t = tiers[new_id]
+        return Tier(new_id, t["model"], t["effort"])
+    return Tier(tier.id, "qwen3:8b", tier.effort)
 
 
 def make_tier_llm_fn(tier, cfg):
@@ -204,6 +229,25 @@ def _selftest():
     chk("verdict_block confirmed·bound 標示+LLM 提出", "confirmed·bound" in out_cb and "LLM 提出" in out_cb)
     row_ref = (2, "壞宣稱", "db_query", "錨", "refuted", False, "反證", None)
     chk("verdict_block refuted 標示", "已被 oracle 反證" in verdict_block(UltraResult("s2", [row_ref], False, None)))
+    cfg8 = {
+        "tiers": {
+            "augur-4b-fast": {"model": "qwen3:4b", "effort": "fast"},
+            "augur-8b-fast": {"model": "qwen3:8b", "effort": "fast"},
+        }
+    }
+    t4 = Tier("augur-4b-fast", "qwen3:4b", "fast")
+    up = prefer_8b_for_stepwise(t4, "請給逐步操作步驟", cfg8)
+    chk("stepwise 4b→8b", up == Tier("augur-8b-fast", "qwen3:8b", "fast"))
+    chk("非步驟題不升", prefer_8b_for_stepwise(t4, "什麼是安全邊際", cfg8) == t4)
+    old = os.environ.get("AUGUR_STEPWISE_FORCE_8B")
+    os.environ["AUGUR_STEPWISE_FORCE_8B"] = "0"
+    try:
+        chk("旗關不升", prefer_8b_for_stepwise(t4, "逐步操作", cfg8) == t4)
+    finally:
+        if old is None:
+            os.environ.pop("AUGUR_STEPWISE_FORCE_8B", None)
+        else:
+            os.environ["AUGUR_STEPWISE_FORCE_8B"] = old
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

@@ -497,6 +497,7 @@ async function runGen(text,wait){
  const payload=attached?{messages:[{role:'user',content:text}],augur_attach:attached}:{messages:[{role:'user',content:text}]}
  if(window.TIER)payload.model=window.TIER
  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal})
+  if(!r.ok){var ec0=document.createElement('div');ec0.className='errcard';ec0.textContent='⚠ 殼 HTTP '+r.status+'（可按重試）';wait._bubble.innerHTML='';wait._bubble.appendChild(ec0);addRetry(wait,text);return null}
   const reader=r.body.getReader(),dec=new TextDecoder();var buf='',full='',first=true
   while(true){const rd=await reader.read();if(rd.done)break
    buf+=dec.decode(rd.value,{stream:true});var lines=buf.split('\\n');buf=lines.pop()
@@ -507,14 +508,19 @@ async function runGen(text,wait){
   }
   var allp=full.split('\\n---\\n').map(function(s){return s.trim()})
   var gl=allp.filter(function(s){return s.indexOf('[augur-guard]')===0}).join(' ')
-  var body=allp.filter(function(s){return s&&s.indexOf('[augur-guard]')!==0&&s.indexOf('[augur-progress]')!==0}).join('\\n\\n')||'(無回覆)'
+  var body=allp.filter(function(s){return s&&s.indexOf('[augur-guard]')!==0&&s.indexOf('[augur-progress]')!==0}).join('\\n\\n')
+  // 空包／舊占位：不當成功回覆、不寫庫（對症歷史裡一串「(無回覆)」）
+  if(!body || body.indexOf('(無回覆')===0){
+   var ec=document.createElement('div');ec.className='errcard'
+   ec.textContent='⚠ 未收到正文（逾時、顧問重啟或連線中斷）。請按重試——檔名.ppt＋問句類已可定位原文。'
+   wait._bubble.innerHTML='';wait._bubble.appendChild(ec);addRetry(wait,text);return null}
   wait._bubble.innerHTML=renderBody(body)
   var pass=gl.indexOf('pass=true')>=0
   var gd=document.createElement('div');gd.className='g '+(pass?'pass':'fail');gd.textContent='[guard] '+(pass?'通過':'攔下(改誠實句)');wait.appendChild(gd)
   return body
  }catch(err){
-  if(controller.signal.aborted){wait._bubble.innerHTML=full?mdToHtml(full):'(已停止)';return full||''}
-  var ec=document.createElement('div');ec.className='errcard';ec.textContent='⚠ 連線或殼錯誤：'+String(err)+'（可重新輸入送出）';wait._bubble.innerHTML='';wait._bubble.appendChild(ec);return null
+  if(controller.signal.aborted){wait._bubble.innerHTML=full?mdToHtml(full):'(已停止)';return full||null}
+  var ec=document.createElement('div');ec.className='errcard';ec.textContent='⚠ 連線或殼錯誤：'+String(err)+'（可按重試）';wait._bubble.innerHTML='';wait._bubble.appendChild(ec);addRetry(wait,text);return null
  }finally{if(CTRL===controller)CTRL=null;setGen(false)}
 }
 function addRetry(wait,text){var a=wait.querySelector('.actions');if(!a||wait._hasRetry)return;wait._hasRetry=1

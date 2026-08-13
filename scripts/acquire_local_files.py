@@ -307,6 +307,20 @@ def main():
         elif not args.dry_run and not args.acquire_only and args.no_kip:
             print("[kip_skip] explicit (no items ok/dup this job)", flush=True)
 
+        # 階 C：入庫成功後 ingest-driven 訊號（預設只 check；APPLY=1 才有界補救）
+        if not args.dry_run and (stats["ok"] > 0 or stats["dup"] > 0 or skips):
+            try:
+                from augur.knowledge import ingest_triggers as itr
+
+                itr.hook_after_ingress(
+                    channel="local_files",
+                    job_id=job_id,
+                    skips=skips or None,
+                    stats=stats,
+                )
+            except Exception as e:
+                print(f"[kh_ingest_trigger_warn] {e}", flush=True)
+
         print("[local_import_done]", flush=True)
 
 

@@ -84,6 +84,9 @@ svc augur-advisor "augur 顧問殼 advise+guard (:8399)" \
   "After=augur-ollama.service
 Wants=augur-ollama.service" \
   "Environment=OLLAMA_BASE_URL=http://127.0.0.1:11434 OLLAMA_TIMEOUT=2400
+Environment=AUGUR_KH0_ANSWER_AUTO_LIFT=1
+Environment=AUGUR_COMPACT_NUM_PREDICT=960
+Environment=AUGUR_STEPWISE_FORCE_8B=1
 EnvironmentFile=$ROOT/.env" \
   "$VENV" "$ROOT/scripts/serve_advisor_openai.py" --serve --model qwen3:8b --timeout 2400 --port 8399
 # ↑ EnvironmentFile:RBAC secret(AUGUR_INTERNAL_SECRET)顯式注入——先前只靠 import philosophy.retrieval

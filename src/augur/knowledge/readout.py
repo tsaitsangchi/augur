@@ -36,7 +36,16 @@ _READOUT_RE = re.compile(
 _SPLIT_RE = re.compile(r"[：:]")
 _EXT_RE = re.compile(
     r"\.(docx|pdf|xlsx|txt|md|ppt|pptx|avi|mp4|mov|mkv|webm|mp3|wav|m4a|"
-    r"DOCX|PDF|PPT|PPTX|AVI|MP4|MOV|MKV|WEBM|MP3|WAV|M4A)\s*$"
+    r"jpg|jpeg|png|gif|webp|bmp|"
+    r"DOCX|PDF|PPT|PPTX|AVI|MP4|MOV|MKV|WEBM|MP3|WAV|M4A|"
+    r"JPG|JPEG|PNG|GIF|WEBP|BMP)\s*$"
+)
+# 檔名.ext 後直接接中文／標點（無冒號）：…(程式).ppt中，詳細說明…；截圖：01.jpg中，…
+_EXT_THEN_ASK_RE = re.compile(
+    r"^(?P<fn>.+?\.(?:docx|pdf|xlsx|txt|md|ppt|pptx|avi|mp4|mov|mkv|webm|mp3|wav|m4a|"
+    r"jpg|jpeg|png|gif|webp|bmp))"
+    r"(?P<ask>[\s，,。；;！!？?\u4e00-\u9fff].+)$",
+    re.I | re.DOTALL,
 )
 
 
@@ -50,7 +59,22 @@ _ERP_PREFIX_RE = re.compile(r"^(tiptop|erp)\s*", re.I)
 _HANDBOOK_ALIASES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"應付帳款.*(系統)?(說明|手冊|介紹|指南)?"), "應付帳款管理系統"),
     (re.compile(r"应付账款.*(系统)?(说明|手册|介绍|指南)?"), "應付帳款管理系統"),
+    # EasyFlow 站台：字典短列缺填值 → 錨到填寫範例包（1956038）
+    (
+        re.compile(
+            r"wsj0[2-4]|wsj_file|EasyFlow\s*站台\s*IP|站台\s*IP\s*位址|"
+            r"EasyFlow\s*站台名稱|填寫範例.*wsj|整合站台設定",
+            re.I,
+        ),
+        "EasyFlow整合站台設定-填寫範例-wsj_file",
+    ),
 ]
+
+# 設定／欄位填值題（對症：只回步驟不給字串）
+_FILL_CFG_RE = re.compile(
+    r"(wsj\d+|VARCHAR2?|站台\s*IP|SOAP|設定檔|欄位|填寫|要填|填什麼)",
+    re.I,
+)
 
 
 def _strip_trail_ask_punct(q: str) -> str:
@@ -68,10 +92,19 @@ def is_readout_intent(query: str) -> bool:
     parts = _SPLIT_RE.split(q, maxsplit=1)
     if len(parts) == 2 and _looks_like_title(parts[0]) and len(parts[1].strip()) >= 2:
         return True
+    # 檔名.ext＋後綴問句（無冒號；對症：….ppt中，詳細說明XML…）
+    m_ext = _EXT_THEN_ASK_RE.match(_strip_trail_ask_punct(q))
+    if m_ext and len((m_ext.group("ask") or "").strip()) >= 2:
+        return True
+    # 設定欄位／wsj／填寫範例題 → 走 readout 錨範例包（勿當純閒聊）
+    bare = _strip_trail_ask_punct(q)
+    if _FILL_CFG_RE.search(bare) and (
+        re.search(r"(如何|怎麼|修改|設定|填|wsj|EasyFlow|站台)", bare, re.I)
+    ):
+        return True
     # 純貼檔名／標題（無問句語氣）→ 視為讀出／依文作答（對症：UI 複製標題卻回「知識庫中無此內容」）
     # 有副檔名時：檔名常含「如何／什麼」（如 TIPTOP如何新增使用者.pdf）→ 勿當問句否決
     # 尾綴 ?／？：手冊題口語標點，剝掉後再判 bare-title（勿因單一字元翻 intent）
-    bare = _strip_trail_ask_punct(q)
     if (
         len(bare) <= 160
         and _looks_like_title(bare)
@@ -99,7 +132,8 @@ def extract_title_hint(query: str) -> str:
     q = _strip_trail_ask_punct(query or "")
     parts = _SPLIT_RE.split(q, maxsplit=1)
     head = parts[0].strip() if parts else q
-    if len(parts) == 2 and _looks_like_title(parts[0]):
+    used_colon = len(parts) == 2 and _looks_like_title(parts[0])
+    if used_colon:
         hint = parts[0].strip()
     elif _READOUT_RE.search(q):
         hint = _READOUT_RE.split(q, maxsplit=1)[0].strip(" ：:，,")
@@ -107,6 +141,11 @@ def extract_title_hint(query: str) -> str:
             hint = head
     else:
         hint = head
+    # ….ppt中／….pdf，詳細… → 切到副檔名（僅非「標題：問句」路徑，避免誤切「請讀出.pdf附註」）
+    if not used_colon:
+        m_ext = _EXT_THEN_ASK_RE.match(hint)
+        if m_ext:
+            hint = (m_ext.group("fn") or "").strip() or hint
     # 檔名（aap.pdf）保留副檔名：剝成「aap」會撞 aapt* 雜件；非檔名標題仍去副檔名
     if not _EXT_RE.search(hint):
         hint = _EXT_RE.sub("", hint).strip()
@@ -116,6 +155,58 @@ def extract_title_hint(query: str) -> str:
         if not _EXT_RE.search(hint):
             hint = _EXT_RE.sub("", hint).strip()
     return _strip_trail_ask_punct(hint)
+
+
+def extract_ask_tail(query: str) -> str:
+    """檔名／標題後的問句尾（供引文主題錨點）。無則 ''。"""
+    q = _strip_trail_ask_punct(query or "")
+    if not q:
+        return ""
+    parts = _SPLIT_RE.split(q, maxsplit=1)
+    if len(parts) == 2 and _looks_like_title(parts[0]):
+        return parts[1].strip()
+    m = _EXT_THEN_ASK_RE.match(q)
+    if m:
+        return (m.group("ask") or "").strip()
+    hint = extract_title_hint(q)
+    if hint and q.startswith(hint) and len(q) > len(hint) + 1:
+        return q[len(hint):].lstrip(" ：:，,./")
+    return ""
+
+
+_ASK_STOP = frozenset(
+    "詳細 說明 提到 內容 什麼 什么 如何 怎麼 怎办 請問 请问 一下 這個 那个 那個 的步驟 步驟".split()
+)
+# 問句裡常見操作／標準詞（顯式掃描，避免長 CJK token 拆壞）
+_ASK_SEED_RE = re.compile(
+    r"啟動|處理|需求|步驟|流程|server|Server|XML|WSDL|SOAP|HTTP|namespace|"
+    r"publish|WSDL|process|function|埠|端口|迴圈|循环|"
+    r"wsj0[0-9]|填寫範例|站台名稱|站台\s*IP|VARCHAR",
+    re.I,
+)
+
+
+def _ask_prefer_terms(ask: str) -> list[str]:
+    """問句尾關鍵詞（去套語＋種子詞＋長 CJK 首尾 2 字），供 chunk 錨點。"""
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def add(t: str) -> None:
+        t = (t or "").strip()
+        key = t.casefold()
+        if not t or key in seen or t in _ASK_STOP or len(t) < 2:
+            return
+        seen.add(key)
+        out.append(t)
+
+    for m in _ASK_SEED_RE.finditer(ask or ""):
+        add(m.group(0))
+    for t in _hint_tokens(ask or ""):
+        add(t)
+        if re.fullmatch(r"[\u4e00-\u9fff]+", t) and len(t) >= 3:
+            add(t[-2:])
+            add(t[:2])
+    return out[:16]
 
 
 def _resolve_hint_variants(hint: str) -> list[str]:
@@ -361,12 +452,79 @@ def _chunk_text(content: str, *, max_chars: int, chunk: int) -> list[tuple[int, 
     return out
 
 
+def _chunk_text_prefer(
+    content: str, *, max_chars: int, chunk: int, prefer_terms: Sequence[str] | None
+) -> list[tuple[int, int, str]]:
+    """有 prefer_terms 時錨到「命中密度最高」窗（勿只取最早的 Server 字樣）。"""
+    content = content or ""
+    terms = [t for t in (prefer_terms or []) if t]
+    if not terms:
+        return _chunk_text(content, max_chars=max_chars, chunk=chunk)
+    low = content.casefold()
+    hits: list[tuple[int, str]] = []
+    for t in terms:
+        key = t.casefold()
+        start = 0
+        while True:
+            j = low.find(key, start)
+            if j < 0:
+                break
+            hits.append((j, t))
+            start = j + max(1, len(key))
+    if not hits:
+        return _chunk_text(content, max_chars=max_chars, chunk=chunk)
+    win = max(chunk, 900)
+
+    def _term_w(t: str) -> int:
+        if t in ("啟動", "處理", "需求", "process", "start"):
+            return 5
+        if re.fullmatch(r"[\u4e00-\u9fff]+", t):
+            return 3
+        return 1
+
+    best: tuple[int, int, int] | None = None  # score, term_w, j
+    for j, term in hits:
+        lo, hi = max(0, j - 80), min(len(content), j + win)
+        region = low[lo:hi]
+        score = sum(_term_w(t) for t in terms if t.casefold() in region)
+        if "fgl_ws" in region:
+            score += 6
+        if "server_start" in region or "server_process" in region:
+            score += 4
+        tw = _term_w(term)
+        cand = (score, tw, j)
+        if best is None or cand[0] > best[0] or (
+            cand[0] == best[0] and (cand[1] > best[1] or (cand[1] == best[1] and cand[2] < best[2]))
+        ):
+            best = cand
+    assert best is not None
+    anchor = max(0, best[2] - 80)
+    primary_rel = _chunk_text(content[anchor:], max_chars=max_chars, chunk=chunk)
+    primary = [(anchor + a, anchor + b, t) for a, b, t in primary_rel]
+    used = sum(len(t) for _, _, t in primary)
+    if used >= max_chars:
+        return primary
+    head = _chunk_text(content[:anchor], max_chars=max_chars - used, chunk=chunk)
+    out: list[tuple[int, int, str]] = []
+    budget = max_chars
+    for a, b, t in primary + head:
+        if budget <= 0:
+            break
+        if len(t) > budget:
+            t = t[:budget]
+            b = a + len(t)
+        out.append((a, b, t))
+        budget -= len(t)
+    return out
+
+
 def citations_for_items(
     cur,
     item_ids: Sequence[int],
     *,
     max_chars: int = MAX_CHARS_DEFAULT,
     chunk: int = CHUNK_CHARS,
+    prefer_terms: Sequence[str] | None = None,
 ) -> list[ItemCitation]:
     """依 item 載有界原文段為 ItemCitation（via=readout）。"""
     if not item_ids:
@@ -385,15 +543,19 @@ def citations_for_items(
             JOIN knowledge_item_text x ON x.item_id = i.item_id
             WHERE i.item_id = %s
             ORDER BY x.seq
-            LIMIT 1
             """,
             (int(iid),),
         )
-        row = cur.fetchone()
-        if not row:
+        rows = cur.fetchall()
+        if not rows:
             continue
-        _id, title, domain, etype, itext_id, content, url, lic = row
-        pieces = _chunk_text(content or "", max_chars=min(budget, per), chunk=chunk)
+        _id, title, domain, etype = rows[0][0], rows[0][1], rows[0][2], rows[0][3]
+        itext_id = rows[0][4]
+        url, lic = rows[0][6] or "", rows[0][7] or ""
+        content = "\n".join((r[5] or "") for r in rows)
+        pieces = _chunk_text_prefer(
+            content or "", max_chars=min(budget, per), chunk=chunk, prefer_terms=prefer_terms,
+        )
         for start, end, text in pieces:
             out.append(
                 ItemCitation(
@@ -427,11 +589,14 @@ def advise_readout_citations(query: str, *, scope=None, max_chars: int = MAX_CHA
         return []
     from augur.core import db
 
+    prefer = _ask_prefer_terms(extract_ask_tail(query))
     with db.connect() as conn, conn.cursor() as cur:
         ids = resolve_item_ids(cur, hint, scope=scope)
         if not ids:
             return []
-        return citations_for_items(cur, ids, max_chars=max_chars)
+        return citations_for_items(
+            cur, ids, max_chars=max_chars, prefer_terms=prefer or None,
+        )
 
 
 def _selftest() -> int:
@@ -469,6 +634,36 @@ def _selftest() -> int:
     chk("hint 保留 ppt", extract_title_hint("TIPTOP GP5.3-生產管理.ppt") == "TIPTOP GP5.3-生產管理.ppt")
     chk("intent bare avi", is_readout_intent("WebService程式撰寫(I).avi") is True)
     chk("hint 保留 avi", extract_title_hint("WebService程式撰寫(I).avi：請讀出具體內容") == "WebService程式撰寫(I).avi")
+    chk("intent bare jpg", is_readout_intent("01.jpg") is True)
+    q_jpg = "01.jpg中，詳細說明標準站台設定"
+    chk("intent jpg＋中文問", is_readout_intent(q_jpg) is True)
+    chk("hint 切掉 jpg 後中文", extract_title_hint(q_jpg) == "01.jpg")
+    chk("ask_tail jpg", "標準站台" in extract_ask_tail(q_jpg))
+    chk("intent 設定填值 wsj", is_readout_intent("wsj02如何填寫") is True)
+    variants_wsj = _resolve_hint_variants("wsj02如何填寫")
+    chk(
+        "alias 錨填寫範例包",
+        "EasyFlow整合站台設定-填寫範例-wsj_file" in variants_wsj,
+    )
+    q_xml = "Genero Web Services 教育訓練(程式).ppt中，詳細說明XML 的作用"
+    chk("intent ppt＋中文問", is_readout_intent(q_xml) is True)
+    chk(
+        "hint 切掉 ppt 後中文",
+        extract_title_hint(q_xml) == "Genero Web Services 教育訓練(程式).ppt",
+    )
+    q_srv = "Genero Web Services 教育訓練(程式).ppt提到啟動 server 後處理需求的步驟，詳細說明"
+    chk(
+        "hint 切掉 ppt 後提到…",
+        extract_title_hint(q_srv) == "Genero Web Services 教育訓練(程式).ppt",
+    )
+    chk("ask_tail 含啟動", "啟動" in extract_ask_tail(q_srv) and "server" in extract_ask_tail(q_srv).casefold())
+    prefs = _ask_prefer_terms(extract_ask_tail(q_srv))
+    chk("prefer 含啟動或server", any(t in ("啟動", "server", "Server") or t.casefold() == "server" for t in prefs) or "啟動" in prefs)
+    # 主題錨點：含「啟動 Server」之段應優於純文首
+    demo = "AAAA\n" + ("x" * 200) + "\n啟動 Server\nCALL fgl_ws_server_start()\n處理需求\n"
+    ch = _chunk_text_prefer(demo, max_chars=400, chunk=120, prefer_terms=["啟動", "server"])
+    blob = "".join(t for _, _, t in ch)
+    chk("prefer chunk 含啟動 Server", "啟動 Server" in blob and "fgl_ws_server_start" in blob)
     pub_f, _ = _rbac_clean_sql(None)
     chk("未登入僅 public", "local_private" not in pub_f and "access_scope = 'public'" in pub_f)
     both_f, _ = _rbac_clean_sql((True, frozenset(), 1))

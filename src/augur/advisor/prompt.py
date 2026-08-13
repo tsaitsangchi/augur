@@ -549,6 +549,7 @@ COMPACT_KNOWHOW_PROMPT = """你是本地知識庫的簡短技術助讀。只能�
 - (d) **第一行起即用編號逐步條列**：`1.` `2.` `3.` …；**每一行一步**；不要寫成一整段摘要；不要整篇照抄引文。
 - (e) 只列引文裡有的操作／設定／路徑／驗證；約 5～12 步、總長約 200～500 字；提某段可標 [N]。
 - (f) 不要套投資三姿態；這不是選股題。
+- (g) **設定／欄位題**（含 wsj、VARCHAR、IP、站台、SOAP）：每步若改某欄，必須寫出 **`欄位碼=範例或定稿值`**（如 `wsj02=10.1.2.30`）；**禁止**只寫「修改 wsj02」而不給字串。引文標「範例」則照抄範例並可註非現場；無值則列出使用者須提供的欄位，禁止捏造實機 IP／庫名。
 """
 
 COMPACT_KNOWHOW_PROMPT_SUMMARY = """你是本地知識庫的簡短技術助讀。只能根據下方「檢索引文」用白話回答使用者問題。
@@ -571,12 +572,34 @@ def _compact_stepwise_enabled() -> bool:
 def build_compact_knowhow_prompt(query, payload, citations, lex_entries=()):
     """緊湊知-how／讀出 prompt：短答、禁想題、禁引號；預設逐步條列（本機 LLM 生成）。"""
     cites = _render_cites(citations, f"  (無檢索結果 — 明說「{NO_KNOWLEDGE_RESPONSE}」)")
+    q = query or ""
+    want_ops = bool(re.search(r"(逐步|每行一步|操作步驟|1\.\s*2\.\s*3\.|編號)", q))
+    want_fill = bool(
+        re.search(
+            r"(wsj\d+|填寫|填什麼|要填|VARCHAR2?|站台\s*IP|SOAP|設定檔|欄位)",
+            q,
+            re.I,
+        )
+    )
     if _compact_stepwise_enabled():
         body = COMPACT_KNOWHOW_PROMPT
-        out_hint = (
-            "【輸出】從第一行開始用 1. 2. 3. 逐步條列。每一行一步。"
-            "禁止一段式摘要、禁止自我提醒或複述上方硬約束。不打引號。"
-        )
+        if want_ops or want_fill:
+            out_hint = (
+                "【輸出·強制操作步】必須從第一行起用阿拉伯數字編號：`1.` `2.` `3.` …\n"
+                "每一行＝一個可執行操作（動詞開頭：啟動／確認／選擇／執行／驗證…）。\n"
+                "禁止：`- [1]` 引文摘要、一段話概括、複述「這是關於…」。\n"
+                "禁止自我提醒或複述硬約束。不打引號。"
+            )
+            if want_fill:
+                out_hint += (
+                    "\n【設定填值】凡提到欄位必須寫 `欄位=值` 範例或定稿"
+                    "（如 wsj02=10.1.2.30、wsj04=EFGP_PROD）；禁止只寫改某欄。"
+                )
+        else:
+            out_hint = (
+                "【輸出】從第一行開始用 1. 2. 3. 逐步條列。每一行一步。"
+                "禁止一段式摘要、禁止自我提醒或複述上方硬約束。不打引號。"
+            )
     else:
         body = COMPACT_KNOWHOW_PROMPT_SUMMARY
         out_hint = "【輸出】從第一行開始寫實質摘要／步驟。禁止任何自我提醒或複述上方硬約束。不打引號。"
@@ -641,6 +664,10 @@ def _selftest():
     chk("compact 禁想題", "禁止開場想題" in cp and "RMAN" in cp)
     chk("compact 禁引號指令", "不要打引號" in cp)
     chk("compact 預設逐步", "1. 2. 3." in cp and "每一行一步" in cp)
+    cp_fill = build_compact_knowhow_prompt(
+        "如何填寫 wsj02 EasyFlow 站台 IP", empty_payload(),
+        [S(text="wsj02=10.1.2.30 範例", item_title="填寫範例", source_url="")], ())
+    chk("compact 設定填值提示", "欄位=值" in cp_fill and "wsj02=" in cp_fill)
     old = os.environ.get("AUGUR_COMPACT_STEPWISE")
     os.environ["AUGUR_COMPACT_STEPWISE"] = "0"
     try:

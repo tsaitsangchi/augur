@@ -14,6 +14,8 @@
   python -m augur.advisor.advise              # 印用途+公開入口（唯讀）
   python -m augur.advisor.advise --selftest   # 純紅綠自測（零 IO）
 """
+import re
+
 from augur.advisor.prompt import build_prompt
 from augur.advisor.guard import (NO_KNOWLEDGE_RESPONSE, citation_numbers, guard,
                                  guard_attribution, guard_definition, guard_empty_retrieval,
@@ -27,9 +29,25 @@ def _render_picks_table(payload, top=15):
     弱本機模型(qwen3:8b)實證會幻覺『選哪些股』+股名+迴圈重複(4 輪 prompt 迭代皆漂移=能力天花板)
     → picks 改由 payload 直接排版注入、LLM 僅負責它可靠的 caveat 敘述(v1.37.0 本機模型約束內、非換外部)。
     score 4dp=對齊 guard 白名單口徑;注入表為 ground truth、免 guard(數字皆出 payload)。"""
+    # 雙窗／漲跌看板：全文已在 validation.board_text（禁再套 LLM 複誦）
+    board = (getattr(payload, "validation", None) or {}).get("board_text")
+    if isinstance(board, str) and board.strip():
+        note = getattr(payload, "prob_note", "") or ""
+        out = board.strip()
+        if note:
+            out += "\n── 相對機率附欄說明(與上列數字不可分離)──\n" + note
+        return out
     picks = list(payload.picks)[:top]
     if not picks:
         return ""
+    # 去重（同 symbol 只留首次）
+    seen, uniq = set(), []
+    for p in picks:
+        if p.symbol in seen:
+            continue
+        seen.add(p.symbol)
+        uniq.append(p)
+    picks = uniq
     # P6 相對機率附欄(payload.probs 唯讀;p 2dp 渲染=4dp 白名單之顯示形;判死 horizon 帶標籤硬綁 D2)
     pmap = {}
     for sym, h, pv, ev, cd in getattr(payload, "probs", ()):
@@ -46,7 +64,10 @@ def _render_picks_table(payload, top=15):
         return(" | " + " ".join(seg)) if seg else ""
     lines = [f"{p.rank}. {p.symbol} {p.name}(score {p.score:.4f}){_prow(p)}" for p in picks]
     more = f"(共 {len(payload.picks)} 檔、列前 {len(picks)})" if len(payload.picks) > len(picks) else ""
-    out = (f"根據模型 as-of {payload.as_of}({payload.model} H{payload.horizon})之相對強弱排序,"
+    # model 已含尺標時勿再疊 H{horizon}（對症：相對機率Top10/H60 H60）
+    model = getattr(payload, "model", "") or ""
+    head_model = model if re.search(r"H\d+|看板", model) else f"{model} H{payload.horizon}"
+    out = (f"根據模型 as-of {payload.as_of}({head_model})之相對強弱排序,"
            f"看好 top {len(picks)}{more}:\n" + "\n".join(lines))
     note = getattr(payload, "prob_note", "")
     if pmap and note:      # §1.1 四誠實標記與機率同段硬綁、不可分離(v1.40.0;缺一=回歸 FAIL)
@@ -151,6 +172,7 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     from augur.philosophy.retrieval import retrieve_all, lexicon_lookup, verify_verbatim, is_low_content
     from augur.advisor.relevance import (
         relevant_citations, rel_prob_topk_intent, single_ticker_rel_intent,
+        rel_prob_board_intent,
     )
     from augur.advisor.prompt import _asks_direction_or_path, build_direction_refusal
     # lock②/閘⑥:方向/逐日價格/目標價題 → 固定誠實句。**例外(PRED-KH)**:若已注入真實
@@ -159,10 +181,35 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
     # Mode B(附檔)不套。DB 例外時 build_direction_refusal fail-closed。
     # 防衛：呼叫端漏注入時，advise 內仍依意圖補相對 payload，禁止空拒「漲跌幅 topN」。
     has_pred_picks = bool(getattr(payload, "picks", ()))
+    # 已注入雙窗看板 → 確定性全文、免 LLM（對症：弱模型複誦重複列／只回單窗）
+    board_text = (getattr(payload, "validation", None) or {}).get("board_text")
+    if prompt_fn is None and isinstance(board_text, str) and board_text.strip():
+        table = _render_picks_table(payload)
+        return {
+            "response": table,
+            "guard": {"pass": True, "issues": []},
+            "citations": [], "lex_entries": [], "prompt": None,
+            "concept_links": [], "picks_ground_truth": True,
+        }
     if prompt_fn is None and not has_pred_picks:
         try:
+            board = rel_prob_board_intent(query)
             topk = rel_prob_topk_intent(query)
             sti = single_ticker_rel_intent(query)
+            if board is not None:
+                from augur.advisor.payload import build_rel_prob_board_payload
+                payload = build_rel_prob_board_payload(
+                    board["k"], board["horizons"],
+                    include_bottom=board["include_bottom"],
+                    include_intersect=board["include_intersect"],
+                )
+                table = _render_picks_table(payload)
+                return {
+                    "response": table,
+                    "guard": {"pass": True, "issues": []},
+                    "citations": [], "lex_entries": [], "prompt": None,
+                    "concept_links": [], "picks_ground_truth": True,
+                }
             if topk is not None:
                 from augur.advisor.payload import build_rel_prob_topk_payload
                 payload = build_rel_prob_topk_payload(topk[0], topk[1])
@@ -291,7 +338,15 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
         )
         if use_compact:
             prefer = (readout_meta or {}).get("item_ids") or []
-            citations = freeze_citations(citations, prefer_item_ids=prefer)
+            ask_terms = []
+            try:
+                from augur.knowledge.readout import extract_ask_tail, _ask_prefer_terms
+                ask_terms = _ask_prefer_terms(extract_ask_tail(query))
+            except Exception:
+                ask_terms = []
+            citations = freeze_citations(
+                citations, prefer_item_ids=prefer, prefer_terms=ask_terms or None,
+            )
             compact_meta = {
                 "mode": (answer_mode or "auto"),
                 "n_cites": len(citations),
@@ -323,8 +378,13 @@ def advise(query, payload, llm_fn, k=6, retrieve_fn=None, lex_terms=(), lexicon_
             prompt += evolution_prompt_block(md)
     response = llm_fn(prompt)
     if use_compact:
-        from augur.knowledge.compact_answer import polish_compact_response
+        from augur.knowledge.compact_answer import (
+            ensure_fill_kv_in_response,
+            polish_compact_response,
+        )
         response = polish_compact_response(response)
+        # D-FillAuto：弱模型常只寫「改 wsj02」→ 機器閘從凍引文注入欄位=值
+        response = ensure_fill_kv_in_response(response, query, citations)
     if isinstance(payload, KnowledgePayload):
         # P8 域條款(已拍板 2026-07-04):雙源=payload.numbers() ∪ 本回合檢索真兆數字集
         verdict = guard_knowledge(response, payload, citations,

@@ -8,9 +8,10 @@
    AVI-ASR 窄切：影音／音訊副檔名走本機 faster-whisper（見 transcribe_asr；入庫須 owned_local）。
 守 #1(逐字、禁 AI 生成/改寫)· #15(抽不出誠實跳過、不杜撰)· #5(惡意檔/大小/符號連結防護)· #29。
 
-執行指令矩陣(本檔=library;CLI 見 scripts/acquire_local_files.py / backfill_pdf_ocr.py):
+執行指令矩陣(本檔=library;CLI 見 scripts/acquire_local_files.py / backfill_pdf_ocr.py / backfill_image_ocr.py):
   python -c "from augur.knowledge.fileparse import extract_text; print(extract_text('X.pdf'))"
   python -c "from augur.knowledge.fileparse import extract_text; print(extract_text('X.pdf', ocr_pdf=True))"
+  python -c "from augur.knowledge.fileparse import extract_text; print(extract_text('X.png'))"
   python -c "from augur.knowledge.fileparse import extract_text; print(extract_text('X.avi'))"
 
 自測（本檔=library #18；免 DB 免 API 可個別驗證）：
@@ -64,6 +65,7 @@ OCR_DPI = 200
 OCR_LANGS = "chi_tra+eng"
 S0_OCR_MARK = "<!-- via=pdf_ocr -->\n"   # source_mark=S0；仍用 local_upload
 S0_ASR_MARK = "<!-- via=asr_transcribe -->\n"  # AVI-ASR；入庫 source_type=asr_transcribe
+IMAGE_OCR_MARK = "<!-- via=image_ocr chi_tra+eng -->\n"  # 點陣圖 OCR；對齊 EasyFlow／IMAGE-OCR65
 
 
 def _read_text(path):
@@ -275,6 +277,7 @@ def _read_xls(path):
 
 
 def _read_image(path):
+    """點陣圖 OCR（Tesseract）；語系預設 chi_tra+eng（對齊 PDF-C OCR_LANGS）。"""
     try:
         import pytesseract
         from PIL import Image, ImageOps
@@ -285,7 +288,7 @@ def _read_image(path):
             im = ImageOps.exif_transpose(im)
             if im.mode not in ("L", "RGB"):
                 im = im.convert("RGB")
-            text = pytesseract.image_to_string(im)
+            text = pytesseract.image_to_string(im, lang=OCR_LANGS)
     except pytesseract.TesseractNotFoundError:
         return None, "missing_ocr"
     except Exception:
@@ -422,6 +425,7 @@ def _selftest():
     chk("needs_ocr encrypted 否", _pdf_needs_ocr(None, "encrypted", trigger_chars=200) is False)
     chk("S0 mark", S0_OCR_MARK.startswith("<!-- via=pdf_ocr"))
     chk("S0 ASR mark", S0_ASR_MARK.startswith("<!-- via=asr_transcribe"))
+    chk("IMAGE OCR mark", IMAGE_OCR_MARK.startswith("<!-- via=image_ocr chi_tra+eng"))
     chk("各格式抽取器齊備", all(callable(f) for f in
                               (_read_text, _read_pdf, _read_docx, _read_doc, _read_pptx,
                                _read_ppt, _read_xlsx, _read_xls, _read_image, _read_epub)))
