@@ -12,10 +12,12 @@ depends_on:
   - reports/augur_project_charter_plain_zh_r15_20260813.md
 detail_market: reports/augur_opt_stepwise_best_next_plan_r15_20260813.md
 detail_kh: reports/augur_kh_opt_stepwise_best_next_plan_20260813.md
-s1_s5_ssot: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md
+s1_s5_ssot: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md
+s1_s5_parent: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md
 kh_evolve_ssot: reports/augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md
 kh_split: audits/KH-SPLIT-FROM-MARKET-AXIS-ADOPTED-20260812.md
-archive_tip: archive-20260813-b3-0812-kh-a2l3-nf0812
+archive_tip: archive-20260814-l0-retrain-r16-b3-0813
+prior_archive: archive-20260813-b3-0812-kh-a2l3-nf0812
 self_reported: true
 ---
 
@@ -61,14 +63,14 @@ FZ/GATE-keep | hold-#1 | no-fake-B3 | NF-pause | no-SIM-apply | no-promote
 
 ## §1 決策卡｜現在該做什麼？
 
-視點 **2026-08-13 11:54+08**（價頂仍 08-12）。
+視點 **2026-08-13 12:00+08**（價頂仍 08-12；K17 已入倉）。
 
 | 問 | 答 |
 |---|---|
-| **全專案最佳下一步** | **兩件並行、互不等**：① **M1** 讓 A2B3 watcher 候 `PriceAdj≥08-13` → B3 `20,60` → L2（**禁止假跑**）；② **K17** 把已跑過的假 decline 閘 **入倉**（三碼＋兩則 audit；不開訓、不擋 ①） |
-| **可先做（此刻、不等價）** | **K17 入倉**；**M2** 日更後／對話誠實寫 dead／thin（不修綠）；**KH `--check`** 維持 S0／S3＝0；**M10** 凍結輕監（確認沒人默開 NF） |
-| **可同步做** | 上列可先項 **彼此可同步**；**M9** P6／長窗**文件對帳**（零訓練）；升格門檻**只寫文件**。B3 一旦開火：暫停 LLM 重活（ingest apply／K9／長答） |
-| **不要做** | 假 B3；sim-apply；塗綠；換冠；默五窗；重掃 0812 EVIDENCE／STOP；K9 開訓；放寬 θ；假 depth8；ASR→PDF-C；整庫回填當「有內容」 |
+| **全專案最佳下一步** | **M1**：A2B3 watcher 候 `PriceAdj≥08-13` → B3 `20,60` → L2（**禁止假跑**）。閉環怎麼轉＝**r16** |
+| **可先做（此刻、不等價）** | **已做**：K17 入倉；M2 披露；`--check` 綠；M10 監看；M9 對帳；M20 hold 卡。**剩下**：等價／23:50 TIMEOUT；push 另句 |
+| **可同步做** | 上列已閉項本窗不再重做。B3 開火時讓出 LLM。**不要**再開 K9／P6 訓／NF |
+| **不要做** | 假 B3；sim-apply；塗綠；換冠；默五窗；重掃 0812；K9 開訓；放寬 θ；假 depth8；ASR→PDF-C |
 
 ```text
 paste（後續優化依本檔）:
@@ -95,15 +97,15 @@ paste（後續優化依本檔）:
 | # | 債 | 問題 | 最佳下一步 | 可先？ | 可同步？ | 狀態 |
 |---|---|---|---|---|---|---|
 | **M1** | R15-01 | 日更 tip≥08-13 | 候價 → `run_daily_asof_predict.sh --date 2026-08-13 --horizons 20,60` → L2 `--apply`（L1 RC=0；no-promote）。Watcher 已 ARMED | **否**（無價不能做） | 開火時**獨佔**日更槽 | 🟡 **主軸 WAIT** |
-| **M2** | R15-02 | econ／dgate | **不修綠**；披露 H20=dead／H60=thin | **是** | **是** | 🟡 |
+| **M2** | R15-02 | econ／dgate | **不修綠**；披露 H20=dead／H60=thin | **是** | **是** | 🟢 `M2-ECON-DISCLOSE-0812` |
 | **M3** | — | graph tip 邊 | — | — | — | 🟢 |
 | **M4** | — | H82 ghost | — | — | — | 🟢 |
 | **M5** | — | r15 文檔 | 本計畫落地後跟本檔 | — | — | 🟢 |
 | **M6** | R15-18 半 | ARCHIVE 後未入倉 | 與 **K17** 同槍：閘＋r15 文檔可另 commit | **是** | **是**（≠B3） | 🟢 同 K17 |
 | **M7** | R15-05 | 圖提拔熱路徑 | 另 `VERIFY-graph-cand-go` | **否** | **否**（延後） | 🔴 |
 | **M8** | R15-17 市場側 | C1／CYCLE | 不編；見 K10 | **否** | — | 🟢 隔離 |
-| **M9** | R15-04 | P6／長窗 | 對帳 08-12 artifact；擴窗**另 plan＋GO** 才訓 | **文件＝是**；訓練＝否 | 文件＝是 | 🟡 |
-| **M10** | R15-07／09 | M／β5／NF | 輕監；0812 六族**勿重掃**；殘格須點名卡 | **監看＝是**；開訓＝否 | 監看＝是 | ❄ |
+| **M9** | R15-04 | P6／長窗 | 對帳 08-12 artifact；擴窗**另 plan＋GO** 才訓 | **文件＝是**；訓練＝否 | 文件＝是 | 🟢 對帳；訓❄ |
+| **M10** | R15-07／09 | M／β5／NF | 輕監；0812 六族**勿重掃**；殘格須點名卡 | **監看＝是**；開訓＝否 | 監看＝是 | 🟢 本窗監看；開訓❄ |
 | **M11** | R15-09 | Dividend | 另 auth | **否** | **否** | ❄ |
 | **M12** | R15-09 | sim apply | **禁** | **否** | **否** | 禁 |
 | **M13** | R15-08 | 循環依賴文件 | explore-only | 低優先可先讀 | 是（零碼） | 🔴 |
@@ -111,9 +113,9 @@ paste（後續優化依本檔）:
 | **M15** | R15-10 | 10–14 治權日曆 | 10 月初清單；**不假關** | 排程備忘＝是 | 是 | 🟡 |
 | **M16** | R15-03 | standing 五窗殼 | **雙明示**＋改殼 | **否** | **否** | ❄ |
 | **M17** | R15-02 | dgate evaluate | 另 GO；禁塗綠 | **否** | **否** | 🟡 延後 |
-| **M18** | R15-07 | 其他模型族 | 殘格卡點名才 plan | **否** | **否** | 🟢 已閉／STOP |
+| **M18** | R15-07 | 其他模型族 | V1 hist＠08-07 **EXECUTED**（A-pack 13）；殘格仍點名；**禁**重掃 0812 | 閘／hist 殼＝是 | 讓 B3 | 🟢 V0＋V1＠08-07；NF❄ |
 | **M19** | — | family_chk | — | — | — | 🟢 |
-| **M20** | R15-06 | 升格另軌 | 可寫 `PROMOTE-TRACK` 文件；禁 SERVE-SWAP | **文件＝是** | 文件＝是 | ❄ |
+| **M20** | R15-06 | 升格另軌 | 可寫 `PROMOTE-TRACK` 文件；禁 SERVE-SWAP | **文件＝是** | 文件＝是 | 🟢 hold 卡；swap❄ |
 | **M21** | — | Wave-A 收官 | — | — | — | 🟢 |
 | **M22** | — | RankRidge＠08-12 | 已重訓；換殼另句 | — | — | 🟢 |
 | **M23** | R15-14 | tip＋N 實現報酬 | **等價蓋過 tip＋N 日** 才研究 | **否** | **否** | 🔴 |
@@ -156,9 +158,9 @@ B3＠08-12、L2＠08-12、NF＠0812 六族 EVIDENCE、KH ingest S0／S3、K0–K
 |---|---|---|---|---|
 | **1A** | 價≥08-13 | B3 `20,60` → L2 `--apply` | 假 B3、默五窗、promote | tip=D；#14 誠實；L2 no-promote |
 | **1B** | 23:50 無價 | TIMEOUT 帳 | 仍不假跑 | TIMEOUT audit |
-| **1C** | **此刻可先** | K17 入倉（Steward 若准 commit） | 不開 K9／K8 | 工作區乾淨或 commit 在 |
-| **1D** | **可同步** | `kh_ingest_trigger --check`；M2 披露；M10 不開新族 | `--apply` 搶 B3；重掃 NF | `priority_hit: ∅` |
-| **1E** | **可先文件** | M9 長窗對帳筆記；M20 升格門檻草稿 | 開訓／換殼 | 僅 [I] 文件 |
+| **1C** | **此刻可先** | K17 入倉 | 不開 K9／K8 | ✅ `01e9f28` |
+| **1D** | **可同步** | `--check`；M2 披露；M10 不開新族 | `--apply` 搶 B3；重掃 NF | ✅ check 綠；`M2-ECON-DISCLOSE`；`M10-NF-WATCH` |
+| **1E** | **可先文件** | M9 長窗對帳；M20 升格 hold 卡 | 開訓／換殼 | ✅ `M9-P6-RECON`；`M20-PROMOTE-TRACK-HOLD` |
 
 **並行規則**：1C／1D／1E 在 **1A 未開火** 時可同時做。1A 開始 → 1D 的 apply／長 LLM **讓路**。
 
@@ -258,6 +260,11 @@ DONE: 無違規 job
 | 市場長板 | `reports/augur_opt_stepwise_best_next_plan_r15_20260813.md` |
 | KH 長板 | `reports/augur_kh_opt_stepwise_best_next_plan_20260813.md` |
 | NF 殘格 | `audits/NF-0812-RESIDUAL-NAME-CARD-20260813.md` |
+| S1→S5 閉環運轉 SSOT r16 | `reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md` |
+| S1→S5 本質／08-04 GO | `reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md` |
+| S1→S5 r16 本窗執行板 | `reports/augur_s1s5_r16_exec_board_20260813.md` |
+| hist as-of 殼 | `scripts/run_asof_collect_train_verify.sh` |
+| 其他模型 V0 | `audits/S4-V0-INVENTORY-20260813.md` |
 | KH8 硬門 | `audits/KH-HARD-GATE-CARD-20260813.md` |
 
 衝突：開工順序與「可先／可同步」**以本檔為準**；殼指令與 GO 文案以長板／audit 為準。

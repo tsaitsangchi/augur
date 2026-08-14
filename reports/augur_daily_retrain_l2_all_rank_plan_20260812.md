@@ -55,7 +55,7 @@ paste（邊界）:
 
 | 層 | 腳本／契約 | 做什麼 | 不做什麼 |
 |---|---|---|---|
-| **L0** | cron `run_arena_daily_pipeline` **20:00** 一～五 | FinMind／FRED sync（API 門） | tip／重訓 |
+| **L0** | cron `run_arena_daily_pipeline` **20:00** 一～五（①＝`run_l0_hotpath_daily.sh` 核 A＋TRI＋FRED） | FinMind 核 A／TRI／FRED（API 門；**非** 93 表） | tip／重訓 |
 | **L1** | `run_daily_asof_predict.sh`（B3） | feat／core／**既有 serve** predict＋emit＠`D` | 重訓；sync；cron |
 | **L2** | **本計畫**（薄殼待 P1） | as-of＝`D` **重訓 A 包**→再 predict／emit H20/60 | promote；NF；無價假跑 |
 
@@ -79,7 +79,8 @@ L1 可在舊 `model_id` 上先出 tip；L2 把 **冠軍族＋challenger** 推到
 
 | 窗 | 用途 | 備註 |
 |---|---|---|
-| 20:00 | L0 sync（已排） | 本計畫不改 |
+| 20:00 | L0 sync（已排；核 A＋TRI） | 本計畫不改 |
+| 21:40／09:20 | RETRAIN-ALL 全包重訓（另軸 cron；**不含**本殼 emit） | `RETRAIN-ALL-ASOF-DAILY-CRON-ADOPTED`；本計畫仍**不**裝 L2 emit cron |
 | 價到～21:30 | L1 B3（watcher／人） | 截止常 **23:50** TIMEOUT |
 | L1 OK 後～次日 02:00 | **L2 ALL-RANK** | 錯開 TWEVO **23:00**；必要時 L2 延到 00:30+ |
 | 休市 | 不跑 | 無新 `D` |

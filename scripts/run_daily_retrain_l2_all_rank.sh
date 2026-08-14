@@ -3,6 +3,7 @@
 #
 # 守: FZ/GATE-keep · skip-sync · no-SIM-apply · **no-promote** · NF-pause · **非 cron**
 # 契約: reports/augur_daily_retrain_l2_all_rank_plan_20260812.md（邊界＝A）
+#       reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md（歷史 as-of 正門）
 # GO:   audits/DAILY-RETRAIN-L2-SHELL-GO-20260812.md
 #
 # 執行指令矩陣:
@@ -10,6 +11,7 @@
 #   bash scripts/run_daily_retrain_l2_all_rank.sh --date 2026-08-11 --dry-plan
 #   bash scripts/run_daily_retrain_l2_all_rank.sh --date 2026-08-11 --apply
 #   bash scripts/run_daily_retrain_l2_all_rank.sh --date 2026-08-11 --apply --skip-challenger
+#   bash scripts/run_daily_retrain_l2_all_rank.sh --date 2026-08-07 --dry-plan   # 歷史 D；價未到則 SKIP
 #
 set -euo pipefail
 
@@ -186,9 +188,24 @@ with db.connect() as c, c.cursor() as cur:
 echo "錨: price_max=$PRICE_MAX fv_max=$FV_MAX core_max=$CORE_MAX registry_A@$DATE=$REG_N"
 
 if [[ -z "$PRICE_MAX" || "$PRICE_MAX" < "$DATE" ]]; then
-  echo "✗ 告警: PriceAdj TAIEX max($PRICE_MAX) < D($DATE) —— 整鏈 SKIP" >&2
+  echo "✗ 告警: PriceAdj TAIEX max($PRICE_MAX) < D($DATE) —— 整鏈 SKIP（假 B3）" >&2
   exit 3
 fi
+
+FV_AT="$("$PY" -c "
+from augur.core import db
+with db.connect() as c, c.cursor() as cur:
+    cur.execute('SELECT count(*) FROM feature_values WHERE panel_date=%s', ('$DATE',))
+    print(int(cur.fetchone()[0] or 0))
+")"
+if [[ "${FV_AT:-0}" -eq 0 ]]; then
+  echo "✗ D=$DATE 無 feature_values panel —— 先 collect（run_asof_collect_train_verify.sh 或 L1 feat）" >&2
+  if [[ "$DO_APPLY" -eq 1 ]]; then
+    exit 4
+  fi
+  echo "  (dry-plan: 仍列出訓練步，apply 會中止)"
+fi
+
 
 # --- 1 Ridge×5 ----------------------------------------------------------------
 echo ""

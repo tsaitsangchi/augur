@@ -18,6 +18,7 @@
   python scripts/predict_asof.py                                    # 無參數=印本矩陣+操作值(不預測)
   python scripts/predict_asof.py --run                              # 預測(預設 RankRidge H=60 top10% equal LO as-of=最新)
   python scripts/predict_asof.py --run --horizon 120 --asof 2026-05-31  # STAGE D 首選(Ridge H120 LO top10%)
+  python scripts/predict_asof.py --run --horizon 20 --asof 2026-08-13   # 價未到或無 panel → 中止
   python scripts/predict_asof.py --run --top-frac 0.1 --weight equal   # long 投組分位/加權(預設 top10% 等權)
   python scripts/predict_asof.py --run --weight pred --risk-control    # pred 加權 + 收尾風控 overlay(單標的 cap/DD/換手)
   python scripts/predict_asof.py --run --dry-run                    # 只算+印、不寫 prediction_values
@@ -32,7 +33,7 @@ import sys
 import _bootstrap  # noqa: F401
 import numpy as np
 
-from augur.core import db
+from augur.core import asof_ready, db
 from augur.core.prodset_contract import (
     FEATURE_SOURCE_CANONICAL,
     FEATURE_SOURCE_PRODSET,
@@ -159,6 +160,19 @@ def predict(horizon, family, asof, top_n=20, top_frac=0.1, weight="equal", dry_r
         asof = _as_date(asof) or _latest_asof(conn)
         if asof is None:
             print("✗ core_universe_asof 無資料;中止。"); return None
+        with db.transaction(conn) as cur:
+            price_max = asof_ready.taiex_price_max(cur)
+            cur.execute(
+                "SELECT count(*) FROM feature_values WHERE panel_date=%s",
+                (asof,),
+            )
+            fv_n = int(cur.fetchone()[0] or 0)
+        fake = asof_ready.assert_not_fake_b3(price_max, asof)
+        if fake:
+            print(f"✗ {fake};中止。"); return None
+        if fv_n <= 0:
+            print(f"✗ {asof} 無 feature_values panel（先 collect 或 L1 feat）;中止。")
+            return None
         reg = registry.latest(family, horizon, asof)
         if reg is None:
             print(f"✗ registry 無 ≤{asof} 之 {family} H={horizon} 模型;先跑 train_ranker.py。"); return None

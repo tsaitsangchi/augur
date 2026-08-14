@@ -2,19 +2,23 @@
 """擂台每日管線 — [取數] sync → [庫內] IV／特徵 → 對局 的編排骨架(arena plan §5;A2 後 cron 入口)。
 
 🎯 這支在做什麼(白話):每日收盤後依序 subprocess 呼叫既有 script——
-   ①sync_all_by_date(載具=daily_maintenance.py,FinMind 全市場日頻增量)→②sync_fred(載具=
-   sync_macro.py)→③derive_market_iv --until→④build_market_direction_features --until→
-   ⑤build_daily_direction_features --until→(檢查當日 daily_direction_feature_values 落地,
+   ①L0-HOTPATH（`run_l0_hotpath_daily.sh --apply`＝核 A 14 張台灣日頻＋TRI 兩 id＋FRED；
+   **不是** 93 表全日頻、**不是** `AUGUR_DIM_SYNC=1` 全 dim-sync）→②derive_market_iv --until
+   →③build_market_direction_features --until→④build_daily_direction_features --until
+   →(檢查當日 daily_direction_feature_values 落地,
    **無新列=誠實缺席 exit 0 留 log**——休市/資料未更新即斷檔=無列,反回填 trigger 保證不補跑)
-   →⑥run_arena_round --run。**頂部雙機械閘(AND;先凍後跑)**:閘一=direction_gate 有 approved 之
+   →⑤run_arena_round --run。**頂部雙機械閘(AND;先凍後跑)**:閘一=direction_gate 有 approved 之
    dgate_arena% 列(§1 門二);閘二=arena_admission_gate 有 evaluated_pass 之 shared_foundation 列
    (G1 資料地基 PIN 06-30+G2 anti-leakage 硬前置;G1-G5 計畫 §3.3)。任一關即拒跑;任一步非零即中止(不半套)。
    結算(settle_arena_labels.py)為獨立冪等步、不在本鏈(對局與結算解耦,另掛)。
 
-   **PREDICT-ORTHOGONAL（取數／預測分離）**：①②＝**API 門**（FinMind／FRED；凍結下勿開）。
-   ③–⑥＝庫內路徑。`--skip-sync` 跳過①②，以 DB／明示 `--date` as-of 跑特徵＋對局；
+   **PREDICT-ORTHOGONAL（取數／預測分離）**：①＝**API 門**（FinMind 核 A＋TRI／FRED；凍結下勿開）。
+   ②–⑤＝庫內路徑。`--skip-sync` 跳過①，以 DB／明示 `--date` as-of 跑特徵＋對局；
    未給 `--date` 且 `--skip-sync` 時 as-of 預設＝庫內 PriceAdj max（非日曆今日）。
    全鏈 `--run`（含 sync）在 API 凍結期間仍屬取數門——勿當「預測必須先 sync」。
+
+   預測日更 L0＝核 A＋TRI：`reports/augur_l0_hotpath_daily_plan_20260814.md`；
+   採納＝`audits/L0-HOTPATH-PREDICT-DAILY-ADOPTED-20260814.md`。
 
 守 #8/#15(先凍後跑機械閘)· #24(sync 走既有限速引擎,本檔不另抓 API)· #28(本地編排零 usage)
    · #29a/d · PREDICT-ORTHOGONAL。SSOT=reports/augur_direction_live_arena_plan_20260711.md §5。
@@ -25,9 +29,8 @@
   python scripts/run_arena_daily_pipeline.py --run              # 實跑全鏈(含 sync＝API 門;凍結下勿開)
   python scripts/run_arena_daily_pipeline.py --run --skip-sync  # 庫內預測路徑(跳過 FinMind／FRED)
   python scripts/run_arena_daily_pipeline.py --run --skip-sync --date 2026-05-31
-  AUGUR_DIM_SYNC=1 python scripts/run_arena_daily_pipeline.py --dry-run
-                                                                # M-G10:第①步改帶 --with-dim-sync(逐維度 id)
-                                                                # ⚠ 放量門,須 hugo 授權;預設關
+  # 預測日更取數＝核 A＋TRI（run_l0_hotpath_daily.sh）；AUGUR_DIM_SYNC 不再接 93 表
+
 """
 import argparse
 import os
@@ -50,8 +53,9 @@ FEATURE_TABLE = "daily_direction_feature_values"
 #   =by-dim-id;現 6 張、含 TaiwanStockTotalReturnIndex)**永遠推不動**。TRI 因此停在 2026-07-09,
 #   下游 run_arena_round.py:96-100 之 month_days 自 8 月起為空 ⇒ H 軌永不出手;且 series["TAIEX"]
 #   末點停 07-09 卻與 07-31 之個股序列同批餵給 market 型模型。
-#   接線已就位(daily_maintenance --with-dim-sync),**預設關**——開啟＝FinMind 放量,須 hugo 明示
-#   授權(#24/#25:先最小單位探測、再放量)。開法:AUGUR_DIM_SYNC=1(單次 env,不動 crontab/unit)。
+#   預測日更 L0＝核 A＋TRI（2026-08-14 採納）：第①步改呼叫 run_l0_hotpath_daily.sh，
+#   **不再** daily_maintenance 無 --datasets（93 表會從 2019 回填 EuropeStockInfo）。
+#   TRI 已在熱路徑窄窗 --with-dim-sync；AUGUR_DIM_SYNC=1 **忽略**（不開另外 5 張 dim 表）。
 DIM_SYNC = os.environ.get("AUGUR_DIM_SYNC") == "1"
 
 
@@ -89,12 +93,10 @@ def _db_asof():
 def _steps(d, *, skip_sync=False):
     py, s = sys.executable, Path(__file__).resolve().parent
     since = (date.fromisoformat(d) - timedelta(days=CATCHUP_DAYS)).isoformat()
-    dim = ["--with-dim-sync"] if DIM_SYNC else []
+    hotpath = str(s / "run_l0_hotpath_daily.sh")
     sync_pre = [
-        ("sync_all_by_date(FinMind 全市場日頻增量)[API門]"
-         + ("+逐維度 id[放量門]" if DIM_SYNC else ""),
-         [py, str(s / "daily_maintenance.py"), "--end", d] + dim),
-        ("sync_fred(FRED 總經)[API門]", [py, str(s / "sync_macro.py"), "--no-catalog"]),
+        ("L0-HOTPATH 核A＋TRI＋FRED[API門]",
+         ["bash", hotpath, "--date", d, "--apply"]),
     ]
     local_pre = [
         ("derive_market_iv[庫內]", [py, str(s / "derive_market_iv.py"), "--run", "--since", since, "--until", d]),
@@ -137,6 +139,8 @@ def run(d, dry, *, skip_sync=False):
           f"{'' if (n_gate and adm) else ' → 實跑必拒(先凍後跑)'}"
           f" | skip_sync={skip_sync}")
     if dry:
+        if DIM_SYNC:
+            print("⚠ AUGUR_DIM_SYNC=1 已忽略：預測日更 L0＝核 A＋TRI，不開 93 表／其餘 dim-sync")
         print(f"--dry-run(as-of {d};只印不執行):")
         _print_plan(d, skip_sync=skip_sync)
         return 0
@@ -146,7 +150,9 @@ def run(d, dry, *, skip_sync=False):
               " → hugo --freeze → evaluate_arena_admission --evaluate;unfreeze GATE 已退史料 2026-07-16)。")
         return 1
     if not skip_sync:
-        print("⚠ 本輪含 FinMind／FRED sync 步驟＝API 門；若操作凍結中請改 --skip-sync（庫內預測路徑）。")
+        if DIM_SYNC:
+            print("⚠ AUGUR_DIM_SYNC=1 已忽略：預測日更 L0＝核 A＋TRI（run_l0_hotpath_daily.sh）")
+        print("⚠ 本輪含 FinMind 核 A＋TRI／FRED sync＝API 門；若操作凍結中請改 --skip-sync（庫內預測路徑）。")
     pre, post = _steps(d, skip_sync=skip_sync)
     for label, argv in pre:
         print(f"▶ {label}")

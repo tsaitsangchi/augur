@@ -6,7 +6,8 @@ date: 2026-08-04
 viewpoint: 2026-08-04T13:25+08:00
 approved: 2026-08-04T11:48+08:00
 layer: "[I]"
-role: S1→S5 自我進化閉環執行 SSOT（已拍；驗收／閉環 enrichment 不撤 GO）
+role: S1→S5 自我進化閉環本質／括號／已拍 GO（史料；運轉見 r16）
+operating_ssot: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md
 essence: 本檔＝S1→S5 自我進化閉環計畫書（非線性一次做完的 checklist）
 ssot_code: SIM-SELF-EVOLVE-OPT-PLAN-20260804-go
 sole_steward: true
@@ -46,6 +47,8 @@ s4_s5_loop_audit: audits/SIM-S4-S5-CLOSED-LOOP-20260804.md
 ---
 
 # 本地 AI 股市預測模擬——S1→S5 閉環自我進化計畫書（2026-08-04）
+
+> **運轉 SSOT（2026-08-13）**：後續閉環**怎麼轉**以 `reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md` 為準。本檔＝Steward-approved 本質／括號驗收／已拍 GO 史料；**不撤** `SIM-SELF-EVOLVE-OPT-PLAN-20260804-go`。
 
 > **本質一句**：本檔＝**S1→S5 自我進化閉環計畫書**（非線性一次做完的 checklist）。  
 > **性質**：[I] 計畫書（CLAUDE #16／#20）。**不創設治權判準**；不改 [N]；不代簽；Sole Steward（**無公示要件**）。  

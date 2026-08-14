@@ -18,6 +18,7 @@
   python scripts/train_ranker.py                                   # 無參數=印本矩陣+操作值(安全預設、不訓練)
   python scripts/train_ranker.py --run                             # 訓練(預設 prodset／RankRidge H=60 seed=42)
   python scripts/train_ranker.py --run --horizon 20 --family RankRidge --asof 2026-05-31
+  python scripts/train_ranker.py --run --horizon 20 --family RankRidge --asof 2026-08-13  # 價未到 → 假 B3 中止
   python scripts/train_ranker.py --run --feature-source=canonical  # 研究對照（非 PME 熱路徑）
   python scripts/train_ranker.py --run --family RankGBDT --seed 1  # 挑戰者(同理可 --family RankXGB/RankCat/...)
   python scripts/train_ranker.py --run --resume                    # 同 model_id 已登錄則跳過(冪等)
@@ -26,7 +27,7 @@ import argparse
 import sys
 
 import _bootstrap  # noqa: F401
-from augur.core import db
+from augur.core import asof_ready, db
 from augur.core.prodset_contract import (
     FEATURE_SOURCE_CANONICAL,
     FEATURE_SOURCE_PRODSET,
@@ -77,9 +78,14 @@ def train(horizon, family, seed, asof, resume=False, feature_source=FEATURE_SOUR
         print(f"✗ --feature-source 須為 {FEATURE_SOURCES};中止。")
         return None
     with db.connect() as conn:
-        asof = asof or _latest_asof(conn)
+        asof = asof_ready.as_date(asof) or _latest_asof(conn)
         if asof is None:
             print("✗ core_universe_asof 無資料(先建 universe);中止。"); return None
+        with db.transaction(conn) as cur:
+            price_max = asof_ready.taiex_price_max(cur)
+        fake = asof_ready.assert_not_fake_b3(price_max, asof)
+        if fake:
+            print(f"✗ {fake};中止。"); return None
         panels = _panels_upto(conn, asof)
         if len(panels) < 3:
             print(f"✗ ≤{asof} 之 panel 僅 {len(panels)} 個,不足訓練;中止。"); return None

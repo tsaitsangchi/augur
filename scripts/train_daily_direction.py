@@ -17,9 +17,10 @@
 
 執行指令矩陣:
   python scripts/train_daily_direction.py                        # 無參數:現況(唯讀)
-  python scripts/train_daily_direction.py --run                  # v1 口徑(champion;歷史保留)
+  python scripts/train_daily_direction.py --run                  # v1；asof 預設=可更新最新日（價頂）
+  python scripts/train_daily_direction.py --run --asof 2026-08-12
   python scripts/train_daily_direction.py --run-v2               # v2:DailyGBDT_cal(k=5、3 seeds、purged isotonic)
-  python scripts/train_daily_direction.py --run-v2 --ks 5 --seeds 3
+  python scripts/train_daily_direction.py --run-v2 --ks 5 --seeds 3 --asof 2026-08-12
 """
 import argparse
 import bisect
@@ -33,11 +34,11 @@ import _bootstrap  # noqa: F401
 import numpy as np
 import pandas as pd
 from augur.catalog import world_concept
-from augur.core import db
+from augur.core import asof_ready, db
 
 warnings.filterwarnings("ignore")
 K_SET = (1, 5)
-FREEZE = "2026-05-31"
+FREEZE = "2026-05-31"  # 完整性定案錨；訓練鎖＝asof_ready.resolve_lock（未指定→價頂）
 ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 
 
@@ -49,16 +50,28 @@ def _git7():
         return "unknown"
 
 
-def _ensure_model(cur, model_id, family, feats, git7, artifact_note):
+def _asof_s(asof):
+    d = asof_ready.as_date(asof)
+    if d is None:
+        raise ValueError("asof 未解析（須先 asof_ready.bind_iso）")
+    return d.isoformat()
+
+
+def _ensure_model(cur, model_id, family, feats, git7, artifact_note, asof):
     fh = hashlib.sha256(",".join(sorted(feats)).encode()).hexdigest()[:16]
+    asof_s = _asof_s(asof)
     cur.execute("INSERT INTO model_registry (model_id, family, horizon, train_span, asof_snapshot, "
                 "feats_hash, seed, artifact_path, git_sha) VALUES (%s,%s,0,%s,%s,%s,0,%s,%s) "
-                "ON CONFLICT (model_id) DO NOTHING",
-                (model_id, family, "[2015-01-01,2026-05-31]", FREEZE, fh, artifact_note, git7))
+                "ON CONFLICT (model_id) DO UPDATE SET "
+                "train_span=EXCLUDED.train_span, asof_snapshot=EXCLUDED.asof_snapshot, "
+                "feats_hash=EXCLUDED.feats_hash, artifact_path=EXCLUDED.artifact_path, "
+                "git_sha=EXCLUDED.git_sha",
+                (model_id, family, f"[2015-01-01,{asof_s}]", asof_s, fh, artifact_note, git7))
 
 
-def _load_features(cur):
-    cur.execute("SELECT panel_date, target_id, feature, value FROM daily_direction_feature_values")
+def _load_features(cur, asof):
+    cur.execute("SELECT panel_date, target_id, feature, value FROM daily_direction_feature_values "
+                "WHERE panel_date <= %s", (_asof_s(asof),))
     df = pd.DataFrame(cur.fetchall(), columns=["date", "stock", "feature", "value"])
     if df.empty:
         return None, None
@@ -67,12 +80,12 @@ def _load_features(cur):
     return wide, feats
 
 
-def _labels(cur, stocks, k):
+def _labels(cur, stocks, k, asof):
     """close(t+k)/close(t)−1>0 之方向標籤,逐股 groupby shift(交易日序)。回 {(date,stock): y}。"""
     adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=cur.connection)
     cur.execute(f"""SELECT stock_id, date, close FROM {adj_sql}
         WHERE stock_id = ANY(%s) AND date >= '2014-06-01' AND date <= %s ORDER BY stock_id, date""",
-        (list(stocks), FREEZE))
+        (list(stocks), _asof_s(asof)))
     px = pd.DataFrame(cur.fetchall(), columns=["stock", "date", "close"])
     px["close"] = px["close"].astype(float)
     px = px.sort_values(["stock", "date"])
@@ -127,18 +140,21 @@ def _year_blocks(dates, k):
     return [y for y in years if y > years[0]]
 
 
-def run(ks, seeds):
+def run(ks, seeds, asof=None):
     """v1 口徑(champion by OOS hit;歷史保留)。DELETE 已 scope 至 (k_td, model_id)——v1 審計列不可毀。"""
     git7 = _git7()
     with db.connect() as conn:
         cur = conn.cursor()
-        wide, feats = _load_features(cur)
+        asof_s, err = asof_ready.bind_iso(cur, asof)
+        if err:
+            print(f"✗ {err}"); return 3
+        wide, feats = _load_features(cur, asof_s)
         if wide is None:
             print("✗ 無 daily_direction_feature_values(先跑 build_daily_direction_features.py --run)"); return 1
         stocks = wide["stock"].unique().tolist()
-        print(f"D 軌特徵:{len(wide)} 列 × {len(feats)} feat / {wide['date'].nunique()} 交易日 / {len(stocks)} 檔")
-        _ensure_model(cur, "DailyLogit", "DailyLogit", feats, git7, "walk_forward_refit_per_fold")
-        _ensure_model(cur, "DailyGBDT", "DailyGBDT", feats, git7, "walk_forward_refit_per_fold")
+        print(f"D 軌特徵:{len(wide)} 列 × {len(feats)} feat / {wide['date'].nunique()} 交易日 / {len(stocks)} 檔 asof={asof_s}")
+        _ensure_model(cur, "DailyLogit", "DailyLogit", feats, git7, "walk_forward_refit_per_fold", asof_s)
+        _ensure_model(cur, "DailyGBDT", "DailyGBDT", feats, git7, "walk_forward_refit_per_fold", asof_s)
         conn.commit()
         cal = _market_cal(cur)
         X_all = wide[feats].to_numpy(float)
@@ -146,7 +162,7 @@ def run(ks, seeds):
         years = pd.DatetimeIndex(wide["date"]).year.to_numpy()
 
         for k in ks:
-            lab = _labels(cur, stocks, k)
+            lab = _labels(cur, stocks, k, asof_s)
             y_all = np.array([lab.get((d, s), -1) for d, s in zip(wide["date"], wide["stock"])])
             has = y_all >= 0
             test_years = _year_blocks([d for d in wide["date"]], k)
@@ -190,20 +206,24 @@ def run(ks, seeds):
     return 0
 
 
-def run_v2(ks, seeds):
+def run_v2(ks, seeds, asof=None):
     """v2(revival §3.2):DailyGBDT_cal——purged isotonic 校準層+per-seed 落列;無 champion 選擇。"""
     from sklearn.isotonic import IsotonicRegression
     model_id = "DailyGBDT_cal"
     git7 = _git7()
     with db.connect() as conn:
         cur = conn.cursor()
-        wide, feats = _load_features(cur)
+        asof_s, err = asof_ready.bind_iso(cur, asof)
+        if err:
+            print(f"✗ {err}"); return 3
+        wide, feats = _load_features(cur, asof_s)
         if wide is None:
             print("✗ 無特徵"); return 1
         stocks = wide["stock"].unique().tolist()
-        print(f"D 軌 v2 特徵:{len(wide)} 列 × {len(feats)} feat({sorted(feats)})")
+        print(f"D 軌 v2 特徵:{len(wide)} 列 × {len(feats)} feat({sorted(feats)}) asof={asof_s}")
         _ensure_model(cur, model_id, "DailyGBDT_cal", feats, git7,
-                      "walk_forward_refit_per_fold + purged_isotonic(fit-set/cal-tail 內層 embargo k+1 td)")
+                      "walk_forward_refit_per_fold + purged_isotonic(fit-set/cal-tail 內層 embargo k+1 td)",
+                      asof_s)
         conn.commit()
         cal = _market_cal(cur)
         X_all = wide[feats].to_numpy(float)
@@ -211,7 +231,7 @@ def run_v2(ks, seeds):
         years = pd.DatetimeIndex(wide["date"]).year.to_numpy()
 
         for k in ks:
-            lab = _labels(cur, stocks, k)
+            lab = _labels(cur, stocks, k, asof_s)
             y_all = np.array([lab.get((d, s), -1) for d, s in zip(wide["date"], wide["stock"])])
             has = y_all >= 0
             test_years = _year_blocks([d for d in wide["date"]], k)
@@ -273,11 +293,13 @@ def main():
     ap.add_argument("--run-v2", action="store_true", dest="v2")
     ap.add_argument("--ks", nargs="*", type=int)
     ap.add_argument("--seeds", type=int, default=3)
+    ap.add_argument("--asof", default=None,
+                    help="訓練 as-of（預設=可更新最新日＝PriceAdj TAIEX 價頂；假 B3 中止）")
     args = ap.parse_args()
     if args.v2:
-        return run_v2(args.ks or [5], args.seeds)
+        return run_v2(args.ks or [5], args.seeds, args.asof)
     if args.run:
-        return run(args.ks or list(K_SET), args.seeds)
+        return run(args.ks or list(K_SET), args.seeds, args.asof)
     return status()
 
 

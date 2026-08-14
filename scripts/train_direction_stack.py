@@ -17,7 +17,8 @@
   python scripts/train_direction_stack.py                       # 無參數:現況(唯讀:可合成 horizon×覆蓋)
   python scripts/train_direction_stack.py --run                 # 全可合成 horizon → direction_oos_sample
   python scripts/train_direction_stack.py --run --horizons 20   # 指定 horizon
-  python scripts/train_direction_stack.py --run-v2              # v2:DirStackM 月頻(H20/40/82;revival §3.4)
+  python scripts/train_direction_stack.py --run-v2              # v2:DirStackM；asof 預設=可更新最新日
+  python scripts/train_direction_stack.py --run-v2 --asof 2026-08-12
   python scripts/train_direction_stack.py --run --horizons 20 --model-family RankSVM
     # Phase 1 條件觸發研究比較(S4-DIRFAMILY-GENERALIZE):寫入新 model_id="DirStack_RankSVM"(自動衍生,
     # 不覆蓋既有 "DirStack"/RankRidge 列);僅供研究比較,不得直接視為 direction_gate/arena 候選。
@@ -30,14 +31,15 @@ from pathlib import Path
 import _bootstrap  # noqa: F401
 import numpy as np
 from augur.catalog import world_concept
-from augur.core import db
+from augur.core import asof_ready, db
 from augur.evaluation import label as _label
 from augur.evaluation import walkforward
 
 ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36；不直綁還原價表字面
-H_HORIZONS = (20, 40, 82, 120)
+H_HORIZONS = (20, 40, 60, 82, 120)  # 方向 H 軌封閉集（H60＝2026-08-13 另開）
 MODEL_ID = "DirStack"
 MKT_MODEL = "MktLogit"
+FREEZE = "2026-05-31"  # 完整性定案錨；訓練鎖＝asof_ready.resolve_lock（未指定→價頂）
 
 
 def _git7():
@@ -87,17 +89,21 @@ def _fit_predict(Xtr, ytr, Xte):
     return clf.predict_proba(sc.transform(Xte))[:, 1]
 
 
-def run(horizons, min_train, model_family="RankRidge", model_id=MODEL_ID):
+def run(horizons, min_train, model_family="RankRidge", model_id=MODEL_ID, asof=None):
     """model_id 預設沿用既有 "DirStack"(RankRidge 現況行為零改動);傳入非預設 model_family 時,
     呼叫端(main)須同步傳入衍生 model_id(如 "DirStack_RankSVM")——避免 direction_oos_sample 之
     ON CONFLICT(model_id,...) 靜默覆蓋既有族之列(S4-DIRFAMILY-GENERALIZE Phase 1,2026-08-04)。"""
     git7 = _git7()
     with db.connect() as conn:
         cur = conn.cursor()
+        asof_s, err = asof_ready.bind_iso(cur, asof)
+        if err:
+            print(f"✗ {err}"); return 3
         cal = _label.full_calendar(conn)
         done = []
         for h in horizons:
             rows = _load_joined(cur, h, model_family)
+            rows = [r for r in rows if str(r[0])[:10] <= asof_s]
             if not rows:
                 print(f"  H{h:<3} 無可合成列(需 probability_oos_sample h={h} + P_mkt 皆就位)—略")
                 continue
@@ -136,7 +142,7 @@ def run(horizons, min_train, model_family="RankRidge", model_id=MODEL_ID):
     return 0
 
 
-def run_v2(horizons, min_train):
+def run_v2(horizons, min_train, asof=None):
     """v2(revival plan §3.4):DirStackM——月頻 panel(檢定力誠實 ×1.5~2)+豐富特徵直餵
     [logit(P_mkt_v2), rank−0.5, 交互, vol60, mom60, beta252, inst_z];標籤=PriceAdj 月末 h td 前瞻方向
     (自算,不再抄 probability_oos_sample.fwd_ret);市場分量=MktLogit_v2(criteria 預先鎖定、無 challenger
@@ -146,9 +152,13 @@ def run_v2(horizons, min_train):
     git7 = _git7()
     with db.connect() as conn:
         cur = conn.cursor()
+        asof_s, err = asof_ready.bind_iso(cur, asof)
+        if err:
+            print(f"✗ {err}"); return 3
         cal = _label.full_calendar(conn)
         # 月頻特徵 → wide
-        cur.execute("SELECT panel_date, target_id, feature, value FROM direction_stack_feature_monthly")
+        cur.execute("SELECT panel_date, target_id, feature, value FROM direction_stack_feature_monthly "
+                    "WHERE panel_date <= %s", (asof_s,))
         df_rows = cur.fetchall()
         if not df_rows:
             print("✗ 無 direction_stack_feature_monthly(先跑 build_direction_stack_monthly.py --run)"); return 1
@@ -163,15 +173,18 @@ def run_v2(horizons, min_train):
         fh = hashlib.sha256(",".join(sorted(fh_src)).encode()).hexdigest()[:16]
         cur.execute("INSERT INTO model_registry (model_id, family, horizon, train_span, asof_snapshot, "
                     "feats_hash, seed, artifact_path, git_sha) VALUES (%s,'DirStackM',0,%s,%s,%s,0,%s,%s) "
-                    "ON CONFLICT (model_id) DO NOTHING",
-                    (model_id, "[2017-01-01,2026-05-31]", "2026-05-31", fh,
+                    "ON CONFLICT (model_id) DO UPDATE SET "
+                    "train_span=EXCLUDED.train_span, asof_snapshot=EXCLUDED.asof_snapshot, "
+                    "feats_hash=EXCLUDED.feats_hash, artifact_path=EXCLUDED.artifact_path, "
+                    "git_sha=EXCLUDED.git_sha",
+                    (model_id, f"[2017-01-01,{asof_s}]", asof_s, fh,
                      "walk_forward_refit_per_fold(monthly stack)", git7))
         conn.commit()
         # 日價 → 每股 date→close 序(標籤自算；表經 tw.daily_bar_adjusted)
         adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
         cur.execute(f"""SELECT stock_id, date, close FROM {adj_sql}
-            WHERE stock_id = ANY(%s) AND date >= '2016-06-01' AND date <= '2026-05-31'
-            ORDER BY stock_id, date""", (stocks,))
+            WHERE stock_id = ANY(%s) AND date >= '2016-06-01' AND date <= %s
+            ORDER BY stock_id, date""", (stocks, asof_s))
         px = {}
         for sid, d_, c_ in cur.fetchall():
             px.setdefault(sid, ([], []))
@@ -275,16 +288,18 @@ def main():
     ap.add_argument("--run-v2", action="store_true", dest="v2")   # DirStackM 月頻(revival §3.4)
     ap.add_argument("--horizons", nargs="*", type=int)
     ap.add_argument("--min-train", dest="min_train", type=int)
+    ap.add_argument("--asof", default=None,
+                    help="訓練 as-of（預設=可更新最新日＝PriceAdj TAIEX 價頂；假 B3 中止）")
     ap.add_argument("--model-family", dest="model_family", default="RankRidge",
                      help="相對分量 model_family(預設 RankRidge=現況;非預設族自動衍生 "
                           "model_id=DirStack_<family>,見 S4-DIRFAMILY-GENERALIZE Phase 1)")
     args = ap.parse_args()
     if args.v2:
-        return run_v2(args.horizons or [20, 40, 82], args.min_train or 24)
+        return run_v2(args.horizons or [20, 40, 60, 82], args.min_train or 24, asof=args.asof)
     if args.run:
         model_id = MODEL_ID if args.model_family == "RankRidge" else f"{MODEL_ID}_{args.model_family}"
         return run(args.horizons or list(H_HORIZONS), args.min_train or 8,
-                   model_family=args.model_family, model_id=model_id)
+                   model_family=args.model_family, model_id=model_id, asof=args.asof)
     return status()
 
 

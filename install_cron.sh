@@ -43,11 +43,18 @@ $BEGIN
 40 8 * * 1 cd $ROOT && { date; bash ops/gpu-verify/gpu_verify.sh || bash $ROOT/scripts/notify_failure.sh cron-verify-gpu; python3 -m tools.constitution_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-constitution-mcp; python3 -m tools.local_llm_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-local-llm-mcp; python3 -m tools.project_memory_mcp --selftest || bash $ROOT/scripts/notify_failure.sh cron-verify-memory-mcp; python3 scripts/check_selftest_coverage.py --check || bash $ROOT/scripts/notify_failure.sh cron-selftest-coverage; python3 -m pytest tests/test_philosophy_isolation.py tests/test_evolution_isolation.py -q || bash $ROOT/scripts/notify_failure.sh cron-isolation-pytest; echo ----; } >> \$HOME/logs/verify_weekly.log 2>&1
 # arena 每交易日出單(hugo 2026-07-26「讓 arena 的鐘重新走起來」;全鏈=sync〔freeze mdc 有界豁免 V2-FZ-scope〕
 # →特徵→對局;雙機械閘+休市誠實缺席 exit 0;取代已完成使命之 oneshot)
+# 2026-08-14 預測日更 L0＝核 A＋TRI：管線第①步＝run_l0_hotpath_daily.sh（非 93 表 daily_maintenance）。
+# 本行 crontab 字面不變；不另掛熱路徑 timer。
 # 前綴=FinMind 讀錶一步(登錄冊 E4 2026-08-01:讀錶不計額度、每交易日一行可見點;
 # 分號銜接=只記錄不擋道——真正的放量閘在 finmind._quota_gate,此處不重複造閘 #12)
 0 20 * * 1-5 cd $ROOT && venv/bin/python scripts/check_finmind_quota.py --read >> \$HOME/logs/finmind_quota.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-finmind-quota; cd $ROOT && venv/bin/python scripts/run_arena_daily_pipeline.py --run >> \$HOME/logs/arena_pipeline.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-arena-pipeline
 # arena 每日結算+官方計分板(冪等;標籤到期才結;三基準並排+洩漏稽核)
 30 21 * * 1-5 cd $ROOT && venv/bin/python scripts/settle_arena_labels.py --run >> \$HOME/logs/arena_settle.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-arena-settle; cd $ROOT && venv/bin/python scripts/settle_arena_labels.py --scoreboard >> \$HOME/logs/arena_settle.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-arena-scoreboard
+# RETRAIN-ALL-ASOF 日更（2026-08-14 Steward「要這包每天自動跑」）
+# D＝PriceAdj 價頂＝可更新最新日；不 sync、不 promote、不 emit B3。包已齊＠D → SKIP exit 0。
+# 21:40＝L0／結算後搶同日價（23:00 後驅動拒開工，讓 TWEVO）；09:20＝隔晨補（FinMind 常次日才有收盤列）。
+40 21 * * 1-5 cd $ROOT && bash scripts/run_retrain_all_asof_daily.sh --apply >> \$HOME/logs/retrain_all_asof.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-retrain-all-asof-pm
+20 9 * * 1-5 cd $ROOT && bash scripts/run_retrain_all_asof_daily.sh --apply >> \$HOME/logs/retrain_all_asof.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-retrain-all-asof-am
 # Steward 提問帳本 2h 增量(hugo 2026-07-27「每二個小時做一次」;純本地零 Claude token)
 17 */2 * * * cd $ROOT && venv/bin/python scripts/mine_steward_questions.py --run >> \$HOME/logs/qledger.log 2>&1 && venv/bin/python scripts/triage_questions.py --run >> \$HOME/logs/qledger.log 2>&1 || bash $ROOT/scripts/notify_failure.sh cron-qledger
 # DESKTOP→本機 進化增量拉取 2h(乙案私有通道;離線=優雅跳過、遠端排程未停即拒拉)
@@ -132,6 +139,9 @@ case "${1:-}" in
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q '^10 7 \* \* \* .*verify_validation_evidence.py --run.*backfill_fulltext_unattempted.py --daily' && echo 1 || echo 0)"
     chk "G1:週備份排程在且於 RAWEVO(09:00)之前收工" \
         "$(printf '%s' "$AUGUR_BLOCK" | grep -q '^30 7 \* \* 6 .*backup_database.sh --run' && echo 1 || echo 0)"
+    chk "RETRAIN-ALL 日更雙條(21:40 平日+09:20 平日)" \
+        "$(printf '%s' "$AUGUR_BLOCK" | grep -q '^40 21 \* \* 1-5 .*run_retrain_all_asof_daily.sh --apply' \
+           && printf '%s' "$AUGUR_BLOCK" | grep -q '^20 9 \* \* 1-5 .*run_retrain_all_asof_daily.sh --apply' && echo 1 || echo 0)"
     # ↓ M-G6(2026-08-03):systemd 側 13 unit 全有 OnFailure=augur-alert@%n,cron 側 15 行**零告警**——
     #   sink(scripts/notify_failure.sh → ~/logs/alerts.log)08-01 就上崗,生產中從未被觸發過一次。
     #   下列三鎖使「少掛一個鉤子」必紅。_block_cmds 只吃 AUGUR_BLOCK(非本檔原始碼),故不會掃到自己。
@@ -141,10 +151,10 @@ case "${1:-}" in
     _n_hook=$(_block_cmds | grep -o 'notify_failure' | grep -c .)
     _n_lbl=$(_block_cmds | grep -o 'notify_failure\.sh [a-z0-9-]*' | sort -u | grep -c .)
     chk "M-G6:每一條 cron 命令列都掛失敗告警($_n_line/$_n_cmd 行)" \
-        "$([ "$_n_cmd" -eq 15 ] && [ "$_n_line" -eq "$_n_cmd" ] && echo 1 || echo 0)"
+        "$([ "$_n_cmd" -eq 17 ] && [ "$_n_line" -eq "$_n_cmd" ] && echo 1 || echo 0)"
     # 只守最後一段=分號前的子命令仍靜默(與 M-G6 要治的病同型),故鉤子總數須 ≥ 子命令數
     chk "M-G6:分號/&& 銜接之子命令各自掛鉤,不得只守最後一段(鉤子 $_n_hook 個)" \
-        "$([ "$_n_hook" -ge 22 ] && echo 1 || echo 0)"
+        "$([ "$_n_hook" -ge 24 ] && echo 1 || echo 0)"
     chk "M-G6:告警標籤兩兩互異(alerts.log 才辨識得出是哪一支掛的;$_n_lbl 個)" \
         "$([ "$_n_lbl" -eq "$_n_hook" ] && echo 1 || echo 0)"
     chk "無 % 未跳脫(cron 會截斷)" \

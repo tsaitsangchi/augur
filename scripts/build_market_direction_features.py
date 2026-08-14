@@ -13,9 +13,10 @@
 
 執行指令矩陣:
   python scripts/build_market_direction_features.py                     # 無參數:現況(唯讀)
-  python scripts/build_market_direction_features.py --run               # 全期(2008-12-31~FREEZE)
+  python scripts/build_market_direction_features.py --run               # 全期(2008-12-31~可更新最新日)
   python scripts/build_market_direction_features.py --run --since 2025-01-01   # 增量段
-  python scripts/build_market_direction_features.py --run --until 2026-05-31   # as-of 上限(預設=FREEZE)
+  python scripts/build_market_direction_features.py --run --until 2026-05-31   # 釘歷史完整性錨
+  python scripts/build_market_direction_features.py --run --since 2026-08-01 --until 2026-08-12
 """
 import argparse
 import subprocess
@@ -26,10 +27,10 @@ from pathlib import Path
 import _bootstrap  # noqa: F401
 import numpy as np
 
-from augur.core import db
+from augur.core import asof_ready, db
 from augur.features import macro_vintage
 
-START, FREEZE = "2008-12-31", "2026-05-31"
+START, FREEZE = "2008-12-31", "2026-05-31"  # FREEZE=完整性定案錨；--until 預設=價頂
 
 
 def _git7():
@@ -167,10 +168,14 @@ def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--since", default=START)
-    ap.add_argument("--until", default=FREEZE)
+    ap.add_argument("--until", default=None, help="as-of 上限（預設=可更新最新日＝價頂）")
     args = ap.parse_args()
     if args.run:
-        return run(args.since, args.until)
+        with db.connect() as conn, conn.cursor() as cur:
+            until_s, err = asof_ready.bind_iso(cur, args.until)
+            if err:
+                print(f"✗ {err}"); return 3
+        return run(args.since, until_s)
     print(__doc__.split("執行指令矩陣:")[1])
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT count(*), count(DISTINCT panel_date), count(DISTINCT feature) FROM market_direction_feature")

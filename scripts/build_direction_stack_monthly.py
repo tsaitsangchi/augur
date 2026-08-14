@@ -4,17 +4,18 @@
 🎯 這支在做什麼(白話):H 軌 v2 的個股月頻特徵層——每「月末交易日」×「最近相對 panel 之宇宙股」一組:
    m_vol_60(60td 日報酬 std)、m_mom_60(60td 報酬)、m_beta_252(對 TAIEX 252td beta,rolling 動差公式)
    ——皆由日價(TaiwanStockPriceAdj/TRI)月末直算(#8 t 收盤 lag0);m_inst_net_z(法人 20 日淨買 252d z,
-   lag-1 值位移);rank_pctile_h{20,40,82}(probability_oos_sample 最近 as-of panel 之相對強弱,**如實陳舊**:
+   lag-1 值位移);rank_pctile_h{20,40,60,82}(probability_oos_sample 最近 as-of panel 之相對強弱,**如實陳舊**:
    2021+ 季頻 stale≤3 月、2016-2020 年頻 stale≤12 月——判門窗由 gate criteria 凍結,此表只如實落值)。
    落 direction_stack_feature_monthly(scoped DELETE 冪等)。
 
 守 #8(月末 as-of、lag 口徑逐特徵)· #9/#10(git_sha;全在庫)· #28(本地 pandas)· #29a/d。
-   前置=probability_oos_sample(相對軌)。SSOT=revival plan §3.4/§5。
+   前置=probability_oos_sample(相對軌；**只取 RankRidge**，避免 H20 雙族重鍵)。SSOT=revival plan §3.4/§5。
 
 執行指令矩陣:
   python scripts/build_direction_stack_monthly.py                    # 無參數:現況(唯讀)
-  python scripts/build_direction_stack_monthly.py --run              # 全期(2017-01~FREEZE 月末)
+  python scripts/build_direction_stack_monthly.py --run              # 全期(2017-01~可更新最新日 月末)
   python scripts/build_direction_stack_monthly.py --run --since 2021-01-01
+  python scripts/build_direction_stack_monthly.py --run --until 2026-08-12
   python scripts/build_direction_stack_monthly.py --run --months 3   # 小樣測試(最早 3 個月末,#25)
 """
 import argparse
@@ -27,11 +28,11 @@ import _bootstrap  # noqa: F401
 import numpy as np
 import pandas as pd
 from augur.catalog import world_concept
-from augur.core import db
+from augur.core import asof_ready, db
 
 ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
-START, FREEZE = "2017-01-01", "2026-05-31"
-H_RANKS = (20, 40, 82)
+START, FREEZE = "2017-01-01", "2026-05-31"  # FREEZE=完整性定案錨；--until 預設=價頂
+H_RANKS = (20, 40, 60, 82)  # 月頻相對分位；H60＝2026-08-13 另開
 FEATS = ["m_vol_60", "m_mom_60", "m_beta_252", "m_inst_net_z"] + [f"rank_pctile_h{h}" for h in H_RANKS]
 
 
@@ -44,7 +45,7 @@ def _git7():
 
 
 def _month_ends(cal, since):
-    """TAIEX 交易日曆 → 每月最後交易日(since~FREEZE)。"""
+    """TAIEX 交易日曆 → 每月最後交易日(since~until)。"""
     out, cur_m = [], None
     for d in cal:
         if cur_m is not None and (d.year, d.month) != cur_m:
@@ -54,19 +55,24 @@ def _month_ends(cal, since):
     return [d for d in out if str(d) >= since]
 
 
-def run(since, n_months):
+def run(since, n_months, until=FREEZE):
     git7 = _git7()
+    until_s = str(until)[:10]
     with db.connect() as conn:
         cur = conn.cursor()
+        fake = asof_ready.refuse_if_fake_b3(cur, until_s)
+        if fake:
+            print(f"✗ {fake}"); return 3
         cur.execute("SELECT date FROM \"TaiwanStockTotalReturnIndex\" WHERE stock_id='TAIEX' "
-                    "AND date <= %s ORDER BY date", (FREEZE,))
+                    "AND date <= %s ORDER BY date", (until_s,))
         cal = [r[0] for r in cur.fetchall()]
         mes = _month_ends(cal, since)
         if n_months:
             mes = mes[:n_months]
         # 相對軌 rank as-of 源(2016-12-31 起年頻→2021+ 季頻;如實陳舊)
         cur.execute("SELECT panel_date, horizon, stock_id, rank_pctile FROM probability_oos_sample "
-                    "WHERE horizon = ANY(%s) AND rank_pctile IS NOT NULL", (list(H_RANKS),))
+                    "WHERE horizon = ANY(%s) AND rank_pctile IS NOT NULL AND model_family=%s",
+                    (list(H_RANKS), "RankRidge"))
         rk = pd.DataFrame(cur.fetchall(), columns=["panel", "h", "stock", "rank"])
         rk_panels = sorted(rk["panel"].unique())
         print(f"月末 panel:{len(mes)}({mes[0]}~{mes[-1]});rank 源 panel:{len(rk_panels)}")
@@ -77,11 +83,11 @@ def run(since, n_months):
         adj_sql = world_concept.resolve_sql(ADJ_CONCEPT, conn=conn)
         cur.execute(f"""SELECT stock_id, date, close FROM {adj_sql}
             WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s ORDER BY stock_id, date""",
-            (stocks, buf, FREEZE))
+            (stocks, buf, until_s))
         px = pd.DataFrame(cur.fetchall(), columns=["stock", "date", "close"])
         px["close"] = px["close"].astype(float)
         cur.execute("SELECT date, price FROM \"TaiwanStockTotalReturnIndex\" WHERE stock_id='TAIEX' "
-                    "AND date >= %s AND date <= %s ORDER BY date", (buf, FREEZE))
+                    "AND date >= %s AND date <= %s ORDER BY date", (buf, until_s))
         mk = pd.DataFrame(cur.fetchall(), columns=["date", "mpx"])
         mk["mpx"] = mk["mpx"].astype(float)
         mk["mret"] = mk["mpx"].pct_change()
@@ -103,7 +109,7 @@ def run(since, n_months):
         cur.execute("""SELECT stock_id, date, sum(buy::float8 - sell::float8)
             FROM "TaiwanStockInstitutionalInvestorsBuySell"
             WHERE stock_id = ANY(%s) AND date >= %s AND date <= %s GROUP BY stock_id, date""",
-            (stocks, buf, FREEZE))
+            (stocks, buf, until_s))
         ins = pd.DataFrame(cur.fetchall(), columns=["stock", "date", "net"]).sort_values(["stock", "date"])
         ins["net"] = ins["net"].astype(float)
         gi = ins.groupby("stock", group_keys=False)
@@ -138,7 +144,7 @@ def run(since, n_months):
         execute_values(cur, "INSERT INTO direction_stack_feature_monthly "
                             "(panel_date, target_id, feature, value, git_sha) VALUES %s", rows, page_size=10000)
         conn.commit()
-        print(f"✓ 月頻 stack 特徵 {len(rows)} 列({len(mes)} 月末;FREEZE 截尾斷言=max panel {max(m for m in mes)})")
+        print(f"✓ 月頻 stack 特徵 {len(rows)} 列({len(mes)} 月末;until 截尾斷言=max panel {max(m for m in mes)})")
     return 0
 
 
@@ -158,10 +164,15 @@ def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--since", default=START)
+    ap.add_argument("--until", default=None, help="as-of 上限（預設=可更新最新日＝價頂）")
     ap.add_argument("--months", type=int)
     args = ap.parse_args()
     if args.run:
-        return run(args.since, args.months)
+        with db.connect() as conn, conn.cursor() as cur:
+            until_s, err = asof_ready.bind_iso(cur, args.until)
+            if err:
+                print(f"✗ {err}"); return 3
+        return run(args.since, args.months, until_s)
     return status()
 
 

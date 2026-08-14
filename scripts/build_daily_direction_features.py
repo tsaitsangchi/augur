@@ -13,12 +13,12 @@
 
 執行指令矩陣:
   python scripts/build_daily_direction_features.py                    # 無參數:現況(唯讀:已建覆蓋)
-  python scripts/build_daily_direction_features.py --run              # 全期(宇宙最早 as_of ~ FREEZE)
+  python scripts/build_daily_direction_features.py --run              # 全期(宇宙最早 as_of ~ 可更新最新日)
   python scripts/build_daily_direction_features.py --run --since 2020-01-01   # 增量段
   python scripts/build_daily_direction_features.py --run --stocks 20         # 小樣測試(前 20 檔,#25)
   python scripts/build_daily_direction_features.py --run-chips               # v2 籌碼五族(lag-1 值位移;scoped DELETE)
   python scripts/build_daily_direction_features.py --run-chips --stocks 20   # 小樣測試(#25)
-  python scripts/build_daily_direction_features.py --run --until 2026-05-31  # as-of 上限(預設=FREEZE)
+  python scripts/build_daily_direction_features.py --run --until 2026-05-31  # 釘歷史完整性錨
   python scripts/build_daily_direction_features.py --selftest         # 純紅綠自測(免 DB 免 API)
 """
 import argparse
@@ -28,9 +28,9 @@ import _bootstrap  # noqa: F401
 import numpy as np
 import pandas as pd
 from augur.catalog.world_concept import quote_ident, resolve, resolve_sql
-from augur.core import db
+from augur.core import asof_ready, db
 
-START, FREEZE = "2015-01-01", "2026-05-31"
+START, FREEZE = "2015-01-01", "2026-05-31"  # FREEZE=完整性定案錨；--until 預設=價頂
 ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 DAY_TRADE_CONCEPT = "tw.day_trading.stock"
 DAY_TRADE_BUY_COL = "BuyAmount"
@@ -291,14 +291,18 @@ def main():
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--since")
     ap.add_argument("--stocks", type=int)
-    ap.add_argument("--until", default=FREEZE)
+    ap.add_argument("--until", default=None, help="as-of 上限（預設=可更新最新日＝價頂）")
     args = ap.parse_args()
     if args.selftest:
         return selftest()
-    if args.chips:
-        return run_chips(args.since, args.stocks, args.until)
-    if args.run:
-        return run(args.since, args.stocks, args.until)
+    if args.chips or args.run:
+        with db.connect() as conn, conn.cursor() as cur:
+            until_s, err = asof_ready.bind_iso(cur, args.until)
+            if err:
+                print(f"✗ {err}"); return 3
+        if args.chips:
+            return run_chips(args.since, args.stocks, until_s)
+        return run(args.since, args.stocks, until_s)
     return status()
 
 

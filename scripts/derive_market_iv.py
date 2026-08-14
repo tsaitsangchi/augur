@@ -13,7 +13,8 @@
   python scripts/derive_market_iv.py                    # 無參數:現況(唯讀)
   python scripts/derive_market_iv.py --run              # 全期推導(2002+,冪等)
   python scripts/derive_market_iv.py --run --since 2020-01-01   # 增量段
-  python scripts/derive_market_iv.py --run --until 2026-05-31   # as-of 上限(預設=FREEZE)
+  python scripts/derive_market_iv.py --run --until 2026-05-31   # 釘歷史完整性錨
+  python scripts/derive_market_iv.py --run --since 2026-08-01   # until 預設=可更新最新日
 """
 import argparse
 import math
@@ -21,10 +22,10 @@ import sys
 from datetime import date, timedelta
 
 import _bootstrap  # noqa: F401
-from augur.core import db
+from augur.core import asof_ready, db
 
 BS_CONST = 0.398   # Brenner-Subrahmanyam:ATM 選擇權價 ≈ 0.398·S·σ·√T(近似口徑,明標)
-FREEZE = "2026-05-31"
+FREEZE = "2026-05-31"  # 完整性定案錨；--until 預設=價頂
 
 DDL = """
 CREATE TABLE IF NOT EXISTS market_iv_daily (
@@ -94,10 +95,14 @@ def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--since", default="2002-01-01")
-    ap.add_argument("--until", default=FREEZE)
+    ap.add_argument("--until", default=None, help="as-of 上限（預設=可更新最新日＝價頂）")
     args = ap.parse_args()
     if args.run:
-        return run(args.since, args.until)
+        with db.connect() as conn, conn.cursor() as cur:
+            until_s, err = asof_ready.bind_iso(cur, args.until)
+            if err:
+                print(f"✗ {err}"); return 3
+        return run(args.since, until_s)
     print(__doc__.split("執行指令矩陣:")[1])
     with db.connect() as conn, db.transaction(conn) as cur:
         cur.execute("SELECT to_regclass('public.market_iv_daily')")

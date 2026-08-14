@@ -2,7 +2,8 @@
 
 > **位階**：[I] 工具／接續記憶（非 META [N]）  
 > **觸發**：Steward 問「每天什麼時間最佳抓取 FinMind 及 FRED」  
-> **約束**：不改 cron；不打 live API；預測 ≠ sync（`predict-vs-market-api`）
+> **約束**：不改 cron 時點；不打 live API；預測 ≠ sync（`predict-vs-market-api`）  
+> **2026-08-14 修訂**：預測日更取數＝核 A＋TRI（`run_l0_hotpath_daily.sh`）；20:00 時點不變，①不再是 93 表 `daily_maintenance --end D`。見 `audits/L0-HOTPATH-PREDICT-DAILY-ADOPTED-20260814.md`。
 
 ---
 
@@ -11,7 +12,7 @@
 | 時點（Asia/Taipei） | 內容 | 位階／出處 |
 |---|---|---|
 | **平日 20:00** | `check_finmind_quota.py --read` → `run_arena_daily_pipeline.py --run`（內含 FinMind 日頻＋FRED） | **[I]** 拍板：2026-07-26 hugo「讓 arena 的鐘重新走起來」→ freeze rule **V2-FZ-scope**（cron 20:00 arena 管線內）；排程 SSOT＝`install_cron.sh` `0 20 * * 1-5` |
-| **同鏈順序** | ① `daily_maintenance.py --end <台北今日>`（FinMind 增量）→ ② `sync_macro.py --no-catalog`（FRED）→ ③–⑥ 庫內特徵／對局 | **[I]** `scripts/run_arena_daily_pipeline.py` docstring／`_steps` |
+| **同鏈順序** | ① `run_l0_hotpath_daily.sh --date D --apply`（核 A＋TRI＋FRED）→ ②–⑤ 庫內特徵／對局 | **[I]** 2026-08-14 採納；`scripts/run_arena_daily_pipeline.py` `_steps` |
 | **平日 21:30** | `settle_arena_labels`（結算；**非**取數） | **[I]** `install_cron.sh` |
 | **解凍後白名單** | 仍准上述日頻增量＋`sync_macro --no-catalog`；禁 Dividend rebuild／寬窗放量除非另授 | **[I]** `audits/API-THAW-20260804.md` §3（與 V2-FZ-scope 同形） |
 | ~~平日 16:00~~ | 舊 stock_backend FinMind cron | **已廢**：2026-07-13 hugo 取消（同 IP 疊加）— `HANDOFF.md` |
@@ -29,8 +30,8 @@
 | 順序 | Clock | 作業 | Why |
 |---|---|---|---|
 | 0 | **20:00** | 讀 FinMind 額度錶（`--read`，不擋道） | 可見點；真正放量閘在 `_quota_gate`（#24） |
-| 1 | **20:00+**（同 job） | **FinMind TW 日頻**：`daily_maintenance --end <當日>` | TW 收盤≈13:30；留 **盤後上架／鏡射延遲** 緩衝（過早易空窗或缺列）。舊 16:00 已廢以免同 IP 疊加。20:00 仍早於結算 21:30／TWEVO 23:00 |
-| 2 | **緊接①之後**（同 pipeline） | **FRED macro**：`sync_macro --no-catalog` | 與 FinMind **同節奏、同管線、先台後美**——共用限速／額度意識日；FRED 多為美東日更，台北晚間對應美東上午前後，適日頻增量（非搶單一系列即時發布） |
+| 1 | **20:00+**（同 job） | **FinMind 核 A＋TRI**：`run_l0_hotpath_daily.sh --date <當日> --apply` | TW 收盤≈13:30；留 **盤後上架／鏡射延遲** 緩衝。**不是** 93 表。舊 16:00 已廢。20:00 仍早於結算 21:30／TWEVO 23:00 |
+| 2 | **緊接①之內**（同熱路徑） | **FRED macro**：`sync_macro --no-catalog`（殼步驟 D） | 與 FinMind **同節奏、同管線、先台後美** |
 | — | **勿另開第二個日中 FinMind cron** | — | 限速是 **in-process**；兩進程對外速率相加（master plan 實證註）。白天僅 Steward 明示 catch-up／audit |
 
 **若另立「僅取數、不跑 arena」**：仍建議 **同一 20:00 窗**（或緊接其後單一 job），**不要**再掛 16:00／日間第二條。

@@ -12,11 +12,13 @@
 執行指令矩陣:python scripts/build_feature_panel.py                    （重建既有全部面板）
       python scripts/build_feature_panel.py --since 2014-01-01    （只建 ≥2014 之既有面板）
       python scripts/build_feature_panel.py --panels 2025-12-31,2025-09-30  （只建指定面板）
+      python scripts/build_feature_panel.py --selftest            （asof 閘純自測）
+      python scripts/build_feature_panel.py --panels 2026-08-13 --asof  （若價頂 < 該日 → 假 B3 中止）
 """
 import argparse
 
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
-from augur.core import db
+from augur.core import asof_ready, db
 from augur.features import panel
 
 
@@ -48,16 +50,37 @@ def main():
     ap.add_argument("--since", help="只建此日(含)以後之既有面板 YYYY-MM-DD")
     ap.add_argument("--panels", help="指定面板日(逗號分隔)，覆寫 --since/既有")
     ap.add_argument("--asof", action="store_true", help="只建 as-of 宇宙(core_universe_asof)之股、非全 roster(驗證/省算)")
+    ap.add_argument(
+        "--require-price",
+        action="store_true",
+        default=True,
+        help="面板日不得晚於 TAIEX PriceAdj max（預設開；擋假 B3）",
+    )
+    ap.add_argument("--no-require-price", action="store_false", dest="require_price")
+    ap.add_argument("--selftest", action="store_true", help="轉呼叫 asof_ready 純自測")
     args = ap.parse_args()
+    if args.selftest:
+        raise SystemExit(asof_ready._selftest())
     explicit = [p.strip() for p in args.panels.split(",")] if args.panels else None
 
     with db.connect() as conn:
         with db.transaction(conn) as cur:
             pds = _panel_dates(cur, args.since, explicit)
             roster = _roster(cur, asof=args.asof)
+            if args.require_price:
+                price_max = asof_ready.taiex_price_max(cur)
+            else:
+                price_max = None
         if not pds:
             print("無面板可建（feature_values 空且未指定 --panels）")
             return
+        if args.require_price:
+            blocked = [pd_ for pd_ in pds if asof_ready.assert_not_fake_b3(price_max, pd_)]
+            if blocked:
+                print(
+                    f"✗ 假 B3：panel {blocked} 晚於 PriceAdj TAIEX max({price_max});中止。"
+                )
+                raise SystemExit(3)
         print(f"build feature panel：{len(pds)} 面板 × {len(roster)} roster（{pds[0]}..{pds[-1]}）")
         total_v = total_s = 0
         for pd_ in pds:
