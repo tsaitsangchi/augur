@@ -3,7 +3,7 @@ status: archive_checkpoint
 date: 2026-08-14
 kind: archive_checkpoint
 tag: archive-20260814-weekly-fd-tar
-sha: pending_backfill
+sha: `1c5ee69d8de9b91ae21bb0c071daa12bb4790884`
 remote: https://github.com/tsaitsangchi/augur
 auth: "Steward：更新全部檔案上傳到 https://github.com/tsaitsangchi/augur 並做封存點"
 prior: archive-20260814-h240-retrain-0813
@@ -15,7 +15,7 @@ self_reported: true
 date: 2026-08-14  
 kind: archive_checkpoint  
 tag: `archive-20260814-weekly-fd-tar`  
-sha: pending_backfill  
+sha: `1c5ee69d8de9b91ae21bb0c071daa12bb4790884`  
 remote: https://github.com/tsaitsangchi/augur
 
 上一封存：`archive-20260814-h240-retrain-0813`（commit `f7695af`；回填 `3fce324`）。
