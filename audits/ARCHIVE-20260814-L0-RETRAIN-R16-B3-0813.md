@@ -3,7 +3,7 @@ status: archive_checkpoint
 date: 2026-08-14
 kind: archive_checkpoint
 tag: archive-20260814-l0-retrain-r16-b3-0813
-sha: pending_backfill
+sha: `31998b0eb704ae365fa47ec8c940fe1944569cc1`
 remote: https://github.com/tsaitsangchi/augur
 auth: "Steward：更新全部檔案上傳到 github 並做封存點"
 prior: archive-20260813-b3-0812-kh-a2l3-nf0812
@@ -15,7 +15,7 @@ self_reported: true
 date: 2026-08-14  
 kind: archive_checkpoint  
 tag: `archive-20260814-l0-retrain-r16-b3-0813`  
-sha: pending_backfill  
+sha: `31998b0eb704ae365fa47ec8c940fe1944569cc1`  
 remote: https://github.com/tsaitsangchi/augur
 
 上一封存：`archive-20260813-b3-0812-kh-a2l3-nf0812`（commit `828c8e9`；回填 `5f342f8`）。  
