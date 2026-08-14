@@ -16,8 +16,8 @@ s1_s5_ssot: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813
 s1_s5_parent: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md
 kh_evolve_ssot: reports/augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md
 kh_split: audits/KH-SPLIT-FROM-MARKET-AXIS-ADOPTED-20260812.md
-archive_tip: archive-20260814-h240-retrain-0813
-prior_archive: archive-20260814-l0-retrain-r16-b3-0813
+archive_tip: archive-20260814-weekly-fd-tar
+prior_archive: archive-20260814-h240-retrain-0813
 self_reported: true
 ---
 

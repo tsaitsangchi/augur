@@ -7,7 +7,7 @@
 `pg_restore -l` 驗 toc（印「11G / 2696 物件 / 352s」），**鏡像那一份完全沒驗**。
 
 本支量的四件事（缺一即紅；「cp 曾經成功」不在其中）：
-  1. 鏡像目錄裡真有 `augur_YYYYMMDD_weekly_Fd` 組——空目錄＝紅，不是「無事發生」
+  1. 鏡像目錄裡真有 `augur_YYYYMMDD_weekly_Fd` 組或同名 `.tar`——空目錄＝紅，不是「無事發生」
   2. 該組可被 `pg_restore -l` 解析、物件數 ≥ 100（不可解析＝只是一堆位元組）
   3. `*.dat.gz` 檔數 == TOC 之 TABLE DATA 項數——drvfs 半途中斷之 cp 於此翻紅
   4. 與本地同名組逐項比對（物件數／資料檔數／總位元組）——任一不一致即紅
@@ -56,6 +56,7 @@ LEDGER_NAME = "backup_ledger.jsonl"   # 帳本住 dump 目錄旁、不住 DB:DB 
 MAX_AGE_DAYS = 8      # 週六週備份 + 1 日寬限;**無 env 旋鈕**——見檔頭「不得加豁免」
 MIN_OBJECTS = 100     # 與 backup_database.sh [2/4] 同一閾值
 SET_RE = re.compile(r"^augur_(\d{8})_weekly_Fd$")
+TAR_RE = re.compile(r"^augur_(\d{8})_weekly_Fd\.tar$")
 
 EVIDENCE_ID = "E10_backup_mirror_fresh"
 EVIDENCE_CMD = "venv/bin/python scripts/verify_backup_mirror.py --check"
@@ -64,8 +65,8 @@ EVIDENCE_CMD = "venv/bin/python scripts/verify_backup_mirror.py --check"
 # ── 純函式（自測以真實 pg_restore -l 輸出餵之） ──────────────────────────────
 
 def parse_set_date(name: str) -> Optional[date]:
-    """備份組目錄名 → 該組之資料日期;非本支產物口徑回 None(無法判齡)。"""
-    m = SET_RE.match(name)
+    """備份組目錄名或 .tar → 該組之資料日期;非本支產物口徑回 None(無法判齡)。"""
+    m = SET_RE.match(name) or TAR_RE.match(name)
     if not m:
         return None
     try:
@@ -122,7 +123,7 @@ def completeness_problems(objects, data_files, data_entries, blobs):
 def verdict(mirrors, max_age_days: int = MAX_AGE_DAYS):
     """純判定：鏡像事實表 → ('green'|'red', 說明行)。空清單＝紅（異地層為零）。"""
     if not mirrors:
-        return "red", ["鏡像目錄無任何備份組（augur_YYYYMMDD_weekly_Fd）——異地備份層為零"]
+        return "red", ["鏡像目錄無任何備份組（augur_YYYYMMDD_weekly_Fd 或 .tar）——異地備份層為零"]
     fresh = [m for m in mirrors
              if m.restorable and m.age_days is not None and m.age_days <= max_age_days]
     if fresh:
@@ -142,7 +143,11 @@ def rc_of(status: str) -> int:
 
 
 def compare_pair(mirror: SetFacts, local: Optional[SetFacts]) -> None:
-    """鏡像 ↔ 本地同名組逐項比對，不一致寫回 mirror.problems（就地）。"""
+    """鏡像 ↔ 本地同名組逐項比對，不一致寫回 mirror.problems（就地）。
+
+    目錄與 .tar 檔名不同（…_Fd vs …_Fd.tar），不會配對——刻意：tar 位元組 ≠ 目錄位元組。
+    同名 tar↔tar 或 目錄↔目錄 才比總位元組。
+    """
     if local is None or not local.restorable:
         return
     for label, a, b in (("物件數", mirror.objects, local.objects),
@@ -157,8 +162,13 @@ def compare_pair(mirror: SetFacts, local: Optional[SetFacts]) -> None:
 def list_sets(root: Path):
     if not root.is_dir():
         return []
-    return sorted((p for p in root.iterdir() if p.is_dir() and p.name.startswith("augur_")),
-                  key=lambda p: p.name)
+    out = []
+    for p in root.iterdir():
+        if p.is_dir() and SET_RE.match(p.name):
+            out.append(p)
+        elif p.is_file() and TAR_RE.match(p.name):
+            out.append(p)
+    return sorted(out, key=lambda p: p.name)
 
 
 def read_toc(path: Path):
@@ -175,7 +185,65 @@ def read_toc(path: Path):
     return r.stdout, None
 
 
+def inspect_tar(path: Path, today: date, where: str) -> SetFacts:
+    """單檔 tar（內含 -Fd 目錄）——不解全包;只列成員＋抽出 toc.dat 跑 pg_restore -l。"""
+    f = SetFacts(name=path.name, where=where)
+    d = parse_set_date(path.name)
+    if d is None:
+        f.problems.append("名稱不合本支產物口徑（augur_YYYYMMDD_weekly_Fd.tar）——無法判齡")
+    else:
+        f.age_days = (today - d).days
+    try:
+        f.total_bytes = path.stat().st_size
+    except OSError as e:
+        f.problems.append(f"tar 不可讀（{type(e).__name__}）")
+        return f
+    try:
+        r = subprocess.run(["tar", "-tf", str(path)], capture_output=True, text=True, timeout=600)
+    except FileNotFoundError:
+        f.problems.append("找不到 tar")
+        return f
+    except subprocess.TimeoutExpired:
+        f.problems.append("tar -tf 逾時（>600s）")
+        return f
+    if r.returncode != 0:
+        f.problems.append(f"tar -tf 失敗（rc={r.returncode}：{(r.stderr or '')[:80]}）")
+        return f
+    members = [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
+    toc_members = [m for m in members if m.endswith("toc.dat")]
+    if not toc_members:
+        f.problems.append("tar 內無 toc.dat")
+        return f
+    f.data_files = sum(
+        1 for m in members
+        if (m.endswith(".dat") or m.endswith(".dat.gz")) and not m.endswith("toc.dat")
+    )
+    with tempfile.TemporaryDirectory() as td:
+        toc_path = Path(td) / "toc.dat"
+        try:
+            with toc_path.open("wb") as out:
+                x = subprocess.run(["tar", "-xOf", str(path), toc_members[0]],
+                                   stdout=out, stderr=subprocess.PIPE, timeout=60)
+        except subprocess.TimeoutExpired:
+            f.problems.append("抽出 toc.dat 逾時")
+            return f
+        if x.returncode != 0:
+            f.problems.append("抽出 toc.dat 失敗")
+            return f
+        toc, err = read_toc(Path(td))
+        if toc is None:
+            f.problems.append(err)
+            return f
+        f.objects = count_toc_objects(toc)
+        f.data_entries = count_toc_data_entries(toc)
+        f.blobs = toc_has_blobs(toc)
+        f.problems.extend(completeness_problems(f.objects, f.data_files, f.data_entries, f.blobs))
+    return f
+
+
 def inspect_set(path: Path, today: date, where: str) -> SetFacts:
+    if path.is_file() and TAR_RE.match(path.name):
+        return inspect_tar(path, today, where)
     f = SetFacts(name=path.name, where=where)
     d = parse_set_date(path.name)
     if d is None:
@@ -370,7 +438,9 @@ def selftest() -> int:
     chk("本庫 toc 無 BLOBS", toc_has_blobs(_REAL_TOC + _REAL_TOC_DATA) is False)
     # 3) 判齡
     chk("真產物名 → 2026-08-01", parse_set_date("augur_20260801_weekly_Fd") == date(2026, 8, 1))
+    chk("真 tar 名 → 2026-08-01", parse_set_date("augur_20260801_weekly_Fd.tar") == date(2026, 8, 1))
     chk("非本支口徑名 → None（紅向）", parse_set_date("augur_20260731_postmerge_Fd") is None)
+    chk(".tar.part 未轉正 → None（紅向）", parse_set_date("augur_20260801_weekly_Fd.tar.part") is None)
     # 3b) 完整性不變式（數字取自本機真 dump：2696 物件／322 資料檔）
     chk("真值 2696/322/322 → 無問題", completeness_problems(2696, 322, 322, False) == [])
     chk("少一個資料檔（321 vs 322）→ 有問題（半途中斷之 cp）",
@@ -409,6 +479,19 @@ def selftest() -> int:
         empty = Path(td) / "empty_mirror"
         empty.mkdir()
         chk("空鏡像目錄 → 無備份組", list_sets(empty) == [])
+        # tar：真打包一個只有 toc.dat 的假目錄 → inspect 必須不 crash；toc 壞則不可還原
+        fake_dir = Path(td) / "augur_20260803_weekly_Fd"
+        tar_path = Path(td) / "augur_20260803_weekly_Fd.tar"
+        subprocess.run(["tar", "-C", td, "-cf", str(tar_path), fake_dir.name], check=True)
+        listed = list_sets(Path(td))
+        chk("list_sets 同時看見目錄與 .tar",
+            {p.name for p in listed} >= {"augur_20260803_weekly_Fd", "augur_20260803_weekly_Fd.tar"})
+        ft = inspect_tar(tar_path, date(2026, 8, 3), "mirror")
+        chk("壞 toc 之合成 tar → 不可還原", not ft.restorable)
+        bogus = Path(td) / "augur_20260804_weekly_Fd.tar"
+        bogus.write_bytes(b"not a tar")
+        fb = inspect_tar(bogus, date(2026, 8, 4), "mirror")
+        chk("非 tar 位元組冒充 .tar → 不可還原", not fb.restorable)
     # 7) 真上游輸出（本機有 dump 才跑;無則誠實 SKIP，不假綠）
     real = sorted(p for p in list_sets(DUMP_DIR) if SET_RE.match(p.name))
     if real:

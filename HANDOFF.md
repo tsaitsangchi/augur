@@ -129,9 +129,10 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
 >
 > 兩支的排程內容是各自檔內的單一 SSOT（改排程改檔、跑一次即生效、隨 git 走）。**共用一把 LLM 單槽鎖 `/tmp/augur_llm.lock`**——ollama `-np 1` 全域序列化，不鎖則多支互搶、全部變慢且結果不可比。
 
-- **DB**（靠 dump 搬、#30;**本條＝dump 之單一住所 SSOT**，別處只許留指針、不得各自宣稱「最新」）:**⚠ 2026-07-31 全面更正——`~/db_dumps/` 已由 Steward 清空，本行原載之五份 dump 全部不存在。**
-  **現行唯一備份＝`/mnt/c/database/augur_pgdump_20260731_Fd`**（Windows C 碟；本日 09:20:38 建、11 GB、`pg_restore -l` 可解析、**2,748 個物件**、含整併前之 `ttai_import` 151 物件與 `touch_updated_at()`＋2 trigger、承重表 DATA 段俱在——2026-07-31 實查）。**它是「augur ＝ 全部」整併前的最後快照**，亦是 `ttai_import`／`augur_predict` GRANT 佈局／兩個 touch trigger 之唯一復原來源。
-  ~~原記述：最新＝`~/db_dumps/augur_20260726_Fd`；備援 `augur_pgdump_20260718_Fd`／`_20260714_Fd`／`_20260712_Fd.tar`；`augur_pg17_20260722.dump` 為 0 byte 空檔~~——**以上五者已於 2026-07-31 刪除，勿再引用**。⚠ **本機 `~/db_dumps/` 現為空目錄**；下次備份請重新產生並更新本條（本條為 dump 單一住所 SSOT）。;⚠ 本機**無 `/mnt/d`**（舊文所載 `D:\database\…tar` 單檔版於本機不可及;若在外接碟須先掛載並實查，勿假設存在）。**史註**：原文「最新＝`augur_pgdump_20260713_Fd`（含 07-12 全日成果＝擂台九門簽核／三鏡頭月頻／491 件公版全文＋469,551 句／K 計畫橋表／**audit 增量 658,911 列**;取於 audit 尾段對帳中）」係 **07-13 當時值**、已被 07-18／07-26 取代——**換機勿再取 07-13 庫**（其 headline 口徑早於 PriceAdj 錨修復）;audit 續跑之 API 面受 §4.4 凍結約束，見該條。還原一律用 `bash import_database.sh`（自動判 tar/-Fd/-Fc、平行還原;新機庫不存在直接建、取代既有須 `--force`）。56GB 庫=35GB 資料+21GB 索引,dump ~10GB 屬正常。**dump 不進 git**,用外接碟/雲端搬。
+- **DB**（靠 dump 搬、#30;**本條＝dump 之單一住所 SSOT**，別處只許留指針、不得各自宣稱「最新」）:
+  **現行 weekly＝`~/db_dumps/augur_20260814_weekly_Fd`（-Fd 目錄，平行還原快路徑）＋ sibling `augur_20260814_weekly_Fd.tar`（單檔搬運；內層已 `-Z1`，外層不再 gzip）**；鏡像 `C:\database\`（`/mnt/c/database/`）同名目錄與 `.tar`（位元組 `11164651520`；哨兵 2888 物件／343 資料檔，2026-08-14 實查可還原）。週六 cron：`bash scripts/backup_database.sh --run`。還原：`bash import_database.sh`（同資料夾**目錄優先於 tar**；指定 `.tar` 則先解到本地 ext4 再 `-Fd -j4`；`pg_restore` 不能直接吃 tar-of-Fd）。**dump／tar 不進 git**。
+  ~~2026-07-31 當時「現行唯一＝`/mnt/c/database/augur_pgdump_20260731_Fd`」暨「`~/db_dumps/` 為空」已過期，勿再當最新。~~ 本地仍留 `augur_20260731_postmerge_Fd`（白名單外、輪替不動）作整併前史。
+  ~~原記述：最新＝`~/db_dumps/augur_20260726_Fd`；備援 `augur_pgdump_20260718_Fd`／`_20260714_Fd`／`_20260712_Fd.tar`；`augur_pg17_20260722.dump` 為 0 byte 空檔~~——**以上五者已於 2026-07-31 刪除，勿再引用**。⚠ 本機**無 `/mnt/d`**（舊文所載 `D:\database\…tar` 單檔版於本機不可及;若在外接碟須先掛載並實查，勿假設存在）。**史註**：原文「最新＝`augur_pgdump_20260713_Fd`」係 **07-13 當時值**——**換機勿再取 07-13 庫**。56GB 庫=35GB 資料+21GB 索引,dump ~11GB 屬正常。
 - **`.env`**（手動重建、值不入 git;**按通道分組——漏鍵=對應通道靜默失效**):
   | 通道/層 | 鍵 | 漏了會怎樣 |
   |---|---|---|

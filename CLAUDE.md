@@ -169,8 +169,8 @@
 31. **換機接續慣例(用戶 directive 2026-07-10 入憲;本地優先、AI 不代勞人工前置)**:當用戶指示「**由新電腦接續此專案 / 接續 augur**」時,**以 repo 內本地程式為主**執行前置,不繞道 Claude 重算可本地化之事(#28)——
     - **一鍵**:`bash resume_project.sh`(串:檢 `.env` → `pip install -e .` → `bash sync_from_github.sh` → `python3 sync_memory.py restore`〔還原 memory〕 → DB 偵測 → import smoke;加 `--with-db` 連 DB import)。亦可分步跑各工具。
     - **接續 SSOT = repo `HANDOFF.md`**(新機第一份讀它);建構全貌 = `reports/augur_construction_understanding_<最新日>.md`;活 memory 機器本地、空到 `sync_memory.py restore` 從 `handoff_memory/` 還原才有(故 MEMORY.md 索引在新機初始為空——**唯一自動載入之接續指引即本條**)。
-    - **DB import**:`bash import_database.sh`(自動判 dump 格式〔tar-含-Fd / -Fd 目錄 / -Fc 單檔〕→ 建庫 → 平行還原 → `setup_predict_role` → smoke;`--migrate` 補冪等 DDL;`--dry-run` 只驗不動)。**取代既有 augur 庫屬破壞性 → 須 `--force` 明示(#6)**;新機庫不存在則直接建。
-    - **兩個無法自動化之人工前置(AI 不代勞、須用戶做)**:① `.env` 重建(含密鑰、不在 git);② dump 實體搬到本機(6.6GB、不在 git、預設搜 `~/db_dumps//mnt/d/database//mnt/c/AI`);二者到位前 DB import 無法跑。
+    - **DB import**:`bash import_database.sh`(自動判 dump 格式〔`augur_YYYYMMDD_weekly_Fd` 目錄優先／同名 `.tar` 內含 -Fd／舊 `-Fc`〕→ 建庫 → 平行還原 → smoke;`--migrate` 補冪等 DDL;`--dry-run` 只驗不動)。**取代既有 augur 庫屬破壞性 → 須 `--force` 明示(#6)**;新機庫不存在則直接建。`pg_restore` 不能直接吃 tar-of-Fd。
+    - **兩個無法自動化之人工前置(AI 不代勞、須用戶做)**:① `.env` 重建(含密鑰、不在 git);② dump 實體搬到本機(~11GB、不在 git、預設搜 `~/db_dumps/` `/mnt/c/database/` `/mnt/d/database/` `/mnt/c/AI`);二者到位前 DB import 無法跑。
     - **五支本地工具皆零 Claude usage**:`resume_project.sh`(一鍵編排)/`sync_from_github.sh`(源碼同步)/`sync_memory.py`(memory ⇄ repo)/`import_database.sh`(DB 匯入)/`read_handoff.py`(讀接續狀態)——#28 本地優先之落地。
 
 ## 五、協作運作模式
