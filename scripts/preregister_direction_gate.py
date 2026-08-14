@@ -11,7 +11,7 @@
 
 執行指令矩陣:
   python scripts/preregister_direction_gate.py                    # 無參數:gate 清單(唯讀)
-  python scripts/preregister_direction_gate.py --preregister-all  # H{20,40,60,82,120}+D{1,5} 七列 draft
+  python scripts/preregister_direction_gate.py --preregister-all  # H{20,40,60,82,120,240}+D{1,5} 八列 draft
   python scripts/preregister_direction_gate.py --approve dgate_H_82 --approved-by hugo   # 人親核(TTY)
   python scripts/preregister_direction_gate.py --check dgate_H_82 # sha 覆算+trigger 斷言
   python scripts/preregister_direction_gate.py --preregister-v2   # v2 四門(K=4;estimand/α/窗/fail_path 凍結)
@@ -26,7 +26,7 @@ from pathlib import Path
 import _bootstrap  # noqa: F401
 from augur.core import db
 
-H_HORIZONS = (20, 40, 60, 82, 120)  # v1 H 軌；H60＝2026-08-13 另開（≠ v2/arena 封閉家族）
+H_HORIZONS = (20, 40, 60, 82, 120, 240)  # v1 H 軌；H240＝2026-08-14 另開（≠ v2/arena 封閉家族）
 D_KS = (1, 5)
 
 
@@ -57,9 +57,12 @@ def _criteria(track, h, ece_ceiling):
     }
     if track == "H":
         c["horizon_td"] = h
-        c["nonoverlap_n"] = {20: 213, 40: 106, 60: 71, 82: 52, 120: 35}[h]
+        c["nonoverlap_n"] = {20: 213, 40: 106, 60: 71, 82: 52, 120: 35, 240: 17}[h]
         if h == 120:
             c["review_tier_cap"] = "n=35 review 級寫死:即便三關全過,最高只得「證據不足、觀察名單」,不得完整展示"
+        if h == 240:
+            c["review_tier_cap"] = "n≈17 review 級寫死:即便三關全過,最高只得「證據不足、觀察名單」,不得完整展示"
+            c["note"] = "2026-08-14 另開方向 H240;v1 draft；不併 v2 K=4；非重疊 n≈17"
         if h == 82:
             c["note"] = "P2-1 A 案主錨(120 日曆天≈H82);個股 base-rate 增訓後實算"
         if h == 60:
@@ -354,7 +357,7 @@ def preregister_all():
                      "判準值=計畫建議;approve=二次親核點(人 TTY)"))
                 n += cur.rowcount
         conn.commit()
-    print(f"✓ 預註冊 {n} 列 draft(H×5+D×2;判準先凍後跑)")
+    print(f"✓ 預註冊 {n} 列 draft(H×6+D×2;判準先凍後跑)")
     print("  親核指令(逐列或全批):python scripts/preregister_direction_gate.py --approve dgate_H_20 --approved-by <你>")
     return 0
 

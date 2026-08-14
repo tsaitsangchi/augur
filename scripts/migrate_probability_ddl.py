@@ -30,7 +30,7 @@ TABLES = ("probability_oos_sample", "probability_calibrator", "prediction_probab
 DDL = [
     ("table probability_oos_sample", """
         CREATE TABLE IF NOT EXISTS probability_oos_sample (
-          horizon           int  NOT NULL CHECK (horizon IN (20,40,60,82,120)),
+          horizon           int  NOT NULL CHECK (horizon IN (20,40,60,82,120,240)),
           panel_date        date NOT NULL,
           model_family      text NOT NULL,
           stock_id          text NOT NULL,
@@ -52,7 +52,7 @@ DDL = [
     ("table probability_calibrator", """
         CREATE TABLE IF NOT EXISTS probability_calibrator (
           calibrator_id    text PRIMARY KEY,
-          horizon          int  NOT NULL CHECK (horizon IN (20,40,60,82,120)),
+          horizon          int  NOT NULL CHECK (horizon IN (20,40,60,82,120,240)),
           method           text NOT NULL CHECK (method IN ('platt','isotonic')),
           fit_asof         date NOT NULL,
           n_fit_samples    int  NOT NULL,
@@ -75,7 +75,7 @@ DDL = [
           panel_date    date NOT NULL,
           model_id      text NOT NULL REFERENCES model_registry(model_id),
           stock_id      text NOT NULL,
-          horizon       int  NOT NULL CHECK (horizon IN (20,40,60,82,120)),
+          horizon       int  NOT NULL CHECK (horizon IN (20,40,60,82,120,240)),
           rank_pctile   double precision NOT NULL CHECK (rank_pctile BETWEEN 0 AND 1),
           p_beat_median double precision NOT NULL CHECK (p_beat_median > 0 AND p_beat_median < 1),
           calibrator_id text NOT NULL REFERENCES probability_calibrator(calibrator_id),
@@ -93,7 +93,7 @@ DDL = [
     # SSOT 此後=本表,calibrate 讀表非讀碼;新增/改裁決=UPDATE 一列零改碼。種子=舊硬編 dict 一次性遷移)
     ("table econ_verdict_rule", """
         CREATE TABLE IF NOT EXISTS econ_verdict_rule (
-          horizon       int  PRIMARY KEY CHECK (horizon IN (20,40,60,82,120)),
+          horizon       int  PRIMARY KEY CHECK (horizon IN (20,40,60,82,120,240)),
           verdict       text NOT NULL CHECK (verdict IN ('dead','thin_unestablished','established')),
           source_report text,
           note          text,
@@ -105,7 +105,8 @@ DDL = [
           (40,'thin_unestablished','tier3 裁決報告'),
           (60,'thin_unestablished','tier3 裁決報告'),
           (82,'thin_unestablished','tier3 裁決報告'),
-          (120,'thin_unestablished','H120 裁決報告')
+          (120,'thin_unestablished','H120 裁決報告'),
+          (240,'thin_unestablished','H240 另開 2026-08-14')
         ON CONFLICT (horizon) DO NOTHING"""),
 ]
 

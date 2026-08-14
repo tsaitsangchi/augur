@@ -19,8 +19,8 @@ kh_split: audits/KH-SPLIT-FROM-MARKET-AXIS-ADOPTED-20260812.md
 l2_plan: reports/augur_daily_retrain_l2_all_rank_plan_20260812.md
 l0_hotpath: reports/augur_l0_hotpath_daily_plan_20260814.md
 l0_adopted: audits/L0-HOTPATH-PREDICT-DAILY-ADOPTED-20260814.md
-archive_tip: archive-20260814-l0-retrain-r16-b3-0813
-prior_archive: archive-20260813-b3-0812-kh-a2l3-nf0812
+archive_tip: archive-20260814-h240-retrain-0813
+prior_archive: archive-20260814-l0-retrain-r16-b3-0813
 other_verify: reports/augur_s4_other_model_verify_matrix_plan_20260806.md
 residual: audits/NF-0812-RESIDUAL-NAME-CARD-20260813.md
 sole_steward: true
@@ -124,7 +124,7 @@ FZ/GATE-keep | skip-sync-B | no-SIM-apply | no-promote 默認 | NF-pause
 | **L0** | `run_l0_hotpath_daily.sh`（核 A＋TRI＋FRED）。**預測日更 standing**＝既有 20:00 arena ① 呼叫本殼（`L0-HOTPATH-PREDICT-DAILY-ADOPTED`）。**不是** 93 表、**不是** `AUGUR_DIM_SYNC=1`、**不新增** cron | 價／TRI／FRED 進庫 | tip、重訓；93 表回填 |
 | **L1** | `run_daily_asof_predict.sh`（B3） | feat／core／既有 serve 出單＋emit＠**今天 D** | 無價假跑；sync 進預測 |
 | **L2** | `run_daily_retrain_l2_all_rank.sh` | 邊界 A as-of＝D 重訓 → H20/60 再出單 | promote；NF；Daily*；無 L1 成功 |
-| **RETRAIN-ALL** | `run_retrain_all_asof_daily.sh`（平日 21:40＋09:20） | 價頂鎖；8×5＋Daily*＋Mkt*＋DirStackM | promote；emit B3；假 B3 |
+| **RETRAIN-ALL** | `run_retrain_all_asof_daily.sh`（平日 21:40＋09:20） | 價頂鎖；8×6＋Daily*＋Mkt*＋DirStackM | promote；emit B3；假 B3 |
 
 **觸發（AND）**：`PriceAdj(TAIEX) ≥ D` ∧ L1 RC=0 ∧ 人／standing 授 L2 ∧ 未與 B3 搶鎖。  
 **失敗**：價不足 → **整鏈 SKIP**（這就是 hold-#1）。23:50 仍無價 → TIMEOUT 帳，**仍不假跑**。
@@ -175,7 +175,7 @@ bash scripts/run_daily_retrain_l2_all_rank.sh --date 2026-08-07 --dry-plan
 | **S5** | 漲跌比重覆驗；禁假確立 | H20 dead／H60 thin；dgate 不塗綠 | **誠實形過**（過的是「說實話」） | 披露；不修綠 | 已披露 | evaluate＝否 |
 | **S5 sim** | 分尺；人節奏 | 禁 apply | 旁軸凍結 | 不動 | 否 | 否 |
 
-**方向臂 Daily***：訓練鎖＝`asof_ready.resolve_lock`（未指定 → PriceAdj TAIEX **價頂**＝可更新最新日；≠ 完整性錨 2026-05-31）。H 軌封閉集＝**H{20,40,60,82,120}**（H60＝2026-08-13 另開訓練／v1 draft gate；**不**併入 v2 K=4、不 evaluate、不 approve）。**⊥** L2 邊界 A。日更＝`run_retrain_all_asof_daily.sh` 平日 21:40＋09:20（`RETRAIN-ALL-ASOF-DAILY-CRON-ADOPTED`）；**不**塞進 ALL-RANK 殼。
+**方向臂 Daily***：訓練鎖＝`asof_ready.resolve_lock`（未指定 → PriceAdj TAIEX **價頂**＝可更新最新日；≠ 完整性錨 2026-05-31）。H 軌封閉集＝**H{20,40,60,82,120,240}**（H60＝2026-08-13、H240＝2026-08-14 另開訓練／v1 draft gate；**不**併入 v2 K=4、不 evaluate、不 approve）。**⊥** L2 邊界 A。日更＝`run_retrain_all_asof_daily.sh` 平日 21:40＋09:20（`RETRAIN-ALL-ASOF-DAILY-CRON-ADOPTED`）；**不**塞進 ALL-RANK 殼。
 
 ---
 

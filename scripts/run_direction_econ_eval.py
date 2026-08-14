@@ -26,7 +26,7 @@ import numpy as np
 from augur.core import db
 from augur.evaluation.portfolio import _metrics, _turnover
 
-H_HORIZONS = (20, 40, 60, 82, 120)  # 方向 H 軌封閉集（H60＝2026-08-13 另開）
+H_HORIZONS = (20, 40, 60, 82, 120, 240)  # 方向 H 軌封閉集（H240＝2026-08-14 另開）
 COST_TW = 0.00585   # 台股來回(手續費 2×0.1425%+證交稅 0.3%),同 run_economic_eval
 
 

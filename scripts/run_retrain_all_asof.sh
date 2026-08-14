@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # 🎯 所有生產 AI 預測模型重訓到指定 as-of（方向臂鎖＝可更新最新日／價頂）。
 #
-# 範圍: 截面 8 族 × H{20,40,60,82,120}（--resume 已有則跳過）
+# 範圍: 截面 8 族 × H{20,40,60,82,120,240}（--resume 已有則跳過）
 #       + 方向臂 DailyLogit/DailyGBDT/DailyGBDT_cal + MktLogit/MktLogit_v2 + DirStack/DirStackM
-# 方向 H 軌封閉集＝H{20,40,60,82,120}（H60＝2026-08-13 另開；≠ v2/arena/threelens 家族）
+# 方向 H 軌封閉集＝H{20,40,60,82,120,240}（H240＝2026-08-14 另開；≠ v2/arena/threelens 家族）
 # 方向臂 --asof／--until 未指定 → PriceAdj TAIEX 價頂（≠ 完整性錨 2026-05-31）
 # 日更驅動（cron）＝ scripts/run_retrain_all_asof_daily.sh
 # 誠實 SKIP: SeqLSTM（評測不寫庫）／classical TS 煙測／threelens 冒煙／0812 NF 六族
@@ -40,7 +40,7 @@ LOCK="/tmp/augur_retrain_all_asof.lock"
 LOGDIR=""
 
 FAMILIES=(RankRidge RankGBDT RankXGB RankCat RankRF RankSVM RankKNN RankMLP)
-HORIZONS=(20 40 60 82 120)
+HORIZONS=(20 40 60 82 120 240)
 
 usage() {
   sed -n '2,16p' "$0" | sed 's/^# \?//'
@@ -95,7 +95,7 @@ if [[ "$SELFTEST" -eq 1 ]]; then
   chk "train_market_direction.py" "$([[ -f scripts/train_market_direction.py ]] && echo 1 || echo 0)"
   chk "train_direction_stack.py" "$([[ -f scripts/train_direction_stack.py ]] && echo 1 || echo 0)"
   chk "8 族" "$([[ ${#FAMILIES[@]} -eq 8 ]] && echo 1 || echo 0)"
-  chk "5 H" "$([[ ${#HORIZONS[@]} -eq 5 ]] && echo 1 || echo 0)"
+  chk "6 H" "$([[ ${#HORIZONS[@]} -eq 6 ]] && echo 1 || echo 0)"
   chk "doc no-promote" "$(grep -q 'no-promote' "$0" && echo 1 || echo 0)"
   chk "doc no-fake-B3" "$(grep -q 'no-fake-B3' "$0" && echo 1 || echo 0)"
   if "$PY" -m augur.core.asof_ready --selftest >/tmp/retrain-all-asof-lib.out 2>&1; then
@@ -110,8 +110,10 @@ if [[ "$SELFTEST" -eq 1 ]]; then
     chk "dry 含 RankCat H20" "$(grep -q 'family RankCat --horizon 20' /tmp/retrain-all-asof-dry.out && echo 1 || echo 0)"
     chk "dry 含 Daily --asof" "$(grep -q 'train_daily_direction.py --run --asof 2026-08-12' /tmp/retrain-all-asof-dry.out && echo 1 || echo 0)"
     chk "dry 含 DirStackM" "$(grep -q 'train_direction_stack.py --run-v2 --asof 2026-08-12' /tmp/retrain-all-asof-dry.out && echo 1 || echo 0)"
-    chk "方向 H 含 60" "$(grep -q 'H_HORIZONS = (20, 40, 60, 82, 120)' scripts/train_market_direction.py && echo 1 || echo 0)"
-    chk "月頻 rank 含 60" "$(grep -q 'H_RANKS = (20, 40, 60, 82)' scripts/build_direction_stack_monthly.py && echo 1 || echo 0)"
+    chk "dry 含 RankCat H240" "$(grep -q 'family RankCat --horizon 240' /tmp/retrain-all-asof-dry.out && echo 1 || echo 0)"
+    chk "方向 H 含 240" "$(grep -q 'H_HORIZONS = (20, 40, 60, 82, 120, 240)' scripts/train_market_direction.py && echo 1 || echo 0)"
+    chk "月頻 rank 含 240" "$(grep -q 'H_RANKS = (20, 40, 60, 82, 240)' scripts/build_direction_stack_monthly.py && echo 1 || echo 0)"
+    chk "DirStackM 預設含 240" "$(grep -q 'M_HORIZONS = (20, 40, 60, 82, 240)' scripts/train_direction_stack.py && echo 1 || echo 0)"
   else
     chk "dry-plan 08-12 RC=0" 0
   fi
@@ -122,10 +124,10 @@ if [[ "$SELFTEST" -eq 1 ]]; then
     chk "dry-plan 無 --date RC=0" 0
   fi
   set +e
-  "$PY" scripts/train_daily_direction.py --run --asof 2026-08-13 --ks 5 >/tmp/retrain-all-fakeb3.out 2>&1
+  "$PY" scripts/train_daily_direction.py --run --asof 2026-08-14 --ks 5 >/tmp/retrain-all-fakeb3.out 2>&1
   rc=$?
   set -e
-  chk "Daily 08-13 假 B3 rc=3" "$([[ "$rc" -eq 3 ]] && echo 1 || echo 0)"
+  chk "Daily 08-14 假 B3 rc=3" "$([[ "$rc" -eq 3 ]] && echo 1 || echo 0)"
   if [[ "$ok" -eq 1 ]]; then
     echo "自測:全通過 ✓"
     exit 0
@@ -201,10 +203,10 @@ mark_fail() {
   fail=1
 }
 
-# --- 1 截面 8×5 --------------------------------------------------------------
+# --- 1 截面 8×6 --------------------------------------------------------------
 if [[ "$SKIP_RANK" -eq 1 ]]; then
   echo ""
-  echo "── step: rank 8×5 ── SKIP"
+  echo "── step: rank 8×6 ── SKIP"
 else
   echo ""
   echo "計畫: ${#FAMILIES[@]} 族 × ${#HORIZONS[@]} H ＝ $(( ${#FAMILIES[@]} * ${#HORIZONS[@]} )) 格（resume=$RESUME）"
@@ -259,7 +261,22 @@ else
   fi
 fi
 
-# --- 4 月頻 stack + DirStack(/M) --------------------------------------------
+# --- 4 H240 OOS（DirStack 前置；不 P6 fit／emit）------------------------------
+if [[ "$SKIP_STACK" -eq 1 ]]; then
+  echo ""
+  echo "── step: oos-h240 ── SKIP（隨 stack）"
+else
+  if ! run_step "oos-h240" "$PY" scripts/build_probability_oos_sample.py --run --horizon 240 \
+      --asof "$DATE" 2>&1 | tee -a "$LOGDIR/oos-h240.log"; then
+    mark_fail "oos-h240"
+  fi
+  if ! run_step "dgate-h240" "$PY" scripts/preregister_direction_gate.py --preregister-all \
+      2>&1 | tee -a "$LOGDIR/stack.log"; then
+    mark_fail "dgate-h240"
+  fi
+fi
+
+# --- 5 月頻 stack + DirStack(/M) --------------------------------------------
 if [[ "$SKIP_STACK" -eq 1 ]]; then
   echo ""
   echo "── step: stack ── SKIP"

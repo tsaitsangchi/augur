@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 🎯 RETRAIN-ALL-ASOF 日更驅動 — 鎖可更新最新日，重訓截面 8×H{20,40,60,82,120}＋方向臂。
+# 🎯 RETRAIN-ALL-ASOF 日更驅動 — 鎖可更新最新日，重訓截面 8×H{20,40,60,82,120,240}＋方向臂。
 #
 # D＝PriceAdj TAIEX 價頂（≠ 日曆今天、≠ 完整性錨 2026-05-31）
 # 價未進／假 B3 → 誠實 SKIP exit 0（cron 不當失敗）
@@ -65,7 +65,7 @@ import sys
 from augur.core import asof_ready, db
 d = sys.argv[1]
 fams = list(asof_ready.A_FAMILIES)
-hs = (20, 40, 60, 82, 120)
+hs = (20, 40, 60, 82, 120, 240)
 daily_ids = ("DailyLogit", "DailyGBDT", "DailyGBDT_cal")
 mkt_ids = ("MktLogit", "MktLogit_v2")
 stack_ids = ("DirStackM",)
@@ -105,7 +105,7 @@ with db.connect() as conn, db.transaction(conn) as cur:
         (list(stack_ids), d),
     )
     stack_n = int(cur.fetchone()[0] or 0)
-need_rank, need_daily, need_mkt, need_stack = 40, 3, 2, 1
+need_rank, need_daily, need_mkt, need_stack = 48, 3, 2, 1
 ok = rank_n >= need_rank and daily_n >= need_daily and mkt_n >= need_mkt and stack_n >= need_stack
 print(
     f"{'COMPLETE' if ok else 'INCOMPLETE'} rank={rank_n}/{need_rank} "
@@ -193,7 +193,7 @@ set -e
 echo "覆蓋: $cov_out"
 
 if [[ "$FORCE" -eq 0 && "$COV_RC" -eq 0 ]]; then
-  echo "SKIP: 包已齊＠$DATE（8×5＋Daily*＋Mkt*＋DirStackM）。--force 才重跑"
+  echo "SKIP: 包已齊＠$DATE（8×6＋Daily*＋Mkt*＋DirStackM）。--force 才重跑"
   exit 0
 fi
 

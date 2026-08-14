@@ -14,8 +14,8 @@ depends_on:
   - reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md
 supersedes_as_exec_nav:
   - reports/augur_opt_stepwise_best_next_plan_r14_20260811.md
-archive_tip: archive-20260814-l0-retrain-r16-b3-0813
-prior_archive: archive-20260813-b3-0812-kh-a2l3-nf0812
+archive_tip: archive-20260814-h240-retrain-0813
+prior_archive: archive-20260814-l0-retrain-r16-b3-0813
 kh_nav_external: reports/augur_kh_opt_stepwise_best_next_plan_20260813.md
 kh_split: audits/KH-SPLIT-FROM-MARKET-AXIS-ADOPTED-20260812.md
 self_reported: true

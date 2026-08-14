@@ -15,7 +15,7 @@
 執行指令矩陣:
   python scripts/build_probability_oos_sample.py                        # 無參數:各 horizon 折覆蓋矩陣(唯讀)
   python scripts/build_probability_oos_sample.py --run --horizon 60     # 單 horizon(冪等 per-fold DELETE+INSERT)
-  python scripts/build_probability_oos_sample.py --run --all            # 封閉集 {20,40,60,120}
+  python scripts/build_probability_oos_sample.py --run --all            # 封閉集 {20,40,60,82,120,240}
   python scripts/build_probability_oos_sample.py --run --horizon 60 --limit-folds 2   # 最小驗證(#25)
   python scripts/build_probability_oos_sample.py --run --horizon 60 --model-family RankXGB  # 另族(Phase 1 條件觸發)
   python scripts/build_probability_oos_sample.py --run --horizon 60 --asof 2026-05-31  # 快照錨(預設同左;滾動須 Steward 明示)
@@ -38,7 +38,7 @@ from augur.evaluation import baseline, walkforward
 from augur.evaluation import label as label_mod
 from augur.models import ranker
 
-HORIZONS = (20, 40, 60, 82, 120)      # 封閉集(82 啟用=預言機主計畫 P2-1 A 案拍板 2026-07-11:120 天誠實錨)
+HORIZONS = (20, 40, 60, 82, 120, 240)      # 封閉集（H240＝2026-08-14 另開）
 DEFAULT_AS_OF = "2026-05-31"          # 預設快照錨(P6 選項 C:可 --asof 覆寫;滾動須另句授權,非改此常數即自動滾)
 AS_OF = DEFAULT_AS_OF                 # 相容別名(狀態列／舊呼叫);runtime 以 CLI --asof 為準
 MODEL_FAMILY = "RankRidge"            # 逐折 refit 同族(A-36 同族近似聲明之 family 錨);--model-family 可選其他 Wave-A 族

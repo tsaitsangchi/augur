@@ -36,7 +36,8 @@ from augur.evaluation import label as _label
 from augur.evaluation import walkforward
 
 ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36；不直綁還原價表字面
-H_HORIZONS = (20, 40, 60, 82, 120)  # 方向 H 軌封閉集（H60＝2026-08-13 另開）
+H_HORIZONS = (20, 40, 60, 82, 120, 240)  # 方向 H 軌封閉集（H240＝2026-08-14 另開）
+M_HORIZONS = (20, 40, 60, 82, 240)  # DirStackM 月頻；H120 不在 monthly ranks；H240＝2026-08-14 另開
 MODEL_ID = "DirStack"
 MKT_MODEL = "MktLogit"
 FREEZE = "2026-05-31"  # 完整性定案錨；訓練鎖＝asof_ready.resolve_lock（未指定→價頂）
@@ -295,7 +296,7 @@ def main():
                           "model_id=DirStack_<family>,見 S4-DIRFAMILY-GENERALIZE Phase 1)")
     args = ap.parse_args()
     if args.v2:
-        return run_v2(args.horizons or [20, 40, 60, 82], args.min_train or 24, asof=args.asof)
+        return run_v2(args.horizons or list(M_HORIZONS), args.min_train or 24, asof=args.asof)
     if args.run:
         model_id = MODEL_ID if args.model_family == "RankRidge" else f"{MODEL_ID}_{args.model_family}"
         return run(args.horizons or list(H_HORIZONS), args.min_train or 8,

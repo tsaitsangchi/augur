@@ -4,7 +4,7 @@
 🎯 這支在做什麼(白話):H 軌 v2 的個股月頻特徵層——每「月末交易日」×「最近相對 panel 之宇宙股」一組:
    m_vol_60(60td 日報酬 std)、m_mom_60(60td 報酬)、m_beta_252(對 TAIEX 252td beta,rolling 動差公式)
    ——皆由日價(TaiwanStockPriceAdj/TRI)月末直算(#8 t 收盤 lag0);m_inst_net_z(法人 20 日淨買 252d z,
-   lag-1 值位移);rank_pctile_h{20,40,60,82}(probability_oos_sample 最近 as-of panel 之相對強弱,**如實陳舊**:
+   lag-1 值位移);rank_pctile_h{20,40,60,82,240}(probability_oos_sample 最近 as-of panel 之相對強弱,**如實陳舊**:
    2021+ 季頻 stale≤3 月、2016-2020 年頻 stale≤12 月——判門窗由 gate criteria 凍結,此表只如實落值)。
    落 direction_stack_feature_monthly(scoped DELETE 冪等)。
 
@@ -32,7 +32,7 @@ from augur.core import asof_ready, db
 
 ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36
 START, FREEZE = "2017-01-01", "2026-05-31"  # FREEZE=完整性定案錨；--until 預設=價頂
-H_RANKS = (20, 40, 60, 82)  # 月頻相對分位；H60＝2026-08-13 另開
+H_RANKS = (20, 40, 60, 82, 240)  # 月頻相對分位；H240＝2026-08-14 另開
 FEATS = ["m_vol_60", "m_mom_60", "m_beta_252", "m_inst_net_z"] + [f"rank_pctile_h{h}" for h in H_RANKS]
 
 
