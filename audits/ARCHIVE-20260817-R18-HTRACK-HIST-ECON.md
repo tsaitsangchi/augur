@@ -3,7 +3,7 @@ status: archive_checkpoint
 date: 2026-08-17
 kind: archive_checkpoint
 tag: archive-20260817-r18-htrack-hist-econ
-sha: pending
+sha: "7999af23b5230231c363cf49e96937de514ba7e6"
 remote: https://github.com/tsaitsangchi/augur
 auth: "Steward：更新全部檔案上傳到 https://github.com/tsaitsangchi/augur 並做封存點"
 prior: archive-20260814-weekly-fd-tar
@@ -15,7 +15,7 @@ self_reported: true
 date: 2026-08-17  
 kind: archive_checkpoint  
 tag: `archive-20260817-r18-htrack-hist-econ`  
-sha: pending  
+sha: `7999af23b5230231c363cf49e96937de514ba7e6`  
 remote: https://github.com/tsaitsangchi/augur
 
 上一封存：`archive-20260814-weekly-fd-tar`（commit `1c5ee69`；回填 `455f50f`）。
