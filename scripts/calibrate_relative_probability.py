@@ -39,12 +39,12 @@ import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 import numpy as np
 
 from augur.core import db
+from augur.core.closed_horizons import CAL_DAYS, H_TRACK
 
-HORIZONS = (20, 40, 60, 82, 120, 240)   # H240＝2026-08-14 另開
+HORIZONS = H_TRACK   # H90 取代 H82（2026-08-14）
 DEFAULT_FREEZE = "2026-05-31"      # 預設快照錨(P6 選項 C:--asof 覆寫;滾動須另句授權)
 FREEZE = DEFAULT_FREEZE            # 相容別名;runtime fit 以 CLI --asof 為準
 MODEL_FAMILY = "RankRidge"   # 預設族;--model-family 可選其他 Wave-A 族(S4-DIRFAMILY-GENERALIZE Phase 0,2026-08-04)
-CAL_DAYS = {20: 29, 40: 58, 60: 87, 82: 119, 120: 174, 240: 348}   # 日曆日近似(§1.2;A-27 呈現偏差推導 SSOT)
 # D2/§1.2 經濟裁決標籤:SSOT=DB 表 econ_verdict_rule(2026-07-11 拍板「3遷」,#29b 決定行為的資料住 DB;
 # 種子=migrate_probability_ddl.py 一次性遷移、改裁決=UPDATE 一列零改碼);emit_horizon 讀表、缺列 fail-loud。
 FAMILY_NOTE = ("校準器 fit 於 walk-forward 逐折 refit 之同族(RankRidge)模型,serve 套於 train_ranker "

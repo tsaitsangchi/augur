@@ -27,7 +27,7 @@ import argparse
 from datetime import date
 
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
-from augur.core import db
+from augur.core import asof_ready, db
 from augur.universe import core_gate
 
 # 月營收 conditional 豁免之產業（金融保險無月營收申報制度、靠財報）—— TaiwanStockInfo.industry_category 實證值（2026-06-26）
@@ -67,6 +67,12 @@ def main():
     args = ap.parse_args()
 
     asof_date = date.fromisoformat(args.asof_date) if args.asof_date else None
+    if asof_date is not None:
+        with db.connect() as conn, conn.cursor() as cur:
+            err = asof_ready.refuse_if_fake_b3(cur, asof_date)
+        if err:
+            print(err)
+            raise SystemExit(3)
     if args.asof_compare_only:
         if not args.asof or asof_date is None:
             raise SystemExit("--asof-compare-only 須 --asof 與 --asof-date")

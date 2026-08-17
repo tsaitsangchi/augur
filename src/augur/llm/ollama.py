@@ -18,7 +18,7 @@ import urllib.request
 
 DEFAULT_BASE_URL = "http://localhost:11434"   # 操作值:OLLAMA_BASE_URL env 覆蓋
 DEFAULT_MODEL = "qwen3:8b"                    # 操作值:OLLAMA_MODEL env / make_llm_fn(model=) 覆蓋,不寫死
-DEFAULT_TIMEOUT = 300.0                       # 秒;操作值:OLLAMA_TIMEOUT env 覆蓋(弱 GPU 分鐘級屬預期)
+DEFAULT_TIMEOUT = 3000.0                       # 秒;操作值:OLLAMA_TIMEOUT env 覆蓋(弱 GPU 分鐘級屬預期)
 
 # G3 host allowlist(憲章 v1.37.0:advisor prompt 含 owned_local citations、永不離本機)——
 # 預設僅本機;內網推理主機須明示 OLLAMA_HOST_ALLOWLIST env 逗號分隔加入(仍不得為公網)。

@@ -24,9 +24,10 @@ from pathlib import Path
 import _bootstrap  # noqa: F401
 import numpy as np
 from augur.core import db
+from augur.core.closed_horizons import H_TRACK
 from augur.evaluation.portfolio import _metrics, _turnover
 
-H_HORIZONS = (20, 40, 60, 82, 120, 240)  # 方向 H 軌封閉集（H240＝2026-08-14 另開）
+H_HORIZONS = H_TRACK  # 方向 H 軌作業閉集；H90 取代 H82（2026-08-14）
 COST_TW = 0.00585   # 台股來回(手續費 2×0.1425%+證交稅 0.3%),同 run_economic_eval
 
 

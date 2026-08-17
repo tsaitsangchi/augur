@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 🎯 L2 日更 ALL-RANK 薄殼 — RankRidge×5H＋challenger×8 → repredict/emit H20,60。
+# 🎯 L2 日更 ALL-RANK 薄殼 — RankRidge×7H（含 H5／H10）＋challenger×8 → repredict/emit H20,60。
 #
 # 守: FZ/GATE-keep · skip-sync · no-SIM-apply · **no-promote** · NF-pause · **非 cron**
 # 契約: reports/augur_daily_retrain_l2_all_rank_plan_20260812.md（邊界＝A）
@@ -32,7 +32,7 @@ SELFTEST=0
 RESUME=1
 LOGDIR=""
 
-RIDGE_HS=(20 40 60 82 120)
+RIDGE_HS=(5 10 20 40 60 90 120)
 # family:horizon pairs（邊界 A／鏡 0810·0811）
 CHAL_SPECS=(
   "RankGBDT:20"
@@ -107,7 +107,7 @@ if [[ "$SELFTEST" -eq 1 ]]; then
   chk "predict_asof.py 存在" "$([[ -f scripts/predict_asof.py ]] && echo 1 || echo 0)"
   chk "calibrate emit 存在" "$([[ -f scripts/calibrate_relative_probability.py ]] && echo 1 || echo 0)"
   chk "venv python" "$([[ -x $PY ]] && echo 1 || echo 0)"
-  chk "Ridge 五 H" "$([[ ${#RIDGE_HS[@]} -eq 5 ]] && echo 1 || echo 0)"
+  chk "Ridge 七 H" "$([[ ${#RIDGE_HS[@]} -eq 7 ]] && echo 1 || echo 0)"
   chk "challenger 八臂" "$([[ ${#CHAL_SPECS[@]} -eq 8 ]] && echo 1 || echo 0)"
   # 自測字串檢查：用 grep -E（勿依賴 rg；使用者 PATH 常無 ripgrep）
   _has() { grep -E -q -- "$1" "$2"; }
@@ -160,10 +160,10 @@ echo "  本殼不呼叫 sync／FinMind／cron／promote／sim-apply／NF／Daily
 echo "══════════════════════════════════════════════════════"
 
 PRICE_MAX="$("$PY" -c "
-from augur.core import db
+from augur.core import asof_ready, db
 with db.connect() as c, c.cursor() as cur:
-    cur.execute('SELECT max(date)::text FROM \"TaiwanStockPriceAdj\" WHERE stock_id=%s', ('TAIEX',))
-    print(cur.fetchone()[0] or '')
+    d = asof_ready.taiex_price_max(cur)
+    print('' if d is None else d.isoformat())
 ")"
 FV_MAX="$("$PY" -c "
 from augur.core import db

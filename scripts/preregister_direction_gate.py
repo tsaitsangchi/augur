@@ -11,9 +11,9 @@
 
 執行指令矩陣:
   python scripts/preregister_direction_gate.py                    # 無參數:gate 清單(唯讀)
-  python scripts/preregister_direction_gate.py --preregister-all  # H{20,40,60,82,120,240}+D{1,5} 八列 draft
-  python scripts/preregister_direction_gate.py --approve dgate_H_82 --approved-by hugo   # 人親核(TTY)
-  python scripts/preregister_direction_gate.py --check dgate_H_82 # sha 覆算+trigger 斷言
+  python scripts/preregister_direction_gate.py --preregister-all  # H_TRACK+D{1,5} draft
+  python scripts/preregister_direction_gate.py --approve dgate_H_90 --approved-by hugo   # 人親核(TTY)
+  python scripts/preregister_direction_gate.py --check dgate_H_90 # sha 覆算+trigger 斷言
   python scripts/preregister_direction_gate.py --preregister-v2   # v2 四門(K=4;estimand/α/窗/fail_path 凍結)
 """
 import argparse
@@ -25,8 +25,9 @@ from pathlib import Path
 
 import _bootstrap  # noqa: F401
 from augur.core import db
+from augur.core.closed_horizons import H_TRACK, NONOVERLAP_N
 
-H_HORIZONS = (20, 40, 60, 82, 120, 240)  # v1 H 軌；H240＝2026-08-14 另開（≠ v2/arena 封閉家族）
+H_HORIZONS = H_TRACK  # v1 H 軌；H90 取代 H82（2026-08-14；≠ v2/arena 封閉家族）
 D_KS = (1, 5)
 
 
@@ -50,21 +51,28 @@ def _criteria(track, h, ece_ceiling):
             "iii_calibration": {"ece_ceiling": ece_ceiling, "ece_source": "judgestop_threshold.calib_late_ece_ceiling(DB 讀值)",
                                 "quantile_monotone": "p_up 十分位 vs 實現上漲頻率單調(Spearman>0)"},
         },
-        "base_rate_rule": "多數類基線與 p_bar 一律同窗實算入 result_snapshot,不預先編數(H82 個股 up-rate=增訓時實算)",
+        "base_rate_rule": "多數類基線與 p_bar 一律同窗實算入 result_snapshot,不預先編數(H90 個股 up-rate=增訓時實算)",
         "scoring": "horizon 級聚合;禁單股準確率;abstain 無(方向機率必出);FREEZE 內=歷史 walk-forward OOS 非 live",
         "econ_axis": "經濟終關(run_economic_eval 同口徑 cost 0.00585)=獨立標示軸,不在 GATE 內;展示分級閉集依憲章 v1.42.0",
         "fail_path": "任一關不過=evaluated_fail 判死留檔、永不出 UI;重試=另立新 gate(舊列 superseded)",
     }
     if track == "H":
         c["horizon_td"] = h
-        c["nonoverlap_n"] = {20: 213, 40: 106, 60: 71, 82: 52, 120: 35, 240: 17}[h]
+        c["nonoverlap_n"] = NONOVERLAP_N[h]
         if h == 120:
             c["review_tier_cap"] = "n=35 review 級寫死:即便三關全過,最高只得「證據不足、觀察名單」,不得完整展示"
         if h == 240:
             c["review_tier_cap"] = "n≈17 review 級寫死:即便三關全過,最高只得「證據不足、觀察名單」,不得完整展示"
             c["note"] = "2026-08-14 另開方向 H240;v1 draft；不併 v2 K=4；非重疊 n≈17"
-        if h == 82:
-            c["note"] = "P2-1 A 案主錨(120 日曆天≈H82);個股 base-rate 增訓後實算"
+        if h == 5:
+            c["note"] = ("2026-08-14 另開方向 H5（5 交易日；≠ D 軌 k=5）；v1 draft；不併 v2 K=4；"
+                         "非重疊 n≈852；H20 已 econ dead 不預塗本窗")
+        if h == 10:
+            c["note"] = ("2026-08-16 另開方向 H10（10 交易日；≠ KH10）；v1 draft；不併 v2 K=4；"
+                         "非重疊 n≈426；H20 已 econ dead 不預塗本窗")
+        if h == 90:
+            c["note"] = ("2026-08-14 Steward 改開 H90 取代 H82（90 交易日；日曆日近似≈131）;"
+                         "v1 draft；不併 v2 K=4；非重疊 n≈47")
         if h == 60:
             c["note"] = "2026-08-13 另開方向 H60（對齊截面主尺）;v1 draft；不併 v2 K=4；非重疊 n≈71"
     else:
@@ -357,7 +365,7 @@ def preregister_all():
                      "判準值=計畫建議;approve=二次親核點(人 TTY)"))
                 n += cur.rowcount
         conn.commit()
-    print(f"✓ 預註冊 {n} 列 draft(H×6+D×2;判準先凍後跑)")
+    print(f"✓ 預註冊 {n} 列 draft(H×{len(H_HORIZONS)}+D×{len(D_KS)};判準先凍後跑)")
     print("  親核指令(逐列或全批):python scripts/preregister_direction_gate.py --approve dgate_H_20 --approved-by <你>")
     return 0
 

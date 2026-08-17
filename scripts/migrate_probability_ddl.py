@@ -30,7 +30,7 @@ TABLES = ("probability_oos_sample", "probability_calibrator", "prediction_probab
 DDL = [
     ("table probability_oos_sample", """
         CREATE TABLE IF NOT EXISTS probability_oos_sample (
-          horizon           int  NOT NULL CHECK (horizon IN (20,40,60,82,120,240)),
+          horizon           int  NOT NULL CHECK (horizon IN (5,10,20,40,60,90,120,240)),
           panel_date        date NOT NULL,
           model_family      text NOT NULL,
           stock_id          text NOT NULL,
@@ -48,11 +48,11 @@ DDL = [
         CREATE INDEX IF NOT EXISTS ix_prob_oos_h_exit ON probability_oos_sample (horizon, exit_date)"""),
     ("comment probability_oos_sample", """
         COMMENT ON TABLE probability_oos_sample IS
-        'walk-forward OOS 折之機率校準對樣本(D3 落表);rank_pctile 方向契約 1=最強與標籤同向;exit_date=標籤窗完全實現日=purge 機械斷言依據;fwd_ret/peer_median_ret 皆 FREEZE 內已實現(#8);82=D1(a) 條件觸發保留'"""),
+        'walk-forward OOS 折之機率校準對樣本(D3 落表);rank_pctile 方向契約 1=最強與標籤同向;exit_date=標籤窗完全實現日=purge 機械斷言依據;fwd_ret/peer_median_ret 皆 FREEZE 內已實現(#8);90=2026-08-14 作業主錨（H82 已刪）'"""),
     ("table probability_calibrator", """
         CREATE TABLE IF NOT EXISTS probability_calibrator (
           calibrator_id    text PRIMARY KEY,
-          horizon          int  NOT NULL CHECK (horizon IN (20,40,60,82,120,240)),
+          horizon          int  NOT NULL CHECK (horizon IN (5,10,20,40,60,90,120,240)),
           method           text NOT NULL CHECK (method IN ('platt','isotonic')),
           fit_asof         date NOT NULL,
           n_fit_samples    int  NOT NULL,
@@ -75,7 +75,7 @@ DDL = [
           panel_date    date NOT NULL,
           model_id      text NOT NULL REFERENCES model_registry(model_id),
           stock_id      text NOT NULL,
-          horizon       int  NOT NULL CHECK (horizon IN (20,40,60,82,120,240)),
+          horizon       int  NOT NULL CHECK (horizon IN (5,10,20,40,60,90,120,240)),
           rank_pctile   double precision NOT NULL CHECK (rank_pctile BETWEEN 0 AND 1),
           p_beat_median double precision NOT NULL CHECK (p_beat_median > 0 AND p_beat_median < 1),
           calibrator_id text NOT NULL REFERENCES probability_calibrator(calibrator_id),
@@ -93,7 +93,7 @@ DDL = [
     # SSOT 此後=本表,calibrate 讀表非讀碼;新增/改裁決=UPDATE 一列零改碼。種子=舊硬編 dict 一次性遷移)
     ("table econ_verdict_rule", """
         CREATE TABLE IF NOT EXISTS econ_verdict_rule (
-          horizon       int  PRIMARY KEY CHECK (horizon IN (20,40,60,82,120,240)),
+          horizon       int  PRIMARY KEY CHECK (horizon IN (5,10,20,40,60,90,120,240)),
           verdict       text NOT NULL CHECK (verdict IN ('dead','thin_unestablished','established')),
           source_report text,
           note          text,
@@ -101,10 +101,12 @@ DDL = [
         )"""),
     ("seed econ_verdict_rule", """
         INSERT INTO econ_verdict_rule (horizon, verdict, source_report) VALUES
+          (5,'thin_unestablished','H5 另開 2026-08-14'),
+          (10,'thin_unestablished','H10 另開 2026-08-16'),
           (20,'dead','short_horizon 裁決報告'),
           (40,'thin_unestablished','tier3 裁決報告'),
           (60,'thin_unestablished','tier3 裁決報告'),
-          (82,'thin_unestablished','tier3 裁決報告'),
+          (90,'thin_unestablished','H90 取代 H82 2026-08-14'),
           (120,'thin_unestablished','H120 裁決報告'),
           (240,'thin_unestablished','H240 另開 2026-08-14')
         ON CONFLICT (horizon) DO NOTHING"""),

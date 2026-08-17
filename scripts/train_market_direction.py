@@ -14,7 +14,7 @@
 
 執行指令矩陣:
   python scripts/train_market_direction.py                          # 無參數:現況(唯讀:特徵/標籤/已產機率覆蓋)
-  python scripts/train_market_direction.py --run                    # 全 horizon(20/40/60/82/120/240)walk-forward OOS
+  python scripts/train_market_direction.py --run                    # 全 horizon(H_TRACK)walk-forward OOS
   python scripts/train_market_direction.py --run --horizons 20 120  # 指定 horizon
   python scripts/train_market_direction.py --run --min-train 24     # 最小訓練折(預設 24 panel)
   python scripts/train_market_direction.py --run-v2                 # v2:MktLogit_v2(as-of join 修復+新特徵;v1 列不覆寫)
@@ -33,12 +33,13 @@ from pathlib import Path
 import _bootstrap  # noqa: F401  個別可執行:自動把 src/ 插入 sys.path
 import numpy as np
 from augur.core import asof_ready, db
+from augur.core.closed_horizons import H_TRACK
 from augur.evaluation import label as _label
 from augur.evaluation import walkforward
 
 warnings.filterwarnings("ignore")   # sklearn 早期折全 NaN 欄跳過/penalty 棄用皆非致命(逐折獨立 fit)
 
-H_HORIZONS = (20, 40, 60, 82, 120, 240)  # 方向 H 軌封閉集（H240＝2026-08-14 另開）
+H_HORIZONS = H_TRACK  # 方向 H 軌作業閉集；H90 取代 H82（2026-08-14）
 MODEL_ID = "MktLogit"
 FREEZE = "2026-05-31"  # 完整性定案錨；訓練鎖＝asof_ready.resolve_lock（未指定→價頂）
 

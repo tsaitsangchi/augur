@@ -23,7 +23,7 @@
   python scripts/predict_asof.py --run --weight pred --risk-control    # pred 加權 + 收尾風控 overlay(單標的 cap/DD/換手)
   python scripts/predict_asof.py --run --dry-run                    # 只算+印、不寫 prediction_values
   python scripts/predict_asof.py --run --horizon 40 --asof 2026-05-31 --candidate   # D4 候選語意單 horizon 重跑
-  python scripts/predict_asof.py --candidate --rewrite-all --asof 2026-05-31        # D4 五 horizon 既有列冪等重寫(82 啟用後)
+  python scripts/predict_asof.py --candidate --rewrite-all --asof 2026-05-31        # D4 作業閉集 horizon 既有列冪等重寫
 """
 import argparse
 import datetime as _dt
@@ -34,6 +34,7 @@ import _bootstrap  # noqa: F401
 import numpy as np
 
 from augur.core import asof_ready, db
+from augur.core.closed_horizons import H_TRACK
 from augur.core.prodset_contract import (
     FEATURE_SOURCE_CANONICAL,
     FEATURE_SOURCE_PRODSET,
@@ -286,13 +287,13 @@ def main(argv=None):
     ap.add_argument("--candidate", action="store_true",
                     help="D4 候選語意明示:in_portfolio=該 horizon top-frac 候選組合成員(非「已部署」;部署事實由 payload 讀 registry 獨立承載)")
     ap.add_argument("--rewrite-all", action="store_true", dest="rewrite_all",
-                    help="D4 全量重寫:四 horizon {20,40,60,120} 既有列 per (panel_date,model_id) DELETE+INSERT 冪等重寫(需 --candidate 與 --asof)")
+                    help="D4 全量重寫:作業閉集 H_TRACK 既有列 per (panel_date,model_id) DELETE+INSERT 冪等重寫(需 --candidate 與 --asof)")
     args = ap.parse_args(argv)
     if args.rewrite_all:
         if not (args.candidate and args.asof):
             print("✗ --rewrite-all 需 --candidate(語意明示)與 --asof(明確時點,不默認最新)"); return 1
         ok = True
-        for h in (20, 40, 60, 82, 120):    # 封閉集(82 啟用=預言機主計畫 P2-1 A 案 2026-07-11)
+        for h in H_TRACK:    # 作業閉集；H90 取代 H82（2026-08-14）
             print(f"── D4 重寫 H{h} ──")
             try:
                 r = predict(h, args.family, args.asof, args.top_n, args.top_frac, args.weight, False, False)

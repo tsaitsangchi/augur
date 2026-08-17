@@ -8,8 +8,8 @@
 執行指令矩陣:
   python scripts/check_asof_ready.py                         # 無 --date＝印本矩陣（不連庫）
   python scripts/check_asof_ready.py --selftest              # 轉呼叫 library 純自測（免 DB）
-  python scripts/check_asof_ready.py --date 2026-08-07       # 探 08-07（歷史；預期 ready 或 need_collect）
-  python scripts/check_asof_ready.py --date 2026-08-13       # 若價頂仍 08-12 → rc=3 假 B3
+  python scripts/check_asof_ready.py --date 2026-08-14       # 探價頂（預期 ready 或 need_collect）
+  python scripts/check_asof_ready.py --date 2026-08-17       # 若價頂仍 08-14 → rc=3 假 B3
   python scripts/check_asof_ready.py --latest-date           # 只印可更新最新日（價頂 ISO）
 """
 from __future__ import annotations
@@ -54,11 +54,38 @@ def main(argv=None) -> int:
         "fv_nrows",
         "has_core",
         "registry_a",
+        "registry_a_cells",
+        "registry_daily",
+        "registry_mkt",
+        "registry_stack",
+        "need_a_cells",
+        "at_tip",
+        "pack_complete",
     ):
         print(f"{k}={snap[k]}")
     st = snap["status"]
     if st == asof_ready.STATUS_READY:
-        print("→ 可訓可出單（截面族共用此 panel；no-promote）")
+        print("→ 可訓可出單（截面族共用此 panel；Daily*/Mkt/DirStackM＝另一軸；no-promote）")
+        if snap.get("pack_complete"):
+            if snap.get("at_tip"):
+                print("→ RETRAIN-ALL 包＠價頂已齊（8×8＋Daily3＋Mkt2＋DirStackM）")
+            else:
+                print("→ 截面 8×8 已齊＠此 D（方向臂鎖在價頂，不要求此 D 有 Daily*）")
+        else:
+            if snap.get("at_tip"):
+                print(
+                    "→ 價頂包未齊："
+                    f"A格 {snap['registry_a_cells']}/{snap['need_a_cells']} "
+                    f"daily {snap['registry_daily']}/{asof_ready.NEED_DAILY} "
+                    f"mkt {snap['registry_mkt']}/{asof_ready.NEED_MKT} "
+                    f"stack {snap['registry_stack']}/{asof_ready.NEED_STACK}"
+                )
+            else:
+                print(
+                    "→ 截面未齊＠此 D："
+                    f"A格 {snap['registry_a_cells']}/{snap['need_a_cells']}"
+                    "（方向臂不計入歷史 D）"
+                )
     elif st == asof_ready.STATUS_NEED_COLLECT:
         print("→ 價已到、缺 panel：先 build_feature_panel --panels D（skip-sync）")
     elif st == asof_ready.STATUS_FAKE_B3:

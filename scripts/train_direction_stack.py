@@ -32,12 +32,13 @@ import _bootstrap  # noqa: F401
 import numpy as np
 from augur.catalog import world_concept
 from augur.core import asof_ready, db
+from augur.core.closed_horizons import H_MONTHLY_RANKS, H_TRACK
 from augur.evaluation import label as _label
 from augur.evaluation import walkforward
 
 ADJ_CONCEPT = "tw.daily_bar_adjusted"  # WM.36；不直綁還原價表字面
-H_HORIZONS = (20, 40, 60, 82, 120, 240)  # 方向 H 軌封閉集（H240＝2026-08-14 另開）
-M_HORIZONS = (20, 40, 60, 82, 240)  # DirStackM 月頻；H120 不在 monthly ranks；H240＝2026-08-14 另開
+H_HORIZONS = H_TRACK  # v1 作業閉集；H90 取代 H82（2026-08-14）
+M_HORIZONS = H_MONTHLY_RANKS  # DirStackM 月頻；H120 不在 monthly ranks
 MODEL_ID = "DirStack"
 MKT_MODEL = "MktLogit"
 FREEZE = "2026-05-31"  # 完整性定案錨；訓練鎖＝asof_ready.resolve_lock（未指定→價頂）

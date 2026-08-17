@@ -12,8 +12,9 @@ essence: 本質仍是 S1→S5 連續閉環；優化＝怎麼轉、轉什麼、�
 ssot_code: SIM-SELF-EVOLVE-OPT-PLAN-R16-20260813
 parent_go: SIM-SELF-EVOLVE-OPT-PLAN-20260804-go
 parent_ssot: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md
-exec_nav: reports/augur_opt_stepwise_all_problems_r15_20260813.md
-asof_knife: reports/augur_s1s5_asof_verify_best_next_20260813.md
+exec_nav: reports/augur_opt_stepwise_all_problems_r18_20260817.md
+asof_knife: reports/augur_s1s5_asof_verify_best_next_r18_20260817.md
+asof_knife_prior: reports/augur_s1s5_asof_verify_best_next_20260813.md
 kh_evolve: reports/augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md
 kh_split: audits/KH-SPLIT-FROM-MARKET-AXIS-ADOPTED-20260812.md
 l2_plan: reports/augur_daily_retrain_l2_all_rank_plan_20260812.md
@@ -39,7 +40,7 @@ inherits_boundaries:
 > **一句**：本質不變——這仍是 **S1→S5 自我進化閉環**，不是一次勾完的清單。  
 > **重新優化**：進化改走 **日更心跳（L1→L2）＋庫內歷史 as-of 重覆驗＋知識獨立閉環**；不再把「taxonomy 全族再掃一遍變綠」當成進化。  
 > **位階**：[I] 運轉 SSOT。**不創 [N]**；**不撤** 08-04 GO；衝突時 **本檔管怎麼轉**，08-04 管本質／括號驗收／已拍 GO 史料。  
-> **LIVE（親查 13:20+08）**：PriceAdj／fv／tip＝**2026-08-12**；H20＝**dead**、H60＝**thin_unestablished**；校準器仍掛 **08-07**；watcher 候 **≥08-13**。
+> **LIVE（親查 13:20+08；過期）**：當時價頂 08-12。**2026-08-17 視點**＝價頂／包＝08-14；開工＝r18；as-of 刀＝`reports/augur_s1s5_asof_verify_best_next_r18_20260817.md`。08-15／16／17＝假 B3。
 
 ---
 
@@ -124,7 +125,7 @@ FZ/GATE-keep | skip-sync-B | no-SIM-apply | no-promote 默認 | NF-pause
 | **L0** | `run_l0_hotpath_daily.sh`（核 A＋TRI＋FRED）。**預測日更 standing**＝既有 20:00 arena ① 呼叫本殼（`L0-HOTPATH-PREDICT-DAILY-ADOPTED`）。**不是** 93 表、**不是** `AUGUR_DIM_SYNC=1`、**不新增** cron | 價／TRI／FRED 進庫 | tip、重訓；93 表回填 |
 | **L1** | `run_daily_asof_predict.sh`（B3） | feat／core／既有 serve 出單＋emit＠**今天 D** | 無價假跑；sync 進預測 |
 | **L2** | `run_daily_retrain_l2_all_rank.sh` | 邊界 A as-of＝D 重訓 → H20/60 再出單 | promote；NF；Daily*；無 L1 成功 |
-| **RETRAIN-ALL** | `run_retrain_all_asof_daily.sh`（平日 21:40＋09:20） | 價頂鎖；8×6＋Daily*＋Mkt*＋DirStackM | promote；emit B3；假 B3 |
+| **RETRAIN-ALL** | `run_retrain_all_asof_daily.sh`（平日 21:40＋09:20） | 價頂鎖；8×8＋Daily*＋Mkt*＋DirStackM | promote；emit B3；假 B3 |
 
 **觸發（AND）**：`PriceAdj(TAIEX) ≥ D` ∧ L1 RC=0 ∧ 人／standing 授 L2 ∧ 未與 B3 搶鎖。  
 **失敗**：價不足 → **整鏈 SKIP**（這就是 hold-#1）。23:50 仍無價 → TIMEOUT 帳，**仍不假跑**。
@@ -175,7 +176,7 @@ bash scripts/run_daily_retrain_l2_all_rank.sh --date 2026-08-07 --dry-plan
 | **S5** | 漲跌比重覆驗；禁假確立 | H20 dead／H60 thin；dgate 不塗綠 | **誠實形過**（過的是「說實話」） | 披露；不修綠 | 已披露 | evaluate＝否 |
 | **S5 sim** | 分尺；人節奏 | 禁 apply | 旁軸凍結 | 不動 | 否 | 否 |
 
-**方向臂 Daily***：訓練鎖＝`asof_ready.resolve_lock`（未指定 → PriceAdj TAIEX **價頂**＝可更新最新日；≠ 完整性錨 2026-05-31）。H 軌封閉集＝**H{20,40,60,82,120,240}**（H60＝2026-08-13、H240＝2026-08-14 另開訓練／v1 draft gate；**不**併入 v2 K=4、不 evaluate、不 approve）。**⊥** L2 邊界 A。日更＝`run_retrain_all_asof_daily.sh` 平日 21:40＋09:20（`RETRAIN-ALL-ASOF-DAILY-CRON-ADOPTED`）；**不**塞進 ALL-RANK 殼。
+**方向臂 Daily***：訓練鎖＝`asof_ready.resolve_lock`（未指定 → PriceAdj TAIEX **價頂**＝可更新最新日；≠ 完整性錨 2026-05-31）。H 軌封閉集＝**H{5,10,20,40,60,90,120,240}**（H5／H90＝2026-08-14；H10＝2026-08-16；H5 ≠ D 軌 k=5；H82 已刪、CHECK 不准 82；H60＝2026-08-13、H240＝2026-08-14 另開訓練／v1 draft gate；**不**併入 v2 K=4、不 evaluate、不 approve）。**⊥** L2 邊界 A。日更＝`run_retrain_all_asof_daily.sh` 平日 21:40＋09:20（`RETRAIN-ALL-ASOF-DAILY-CRON-ADOPTED`）；**不**塞進 ALL-RANK 殼。
 
 ---
 
@@ -266,7 +267,7 @@ paste（採納 r16 為運轉 SSOT）:
   | NF-pause | no-promote | no-re-scan-0812 | KH-split-keep
 ```
 
-日常開工順序仍以 `reports/augur_opt_stepwise_all_problems_r15_20260813.md` 全板為準；**閉環怎麼轉**以本檔為準。
+日常開工順序仍以 `reports/augur_opt_stepwise_all_problems_r18_20260817.md` 全板為準；**閉環怎麼轉**以本檔為準。
 
 ---
 
@@ -276,8 +277,8 @@ paste（採納 r16 為運轉 SSOT）:
 |---|---|
 | **本檔（運轉 SSOT）** | `reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md` |
 | 本質／括號／已拍 GO（史料＋不撤） | `reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md` |
-| 今日選刀＋as-of 刀 | `reports/augur_s1s5_asof_verify_best_next_20260813.md` |
-| 全專案開問題 | `reports/augur_opt_stepwise_all_problems_r15_20260813.md` |
+| 今日選刀＋as-of 刀 | `reports/augur_s1s5_asof_verify_best_next_r18_20260817.md` |
+| 全專案開問題 | `reports/augur_opt_stepwise_all_problems_r18_20260817.md` |
 | L2 邊界 A | `reports/augur_daily_retrain_l2_all_rank_plan_20260812.md` |
 | RETRAIN-ALL 日更 cron | `audits/RETRAIN-ALL-ASOF-DAILY-CRON-ADOPTED-20260814.md` |
 | L0 熱路徑日班（預測日更＝核 A＋TRI；P4a 已採納） | `reports/augur_l0_hotpath_daily_plan_20260814.md` |
