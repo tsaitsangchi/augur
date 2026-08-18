@@ -3,7 +3,7 @@ status: archive_checkpoint
 date: 2026-08-18
 kind: archive_checkpoint
 tag: archive-20260818-b3-retrain-force-hist-oos
-sha: pending
+sha: "c38395a14f2424d83e3595970a49a07defff8e2b"
 remote: https://github.com/tsaitsangchi/augur
 auth: "Steward：更新全部檔案上傳到 https://github.com/tsaitsangchi/augur 並做封存點"
 prior: archive-20260817-r18-htrack-hist-econ
@@ -16,7 +16,7 @@ layer: "[I]"
 date: 2026-08-18  
 kind: archive_checkpoint  
 tag: `archive-20260818-b3-retrain-force-hist-oos`  
-sha: pending  
+sha: "c38395a14f2424d83e3595970a49a07defff8e2b"  
 remote: https://github.com/tsaitsangchi/augur
 
 上一封存：`archive-20260817-r18-htrack-hist-econ`（commit `7999af2`；回填 `e10dbc2`）。
