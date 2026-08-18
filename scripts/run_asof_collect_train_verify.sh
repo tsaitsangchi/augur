@@ -11,8 +11,9 @@
 #   bash scripts/run_asof_collect_train_verify.sh --date 2026-08-14 --dry-plan
 #   bash scripts/run_asof_collect_train_verify.sh --date 2026-08-14 --dry-plan --track all
 #   bash scripts/run_asof_collect_train_verify.sh --date 2026-07-31 --apply --track all   # 截面；方向臂不覆寫價頂
-#   bash scripts/run_asof_collect_train_verify.sh --date 2026-08-14 --apply --track all --force
-#   bash scripts/run_asof_collect_train_verify.sh --date 2026-08-17 --dry-plan   # 價未到 → rc=3
+#   bash scripts/run_asof_collect_train_verify.sh --date 2026-08-14 --dry-plan --track other  # V0 盤點 rc=0
+#   bash scripts/run_asof_collect_train_verify.sh --date 2026-08-18 --dry-plan   # 價未到 → rc=3
+#   bash scripts/run_asof_collect_train_verify.sh --date 2026-07-31 --apply --track other  # rc=6 不開訓
 #
 set -euo pipefail
 
@@ -40,7 +41,7 @@ usage() {
   sed -n '2,16p' "$0" | sed 's/^# \?//'
   echo ""
   echo "選項: --date YYYY-MM-DD  --dry-plan  --apply  --selftest"
-  echo "      --track A|all（A＝L2 邊界 A；all＝8×8；D＝價頂才動 Daily*/Mkt/DirStackM，不 emit B3）"
+  echo "      --track A|all|other（A＝L2 邊界 A；all＝8×8；other dry-plan＝V0 盤點；other --apply＝rc=6 不開訓）"
   echo "      --skip-collect  --skip-train  --skip-verify  --ridge-only  --skip-repredict  --force"
   echo "      --force-direction（歷史 D 才覆寫方向臂活鎖；預設禁）"
 }
@@ -77,6 +78,8 @@ if [[ "$SELFTEST" -eq 1 ]]; then
   chk() { if [[ "$2" == "1" ]]; then echo "  ✓ $1"; else echo "  ✗FAIL $1"; ok=0; fi; }
   echo "[HIST-ASOF selftest]"
   chk "check_asof_ready.py" "$([[ -f scripts/check_asof_ready.py ]] && echo 1 || echo 0)"
+  chk "verify 有 --oos" "$(grep -q -- '--oos' scripts/verify_asof_families.py && echo 1 || echo 0)"
+  chk "verify 有 --walk" "$(grep -q -- '--walk' scripts/verify_asof_families.py && echo 1 || echo 0)"
   chk "L2 殼" "$([[ -f scripts/run_daily_retrain_l2_all_rank.sh ]] && echo 1 || echo 0)"
   chk "RETRAIN-ALL 內殼" "$([[ -f scripts/run_retrain_all_asof.sh ]] && echo 1 || echo 0)"
   chk "build_feature_panel.py" "$([[ -f scripts/build_feature_panel.py ]] && echo 1 || echo 0)"
@@ -109,10 +112,12 @@ if [[ "$SELFTEST" -eq 1 ]]; then
   else
     chk "dry 07-31 截面已齊跳過訓" 0
   fi
-  if bash "$0" --date 2026-08-14 --dry-plan --track all --force >/tmp/hist-asof-dry-force.out 2>&1; then
+  LATEST_TIP="$("$PY" scripts/check_asof_ready.py --latest-date)"
+  if bash "$0" --date "$LATEST_TIP" --dry-plan --track all --force >/tmp/hist-asof-dry-force.out 2>&1; then
     chk "dry --force RC=0" 1
     chk "dry force 含 Daily" "$(grep -q 'train_daily_direction.py' /tmp/hist-asof-dry-force.out && echo 1 || echo 0)"
     chk "dry force 無 predict_asof" "$(grep -q 'predict_asof.py' /tmp/hist-asof-dry-force.out && echo 0 || echo 1)"
+    chk "dry force 傳 --no-resume" "$(grep -q -- '--no-resume' /tmp/hist-asof-dry-force.out && echo 1 || echo 0)"
   else
     chk "dry --force RC=0" 0
   fi
@@ -127,10 +132,41 @@ if [[ "$SELFTEST" -eq 1 ]]; then
     chk "force hist RC=0" 0
   fi
   set +e
-  bash "$0" --date 2026-08-17 --dry-plan >/tmp/hist-asof-fake.out 2>&1
+  bash "$0" --date 2026-08-18 --dry-plan >/tmp/hist-asof-fake.out 2>&1
   rc=$?
   set -e
-  chk "dry 08-17 假 B3 rc=3" "$([[ "$rc" -eq 3 ]] && echo 1 || echo 0)"
+  chk "dry 08-18 假 B3 rc=3" "$([[ "$rc" -eq 3 ]] && echo 1 || echo 0)"
+  set +e
+  bash "$0" --date 2026-08-14 --dry-plan --track other >/tmp/hist-asof-other.out 2>&1
+  rc=$?
+  set -e
+  chk "dry other rc=0" "$([[ "$rc" -eq 0 ]] && echo 1 || echo 0)"
+  chk "dry other 含 VECM" "$(grep -q 'VECM' /tmp/hist-asof-other.out && echo 1 || echo 0)"
+  chk "dry other 禁 0812 NF" "$(grep -q 'GarchMeanDir' /tmp/hist-asof-other.out && echo 1 || echo 0)"
+  chk "dry other 無 train_ranker" "$(grep -q 'train_ranker.py' /tmp/hist-asof-other.out && echo 0 || echo 1)"
+  chk "dry other 含族矩陣" "$(grep -q 'RankRidge' /tmp/hist-asof-other.out && echo 1 || echo 0)"
+  set +e
+  bash "$0" --date 2026-08-18 --dry-plan --track other >/tmp/hist-asof-other-fake.out 2>&1
+  rc=$?
+  set -e
+  chk "other+假 B3 仍 rc=3" "$([[ "$rc" -eq 3 ]] && echo 1 || echo 0)"
+  set +e
+  bash "$0" --date 2026-08-14 --apply --track other >/tmp/hist-asof-other-apply.out 2>&1
+  rc=$?
+  set -e
+  chk "apply other rc=6" "$([[ "$rc" -eq 6 ]] && echo 1 || echo 0)"
+  set +e
+  bash "$0" --date D --dry-plan >/tmp/hist-asof-placeholder.out 2>&1
+  rc=$?
+  set -e
+  chk "dry 佔位符 D rc=2" "$([[ "$rc" -eq 2 ]] && echo 1 || echo 0)"
+  chk "dry 佔位符說明" "$(grep -q '佔位符' /tmp/hist-asof-placeholder.out && echo 1 || echo 0)"
+  if "$PY" scripts/check_asof_ready.py --scan >/tmp/hist-asof-scan.out 2>&1; then
+    chk "scan RC=0" 1
+    chk "scan 含未齊日" "$(grep -qE '2026-08-13|2026-08-10|2026-08-11' /tmp/hist-asof-scan.out && echo 1 || echo 0)"
+  else
+    chk "scan RC=0" 0
+  fi
   if [[ "$ok" -eq 1 ]]; then
     echo "自測:全通過 ✓"
     exit 0
@@ -142,6 +178,10 @@ fi
 if [[ -z "$DATE" ]]; then
   echo "✗ 須 --date YYYY-MM-DD（或 --selftest）" >&2
   usage
+  exit 2
+fi
+if [[ ! "$DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+  echo "✗ --date 須 YYYY-MM-DD（D 是佔位符，例如 2026-08-07）" >&2
   exit 2
 fi
 
@@ -156,8 +196,8 @@ if [[ "$DO_APPLY" -eq 0 && "$DRY_PLAN" -eq 0 ]]; then
 fi
 
 TRACK="$(echo "$TRACK" | tr '[:lower:]' '[:upper:]')"
-if [[ "$TRACK" != "A" && "$TRACK" != "ALL" ]]; then
-  echo "✗ --track 只准 A 或 all" >&2
+if [[ "$TRACK" != "A" && "$TRACK" != "ALL" && "$TRACK" != "OTHER" ]]; then
+  echo "✗ --track 只准 A、all 或 other" >&2
   exit 2
 fi
 
@@ -176,6 +216,28 @@ set -e
 if [[ "$READY_RC" -eq 3 || "$READY_RC" -eq 4 ]]; then
   echo "✗ 假 B3／無價 —— 整鏈 SKIP（歷史 as-of ≠ 假裝今天）" >&2
   exit "$READY_RC"
+fi
+
+if [[ "$TRACK" == "OTHER" ]]; then
+  echo ""
+  "$PY" - <<'PY'
+from augur.core import asof_ready
+print(asof_ready.other_lane_refuse_msg(), end="")
+PY
+  if [[ "$DO_APPLY" -eq 1 ]]; then
+    echo "✗ --track other --apply 不開訓（殘格須點名 GO；0812 NF 禁重掃；盤點請 --dry-plan）" >&2
+    exit 6
+  fi
+  echo ""
+  echo "── step: other-verify（V0 盤點；不訓）──"
+  echo "+ $PY scripts/verify_asof_families.py --date $DATE"
+  "$PY" scripts/verify_asof_families.py --date "$DATE"
+  echo ""
+  echo "══════════════════════════════════════════════════════"
+  echo "other dry-plan 完成。OOS IC：python scripts/verify_asof_families.py --date $DATE --ic --oos"
+  echo "開訓截面 8 族請 --track all；--apply --track other 仍 rc=6"
+  echo "══════════════════════════════════════════════════════"
+  exit 0
 fi
 
 PACK_COMPLETE="$("$PY" - "$DATE" <<'PY'
@@ -238,6 +300,11 @@ elif [[ "$TRACK" == "ALL" ]]; then
     ALL+=(--dry-plan)
   else
     ALL+=(--apply)
+  fi
+  if [[ "$FORCE" -eq 1 ]]; then
+    ALL+=(--no-resume)
+    echo ""
+    echo "同尺重訓：--force → 內殼 --no-resume（已登錄格也重 fit；不 promote）"
   fi
   LATEST="$("$PY" scripts/check_asof_ready.py --latest-date)"
   if [[ "$DATE" != "$LATEST" && "$FORCE_DIR" -eq 0 ]]; then

@@ -20,8 +20,8 @@ kh_split: audits/KH-SPLIT-FROM-MARKET-AXIS-ADOPTED-20260812.md
 l2_plan: reports/augur_daily_retrain_l2_all_rank_plan_20260812.md
 l0_hotpath: reports/augur_l0_hotpath_daily_plan_20260814.md
 l0_adopted: audits/L0-HOTPATH-PREDICT-DAILY-ADOPTED-20260814.md
-archive_tip: archive-20260814-weekly-fd-tar
-prior_archive: archive-20260814-h240-retrain-0813
+archive_tip: archive-20260818-b3-retrain-force-hist-oos
+prior_archive: archive-20260817-r18-htrack-hist-econ
 other_verify: reports/augur_s4_other_model_verify_matrix_plan_20260806.md
 residual: audits/NF-0812-RESIDUAL-NAME-CARD-20260813.md
 sole_steward: true
@@ -170,7 +170,7 @@ bash scripts/run_daily_retrain_l2_all_rank.sh --date 2026-08-07 --dry-plan
 | **S0** | 計畫可運轉 | 08-04 GO 仍在；本檔＝運轉優化 | 是 | 依本檔轉；不另修憲 | — | — |
 | **S1** | 資料完整＝THAW 熱路徑 as-of，**≠** 339 表 | 價頂 **08-12**；候 08-13 | 日更心跳 **WAIT** | 價到 → B3 `20,60` | 否 | 開火獨佔 |
 | **S2** | raw↔KH 交互可核；非整庫入靈魂 | 分軌；ingest S0/S3 綠；假 decline 已閘 | 知識閉環自過 | 見 KH SSOT；**不等 S1** | 巡檢 | 避開 B3 |
-| **S3** | 多特徵＋提拔＋#11＋誠實覆蓋 | tip **37** 種＠08-12；月＋近日頻；P6 校準仍＠**08-07** | 生產 panel **可用**；全日頻／P6 對齊＝缺口 | 沿用 panel；P6 另 GO | 文件 | 重訓 P6＝否 |
+| **S3** | 多特徵＋提拔＋#11＋誠實覆蓋 | tip **37** 種＠08-17；P6 校準仍＠**08-14** | 生產 panel **可用**；P6 對齊＝缺口 | 沿用 panel；P6 另 GO | 文件 | 再 P6 無 GO＝否 |
 | **S4 日更** | 多模型重覆驗 | 邊界 A＠08-12：Ridge×5＋chal×8 | **日更包過** | 新 D 才 L2；**禁**同尺 08-12 | 否 | 歷史 D 須 GO |
 | **S4 普查** | taxonomy 全族 | V0 已刷新；NF＠0812 EVIDENCE no-promote | 普查＝**有界證據＋pause**，不是完成交易 | 殘格**點名**；禁重掃 | V0 已做 | 開新族＝否 |
 | **S5** | 漲跌比重覆驗；禁假確立 | H20 dead／H60 thin；dgate 不塗綠 | **誠實形過**（過的是「說實話」） | 披露；不修綠 | 已披露 | evaluate＝否 |

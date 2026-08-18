@@ -5,7 +5,7 @@ series: optimization_plan
 round: r18
 role: **後續優化執行 SSOT（全專案所有開問題）**
 date: 2026-08-17
-viewpoint: 2026-08-17T10:13+08:00
+viewpoint: 2026-08-18T13:50+08:00
 layer: "[I]"
 depends_on:
   - reports/augur_deep_understanding_and_opt_plan_r17_20260817.md
@@ -18,18 +18,18 @@ s1_s5_parent: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.m
 kh_evolve_ssot: reports/augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md
 detail_kh: reports/augur_kh_opt_stepwise_best_next_plan_20260813.md
 econ_path: reports/augur_econ_prove_edge_plan_r17_20260817.md
-archive_tip: archive-20260814-weekly-fd-tar
+archive_tip: archive-20260818-b3-retrain-force-hist-oos
+prior_archive: archive-20260817-r18-htrack-hist-econ
 self_reported: true
 ---
 
-# augur 優化——全專案逐步執行最佳下一步 r18（2026-08-17 10:13）
+# augur 優化——全專案逐步執行最佳下一步 r18（2026-08-18 13:50）
 
 > **一句**：本檔＝**後續優化唯一執行計畫書**。每個還開著的問題都標了：**最佳下一步**、**現在可先做？**、**可與主軸同步做？**。  
 > **來源**：深化理解 r17 債表 R17-01…23；吸收本日 M1a 出門、E0–E4b。  
 > **位階**：[I]；不創 [N]；不解凍；不假 B3；不 sim-apply；不默升格；**勿重掃假綠**。  
 > **分軌保留**：市場與知識**互不等待**。  
-> **LIVE（親查 10:13+08）**：價頂／fv＝**2026-08-14**；emit＝**2026-08-14** 僅 H20＋H60（各 286 列）；08-15／16／17＝假 B3。  
-> **KH `--check`（10:13，唯讀）**：S0 FIRE kh0_breach=**213**；S1 **ok**（delta=0）；S3 FIRE zh lag_est=**2**。**未** `--apply`。
+> **LIVE（親查 13:50+08）**：價頂／fv／包＝**2026-08-17**。08-18＝假 B3。RETRAIN-ALL **force** 已閉（8×8 全重 fit＋方向臂重訓；RC=0；~138 min）。方向臂活鎖＝08-17。出門仍＝本晨 B3 H20+H60（本槍未重 emit）。P6 freeze 仍＠08-14。KH S0–S3 ok。下一未齊＝08-12 缺 32。
 
 本檔 **supersede** `reports/augur_opt_stepwise_all_problems_r17_20260817.md` 作為開工順序。理解地基仍＝深化理解 r17（不必重寫長文）。r16 心跳契約仍有效。
 
@@ -56,7 +56,7 @@ self_reported: true
 **Hard doors**：
 
 ```text
-FZ/GATE-keep | no-fake-B3@08-15/16/17 | NF-pause | no-SIM-apply | no-promote
+FZ/GATE-keep | no-fake-B3@08-18 | NF-pause | no-SIM-apply | no-promote
 | 勿重掃假綠 | skip-sync-B | 誠實 econ | standing=20,60 除非雙明示
 | PDF-C-no-ASR | ASR=owned_local+local_private | no-KH10 | stop-at-7 | no-relax-θ
 | T0 | apply=opt-in | 有引文禁假「無此內容」 | 空包不進化
@@ -71,20 +71,20 @@ FZ/GATE-keep | no-fake-B3@08-15/16/17 | NF-pause | no-SIM-apply | no-promote
 
 ## §1 決策卡｜現在該做什麼？
 
-視點 **2026-08-17 10:13+08**（盤中；價頂仍 08-14；名單已跟到 08-14）。
+視點 **2026-08-18 13:50+08**（價頂／包＝08-17；RETRAIN-ALL force 已閉；出門仍本晨 B3；P6 freeze 仍 08-14；KH S0／S3 已閉；V1 OOS walk 已跑）。
 
 | 問 | 答 |
 |---|---|
-| **全專案最佳下一步** | **M1b**：候 `PriceAdj≥2026-08-17` → 另貼 B3-go 再 L0／B3 20,60。M1a＠08-14 **已 EXECUTED** |
-| **此刻絕對不要** | 把 as-of 設成 08-15／08-16／08-17 |
-| **可先做（不等今日價）** | KH `--check` **剛跑**（S0 FIRE 213；S1 ok；S3 FIRE zh lag 2；未 apply）；#14 誠實形；M25 未提交清單；P6 對帳文件；E4b 鐘可重讀（WAIT k=0） |
-| **可同步做** | 上列。B3 開火時讓出 LLM。**不要** K9／P6 訓／NF／dgate evaluate／KH `--apply` |
-| **不要做** | 假 B3；sim-apply；塗綠；換冠；默八窗出門；重掃 0812；K9 開訓；放寬 θ；`E5-evaluate-go`；再送就緒 5 |
+| **全專案最佳下一步** | 候 `PriceAdj≥2026-08-18` 再另貼 B3-go。P6 freeze 缺口（08-14 vs 包 08-17）須另 GO |
+| **此刻絕對不要** | 把 as-of 設成 **08-18**（價未進） |
+| **可先做（不等今日價）** | KH `--check`；E4b 鐘；P6 對帳；`--scan`；`--walk --oos`。KH apply／P6 refit／HIST apply **另句** |
+| **可同步做** | 上列。B3 開火時讓出 LLM。**不要** K9／再 P6 無 GO／NF／dgate evaluate／KH `--apply` |
+| **不要做** | 假 B3＠08-18；sim-apply；塗綠；換冠；默八窗出門；重掃 0812；K9 開訓；放寬 θ；`E5-evaluate-go`；再送就緒 5；`--track other --apply`（殼會 rc=6） |
 
 ```text
 paste（後續優化依本檔）:
-  OPT-R18-ALL | no-fake-B3@08-15/16/17
-  | knife-B=WAIT PriceAdj≥08-17 then L0→L1→L2
+  OPT-R18-ALL | no-fake-B3@08-18
+  | knife-B=出門＠08-17 已閉；候 PriceAdj≥08-18 再 B3 20,60
   | standing=20,60 | H_TRACK=8 | no-promote | NF-pause
   | kh=check-green | E-keep | stop-at-7 | no-K9-train
   | M28=clock-WAIT | no-E5 | no-canonical-3plus1
@@ -92,9 +92,9 @@ paste（後續優化依本檔）:
 
 **工時切法（人話）**：
 
-1. **此刻（無 08-17 價）**：巡檢／文件／鐘重讀；S0 drain **另句**才 apply。  
-2. **08-17 價到**：只做 L0（需要時）→ B3 20,60 → 包未齊才 L2／RETRAIN-ALL；做完寫 EXECUTED＋誠實 #14。  
-3. **當日 23:50 仍無價**：TIMEOUT 帳；**仍不假跑**。
+1. **此刻**：M1b 出門＠08-17 **已閉**。RETRAIN-ALL force＠08-17 **已閉**。S0／S3 **已閉**。HIST-ASOF＠08-07／08-13 **已閉**。P6＠08-17 **另句**。下一未齊 08-12 **另句 HIST-ASOF-apply**。  
+2. **08-18 價到**：另貼 B3-go → predict+emit H20+H60（會載本槍新 RankRidge）；#14 誠實；no-promote。  
+3. **08-18 價未進**：**不**當 as-of。
 
 ---
 
@@ -107,15 +107,15 @@ paste（後續優化依本檔）:
 | # | 債 | 問題 | 最佳下一步 | 可先？ | 可同步？ | 狀態 |
 |---|---|---|---|---|---|---|
 | **M1a** | R17-01 | 08-14 已訓未出門 | — | — | — | 🟢 出門＠08-14 H20+H60 |
-| **M1b** | R17-02 | 08-17 心跳 | 候 `PriceAdj≥08-17` → 另貼 B3-go 再 L0／B3 20,60 | **否**（無價） | 開火獨佔 | 🟡 **KEEP WAIT** |
+| **M1b** | R17-02 | 08-17 心跳 | — | — | — | 🟢 出門＠08-17 H20+H60 |
 | **M2** | R17-03 | econ／dgate | **不修綠**；H20=dead、H60=thin；draft 閘不 evaluate | **是** | **是** | 🟢 形已誠實 |
 | **M3** | — | graph tip 邊 | — | — | — | 🟢 |
 | **M4** | — | H82 庫列 | 已刪；禁再插入 | — | — | 🟢 |
 | **M5** | — | r17／r18 文檔 | 開工跟**本檔** | — | — | 🟢 本輪 |
-| **M6** | — | ARCHIVE 後入倉 | 焦點 **M25** | 清單＝是 | 是（≠B3） | 🟢 併 M25 |
+| **M6** | — | ARCHIVE 後入倉 | — | — | — | 🟢 `archive-20260818-b3-retrain-force-hist-oos` |
 | **M7** | R17-06 | 圖提拔熱路徑 | 另 `VERIFY-graph-cand-go` | **否** | **否** | 🔴 |
 | **M8** | R17-18 市場側 | C1／CYCLE | 不編；見 K10 | **否** | — | 🟢 隔離 |
-| **M9** | R17-05 | P6／長窗 | 對帳 08-14 artifact vs 08-04／08-07 校準器；擴窗**另 plan＋GO** | **文件＝是**；訓＝否 | 文件＝是 | 🟡 文件；訓❄ |
+| **M9** | R17-05 | P6／長窗 | freeze 仍＠08-14；Ridge 包＠08-17 → **缺口再開**；refit **另 GO** | 文件＝是 | 訓＝否 | 🟡 缺口 08-14 vs 08-17 |
 | **M10** | R17-08／10 | M／β5／NF | 輕監；0812 六族**勿重掃**；殘格須點名卡 | **監看＝是**；開訓＝否 | 監看＝是 | 🟢 監看；開訓❄ |
 | **M11** | R17-10 | Dividend | 另 auth | **否** | **否** | ❄ |
 | **M12** | R17-10 | sim apply | **禁** | **否** | **否** | 禁 |
@@ -124,14 +124,14 @@ paste（後續優化依本檔）:
 | **M15** | R17-11 | 10–14 治權日曆 | 10 月初清單；**不假關** | 排程備忘＝是 | 是 | 🟡 |
 | **M16** | R17-04 | standing 八窗殼 | **雙明示**＋改 `run_daily_asof_predict.sh` 預設 | **否** | **否** | ❄ |
 | **M17** | R17-21 | dgate evaluate | 另 GO；禁塗綠草稿閘 | **否** | **否** | 禁（無 GO） |
-| **M18** | R17-08 | 其他模型族 | 殘格仍點名；**禁**重掃 0812 | 閘／hist 殼＝是 | 讓 B3 | 🟢 V0；NF❄ |
+| **M18** | R17-08 | 其他模型族 | 已齊＝07-31／08-07／08-13／08-14／08-17；價頂 8×8 **force 重 fit** 13:44；下一未齊 08-12 缺 32；V1 OOS walk 近 0；**禁**重掃 0812 | 掃描／IC／08-07＋08-13 apply／OOS walk／force＝**已做**；開新族＝否 | 讓 B3 | 🟢 V0＋V1 OOS；NF❄ |
 | **M19** | — | family_chk | — | — | — | 🟢 |
 | **M20** | R17-07 | 升格另軌 | 可寫門檻文件；禁 SERVE-SWAP | **文件＝是** | 文件＝是 | 🟢 hold；swap❄ |
 | **M21** | — | Wave-A 收官 | — | — | — | 🟢 |
-| **M22** | — | RankRidge＠08-14 | 已重訓 8 窗＋已出門 20,60 | — | — | 🟢 |
+| **M22** | — | RankRidge＠08-17 | 八窗 **force 重 fit** 13:44；出門仍本晨 B3 20,60（未重 emit） | — | — | 🟢 |
 | **M23** | R17-15 | tip＋N 實現報酬 | 等價蓋過 tip＋N。E4b 鐘已掛；H60 第 1 期出場＝2026-11-13 | **否**（價未蓋） | **否** | 🔴；鐘🟢 WAIT |
 | **M24** | — | 相對機率／分數看板 | 守 score／p_beat≠報酬％ | — | — | 🟢 |
-| **M25** | R17-20 | 工作樹未入倉 | 列 diff；**Steward 明示才 commit／push** | **清單＝是** | 是（≠B3 開火） | 🟡 |
+| **M25** | R17-20 | 工作樹未入倉 | — | — | — | 🟢 已封存 20260818 |
 | **M26** | R17-22 | HANDOFF 過期 | 不重寫 300 行 STATE；接續讀本檔 LIVE | 備忘＝是 | 是 | 🟡 |
 | **M27** | R17-23 | PME 缺 map | 維持診斷；禁降閾／禁 APPLY | 文件＝是 | 是 | 🟡 |
 | **M28** | #14 確立 | 往「證明能賺錢」 | E0–E3 已閉；E4 就緒 5 耗盡（3＋1 canonical 停）；E4b **WAIT k=0** next＝2026-11-13。新角度特徵須另句點名 | E5＝禁；鐘可重讀 | 文件＝是 | 🟡 **鐘 WAIT** |
@@ -140,8 +140,8 @@ paste（後續優化依本檔）:
 
 | # | 債 | 問題 | 最佳下一步 | 可先？ | 可同步？ | 狀態 |
 |---|---|---|---|---|---|---|
-| **K0** | — | S0 KH0 breach | `--check` FIRE **213**；drain 須 `KH-S0-apply-go` | 巡檢＝**已做**；apply＝**否** | apply 避開 B3 | 🟡 **FIRE** |
-| **K1** | — | S3 zh lag | S1 已 ok（delta=0）；S3 FIRE lag=**2**。concordance 須另句 | 巡檢＝已做；apply＝否 | apply 避開 B3 | 🟡 **FIRE S3** |
+| **K0** | — | S0 KH0 breach | — | — | — | 🟢 drain＠09:07 218→0 |
+| **K1** | — | S3 zh lag | — | — | — | 🟢 concordance＠09:08 zh 2→0 |
 | **K2** | — | ingest 階梯 | 守 apply 選開 | — | — | 🟢 |
 | **K3** | R17-19 | AUTO-LIFT | 常駐即可；**禁抬 >KH2** | **否** | — | 🟢／禁抬層 |
 | **K4** | R17-14 | 私有 smoke | 回歸可重跑 | 抽樣＝是 | 是 | 🟢 |
@@ -163,24 +163,28 @@ paste（後續優化依本檔）:
 ### Phase 0｜✅ 已閉（本檔不當工單）
 
 B3＋L2／RETRAIN-ALL＠08-13 與＠08-14（8×8）；H90 取代 H82；H5／H10／H240 開窗；L0 熱路徑；RETRAIN-ALL cron；KH 分軌；假 decline 閘；KH8 A2-L3 未過 θ；NF＠0812 六族 no-promote。  
-**本日閉**：M1a 出門＠08-14 H20+H60；E0 DDL；E1 預註冊；E2 hugo 核准；E3 research；E4 短名單＋三支漏斗墓碑（range／股利／sbl）；E4b 鐘掛上。
+**本日閉**：M1a 出門＠08-14；M1b 出門＠08-17 H20+H60；E0–E4b；HIST-ASOF＠07-31；HIST-ASOF＠08-07；HIST-ASOF＠08-13；ARCHIVE；P6 freeze→08-14；RETRAIN-ALL 包＠08-17；**RETRAIN-ALL force**＠08-17（8×8＋方向臂；`--no-resume`）。
 
 ### Phase 1｜🟡 現在（盤中 WAIT＋可先）
 
 | 步 | 何時 | 做 | 不做 | 驗收 |
 |---|---|---|---|---|
 | **1A** | — | 08-14 出門 | — | ✅ 已閉 |
-| **1B** | Steward 貼 B3-go 且價到 | 08-17 整鏈心跳 | 無價假跑 | tip=D；#14 誠實；no-promote |
-| **1C** | 23:50 無 08-17 價 | TIMEOUT 帳 | 仍不假跑 | TIMEOUT audit |
-| **1D** | **此刻可先** | KH `--check`（已跑）；M2 披露；M25 清單 | 不開 K9／K8；不擅自 commit；不 KH `--apply` | S0 213／S3 lag 2 記帳 |
-| **1E** | **可先文件** | M9 P6 對帳；M20 升格 hold；E4b 鐘重讀 | evaluate／付 N／再送就緒 5／放寬 ρ | 鐘 WAIT；feat 另角度才開 |
+| **1B** | — | 08-17 出門 | — | ✅ 已閉 |
+| **1C** | Steward 貼下一交易日 B3-go 且價到 | 08-18 整鏈心跳 | 無價假跑 | tip=D；#14 誠實 |
+| **1D** | **此刻可先** | KH `--check`；M2 披露 | 不開 K9／K8；不 KH `--apply`（無新 GO） | ✅ 09:08：S0–S3 ok；priority_hit=∅ |
+| **1E** | **可先** | M9 P6 缺口 08-14 vs 包 08-17；E4b 鐘 | evaluate／付 N／再送就緒 5／放寬 ρ | 鐘 WAIT；P6 refit **另 GO** |
+| **1F** | **本窗已跑** | V1 `--ic --oos`／`--walk --oos` H5＠08-04…08-07（stamp 07-31） | 開 NF／promote／把同日 IC 當確立 | 四 panel 近 0／偏負；KNN 均≈0.019 不採 |
+| **1G** | **本窗已閉** | HIST-ASOF-apply＠08-07 `--track all`；同日 IC 不採 | `--force-direction`／promote | 截面 64／64；方向臂仍＠08-17 |
+| **1H** | **本窗已閉** | HIST-ASOF-apply＠08-13 `--track all`（補 8×H10） | `--force-direction`／promote／無實現窗卻 `--ic` | 截面 64／64；無已實現窗 |
+| **1I** | **本窗已閉** | RETRAIN-ALL force＠08-17 `--track all --force`（方向臂鎖價頂＋八窗重 fit） | 假 B3＠08-18／promote／重 emit／P6／evaluate dgate | RC=0；pack_complete；standing 仍 20,60 |
 
-**並行規則**：1D／1E 在 **1B 未開火** 時可同時做。1B 開始 → 長 LLM／apply **讓路**。
+**並行規則**：1D／1E／1F 在 **1B 未開火** 時可同時做。1B 開始 → 長 LLM／apply **讓路**。
 
 ### Phase 2｜主軸閉合後（Steward 選一，不預設全開）
 
 1. 下一交易日重複 1B（standing 20,60）  
-2. P6／長窗（有 plan＋GO）  
+2. P6 擴其餘 H_TRACK（有 plan＋GO；H20+H60 freeze＠08-14 已閉）  
 3. 升格門檻文件定稿（仍 no-promote）  
 4. K9 **僅**在 `K9-DOMAIN-FT-plan-adopt` 之後  
 5. 圖提拔 VERIFY  
@@ -207,16 +211,9 @@ DONT: 無價假跑; sync-B; sim-apply; 默八窗; promote
 DONE: RC=0 + EXECUTED + #14 誠實
 ```
 
-### WP-M25｜未入倉清單（可先；commit 另句）
+### WP-M25｜未入倉清單（已閉）
 
-工作樹（2026-08-17 10:13，**不 commit**）：H 軌 DDL／`closed_horizons`／日更與方向殼、H5／H10／H90／RETRAIN-ALL＠0813–0814 audits、r17／r18 報告、PME 診斷 0814、`ollama.py`、**本日確立路徑**（E0–E4b 腳本／audit／報告）。約 95 列 dirty／untracked。
-
-```text
-WHEN: 現在（不等價）
-DO:   上列 diff；Steward 明示才 git add／commit／push
-DONT: 無明示卻入倉
-DONE: Steward 明示才入倉
-```
+`archive-20260818-b3-retrain-force-hist-oos` 已 push（上一點＝`archive-20260817-r18-htrack-hist-econ`）。本 WP 不當工單。
 
 ### WP-KD｜KH 巡檢（可同步；本窗已跑）
 
@@ -224,17 +221,16 @@ DONE: Steward 明示才入倉
 WHEN: 任意；避開 B3 開火
 DO:   python scripts/kh_ingest_trigger.py --check
 DONT: 無 GO 卻 --apply; 日曆假進化
-DONE: 10:13 已跑：S0 FIRE 213／S1 ok／S3 FIRE zh lag 2
+DONE: 09:08 終檢：S0–S3 ok；priority_hit=∅
 ```
 
-### WP-K0｜S0 drain（須另句 GO；本窗未開）
+### WP-K0｜S0 drain（已閉）
 
 ```text
 WHEN: Steward 明示 KH-S0-apply-go（且非 B3 開火）
 DO:   python scripts/kh_ingest_trigger.py --apply
-      # recommend：KH0 breach drain up_to=0 limit=213；可順帶 S3 zh concordance
-DONT: 無 GO 卻 apply；抬 >KH2
-DONE: --check S0 不再 FIRE
+DONT: 無 GO 卻 apply；抬 >KH2；本槍順便 S3
+DONE: 09:07 S0 kh0_breach 218→0；seeded=218 advanced=0
 ```
 
 ### WP-M28｜經濟確立路徑（就緒 5 耗盡；鐘 WAIT）
@@ -254,10 +250,10 @@ NOTE: 現役 2021 在位淨≤基準（E3）；34 欄是捆不是單欄
 | R17 | 本板 | 本窗處置 |
 |---|---|---|
 | 01 08-14 出門 | M1a | 🟢 EXECUTED |
-| 02 08-17 心跳 | M1b | WAIT |
+| 02 08-17 心跳 | M1b | 🟢 出門＠08-17 |
 | 03 econ | M2／M17 | 披露；evaluate 禁 |
 | 04 八窗殼 | M16 | ❄ |
-| 05 P6 | M9 | 可先文件 |
+| 05 P6 | M9 | 🟡 缺口 08-14 vs 包 08-17 |
 | 06 圖提拔 | M7 | 延後 |
 | 07 升格 | M20 | 可先文件；禁 swap |
 | 08 NF | M10／M18 | 監看∥；禁重掃 |
@@ -272,7 +268,7 @@ NOTE: 現役 2021 在位淨≤基準（E3）；34 欄是捆不是單欄
 | 17 K9 | K9 | 延後／另 adopt |
 | 18 K10 | K10 | 隔離 |
 | 19 AUTO-LIFT>KH2 | K3 | 禁 |
-| 20 未入倉 | M25 | 清單可先；commit 另句 |
+| 20 未入倉 | M25 | 🟢 封存 20260818 |
 | 21 dgate draft | M17 | 禁 |
 | 22 HANDOFF | M26 | 備忘 |
 | 23 PME | M27 | 診斷；禁 APPLY |
@@ -297,6 +293,7 @@ NOTE: 現役 2021 在位淨≤基準（E3）；34 欄是捆不是單欄
 | E4 短名單 | `reports/augur_econ_e4_shortlist_r17_20260817.md` |
 | E4 三墓碑 | range／股利／sbl 三份 `reports/augur_econ_e4_feat_*_r17_20260817.md` |
 | E4b 鐘 | `reports/augur_econ_e4b_clock_r17_20260817.md` |
+| as-of 刀 | `reports/augur_s1s5_asof_verify_best_next_r18_20260817.md` |
 | 前一執行板 | `reports/augur_opt_stepwise_all_problems_r17_20260817.md`（已被本檔 supersede） |
 
 衝突：開工順序與「可先／可同步」**以本檔為準**；殼指令與 GO 文案以長板／audit 為準。深化理解 r17 的 LIVE 段（emit 仍寫 08-13）**過期**，以本檔 LIVE 為準。
@@ -305,9 +302,9 @@ NOTE: 現役 2021 在位淨≤基準（E3）；34 欄是捆不是單欄
 
 ## §7 何時刷新（r19／改本檔）
 
-1. M1b 閉合（EXECUTED 或 TIMEOUT）；或  
+1. 下一交易日 B3（PriceAdj≥08-18）閉合；或  
 2. Steward 雙明示改 standing／升格／解凍／K9 adopt／新角度 feat-go；或  
-3. 價頂滾過 08-17 且 emit 跟上。
+3. P6 freeze 對齊 08-17。
 
 ---
 

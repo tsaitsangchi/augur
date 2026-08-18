@@ -43,25 +43,43 @@ def register(model_id, family, horizon, train_span, asof_snapshot, feats_hash, s
              json.dumps(metrics or {}), artifact_path, sha or git_sha()))
 
 
+def _latest_row(family, horizon, asof_snapshot, *, strict_before=False):
+    """共用查詢：≤D（serve）或 <D（OOS）。跳過缺檔 ghost。"""
+    op = "<" if strict_before else "<="
+    sql = (
+        "SELECT model_id, artifact_path, feats_hash, metrics::text, git_sha, "
+        "asof_snapshot::text FROM model_registry "
+        f"WHERE family=%s AND horizon=%s AND asof_snapshot{op}%s "
+        "ORDER BY asof_snapshot DESC, created_at DESC"
+    )
+    with db.connect() as conn, db.transaction(conn) as cur:
+        cur.execute(sql, (family, horizon, asof_snapshot))
+        for r in cur.fetchall():
+            path = r[1]
+            if path and Path(path).is_file():
+                return {
+                    "model_id": r[0],
+                    "artifact_path": path,
+                    "feats_hash": r[2],
+                    "metrics": r[3],
+                    "git_sha": r[4],
+                    "asof_snapshot": r[5],
+                }
+        return None
+
+
 def latest(family, horizon, asof_snapshot):
     """查 ≤as_of 之最新同 family/horizon 模型(predict/resume 載入);無則 None。回 dict。
 
     跳過 artifact 檔不存在之 ghost 登錄列(真兆:registry 有列、disk 無 joblib)——
     仍依 asof_snapshot DESC, created_at DESC 選下一可用者;全缺則 None。
     """
-    with db.connect() as conn, db.transaction(conn) as cur:
-        cur.execute(
-            """SELECT model_id, artifact_path, feats_hash, metrics::text, git_sha
-               FROM model_registry
-               WHERE family=%s AND horizon=%s AND asof_snapshot<=%s
-               ORDER BY asof_snapshot DESC, created_at DESC""",
-            (family, horizon, asof_snapshot))
-        for r in cur.fetchall():
-            path = r[1]
-            if path and Path(path).is_file():
-                return {"model_id": r[0], "artifact_path": path,
-                        "feats_hash": r[2], "metrics": r[3], "git_sha": r[4]}
-        return None
+    return _latest_row(family, horizon, asof_snapshot, strict_before=False)
+
+
+def latest_before(family, horizon, asof_snapshot):
+    """OOS：asof_snapshot < D（排除同日 stamp）。無則 None。"""
+    return _latest_row(family, horizon, asof_snapshot, strict_before=True)
 
 
 def exists(model_id):
@@ -82,10 +100,10 @@ def _selftest():
         ok = ok and cond
         print(f"  {'✓' if cond else '✗FAIL'} {name}")
 
-    chk("公開入口皆存在(register/latest/exists/git_sha)",
-        all(hasattr(m, n) for n in ("register", "latest", "exists", "git_sha")))
+    chk("公開入口皆存在(register/latest/latest_before/exists/git_sha)",
+        all(hasattr(m, n) for n in ("register", "latest", "latest_before", "exists", "git_sha")))
     chk("公開入口皆 callable",
-        all(callable(getattr(m, n)) for n in ("register", "latest", "exists", "git_sha")))
+        all(callable(getattr(m, n)) for n in ("register", "latest", "latest_before", "exists", "git_sha")))
     # register 簽名鎖:身分證欄位齊全(#15 可重現鍵不得漏)
     rp = list(inspect.signature(m.register).parameters)
     chk("register 簽名含 feats_hash/seed/asof_snapshot/git-sha 鍵",
@@ -93,9 +111,12 @@ def _selftest():
                               "feats_hash", "seed", "metrics", "artifact_path")))
     chk("latest 簽名=(family,horizon,asof_snapshot)",
         list(inspect.signature(m.latest).parameters) == ["family", "horizon", "asof_snapshot"])
+    chk("latest_before 簽名=(family,horizon,asof_snapshot)",
+        list(inspect.signature(m.latest_before).parameters) == ["family", "horizon", "asof_snapshot"])
     # ghost skip：docstring／實作須含 is_file 護欄(缺 joblib 不選)
-    src = inspect.getsource(m.latest)
+    src = inspect.getsource(m._latest_row)
     chk("latest 跳過缺檔 artifact(is_file)", "is_file" in src)
+    chk("OOS 用 strict_before", "strict_before" in src)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 

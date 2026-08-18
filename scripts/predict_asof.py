@@ -146,12 +146,14 @@ def _prev_portfolio(conn, model_id, asof):
 
 
 def predict(horizon, family, asof, top_n=20, top_frac=0.1, weight="equal", dry_run=False,
-            risk=False):
+            risk=False, quiet=False, strict_before=False):
     """載 artifact → 當日核心宇宙 predict → rank → 共用 fn 建 top-decile long 投組 → (可選)寫 prediction_values。
 
     回 rows[(rank,sid,score,in_portfolio,weight)]。投組建構複用 portfolio.build_long_portfolio(#12 命門:
     與 run_backtest 同一支選股邏輯、live≡回測零漂移)。risk=True 時收尾套 execution.risk_control overlay
     (單標的 cap 生效於落庫權重;DD 熔斷/換手為建議旗標、不自動下單),閾值讀 risk_policy(#29b)。
+    quiet=True：成功路徑不印投組（V1 批次驗証用）；錯誤仍印。
+    strict_before=True：載 asof_snapshot < panel 的模型（OOS；排除同日 stamp）。
     """
     # 2026-07-31 起單一角色 `augur`（Steward 拍板「augur 包含所有專案與 database 及 database user」）。
     # 原 G-ISO-2 之受限 role `augur_predict` 已退役 ⇒ #8 隔離之 **DB 層不復存在**，
@@ -174,9 +176,16 @@ def predict(horizon, family, asof, top_n=20, top_frac=0.1, weight="equal", dry_r
         if fv_n <= 0:
             print(f"✗ {asof} 無 feature_values panel（先 collect 或 L1 feat）;中止。")
             return None
-        reg = registry.latest(family, horizon, asof)
-        if reg is None:
-            print(f"✗ registry 無 ≤{asof} 之 {family} H={horizon} 模型;先跑 train_ranker.py。"); return None
+        if strict_before:
+            reg = registry.latest_before(family, horizon, asof)
+            if reg is None:
+                print(f"✗ registry 無 <{asof} 之 {family} H={horizon}（OOS 須更早 stamp）;中止。")
+                return None
+        else:
+            reg = registry.latest(family, horizon, asof)
+            if reg is None:
+                print(f"✗ registry 無 ≤{asof} 之 {family} H={horizon} 模型;先跑 train_ranker.py。")
+                return None
         art = artifact.load(reg["artifact_path"])
         feats = art["feats"]
         metrics = _metrics_dict(reg.get("metrics"))
@@ -241,18 +250,19 @@ def predict(horizon, family, asof, top_n=20, top_frac=0.1, weight="equal", dry_r
                 action_log.link_observed_effect(cur, aid, None, status="completed")
     tag = "(dry-run 未寫庫)" if dry_run else f"→ prediction_values ({len(rows)} 列)"
     n_port = len(port)
-    print(f"✓ as-of {asof} 預測 model={reg['model_id']} feature_source={feature_source} "
-          f"n_feats={len(feats)} {tag}")
-    print(f"  frozen_feats={feats}")
-    print(f"── long 投組建議 top{top_frac:.0%}/{weight}({n_port} 檔;系統建議、人決策、不下單;≠可交易)──")
-    for rk, sid, sc, inp, w in rows:
-        if inp:
-            print(f"  #{rk:<3} {sid:<8} score={sc:+.4f} w={w:.4f}")
-    print(f"── 排序 top-{top_n}(★=入投組)──")
-    for rk, sid, sc, inp, w in rows[:top_n]:
-        print(f"  {'★' if inp else ' '} #{rk:<3} {sid:<8} score={sc:+.4f}")
-    if overlay is not None:
-        _print_risk(overlay)
+    if not quiet:
+        print(f"✓ as-of {asof} 預測 model={reg['model_id']} feature_source={feature_source} "
+              f"n_feats={len(feats)} {tag}")
+        print(f"  frozen_feats={feats}")
+        print(f"── long 投組建議 top{top_frac:.0%}/{weight}({n_port} 檔;系統建議、人決策、不下單;≠可交易)──")
+        for rk, sid, sc, inp, w in rows:
+            if inp:
+                print(f"  #{rk:<3} {sid:<8} score={sc:+.4f} w={w:.4f}")
+        print(f"── 排序 top-{top_n}(★=入投組)──")
+        for rk, sid, sc, inp, w in rows[:top_n]:
+            print(f"  {'★' if inp else ' '} #{rk:<3} {sid:<8} score={sc:+.4f}")
+        if overlay is not None:
+            _print_risk(overlay)
     return rows
 
 

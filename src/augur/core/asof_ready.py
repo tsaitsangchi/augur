@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Any, Mapping, Optional
+import json
 
 from augur.core.closed_horizons import H_TRACK
 
@@ -43,10 +44,24 @@ NEED_DAILY = len(DAILY_IDS)
 NEED_MKT = len(MKT_IDS)
 NEED_STACK = len(STACK_IDS)
 
+# 其他模型軌（≠ RETRAIN-ALL）。--track other --apply＝fail-loud 不開訓；
+# --track other --dry-plan＝V0／族矩陣盤點（verify_asof_families，零寫庫）。
+NF_PAUSE_0812 = (
+    "ArimaUnivariate",
+    "VarSmall",
+    "KalmanLocalLevel",
+    "CointPairEG",
+    "GarchMeanDir",
+    "GcnSmall",
+)
+V2_NAMED_GO = ("VECM", "TCN", "NB", "RL")
+SEQ_EVAL_ONLY = ("SeqLSTM",)
+
 RC_READY = 0
 RC_NEED_COLLECT = 2
 RC_FAKE_B3 = 3
 RC_NO_PRICE = 4
+RC_OTHER_LANE = 6
 
 # 完整性定案錨（憲章歷史判準）。方向臂訓練鎖 ≠ 此常數，見 pick_lock／resolve_lock。
 COMPLETENESS_ASOF = date(2026, 5, 31)
@@ -60,7 +75,7 @@ _STATUS_RC = {
 
 
 def as_date(v: Any) -> Optional[date]:
-    """CLI／DB 值 → date；空 → None。純函式。"""
+    """CLI／DB 值 → date；空／非 ISO → None。純函式。"""
     if v is None or v == "":
         return None
     if isinstance(v, datetime):
@@ -70,7 +85,25 @@ def as_date(v: Any) -> Optional[date]:
     s = str(v).strip()[:10]
     if not s:
         return None
-    return date.fromisoformat(s)
+    try:
+        return date.fromisoformat(s)
+    except ValueError:
+        return None
+
+
+def date_arg_error(v: Any) -> Optional[str]:
+    """非 YYYY-MM-DD／佔位符 D → 錯誤字；合法或空 → None。"""
+    if v is None or str(v).strip() == "":
+        return None
+    if as_date(v) is not None:
+        return None
+    raw = str(v).strip()
+    if raw in ("D", "d", "<D>", "YYYY-MM-DD"):
+        return (
+            "✗ --date 須 YYYY-MM-DD（D 是佔位符，例如 "
+            "2026-08-07；價頂：python scripts/check_asof_ready.py --latest-date）"
+        )
+    return f"✗ --date 須 YYYY-MM-DD（收到 {raw!r}）"
 
 
 def classify_asof(d: Any, price_max: Any, fv_rows: int) -> str:
@@ -115,11 +148,123 @@ def pack_is_complete(
     )
 
 
+def other_lane_policy() -> dict:
+    """其他模型怎麼走歷史 as-of（純函式；不開訓）。"""
+    return {
+        "shared_panel": list(A_FAMILIES),
+        "direction_at_tip": list(DAILY_IDS + MKT_IDS + STACK_IDS),
+        "nf_pause_0812": list(NF_PAUSE_0812),
+        "named_go": list(V2_NAMED_GO),
+        "eval_only": list(SEQ_EVAL_ONLY),
+    }
+
+
+def other_lane_oneline() -> str:
+    """探針／殼一行：誰能共用 panel、誰禁、誰須點名。"""
+    return (
+        "截面8族共用 feature_values＠D（--track A|all 訓；other --dry-plan＝V0/V1 盤點）；"
+        "Daily*/Mkt/DirStackM＝價頂鎖；"
+        "0812 NF 六族禁同尺重掃；"
+        "VECM/TCN/NB/RL 須點名 GO；"
+        "SeqLSTM 評測不寫庫；"
+        "--track other --apply＝rc=6 不開訓"
+    )
+
+
+def other_lane_refuse_msg() -> str:
+    """--track other --apply 的 fail-loud 全文。"""
+    p = other_lane_policy()
+    return (
+        "其他模型不走本殼開訓（--track other --apply＝說明＋退出，rc=6）。\n"
+        "  盤點／已實現窗 rank IC：--dry-plan --track other 或 "
+        "python scripts/verify_asof_families.py --date 2026-08-07 --ic --oos\n"
+        f"  共用 panel＠D：{', '.join(p['shared_panel'])} → --track A 或 all 才訓\n"
+        "  方向臂：只在價頂動；歷史 D 預設 --skip-daily --skip-mkt --skip-stack\n"
+        f"  0812 NF 禁重掃：{', '.join(p['nf_pause_0812'])}\n"
+        f"  殘格須點名 GO：{', '.join(p['named_go'])}（缺 adapter／額外張量，不是同一張 feature_values）\n"
+        f"  評測不寫庫：{', '.join(p['eval_only'])}\n"
+    )
+
+
+def label_n_needed(h: int) -> int:
+    """t+1 進場後要湊齊 label：日曆上 panel 之後至少 h+1 個交易日（exit=cal[h]）。"""
+    return int(h) + 1
+
+
+def label_is_realized(n_trading_days_after: int, h: int) -> bool:
+    """純函式：panel 之後已有幾個交易日 × 窗 → 標籤是否已實現（#8 不外推）。"""
+    return int(n_trading_days_after or 0) >= label_n_needed(h)
+
+
+def realized_horizons(n_trading_days_after: int, horizons=H_TRACK) -> tuple[int, ...]:
+    """已實現的 H 窗（升序）。"""
+    n = int(n_trading_days_after or 0)
+    return tuple(h for h in horizons if label_is_realized(n, h))
+
+
+def n_trading_days_after(calendar, panel_date, until) -> int:
+    """日曆上 panel 之後、until 以前（含）的交易日數。純函式。"""
+    p, u = as_date(panel_date), as_date(until)
+    if p is None or u is None:
+        return 0
+    return sum(1 for d in calendar if p < as_date(d) <= u)
+
+
+def stamp_kind(model_asof: Any, panel_asof: Any) -> str:
+    """模型 stamp vs 評測 panel：oos / same_day / future / unknown。"""
+    ma, pa = as_date(model_asof), as_date(panel_asof)
+    if ma is None or pa is None:
+        return "unknown"
+    if ma > pa:
+        return "future"
+    if ma == pa:
+        return "same_day"
+    return "oos"
+
+
+def format_family_matrix(present: Mapping[tuple[str, int], Any], *, families=A_FAMILIES, horizons=H_TRACK) -> str:
+    """8×8 有無格 → 固定寬表（純函式；值 truthy＝有）。"""
+    hs = tuple(horizons)
+    fams = tuple(families)
+    head = f"{'family':<10}" + "".join(f"{'H' + str(h):<6}" for h in hs)
+    lines = [head, "-" * len(head)]
+    for fam in fams:
+        bits = []
+        for h in hs:
+            mark = "✓" if present.get((fam, int(h))) else "."
+            bits.append(f"{mark:<6}")
+        lines.append(f"{fam:<10}" + "".join(bits))
+    return "\n".join(lines)
+
+
+def a_cell_gap(n_cells: int) -> int:
+    """截面 8×8 還缺幾格（≥0）。"""
+    g = NEED_A_CELLS - int(n_cells or 0)
+    return g if g > 0 else 0
+
+
+def format_incomplete_scan(rows: list) -> str:
+    """未齊歷史日表（純函式）。row keys: asof, a_cells, has_core, realized_h（可省）。"""
+    head = f"{'asof':<12}{'A格':<8}{'缺':<6}{'core':<8}realized_H"
+    lines = [head, "-" * len(head)]
+    for r in rows:
+        hs = r.get("realized_h")
+        hs_s = ",".join(str(x) for x in hs) if hs else "—"
+        core = "Y" if r.get("has_core") else "N"
+        n = int(r.get("a_cells") or 0)
+        lines.append(
+            f"{str(r.get('asof')):<12}{n:<8}{a_cell_gap(n):<6}{core:<8}{hs_s}"
+        )
+    if len(rows) == 0:
+        lines.append("(無未齊日)")
+    return "\n".join(lines)
+
+
 def snapshot(cur, d: Any) -> dict:
     """唯讀 DB：D 的價／特徵／核心／邊界 A＋方向臂 registry。cur 須已開。"""
     dd = as_date(d)
     if dd is None:
-        raise ValueError("as-of 日空")
+        raise ValueError(date_arg_error(d) or "as-of 日空")
     price_max = taiex_price_max(cur)
     cur.execute(
         "SELECT count(distinct feature), count(*) FROM feature_values WHERE panel_date=%s",
@@ -209,6 +354,169 @@ def snapshot(cur, d: Any) -> dict:
     }
 
 
+def family_cells(cur, d: Any) -> dict[tuple[str, int], dict]:
+    """DB：asof_snapshot＝D 的截面 8×8（每格最新一列）。缺格不出現。"""
+    dd = as_date(d)
+    if dd is None:
+        return {}
+    iso = dd.isoformat()
+    cur.execute(
+        """
+        SELECT DISTINCT ON (family, horizon)
+               family, horizon, model_id, metrics
+          FROM model_registry
+         WHERE family = ANY(%s)
+           AND horizon = ANY(%s)
+           AND asof_snapshot::text = %s
+         ORDER BY family, horizon, created_at DESC
+        """,
+        (list(A_FAMILIES), list(H_TRACK), iso),
+    )
+    out: dict[tuple[str, int], dict] = {}
+    for fam, h, mid, metrics in cur.fetchall():
+        met = metrics
+        if isinstance(met, str):
+            try:
+                met = json.loads(met) or {}
+            except Exception:
+                met = {}
+        if not isinstance(met, dict):
+            met = {}
+        out[(str(fam), int(h))] = {
+            "model_id": mid,
+            "n_train_rows": met.get("n_train_rows"),
+        }
+    return out
+
+
+def other_lane_registry(cur) -> dict[str, dict]:
+    """DB：NF／殘格／Seq 是否已登錄（任何 asof）。空＝尚未開訓，屬預期。"""
+    names = list(NF_PAUSE_0812) + list(V2_NAMED_GO) + list(SEQ_EVAL_ONLY)
+    cur.execute(
+        """
+        SELECT family, count(*), max(asof_snapshot::text)
+          FROM model_registry
+         WHERE family = ANY(%s)
+         GROUP BY 1
+        """,
+        (names,),
+    )
+    found = {
+        str(fam): {"n": int(n), "max_asof": mx}
+        for fam, n, mx in cur.fetchall()
+    }
+    return {name: found.get(name, {"n": 0, "max_asof": None}) for name in names}
+
+
+def scan_incomplete_asof(cur, *, since: Any = None, limit: int = 40) -> list[dict]:
+    """DB：有 feature_values、截面 <8×8、且 D≤價頂 的歷史日（新→舊）。"""
+    price_max = taiex_price_max(cur)
+    if price_max is None:
+        return []
+    since_d = as_date(since) or date(2026, 5, 1)
+    cur.execute(
+        """
+        WITH panels AS (
+          SELECT DISTINCT panel_date AS d
+            FROM feature_values
+           WHERE panel_date >= %s AND panel_date <= %s
+        ),
+        cells AS (
+          SELECT asof_snapshot::text AS asof,
+                 count(DISTINCT family || ':' || horizon::text) AS n
+            FROM model_registry
+           WHERE family = ANY(%s) AND horizon = ANY(%s)
+           GROUP BY 1
+        )
+        SELECT p.d::text,
+               coalesce(c.n, 0),
+               EXISTS (
+                 SELECT 1 FROM core_universe_asof u WHERE u.as_of_date = p.d
+               )
+          FROM panels p
+          LEFT JOIN cells c ON c.asof = p.d::text
+         WHERE coalesce(c.n, 0) < %s
+         ORDER BY p.d DESC
+         LIMIT %s
+        """,
+        (
+            since_d,
+            price_max,
+            list(A_FAMILIES),
+            list(H_TRACK),
+            NEED_A_CELLS,
+            int(limit),
+        ),
+    )
+    out = []
+    for iso, n, has_core in cur.fetchall():
+        out.append({
+            "asof": iso,
+            "a_cells": int(n or 0),
+            "has_core": bool(has_core),
+            "gap": a_cell_gap(int(n or 0)),
+            "price_max": price_max.isoformat(),
+        })
+    return out
+
+
+def scan_complete_asof(cur, *, limit: int = 12) -> list[dict]:
+    """DB：截面已 64 格的 asof（新→舊）。"""
+    cur.execute(
+        """
+        SELECT asof_snapshot::text,
+               count(DISTINCT family || ':' || horizon::text)
+          FROM model_registry
+         WHERE family = ANY(%s) AND horizon = ANY(%s)
+         GROUP BY 1
+        HAVING count(DISTINCT family || ':' || horizon::text) >= %s
+         ORDER BY 1 DESC
+         LIMIT %s
+        """,
+        (list(A_FAMILIES), list(H_TRACK), NEED_A_CELLS, int(limit)),
+    )
+    return [{"asof": iso, "a_cells": int(n)} for iso, n in cur.fetchall()]
+
+
+def scan_realized_panels(
+    cur,
+    calendar,
+    *,
+    need_h: int = 5,
+    limit: int = 12,
+) -> list[dict]:
+    """DB：D≤價頂、有 panel、標籤窗 need_h 已實現的歷史日（新→舊）。不要求 8×8 已齊。"""
+    tip = taiex_price_max(cur)
+    if tip is None:
+        return []
+    cur.execute(
+        """
+        SELECT DISTINCT panel_date
+          FROM feature_values
+         WHERE panel_date <= %s
+         ORDER BY 1 DESC
+         LIMIT 80
+        """,
+        (tip,),
+    )
+    out: list[dict] = []
+    for (d,) in cur.fetchall():
+        n = n_trading_days_after(calendar, d, tip)
+        hs = realized_horizons(n)
+        if int(need_h) not in hs:
+            continue
+        iso = as_date(d).isoformat()
+        out.append({
+            "asof": iso,
+            "n_after": n,
+            "realized_h": hs,
+            "price_max": tip.isoformat(),
+        })
+        if len(out) >= int(limit):
+            break
+    return out
+
+
 def assert_not_fake_b3(price_max: Any, asof: Any) -> Optional[str]:
     """價 < asof → 錯誤字；否則 None。純函式。"""
     st = classify_asof(asof, price_max, 1)
@@ -279,6 +587,9 @@ def _selftest() -> int:
     d = date(2026, 8, 7)
     chk("as_date ISO", as_date("2026-08-07") == d)
     chk("as_date date", as_date(d) == d)
+    chk("as_date 佔位符 D→None", as_date("D") is None)
+    chk("date_arg_error 佔位符", "佔位符" in (date_arg_error("D") or ""))
+    chk("date_arg_error 合法→None", date_arg_error("2026-08-07") is None)
     chk("ready", classify_asof(d, date(2026, 8, 12), 10) == STATUS_READY)
     chk(
         "need_collect",
@@ -330,6 +641,33 @@ def _selftest() -> int:
             asof="2026-08-14", price_max="2026-08-14",
         ),
     )
+    pol = other_lane_policy()
+    chk("其他軌截面 8 族", len(pol["shared_panel"]) == 8)
+    chk("0812 NF 六族", len(pol["nf_pause_0812"]) == 6)
+    chk("殘格四點名", pol["named_go"] == ["VECM", "TCN", "NB", "RL"])
+    chk("other rc=6", RC_OTHER_LANE == 6)
+    chk("other 一行含禁重掃", "禁同尺重掃" in other_lane_oneline())
+    chk("other refuse 含 VECM", "VECM" in other_lane_refuse_msg())
+    chk("H5 需 6 個交易日", label_n_needed(5) == 6)
+    chk("5 日不夠 H5", not label_is_realized(5, 5))
+    chk("6 日夠 H5", label_is_realized(6, 5))
+    chk("11 日實現 H5+H10", realized_horizons(11) == (5, 10))
+    chk("0 日無實現窗", realized_horizons(0) == ())
+    cal = [date(2026, 8, d) for d in (3, 4, 5, 6, 7, 10, 11, 12, 13, 14)]
+    chk("n_after 08-07→08-14=5", n_trading_days_after(cal, "2026-08-07", "2026-08-14") == 5)
+    chk("stamp oos", stamp_kind("2026-07-31", "2026-08-07") == "oos")
+    chk("stamp same_day", stamp_kind("2026-08-07", "2026-08-07") == "same_day")
+    chk("stamp future", stamp_kind("2026-08-14", "2026-08-07") == "future")
+    mx = format_family_matrix({("RankRidge", 5): {"model_id": "x"}, ("RankGBDT", 5): True})
+    chk("matrix 含族名", "RankRidge" in mx and "RankSVM" in mx)
+    chk("matrix 缺格點", "." in mx)
+    chk("matrix 有格勾", "✓" in mx)
+    chk("缺 12 格→gap 52", a_cell_gap(12) == 52)
+    chk("齊包 gap 0", a_cell_gap(64) == 0)
+    sc = format_incomplete_scan([
+        {"asof": "2026-08-07", "a_cells": 12, "has_core": True, "realized_h": (5,)},
+    ])
+    chk("scan 表含 08-07", "2026-08-07" in sc and "12" in sc)
     d, e = pick_lock(None, date(2026, 8, 12))
     chk("未指定鎖價頂", d == date(2026, 8, 12) and e is None)
     d, e = pick_lock("2026-08-07", "2026-08-12")
