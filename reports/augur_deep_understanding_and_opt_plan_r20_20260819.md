@@ -113,7 +113,7 @@ self_reported: true
 | E4b 鐘 | WAIT k=0；next≈**2026-11-13** |
 | RIDGE-THEN-PB-v1＠08-18 | 多 0／10、空 0／10；空≠可融券 |
 | V0／V1＠08-18 | 已閉；`--track other --apply`＝rc=6；**no-promote** |
-| 封存點 | tag `archive-20260819-b3-hist-slim-r20`（SHA 封存後回填） |
+| 封存點 | tag `archive-20260819-b3-hist-slim-r20` · HEAD `63752bb` |
 | git | `main` → `origin` `https://github.com/tsaitsangchi/augur` |
 | crontab | 17 條；**無** cron B3；含 RETRAIN-ALL 21:40／09:20 |
 

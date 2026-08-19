@@ -3,7 +3,7 @@ status: archive_checkpoint
 date: 2026-08-19
 kind: archive_checkpoint
 tag: archive-20260819-b3-hist-slim-r20
-sha: pending
+sha: "63752bb693293fba42fef2bb12b896b35b4a39d0"
 remote: https://github.com/tsaitsangchi/augur
 auth: "Steward：更新全部檔案上傳到 https://github.com/tsaitsangchi/augur 並做封存點"
 prior: archive-20260819-path-opt-charge-t5-ridge
@@ -16,7 +16,7 @@ layer: "[I]"
 date: 2026-08-19  
 kind: archive_checkpoint  
 tag: `archive-20260819-b3-hist-slim-r20`  
-sha: pending（封存 push 後回填）  
+sha: "63752bb693293fba42fef2bb12b896b35b4a39d0"  
 remote: https://github.com/tsaitsangchi/augur
 
 上一封存：`archive-20260819-path-opt-charge-t5-ridge`（commit `ad7db10`；回填 `6341cab`）。
