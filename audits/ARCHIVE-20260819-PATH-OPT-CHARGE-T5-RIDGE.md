@@ -3,7 +3,7 @@ status: archive_checkpoint
 date: 2026-08-19
 kind: archive_checkpoint
 tag: archive-20260819-path-opt-charge-t5-ridge
-sha: pending
+sha: "ad7db10c8df33341a80a7bc73a676ddf701df652"
 remote: https://github.com/tsaitsangchi/augur
 auth: "Steward：更新全部檔案上傳到 https://github.com/tsaitsangchi/augur 並做封存點"
 prior: archive-20260818-b3-retrain-force-hist-oos
@@ -16,7 +16,7 @@ layer: "[I]"
 date: 2026-08-19  
 kind: archive_checkpoint  
 tag: `archive-20260819-path-opt-charge-t5-ridge`  
-sha: pending  
+sha: "ad7db10c8df33341a80a7bc73a676ddf701df652"  
 remote: https://github.com/tsaitsangchi/augur
 
 上一封存：`archive-20260818-b3-retrain-force-hist-oos`（commit `c38395a`；回填 `9710e5e`）。
