@@ -47,10 +47,16 @@ def main(argv=None) -> int:
         print(iso)
         return 0
     if args.scan:
+        from augur.evaluation import label as label_mod
         with db.connect() as conn, conn.cursor() as cur:
             incomplete = asof_ready.scan_incomplete_asof(cur, limit=40)
             complete = asof_ready.scan_complete_asof(cur, limit=8)
             tip = asof_ready.taiex_price_max(cur)
+            cal = label_mod.full_calendar(conn)
+        for r in incomplete:
+            r["realized_h"] = asof_ready.realized_horizons(
+                asof_ready.n_trading_days_after(cal, r["asof"], tip)
+            )
         print("price_max=%s" % (None if tip is None else tip.isoformat()))
         print("截面已齊 8×8（近）: " + ", ".join(r["asof"] for r in complete))
         print("截面未齊（有 panel、D≤價頂；補齊須 --track all，方向臂不覆寫）")
@@ -121,6 +127,7 @@ def main(argv=None) -> int:
             print(asof_ready.format_family_matrix(cells))
             n_other = sum(1 for v in other.values() if v.get("n"))
             print("其他車道登錄族數=%d（0＝預期；非 0 不表示可重掃 0812）" % n_other)
+            print(asof_ready.format_other_lane_registry(other))
     elif st == asof_ready.STATUS_NEED_COLLECT:
         print("→ 價已到、缺 panel：先 build_feature_panel --panels D（skip-sync）")
     elif st == asof_ready.STATUS_FAKE_B3:

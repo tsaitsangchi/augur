@@ -20,8 +20,8 @@ kh_split: audits/KH-SPLIT-FROM-MARKET-AXIS-ADOPTED-20260812.md
 l2_plan: reports/augur_daily_retrain_l2_all_rank_plan_20260812.md
 l0_hotpath: reports/augur_l0_hotpath_daily_plan_20260814.md
 l0_adopted: audits/L0-HOTPATH-PREDICT-DAILY-ADOPTED-20260814.md
-archive_tip: archive-20260818-b3-retrain-force-hist-oos
-prior_archive: archive-20260817-r18-htrack-hist-econ
+archive_tip: archive-20260819-path-opt-charge-t5-ridge
+prior_archive: archive-20260818-b3-retrain-force-hist-oos
 other_verify: reports/augur_s4_other_model_verify_matrix_plan_20260806.md
 residual: audits/NF-0812-RESIDUAL-NAME-CARD-20260813.md
 sole_steward: true

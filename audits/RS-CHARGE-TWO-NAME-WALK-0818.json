@@ -1,0 +1,318 @@
+{
+  "origin": "2024-01-02",
+  "tip": "2026-08-18",
+  "entry": "t+1",
+  "hold_h": [
+    5,
+    10,
+    20
+  ],
+  "note": "路徑閘現算；L-D 用近252交易日還原收盤現算（庫內 feature_values 非每日）。非 Ridge 八窗均分 Top10（歷史分數不足）。未扣成本。≠可交易。",
+  "stocks": {
+    "3017": {
+      "name": "奇鋐",
+      "n_eval": 635,
+      "n_pass": 213,
+      "pass_rate": 0.335,
+      "overlap_fwd": {
+        "H5": {
+          "n": 207,
+          "mean": 1.45,
+          "median": 0.32,
+          "min": -20.6,
+          "max": 24.33
+        },
+        "H10": {
+          "n": 203,
+          "mean": 3.49,
+          "median": 2.82,
+          "min": -22.64,
+          "max": 38.16
+        },
+        "H20": {
+          "n": 203,
+          "mean": 8.66,
+          "median": 4.71,
+          "min": -31.15,
+          "max": 63.21
+        }
+      },
+      "n_trades_rising_h20": 16,
+      "trades_rising_h20": [
+        {
+          "signal": "2024-01-11",
+          "entry": "2024-01-12",
+          "exit": "2024-02-20",
+          "hold_td": 20,
+          "ret_pct": 38.0,
+          "h5_at_signal": 8.62,
+          "h10_at_signal": 6.78
+        },
+        {
+          "signal": "2024-02-26",
+          "entry": "2024-02-27",
+          "exit": "2024-03-27",
+          "hold_td": 20,
+          "ret_pct": 5.12,
+          "h5_at_signal": 2.88,
+          "h10_at_signal": 9.29
+        },
+        {
+          "signal": "2024-04-11",
+          "entry": "2024-04-12",
+          "exit": "2024-05-13",
+          "hold_td": 20,
+          "ret_pct": -0.32,
+          "h5_at_signal": 9.57,
+          "h10_at_signal": 7.95
+        },
+        {
+          "signal": "2024-05-23",
+          "entry": "2024-05-24",
+          "exit": "2024-06-24",
+          "hold_td": 20,
+          "ret_pct": 1.13,
+          "h5_at_signal": 8.76,
+          "h10_at_signal": 8.26
+        },
+        {
+          "signal": "2024-06-26",
+          "entry": "2024-06-27",
+          "exit": "2024-07-29",
+          "hold_td": 20,
+          "ret_pct": -19.84,
+          "h5_at_signal": 5.11,
+          "h10_at_signal": 7.56
+        },
+        {
+          "signal": "2024-10-18",
+          "entry": "2024-10-21",
+          "exit": "2024-11-19",
+          "hold_td": 20,
+          "ret_pct": -4.28,
+          "h5_at_signal": 8.27,
+          "h10_at_signal": 16.41
+        },
+        {
+          "signal": "2024-12-02",
+          "entry": "2024-12-03",
+          "exit": "2024-12-31",
+          "hold_td": 20,
+          "ret_pct": -10.62,
+          "h5_at_signal": 1.35,
+          "h10_at_signal": 6.27
+        },
+        {
+          "signal": "2025-06-11",
+          "entry": "2025-06-12",
+          "exit": "2025-07-10",
+          "hold_td": 20,
+          "ret_pct": 11.33,
+          "h5_at_signal": 6.31,
+          "h10_at_signal": 19.08
+        },
+        {
+          "signal": "2025-07-18",
+          "entry": "2025-07-21",
+          "exit": "2025-08-18",
+          "hold_td": 20,
+          "ret_pct": 31.31,
+          "h5_at_signal": 7.74,
+          "h10_at_signal": 14.67
+        },
+        {
+          "signal": "2025-09-11",
+          "entry": "2025-09-12",
+          "exit": "2025-10-15",
+          "hold_td": 20,
+          "ret_pct": 16.19,
+          "h5_at_signal": 9.63,
+          "h10_at_signal": 0.99
+        },
+        {
+          "signal": "2025-10-27",
+          "entry": "2025-10-28",
+          "exit": "2025-11-25",
+          "hold_td": 20,
+          "ret_pct": 1.15,
+          "h5_at_signal": 3.48,
+          "h10_at_signal": 1.71
+        },
+        {
+          "signal": "2025-12-05",
+          "entry": "2025-12-08",
+          "exit": "2026-01-07",
+          "hold_td": 20,
+          "ret_pct": -0.72,
+          "h5_at_signal": 0.73,
+          "h10_at_signal": 11.69
+        },
+        {
+          "signal": "2026-01-29",
+          "entry": "2026-01-30",
+          "exit": "2026-03-11",
+          "hold_td": 20,
+          "ret_pct": 27.4,
+          "h5_at_signal": 10.33,
+          "h10_at_signal": 8.33
+        },
+        {
+          "signal": "2026-03-19",
+          "entry": "2026-03-20",
+          "exit": "2026-04-21",
+          "hold_td": 20,
+          "ret_pct": 25.12,
+          "h5_at_signal": 7.47,
+          "h10_at_signal": 10.71
+        },
+        {
+          "signal": "2026-05-22",
+          "entry": "2026-05-25",
+          "exit": "2026-06-23",
+          "hold_td": 20,
+          "ret_pct": -5.83,
+          "h5_at_signal": 3.67,
+          "h10_at_signal": 4.09
+        },
+        {
+          "signal": "2026-07-02",
+          "entry": "2026-07-03",
+          "exit": "2026-08-03",
+          "hold_td": 20,
+          "ret_pct": -7.61,
+          "h5_at_signal": 9.38,
+          "h10_at_signal": 15.86
+        }
+      ],
+      "trade_h20_sum_pct": 107.53,
+      "buy_hold_origin_to_tip_pct": 840.11,
+      "last_pass": "2026-08-18",
+      "last_pass_fwd": {
+        "fwd_h5": null,
+        "fwd_h10": null,
+        "fwd_h20": null
+      }
+    },
+    "2395": {
+      "name": "研華",
+      "n_eval": 635,
+      "n_pass": 103,
+      "pass_rate": 0.162,
+      "overlap_fwd": {
+        "H5": {
+          "n": 97,
+          "mean": 1.99,
+          "median": 0.84,
+          "min": -11.36,
+          "max": 32.55
+        },
+        "H10": {
+          "n": 92,
+          "mean": 4.18,
+          "median": 3.13,
+          "min": -14.52,
+          "max": 35.17
+        },
+        "H20": {
+          "n": 87,
+          "mean": 8.7,
+          "median": 3.36,
+          "min": -13.89,
+          "max": 44.38
+        }
+      },
+      "n_trades_rising_h20": 9,
+      "trades_rising_h20": [
+        {
+          "signal": "2024-02-01",
+          "entry": "2024-02-02",
+          "exit": "2024-03-13",
+          "hold_td": 20,
+          "ret_pct": 8.22,
+          "h5_at_signal": 4.32,
+          "h10_at_signal": 5.73
+        },
+        {
+          "signal": "2024-03-21",
+          "entry": "2024-03-22",
+          "exit": "2024-04-23",
+          "hold_td": 20,
+          "ret_pct": -8.38,
+          "h5_at_signal": 1.78,
+          "h10_at_signal": 0.76
+        },
+        {
+          "signal": "2024-12-06",
+          "entry": "2024-12-09",
+          "exit": "2025-01-07",
+          "hold_td": 20,
+          "ret_pct": 1.27,
+          "h5_at_signal": 6.41,
+          "h10_at_signal": 2.29
+        },
+        {
+          "signal": "2025-01-08",
+          "entry": "2025-01-09",
+          "exit": "2025-02-17",
+          "hold_td": 20,
+          "ret_pct": 11.53,
+          "h5_at_signal": 9.09,
+          "h10_at_signal": 8.46
+        },
+        {
+          "signal": "2025-02-20",
+          "entry": "2025-02-21",
+          "exit": "2025-03-24",
+          "hold_td": 20,
+          "ret_pct": -6.58,
+          "h5_at_signal": 3.11,
+          "h10_at_signal": 1.1
+        },
+        {
+          "signal": "2025-03-26",
+          "entry": "2025-03-27",
+          "exit": "2025-04-28",
+          "hold_td": 20,
+          "ret_pct": -13.89,
+          "h5_at_signal": 2.97,
+          "h10_at_signal": 2.05
+        },
+        {
+          "signal": "2026-04-08",
+          "entry": "2026-04-09",
+          "exit": "2026-05-08",
+          "hold_td": 20,
+          "ret_pct": 36.93,
+          "h5_at_signal": 8.4,
+          "h10_at_signal": 5.61
+        },
+        {
+          "signal": "2026-05-20",
+          "entry": "2026-05-21",
+          "exit": "2026-06-18",
+          "hold_td": 20,
+          "ret_pct": 6.58,
+          "h5_at_signal": 0.11,
+          "h10_at_signal": 13.55
+        },
+        {
+          "signal": "2026-06-22",
+          "entry": "2026-06-23",
+          "exit": "2026-07-22",
+          "hold_td": 20,
+          "ret_pct": 22.26,
+          "h5_at_signal": 5.6,
+          "h10_at_signal": 0.71
+        }
+      ],
+      "trade_h20_sum_pct": 57.94,
+      "buy_hold_origin_to_tip_pct": 93.32,
+      "last_pass": "2026-08-18",
+      "last_pass_fwd": {
+        "fwd_h5": null,
+        "fwd_h10": null,
+        "fwd_h20": null
+      }
+    }
+  }
+}

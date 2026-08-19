@@ -80,6 +80,7 @@ if [[ "$SELFTEST" -eq 1 ]]; then
   chk "check_asof_ready.py" "$([[ -f scripts/check_asof_ready.py ]] && echo 1 || echo 0)"
   chk "verify 有 --oos" "$(grep -q -- '--oos' scripts/verify_asof_families.py && echo 1 || echo 0)"
   chk "verify 有 --walk" "$(grep -q -- '--walk' scripts/verify_asof_families.py && echo 1 || echo 0)"
+  chk "verify 有 --horizon" "$(grep -q -- '--horizon' scripts/verify_asof_families.py && echo 1 || echo 0)"
   chk "L2 殼" "$([[ -f scripts/run_daily_retrain_l2_all_rank.sh ]] && echo 1 || echo 0)"
   chk "RETRAIN-ALL 內殼" "$([[ -f scripts/run_retrain_all_asof.sh ]] && echo 1 || echo 0)"
   chk "build_feature_panel.py" "$([[ -f scripts/build_feature_panel.py ]] && echo 1 || echo 0)"
@@ -163,10 +164,15 @@ if [[ "$SELFTEST" -eq 1 ]]; then
   chk "dry 佔位符說明" "$(grep -q '佔位符' /tmp/hist-asof-placeholder.out && echo 1 || echo 0)"
   if "$PY" scripts/check_asof_ready.py --scan >/tmp/hist-asof-scan.out 2>&1; then
     chk "scan RC=0" 1
-    chk "scan 含未齊日" "$(grep -qE '2026-08-13|2026-08-10|2026-08-11' /tmp/hist-asof-scan.out && echo 1 || echo 0)"
+    chk "scan 含未齊日" "$(grep -qE '2026-08-12|2026-08-11|2026-08-10' /tmp/hist-asof-scan.out && echo 1 || echo 0)"
   else
     chk "scan RC=0" 0
   fi
+  set +e
+  "$PY" scripts/verify_asof_families.py --walk --horizon 82 >/tmp/hist-h82.out 2>&1
+  rc=$?
+  set -e
+  chk "horizon 82 拒 rc=2" "$([[ "$rc" -eq 2 ]] && echo 1 || echo 0)"
   if [[ "$ok" -eq 1 ]]; then
     echo "自測:全通過 ✓"
     exit 0
@@ -235,6 +241,7 @@ PY
   echo ""
   echo "══════════════════════════════════════════════════════"
   echo "other dry-plan 完成。OOS IC：python scripts/verify_asof_families.py --date $DATE --ic --oos"
+  echo "walk：python scripts/verify_asof_families.py --walk --oos --horizon 5"
   echo "開訓截面 8 族請 --track all；--apply --track other 仍 rc=6"
   echo "══════════════════════════════════════════════════════"
   exit 0

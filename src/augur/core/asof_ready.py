@@ -222,6 +222,22 @@ def stamp_kind(model_asof: Any, panel_asof: Any) -> str:
     return "oos"
 
 
+def walk_no_model_hint(need_h: int, rows: list) -> Optional[str]:
+    """OOS walk 全無 stamp < panel → 日曆／更早訓缺口（純函式；不是假綠）。"""
+    if not rows:
+        return None
+    if any((r or {}).get("status") != "no_model" for r in rows):
+        return None
+    h = int(need_h)
+    n = label_n_needed(h)
+    return (
+        "H%d OOS 全 no_model：已實現該窗的 panel 沒有 stamp < panel 的模型。"
+        "不是假綠、不升格。須 ① panel 之後 ≥%d 交易日；② 更早 D 已訓該窗。"
+        "可先：HIST 訓更早未齊日再 walk；或候價蓋過使較新 panel 也實現 H%d。"
+        % (h, n, h)
+    )
+
+
 def format_family_matrix(present: Mapping[tuple[str, int], Any], *, families=A_FAMILIES, horizons=H_TRACK) -> str:
     """8×8 有無格 → 固定寬表（純函式；值 truthy＝有）。"""
     hs = tuple(horizons)
@@ -234,6 +250,23 @@ def format_family_matrix(present: Mapping[tuple[str, int], Any], *, families=A_F
             mark = "✓" if present.get((fam, int(h))) else "."
             bits.append(f"{mark:<6}")
         lines.append(f"{fam:<10}" + "".join(bits))
+    return "\n".join(lines)
+
+
+def format_other_lane_registry(found: Mapping[str, Mapping[str, Any]]) -> str:
+    """NF／殘格／Seq 登錄表（純函式；n=0＝預期，不是可重掃）。"""
+    head = f"{'lane':<22}{'n':<6}{'max_asof':<12}note"
+    lines = [head, "-" * len(head)]
+    notes = (
+        [(n, "禁重掃") for n in NF_PAUSE_0812]
+        + [(n, "點名 GO") for n in V2_NAMED_GO]
+        + [(n, "評測不寫庫") for n in SEQ_EVAL_ONLY]
+    )
+    for name, note in notes:
+        rec = found.get(name) or {}
+        n = int(rec.get("n") or 0)
+        mx = rec.get("max_asof") or "—"
+        lines.append(f"{name:<22}{n:<6}{str(mx):<12}{note}")
     return "\n".join(lines)
 
 
@@ -658,10 +691,17 @@ def _selftest() -> int:
     chk("stamp oos", stamp_kind("2026-07-31", "2026-08-07") == "oos")
     chk("stamp same_day", stamp_kind("2026-08-07", "2026-08-07") == "same_day")
     chk("stamp future", stamp_kind("2026-08-14", "2026-08-07") == "future")
+    hint = walk_no_model_hint(10, [{"status": "no_model"}, {"status": "no_model"}])
+    chk("walk 全缺 stamp 有 hint", hint is not None and "H10" in hint and "不是假綠" in hint)
+    chk("walk 有 IC 無 hint", walk_no_model_hint(5, [{"status": "ok", "ic": 0.01}]) is None)
     mx = format_family_matrix({("RankRidge", 5): {"model_id": "x"}, ("RankGBDT", 5): True})
     chk("matrix 含族名", "RankRidge" in mx and "RankSVM" in mx)
     chk("matrix 缺格點", "." in mx)
     chk("matrix 有格勾", "✓" in mx)
+    ol = format_other_lane_registry({"VECM": {"n": 0, "max_asof": None}})
+    chk("other 表含 VECM", "VECM" in ol and "點名 GO" in ol)
+    chk("other 表含禁重掃", "GarchMeanDir" in ol and "禁重掃" in ol)
+    chk("other 表 Seq 不寫庫", "SeqLSTM" in ol and "評測不寫庫" in ol)
     chk("缺 12 格→gap 52", a_cell_gap(12) == 52)
     chk("齊包 gap 0", a_cell_gap(64) == 0)
     sc = format_incomplete_scan([

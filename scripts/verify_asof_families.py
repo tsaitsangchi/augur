@@ -11,6 +11,7 @@
   python scripts/verify_asof_families.py --date 2026-07-31
   python scripts/verify_asof_families.py --date 2026-08-07 --ic --oos
   python scripts/verify_asof_families.py --walk --oos
+  python scripts/verify_asof_families.py --walk --oos --horizon 10 --limit 4
   python scripts/verify_asof_families.py --date 2026-08-18          # 假 B3 → rc=3
 """
 from __future__ import annotations
@@ -134,11 +135,8 @@ def _print_inventory(inv) -> int:
     if st == asof_ready.STATUS_NO_PRICE:
         return asof_ready.RC_NO_PRICE
     print(asof_ready.format_family_matrix(inv["cells"]))
-    n_other = sum(1 for v in inv["other"].values() if v.get("n"))
-    print(
-        "其他車道（NF／VECM／TCN／NB／RL／SeqLSTM）登錄族數=%d（0＝預期；禁當可重掃）"
-        % n_other
-    )
+    print("其他車道（n=0＝預期；禁當可重掃／禁 --apply）")
+    print(asof_ready.format_other_lane_registry(inv["other"]))
     return int(snap["rc"])
 
 
@@ -154,7 +152,13 @@ def main(argv=None) -> int:
     ap.add_argument(
         "--walk",
         action="store_true",
-        help="對最近已實現 H5 的多個 panel 跑 OOS IC（隱含 --oos --ic）",
+        help="對最近已實現該窗的多個 panel 跑 OOS IC（隱含 --oos --ic）",
+    )
+    ap.add_argument(
+        "--horizon",
+        type=int,
+        default=5,
+        help="--walk 用哪個 H（須在 H_TRACK；預設 5）",
     )
     ap.add_argument("--limit", type=int, default=5, help="--walk 最多幾個 panel（新→舊）")
     ap.add_argument("--scan", action="store_true", help="未齊 8×8 歷史日＋已實現窗（唯讀）")
@@ -182,32 +186,45 @@ def main(argv=None) -> int:
     if args.walk:
         args.oos = True
         args.ic = True
+        need_h = int(args.horizon)
+        if need_h not in asof_ready.H_TRACK:
+            print(
+                f"✗ --horizon 須為 H_TRACK={list(asof_ready.H_TRACK)}（收到 {need_h}）",
+                file=sys.stderr,
+            )
+            return 2
         with db.connect() as conn, conn.cursor() as cur:
             tip = asof_ready.taiex_price_max(cur)
             cal = label_mod.full_calendar(conn)
             panels = asof_ready.scan_realized_panels(
-                cur, cal, need_h=5, limit=max(1, int(args.limit)),
+                cur, cal, need_h=need_h, limit=max(1, int(args.limit)),
             )
         print(
-            "V1 OOS walk H5（stamp < panel；dry-run 未寫庫；IC≠確立≠報酬％） "
-            "price_max=%s n=%d" % (None if tip is None else tip.isoformat(), len(panels))
+            "V1 OOS walk H%d（stamp < panel；dry-run 未寫庫；IC≠確立≠報酬％） "
+            "price_max=%s n=%d"
+            % (need_h, None if tip is None else tip.isoformat(), len(panels))
         )
         if not panels:
-            print("→ 無已實現 H5 panel（不是假綠）")
+            print("→ 無已實現 H%d panel（不是假綠）" % need_h)
             return 0
         all_rows = []
         for p in panels:
             print(f"── panel {p['asof']}  n_after={p['n_after']}  realized={list(p['realized_h'])}")
-            chunk = run_ic(p["asof"], (5,), asof_ready.A_FAMILIES, oos=True)
+            chunk = run_ic(p["asof"], (need_h,), asof_ready.A_FAMILIES, oos=True)
             all_rows.extend(chunk)
+        hint = asof_ready.walk_no_model_hint(need_h, all_rows)
+        if hint:
+            print("→ " + hint)
         payload = {
-            "mode": "walk_oos_h5",
+            "mode": "walk_oos_h%d" % need_h,
+            "horizon": need_h,
             "price_max": None if tip is None else tip.isoformat(),
             "panels": [p["asof"] for p in panels],
             "rows": all_rows,
+            "blocker": hint,
             "note": "OOS=stamp<panel；單 panel≠確立；dry-run 未寫庫",
         }
-        path = "/tmp/v1-oos-walk.json"
+        path = "/tmp/v1-oos-walk-h%d.json" % need_h
         with open(path, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
         print(f"JSON {path}")

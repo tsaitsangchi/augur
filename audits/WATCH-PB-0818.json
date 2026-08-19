@@ -1,0 +1,741 @@
+{
+  "version": "WATCH-PB-v1",
+  "dry_run": true,
+  "wrote_prediction_values": false,
+  "standing_unchanged": true,
+  "asof": "2026-08-18",
+  "price_max": "2026-08-18",
+  "k": 10,
+  "funnel": {
+    "universe": 286,
+    "scored": 284,
+    "L-A": 47,
+    "L-B": 7,
+    "L-C": 5,
+    "L-D": 5,
+    "long_pass": 5,
+    "S-A": 30,
+    "S-B": 5,
+    "S-C": 2,
+    "S-D": 2,
+    "short_pass": 2
+  },
+  "n_watch_long": 13,
+  "n_watch_short": 6,
+  "n_watch_long_shown": 10,
+  "n_watch_short_shown": 6,
+  "intersect_entry_long": 0,
+  "intersect_entry_short": 0,
+  "long": [
+    {
+      "rank": 1,
+      "sid": "3017",
+      "name": "奇鋐",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -6.1824,
+      "h5_pct": 9.9638,
+      "h10_pct": 16.7308,
+      "rise_penalty": 0.249681,
+      "mean_h60_120_240": 0.6576019157208915,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.913043,
+      "price_to_252d_high": 0.938176
+    },
+    {
+      "rank": 2,
+      "sid": "2324",
+      "name": "仁寶",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -6.0185,
+      "h5_pct": 11.8457,
+      "h10_pct": 9.7297,
+      "rise_penalty": 0.2048,
+      "mean_h60_120_240": 0.3446100843152146,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.695552,
+      "price_to_252d_high": 0.862912
+    },
+    {
+      "rank": 3,
+      "sid": "2357",
+      "name": "華碩",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -8.6345,
+      "h5_pct": 8.4625,
+      "h10_pct": 12.9032,
+      "rise_penalty": 0.202595,
+      "mean_h60_120_240": 0.4769102285188544,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.837662,
+      "price_to_252d_high": 0.913655
+    },
+    {
+      "rank": 4,
+      "sid": "4163",
+      "name": "鐿鈦",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -3.0,
+      "h5_pct": 0.0,
+      "h10_pct": 19.2623,
+      "rise_penalty": 0.176155,
+      "mean_h60_120_240": 0.33603305106846504,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.928034,
+      "price_to_252d_high": 0.97
+    },
+    {
+      "rank": 5,
+      "sid": "6277",
+      "name": "宏正",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -4.0,
+      "h5_pct": 5.0,
+      "h10_pct": 8.1081,
+      "rise_penalty": 0.126752,
+      "mean_h60_120_240": 0.28302698535246773,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.884844,
+      "price_to_252d_high": 0.96
+    },
+    {
+      "rank": 6,
+      "sid": "2108",
+      "name": "南帝",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -4.5381,
+      "h5_pct": -1.0084,
+      "h10_pct": 7.286,
+      "rise_penalty": 0.070328,
+      "mean_h60_120_240": 0.1559312897319787,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.766156,
+      "price_to_252d_high": 0.916019
+    },
+    {
+      "rank": 7,
+      "sid": "2362",
+      "name": "藍天",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -7.6321,
+      "h5_pct": -0.2114,
+      "h10_pct": 5.5928,
+      "rise_penalty": 0.05442,
+      "mean_h60_120_240": 0.20008876821653865,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.756858,
+      "price_to_252d_high": 0.923679
+    },
+    {
+      "rank": 8,
+      "sid": "2376",
+      "name": "技嘉",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -12.4528,
+      "h5_pct": -0.7133,
+      "h10_pct": 4.8193,
+      "rise_penalty": 0.047068,
+      "mean_h60_120_240": 0.25237744220260616,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.724324,
+      "price_to_252d_high": 0.87218
+    },
+    {
+      "rank": 9,
+      "sid": "5306",
+      "name": "桂盟",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -6.2249,
+      "h5_pct": -6.2249,
+      "h10_pct": 4.1249,
+      "rise_penalty": 0.040421,
+      "mean_h60_120_240": 0.06716020084825328,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.691341,
+      "price_to_252d_high": 0.937751
+    },
+    {
+      "rank": 10,
+      "sid": "6206",
+      "name": "飛捷",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -9.1772,
+      "h5_pct": 0.3497,
+      "h10_pct": 2.5,
+      "rise_penalty": 0.028183,
+      "mean_h60_120_240": 0.24145367615682042,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.790765,
+      "price_to_252d_high": 0.908228
+    },
+    {
+      "rank": 11,
+      "sid": "3213",
+      "name": "茂訊",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -4.6931,
+      "h5_pct": -2.9412,
+      "h10_pct": 2.3256,
+      "rise_penalty": 0.02299,
+      "mean_h60_120_240": 0.27592660059546364,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.800723,
+      "price_to_252d_high": 0.926316
+    },
+    {
+      "rank": 12,
+      "sid": "1434",
+      "name": "福懋",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -10.0,
+      "h5_pct": -1.1268,
+      "h10_pct": 1.1527,
+      "rise_penalty": 0.011461,
+      "mean_h60_120_240": 0.10706198031305177,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.63022,
+      "price_to_252d_high": 0.9
+    },
+    {
+      "rank": 13,
+      "sid": "5511",
+      "name": "德昌",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -6.2667,
+      "h5_pct": -0.8463,
+      "h10_pct": 0.4286,
+      "rise_penalty": 0.004277,
+      "mean_h60_120_240": 0.28794548662253966,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.836374,
+      "price_to_252d_high": 0.937333
+    }
+  ],
+  "short": [
+    {
+      "rank": 1,
+      "sid": "3152",
+      "name": "璟德",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 7.1253,
+      "h5_pct": -2.8953,
+      "h10_pct": -9.9174,
+      "fall_penalty": 0.133823,
+      "mean_h60_120_240": -0.22097181147074627,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.170572,
+      "price_to_252d_high": 0.565715
+    },
+    {
+      "rank": 2,
+      "sid": "3548",
+      "name": "兆利",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 11.2952,
+      "h5_pct": -1.5979,
+      "h10_pct": -1.3351,
+      "fall_penalty": 0.029549,
+      "mean_h60_120_240": -0.2541187510937956,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.136672,
+      "price_to_252d_high": 0.609355
+    },
+    {
+      "rank": 3,
+      "sid": "3078",
+      "name": "僑威",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 6.4257,
+      "h5_pct": -2.5735,
+      "h10_pct": 0.189,
+      "fall_penalty": 0.026072,
+      "mean_h60_120_240": -0.2218404769155264,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.077175,
+      "price_to_252d_high": 0.58073
+    },
+    {
+      "rank": 4,
+      "sid": "1522",
+      "name": "堤維西",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 3.3333,
+      "h5_pct": -1.2389,
+      "h10_pct": -1.2389,
+      "fall_penalty": 0.024934,
+      "mean_h60_120_240": -0.2534182431418548,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.037983,
+      "price_to_252d_high": 0.55035
+    },
+    {
+      "rank": 5,
+      "sid": "2471",
+      "name": "資通",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 3.7076,
+      "h5_pct": -2.2954,
+      "h10_pct": 0.5133,
+      "fall_penalty": 0.023222,
+      "mean_h60_120_240": -0.02786247083996592,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.224359,
+      "price_to_252d_high": 0.89
+    },
+    {
+      "rank": 6,
+      "sid": "4129",
+      "name": "聯合",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 3.7485,
+      "h5_pct": -0.6944,
+      "h10_pct": 3.0012,
+      "fall_penalty": 0.006969,
+      "mean_h60_120_240": -0.17680442480760297,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.064182,
+      "price_to_252d_high": 0.654962
+    }
+  ],
+  "long_shown": [
+    {
+      "rank": 1,
+      "sid": "3017",
+      "name": "奇鋐",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -6.1824,
+      "h5_pct": 9.9638,
+      "h10_pct": 16.7308,
+      "rise_penalty": 0.249681,
+      "mean_h60_120_240": 0.6576019157208915,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.913043,
+      "price_to_252d_high": 0.938176
+    },
+    {
+      "rank": 2,
+      "sid": "2324",
+      "name": "仁寶",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -6.0185,
+      "h5_pct": 11.8457,
+      "h10_pct": 9.7297,
+      "rise_penalty": 0.2048,
+      "mean_h60_120_240": 0.3446100843152146,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.695552,
+      "price_to_252d_high": 0.862912
+    },
+    {
+      "rank": 3,
+      "sid": "2357",
+      "name": "華碩",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -8.6345,
+      "h5_pct": 8.4625,
+      "h10_pct": 12.9032,
+      "rise_penalty": 0.202595,
+      "mean_h60_120_240": 0.4769102285188544,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.837662,
+      "price_to_252d_high": 0.913655
+    },
+    {
+      "rank": 4,
+      "sid": "4163",
+      "name": "鐿鈦",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -3.0,
+      "h5_pct": 0.0,
+      "h10_pct": 19.2623,
+      "rise_penalty": 0.176155,
+      "mean_h60_120_240": 0.33603305106846504,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.928034,
+      "price_to_252d_high": 0.97
+    },
+    {
+      "rank": 5,
+      "sid": "6277",
+      "name": "宏正",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -4.0,
+      "h5_pct": 5.0,
+      "h10_pct": 8.1081,
+      "rise_penalty": 0.126752,
+      "mean_h60_120_240": 0.28302698535246773,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.884844,
+      "price_to_252d_high": 0.96
+    },
+    {
+      "rank": 6,
+      "sid": "2108",
+      "name": "南帝",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -4.5381,
+      "h5_pct": -1.0084,
+      "h10_pct": 7.286,
+      "rise_penalty": 0.070328,
+      "mean_h60_120_240": 0.1559312897319787,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.766156,
+      "price_to_252d_high": 0.916019
+    },
+    {
+      "rank": 7,
+      "sid": "2362",
+      "name": "藍天",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -7.6321,
+      "h5_pct": -0.2114,
+      "h10_pct": 5.5928,
+      "rise_penalty": 0.05442,
+      "mean_h60_120_240": 0.20008876821653865,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.756858,
+      "price_to_252d_high": 0.923679
+    },
+    {
+      "rank": 8,
+      "sid": "2376",
+      "name": "技嘉",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -12.4528,
+      "h5_pct": -0.7133,
+      "h10_pct": 4.8193,
+      "rise_penalty": 0.047068,
+      "mean_h60_120_240": 0.25237744220260616,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.724324,
+      "price_to_252d_high": 0.87218
+    },
+    {
+      "rank": 9,
+      "sid": "5306",
+      "name": "桂盟",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -6.2249,
+      "h5_pct": -6.2249,
+      "h10_pct": 4.1249,
+      "rise_penalty": 0.040421,
+      "mean_h60_120_240": 0.06716020084825328,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.691341,
+      "price_to_252d_high": 0.937751
+    },
+    {
+      "rank": 10,
+      "sid": "6206",
+      "name": "飛捷",
+      "tag": "等回撤，不是進場",
+      "dd20_pct": -9.1772,
+      "h5_pct": 0.3497,
+      "h10_pct": 2.5,
+      "rise_penalty": 0.028183,
+      "mean_h60_120_240": 0.24145367615682042,
+      "gates": {
+        "L-A": true,
+        "L-B": false,
+        "L-C": true,
+        "L-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.790765,
+      "price_to_252d_high": 0.908228
+    }
+  ],
+  "short_shown": [
+    {
+      "rank": 1,
+      "sid": "3152",
+      "name": "璟德",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 7.1253,
+      "h5_pct": -2.8953,
+      "h10_pct": -9.9174,
+      "fall_penalty": 0.133823,
+      "mean_h60_120_240": -0.22097181147074627,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.170572,
+      "price_to_252d_high": 0.565715
+    },
+    {
+      "rank": 2,
+      "sid": "3548",
+      "name": "兆利",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 11.2952,
+      "h5_pct": -1.5979,
+      "h10_pct": -1.3351,
+      "fall_penalty": 0.029549,
+      "mean_h60_120_240": -0.2541187510937956,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.136672,
+      "price_to_252d_high": 0.609355
+    },
+    {
+      "rank": 3,
+      "sid": "3078",
+      "name": "僑威",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 6.4257,
+      "h5_pct": -2.5735,
+      "h10_pct": 0.189,
+      "fall_penalty": 0.026072,
+      "mean_h60_120_240": -0.2218404769155264,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.077175,
+      "price_to_252d_high": 0.58073
+    },
+    {
+      "rank": 4,
+      "sid": "1522",
+      "name": "堤維西",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 3.3333,
+      "h5_pct": -1.2389,
+      "h10_pct": -1.2389,
+      "fall_penalty": 0.024934,
+      "mean_h60_120_240": -0.2534182431418548,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.037983,
+      "price_to_252d_high": 0.55035
+    },
+    {
+      "rank": 5,
+      "sid": "2471",
+      "name": "資通",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 3.7076,
+      "h5_pct": -2.2954,
+      "h10_pct": 0.5133,
+      "fall_penalty": 0.023222,
+      "mean_h60_120_240": -0.02786247083996592,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.224359,
+      "price_to_252d_high": 0.89
+    },
+    {
+      "rank": 6,
+      "sid": "4129",
+      "name": "聯合",
+      "tag": "等反彈，不是進場",
+      "bu20_pct": 3.7485,
+      "h5_pct": -0.6944,
+      "h10_pct": 3.0012,
+      "fall_penalty": 0.006969,
+      "mean_h60_120_240": -0.17680442480760297,
+      "gates": {
+        "S-A": true,
+        "S-B": false,
+        "S-C": true,
+        "S-D": true,
+        "pass": false
+      },
+      "cycle_position_252d": 0.064182,
+      "price_to_252d_high": 0.654962
+    }
+  ],
+  "asof_status": "ready",
+  "at_tip": true,
+  "short_disclaimer": "做空觀察欄是條件排序，不是下單、不是可融券可成交",
+  "note": "WATCH-PB-v1；全宇宙觀察篩；L-A∧L-C∧L-D∧¬L-B；一律等回撤／等反彈，不是進場；不做 Ridge 池；score 不排序；做空≠可空；路徑％≠未來；dry-run 不寫 prediction_values；不改 standing 20,60"
+}

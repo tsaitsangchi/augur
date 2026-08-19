@@ -1,0 +1,827 @@
+{
+  "version": "TWIN-EX-v1",
+  "rule": "E-charge×X-T5",
+  "tip": "2026-08-18",
+  "cost_roundtrip": 0.00585,
+  "note": "路徑閘歷史進出；無每日Ridge池；≠可交易；兩檔≠宇宙；抱牢只對照",
+  "asof_0818": {
+    "3017": {
+      "name": "奇鋐",
+      "E-charge": true,
+      "E-watch": true,
+      "BULL5": false,
+      "UP-PULL": false,
+      "L-A": true,
+      "L-B": false,
+      "L-C": true,
+      "L-D": true,
+      "h5_pct": 9.96,
+      "h10_pct": 16.73,
+      "dd20_pct": -6.18,
+      "h240_pct": 201.99
+    },
+    "2395": {
+      "name": "研華",
+      "E-charge": true,
+      "E-watch": false,
+      "BULL5": false,
+      "UP-PULL": false,
+      "L-A": true,
+      "L-B": false,
+      "L-C": false,
+      "L-D": true,
+      "h5_pct": 2.72,
+      "h10_pct": 17.88,
+      "dd20_pct": -2.72,
+      "h240_pct": 119.03
+    }
+  },
+  "trades": [
+    {
+      "sid": "3017",
+      "signal": "2024-01-11",
+      "entry": "2024-01-12",
+      "exit": "2024-01-19",
+      "hold_td": 5,
+      "ret_pct": -1.1429,
+      "window": "IS",
+      "ret_cost_pct": -1.7212
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-01-22",
+      "entry": "2024-01-23",
+      "exit": "2024-01-30",
+      "hold_td": 5,
+      "ret_pct": 11.1255,
+      "window": "IS",
+      "ret_cost_pct": 10.4754
+    },
+    {
+      "sid": "2395",
+      "signal": "2024-02-01",
+      "entry": "2024-02-02",
+      "exit": "2024-02-20",
+      "hold_td": 5,
+      "ret_pct": 7.1233,
+      "window": "IS",
+      "ret_cost_pct": 6.4966
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-02-26",
+      "entry": "2024-02-27",
+      "exit": "2024-03-06",
+      "hold_td": 5,
+      "ret_pct": 24.0157,
+      "window": "IS",
+      "ret_cost_pct": 23.2902
+    },
+    {
+      "sid": "2395",
+      "signal": "2024-03-01",
+      "entry": "2024-03-04",
+      "exit": "2024-03-11",
+      "hold_td": 5,
+      "ret_pct": 5.0388,
+      "window": "IS",
+      "ret_cost_pct": 4.4243
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-03-15",
+      "entry": "2024-03-18",
+      "exit": "2024-03-25",
+      "hold_td": 5,
+      "ret_pct": -6.4205,
+      "window": "IS",
+      "ret_cost_pct": -6.9679
+    },
+    {
+      "sid": "2395",
+      "signal": "2024-03-21",
+      "entry": "2024-03-22",
+      "exit": "2024-03-29",
+      "hold_td": 5,
+      "ret_pct": 1.0,
+      "window": "IS",
+      "ret_cost_pct": 0.4091
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-04-11",
+      "entry": "2024-04-12",
+      "exit": "2024-04-19",
+      "hold_td": 5,
+      "ret_pct": 0.3185,
+      "window": "IS",
+      "ret_cost_pct": -0.2684
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-04-26",
+      "entry": "2024-04-29",
+      "exit": "2024-05-07",
+      "hold_td": 5,
+      "ret_pct": 7.6677,
+      "window": "IS",
+      "ret_cost_pct": 7.0378
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-05-23",
+      "entry": "2024-05-24",
+      "exit": "2024-05-31",
+      "hold_td": 5,
+      "ret_pct": 8.9235,
+      "window": "IS",
+      "ret_cost_pct": 8.2863
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-06-20",
+      "entry": "2024-06-21",
+      "exit": "2024-06-28",
+      "hold_td": 5,
+      "ret_pct": 4.6512,
+      "window": "IS",
+      "ret_cost_pct": 4.039
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-07-08",
+      "entry": "2024-07-09",
+      "exit": "2024-07-16",
+      "hold_td": 5,
+      "ret_pct": -4.9519,
+      "window": "IS",
+      "ret_cost_pct": -5.5079
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-10-18",
+      "entry": "2024-10-21",
+      "exit": "2024-10-28",
+      "hold_td": 5,
+      "ret_pct": -4.2836,
+      "window": "IS",
+      "ret_cost_pct": -4.8435
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-12-02",
+      "entry": "2024-12-03",
+      "exit": "2024-12-10",
+      "hold_td": 5,
+      "ret_pct": -2.1521,
+      "window": "IS",
+      "ret_cost_pct": -2.7245
+    },
+    {
+      "sid": "2395",
+      "signal": "2024-12-06",
+      "entry": "2024-12-09",
+      "exit": "2024-12-16",
+      "hold_td": 5,
+      "ret_pct": -1.2658,
+      "window": "IS",
+      "ret_cost_pct": -1.8434
+    },
+    {
+      "sid": "2395",
+      "signal": "2025-01-08",
+      "entry": "2025-01-09",
+      "exit": "2025-01-16",
+      "hold_td": 5,
+      "ret_pct": 1.25,
+      "window": "OOS",
+      "ret_cost_pct": 0.6577
+    },
+    {
+      "sid": "2395",
+      "signal": "2025-01-20",
+      "entry": "2025-01-21",
+      "exit": "2025-02-06",
+      "hold_td": 5,
+      "ret_pct": 11.8529,
+      "window": "OOS",
+      "ret_cost_pct": 11.1986
+    },
+    {
+      "sid": "2395",
+      "signal": "2025-02-20",
+      "entry": "2025-02-21",
+      "exit": "2025-03-03",
+      "hold_td": 5,
+      "ret_pct": -4.1866,
+      "window": "OOS",
+      "ret_cost_pct": -4.7471
+    },
+    {
+      "sid": "2395",
+      "signal": "2025-03-26",
+      "entry": "2025-03-27",
+      "exit": "2025-04-07",
+      "hold_td": 5,
+      "ret_pct": -11.3636,
+      "window": "OOS",
+      "ret_cost_pct": -11.8821
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-06-11",
+      "entry": "2025-06-12",
+      "exit": "2025-06-19",
+      "hold_td": 5,
+      "ret_pct": -2.3715,
+      "window": "OOS",
+      "ret_cost_pct": -2.9426
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-06-25",
+      "entry": "2025-06-26",
+      "exit": "2025-07-03",
+      "hold_td": 5,
+      "ret_pct": 6.0976,
+      "window": "OOS",
+      "ret_cost_pct": 5.4769
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-07-18",
+      "entry": "2025-07-21",
+      "exit": "2025-07-28",
+      "hold_td": 5,
+      "ret_pct": 0.1147,
+      "window": "OOS",
+      "ret_cost_pct": -0.471
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-08-18",
+      "entry": "2025-08-19",
+      "exit": "2025-08-26",
+      "hold_td": 5,
+      "ret_pct": -4.2056,
+      "window": "OOS",
+      "ret_cost_pct": -4.766
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-09-11",
+      "entry": "2025-09-12",
+      "exit": "2025-09-19",
+      "hold_td": 5,
+      "ret_pct": -0.9524,
+      "window": "OOS",
+      "ret_cost_pct": -1.5318
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-10-02",
+      "entry": "2025-10-03",
+      "exit": "2025-10-14",
+      "hold_td": 5,
+      "ret_pct": -0.8584,
+      "window": "OOS",
+      "ret_cost_pct": -1.4384
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-10-15",
+      "entry": "2025-10-16",
+      "exit": "2025-10-23",
+      "hold_td": 5,
+      "ret_pct": -2.0921,
+      "window": "OOS",
+      "ret_cost_pct": -2.6649
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-10-27",
+      "entry": "2025-10-28",
+      "exit": "2025-11-04",
+      "hold_td": 5,
+      "ret_pct": 10.3846,
+      "window": "OOS",
+      "ret_cost_pct": 9.7389
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-12-05",
+      "entry": "2025-12-08",
+      "exit": "2025-12-15",
+      "hold_td": 5,
+      "ret_pct": -0.361,
+      "window": "OOS",
+      "ret_cost_pct": -0.9439
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-12-19",
+      "entry": "2025-12-22",
+      "exit": "2025-12-30",
+      "hold_td": 5,
+      "ret_pct": 3.7288,
+      "window": "OOS",
+      "ret_cost_pct": 3.122
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-01-29",
+      "entry": "2026-01-30",
+      "exit": "2026-02-06",
+      "hold_td": 5,
+      "ret_pct": 9.2466,
+      "window": "OOS",
+      "ret_cost_pct": 8.6075
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-02-25",
+      "entry": "2026-02-26",
+      "exit": "2026-03-06",
+      "hold_td": 5,
+      "ret_pct": 4.5326,
+      "window": "OOS",
+      "ret_cost_pct": 3.9211
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-03-11",
+      "entry": "2026-03-12",
+      "exit": "2026-03-19",
+      "hold_td": 5,
+      "ret_pct": 7.4667,
+      "window": "OOS",
+      "ret_cost_pct": 6.838
+    },
+    {
+      "sid": "2395",
+      "signal": "2026-04-08",
+      "entry": "2026-04-09",
+      "exit": "2026-04-16",
+      "hold_td": 5,
+      "ret_pct": 2.0115,
+      "window": "OOS",
+      "ret_cost_pct": 1.4147
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-04-08",
+      "entry": "2026-04-09",
+      "exit": "2026-04-16",
+      "hold_td": 5,
+      "ret_pct": 9.1723,
+      "window": "OOS",
+      "ret_cost_pct": 8.5336
+    },
+    {
+      "sid": "2395",
+      "signal": "2026-04-28",
+      "entry": "2026-04-29",
+      "exit": "2026-05-07",
+      "hold_td": 5,
+      "ret_pct": 21.3115,
+      "window": "OOS",
+      "ret_cost_pct": 20.6018
+    },
+    {
+      "sid": "2395",
+      "signal": "2026-05-20",
+      "entry": "2026-05-21",
+      "exit": "2026-05-28",
+      "hold_td": 5,
+      "ret_pct": 5.8252,
+      "window": "OOS",
+      "ret_cost_pct": 5.2061
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-05-22",
+      "entry": "2026-05-25",
+      "exit": "2026-06-01",
+      "hold_td": 5,
+      "ret_pct": 8.1553,
+      "window": "OOS",
+      "ret_cost_pct": 7.5226
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-06-03",
+      "entry": "2026-06-04",
+      "exit": "2026-06-11",
+      "hold_td": 5,
+      "ret_pct": -13.8376,
+      "window": "OOS",
+      "ret_cost_pct": -14.3417
+    },
+    {
+      "sid": "2395",
+      "signal": "2026-06-22",
+      "entry": "2026-06-23",
+      "exit": "2026-06-30",
+      "hold_td": 5,
+      "ret_pct": 0.9231,
+      "window": "OOS",
+      "ret_cost_pct": 0.3327
+    }
+  ],
+  "by_sid": {
+    "3017": [
+      {
+        "sid": "3017",
+        "signal": "2024-01-11",
+        "entry": "2024-01-12",
+        "exit": "2024-01-19",
+        "hold_td": 5,
+        "ret_pct": -1.1429,
+        "window": "IS",
+        "ret_cost_pct": -1.7212
+      },
+      {
+        "sid": "3017",
+        "signal": "2024-01-22",
+        "entry": "2024-01-23",
+        "exit": "2024-01-30",
+        "hold_td": 5,
+        "ret_pct": 11.1255,
+        "window": "IS",
+        "ret_cost_pct": 10.4754
+      },
+      {
+        "sid": "3017",
+        "signal": "2024-02-26",
+        "entry": "2024-02-27",
+        "exit": "2024-03-06",
+        "hold_td": 5,
+        "ret_pct": 24.0157,
+        "window": "IS",
+        "ret_cost_pct": 23.2902
+      },
+      {
+        "sid": "3017",
+        "signal": "2024-03-15",
+        "entry": "2024-03-18",
+        "exit": "2024-03-25",
+        "hold_td": 5,
+        "ret_pct": -6.4205,
+        "window": "IS",
+        "ret_cost_pct": -6.9679
+      },
+      {
+        "sid": "3017",
+        "signal": "2024-04-11",
+        "entry": "2024-04-12",
+        "exit": "2024-04-19",
+        "hold_td": 5,
+        "ret_pct": 0.3185,
+        "window": "IS",
+        "ret_cost_pct": -0.2684
+      },
+      {
+        "sid": "3017",
+        "signal": "2024-04-26",
+        "entry": "2024-04-29",
+        "exit": "2024-05-07",
+        "hold_td": 5,
+        "ret_pct": 7.6677,
+        "window": "IS",
+        "ret_cost_pct": 7.0378
+      },
+      {
+        "sid": "3017",
+        "signal": "2024-05-23",
+        "entry": "2024-05-24",
+        "exit": "2024-05-31",
+        "hold_td": 5,
+        "ret_pct": 8.9235,
+        "window": "IS",
+        "ret_cost_pct": 8.2863
+      },
+      {
+        "sid": "3017",
+        "signal": "2024-06-20",
+        "entry": "2024-06-21",
+        "exit": "2024-06-28",
+        "hold_td": 5,
+        "ret_pct": 4.6512,
+        "window": "IS",
+        "ret_cost_pct": 4.039
+      },
+      {
+        "sid": "3017",
+        "signal": "2024-07-08",
+        "entry": "2024-07-09",
+        "exit": "2024-07-16",
+        "hold_td": 5,
+        "ret_pct": -4.9519,
+        "window": "IS",
+        "ret_cost_pct": -5.5079
+      },
+      {
+        "sid": "3017",
+        "signal": "2024-10-18",
+        "entry": "2024-10-21",
+        "exit": "2024-10-28",
+        "hold_td": 5,
+        "ret_pct": -4.2836,
+        "window": "IS",
+        "ret_cost_pct": -4.8435
+      },
+      {
+        "sid": "3017",
+        "signal": "2024-12-02",
+        "entry": "2024-12-03",
+        "exit": "2024-12-10",
+        "hold_td": 5,
+        "ret_pct": -2.1521,
+        "window": "IS",
+        "ret_cost_pct": -2.7245
+      },
+      {
+        "sid": "3017",
+        "signal": "2025-06-11",
+        "entry": "2025-06-12",
+        "exit": "2025-06-19",
+        "hold_td": 5,
+        "ret_pct": -2.3715,
+        "window": "OOS",
+        "ret_cost_pct": -2.9426
+      },
+      {
+        "sid": "3017",
+        "signal": "2025-06-25",
+        "entry": "2025-06-26",
+        "exit": "2025-07-03",
+        "hold_td": 5,
+        "ret_pct": 6.0976,
+        "window": "OOS",
+        "ret_cost_pct": 5.4769
+      },
+      {
+        "sid": "3017",
+        "signal": "2025-07-18",
+        "entry": "2025-07-21",
+        "exit": "2025-07-28",
+        "hold_td": 5,
+        "ret_pct": 0.1147,
+        "window": "OOS",
+        "ret_cost_pct": -0.471
+      },
+      {
+        "sid": "3017",
+        "signal": "2025-08-18",
+        "entry": "2025-08-19",
+        "exit": "2025-08-26",
+        "hold_td": 5,
+        "ret_pct": -4.2056,
+        "window": "OOS",
+        "ret_cost_pct": -4.766
+      },
+      {
+        "sid": "3017",
+        "signal": "2025-09-11",
+        "entry": "2025-09-12",
+        "exit": "2025-09-19",
+        "hold_td": 5,
+        "ret_pct": -0.9524,
+        "window": "OOS",
+        "ret_cost_pct": -1.5318
+      },
+      {
+        "sid": "3017",
+        "signal": "2025-10-02",
+        "entry": "2025-10-03",
+        "exit": "2025-10-14",
+        "hold_td": 5,
+        "ret_pct": -0.8584,
+        "window": "OOS",
+        "ret_cost_pct": -1.4384
+      },
+      {
+        "sid": "3017",
+        "signal": "2025-10-15",
+        "entry": "2025-10-16",
+        "exit": "2025-10-23",
+        "hold_td": 5,
+        "ret_pct": -2.0921,
+        "window": "OOS",
+        "ret_cost_pct": -2.6649
+      },
+      {
+        "sid": "3017",
+        "signal": "2025-10-27",
+        "entry": "2025-10-28",
+        "exit": "2025-11-04",
+        "hold_td": 5,
+        "ret_pct": 10.3846,
+        "window": "OOS",
+        "ret_cost_pct": 9.7389
+      },
+      {
+        "sid": "3017",
+        "signal": "2025-12-05",
+        "entry": "2025-12-08",
+        "exit": "2025-12-15",
+        "hold_td": 5,
+        "ret_pct": -0.361,
+        "window": "OOS",
+        "ret_cost_pct": -0.9439
+      },
+      {
+        "sid": "3017",
+        "signal": "2025-12-19",
+        "entry": "2025-12-22",
+        "exit": "2025-12-30",
+        "hold_td": 5,
+        "ret_pct": 3.7288,
+        "window": "OOS",
+        "ret_cost_pct": 3.122
+      },
+      {
+        "sid": "3017",
+        "signal": "2026-01-29",
+        "entry": "2026-01-30",
+        "exit": "2026-02-06",
+        "hold_td": 5,
+        "ret_pct": 9.2466,
+        "window": "OOS",
+        "ret_cost_pct": 8.6075
+      },
+      {
+        "sid": "3017",
+        "signal": "2026-02-25",
+        "entry": "2026-02-26",
+        "exit": "2026-03-06",
+        "hold_td": 5,
+        "ret_pct": 4.5326,
+        "window": "OOS",
+        "ret_cost_pct": 3.9211
+      },
+      {
+        "sid": "3017",
+        "signal": "2026-03-11",
+        "entry": "2026-03-12",
+        "exit": "2026-03-19",
+        "hold_td": 5,
+        "ret_pct": 7.4667,
+        "window": "OOS",
+        "ret_cost_pct": 6.838
+      },
+      {
+        "sid": "3017",
+        "signal": "2026-04-08",
+        "entry": "2026-04-09",
+        "exit": "2026-04-16",
+        "hold_td": 5,
+        "ret_pct": 9.1723,
+        "window": "OOS",
+        "ret_cost_pct": 8.5336
+      },
+      {
+        "sid": "3017",
+        "signal": "2026-05-22",
+        "entry": "2026-05-25",
+        "exit": "2026-06-01",
+        "hold_td": 5,
+        "ret_pct": 8.1553,
+        "window": "OOS",
+        "ret_cost_pct": 7.5226
+      },
+      {
+        "sid": "3017",
+        "signal": "2026-06-03",
+        "entry": "2026-06-04",
+        "exit": "2026-06-11",
+        "hold_td": 5,
+        "ret_pct": -13.8376,
+        "window": "OOS",
+        "ret_cost_pct": -14.3417
+      }
+    ],
+    "2395": [
+      {
+        "sid": "2395",
+        "signal": "2024-02-01",
+        "entry": "2024-02-02",
+        "exit": "2024-02-20",
+        "hold_td": 5,
+        "ret_pct": 7.1233,
+        "window": "IS",
+        "ret_cost_pct": 6.4966
+      },
+      {
+        "sid": "2395",
+        "signal": "2024-03-01",
+        "entry": "2024-03-04",
+        "exit": "2024-03-11",
+        "hold_td": 5,
+        "ret_pct": 5.0388,
+        "window": "IS",
+        "ret_cost_pct": 4.4243
+      },
+      {
+        "sid": "2395",
+        "signal": "2024-03-21",
+        "entry": "2024-03-22",
+        "exit": "2024-03-29",
+        "hold_td": 5,
+        "ret_pct": 1.0,
+        "window": "IS",
+        "ret_cost_pct": 0.4091
+      },
+      {
+        "sid": "2395",
+        "signal": "2024-12-06",
+        "entry": "2024-12-09",
+        "exit": "2024-12-16",
+        "hold_td": 5,
+        "ret_pct": -1.2658,
+        "window": "IS",
+        "ret_cost_pct": -1.8434
+      },
+      {
+        "sid": "2395",
+        "signal": "2025-01-08",
+        "entry": "2025-01-09",
+        "exit": "2025-01-16",
+        "hold_td": 5,
+        "ret_pct": 1.25,
+        "window": "OOS",
+        "ret_cost_pct": 0.6577
+      },
+      {
+        "sid": "2395",
+        "signal": "2025-01-20",
+        "entry": "2025-01-21",
+        "exit": "2025-02-06",
+        "hold_td": 5,
+        "ret_pct": 11.8529,
+        "window": "OOS",
+        "ret_cost_pct": 11.1986
+      },
+      {
+        "sid": "2395",
+        "signal": "2025-02-20",
+        "entry": "2025-02-21",
+        "exit": "2025-03-03",
+        "hold_td": 5,
+        "ret_pct": -4.1866,
+        "window": "OOS",
+        "ret_cost_pct": -4.7471
+      },
+      {
+        "sid": "2395",
+        "signal": "2025-03-26",
+        "entry": "2025-03-27",
+        "exit": "2025-04-07",
+        "hold_td": 5,
+        "ret_pct": -11.3636,
+        "window": "OOS",
+        "ret_cost_pct": -11.8821
+      },
+      {
+        "sid": "2395",
+        "signal": "2026-04-08",
+        "entry": "2026-04-09",
+        "exit": "2026-04-16",
+        "hold_td": 5,
+        "ret_pct": 2.0115,
+        "window": "OOS",
+        "ret_cost_pct": 1.4147
+      },
+      {
+        "sid": "2395",
+        "signal": "2026-04-28",
+        "entry": "2026-04-29",
+        "exit": "2026-05-07",
+        "hold_td": 5,
+        "ret_pct": 21.3115,
+        "window": "OOS",
+        "ret_cost_pct": 20.6018
+      },
+      {
+        "sid": "2395",
+        "signal": "2026-05-20",
+        "entry": "2026-05-21",
+        "exit": "2026-05-28",
+        "hold_td": 5,
+        "ret_pct": 5.8252,
+        "window": "OOS",
+        "ret_cost_pct": 5.2061
+      },
+      {
+        "sid": "2395",
+        "signal": "2026-06-22",
+        "entry": "2026-06-23",
+        "exit": "2026-06-30",
+        "hold_td": 5,
+        "ret_pct": 0.9231,
+        "window": "OOS",
+        "ret_cost_pct": 0.3327
+      }
+    ]
+  }
+}

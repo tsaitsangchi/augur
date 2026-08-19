@@ -1,0 +1,1934 @@
+{
+  "version": "TWIN-EX-v1",
+  "dry_run": true,
+  "wrote_prediction_values": false,
+  "standing_unchanged": true,
+  "tip": "2026-08-18",
+  "price_max": "2026-08-18",
+  "sids": [
+    "3017",
+    "2395"
+  ],
+  "names": {
+    "3017": "奇鋐",
+    "2395": "研華"
+  },
+  "is": {
+    "start": "2024-01-02",
+    "end": "2024-12-31"
+  },
+  "oos": {
+    "start": "2025-01-02",
+    "end": "2026-06-30"
+  },
+  "cost_roundtrip": 0.00585,
+  "asof_status": "ready",
+  "champion": {
+    "found": true,
+    "n_qualified": 13,
+    "hypothesis": "E-charge×X-T5",
+    "hypothesis_is_champion": true,
+    "per_name_both_positive": true,
+    "confirmed": true,
+    "qualified_order": [
+      {
+        "entry": "E-charge",
+        "exit": "X-T5",
+        "is_pct": 56.78884816918082,
+        "oos_pct": 72.94068867520649,
+        "nominal_hold": 5
+      },
+      {
+        "entry": "E-watch",
+        "exit": "X-T10",
+        "is_pct": 38.67715033014243,
+        "oos_pct": 195.21761022479686,
+        "nominal_hold": 10
+      },
+      {
+        "entry": "E-h5dip",
+        "exit": "X-T10",
+        "is_pct": 30.911276265536603,
+        "oos_pct": 18.945828592566794,
+        "nominal_hold": 10
+      },
+      {
+        "entry": "E-watch",
+        "exit": "X-LAcap20",
+        "is_pct": 21.641206122349942,
+        "oos_pct": 181.99984718082894,
+        "nominal_hold": 20
+      },
+      {
+        "entry": "E-charge",
+        "exit": "X-H5cap20",
+        "is_pct": 21.39440914897286,
+        "oos_pct": 241.41369358087533,
+        "nominal_hold": 20
+      },
+      {
+        "entry": "E-h5dip",
+        "exit": "X-T5",
+        "is_pct": 16.76393425377787,
+        "oos_pct": 39.44416750867248,
+        "nominal_hold": 5
+      },
+      {
+        "entry": "E-watch",
+        "exit": "X-T5",
+        "is_pct": 13.55947119007097,
+        "oos_pct": 30.90252366957269,
+        "nominal_hold": 5
+      },
+      {
+        "entry": "E-h5dip",
+        "exit": "X-LAcap20",
+        "is_pct": 7.687244762942491,
+        "oos_pct": 160.47811706098258,
+        "nominal_hold": 20
+      },
+      {
+        "entry": "E-watch",
+        "exit": "X-T20",
+        "is_pct": 4.676139942305402,
+        "oos_pct": 341.32642225400645,
+        "nominal_hold": 20
+      },
+      {
+        "entry": "E-watch",
+        "exit": "X-H5cap20",
+        "is_pct": 3.102637132027475,
+        "oos_pct": 49.225754859747184,
+        "nominal_hold": 20
+      },
+      {
+        "entry": "E-charge",
+        "exit": "X-LAcap20",
+        "is_pct": 2.0903572389150415,
+        "oos_pct": 278.8275200524304,
+        "nominal_hold": 20
+      },
+      {
+        "entry": "E-charge",
+        "exit": "X-T20",
+        "is_pct": 0.7074843837082012,
+        "oos_pct": 309.8806410170836,
+        "nominal_hold": 20
+      },
+      {
+        "entry": "E-h5dip",
+        "exit": "X-H5cap20",
+        "is_pct": 0.2810070080341953,
+        "oos_pct": 110.17462132020235,
+        "nominal_hold": 20
+      }
+    ],
+    "cell": {
+      "sid": "pooled",
+      "entry": "E-charge",
+      "exit": "X-T5",
+      "nominal_hold": 5,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 15,
+        "wins": 9,
+        "compound_pct": 56.7888,
+        "compound_cost_pct": 43.58,
+        "mean_hold": 5.0,
+        "mean_ret_pct": 3.3098
+      },
+      "oos": {
+        "n": 24,
+        "wins": 15,
+        "compound_pct": 72.9407,
+        "compound_cost_pct": 50.2253,
+        "mean_hold": 5.0,
+        "mean_ret_pct": 2.5769
+      },
+      "n_trades": 394
+    },
+    "per_name": {
+      "3017": {
+        "is_pct": 39.731012231898035,
+        "oos_pct": 36.046112478624146,
+        "is_n": 11,
+        "oos_n": 16,
+        "is_pos": true,
+        "oos_pos": true
+      },
+      "2395": {
+        "is_pct": 12.207623536694578,
+        "oos_pct": 27.11916976119346,
+        "is_n": 4,
+        "oos_n": 8,
+        "is_pos": true,
+        "oos_pos": true
+      }
+    }
+  },
+  "grid_pooled": [
+    {
+      "sid": "pooled",
+      "entry": "E-charge",
+      "exit": "X-T5",
+      "nominal_hold": 5,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 15,
+        "wins": 9,
+        "compound_pct": 56.7888,
+        "compound_cost_pct": 43.58,
+        "mean_hold": 5.0,
+        "mean_ret_pct": 3.3098
+      },
+      "oos": {
+        "n": 24,
+        "wins": 15,
+        "compound_pct": 72.9407,
+        "compound_cost_pct": 50.2253,
+        "mean_hold": 5.0,
+        "mean_ret_pct": 2.5769
+      },
+      "n_trades": 394
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-charge",
+      "exit": "X-T10",
+      "nominal_hold": 10,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": false,
+      "is": {
+        "n": 14,
+        "wins": 6,
+        "compound_pct": -8.6409,
+        "compound_cost_pct": -15.8453,
+        "mean_hold": 10.0,
+        "mean_ret_pct": -0.2976
+      },
+      "oos": {
+        "n": 20,
+        "wins": 12,
+        "compound_pct": 85.8889,
+        "compound_cost_pct": 65.3072,
+        "mean_hold": 10.0,
+        "mean_ret_pct": 3.6481
+      },
+      "n_trades": 310
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-charge",
+      "exit": "X-T20",
+      "nominal_hold": 20,
+      "bh_like": true,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 10,
+        "wins": 5,
+        "compound_pct": 0.7075,
+        "compound_cost_pct": -5.0312,
+        "mean_hold": 20.0,
+        "mean_ret_pct": 1.0305
+      },
+      "oos": {
+        "n": 14,
+        "wins": 10,
+        "compound_pct": 309.8806,
+        "compound_cost_pct": 277.5585,
+        "mean_hold": 20.0,
+        "mean_ret_pct": 11.6269
+      },
+      "n_trades": 210
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-charge",
+      "exit": "X-H5cap20",
+      "nominal_hold": 20,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 15,
+        "wins": 8,
+        "compound_pct": 21.3944,
+        "compound_cost_pct": 11.1674,
+        "mean_hold": 6.8,
+        "mean_ret_pct": 1.6261
+      },
+      "oos": {
+        "n": 22,
+        "wins": 13,
+        "compound_pct": 241.4137,
+        "compound_cost_pct": 200.0704,
+        "mean_hold": 8.3636,
+        "mean_ret_pct": 6.2334
+      },
+      "n_trades": 366
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-charge",
+      "exit": "X-LAcap20",
+      "nominal_hold": 20,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 11,
+        "wins": 4,
+        "compound_pct": 2.0904,
+        "compound_cost_pct": -4.2903,
+        "mean_hold": 11.1818,
+        "mean_ret_pct": 0.3694
+      },
+      "oos": {
+        "n": 15,
+        "wins": 10,
+        "compound_pct": 278.8275,
+        "compound_cost_pct": 246.9128,
+        "mean_hold": 15.4667,
+        "mean_ret_pct": 9.9746
+      },
+      "n_trades": 288
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-charge",
+      "exit": "X-T40",
+      "nominal_hold": 40,
+      "bh_like": true,
+      "contrast_only": true,
+      "qualified": false,
+      "is": {
+        "n": 6,
+        "wins": 3,
+        "compound_pct": 47.1014,
+        "compound_cost_pct": 42.0131,
+        "mean_hold": 40.0,
+        "mean_ret_pct": 9.1519
+      },
+      "oos": {
+        "n": 7,
+        "wins": 6,
+        "compound_pct": 196.9058,
+        "compound_cost_pct": 184.9588,
+        "mean_hold": 40.0,
+        "mean_ret_pct": 19.4398
+      },
+      "n_trades": 133
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-h5dip",
+      "exit": "X-T5",
+      "nominal_hold": 5,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 11,
+        "wins": 7,
+        "compound_pct": 16.7639,
+        "compound_cost_pct": 9.4661,
+        "mean_hold": 5.0,
+        "mean_ret_pct": 1.5496
+      },
+      "oos": {
+        "n": 18,
+        "wins": 10,
+        "compound_pct": 39.4442,
+        "compound_cost_pct": 25.4685,
+        "mean_hold": 5.0,
+        "mean_ret_pct": 2.1252
+      },
+      "n_trades": 248
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-h5dip",
+      "exit": "X-T10",
+      "nominal_hold": 10,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 10,
+        "wins": 6,
+        "compound_pct": 30.9113,
+        "compound_cost_pct": 23.4515,
+        "mean_hold": 10.0,
+        "mean_ret_pct": 3.3105
+      },
+      "oos": {
+        "n": 13,
+        "wins": 9,
+        "compound_pct": 18.9458,
+        "compound_cost_pct": 10.2108,
+        "mean_hold": 10.0,
+        "mean_ret_pct": 1.7603
+      },
+      "n_trades": 201
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-h5dip",
+      "exit": "X-T20",
+      "nominal_hold": 20,
+      "bh_like": true,
+      "contrast_only": false,
+      "qualified": false,
+      "is": {
+        "n": 6,
+        "wins": 4,
+        "compound_pct": -1.1814,
+        "compound_cost_pct": -4.5996,
+        "mean_hold": 20.0,
+        "mean_ret_pct": 0.9131
+      },
+      "oos": {
+        "n": 10,
+        "wins": 7,
+        "compound_pct": 179.1456,
+        "compound_cost_pct": 163.2388,
+        "mean_hold": 20.0,
+        "mean_ret_pct": 11.6516
+      },
+      "n_trades": 153
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-h5dip",
+      "exit": "X-H5cap20",
+      "nominal_hold": 20,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 10,
+        "wins": 6,
+        "compound_pct": 0.281,
+        "compound_cost_pct": -5.4334,
+        "mean_hold": 3.9,
+        "mean_ret_pct": 0.186
+      },
+      "oos": {
+        "n": 17,
+        "wins": 9,
+        "compound_pct": 110.1746,
+        "compound_cost_pct": 90.2229,
+        "mean_hold": 6.2941,
+        "mean_ret_pct": 5.1438
+      },
+      "n_trades": 236
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-h5dip",
+      "exit": "X-LAcap20",
+      "nominal_hold": 20,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 6,
+        "wins": 4,
+        "compound_pct": 7.6872,
+        "compound_cost_pct": 3.9623,
+        "mean_hold": 16.3333,
+        "mean_ret_pct": 1.6349
+      },
+      "oos": {
+        "n": 11,
+        "wins": 7,
+        "compound_pct": 160.4781,
+        "compound_cost_pct": 144.1981,
+        "mean_hold": 16.1818,
+        "mean_ret_pct": 9.7239
+      },
+      "n_trades": 166
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-h5dip",
+      "exit": "X-T40",
+      "nominal_hold": 40,
+      "bh_like": true,
+      "contrast_only": true,
+      "qualified": false,
+      "is": {
+        "n": 4,
+        "wins": 2,
+        "compound_pct": -4.2191,
+        "compound_cost_pct": -6.4407,
+        "mean_hold": 40.0,
+        "mean_ret_pct": 1.4325
+      },
+      "oos": {
+        "n": 8,
+        "wins": 7,
+        "compound_pct": 282.9697,
+        "compound_cost_pct": 265.4094,
+        "mean_hold": 40.0,
+        "mean_ret_pct": 19.5767
+      },
+      "n_trades": 103
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-watch",
+      "exit": "X-T5",
+      "nominal_hold": 5,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 12,
+        "wins": 8,
+        "compound_pct": 13.5595,
+        "compound_cost_pct": 5.8392,
+        "mean_hold": 5.0,
+        "mean_ret_pct": 1.4998
+      },
+      "oos": {
+        "n": 32,
+        "wins": 18,
+        "compound_pct": 30.9025,
+        "compound_cost_pct": 8.4949,
+        "mean_hold": 5.0,
+        "mean_ret_pct": 1.1323
+      },
+      "n_trades": 332
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-watch",
+      "exit": "X-T10",
+      "nominal_hold": 10,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 9,
+        "wins": 6,
+        "compound_pct": 38.6772,
+        "compound_cost_pct": 31.5443,
+        "mean_hold": 10.0,
+        "mean_ret_pct": 4.359
+      },
+      "oos": {
+        "n": 21,
+        "wins": 13,
+        "compound_pct": 195.2176,
+        "compound_cost_pct": 160.9952,
+        "mean_hold": 10.0,
+        "mean_ret_pct": 5.9282
+      },
+      "n_trades": 248
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-watch",
+      "exit": "X-T20",
+      "nominal_hold": 20,
+      "bh_like": true,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 6,
+        "wins": 3,
+        "compound_pct": 4.6761,
+        "compound_cost_pct": 1.0553,
+        "mean_hold": 20.0,
+        "mean_ret_pct": 1.6328
+      },
+      "oos": {
+        "n": 16,
+        "wins": 10,
+        "compound_pct": 341.3264,
+        "compound_cost_pct": 301.7821,
+        "mean_hold": 20.0,
+        "mean_ret_pct": 10.6544
+      },
+      "n_trades": 174
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-watch",
+      "exit": "X-H5cap20",
+      "nominal_hold": 20,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 11,
+        "wins": 6,
+        "compound_pct": 3.1026,
+        "compound_cost_pct": -3.3413,
+        "mean_hold": 4.9091,
+        "mean_ret_pct": 0.3844
+      },
+      "oos": {
+        "n": 28,
+        "wins": 11,
+        "compound_pct": 49.2258,
+        "compound_cost_pct": 26.6186,
+        "mean_hold": 5.8929,
+        "mean_ret_pct": 1.7975
+      },
+      "n_trades": 335
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-watch",
+      "exit": "X-LAcap20",
+      "nominal_hold": 20,
+      "bh_like": false,
+      "contrast_only": false,
+      "qualified": true,
+      "is": {
+        "n": 6,
+        "wins": 4,
+        "compound_pct": 21.6412,
+        "compound_cost_pct": 17.4336,
+        "mean_hold": 18.1667,
+        "mean_ret_pct": 3.5398
+      },
+      "oos": {
+        "n": 20,
+        "wins": 11,
+        "compound_pct": 181.9998,
+        "compound_cost_pct": 150.7767,
+        "mean_hold": 12.65,
+        "mean_ret_pct": 6.3623
+      },
+      "n_trades": 220
+    },
+    {
+      "sid": "pooled",
+      "entry": "E-watch",
+      "exit": "X-T40",
+      "nominal_hold": 40,
+      "bh_like": true,
+      "contrast_only": true,
+      "qualified": false,
+      "is": {
+        "n": 4,
+        "wins": 2,
+        "compound_pct": 18.3689,
+        "compound_cost_pct": 15.6233,
+        "mean_hold": 40.0,
+        "mean_ret_pct": 7.7427
+      },
+      "oos": {
+        "n": 9,
+        "wins": 7,
+        "compound_pct": 241.058,
+        "compound_cost_pct": 223.5158,
+        "mean_hold": 40.0,
+        "mean_ret_pct": 16.7012
+      },
+      "n_trades": 113
+    }
+  ],
+  "grid_per_sid": {
+    "3017": [
+      {
+        "sid": "3017",
+        "entry": "E-charge",
+        "exit": "X-T5",
+        "nominal_hold": 5,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 11,
+          "wins": 6,
+          "compound_pct": 39.731,
+          "compound_cost_pct": 30.9978,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 3.4319
+        },
+        "oos": {
+          "n": 16,
+          "wins": 9,
+          "compound_pct": 36.0461,
+          "compound_cost_pct": 23.8559,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 2.1388
+        },
+        "n_trades": 176
+      },
+      {
+        "sid": "3017",
+        "entry": "E-charge",
+        "exit": "X-T10",
+        "nominal_hold": 10,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 10,
+          "wins": 4,
+          "compound_pct": -10.2345,
+          "compound_cost_pct": -15.3497,
+          "mean_hold": 10.0,
+          "mean_ret_pct": -0.6011
+        },
+        "oos": {
+          "n": 13,
+          "wins": 7,
+          "compound_pct": 48.3722,
+          "compound_cost_pct": 37.4761,
+          "mean_hold": 10.0,
+          "mean_ret_pct": 3.4705
+        },
+        "n_trades": 145
+      },
+      {
+        "sid": "3017",
+        "entry": "E-charge",
+        "exit": "X-T20",
+        "nominal_hold": 20,
+        "bh_like": true,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 7,
+          "wins": 3,
+          "compound_pct": 0.2953,
+          "compound_cost_pct": -3.7404,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 1.3136
+        },
+        "oos": {
+          "n": 8,
+          "wins": 6,
+          "compound_pct": 156.0577,
+          "compound_cost_pct": 144.3167,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 13.2443
+        },
+        "n_trades": 97
+      },
+      {
+        "sid": "3017",
+        "entry": "E-charge",
+        "exit": "X-H5cap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 11,
+          "wins": 6,
+          "compound_pct": 16.1306,
+          "compound_cost_pct": 8.8724,
+          "mean_hold": 6.8182,
+          "mean_ret_pct": 1.8041
+        },
+        "oos": {
+          "n": 13,
+          "wins": 8,
+          "compound_pct": 153.0563,
+          "compound_cost_pct": 134.4726,
+          "mean_hold": 9.3846,
+          "mean_ret_pct": 7.9748
+        },
+        "n_trades": 168
+      },
+      {
+        "sid": "3017",
+        "entry": "E-charge",
+        "exit": "X-LAcap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 8,
+          "wins": 3,
+          "compound_pct": 1.8539,
+          "compound_cost_pct": -2.8164,
+          "mean_hold": 10.625,
+          "mean_ret_pct": 0.4044
+        },
+        "oos": {
+          "n": 9,
+          "wins": 6,
+          "compound_pct": 104.0983,
+          "compound_cost_pct": 93.6006,
+          "mean_hold": 16.4444,
+          "mean_ret_pct": 8.8031
+        },
+        "n_trades": 138
+      },
+      {
+        "sid": "3017",
+        "entry": "E-charge",
+        "exit": "X-T40",
+        "nominal_hold": 40,
+        "bh_like": true,
+        "contrast_only": true,
+        "qualified": false,
+        "is": {
+          "n": 4,
+          "wins": 2,
+          "compound_pct": 40.6454,
+          "compound_cost_pct": 37.3831,
+          "mean_hold": 40.0,
+          "mean_ret_pct": 12.3283
+        },
+        "oos": {
+          "n": 5,
+          "wins": 5,
+          "compound_pct": 162.6691,
+          "compound_cost_pct": 155.0754,
+          "mean_hold": 40.0,
+          "mean_ret_pct": 22.8487
+        },
+        "n_trades": 63
+      },
+      {
+        "sid": "3017",
+        "entry": "E-h5dip",
+        "exit": "X-T5",
+        "nominal_hold": 5,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 8,
+          "wins": 5,
+          "compound_pct": 14.8368,
+          "compound_cost_pct": 9.5712,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 1.9138
+        },
+        "oos": {
+          "n": 13,
+          "wins": 6,
+          "compound_pct": 14.8767,
+          "compound_cost_pct": 6.4405,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 1.3871
+        },
+        "n_trades": 112
+      },
+      {
+        "sid": "3017",
+        "entry": "E-h5dip",
+        "exit": "X-T10",
+        "nominal_hold": 10,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 7,
+          "wins": 4,
+          "compound_pct": 27.5259,
+          "compound_cost_pct": 22.3945,
+          "mean_hold": 10.0,
+          "mean_ret_pct": 4.2983
+        },
+        "oos": {
+          "n": 10,
+          "wins": 6,
+          "compound_pct": 3.0431,
+          "compound_cost_pct": -2.8286,
+          "mean_hold": 10.0,
+          "mean_ret_pct": 0.7741
+        },
+        "n_trades": 90
+      },
+      {
+        "sid": "3017",
+        "entry": "E-h5dip",
+        "exit": "X-T20",
+        "nominal_hold": 20,
+        "bh_like": true,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 4,
+          "wins": 3,
+          "compound_pct": 3.2507,
+          "compound_cost_pct": 0.8557,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 2.296
+        },
+        "oos": {
+          "n": 7,
+          "wins": 5,
+          "compound_pct": 113.3602,
+          "compound_cost_pct": 104.775,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 12.2384
+        },
+        "n_trades": 70
+      },
+      {
+        "sid": "3017",
+        "entry": "E-h5dip",
+        "exit": "X-H5cap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 7,
+          "wins": 4,
+          "compound_pct": -0.3925,
+          "compound_cost_pct": -4.4006,
+          "mean_hold": 4.7143,
+          "mean_ret_pct": 0.164
+        },
+        "oos": {
+          "n": 12,
+          "wins": 6,
+          "compound_pct": 99.4704,
+          "compound_cost_pct": 85.9095,
+          "mean_hold": 6.8333,
+          "mean_ret_pct": 6.8376
+        },
+        "n_trades": 106
+      },
+      {
+        "sid": "3017",
+        "entry": "E-h5dip",
+        "exit": "X-LAcap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 4,
+          "wins": 3,
+          "compound_pct": 8.2712,
+          "compound_cost_pct": 5.7598,
+          "mean_hold": 17.25,
+          "mean_ret_pct": 2.4937
+        },
+        "oos": {
+          "n": 8,
+          "wins": 5,
+          "compound_pct": 92.5397,
+          "compound_cost_pct": 83.7112,
+          "mean_hold": 15.125,
+          "mean_ret_pct": 9.1109
+        },
+        "n_trades": 78
+      },
+      {
+        "sid": "3017",
+        "entry": "E-h5dip",
+        "exit": "X-T40",
+        "nominal_hold": 40,
+        "bh_like": true,
+        "contrast_only": true,
+        "qualified": false,
+        "is": {
+          "n": 3,
+          "wins": 2,
+          "compound_pct": 5.7638,
+          "compound_cost_pct": 3.9184,
+          "mean_hold": 40.0,
+          "mean_ret_pct": 5.0562
+        },
+        "oos": {
+          "n": 6,
+          "wins": 6,
+          "compound_pct": 233.883,
+          "compound_cost_pct": 222.3338,
+          "mean_hold": 40.0,
+          "mean_ret_pct": 22.8812
+        },
+        "n_trades": 50
+      },
+      {
+        "sid": "3017",
+        "entry": "E-watch",
+        "exit": "X-T5",
+        "nominal_hold": 5,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 10,
+          "wins": 6,
+          "compound_pct": 9.0025,
+          "compound_cost_pct": 2.7911,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 1.386
+        },
+        "oos": {
+          "n": 22,
+          "wins": 12,
+          "compound_pct": -5.1071,
+          "compound_cost_pct": -16.5981,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 0.0879
+        },
+        "n_trades": 175
+      },
+      {
+        "sid": "3017",
+        "entry": "E-watch",
+        "exit": "X-T10",
+        "nominal_hold": 10,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 7,
+          "wins": 4,
+          "compound_pct": 27.0641,
+          "compound_cost_pct": 21.9512,
+          "mean_hold": 10.0,
+          "mean_ret_pct": 4.3246
+        },
+        "oos": {
+          "n": 13,
+          "wins": 7,
+          "compound_pct": 66.7117,
+          "compound_cost_pct": 54.4688,
+          "mean_hold": 10.0,
+          "mean_ret_pct": 4.5912
+        },
+        "n_trades": 123
+      },
+      {
+        "sid": "3017",
+        "entry": "E-watch",
+        "exit": "X-T20",
+        "nominal_hold": 20,
+        "bh_like": true,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 5,
+          "wins": 2,
+          "compound_pct": -1.2758,
+          "compound_cost_pct": -4.1299,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 0.7535
+        },
+        "oos": {
+          "n": 10,
+          "wins": 7,
+          "compound_pct": 186.6314,
+          "compound_cost_pct": 170.298,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 11.9763
+        },
+        "n_trades": 89
+      },
+      {
+        "sid": "3017",
+        "entry": "E-watch",
+        "exit": "X-H5cap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 9,
+          "wins": 4,
+          "compound_pct": 0.7271,
+          "compound_cost_pct": -4.4538,
+          "mean_hold": 5.5556,
+          "mean_ret_pct": 0.2081
+        },
+        "oos": {
+          "n": 18,
+          "wins": 6,
+          "compound_pct": 25.0313,
+          "compound_cost_pct": 12.5001,
+          "mean_hold": 5.7222,
+          "mean_ret_pct": 1.5659
+        },
+        "n_trades": 170
+      },
+      {
+        "sid": "3017",
+        "entry": "E-watch",
+        "exit": "X-LAcap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 5,
+          "wins": 3,
+          "compound_pct": 14.7246,
+          "compound_cost_pct": 11.408,
+          "mean_hold": 17.8,
+          "mean_ret_pct": 3.042
+        },
+        "oos": {
+          "n": 12,
+          "wins": 7,
+          "compound_pct": 101.4047,
+          "compound_cost_pct": 87.7122,
+          "mean_hold": 13.4167,
+          "mean_ret_pct": 7.0947
+        },
+        "n_trades": 113
+      },
+      {
+        "sid": "3017",
+        "entry": "E-watch",
+        "exit": "X-T40",
+        "nominal_hold": 40,
+        "bh_like": true,
+        "contrast_only": true,
+        "qualified": false,
+        "is": {
+          "n": 3,
+          "wins": 2,
+          "compound_pct": 23.7199,
+          "compound_cost_pct": 21.5612,
+          "mean_hold": 40.0,
+          "mean_ret_pct": 11.7653
+        },
+        "oos": {
+          "n": 6,
+          "wins": 5,
+          "compound_pct": 151.2513,
+          "compound_cost_pct": 142.5603,
+          "mean_hold": 40.0,
+          "mean_ret_pct": 19.2858
+        },
+        "n_trades": 57
+      }
+    ],
+    "2395": [
+      {
+        "sid": "2395",
+        "entry": "E-charge",
+        "exit": "X-T5",
+        "nominal_hold": 5,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 4,
+          "wins": 3,
+          "compound_pct": 12.2076,
+          "compound_cost_pct": 9.6049,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 2.9741
+        },
+        "oos": {
+          "n": 8,
+          "wins": 6,
+          "compound_pct": 27.1192,
+          "compound_cost_pct": 21.2904,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 3.453
+        },
+        "n_trades": 218
+      },
+      {
+        "sid": "2395",
+        "entry": "E-charge",
+        "exit": "X-T10",
+        "nominal_hold": 10,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 4,
+          "wins": 2,
+          "compound_pct": 1.7753,
+          "compound_cost_pct": -0.5855,
+          "mean_hold": 10.0,
+          "mean_ret_pct": 0.4611
+        },
+        "oos": {
+          "n": 7,
+          "wins": 5,
+          "compound_pct": 25.2856,
+          "compound_cost_pct": 20.2443,
+          "mean_hold": 10.0,
+          "mean_ret_pct": 3.9778
+        },
+        "n_trades": 165
+      },
+      {
+        "sid": "2395",
+        "entry": "E-charge",
+        "exit": "X-T20",
+        "nominal_hold": 20,
+        "bh_like": true,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 3,
+          "wins": 2,
+          "compound_pct": 0.411,
+          "compound_cost_pct": -1.341,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 0.37
+        },
+        "oos": {
+          "n": 6,
+          "wins": 4,
+          "compound_pct": 60.0735,
+          "compound_cost_pct": 54.5365,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 9.4703
+        },
+        "n_trades": 113
+      },
+      {
+        "sid": "2395",
+        "entry": "E-charge",
+        "exit": "X-H5cap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 4,
+          "wins": 2,
+          "compound_pct": 4.5327,
+          "compound_cost_pct": 2.108,
+          "mean_hold": 6.75,
+          "mean_ret_pct": 1.1367
+        },
+        "oos": {
+          "n": 9,
+          "wins": 5,
+          "compound_pct": 34.9161,
+          "compound_cost_pct": 27.9767,
+          "mean_hold": 6.8889,
+          "mean_ret_pct": 3.7181
+        },
+        "n_trades": 198
+      },
+      {
+        "sid": "2395",
+        "entry": "E-charge",
+        "exit": "X-LAcap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 3,
+          "wins": 1,
+          "compound_pct": 0.2321,
+          "compound_cost_pct": -1.5167,
+          "mean_hold": 12.6667,
+          "mean_ret_pct": 0.2762
+        },
+        "oos": {
+          "n": 6,
+          "wins": 4,
+          "compound_pct": 85.6103,
+          "compound_cost_pct": 79.1899,
+          "mean_hold": 14.0,
+          "mean_ret_pct": 11.7319
+        },
+        "n_trades": 150
+      },
+      {
+        "sid": "2395",
+        "entry": "E-charge",
+        "exit": "X-T40",
+        "nominal_hold": 40,
+        "bh_like": true,
+        "contrast_only": true,
+        "qualified": false,
+        "is": {
+          "n": 2,
+          "wins": 1,
+          "compound_pct": 4.5903,
+          "compound_cost_pct": 3.3702,
+          "mean_hold": 40.0,
+          "mean_ret_pct": 2.799
+        },
+        "oos": {
+          "n": 2,
+          "wins": 1,
+          "compound_pct": 13.0342,
+          "compound_cost_pct": 11.7155,
+          "mean_hold": 40.0,
+          "mean_ret_pct": 10.9175
+        },
+        "n_trades": 70
+      },
+      {
+        "sid": "2395",
+        "entry": "E-h5dip",
+        "exit": "X-T5",
+        "nominal_hold": 5,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 3,
+          "wins": 2,
+          "compound_pct": 1.6782,
+          "compound_cost_pct": -0.0959,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 0.5786
+        },
+        "oos": {
+          "n": 5,
+          "wins": 4,
+          "compound_pct": 21.386,
+          "compound_cost_pct": 17.8767,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 4.0441
+        },
+        "n_trades": 136
+      },
+      {
+        "sid": "2395",
+        "entry": "E-h5dip",
+        "exit": "X-T10",
+        "nominal_hold": 10,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 3,
+          "wins": 2,
+          "compound_pct": 2.6546,
+          "compound_cost_pct": 0.8636,
+          "mean_hold": 10.0,
+          "mean_ret_pct": 1.0057
+        },
+        "oos": {
+          "n": 3,
+          "wins": 3,
+          "compound_pct": 15.433,
+          "compound_cost_pct": 13.419,
+          "mean_hold": 10.0,
+          "mean_ret_pct": 5.0475
+        },
+        "n_trades": 111
+      },
+      {
+        "sid": "2395",
+        "entry": "E-h5dip",
+        "exit": "X-T20",
+        "nominal_hold": 20,
+        "bh_like": true,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 2,
+          "wins": 1,
+          "compound_pct": -4.2926,
+          "compound_cost_pct": -5.4091,
+          "mean_hold": 20.0,
+          "mean_ret_pct": -1.8528
+        },
+        "oos": {
+          "n": 3,
+          "wins": 2,
+          "compound_pct": 30.833,
+          "compound_cost_pct": 28.5503,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 10.2822
+        },
+        "n_trades": 83
+      },
+      {
+        "sid": "2395",
+        "entry": "E-h5dip",
+        "exit": "X-H5cap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 3,
+          "wins": 2,
+          "compound_pct": 0.6762,
+          "compound_cost_pct": -1.0804,
+          "mean_hold": 2.0,
+          "mean_ret_pct": 0.2374
+        },
+        "oos": {
+          "n": 5,
+          "wins": 3,
+          "compound_pct": 5.3663,
+          "compound_cost_pct": 2.3202,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 1.0787
+        },
+        "n_trades": 130
+      },
+      {
+        "sid": "2395",
+        "entry": "E-h5dip",
+        "exit": "X-LAcap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 2,
+          "wins": 1,
+          "compound_pct": -0.5393,
+          "compound_cost_pct": -1.6996,
+          "mean_hold": 14.5,
+          "mean_ret_pct": -0.0829
+        },
+        "oos": {
+          "n": 3,
+          "wins": 2,
+          "compound_pct": 35.2854,
+          "compound_cost_pct": 32.925,
+          "mean_hold": 19.0,
+          "mean_ret_pct": 11.3588
+        },
+        "n_trades": 88
+      },
+      {
+        "sid": "2395",
+        "entry": "E-h5dip",
+        "exit": "X-T40",
+        "nominal_hold": 40,
+        "bh_like": true,
+        "contrast_only": true,
+        "qualified": false,
+        "is": {
+          "n": 1,
+          "wins": 0,
+          "compound_pct": -9.4388,
+          "compound_cost_pct": -9.9686,
+          "mean_hold": 40.0,
+          "mean_ret_pct": -9.4388
+        },
+        "oos": {
+          "n": 2,
+          "wins": 1,
+          "compound_pct": 14.7018,
+          "compound_cost_pct": 13.3637,
+          "mean_hold": 40.0,
+          "mean_ret_pct": 9.6632
+        },
+        "n_trades": 53
+      },
+      {
+        "sid": "2395",
+        "entry": "E-watch",
+        "exit": "X-T5",
+        "nominal_hold": 5,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 2,
+          "wins": 2,
+          "compound_pct": 4.1806,
+          "compound_cost_pct": 2.9652,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 2.0689
+        },
+        "oos": {
+          "n": 10,
+          "wins": 6,
+          "compound_pct": 37.9476,
+          "compound_cost_pct": 30.0868,
+          "mean_hold": 5.0,
+          "mean_ret_pct": 3.43
+        },
+        "n_trades": 157
+      },
+      {
+        "sid": "2395",
+        "entry": "E-watch",
+        "exit": "X-T10",
+        "nominal_hold": 10,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 2,
+          "wins": 2,
+          "compound_pct": 9.1395,
+          "compound_cost_pct": 7.8663,
+          "mean_hold": 10.0,
+          "mean_ret_pct": 4.4795
+        },
+        "oos": {
+          "n": 8,
+          "wins": 6,
+          "compound_pct": 77.0828,
+          "compound_cost_pct": 68.963,
+          "mean_hold": 10.0,
+          "mean_ret_pct": 8.1008
+        },
+        "n_trades": 125
+      },
+      {
+        "sid": "2395",
+        "entry": "E-watch",
+        "exit": "X-T20",
+        "nominal_hold": 20,
+        "bh_like": true,
+        "contrast_only": false,
+        "qualified": false,
+        "is": {
+          "n": 1,
+          "wins": 1,
+          "compound_pct": 6.0288,
+          "compound_cost_pct": 5.4086,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 6.0288
+        },
+        "oos": {
+          "n": 6,
+          "wins": 3,
+          "compound_pct": 53.97,
+          "compound_cost_pct": 48.6441,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 8.4513
+        },
+        "n_trades": 85
+      },
+      {
+        "sid": "2395",
+        "entry": "E-watch",
+        "exit": "X-H5cap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 2,
+          "wins": 2,
+          "compound_pct": 2.3584,
+          "compound_cost_pct": 1.1643,
+          "mean_hold": 2.0,
+          "mean_ret_pct": 1.1778
+        },
+        "oos": {
+          "n": 10,
+          "wins": 5,
+          "compound_pct": 19.3508,
+          "compound_cost_pct": 12.5497,
+          "mean_hold": 6.2,
+          "mean_ret_pct": 2.2143
+        },
+        "n_trades": 165
+      },
+      {
+        "sid": "2395",
+        "entry": "E-watch",
+        "exit": "X-LAcap20",
+        "nominal_hold": 20,
+        "bh_like": false,
+        "contrast_only": false,
+        "qualified": true,
+        "is": {
+          "n": 1,
+          "wins": 1,
+          "compound_pct": 6.0288,
+          "compound_cost_pct": 5.4086,
+          "mean_hold": 20.0,
+          "mean_ret_pct": 6.0288
+        },
+        "oos": {
+          "n": 8,
+          "wins": 4,
+          "compound_pct": 40.0165,
+          "compound_cost_pct": 33.5964,
+          "mean_hold": 11.5,
+          "mean_ret_pct": 5.2637
+        },
+        "n_trades": 107
+      },
+      {
+        "sid": "2395",
+        "entry": "E-watch",
+        "exit": "X-T40",
+        "nominal_hold": 40,
+        "bh_like": true,
+        "contrast_only": true,
+        "qualified": false,
+        "is": {
+          "n": 1,
+          "wins": 0,
+          "compound_pct": -4.325,
+          "compound_cost_pct": -4.8847,
+          "mean_hold": 40.0,
+          "mean_ret_pct": -4.325
+        },
+        "oos": {
+          "n": 3,
+          "wins": 2,
+          "compound_pct": 35.7438,
+          "compound_cost_pct": 33.3754,
+          "mean_hold": 40.0,
+          "mean_ret_pct": 11.532
+        },
+        "n_trades": 56
+      }
+    ]
+  },
+  "buy_hold": {
+    "3017": {
+      "is": {
+        "start": "2024-01-02",
+        "end": "2024-12-31",
+        "pct": 91.3046
+      },
+      "oos": {
+        "start": "2025-01-02",
+        "end": "2026-06-30",
+        "pct": 314.1609
+      },
+      "origin_tip": {
+        "start": "2024-01-02",
+        "end": "2026-08-18",
+        "pct": 840.1107
+      }
+    },
+    "2395": {
+      "is": {
+        "start": "2024-01-02",
+        "end": "2024-12-31",
+        "pct": -3.7971
+      },
+      "oos": {
+        "start": "2025-01-02",
+        "end": "2026-06-30",
+        "pct": 46.6693
+      },
+      "origin_tip": {
+        "start": "2024-01-02",
+        "end": "2026-08-18",
+        "pct": 93.3248
+      }
+    }
+  },
+  "trades_champion": [
+    {
+      "sid": "3017",
+      "signal": "2024-01-11",
+      "entry": "2024-01-12",
+      "exit": "2024-01-19",
+      "hold_td": 5,
+      "ret_pct": -1.1429
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-01-22",
+      "entry": "2024-01-23",
+      "exit": "2024-01-30",
+      "hold_td": 5,
+      "ret_pct": 11.1255
+    },
+    {
+      "sid": "2395",
+      "signal": "2024-02-01",
+      "entry": "2024-02-02",
+      "exit": "2024-02-20",
+      "hold_td": 5,
+      "ret_pct": 7.1233
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-02-26",
+      "entry": "2024-02-27",
+      "exit": "2024-03-06",
+      "hold_td": 5,
+      "ret_pct": 24.0157
+    },
+    {
+      "sid": "2395",
+      "signal": "2024-03-01",
+      "entry": "2024-03-04",
+      "exit": "2024-03-11",
+      "hold_td": 5,
+      "ret_pct": 5.0388
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-03-15",
+      "entry": "2024-03-18",
+      "exit": "2024-03-25",
+      "hold_td": 5,
+      "ret_pct": -6.4205
+    },
+    {
+      "sid": "2395",
+      "signal": "2024-03-21",
+      "entry": "2024-03-22",
+      "exit": "2024-03-29",
+      "hold_td": 5,
+      "ret_pct": 1.0
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-04-11",
+      "entry": "2024-04-12",
+      "exit": "2024-04-19",
+      "hold_td": 5,
+      "ret_pct": 0.3185
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-04-26",
+      "entry": "2024-04-29",
+      "exit": "2024-05-07",
+      "hold_td": 5,
+      "ret_pct": 7.6677
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-05-23",
+      "entry": "2024-05-24",
+      "exit": "2024-05-31",
+      "hold_td": 5,
+      "ret_pct": 8.9235
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-06-20",
+      "entry": "2024-06-21",
+      "exit": "2024-06-28",
+      "hold_td": 5,
+      "ret_pct": 4.6512
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-07-08",
+      "entry": "2024-07-09",
+      "exit": "2024-07-16",
+      "hold_td": 5,
+      "ret_pct": -4.9519
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-10-18",
+      "entry": "2024-10-21",
+      "exit": "2024-10-28",
+      "hold_td": 5,
+      "ret_pct": -4.2836
+    },
+    {
+      "sid": "3017",
+      "signal": "2024-12-02",
+      "entry": "2024-12-03",
+      "exit": "2024-12-10",
+      "hold_td": 5,
+      "ret_pct": -2.1521
+    },
+    {
+      "sid": "2395",
+      "signal": "2024-12-06",
+      "entry": "2024-12-09",
+      "exit": "2024-12-16",
+      "hold_td": 5,
+      "ret_pct": -1.2658
+    },
+    {
+      "sid": "2395",
+      "signal": "2025-01-08",
+      "entry": "2025-01-09",
+      "exit": "2025-01-16",
+      "hold_td": 5,
+      "ret_pct": 1.25
+    },
+    {
+      "sid": "2395",
+      "signal": "2025-01-20",
+      "entry": "2025-01-21",
+      "exit": "2025-02-06",
+      "hold_td": 5,
+      "ret_pct": 11.8529
+    },
+    {
+      "sid": "2395",
+      "signal": "2025-02-20",
+      "entry": "2025-02-21",
+      "exit": "2025-03-03",
+      "hold_td": 5,
+      "ret_pct": -4.1866
+    },
+    {
+      "sid": "2395",
+      "signal": "2025-03-26",
+      "entry": "2025-03-27",
+      "exit": "2025-04-07",
+      "hold_td": 5,
+      "ret_pct": -11.3636
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-06-11",
+      "entry": "2025-06-12",
+      "exit": "2025-06-19",
+      "hold_td": 5,
+      "ret_pct": -2.3715
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-06-25",
+      "entry": "2025-06-26",
+      "exit": "2025-07-03",
+      "hold_td": 5,
+      "ret_pct": 6.0976
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-07-18",
+      "entry": "2025-07-21",
+      "exit": "2025-07-28",
+      "hold_td": 5,
+      "ret_pct": 0.1147
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-08-18",
+      "entry": "2025-08-19",
+      "exit": "2025-08-26",
+      "hold_td": 5,
+      "ret_pct": -4.2056
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-09-11",
+      "entry": "2025-09-12",
+      "exit": "2025-09-19",
+      "hold_td": 5,
+      "ret_pct": -0.9524
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-10-02",
+      "entry": "2025-10-03",
+      "exit": "2025-10-14",
+      "hold_td": 5,
+      "ret_pct": -0.8584
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-10-15",
+      "entry": "2025-10-16",
+      "exit": "2025-10-23",
+      "hold_td": 5,
+      "ret_pct": -2.0921
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-10-27",
+      "entry": "2025-10-28",
+      "exit": "2025-11-04",
+      "hold_td": 5,
+      "ret_pct": 10.3846
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-12-05",
+      "entry": "2025-12-08",
+      "exit": "2025-12-15",
+      "hold_td": 5,
+      "ret_pct": -0.361
+    },
+    {
+      "sid": "3017",
+      "signal": "2025-12-19",
+      "entry": "2025-12-22",
+      "exit": "2025-12-30",
+      "hold_td": 5,
+      "ret_pct": 3.7288
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-01-29",
+      "entry": "2026-01-30",
+      "exit": "2026-02-06",
+      "hold_td": 5,
+      "ret_pct": 9.2466
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-02-25",
+      "entry": "2026-02-26",
+      "exit": "2026-03-06",
+      "hold_td": 5,
+      "ret_pct": 4.5326
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-03-11",
+      "entry": "2026-03-12",
+      "exit": "2026-03-19",
+      "hold_td": 5,
+      "ret_pct": 7.4667
+    },
+    {
+      "sid": "2395",
+      "signal": "2026-04-08",
+      "entry": "2026-04-09",
+      "exit": "2026-04-16",
+      "hold_td": 5,
+      "ret_pct": 2.0115
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-04-08",
+      "entry": "2026-04-09",
+      "exit": "2026-04-16",
+      "hold_td": 5,
+      "ret_pct": 9.1723
+    },
+    {
+      "sid": "2395",
+      "signal": "2026-04-28",
+      "entry": "2026-04-29",
+      "exit": "2026-05-07",
+      "hold_td": 5,
+      "ret_pct": 21.3115
+    },
+    {
+      "sid": "2395",
+      "signal": "2026-05-20",
+      "entry": "2026-05-21",
+      "exit": "2026-05-28",
+      "hold_td": 5,
+      "ret_pct": 5.8252
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-05-22",
+      "entry": "2026-05-25",
+      "exit": "2026-06-01",
+      "hold_td": 5,
+      "ret_pct": 8.1553
+    },
+    {
+      "sid": "3017",
+      "signal": "2026-06-03",
+      "entry": "2026-06-04",
+      "exit": "2026-06-11",
+      "hold_td": 5,
+      "ret_pct": -13.8376
+    },
+    {
+      "sid": "2395",
+      "signal": "2026-06-22",
+      "entry": "2026-06-23",
+      "exit": "2026-06-30",
+      "hold_td": 5,
+      "ret_pct": 0.9231
+    }
+  ],
+  "note": "TWIN-EX-v1；不要抱牢；IS=2024 OOS=2025-01..2026-06；禁 OOS 最長持有當冠；兩檔≠宇宙；條件≠可交易；dry-run 不寫 prediction_values；不改 standing 20,60"
+}
