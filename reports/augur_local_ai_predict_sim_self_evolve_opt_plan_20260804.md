@@ -21,9 +21,9 @@ s2_after_s3: reports/augur_s2_kh_optimize_after_s3_plan_20260804.md（回饋弧�
 s1_s2_s3_loop: reports/augur_s1_s2_s3_closed_loop_plan_20260804.md（S1–S2–S3 全弧細節）
 s4_s5_closed_loop: reports/augur_s4_s5_closed_loop_plan_20260804.md（S4↔S5 細節）
 based_on:
-  - reports/augur_project_optimization_plan_20260804.md
-  - reports/augur_optimization_step_plan_r3_20260804.md
-  - reports/augur_opt_next_best_r5_20260804.md
+  - archive/slim-t3/augur_project_optimization_plan_20260804.md
+  - archive/slim-t3/augur_optimization_step_plan_r3_20260804.md
+  - archive/slim-t4/augur_opt_next_best_r5_20260804.md
   - reports/augur_local_ai_sim_evolution_plan_20260804.md
   - reports/augur_sim_evo_p1_instruments_design_20260804.md
   - reports/augur_p1_feature_drift_plan_20260804.md
@@ -60,8 +60,8 @@ s4_s5_loop_audit: audits/SIM-S4-S5-CLOSED-LOOP-20260804.md
 
 | 角色 | 路徑 | 效力 |
 |---|---|---|
-| 決策導覽（地基） | `reports/augur_project_optimization_plan_20260804.md` | 全專案優化整合 |
-| 一般優化 step／runbook | `reports/augur_optimization_step_plan_r3_20260804.md` | Registry／A 取數車道 |
+| 決策導覽（地基） | `archive/slim-t3/augur_project_optimization_plan_20260804.md` | 全專案優化整合（T3 封存；開工跟 r19） |
+| 一般優化 step／runbook | `archive/slim-t3/augur_optimization_step_plan_r3_20260804.md` | Registry／A 取數車道（T3 封存） |
 | sim 校準專項（已拍） | `reports/augur_local_ai_sim_evolution_plan_20260804.md`（`OPT-SIM-EVO-20260804-go`） | **complement**；S5 旁軸繼承 |
 | **本檔（閉環 SSOT）** | `reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md` | **S1→S5 閉環自我進化**（Steward-approved 2026-08-04） |
 | S3 特徵類別矩陣 | `reports/augur_s3_features_for_market_model_families_20260804.md` | 市場族→特徵組（**Steward-approved**／`S3-FEATURES-PLAN-go`；build 待 `S3-WAVE-*-go`） |

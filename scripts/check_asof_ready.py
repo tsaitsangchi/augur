@@ -8,8 +8,9 @@
 執行指令矩陣:
   python scripts/check_asof_ready.py                         # 無 --date＝印本矩陣（不連庫）
   python scripts/check_asof_ready.py --selftest              # 轉呼叫 library 純自測（免 DB）
-  python scripts/check_asof_ready.py --date 2026-08-17       # 探價頂（預期 ready 或 need_collect）
-  python scripts/check_asof_ready.py --date 2026-08-18       # 若價頂仍 08-17 → rc=3 假 B3
+  python scripts/check_asof_ready.py --date 2026-08-18       # 價頂 → ready 或 need_collect
+  python scripts/check_asof_ready.py --fake-b3-date          # 價頂次一日曆日（自測假 B3；勿寫死）
+  python scripts/check_asof_ready.py --date 2026-08-19       # 若價頂仍 08-18 → rc=3 假 B3
   python scripts/check_asof_ready.py --latest-date           # 只印可更新最新日（價頂 ISO）
   python scripts/check_asof_ready.py --scan                  # 未齊歷史日（截面 <8×8）
   python scripts/check_asof_ready.py --date 2026-07-31 --family-matrix
@@ -30,6 +31,8 @@ def main(argv=None) -> int:
     ap.add_argument("--date", dest="asof", default=None, help="as-of 日 YYYY-MM-DD")
     ap.add_argument("--latest-date", action="store_true", dest="latest_date",
                     help="只印可更新最新日（PriceAdj TAIEX 價頂）")
+    ap.add_argument("--fake-b3-date", action="store_true", dest="fake_b3_date",
+                    help="只印價頂次一日曆日（保證假 B3；自測勿寫死日期）")
     ap.add_argument("--family-matrix", action="store_true", dest="family_matrix",
                     help="ready 時加印截面 8×8 有無格（唯讀）")
     ap.add_argument("--scan", action="store_true",
@@ -45,6 +48,15 @@ def main(argv=None) -> int:
             print(err, file=sys.stderr)
             return 4
         print(iso)
+        return 0
+    if args.fake_b3_date:
+        with db.connect() as conn, conn.cursor() as cur:
+            tip = asof_ready.taiex_price_max(cur)
+        fb = asof_ready.fake_b3_probe_date(tip)
+        if fb is None:
+            print("✗ 無 TAIEX 價，沒有假 B3 探針日", file=sys.stderr)
+            return 4
+        print(fb.isoformat())
         return 0
     if args.scan:
         from augur.evaluation import label as label_mod
@@ -62,7 +74,21 @@ def main(argv=None) -> int:
         print("截面未齊（有 panel、D≤價頂；補齊須 --track all，方向臂不覆寫）")
         print(asof_ready.format_incomplete_scan(incomplete))
         print("下一槍訓：另貼 HIST-ASOF-apply | date=<未齊日> | track=all")
-        print("OOS IC：python scripts/verify_asof_families.py --date 2026-08-07 --ic --oos")
+        if incomplete:
+            nxt = incomplete[0]
+            print(
+                "建議下一未齊：%s 缺 %s core=%s（collect=%s）"
+                % (
+                    nxt["asof"],
+                    nxt.get("gap"),
+                    "Y" if nxt.get("has_core") else "N",
+                    "SKIP" if nxt.get("has_core") else "build_core",
+                )
+            )
+        fb = asof_ready.fake_b3_probe_date(tip)
+        if fb is not None:
+            print("假 B3 探針日=%s（價頂次一日曆日）" % fb.isoformat())
+        print("OOS IC：python scripts/verify_asof_families.py --walk --oos --horizon 5")
         print("→ 其他模型：" + asof_ready.other_lane_oneline())
         return 0
     if not args.asof:
@@ -134,6 +160,7 @@ def main(argv=None) -> int:
         print("→ 假 B3：禁止 train/predict 登記此 asof")
     else:
         print("→ 無 TAIEX 價")
+    print(asof_ready.format_hist_next_action(asof_ready.hist_next_action(snap)))
     return int(snap["rc"])
 
 

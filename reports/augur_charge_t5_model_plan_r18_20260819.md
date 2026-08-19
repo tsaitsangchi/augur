@@ -13,7 +13,7 @@ executed_p1: audits/CHARGE-T5-UNIVERSE-0818-EXECUTED-20260819.md
 parent_twin: reports/augur_twin_ex_qihong_yanhua_plan_r18_20260819.md
 two_name_ops: reports/augur_qihong_yanhua_conditions_ops_plan_r18_20260819.md
 ops_handbook: reports/augur_path_timing_opt_ops_plan_r18_20260819.md
-exec_nav: reports/augur_opt_stepwise_all_problems_r18_20260817.md
+exec_nav: reports/augur_opt_stepwise_all_problems_r19_20260819.md
 econ_path: reports/augur_econ_prove_edge_plan_r17_20260817.md
 self_reported: true
 ---

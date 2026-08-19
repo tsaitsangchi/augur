@@ -1,9 +1,10 @@
 ---
 title: augur 優化——全專案逐步執行最佳下一步（可先／可同步）計畫書 r18
-status: adopted_exec_ssot
+status: superseded_exec
 series: optimization_plan
 round: r18
-role: **後續優化執行 SSOT（全專案所有開問題）**
+role: 前一執行板（已被 r19 supersede）
+superseded_by: reports/augur_opt_stepwise_all_problems_r19_20260819.md
 date: 2026-08-17
 viewpoint: 2026-08-18T14:55+08:00
 layer: "[I]"
@@ -25,7 +26,9 @@ self_reported: true
 
 # augur 優化——全專案逐步執行最佳下一步 r18（2026-08-18 14:55）
 
-> **一句**：本檔＝**後續優化唯一執行計畫書**。每個還開著的問題都標了：**最佳下一步**、**現在可先做？**、**可與主軸同步做？**。  
+> **已 supersede**：後續優化執行 SSOT 改＝`reports/augur_opt_stepwise_all_problems_r19_20260819.md`。本檔保留史料；開工順序以 r19 為準。
+
+> **一句（史料）**：本檔曾為後續優化唯一執行計畫書。每個還開著的問題都標了：**最佳下一步**、**現在可先做？**、**可與主軸同步做？**。  
 > **來源**：深化理解 r17 債表 R17-01…23；吸收本日 M1a 出門、E0–E4b。  
 > **位階**：[I]；不創 [N]；不解凍；不假 B3；不 sim-apply；不默升格；**勿重掃假綠**。  
 > **分軌保留**：市場與知識**互不等待**。  

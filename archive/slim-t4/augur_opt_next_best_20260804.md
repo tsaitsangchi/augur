@@ -7,8 +7,8 @@
 
 | SSOT | 路徑 |
 |---|---|
-| step／runbook | `reports/augur_optimization_step_plan_r3_20260804.md`（§0／§3–§5／§8–§9） |
-| 地基 | `reports/augur_project_optimization_plan_20260804.md`（§1／§5–§7 P0–P3） |
+| step／runbook | `archive/slim-t3/augur_optimization_step_plan_r3_20260804.md`（§0／§3–§5／§8–§9） |
+| 地基 | `archive/slim-t3/augur_project_optimization_plan_20260804.md`（§1／§5–§7 P0–P3） |
 | **現行 next-best** | `reports/augur_opt_next_best_r2_20260804.md` |
 | 本條 audit（舊） | `audits/OPT-R3-NEXT-BEST-20260804.md` → 升 `OPT-R3-NEXT-BEST-R2-20260804.md` |
 | U0-STRUCT | `audits/U0-STRUCT-378097-20260804.md`（已結） |

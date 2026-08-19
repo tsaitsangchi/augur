@@ -12,16 +12,20 @@ essence: 本質仍是 S1→S5 連續閉環；優化＝怎麼轉、轉什麼、�
 ssot_code: SIM-SELF-EVOLVE-OPT-PLAN-R16-20260813
 parent_go: SIM-SELF-EVOLVE-OPT-PLAN-20260804-go
 parent_ssot: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md
-exec_nav: reports/augur_opt_stepwise_all_problems_r18_20260817.md
-asof_knife: reports/augur_s1s5_asof_verify_best_next_r18_20260817.md
-asof_knife_prior: reports/augur_s1s5_asof_verify_best_next_20260813.md
+exec_nav: reports/augur_opt_stepwise_all_problems_r19_20260819.md
+exec_nav_prior: archive/slim-t2/augur_opt_stepwise_all_problems_r18_20260817.md
+understanding: reports/augur_deep_understanding_and_opt_plan_r20_20260819.md
+slim_plan: reports/augur_repo_slim_opt_plan_r20_20260819.md
+ssot_index: reports/SSOT_READ_ORDER.md
+asof_knife: reports/augur_s1s5_asof_verify_best_next_r19_20260819.md
+asof_knife_prior: archive/slim-t2/augur_s1s5_asof_verify_best_next_r18_20260817.md
 kh_evolve: reports/augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md
 kh_split: audits/KH-SPLIT-FROM-MARKET-AXIS-ADOPTED-20260812.md
 l2_plan: reports/augur_daily_retrain_l2_all_rank_plan_20260812.md
 l0_hotpath: reports/augur_l0_hotpath_daily_plan_20260814.md
 l0_adopted: audits/L0-HOTPATH-PREDICT-DAILY-ADOPTED-20260814.md
-archive_tip: archive-20260819-path-opt-charge-t5-ridge
-prior_archive: archive-20260818-b3-retrain-force-hist-oos
+archive_tip: archive-20260819-b3-hist-slim-r20
+prior_archive: archive-20260819-path-opt-charge-t5-ridge
 other_verify: reports/augur_s4_other_model_verify_matrix_plan_20260806.md
 residual: audits/NF-0812-RESIDUAL-NAME-CARD-20260813.md
 sole_steward: true
@@ -40,7 +44,7 @@ inherits_boundaries:
 > **一句**：本質不變——這仍是 **S1→S5 自我進化閉環**，不是一次勾完的清單。  
 > **重新優化**：進化改走 **日更心跳（L1→L2）＋庫內歷史 as-of 重覆驗＋知識獨立閉環**；不再把「taxonomy 全族再掃一遍變綠」當成進化。  
 > **位階**：[I] 運轉 SSOT。**不創 [N]**；**不撤** 08-04 GO；衝突時 **本檔管怎麼轉**，08-04 管本質／括號驗收／已拍 GO 史料。  
-> **LIVE（親查 13:20+08；過期）**：當時價頂 08-12。**2026-08-17 視點**＝價頂／包＝08-14；開工＝r18；as-of 刀＝`reports/augur_s1s5_asof_verify_best_next_r18_20260817.md`。08-15／16／17＝假 B3。
+> **LIVE（親查 13:20+08；過期）**：當時價頂 08-12。**2026-08-19 14:40 視點**＝價頂／包／emit＝08-18 H20+H60；開工＝r19；as-of 刀＝`reports/augur_s1s5_asof_verify_best_next_r19_20260819.md`。08-19＝假 B3。
 
 ---
 
@@ -142,22 +146,26 @@ Standing 預設窗仍 **H20＋H60**。五窗永久化須 **雙明示** 改殼（
 2. 多個 D 走 walk-forward，看分布（#11），不是單日極值。  
 3. 截面族 **共用** panel，不必每族重抓 FinMind。
 
-**曆法（親查）**：2018–2025 月頻；2026 月頻至 07-31；日頻 **08-04…08-12**。出單需要剛好那天的 panel；訓練讀所有 `≤D`。把歷史補成全日頻＝另張 **S3 GO**。
+**曆法（親查 08-13；過期）**：2018–2025 月頻；2026 月頻至 07-31；日頻當時寫 08-04…08-12。出單需要剛好那天的 panel；訓練讀所有 `≤D`。把歷史補成全日頻＝另張 **S3 GO**。
 
-殼已通（本窗 dry-plan，零寫庫）：
+殼（LIVE 2026-08-19；dry-plan 零寫庫；真跑須 `HIST-ASOF-apply`）：
 
 ```text
-bash scripts/run_daily_retrain_l2_all_rank.sh --date 2026-08-07 --dry-plan
-# 真跑須另貼 WP-H-L2-hist-go；禁與即將開火的 B3 搶槽
+python scripts/check_asof_ready.py --scan
+python scripts/check_asof_ready.py --fake-b3-date
+bash scripts/run_asof_collect_train_verify.sh --date 2026-08-10 --dry-plan --track all
+# 截面 8 族共用 feature_values＠D；歷史 D 不覆寫 Daily*/Mkt/DirStackM
+# --track other --dry-plan＝V0；--apply --track other 仍 rc=6
 ```
 
-| D | 重跑價值 |
+| D | 2026-08-19 LIVE |
 |---|---|
-| 08-12 | **不要**（L2 已 EXECUTED） |
-| 08-10／08-11 | 低（A-pack 已有） |
-| **08-07** | **本窗 V1 EXECUTED**（A-pack 13；原 registry 空） |
-| 07-31 | 月頻；僅 Ridge×5 |
-| 06-30 | 低（舊 prodset 錨已齊） |
+| **08-18** | 價頂；8×8＋方向臂 COMPLETE；verify_only；無已實現窗 |
+| **08-12** | **已齊 64／64**（HIST-ASOF-apply 15:03；方向臂仍＠08-18） |
+| **08-11** | **已齊 64／64**（HIST-ASOF-apply 15:22；resume 12／新訓 52） |
+| 08-10 | 未齊 12／64；**已有 H5 實現窗** |
+| **08-07** | 8×8 已齊；V1 OOS 可走 |
+| 07-31 | 8×8 已齊；H10 OOS 因同日 stamp → no_model |
 
 ---
 
@@ -267,7 +275,7 @@ paste（採納 r16 為運轉 SSOT）:
   | NF-pause | no-promote | no-re-scan-0812 | KH-split-keep
 ```
 
-日常開工順序仍以 `reports/augur_opt_stepwise_all_problems_r18_20260817.md` 全板為準；**閉環怎麼轉**以本檔為準。
+日常開工順序仍以 `reports/augur_opt_stepwise_all_problems_r19_20260819.md` 全板為準；**閉環怎麼轉**以本檔為準。
 
 ---
 
@@ -277,8 +285,8 @@ paste（採納 r16 為運轉 SSOT）:
 |---|---|
 | **本檔（運轉 SSOT）** | `reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md` |
 | 本質／括號／已拍 GO（史料＋不撤） | `reports/augur_local_ai_predict_sim_self_evolve_opt_plan_20260804.md` |
-| 今日選刀＋as-of 刀 | `reports/augur_s1s5_asof_verify_best_next_r18_20260817.md` |
-| 全專案開問題 | `reports/augur_opt_stepwise_all_problems_r18_20260817.md` |
+| 今日選刀＋as-of 刀 | `reports/augur_s1s5_asof_verify_best_next_r19_20260819.md` |
+| 全專案開問題 | `reports/augur_opt_stepwise_all_problems_r19_20260819.md` |
 | L2 邊界 A | `reports/augur_daily_retrain_l2_all_rank_plan_20260812.md` |
 | RETRAIN-ALL 日更 cron | `audits/RETRAIN-ALL-ASOF-DAILY-CRON-ADOPTED-20260814.md` |
 | L0 熱路徑日班（預測日更＝核 A＋TRI；P4a 已採納） | `reports/augur_l0_hotpath_daily_plan_20260814.md` |

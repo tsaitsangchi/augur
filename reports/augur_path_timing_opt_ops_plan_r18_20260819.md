@@ -3,14 +3,14 @@ title: 路徑／進出最佳化——操作計畫書 r18
 status: adopted
 series: s4_s5_verify
 round: r18
-role: 把 2026-08-19 已做的長短窗路徑、觀察篩、兩檔進出收成一份可重複執行的操作手冊（P0 已採納；不取代 r16 心跳、不取代 r18 全專案執行板）
+role: 把 2026-08-19 已做的長短窗路徑、觀察篩、兩檔進出收成一份可重複執行的操作手冊（P0 已採納；不取代 r16 心跳、不取代 r19 全專案執行板）
 date: 2026-08-19
 viewpoint: 2026-08-19T13:01+08:00
 layer: "[I]"
 product_id: PATH-OPT-OPS-v1
 adopted: audits/PATH-OPT-OPS-PLAN-ADOPTED-20260819.md
 parent_ssot: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md
-exec_nav: reports/augur_opt_stepwise_all_problems_r18_20260817.md
+exec_nav: reports/augur_opt_stepwise_all_problems_r19_20260819.md
 econ_path: reports/augur_econ_prove_edge_plan_r17_20260817.md
 up_pull: reports/augur_uptrend_pullback_ls_top10_plan_r18_20260819.md
 trend_pb: reports/augur_trend_pullback_model_catalog_verify_plan_r18_20260819.md
@@ -26,7 +26,7 @@ self_reported: true
 
 > **一句**：日常出門仍是 standing **H20+H60 RankRidge**。本檔管的是旁邊那條「長窗定方向、短窗管進出」的**操作順序**：先閘、再觀察、再兩檔進出尺；每槍一張產品 ID、dry-run、不把條件當可交易。  
 > **本檔＝已採納操作手冊**（`audits/PATH-OPT-OPS-PLAN-ADOPTED-20260819.md`）。採納 ≠ 改 standing、≠ #14、≠ 自動開未閉工作包。08-19＝假 B3；最近合法價頂＝**2026-08-18**。  
-> **位階**：r18 全專案執行板的**子操作手冊**（M29–M35）。衝突時：開工順序以 r18 執行板為準；本族 θ／GO 文案以各軌長板為準。
+> **位階**：r19 全專案執行板的**子操作手冊**（M29–M35）。衝突時：開工順序以 r19 執行板為準；本族 θ／GO 文案以各軌長板為準。
 
 ---
 
@@ -123,7 +123,7 @@ TWIN-EX 沒當冠（刻意）：WATCH×T20 的 OOS **+341%** 排合格組第 9�
 2. 只貼一條 GO（一個 product_id）。adopt ≠ probe ≠ emit
 3. 先 --selftest，再 dry-run；禁止 --apply／寫 prediction_values
 4. 產出：stdout 護欄句 + /tmp JSON + audits/*-EXECUTED + 必要時 canvas
-5. 改 r18 M29–M35 狀態；本族長板 WP 打勾
+5. 改 r19 M29–M35 狀態；本族長板 WP 打勾
 6. 回 Steward：數字、≠可交易、下一槍 paste；不 commit 除非另句
 ```
 
@@ -141,7 +141,7 @@ TWIN-EX 沒當冠（刻意）：WATCH×T20 的 OOS **+341%** 排合格組第 9�
 
 ## §5 開著的下一步（排序＝建議工時）
 
-此刻全專案最佳下一步仍以 r18 決策卡為準：**等下一句 GO**。本族內部若要動，按下表，**不要一次開兩槍**。
+此刻全專案最佳下一步仍以 r19 決策卡為準：**等下一句 GO**。本族內部若要動，按下表，**不要一次開兩槍**。
 
 | 序 | 項 | 可先？ | 為什麼是這個順序 | paste |
 |---|---|---|---|---|
@@ -216,12 +216,13 @@ TWIN-EX-universe-go | rule=E-charge,X-T5 | dry-run | 不要抱牢 | 兩檔≠宇
 
 ---
 
-## §7 與 r16／r18／#14
+## §7 與 r16／r19／#14
 
 | 檔 | 角色 |
 |---|---|
 | r16 心跳 | 運轉 SSOT；本族不改 S1–S5 |
-| r18 執行板 | **全專案開工順序**；本檔＝M29–M35 操作細節 |
+| r19 執行板 | **全專案開工順序**；本檔＝M29–M35 操作細節 |
+| r18 執行板 | 前一開工 SSOT（已被 r19 supersede） |
 | 確立路徑 r17 | #14；本族路徑％／兩檔複利 **≠** egate、≠ E5 |
 | 各軌長板 | θ 與驗收的 SSOT |
 
@@ -257,7 +258,7 @@ DONE: 該槍 EXECUTED audit
 - [x] 已閉＠08-18 的數字與產物列清  
 - [x] 標準操作 6 步＋假 B3 閘  
 - [x] 開著的下一步有排序與 paste  
-- [x] 明示不取代 r16／r18、不把兩檔當宇宙、不把進出當可交易  
+- [x] 明示不取代 r16／r19、不把兩檔當宇宙、不把進出當可交易  
 - [x] P0 採納  
 
 *完。[I] · adopted · 操作手冊；未閉槍另句。*

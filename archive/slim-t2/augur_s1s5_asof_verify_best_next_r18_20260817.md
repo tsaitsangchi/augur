@@ -1,6 +1,7 @@
 ---
 title: r16 閉環 × r18 LIVE——各段最佳下一步／可先／可同步＋歷史 as-of 答覆
-status: final
+status: superseded
+superseded_by: reports/augur_s1s5_asof_verify_best_next_r19_20260819.md
 series: s1s5_loop
 round: r18
 date: 2026-08-17
@@ -20,6 +21,8 @@ self_reported: true
 ---
 
 # r16 閉環問題板（對齊 2026-08-18 13:50 LIVE）
+
+> **已被 supersede**：開工請改讀 `reports/augur_s1s5_asof_verify_best_next_r19_20260819.md`（價頂／出門＝08-18；V1 已重跑）。本檔 LIVE（tip 08-17／08-18 假 B3）過期。
 
 > **一句**：閉環怎麼轉仍＝r16；開工順序＝r18。**可以**用過去 as-of 收特徵、訓練、驗証——這是正門，不是假今天。  
 > **LIVE 14:55**：價頂／包＝08-17。RETRAIN-ALL force 已閉。出門仍本晨 B3 H20+H60。08-18＝假 B3。KH S0–S3 ok。V1 H5 OOS 近 0。H10 OOS walk 全 no_model（日曆閘）。同日 IC 不採。

@@ -10,7 +10,7 @@ layer: "[I]"
 product_id: WATCH-PB-v1
 adopted: audits/WATCH-PB-PLAN-ADOPTED-20260819.md
 parent_ssot: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md
-exec_nav: reports/augur_opt_stepwise_all_problems_r18_20260817.md
+exec_nav: reports/augur_opt_stepwise_all_problems_r19_20260819.md
 up_pull: reports/augur_uptrend_pullback_ls_top10_plan_r18_20260819.md
 ridge_then_pb: audits/RIDGE-THEN-PB-LS-0818-EXECUTED-20260819.md
 econ_path: reports/augur_econ_prove_edge_plan_r17_20260817.md

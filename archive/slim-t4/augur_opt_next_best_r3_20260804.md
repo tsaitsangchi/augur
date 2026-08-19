@@ -7,8 +7,8 @@
 
 | SSOT | 路徑 |
 |---|---|
-| step／runbook | `reports/augur_optimization_step_plan_r3_20260804.md` |
-| 地基 | `reports/augur_optimization_foundation_unified_20260803.md`／`reports/augur_project_optimization_plan_20260804.md` |
+| step／runbook | `archive/slim-t3/augur_optimization_step_plan_r3_20260804.md` |
+| 地基 | `archive/slim-t3/augur_optimization_foundation_unified_20260803.md`／`archive/slim-t3/augur_project_optimization_plan_20260804.md` |
 | P1 A 已綠 | `audits/P1-DRIFT-A-EXECUTED-20260804.md` |
 | SIGN active3 | `audits/OPT-R3-SIGN-ACTIVE3-H20-RECORD-EXECUTED-20260804.md` |
 | G13／G16 臂 | **EXECUTED**＝`audits/OPT-R3-G13-G16-ARMS-EXECUTED-20260804.md`（`machine-supersede-ok`／`enable-probe-only`） |

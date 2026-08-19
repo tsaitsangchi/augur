@@ -23,6 +23,8 @@ archive_tip: archive-20260814-weekly-fd-tar
 self_reported: true
 ---
 
+> **已 supersede 作為理解地基**：現行＝`reports/augur_deep_understanding_and_opt_plan_r19_20260819.md`。本檔 LIVE（emit 停 08-13）過期。
+
 # augur 深化理解＋專案優化地基 r17（2026-08-17）
 
 > **性質**：[I]；**不創** [N]；不解凍；不 sim `--apply`；不假關確立級；**勿重掃假綠**；不假 B3＠08-15／16／17。  

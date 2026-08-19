@@ -166,12 +166,21 @@ collect_changed_paths() {
   # 後續 `git add -- "$p"` 拿到的是含反斜線之字面字串 → pathspec 不匹配 → **該檔靜默漏掉**。
   # 2026-07-31 實犯:docs/原則精華_v1.12.0.md 之改動未進封存 commit,而腳本仍印「封存完成」。
   # 本專案治權檔全為中文名(靈魂/原則精華/大憲章/專章),此 bug 專打治權檔,故列為必修。
+  # rename 列為 `XY orig -> dest`：只取 orig 會漏 dest、且 orig 已不在工作樹 → git add 失敗中止。
   git -c core.quotePath=false status --porcelain | while IFS= read -r line || [ -n "${line:-}" ]; do
     [ -z "$line" ] && continue
-    local path="${line#?? }"
-    path="${path#\"}"; path="${path%\"}"
-    path="${path%% -> *}"
-    printf '%s\n' "$path"
+    local rest="${line#?? }"
+    rest="${rest#\"}"; rest="${rest%\"}"
+    if printf '%s' "$rest" | grep -q ' -> '; then
+      local old="${rest%% -> *}"
+      local new="${rest#* -> }"
+      old="${old#\"}"; old="${old%\"}"
+      new="${new#\"}"; new="${new%\"}"
+      printf '%s\n' "$old"
+      printf '%s\n' "$new"
+    else
+      printf '%s\n' "$rest"
+    fi
   done
 }
 
@@ -203,6 +212,10 @@ stage_safe_changes() {
       echo "  [dry-run] git add -- $p"
     else
       # 失敗須出聲:靜默漏檔會使「封存完成」成為假綠(2026-07-31 實犯)
+      # rename 的 orig 可能已不在工作樹；若未追蹤且不存在則略過（dest 已另列）。
+      if [ ! -e "$p" ] && ! git ls-files --error-unmatch -- "$p" >/dev/null 2>&1; then
+        continue
+      fi
       if ! git add -- "$p"; then
         echo "✗ git add 失敗:$p —— 中止封存(避免產生不完整之封存點)" >&2
         return 2

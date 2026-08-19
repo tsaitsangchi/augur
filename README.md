@@ -33,7 +33,8 @@ Augur 從已登錄之觀測通道（現行 [I]：FinMind／FRED）抓進可溯�
 
 ## 先讀這幾份（治權檔）
 
-> **統一入口**：[治權地圖](constitution/GOVERNANCE-MAP.md)（[I]；L0／L1–L7／docs／CLAUDE 位階與讀序；**docs 不因入口上收為 L0**）
+> **統一入口**：[治權地圖](constitution/GOVERNANCE-MAP.md)（[I]；L0／L1–L7／docs／CLAUDE 位階與讀序；**docs 不因入口上收為 L0**）  
+> **運轉精要（現行 ≤15 條，非法律）**：[reports/SSOT_READ_ORDER.md](reports/SSOT_READ_ORDER.md) · 理解 r20 · 開工鎖仍 r19 · 倉精化 [slim r20](reports/augur_repo_slim_opt_plan_r20_20260819.md)
 
 | 文件 | 角色 |
 |---|---|

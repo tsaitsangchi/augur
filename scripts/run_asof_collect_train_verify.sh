@@ -4,7 +4,7 @@
 # 守: FZ/GATE-keep · skip-sync · no-SIM-apply · **no-promote** · NF-pause · **非 cron**
 #     · no-fake-B3（價 < D 整鏈 SKIP）· 勿重掃 0812 NF · 禮讓即將開火的 B3
 # 契約: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md §3
-#       reports/augur_s1s5_asof_verify_best_next_20260813.md WP-H
+#       reports/augur_s1s5_asof_verify_best_next_r19_20260819.md
 #
 # 執行指令矩陣:
 #   bash scripts/run_asof_collect_train_verify.sh --selftest
@@ -12,7 +12,9 @@
 #   bash scripts/run_asof_collect_train_verify.sh --date 2026-08-14 --dry-plan --track all
 #   bash scripts/run_asof_collect_train_verify.sh --date 2026-07-31 --apply --track all   # 截面；方向臂不覆寫價頂
 #   bash scripts/run_asof_collect_train_verify.sh --date 2026-08-14 --dry-plan --track other  # V0 盤點 rc=0
-#   bash scripts/run_asof_collect_train_verify.sh --date 2026-08-18 --dry-plan   # 價未到 → rc=3
+#   bash scripts/run_asof_collect_train_verify.sh --date 2026-08-18 --dry-plan --track all
+#   bash scripts/run_asof_collect_train_verify.sh --date 2026-08-12 --dry-plan --track all   # 未齊截面
+#   python scripts/check_asof_ready.py --fake-b3-date   # 價頂次日；該日 --dry-plan → rc=3
 #   bash scripts/run_asof_collect_train_verify.sh --date 2026-07-31 --apply --track other  # rc=6 不開訓
 #
 set -euo pipefail
@@ -113,6 +115,14 @@ if [[ "$SELFTEST" -eq 1 ]]; then
   else
     chk "dry 07-31 截面已齊跳過訓" 0
   fi
+  if bash "$0" --date 2026-08-12 --dry-plan --track all >/tmp/hist-asof-dry-0812.out 2>&1; then
+    chk "dry 08-12 RC=0" 1
+    chk "dry 08-12 未齊要訓" "$(grep -q 'SKIP（包已齊' /tmp/hist-asof-dry-0812.out && echo 0 || echo 1)"
+    chk "dry 08-12 走 RETRAIN-ALL" "$(grep -q 'run_retrain_all_asof.sh' /tmp/hist-asof-dry-0812.out && echo 1 || echo 0)"
+    chk "dry 08-12 不覆寫方向臂" "$(grep -q '不覆寫 Daily/Mkt/DirStackM' /tmp/hist-asof-dry-0812.out && echo 1 || echo 0)"
+  else
+    chk "dry 08-12 RC=0" 0
+  fi
   LATEST_TIP="$("$PY" scripts/check_asof_ready.py --latest-date)"
   if bash "$0" --date "$LATEST_TIP" --dry-plan --track all --force >/tmp/hist-asof-dry-force.out 2>&1; then
     chk "dry --force RC=0" 1
@@ -133,10 +143,15 @@ if [[ "$SELFTEST" -eq 1 ]]; then
     chk "force hist RC=0" 0
   fi
   set +e
-  bash "$0" --date 2026-08-18 --dry-plan >/tmp/hist-asof-fake.out 2>&1
+  FAKE_B3="$("$PY" scripts/check_asof_ready.py --fake-b3-date)"
+  fake_rc=$?
+  set -e
+  chk "fake-b3-date RC=0" "$([[ "$fake_rc" -eq 0 && -n "$FAKE_B3" ]] && echo 1 || echo 0)"
+  set +e
+  bash "$0" --date "$FAKE_B3" --dry-plan >/tmp/hist-asof-fake.out 2>&1
   rc=$?
   set -e
-  chk "dry 08-18 假 B3 rc=3" "$([[ "$rc" -eq 3 ]] && echo 1 || echo 0)"
+  chk "dry 價頂次日假 B3 rc=3" "$([[ "$rc" -eq 3 ]] && echo 1 || echo 0)"
   set +e
   bash "$0" --date 2026-08-14 --dry-plan --track other >/tmp/hist-asof-other.out 2>&1
   rc=$?
@@ -147,7 +162,7 @@ if [[ "$SELFTEST" -eq 1 ]]; then
   chk "dry other 無 train_ranker" "$(grep -q 'train_ranker.py' /tmp/hist-asof-other.out && echo 0 || echo 1)"
   chk "dry other 含族矩陣" "$(grep -q 'RankRidge' /tmp/hist-asof-other.out && echo 1 || echo 0)"
   set +e
-  bash "$0" --date 2026-08-18 --dry-plan --track other >/tmp/hist-asof-other-fake.out 2>&1
+  bash "$0" --date "$FAKE_B3" --dry-plan --track other >/tmp/hist-asof-other-fake.out 2>&1
   rc=$?
   set -e
   chk "other+假 B3 仍 rc=3" "$([[ "$rc" -eq 3 ]] && echo 1 || echo 0)"
@@ -247,15 +262,25 @@ PY
   exit 0
 fi
 
-PACK_COMPLETE="$("$PY" - "$DATE" <<'PY'
+SNAP_META="$("$PY" - "$DATE" <<'PY'
 import sys
 from augur.core import asof_ready, db
 d = sys.argv[1]
 with db.connect() as conn, conn.cursor() as cur:
     snap = asof_ready.snapshot(cur, d)
-print("1" if snap.get("pack_complete") else "0")
+act = asof_ready.hist_next_action(snap)
+print(
+    "%s %s %s"
+    % (
+        "1" if snap.get("pack_complete") else "0",
+        "1" if snap.get("has_core") else "0",
+        act.get("action") or "-",
+    )
+)
 PY
 )"
+read -r PACK_COMPLETE HAS_CORE HIST_ACTION <<<"$SNAP_META"
+echo "hist_action=$HIST_ACTION pack_complete=$PACK_COMPLETE has_core=$HAS_CORE"
 
 # 禮讓：B3 日更心跳若已持 hist 鎖以外的進行中 apply，不搶；本殼用專鎖防自撞。
 if [[ "$DO_APPLY" -eq 1 ]]; then
@@ -282,14 +307,23 @@ run_step() {
 if [[ "$SKIP_COLLECT" -eq 1 ]]; then
   echo ""
   echo "── step: collect ── SKIP（--skip-collect）"
-elif [[ "$READY_RC" -eq 0 ]]; then
-  echo ""
-  echo "── step: collect ── SKIP（panel@$DATE 已在；截面族共用）"
-else
+elif [[ "$READY_RC" -eq 2 ]]; then
   run_step "feat" "$PY" scripts/build_feature_panel.py --panels "$DATE" --asof
   run_step "core" "$PY" scripts/build_core_universe.py \
     --since 2014-01-01 --liquidity-pct 25 --exempt-revenue-financial \
     --asof --incremental --asof-date "$DATE" --skip-pan-hist
+elif [[ "$READY_RC" -eq 0 && "$HAS_CORE" != "1" ]]; then
+  echo ""
+  echo "── step: collect ── panel@$DATE 已在；缺 core → 只補宇宙（不重抓特徵）"
+  run_step "core" "$PY" scripts/build_core_universe.py \
+    --since 2014-01-01 --liquidity-pct 25 --exempt-revenue-financial \
+    --asof --incremental --asof-date "$DATE" --skip-pan-hist
+elif [[ "$READY_RC" -eq 0 ]]; then
+  echo ""
+  echo "── step: collect ── SKIP（panel+core@$DATE 已在；截面族共用）"
+else
+  echo ""
+  echo "── step: collect ── SKIP（status rc=$READY_RC）"
 fi
 
 # --- train（A＝L2 邊界 A；all＝RETRAIN-ALL 內殼，不 emit B3）----------------

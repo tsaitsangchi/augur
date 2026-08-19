@@ -12,7 +12,8 @@
   python scripts/verify_asof_families.py --date 2026-08-07 --ic --oos
   python scripts/verify_asof_families.py --walk --oos
   python scripts/verify_asof_families.py --walk --oos --horizon 10 --limit 4
-  python scripts/verify_asof_families.py --date 2026-08-18          # 假 B3 → rc=3
+  python scripts/verify_asof_families.py --date 2026-08-18          # 價頂 V0（無已實現窗則略過 --ic）
+  python scripts/check_asof_ready.py --fake-b3-date                # 該日 → rc=3
 """
 from __future__ import annotations
 

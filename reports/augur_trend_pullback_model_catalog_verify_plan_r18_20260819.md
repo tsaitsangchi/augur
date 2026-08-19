@@ -8,7 +8,7 @@ date: 2026-08-19
 viewpoint: 2026-08-19T08:50+08:00
 layer: "[I]"
 parent_ssot: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md
-exec_nav: reports/augur_opt_stepwise_all_problems_r18_20260817.md
+exec_nav: reports/augur_opt_stepwise_all_problems_r19_20260819.md
 up_pull: reports/augur_uptrend_pullback_ls_top10_plan_r18_20260819.md
 econ_path: reports/augur_econ_prove_edge_plan_r17_20260817.md
 philosophy: src/augur/philosophy/framework.py

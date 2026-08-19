@@ -10,7 +10,7 @@ layer: "[I]"
 product_id: TWIN-EX-v1
 adopted: audits/TWIN-EX-PLAN-ADOPTED-20260819.md
 parent_ssot: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md
-exec_nav: reports/augur_opt_stepwise_all_problems_r18_20260817.md
+exec_nav: reports/augur_opt_stepwise_all_problems_r19_20260819.md
 rs_charge: reports/augur_rs_charge_qihong_yanhua_plan_r18_20260819.md
 watch_pb: reports/augur_watch_pullback_inband_plan_r18_20260819.md
 bull5: reports/augur_bull5_hstack_pullback_plan_r18_20260819.md

@@ -13,7 +13,7 @@
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Mapping, Optional
 import json
 
@@ -124,6 +124,90 @@ def classify_asof(d: Any, price_max: Any, fv_rows: int) -> str:
 
 def rc_of(status: str) -> int:
     return _STATUS_RC.get(status, 1)
+
+
+def fake_b3_probe_date(price_max: Any) -> Optional[date]:
+    """價頂的次一日曆日＝保證假 B3 的探針日（不寫死交易日、不連庫）。"""
+    pm = as_date(price_max)
+    if pm is None:
+        return None
+    return pm + timedelta(days=1)
+
+
+def hist_next_action(snap: Mapping[str, Any]) -> dict[str, Any]:
+    """純函式：snapshot → 歷史閉環下一刀（collect／train／verify_only／refuse）。
+
+    --apply 仍須另貼 HIST-ASOF-apply；本函式只指路，不授權開訓。
+    """
+    st = snap.get("status")
+    d = str(snap.get("asof") or "")
+    if st == STATUS_FAKE_B3:
+        return {
+            "action": "refuse",
+            "reason": "假 B3（價未進庫）",
+            "need_go": False,
+            "shell": None,
+        }
+    if st == STATUS_NO_PRICE:
+        return {
+            "action": "refuse",
+            "reason": "無 TAIEX 價",
+            "need_go": False,
+            "shell": None,
+        }
+    if st == STATUS_NEED_COLLECT:
+        return {
+            "action": "collect",
+            "reason": "有價、缺 feature_values＠D",
+            "need_go": True,
+            "shell": (
+                "bash scripts/run_asof_collect_train_verify.sh "
+                f"--date {d} --apply --track all"
+            ),
+        }
+    if not snap.get("has_core"):
+        return {
+            "action": "collect_core",
+            "reason": "panel 已在、缺 core_universe_asof＠D",
+            "need_go": True,
+            "shell": (
+                "bash scripts/run_asof_collect_train_verify.sh "
+                f"--date {d} --apply --track all"
+            ),
+        }
+    if snap.get("pack_complete"):
+        return {
+            "action": "verify_only",
+            "reason": "截面包已齊；同尺再訓須 --force＋GO",
+            "need_go": False,
+            "shell": (
+                f"python scripts/verify_asof_families.py --date {d} --ic --oos"
+            ),
+        }
+    cells = int(snap.get("registry_a_cells") or 0)
+    need = int(snap.get("need_a_cells") or NEED_A_CELLS)
+    return {
+        "action": "train",
+        "reason": f"截面未齊 {cells}/{need}",
+        "need_go": True,
+        "shell": (
+            "bash scripts/run_asof_collect_train_verify.sh "
+            f"--date {d} --apply --track all"
+        ),
+    }
+
+
+def format_hist_next_action(act: Mapping[str, Any]) -> str:
+    """探針：下一刀一行＋殼（純函式）。"""
+    a = str(act.get("action") or "")
+    reason = str(act.get("reason") or "")
+    lines = [f"→ 歷史閉環下一刀：{a}（{reason}）"]
+    if act.get("need_go"):
+        lines.append("  真跑須另貼 HIST-ASOF-apply | date=<D> | track=all（本探針不開訓）")
+    sh = act.get("shell")
+    if sh:
+        lines.append("  " + str(sh))
+    return "\n".join(lines)
 
 
 def pack_is_complete(
@@ -624,6 +708,42 @@ def _selftest() -> int:
     chk("date_arg_error 佔位符", "佔位符" in (date_arg_error("D") or ""))
     chk("date_arg_error 合法→None", date_arg_error("2026-08-07") is None)
     chk("ready", classify_asof(d, date(2026, 8, 12), 10) == STATUS_READY)
+    chk(
+        "假 B3 探針＝價頂+1",
+        fake_b3_probe_date("2026-08-18") == date(2026, 8, 19),
+    )
+    chk("無價探針 None", fake_b3_probe_date(None) is None)
+    refuse = hist_next_action({"status": STATUS_FAKE_B3, "asof": "2026-08-19"})
+    chk("下一刀假 B3＝refuse", refuse.get("action") == "refuse" and not refuse.get("shell"))
+    train = hist_next_action({
+        "status": STATUS_READY,
+        "asof": "2026-08-12",
+        "has_core": True,
+        "pack_complete": False,
+        "registry_a_cells": 32,
+        "need_a_cells": 64,
+    })
+    chk("下一刀未齊＝train", train.get("action") == "train" and train.get("need_go") is True)
+    chk("下一刀殼含 08-12", "2026-08-12" in (train.get("shell") or ""))
+    core_gap = hist_next_action({
+        "status": STATUS_READY,
+        "asof": "2026-08-04",
+        "has_core": False,
+        "pack_complete": False,
+        "registry_a_cells": 0,
+        "need_a_cells": 64,
+    })
+    chk("下一刀缺 core＝collect_core", core_gap.get("action") == "collect_core")
+    done = hist_next_action({
+        "status": STATUS_READY,
+        "asof": "2026-08-18",
+        "has_core": True,
+        "pack_complete": True,
+        "registry_a_cells": 64,
+        "need_a_cells": 64,
+    })
+    chk("下一刀已齊＝verify_only", done.get("action") == "verify_only" and done.get("need_go") is False)
+    chk("format 含刀名", "train" in format_hist_next_action(train) and "HIST-ASOF-apply" in format_hist_next_action(train))
     chk(
         "need_collect",
         classify_asof(d, date(2026, 8, 12), 0) == STATUS_NEED_COLLECT,

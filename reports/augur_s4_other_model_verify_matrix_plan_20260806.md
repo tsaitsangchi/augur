@@ -13,6 +13,7 @@ s4_families: reports/augur_s4_market_model_families_opt_plan_20260804.md
 tried_list: audits/S4-MODELS-TRIED-LIST-20260804.md
 nf_pause: audits/S4-NF-PAUSE-ACCEPTED-20260805.md
 nav: reports/augur_opt_stepwise_best_next_plan_r10_20260806.md
+live_asof_board: reports/augur_s1s5_asof_verify_best_next_r19_20260819.md
 inherits_boundaries:
   - FZ/GATE-keep · skip-sync-B · no-SIM-apply · no-cron-B3
   - NF-pause（不開新族 adapter／train）

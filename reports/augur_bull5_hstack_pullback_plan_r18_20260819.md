@@ -10,7 +10,7 @@ layer: "[I]"
 product_id: BULL5-v1
 adopted: audits/BULL5-PLAN-ADOPTED-20260819.md
 parent_ssot: reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md
-exec_nav: reports/augur_opt_stepwise_all_problems_r18_20260817.md
+exec_nav: reports/augur_opt_stepwise_all_problems_r19_20260819.md
 up_pull: reports/augur_uptrend_pullback_ls_top10_plan_r18_20260819.md
 watch_pb: reports/augur_watch_pullback_inband_plan_r18_20260819.md
 trend_pb: reports/augur_trend_pullback_model_catalog_verify_plan_r18_20260819.md

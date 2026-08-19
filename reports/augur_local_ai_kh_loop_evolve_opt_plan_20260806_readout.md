@@ -11,13 +11,13 @@ ssot_code: LOCAL-AI-KH-LOOP-EVOLVE-OPT-20260806-READOUT
 adopted: audits/LOCAL-AI-KH-LOOP-EVOLVE-OPT-READOUT-ADOPTED-20260806.md
 revision_note: audits/KH-SPLIT-FROM-MARKET-AXIS-ADOPTED-20260812.md · kh_opt_stepwise_20260812 · audits/KH-EVOLVE-EXT-ASK-NO-EMPTY-ADOPTED-20260812.md · audits/KH-D-FILLAUTO-ADOPTED-20260812.md
 supersedes_exec:
-  - reports/augur_local_ai_kh_loop_evolve_opt_plan_20260806.md
+  - archive/slim-t2/augur_local_ai_kh_loop_evolve_opt_plan_20260806.md
 sole_steward: true
 self_reported: true
 based_on:
   - reports/augur_kh_opt_stepwise_best_next_plan_20260812.md
   - reports/augur_kh_ingest_driven_trigger_plan_b_20260812.md
-  - reports/augur_local_ai_kh_loop_evolve_opt_plan_20260806.md
+  - archive/slim-t2/augur_local_ai_kh_loop_evolve_opt_plan_20260806.md
   - audits/KH-SPLIT-FROM-MARKET-AXIS-ADOPTED-20260812.md
   - audits/READOUT-EXT-THEN-ASK-EXECUTED-20260812.md
   - audits/NO-REPLY-FILENAME-ASK-HARDENING-EXECUTED-20260812.md
@@ -358,7 +358,7 @@ export AUGUR_KH0_ANSWER_AUTO_LIFT=1
 
 1. `reports/augur_deep_understanding_r8_20260806.md`  
 2. `reports/augur_opt_stepwise_best_next_plan_r10_20260806.md`  
-3. `reports/augur_local_ai_kh_loop_evolve_opt_plan_20260806.md`（譜系）  
+3. `archive/slim-t2/augur_local_ai_kh_loop_evolve_opt_plan_20260806.md`（譜系）  
 4. **`reports/augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md`（本檔）**  
 5. audits：LOCAL-KH-HIT-FIX · KH-READOUT-RESOLVE · KH-COMPACT-ANSWER · KH-BARE-TITLE-READOUT-UI-FIX · AUTO-LIFT／T2  
 

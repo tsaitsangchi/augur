@@ -9,7 +9,7 @@ layer: "[I]"
 role: 本地 AI KH 自進化現主軸（答對→自動抬 admit）；≠來源放行
 axis_adopted: audits/KH-AXIS-1c-AUTO-LIFT-ADOPTED-20260806.md
 doctrine: audits/KH0-ANSWER-AUTO-LIFT-DOCTRINE-20260806.md
-parent: reports/augur_local_ai_kh_loop_evolve_opt_plan_20260806.md
+parent: archive/slim-t2/augur_local_ai_kh_loop_evolve_opt_plan_20260806.md
 ruler_intent: R-hybrid
 ruler_status: adopted
 ruler_adopted: audits/KH0-ANSWER-AUTO-LIFT-RULER-ADOPTED-20260806.md

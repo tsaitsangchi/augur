@@ -8,8 +8,8 @@
 
 | SSOT | 路徑 |
 |---|---|
-| step／runbook | `reports/augur_optimization_step_plan_r3_20260804.md` |
-| 地基 | `reports/augur_project_optimization_plan_20260804.md` |
+| step／runbook | `archive/slim-t3/augur_optimization_step_plan_r3_20260804.md` |
+| 地基 | `archive/slim-t3/augur_project_optimization_plan_20260804.md` |
 | P1 呈案（已落地） | `reports/augur_p1_feature_drift_plan_20260804.md` |
 | U0-STRUCT（已結） | `audits/U0-STRUCT-378097-20260804.md` |
 | can-do 批次帳 | `audits/OPT-R3-CANDO-BATCH-20260804.md` |
