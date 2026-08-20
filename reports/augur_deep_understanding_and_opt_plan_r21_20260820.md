@@ -111,7 +111,7 @@ no-fake-B3@08-20 | no-promote | no-SIM-apply | NF-pause | standing=20,60
 | 全宇宙四閘＠08-19 | 做多 5（緯創／聯強／茂訊／飛捷／微星）；做空 5 |
 | PATH-HIT-LIFT | **P5 停**：H30 四閘勝率 51.2%；加八窗 52.9%；分桶無同號 +3pp |
 | T5 複審鐘 | 候選；最早≈**2026-11-17**；≠rm |
-| 封存點 | tag `archive-20260820-r21-hist-wf-ridge-pb-close` · HEAD 回填 |
+| 封存點 | tag `archive-20260820-r21-hist-wf-ridge-pb-close` · HEAD `5eb1cd2` |
 
 ### §5 相對 r20 的理解增量（一夜＋今早）
 

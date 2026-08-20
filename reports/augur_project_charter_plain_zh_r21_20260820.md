@@ -255,7 +255,7 @@ self_reported: true
 - 知識：PPT／有界 PDF OCR／影音 ASR 窄切能用；私有／ASR 須登入才能讀出。第 8 層判別力**還沒過門**，繼續停在第 7 層。巡檢曾記 S0 缺口 63 筆——**巡檢 ≠ 套用**。
 - 他域微調、把知識分數灌進股價模型：都還在「先寫計畫、人點頭才動」——**現在沒授權開訓**。
 - 系統建議、**人決策**；augur **不下單、不動錢**。
-- 封存點：`archive-20260820-r21-hist-wf-ridge-pb-close`（GitHub `tsaitsangchi/augur`）。上一點＝`archive-20260819-b3-hist-slim-r20`。
+- 封存點：`archive-20260820-r21-hist-wf-ridge-pb-close`（commit `5eb1cd2`；GitHub `tsaitsangchi/augur`）。上一點＝`archive-20260819-b3-hist-slim-r20`。
 
 這不是悲觀，是**觀兆者的職業道德**。
 

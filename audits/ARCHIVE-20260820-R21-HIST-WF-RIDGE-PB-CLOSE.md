@@ -3,7 +3,7 @@ status: archive_checkpoint
 date: 2026-08-20
 kind: archive_checkpoint
 tag: archive-20260820-r21-hist-wf-ridge-pb-close
-sha: ""
+sha: "5eb1cd28c71c22213bd16f73c5c3f9ab2e94b008"
 remote: https://github.com/tsaitsangchi/augur
 auth: "Steward：更新全部檔案上傳到 https://github.com/tsaitsangchi/augur 並做封存點"
 prior: archive-20260819-b3-hist-slim-r20
@@ -16,7 +16,7 @@ layer: "[I]"
 date: 2026-08-20  
 kind: archive_checkpoint  
 tag: `archive-20260820-r21-hist-wf-ridge-pb-close`  
-sha: （commit 後回填）  
+sha: `5eb1cd28c71c22213bd16f73c5c3f9ab2e94b008`  
 remote: https://github.com/tsaitsangchi/augur
 
 上一封存：`archive-20260819-b3-hist-slim-r20`（commit `63752bb`；回填 `3bd1a37`）。
