@@ -27,6 +27,8 @@ self_reported: true
 
 # augur 深化理解＋專案優化地基 r20（2026-08-19 15:40）
 
+> **LIVE 過期（2026-08-20）**：本檔寫於「08-19 還沒有價」。現行理解改跟 [`reports/augur_deep_understanding_and_opt_plan_r21_20260820.md`](augur_deep_understanding_and_opt_plan_r21_20260820.md)。精化計畫 slim r20 **仍有效**（T5 鐘未到）。
+
 > **性質**：[I]；**不創** [N]；不解凍；不 sim `--apply`；不假 B3＠08-19；不 promote。  
 > **一句**：在 r19 上吸收午後增量（B3＠08-18 已出門、HIST＠08-12／08-11 已齊、RIDGE-THEN-PB 多空 0／10），並把 Steward 要的「讀懂全倉 → 合併精要 → 逐步刪重複」收成**可執行的精化軌**；**不**把市場開工鎖從 r19 默換成 r20。  
 > **疊用**：人話憲章 r19 → **本檔理解** → 市場／知識／路徑仍跟 **r19 執行板** → 精化跟 **slim r20** → 準則仍＝r16 心跳＋PATH-OPT＋KH 板。  
@@ -149,7 +151,7 @@ r19 正文寫於 ≈14:05，當時 R19-01（B3＠08-18）與 R19-27（HIST 08-12
 
 | ID | 債 | 狀態 |
 |---|---|---|
-| **R20-01** | 倉膨脹：reports 524 md／audits 1106／scripts 414；讀者無單一精要 | 🟢 讀序＋T0–T2 已做；audits 紙本故意留 |
+| **R20-01** | 倉膨脹：reports 524 md／audits 1106／scripts 414；讀者無單一精要 | 🟢 讀序＋T0–T4 已做；audits 紙本故意留 |
 | **R20-02** | scripts 冗餘（原 R19-09／M14） | 🟢 T1 已封存五支；其餘不默刪 |
 | R20-03 | 三份 identity mismatch CSV 兩份重複 | 🟡 T0 已搬 **20260718**；留 0801＋0722_gb10 |
 | R20-04 | RIDGE JSON 兩檔 byte-identical、審計各引一名 | 🟢 T1：0818＝指針；LS＝內容；EXECUTED 正文路徑未改 |
@@ -158,7 +160,10 @@ r19 正文寫於 ≈14:05，當時 R19-01（B3＠08-18）與 R19-27（HIST 08-12
 | R20-07 | HIST＠**08-10** 缺 52 | 🟡 另句 `HIST-ASOF-apply`；無新 GO 不跑 |
 | R20-08 | P6 freeze 08-14 vs 包 08-18 | 🟡 文件可先；訓另 GO |
 | R20-09 | KH S0 FIRE 63 | 🟡 `--apply` 另句 |
-| R20-10 | 工作樹 r19／r20 未入倉 | 🟡 **不代 commit** |
+| R20-10 | 工作樹 r19／r20 未入倉 | 🟢 已封存 `archive-20260819-b3-hist-slim-r20` |
+| **R20-11** | 封存檔要不要到期刪 | 🟡 T5＝90 天**複審鐘**候選（最早≈**2026-11-17**；產清單預設 KEEP；**≠rm**） |
+| **R20-12** | PME 0724 local-backup leftover | 🟢 T6：`git mv` → `archive/slim-t6/`；正式 0724 留 reports/ |
+| **R20-13** | sim 專章 draft leftover | 🟢 T7：`git mv` → `archive/slim-t7/`；final 留 reports/ |
 | R19-03…26 其餘 | 見 r19 債表 | **不因本檔假關**；開工仍看 r19 板 |
 
 已閉、勿再當開問題：R19-01 B3＠08-18；R19-27 之 08-12／08-11（下一未齊改掛 R20-07）。
@@ -177,7 +182,7 @@ r19 正文寫於 ≈14:05，當時 R19-01（B3＠08-18）與 R19-27（HIST 08-12
   → 精要讀序 SSOT_READ_ORDER
     → 本檔理解 r20
       → 問「現在市場做哪槍」→ r19 執行板
-      → 問「怎麼瘦倉」→ slim r20（T0–T4 已做；再瘦另句）
+      → 問「怎麼瘦倉」→ slim r20（T0–T4＋T6＋T7 已做；T5＝90 天複審鐘候選）
       → 問心跳細節 → r16
       → 問路徑 → PATH-OPT
       → 問知識 → KH 20260813
@@ -194,14 +199,14 @@ r19 正文寫於 ≈14:05，當時 R19-01（B3＠08-18）與 R19-27（HIST 08-12
 | 角色 | 內容 |
 |---|---|
 | **市場主軸** | 刀 B：WAIT `PriceAdj≥2026-08-19` 收盤進庫。**禁**假 B3＠08-19 |
-| **精化主軸（本檔）** | T0–T4 **已做**。再瘦另句 |
+| **精化主軸（本檔）** | T0–T4＋T6＋**T7 已做**。T5＝90 天複審鐘**候選**（未開火；≠rm） |
 | **路徑** | 各未閉槍仍另句；RIDGE-THEN-PB ≠ 可交易 |
 | **KH** | 守 `--check`；不開 K9／放寬 θ／本鎖 drain S0 |
 | **禁** | 假 B3；sim-apply；promote；`--track other --apply`；無 GO 補 08-10；默刪 scripts／audits |
 
 ```text
 market: no-fake-B3@08-19 | knife-B=WAIT | standing=20,60 | no-promote
-slim:   T0=done | T1=done | T2=done | T3=done | T4=done | never-delete-[N]-heartbeat-GO
+slim:   T0=done | T1=done | T2=done | T3=done | T4=done | T5=review-clock-candidate | T6=done | T7=done | never-delete-[N]-heartbeat-GO | no-calendar-ttl-delete
 kh:     check≠apply | E-keep | stop-at-7
 path:   0/10+0/10 ≠ 進場
 ```
@@ -212,6 +217,9 @@ path:   0/10+0/10 ≠ 進場
 - [x] LIVE 刷新到 B3＠08-18／HIST 08-11／12／下一未齊 08-10／RIDGE-THEN-PB 多空  
 - [x] 精要＝讀序，不是拼接 1800 份 md  
 - [x] 優化計畫指向 slim r20；**不**默奪 r19 開工鎖  
+- [x] T5 寫成 90 天複審鐘候選（≠開火、≠rm）  
+- [x] T6 搬 1 份 PME local-backup（正式 0724 未搬）  
+- [x] T7 搬 1 份 sim 專章草案（final 未搬）  
 - [x] 不創 [N]、不開訓、不假 B3、不代 commit  
 
 *完。[I] · self-reported · r20。*

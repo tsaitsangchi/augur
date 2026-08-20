@@ -106,14 +106,32 @@ def _asof_stocks(conn, panel_date):
         return [r[0] for r in cur.fetchall()]
 
 
-def _fold_xy(conn, panels, stocks, feats, h, calendar=None, asof=False, interactions=None):
+def _panel_stock_ids(conn, panel_date):
+    """該 panel 在 feature_values 出現過的股（無 PIT 核心時，歷史訓的回退宇宙；不寫 core 表）。"""
+    with db.transaction(conn) as cur:
+        cur.execute(
+            f"SELECT DISTINCT stock_id FROM {FEATURE_TABLE} WHERE panel_date=%s ORDER BY 1",
+            (panel_date,),
+        )
+        return [r[0] for r in cur.fetchall()]
+
+
+def _fold_xy(conn, panels, stocks, feats, h, calendar=None, asof=False, interactions=None,
+             asof_fallback=False):
     """組多 panel 之 (X, y_rank, panel_index)：y=H 日 forward 橫斷面 rank label。供 train 用。
     asof=True 則每 panel 用該 panel 之 as-of 核心（point-in-time、#8）；False 用固定 stocks。
+    asof_fallback=True：無核心列時改用該 panel 有特徵的股——H240 等長窗須往回用 2014 以前面板，
+    核心閘地板仍＝2014，不把 2013 寫進 core_universe_asof。
     interactions（opt-in）：每 panel 在 _panel_matrix 後、vstack 前對該 panel 橫斷面算交互 z 乘積
     （cross_section.augment、綁當下宇宙 #8）；None＝不動既有行為。"""
     Xs, ys = [], []
     for pd_ in panels:
-        sub = _asof_stocks(conn, pd_) if asof else stocks
+        if asof:
+            sub = _asof_stocks(conn, pd_)
+            if asof_fallback and not sub:
+                sub = _panel_stock_ids(conn, pd_)
+        else:
+            sub = stocks
         sids, X = _panel_matrix(conn, pd_, sub, feats)
         if len(sids) == 0:
             continue
@@ -214,6 +232,9 @@ def _selftest():
     params = inspect.signature(run_ladder).parameters
     chk("run_ladder 公開簽名含 asof/robust/interactions/seed(#8 口徑旗標鎖)",
         all(p in params for p in ("asof", "robust", "interactions", "seed")))
+    fold_p = inspect.signature(_fold_xy).parameters
+    chk("_fold_xy 含 asof_fallback（長窗往回、不寫 2013 核心）",
+        "asof_fallback" in fold_p)
     rtf = inspect.signature(resolve_train_feats).parameters
     chk("resolve_train_feats 含 source 參數(預設 prodset)",
         "source" in rtf and rtf["source"].default == "prodset")

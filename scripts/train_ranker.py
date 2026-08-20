@@ -86,11 +86,11 @@ def train(horizon, family, seed, asof, resume=False, feature_source=FEATURE_SOUR
         fake = asof_ready.assert_not_fake_b3(price_max, asof)
         if fake:
             print(f"✗ {fake};中止。"); return None
-        panels = _panels_upto(conn, asof)
-        if len(panels) < 3:
-            print(f"✗ ≤{asof} 之 panel 僅 {len(panels)} 個,不足訓練;中止。"); return None
+        panels_all = _panels_upto(conn, asof)
+        if len(panels_all) < 3:
+            print(f"✗ ≤{asof} 之 panel 僅 {len(panels_all)} 個,不足訓練;中止。"); return None
         try:
-            feats = baseline.resolve_train_feats(conn, panels, source=src)
+            feats = baseline.resolve_train_feats(conn, panels_all, source=src)
         except ProdsetEmptyError as e:
             print(f"✗ prodset empty (FC-empty): {e};中止（禁 fallback canonical）。")
             return None
@@ -101,8 +101,15 @@ def train(horizon, family, seed, asof, resume=False, feature_source=FEATURE_SOUR
         if resume and registry.exists(model_id):
             print(f"↩ {model_id} 已登錄,--resume 跳過。"); return (model_id, None, None)
         cal = label_mod.full_calendar(conn)
-        # as-of 生產模型:train 於所有 ≤as_of panel(label 未實現者 _fold_xy 自然跳過);asof=True 逐 panel 用 point-in-time 核心
-        X, y = baseline._fold_xy(conn, panels, None, feats, horizon, calendar=cal, asof=True)
+        # 歷史 as-of：價表已長到 2026 時，近 panel 的 H 日標會被 labels() 算得出——必須出場日≤asof 才准進訓練，否則洩漏。
+        # 價頂當日訓：近 panel 日曆不足，此濾≒原本「自然回空」。
+        panels = [p for p in panels_all if label_mod.label_realized_by(cal, p, horizon, asof)]
+        if not panels:
+            print(f"✗ ≤{asof} 無出場日已實現之 H{horizon} panel（禁用未來標）;中止。")
+            return None
+        # as-of 生產模型:只訓已實現標；asof=True 逐 panel 用 point-in-time 核心
+        X, y = baseline._fold_xy(conn, panels, None, feats, horizon, calendar=cal,
+                                 asof=True, asof_fallback=True)
         if len(y) < 50:
             print(f"✗ 可用訓練樣本 {len(y)}<50(label 未實現/覆蓋不足);中止。"); return None
         est = est_cls(seed=seed)  # 全族統一接受 seed(#12;RankRidge/RankKNN 忽略,見 ranker.py)
@@ -112,6 +119,7 @@ def train(horizon, family, seed, asof, resume=False, feature_source=FEATURE_SOUR
             "n_train_rows": int(len(y)),
             "n_feats": len(feats),
             "n_panels": len(panels),
+            "n_panels_upto_asof": len(panels_all),
             "feature_source": src,
             "feats": list(feats),
             "note": _train_note(horizon, src),

@@ -122,6 +122,20 @@ def labels(conn, panel_date, stock_ids, h, *, calendar=None):
     return cross_sectional_rank(forward_returns(conn, panel_date, stock_ids, h, calendar=calendar))
 
 
+def exit_date(calendar, panel_date, h):
+    """t+1 進場後第 h 個交易日（出場）。日曆不足 → None。與 `_entry_exit` 同一尺。"""
+    after = [d for d in calendar if d > panel_date]
+    if len(after) < h + 1:
+        return None
+    return after[h]
+
+
+def label_realized_by(calendar, panel_date, h, asof):
+    """出場日已落入 asof（含當日）→ 該 panel 的 H 日標在 asof **可見**；歷史訓禁用未來標。"""
+    ex = exit_date(calendar, panel_date, h)
+    return ex is not None and ex <= asof
+
+
 def _selftest():
     ok = True
     def chk(name, cond):
@@ -140,7 +154,12 @@ def _selftest():
     chk("rank tie 取平均序位→均 0.5", t == {"A": 0.5, "B": 0.5})
     chk("rank 略 None/非有限值", cross_sectional_rank({"A": None}) == {})
     # 結構斷言：IO-bound 公開入口存在（不呼叫、零 IO）
-    chk("公開入口齊備", all(callable(g) for g in (full_calendar, forward_returns, labels)))
+    chk("exit_date 與 _entry_exit 出場同一尺",
+        exit_date([10, 11, 12, 13], 9, 2) == 12)
+    chk("exit_date 日曆不足→None", exit_date([10], 9, 2) is None)
+    chk("label_realized_by 出場≤asof", label_realized_by([10, 11, 12, 13], 9, 2, 12) is True)
+    chk("label_realized_by 出場>asof 不可見", label_realized_by([10, 11, 12, 13], 9, 2, 11) is False)
+    chk("公開入口齊備", all(callable(g) for g in (full_calendar, forward_returns, labels, label_realized_by)))
     chk("ADJ_TABLE=PriceAdj、HORIZONS 含 5/20/60/252",
         ADJ_TABLE == "TaiwanStockPriceAdj" and set(HORIZONS) == {5, 20, 60, 252})
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))

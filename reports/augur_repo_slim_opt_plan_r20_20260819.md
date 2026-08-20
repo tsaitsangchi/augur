@@ -5,13 +5,13 @@ series: repo_slim
 round: r20
 role: **只**管倉精化（讀序／去重／刪未用）；不取代 r19 市場開工鎖
 date: 2026-08-19
-viewpoint: 2026-08-19T15:40+08:00
+viewpoint: 2026-08-19T16:57+08:00
 layer: "[I]"
 depends_on:
   - reports/augur_deep_understanding_and_opt_plan_r20_20260819.md
   - reports/SSOT_READ_ORDER.md
   - reports/augur_opt_stepwise_all_problems_r19_20260819.md
-implements: R19-09／M14／R20-01／R20-02
+implements: R19-09／M14／R20-01／R20-02／R20-11／R20-12／R20-13
 self_reported: true
 ---
 
@@ -40,6 +40,11 @@ self_reported: true
   日更殼 B3／L0／L2／RETRAIN-ALL／check_asof_ready／train_ranker／predict_asof
   install_cron.sh 所列、live crontab 所列
   audits/*-GO|FIRED|EXECUTED|ADOPTED|LOCKED 紙本
+
+複審鐘 ≠ 刪除鐘：
+  日曆滿 N 天 ≠ 未用 ≠ 授權 rm
+  T5＝對已進 archive/ 且已在 annotated tag 的檔，滿 90 天列入可審清單
+  清單預設 KEEP；下一步仍須 Steward 點名（T5b），不是 cron rm
 ```
 
 **Hard doors（精化專用，疊在 r19 門上）**：
@@ -47,7 +52,8 @@ self_reported: true
 ```text
 no-mass-delete-reports | no-mass-delete-audits | no-delete-scripts-in-T0
 | filename-miss ≠ unused | migrate_horizon_* = KEEP
-| archive-first | no-commit-unless-asked
+| archive-first | no-calendar-ttl-delete | review-clock ≠ rm
+| no-commit-unless-asked
 | no-fake-B3@08-19 | 精化≠改產品行為
 ```
 
@@ -57,12 +63,12 @@ no-mass-delete-reports | no-mass-delete-audits | no-delete-scripts-in-T0
 
 | 問 | 答 |
 |---|---|
-| **精化最佳下一步** | T0–T4 **已做**。再瘦須另句點名 |
+| **精化最佳下一步** | T0–T4＋T6＋**T7 已做**。T5＝90 天複審鐘**候選**（未開火；最早≈**2026-11-17**） |
 | **合併精要在哪** | `reports/SSOT_READ_ORDER.md` |
-| **現在動了什麼** | T0：1 CSV。T1：RIDGE 指針＋五支腳本。T2：31。T3：14。T4：7 份 opt_next_best → `archive/slim-t4/` |
+| **現在動了什麼** | T0：1 CSV。T1：五支腳本。T2：31。T3：14。T4：7。T5：只寫計畫。T6：1 leftover。T7：1 份 sim 專章草案 → `archive/slim-t7/` |
 | **為什麼不刪 169 支「零入鏈」腳本** | 多數其實寫在 audits／reports；補紙本後只剩 16；16 裡含活窗 migrate |
-| **可與市場 WAIT 同步？** | T0 已同步。T1 搬腳本＝是（零碼風險低）但**須點名** |
-| **不要做** | 把 superseded 理解長文一次打包刪掉；刪 `migrate_horizon_5.py`；刪 GO 紙本；當 08-19 為 as-of |
+| **可與市場 WAIT 同步？** | T0 已同步。T1／T6／T7 搬檔＝是（零碼）但**須點名**。T5 產清單＝是但**須點名且鐘到** |
+| **不要做** | 把 superseded 理解長文一次打包刪掉；刪 `migrate_horizon_5.py`；刪 GO 紙本；當 08-19 為 as-of；**用滿 90 天當 rm 授權**；打包刪七月報告 |
 
 ---
 
@@ -92,7 +98,7 @@ no-mass-delete-reports | no-mass-delete-audits | no-delete-scripts-in-T0
 | 人話憲章 | **6** | 現行＝r19 |
 | byte-identical reports 組 | **1 組**＝3 份 identity CSV | T0 處理 1 份 |
 
-HEAD＝`6341cab`。工作樹有 r19／HIST／B3／本軌未提交——**本計畫不代 commit**。
+封存 tip＝`archive-20260819-b3-hist-slim-r20`（commit `63752bb`；回填 `3bd1a37`）。T5 複審鐘 **epoch＝2026-08-19**（此 tag 日；T0–T4 檔當日入 `archive/`）。
 
 ---
 
@@ -192,6 +198,47 @@ cron 現用（live `crontab -l`，刪之即斷心跳）：
 
 證據帳：`audits/SLIM-T4-EXECUTED-20260819.md`。
 
+### T5（Steward「把 90 天複審鐘寫進 slim」· **候選 · 未開火** 2026-08-19 16:43）
+
+**性質**：複審鐘，**不是**刪除鐘。寫進本計畫 ≠ GO ≠ 授權 `rm`／`git rm`。
+
+| 欄 | 內容 |
+|---|---|
+| **對象** | 已 `git mv` 進 `archive/slim-t0`…`t7/` **且**已在 annotated tag 的檔 |
+| **epoch** | `archive-20260819-b3-hist-slim-r20` 之日＝**2026-08-19** |
+| **滿 90 天** | 最早可審日≈**2026-11-17**（08-19＋90） |
+| **開火句** | Steward 點名「執行 T5」**且**日曆 ≥ 最早可審日 |
+| **開火做什麼** | 產出 `audits/SLIM-T5-REVIEW-LIST-YYYYMMDD.md`：路徑、入 archive 日、所在 tag、建議＝**KEEP** |
+| **開火不做** | `rm`；`git rm`；改讀序鏈；搬現行 SSOT；動 heartbeat／[N]／GO 紙本；cron 自動掃刪 |
+| **鐘未到** | 即使點名「執行 T5」→ 寫「未到期／清單空」帳；仍不刪 |
+| **清單之後** | 個別檔若要再瘦＝**T5b 另句點名**（仍預設 archive-first，不是默 rm） |
+| **不在 T5** | `reports/` 現行入口；`scripts/` 未搬檔；`audits/*-GO\|FIRED\|EXECUTED`；生成物 dump／`models_artifacts`（磁碟 TTL 另軌，非 M14） |
+
+```text
+WHEN: Steward「執行 T5」AND today >= 2026-11-17
+DO:   列 archive/slim-t{0,1,2,3,4,6,7}/ 滿 90 天檔 → REVIEW-LIST（預設 KEEP）
+DONT: rm; git rm; cron 刪; 改 SSOT 鏈; 當日曆＝未用
+DONE: REVIEW-LIST 入 audits/ + 本節標 EXECUTED（清單≠刪除）
+```
+
+候選帳：`audits/SLIM-T5-REVIEW-CLOCK-CANDIDATE-20260819.md`。
+
+### T6（Steward「點名 T6」· **已執行** 2026-08-19 16:50）
+
+1 份無引用 leftover：`augur_pme_gate_diagnosis_20260724.local-backup.md` `git mv` → `archive/slim-t6/`。正式 `20260724.md` **未搬**。
+
+**未搬**：`identity_retire_name_mismatch_20260722_gb10.csv`（ops 仍點檔名）；七月單題打包；PME 日更長河；任何 `.py`。
+
+證據帳：`audits/SLIM-T6-EXECUTED-20260819.md`。
+
+### T7（Steward「點名 T7」· **已執行** 2026-08-19 16:57）
+
+1 份無引用專章草案：`augur_sim_evolution_chapter_draft_20260731.md` `git mv` → `archive/slim-t7/`。**必留** `…_final_20260731.md`。
+
+**未搬**：`0722_gb10.csv`；七月打包；PME 日更；任何 `.py`；08-04 GO。
+
+證據帳：`audits/SLIM-T7-EXECUTED-20260819.md`。
+
 ---
 
 ## §5 與 r19 板的關係
@@ -204,7 +251,7 @@ cron 現用（live `crontab -l`，刪之即斷心跳）：
 | 路徑 θ／GO 文案 | PATH-OPT r18 |
 | 理解 LIVE | **r20**（r19 14:05 段過期） |
 
-r19 **M14** 本窗改為：T0–T4 已閉；再瘦另句。
+r19 **M14** 本窗改為：T0–T4＋T6＋T7 已閉；T5＝90 天複審鐘**候選**（未開火；≠rm）。
 
 ---
 
@@ -219,5 +266,9 @@ r19 **M14** 本窗改為：T0–T4 已閉；再瘦另句。
 - [x] T4：7 份 opt_next_best 進 `archive/slim-t4/`；KH 0812 未搬  
 - [x] 不刪 heartbeat、不刪 [N]、不刪 GO 紙本  
 - [x] 不假 B3、不 promote、不代 commit  
+- [x] T5 寫成 90 天**複審鐘**候選；**未**開火；**未**當刪除 TTL  
+- [x] T6：1 份 PME local-backup 進 `archive/slim-t6/`；正式 0724 未搬  
+- [x] T7：1 份 sim 專章草案進 `archive/slim-t7/`；final 未搬  
+- [ ] T5 開火（須點名且 ≥2026-11-17）→ REVIEW-LIST；預設 KEEP  
 
-*完。[I] · slim exec SSOT · T0–T4 EXECUTED。*
+*完。[I] · slim exec SSOT · T0–T4＋T6＋T7 EXECUTED · T5 CANDIDATE（review-clock ≠ rm）。*

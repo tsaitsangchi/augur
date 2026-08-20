@@ -1,0 +1,72 @@
+[
+  {
+    "d": "2026-07-31",
+    "rc": 2,
+    "status": "ridge_dry_run_fail"
+  },
+  {
+    "d": "2026-08-07",
+    "rc": 2,
+    "status": "ridge_dry_run_fail"
+  },
+  {
+    "d": "2026-08-11",
+    "rc": 2,
+    "status": "ridge_dry_run_fail"
+  },
+  {
+    "d": "2026-08-12",
+    "rc": 2,
+    "status": "ridge_dry_run_fail"
+  },
+  {
+    "d": "2026-08-13",
+    "rc": 0,
+    "long_entry": 0,
+    "short_entry": 1,
+    "long_sids": [],
+    "short_sids": [
+      "2385"
+    ]
+  },
+  {
+    "d": "2026-08-14",
+    "rc": 0,
+    "long_entry": 1,
+    "short_entry": 1,
+    "long_sids": [
+      "2347"
+    ],
+    "short_sids": [
+      "2385"
+    ]
+  },
+  {
+    "d": "2026-08-17",
+    "rc": 0,
+    "long_entry": 0,
+    "short_entry": 1,
+    "long_sids": [],
+    "short_sids": [
+      "2385"
+    ]
+  },
+  {
+    "d": "2026-08-18",
+    "rc": 0,
+    "long_entry": 0,
+    "short_entry": 0,
+    "long_sids": [],
+    "short_sids": []
+  },
+  {
+    "d": "2026-08-19",
+    "rc": 0,
+    "long_entry": 0,
+    "short_entry": 1,
+    "long_sids": [],
+    "short_sids": [
+      "2385"
+    ]
+  }
+]

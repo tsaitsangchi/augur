@@ -17,6 +17,7 @@ POLICY_STRICT = "strict"
 H_TRACK = (5, 10, 20, 40, 60, 90, 120, 240)
 H_LONG = (40, 60, 90, 120, 240)
 H_SHORT = (5, 10)
+H_PATH_SHORT = (5, 10, 20)  # 顯示用短窗（含 H20）；進場閘 L-B／S-B 仍只 H5+H10
 H_RANK = (60, 120, 240)
 
 LONG_DD_LO = -0.15
@@ -277,10 +278,12 @@ def ridge_then_pb_sort_key(
     dd20: Optional[float],
     long_bits: Mapping[str, bool],
 ) -> tuple:
-    """池內回撤近→遠：過齊進場最前；再距回撤帶、再短窗仍漲、再代號。"""
-    passed = 0 if (long_bits or {}).get("pass") else 1
+    """池內回撤近→遠：距 −15%～−3% 帶近的在前；短窗已拉其次；還在 20 日高的在後。
+
+    過齊四閘只決定標籤，不插隊（還沒回撤的相對強仍留在池裡）。
+    """
+    _ = long_bits
     return (
-        passed,
         dd20_dist_to_long_band(dd20),
         short_window_rise_penalty(rets),
         str(sid),
@@ -300,10 +303,12 @@ def ridge_then_pb_short_sort_key(
     bu20: Optional[float],
     short_bits: Mapping[str, bool],
 ) -> tuple:
-    """池內反彈近→遠：過齊進場最前；再距反彈帶、再短窗仍跌、再代號。"""
-    passed = 0 if (short_bits or {}).get("pass") else 1
+    """池內反彈近→遠：距 +3%～+15% 帶近的在前；短窗已彈其次；還在 20 日低的在後。
+
+    過齊四閘只決定標籤，不插隊（還沒反彈的相對弱仍留在池裡）。不是可空。
+    """
+    _ = short_bits
     return (
-        passed,
         bu20_dist_to_short_band(bu20),
         short_window_fall_penalty(rets),
         str(sid),
@@ -315,6 +320,36 @@ def ridge_then_pb_short_tag(short_bits: Mapping[str, bool]) -> str:
     if (short_bits or {}).get("pass"):
         return RIDGE_THEN_PB_ENTRY
     return RIDGE_THEN_PB_SHORT_WAIT
+
+
+def path_window_pass(rets: Mapping[int, float], *, side: str) -> dict[str, Optional[bool]]:
+    """個別窗路徑是否過（已實現、往回看）。做多：H5/10/20＜0、H40+＞0；做空相反。缺窗＝None。"""
+    want_short_neg = str(side).lower() == "long"
+    out: dict[str, Optional[bool]] = {}
+    for h in H_TRACK:
+        v = rets.get(h)
+        if v is None:
+            out[str(h)] = None
+            continue
+        x = float(v)
+        if h in H_PATH_SHORT:
+            out[str(h)] = (x < 0) if want_short_neg else (x > 0)
+        else:
+            out[str(h)] = (x > 0) if want_short_neg else (x < 0)
+    return out
+
+
+def format_window_pass(bits: Mapping[str, Optional[bool]]) -> str:
+    """H5過 H10未 …；None＝缺。"""
+    parts = []
+    for h in H_TRACK:
+        v = bits.get(str(h))
+        if v is None:
+            s = "缺"
+        else:
+            s = "過" if v else "未"
+        parts.append("H%s%s" % (h, s))
+    return " ".join(parts)
 
 
 WATCH_PB_VERSION = "WATCH-PB-v1"
@@ -415,6 +450,8 @@ def _selftest() -> int:
     near = ridge_then_pb_sort_key("2454", {**up, 10: 0.005}, -0.08, {"pass": False})
     far = ridge_then_pb_sort_key("2301", {**up, 5: 0.02, 10: 0.08}, 0.0, {"pass": False})
     chk("回撤近排前", near < far)
+    at_high = ridge_then_pb_sort_key("2301", up, 0.0, {"pass": True})
+    chk("貼高在後不論過齊標", near < at_high)
     chk("過齊標進場條件", ridge_then_pb_tag({"pass": True}) == RIDGE_THEN_PB_ENTRY)
     chk("未過標等回撤", ridge_then_pb_tag({"pass": False}) == RIDGE_THEN_PB_WAIT)
     chk("反彈帶內距=0", bu20_dist_to_short_band(0.08) == 0.0)
@@ -422,8 +459,18 @@ def _selftest() -> int:
     s_near = ridge_then_pb_short_sort_key("1215", {**dn, 5: 0.01}, 0.08, {"pass": False})
     s_far = ridge_then_pb_short_sort_key("3548", {**dn, 5: -0.04, 10: -0.02}, 0.0, {"pass": False})
     chk("反彈近排前", s_near < s_far)
+    at_low = ridge_then_pb_short_sort_key("3548", dn, 0.0, {"pass": True})
+    chk("貼低在後不論過齊標", s_near < at_low)
     chk("過齊標做空進場", ridge_then_pb_short_tag({"pass": True}) == RIDGE_THEN_PB_ENTRY)
     chk("未過標等反彈", ridge_then_pb_short_tag({"pass": False}) == RIDGE_THEN_PB_SHORT_WAIT)
+    wp = path_window_pass(up, side="long")
+    chk("做多 H5 過（已拉）", wp["5"] is True)
+    chk("做多 H20 未（此組 H20>0）", wp["20"] is False)
+    chk("做多 H40 過（長窗上）", wp["40"] is True)
+    wps = path_window_pass(dn, side="short")
+    chk("做空 H5 過（已彈）", wps["5"] is True)
+    chk("做空 H40 過（長窗下）", wps["40"] is True)
+    chk("窗文案含過未", "H5過" in format_window_pass(wp) and "H20未" in format_window_pass(wp))
     bounce = wait_bounce_annot({"S-A": True, "S-B": False, "S-C": False, "S-D": True, "pass": False})
     chk("等反彈 wait", bounce["wait"] is True and bounce["tag"] == RIDGE_THEN_PB_SHORT_WAIT)
     chk("做空文案不寫等回撤", "回撤" not in bounce["tag"] and "回撤" not in bounce["reason_zh"])
