@@ -3,7 +3,7 @@ status: archive_checkpoint
 date: 2026-08-21
 kind: archive_checkpoint
 tag: archive-20260821-r21-w10-ma-finmind-p0
-sha: pending
+sha: "23eb93667e15a0a00ab040165494c024d51fdf52"
 remote: https://github.com/tsaitsangchi/augur
 auth: "Steward：更新全部檔案上傳到 https://github.com/tsaitsangchi/augur 並做封存點"
 prior: archive-20260820-r21-hist-wf-ridge-pb-close
@@ -16,7 +16,7 @@ layer: "[I]"
 date: 2026-08-21  
 kind: archive_checkpoint  
 tag: `archive-20260821-r21-w10-ma-finmind-p0`  
-sha: pending（commit 後回填）  
+sha: `23eb93667e15a0a00ab040165494c024d51fdf52`  
 remote: https://github.com/tsaitsangchi/augur
 
 上一封存：`archive-20260820-r21-hist-wf-ridge-pb-close`（commit `5eb1cd2`；回填 `db9ce0f`）。
@@ -45,6 +45,6 @@ remote: https://github.com/tsaitsangchi/augur
 
 ## 驗收
 
-- `git rev-parse HEAD`＝回填前之封存 commit（tag 打在該 commit）
+- `git rev-parse` 封存 commit＝`23eb93667e15a0a00ab040165494c024d51fdf52`（tag 打在此；本回填為後一 commit）
 - `git show archive-20260821-r21-w10-ma-finmind-p0` 可取註解
 - origin/main 已含本 commit；tag 已 push
