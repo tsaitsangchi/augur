@@ -4,6 +4,8 @@
    （進場＝次一交易日，抱 30 日；未實現不編造）。`ridge_then_pb_long_*`
    記做多 Top10 池＋過齊者於該日還原收盤買進；`ridge_then_pb_short_*`
    記做空 Top10 池＋過齊者於該日還原收盤賣出（條件帳，不是下單、不是可融券）。
+   `ridge_then_pb_long_w10_*` 另加八窗 |路徑％|≤10；`ridge_then_pb_long_ma10_*`
+   為均線多頭＋均價差≤10%；`ridge_then_pb_long_ma20_*` 為均價差≤20%。
    不改 standing、不寫預測分數表。
 
 守 #1 缺即缺 · #6 同 asof 整批覆寫 · 分數≠報酬％ · 條件≠可交易 · 做空≠可空
@@ -115,6 +117,186 @@ LONG_BUY_NOTE = (
     "買進價＝該交易日還原收盤（不是 t+1）；條件≠可交易；score≠％"
 )
 
+TABLE_LONG_W10_ASOF = "ridge_then_pb_long_w10_asof"
+TABLE_LONG_W10_ROW = "ridge_then_pb_long_w10_row"
+TABLE_LONG_W10_BUY = "ridge_then_pb_long_w10_buy"
+
+DDL_LONG_W10_ASOF = f"""CREATE TABLE IF NOT EXISTS {TABLE_LONG_W10_ASOF} (
+  asof_date date PRIMARY KEY,
+  n_pool int NOT NULL,
+  n_entry int NOT NULL,
+  n_wait int NOT NULL,
+  k int NOT NULL,
+  family text NOT NULL DEFAULT '{FAMILY}',
+  model_asofs jsonb,
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now()
+)"""
+
+DDL_LONG_W10_ROW = f"""CREATE TABLE IF NOT EXISTS {TABLE_LONG_W10_ROW} (
+  asof_date date NOT NULL,
+  sort_rank int NOT NULL,
+  stock_id text NOT NULL,
+  name text,
+  tag text NOT NULL,
+  ridge_rank int,
+  avg_score double precision,
+  dd20_pct double precision,
+  window_pass jsonb,
+  path_pct jsonb,
+  gates jsonb,
+  band10 boolean,
+  buy_date date,
+  buy_price double precision,
+  PRIMARY KEY (asof_date, stock_id)
+)"""
+
+DDL_LONG_W10_BUY = f"""CREATE TABLE IF NOT EXISTS {TABLE_LONG_W10_BUY} (
+  asof_date date NOT NULL,
+  stock_id text NOT NULL,
+  name text,
+  buy_date date NOT NULL,
+  buy_price double precision NOT NULL,
+  dd20_pct double precision,
+  window_pass jsonb,
+  path_pct jsonb,
+  gates jsonb,
+  band10 boolean NOT NULL DEFAULT true,
+  ridge_rank int,
+  sort_rank int,
+  avg_score double precision,
+  tag text NOT NULL,
+  family text NOT NULL DEFAULT '{FAMILY}',
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (asof_date, stock_id)
+)"""
+
+LONG_W10_NOTE = (
+    "做多 Top10 池不剔除；八窗路徑％皆在 ±10%；過齊做多四閘才可當進場條件；"
+    "買進價＝該交易日還原收盤（不是 t+1）；條件≠可交易；score≠％"
+)
+
+TABLE_LONG_MA10_ASOF = "ridge_then_pb_long_ma10_asof"
+TABLE_LONG_MA10_ROW = "ridge_then_pb_long_ma10_row"
+TABLE_LONG_MA10_BUY = "ridge_then_pb_long_ma10_buy"
+
+DDL_LONG_MA10_ASOF = f"""CREATE TABLE IF NOT EXISTS {TABLE_LONG_MA10_ASOF} (
+  asof_date date PRIMARY KEY,
+  n_pool int NOT NULL,
+  n_entry int NOT NULL,
+  n_wait int NOT NULL,
+  k int NOT NULL,
+  family text NOT NULL DEFAULT '{FAMILY}',
+  model_asofs jsonb,
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now()
+)"""
+
+DDL_LONG_MA10_ROW = f"""CREATE TABLE IF NOT EXISTS {TABLE_LONG_MA10_ROW} (
+  asof_date date NOT NULL,
+  sort_rank int NOT NULL,
+  stock_id text NOT NULL,
+  name text,
+  tag text NOT NULL,
+  ridge_rank int,
+  avg_score double precision,
+  dd20_pct double precision,
+  sma jsonb,
+  ma_stack boolean,
+  ma_band10 boolean,
+  ma_spread_pct double precision,
+  buy_date date,
+  buy_price double precision,
+  PRIMARY KEY (asof_date, stock_id)
+)"""
+
+DDL_LONG_MA10_BUY = f"""CREATE TABLE IF NOT EXISTS {TABLE_LONG_MA10_BUY} (
+  asof_date date NOT NULL,
+  stock_id text NOT NULL,
+  name text,
+  buy_date date NOT NULL,
+  buy_price double precision NOT NULL,
+  dd20_pct double precision,
+  sma jsonb,
+  ma_stack boolean NOT NULL DEFAULT true,
+  ma_band10 boolean NOT NULL DEFAULT true,
+  ma_spread_pct double precision,
+  ridge_rank int,
+  sort_rank int,
+  avg_score double precision,
+  tag text NOT NULL,
+  family text NOT NULL DEFAULT '{FAMILY}',
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (asof_date, stock_id)
+)"""
+
+LONG_MA10_NOTE = (
+    "做多 Top10 池不剔除；SMA5>…>SMA240 且八條均價差≤10% 才可當進場條件；"
+    "買進價＝該交易日還原收盤（不是 t+1）；條件≠可交易；score≠％"
+)
+
+TABLE_LONG_MA20_ASOF = "ridge_then_pb_long_ma20_asof"
+TABLE_LONG_MA20_ROW = "ridge_then_pb_long_ma20_row"
+TABLE_LONG_MA20_BUY = "ridge_then_pb_long_ma20_buy"
+
+DDL_LONG_MA20_ASOF = f"""CREATE TABLE IF NOT EXISTS {TABLE_LONG_MA20_ASOF} (
+  asof_date date PRIMARY KEY,
+  n_pool int NOT NULL,
+  n_entry int NOT NULL,
+  n_wait int NOT NULL,
+  k int NOT NULL,
+  family text NOT NULL DEFAULT '{FAMILY}',
+  model_asofs jsonb,
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now()
+)"""
+
+DDL_LONG_MA20_ROW = f"""CREATE TABLE IF NOT EXISTS {TABLE_LONG_MA20_ROW} (
+  asof_date date NOT NULL,
+  sort_rank int NOT NULL,
+  stock_id text NOT NULL,
+  name text,
+  tag text NOT NULL,
+  ridge_rank int,
+  avg_score double precision,
+  dd20_pct double precision,
+  sma jsonb,
+  ma_stack boolean,
+  ma_band20 boolean,
+  ma_spread_pct double precision,
+  buy_date date,
+  buy_price double precision,
+  PRIMARY KEY (asof_date, stock_id)
+)"""
+
+DDL_LONG_MA20_BUY = f"""CREATE TABLE IF NOT EXISTS {TABLE_LONG_MA20_BUY} (
+  asof_date date NOT NULL,
+  stock_id text NOT NULL,
+  name text,
+  buy_date date NOT NULL,
+  buy_price double precision NOT NULL,
+  dd20_pct double precision,
+  sma jsonb,
+  ma_stack boolean NOT NULL DEFAULT true,
+  ma_band20 boolean NOT NULL DEFAULT true,
+  ma_spread_pct double precision,
+  ridge_rank int,
+  sort_rank int,
+  avg_score double precision,
+  tag text NOT NULL,
+  family text NOT NULL DEFAULT '{FAMILY}',
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (asof_date, stock_id)
+)"""
+
+LONG_MA20_NOTE = (
+    "做多 Top10 池不剔除；SMA5>…>SMA240 且八條均價差≤20% 才可當進場條件；"
+    "買進價＝該交易日還原收盤（不是 t+1）；條件≠可交易；score≠％"
+)
+
 TABLE_SHORT_ASOF = "ridge_then_pb_short_asof"
 TABLE_SHORT_ROW = "ridge_then_pb_short_row"
 TABLE_SHORT_SELL = "ridge_then_pb_short_sell"
@@ -214,6 +396,48 @@ def ensure_long(cur) -> None:
     cur.execute(
         f"COMMENT ON TABLE {TABLE_LONG_ROW} IS "
         "'做多相對強 Top k 池（含等回撤）；回撤近→遠；≠可交易'"
+    )
+
+
+def ensure_long_w10(cur) -> None:
+    cur.execute(DDL_LONG_W10_ASOF)
+    cur.execute(DDL_LONG_W10_ROW)
+    cur.execute(DDL_LONG_W10_BUY)
+    cur.execute(
+        f"COMMENT ON TABLE {TABLE_LONG_W10_BUY} IS "
+        "'做多過齊＋八窗|路徑％|≤10 之該日還原收盤買進；≠下單≠可交易'"
+    )
+    cur.execute(
+        f"COMMENT ON TABLE {TABLE_LONG_W10_ROW} IS "
+        "'做多相對強 Top k 池＋±10% 窗幅標；≠可交易'"
+    )
+
+
+def ensure_long_ma10(cur) -> None:
+    cur.execute(DDL_LONG_MA10_ASOF)
+    cur.execute(DDL_LONG_MA10_ROW)
+    cur.execute(DDL_LONG_MA10_BUY)
+    cur.execute(
+        f"COMMENT ON TABLE {TABLE_LONG_MA10_BUY} IS "
+        "'做多均線多頭＋均價差≤10% 之該日還原收盤買進；≠下單≠可交易'"
+    )
+    cur.execute(
+        f"COMMENT ON TABLE {TABLE_LONG_MA10_ROW} IS "
+        "'做多相對強 Top k 池＋均線排列標；≠可交易'"
+    )
+
+
+def ensure_long_ma20(cur) -> None:
+    cur.execute(DDL_LONG_MA20_ASOF)
+    cur.execute(DDL_LONG_MA20_ROW)
+    cur.execute(DDL_LONG_MA20_BUY)
+    cur.execute(
+        f"COMMENT ON TABLE {TABLE_LONG_MA20_BUY} IS "
+        "'做多均線多頭＋均價差≤20% 之該日還原收盤買進；≠下單≠可交易'"
+    )
+    cur.execute(
+        f"COMMENT ON TABLE {TABLE_LONG_MA20_ROW} IS "
+        "'做多相對強 Top k 池＋均線排列≤20% 標；≠可交易'"
     )
 
 
@@ -425,6 +649,305 @@ def persist_long_close_buys(
     }
 
 
+def processed_long_w10_asofs(conn) -> set:
+    """已跑過做多 ±10% 窗幅收盤帳的 asof（含當日 0 檔進場）。"""
+    with db.transaction(conn) as cur:
+        ensure_long_w10(cur)
+        cur.execute(f"SELECT asof_date FROM {TABLE_LONG_W10_ASOF}")
+        return {r[0] for r in cur.fetchall()}
+
+
+def persist_long_w10_close_buys(
+    conn,
+    payload: Mapping[str, Any],
+    closes: Mapping[str, float],
+) -> dict:
+    """覆寫該 asof 做多 Top k 池；四閘＋八窗|％|≤10 且有收盤者寫入買進帳。缺價不編造。"""
+    asof = asof_ready.as_date(payload["asof"])
+    stamps = payload.get("model_asofs") or model_asofs(asof)
+    note = payload.get("note") or LONG_W10_NOTE
+    k = int(payload.get("k") or 10)
+    pack = payload.get("long") or {}
+    rows = list(pack.get("rows") or [])
+    n_entry_tag = sum(1 for r in rows if r.get("tag") == up.RIDGE_THEN_PB_ENTRY)
+    n_buy = 0
+    n_skip_px = 0
+    with db.transaction(conn) as cur:
+        ensure_long_w10(cur)
+        cur.execute(f"DELETE FROM {TABLE_LONG_W10_BUY} WHERE asof_date=%s", (asof,))
+        cur.execute(f"DELETE FROM {TABLE_LONG_W10_ROW} WHERE asof_date=%s", (asof,))
+        cur.execute(f"DELETE FROM {TABLE_LONG_W10_ASOF} WHERE asof_date=%s", (asof,))
+        row_tuples = []
+        buy_tuples = []
+        for r in rows:
+            sid = str(r["sid"])
+            tag = r.get("tag")
+            px = closes.get(sid)
+            buy_date = asof if (tag == up.RIDGE_THEN_PB_ENTRY and px is not None) else None
+            buy_price = None if buy_date is None else float(px)
+            if tag == up.RIDGE_THEN_PB_ENTRY and px is None:
+                n_skip_px += 1
+            band10 = bool(r.get("band10"))
+            row_tuples.append((
+                asof, r.get("rank"), sid, r.get("name") or "", tag,
+                r.get("ridge_rank"), r.get("avg_score"), r.get("dd20_pct"),
+                Json(r.get("window_pass") or {}),
+                Json(r.get("path_pct") or {}),
+                Json(r.get("gates") or {}),
+                band10, buy_date, buy_price,
+            ))
+            if buy_date is not None:
+                n_buy += 1
+                buy_tuples.append((
+                    asof, sid, r.get("name") or "", buy_date, buy_price,
+                    r.get("dd20_pct"),
+                    Json(r.get("window_pass") or {}),
+                    Json(r.get("path_pct") or {}),
+                    Json(r.get("gates") or {}),
+                    band10,
+                    r.get("ridge_rank"), r.get("rank"), r.get("avg_score"),
+                    tag, FAMILY, note,
+                ))
+        if row_tuples:
+            execute_values(
+                cur,
+                f"INSERT INTO {TABLE_LONG_W10_ROW} ("
+                "asof_date, sort_rank, stock_id, name, tag, ridge_rank, avg_score, "
+                "dd20_pct, window_pass, path_pct, gates, band10, buy_date, buy_price"
+                ") VALUES %s",
+                row_tuples,
+            )
+        if buy_tuples:
+            execute_values(
+                cur,
+                f"INSERT INTO {TABLE_LONG_W10_BUY} ("
+                "asof_date, stock_id, name, buy_date, buy_price, dd20_pct, "
+                "window_pass, path_pct, gates, band10, ridge_rank, sort_rank, "
+                "avg_score, tag, family, note"
+                ") VALUES %s",
+                buy_tuples,
+            )
+        cur.execute(
+            f"INSERT INTO {TABLE_LONG_W10_ASOF} ("
+            "asof_date, n_pool, n_entry, n_wait, k, family, model_asofs, note"
+            ") VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+            (
+                asof, len(rows), n_entry_tag, len(rows) - n_entry_tag, k,
+                FAMILY, Json(stamps), note,
+            ),
+        )
+    return {
+        "table_buy": TABLE_LONG_W10_BUY,
+        "table_row": TABLE_LONG_W10_ROW,
+        "table_asof": TABLE_LONG_W10_ASOF,
+        "asof": str(asof),
+        "n_pool": len(rows),
+        "n_entry": n_entry_tag,
+        "n_buy": n_buy,
+        "n_skip_px": n_skip_px,
+        "fill": "asof_close",
+        "band": "path_pct_abs_le_10",
+    }
+
+
+def processed_long_ma10_asofs(conn) -> set:
+    """已跑過做多均線±10% 收盤帳的 asof（含當日 0 檔進場）。"""
+    with db.transaction(conn) as cur:
+        ensure_long_ma10(cur)
+        cur.execute(f"SELECT asof_date FROM {TABLE_LONG_MA10_ASOF}")
+        return {r[0] for r in cur.fetchall()}
+
+
+def persist_long_ma10_close_buys(
+    conn,
+    payload: Mapping[str, Any],
+    closes: Mapping[str, float],
+) -> dict:
+    """覆寫該 asof 做多 Top k 池；均線排列＋均價差≤10% 且有收盤者寫入買進帳。缺價不編造。"""
+    asof = asof_ready.as_date(payload["asof"])
+    stamps = payload.get("model_asofs") or model_asofs(asof)
+    note = payload.get("note") or LONG_MA10_NOTE
+    k = int(payload.get("k") or 10)
+    pack = payload.get("long") or {}
+    rows = list(pack.get("rows") or [])
+    n_entry_tag = sum(1 for r in rows if r.get("tag") == up.RIDGE_THEN_PB_ENTRY)
+    n_buy = 0
+    n_skip_px = 0
+    with db.transaction(conn) as cur:
+        ensure_long_ma10(cur)
+        cur.execute(f"DELETE FROM {TABLE_LONG_MA10_BUY} WHERE asof_date=%s", (asof,))
+        cur.execute(f"DELETE FROM {TABLE_LONG_MA10_ROW} WHERE asof_date=%s", (asof,))
+        cur.execute(f"DELETE FROM {TABLE_LONG_MA10_ASOF} WHERE asof_date=%s", (asof,))
+        row_tuples = []
+        buy_tuples = []
+        for r in rows:
+            sid = str(r["sid"])
+            tag = r.get("tag")
+            px = closes.get(sid)
+            buy_date = asof if (tag == up.RIDGE_THEN_PB_ENTRY and px is not None) else None
+            buy_price = None if buy_date is None else float(px)
+            if tag == up.RIDGE_THEN_PB_ENTRY and px is None:
+                n_skip_px += 1
+            row_tuples.append((
+                asof, r.get("rank"), sid, r.get("name") or "", tag,
+                r.get("ridge_rank"), r.get("avg_score"), r.get("dd20_pct"),
+                Json(r.get("sma") or {}),
+                bool(r.get("ma_stack")), bool(r.get("ma_band10")),
+                r.get("ma_spread_pct"),
+                buy_date, buy_price,
+            ))
+            if buy_date is not None:
+                n_buy += 1
+                buy_tuples.append((
+                    asof, sid, r.get("name") or "", buy_date, buy_price,
+                    r.get("dd20_pct"),
+                    Json(r.get("sma") or {}),
+                    bool(r.get("ma_stack")), bool(r.get("ma_band10")),
+                    r.get("ma_spread_pct"),
+                    r.get("ridge_rank"), r.get("rank"), r.get("avg_score"),
+                    tag, FAMILY, note,
+                ))
+        if row_tuples:
+            execute_values(
+                cur,
+                f"INSERT INTO {TABLE_LONG_MA10_ROW} ("
+                "asof_date, sort_rank, stock_id, name, tag, ridge_rank, avg_score, "
+                "dd20_pct, sma, ma_stack, ma_band10, ma_spread_pct, buy_date, buy_price"
+                ") VALUES %s",
+                row_tuples,
+            )
+        if buy_tuples:
+            execute_values(
+                cur,
+                f"INSERT INTO {TABLE_LONG_MA10_BUY} ("
+                "asof_date, stock_id, name, buy_date, buy_price, dd20_pct, "
+                "sma, ma_stack, ma_band10, ma_spread_pct, ridge_rank, sort_rank, "
+                "avg_score, tag, family, note"
+                ") VALUES %s",
+                buy_tuples,
+            )
+        cur.execute(
+            f"INSERT INTO {TABLE_LONG_MA10_ASOF} ("
+            "asof_date, n_pool, n_entry, n_wait, k, family, model_asofs, note"
+            ") VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+            (
+                asof, len(rows), n_entry_tag, len(rows) - n_entry_tag, k,
+                FAMILY, Json(stamps), note,
+            ),
+        )
+    return {
+        "table_buy": TABLE_LONG_MA10_BUY,
+        "table_row": TABLE_LONG_MA10_ROW,
+        "table_asof": TABLE_LONG_MA10_ASOF,
+        "asof": str(asof),
+        "n_pool": len(rows),
+        "n_entry": n_entry_tag,
+        "n_buy": n_buy,
+        "n_skip_px": n_skip_px,
+        "fill": "asof_close",
+        "band": "sma_stack_spread_le_10",
+    }
+
+
+def processed_long_ma20_asofs(conn) -> set:
+    """已跑過做多均線±20% 收盤帳的 asof（含當日 0 檔進場）。"""
+    with db.transaction(conn) as cur:
+        ensure_long_ma20(cur)
+        cur.execute(f"SELECT asof_date FROM {TABLE_LONG_MA20_ASOF}")
+        return {r[0] for r in cur.fetchall()}
+
+
+def persist_long_ma20_close_buys(
+    conn,
+    payload: Mapping[str, Any],
+    closes: Mapping[str, float],
+) -> dict:
+    """覆寫該 asof 做多 Top k 池；均線排列＋均價差≤20% 且有收盤者寫入買進帳。缺價不編造。"""
+    asof = asof_ready.as_date(payload["asof"])
+    stamps = payload.get("model_asofs") or model_asofs(asof)
+    note = payload.get("note") or LONG_MA20_NOTE
+    k = int(payload.get("k") or 10)
+    pack = payload.get("long") or {}
+    rows = list(pack.get("rows") or [])
+    n_entry_tag = sum(1 for r in rows if r.get("tag") == up.RIDGE_THEN_PB_ENTRY)
+    n_buy = 0
+    n_skip_px = 0
+    with db.transaction(conn) as cur:
+        ensure_long_ma20(cur)
+        cur.execute(f"DELETE FROM {TABLE_LONG_MA20_BUY} WHERE asof_date=%s", (asof,))
+        cur.execute(f"DELETE FROM {TABLE_LONG_MA20_ROW} WHERE asof_date=%s", (asof,))
+        cur.execute(f"DELETE FROM {TABLE_LONG_MA20_ASOF} WHERE asof_date=%s", (asof,))
+        row_tuples = []
+        buy_tuples = []
+        for r in rows:
+            sid = str(r["sid"])
+            tag = r.get("tag")
+            px = closes.get(sid)
+            buy_date = asof if (tag == up.RIDGE_THEN_PB_ENTRY and px is not None) else None
+            buy_price = None if buy_date is None else float(px)
+            if tag == up.RIDGE_THEN_PB_ENTRY and px is None:
+                n_skip_px += 1
+            row_tuples.append((
+                asof, r.get("rank"), sid, r.get("name") or "", tag,
+                r.get("ridge_rank"), r.get("avg_score"), r.get("dd20_pct"),
+                Json(r.get("sma") or {}),
+                bool(r.get("ma_stack")), bool(r.get("ma_band20")),
+                r.get("ma_spread_pct"),
+                buy_date, buy_price,
+            ))
+            if buy_date is not None:
+                n_buy += 1
+                buy_tuples.append((
+                    asof, sid, r.get("name") or "", buy_date, buy_price,
+                    r.get("dd20_pct"),
+                    Json(r.get("sma") or {}),
+                    bool(r.get("ma_stack")), bool(r.get("ma_band20")),
+                    r.get("ma_spread_pct"),
+                    r.get("ridge_rank"), r.get("rank"), r.get("avg_score"),
+                    tag, FAMILY, note,
+                ))
+        if row_tuples:
+            execute_values(
+                cur,
+                f"INSERT INTO {TABLE_LONG_MA20_ROW} ("
+                "asof_date, sort_rank, stock_id, name, tag, ridge_rank, avg_score, "
+                "dd20_pct, sma, ma_stack, ma_band20, ma_spread_pct, buy_date, buy_price"
+                ") VALUES %s",
+                row_tuples,
+            )
+        if buy_tuples:
+            execute_values(
+                cur,
+                f"INSERT INTO {TABLE_LONG_MA20_BUY} ("
+                "asof_date, stock_id, name, buy_date, buy_price, dd20_pct, "
+                "sma, ma_stack, ma_band20, ma_spread_pct, ridge_rank, sort_rank, "
+                "avg_score, tag, family, note"
+                ") VALUES %s",
+                buy_tuples,
+            )
+        cur.execute(
+            f"INSERT INTO {TABLE_LONG_MA20_ASOF} ("
+            "asof_date, n_pool, n_entry, n_wait, k, family, model_asofs, note"
+            ") VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+            (
+                asof, len(rows), n_entry_tag, len(rows) - n_entry_tag, k,
+                FAMILY, Json(stamps), note,
+            ),
+        )
+    return {
+        "table_buy": TABLE_LONG_MA20_BUY,
+        "table_row": TABLE_LONG_MA20_ROW,
+        "table_asof": TABLE_LONG_MA20_ASOF,
+        "asof": str(asof),
+        "n_pool": len(rows),
+        "n_entry": n_entry_tag,
+        "n_buy": n_buy,
+        "n_skip_px": n_skip_px,
+        "fill": "asof_close",
+        "band": "sma_stack_spread_le_20",
+    }
+
+
 def processed_short_asofs(conn) -> set:
     """已跑過做空收盤帳的 asof（含當日 0 檔進場）。"""
     with db.transaction(conn) as cur:
@@ -539,6 +1062,18 @@ def _selftest() -> int:
     chk("做多池表", TABLE_LONG_ROW == "ridge_then_pb_long_row")
     chk("做多日標", TABLE_LONG_ASOF == "ridge_then_pb_long_asof")
     chk("收盤 DDL", "buy_price" in DDL_LONG_BUY and "asof_date" in DDL_LONG_ASOF)
+    chk("W10 買進表", TABLE_LONG_W10_BUY == "ridge_then_pb_long_w10_buy")
+    chk("W10 池表", TABLE_LONG_W10_ROW == "ridge_then_pb_long_w10_row")
+    chk("W10 日標", TABLE_LONG_W10_ASOF == "ridge_then_pb_long_w10_asof")
+    chk("W10 DDL", "band10" in DDL_LONG_W10_BUY and "band10" in DDL_LONG_W10_ROW)
+    chk("MA10 買進表", TABLE_LONG_MA10_BUY == "ridge_then_pb_long_ma10_buy")
+    chk("MA10 池表", TABLE_LONG_MA10_ROW == "ridge_then_pb_long_ma10_row")
+    chk("MA10 日標", TABLE_LONG_MA10_ASOF == "ridge_then_pb_long_ma10_asof")
+    chk("MA10 DDL", "ma_stack" in DDL_LONG_MA10_BUY and "sma" in DDL_LONG_MA10_ROW)
+    chk("MA20 買進表", TABLE_LONG_MA20_BUY == "ridge_then_pb_long_ma20_buy")
+    chk("MA20 池表", TABLE_LONG_MA20_ROW == "ridge_then_pb_long_ma20_row")
+    chk("MA20 日標", TABLE_LONG_MA20_ASOF == "ridge_then_pb_long_ma20_asof")
+    chk("MA20 DDL", "ma_band20" in DDL_LONG_MA20_BUY and "sma" in DDL_LONG_MA20_ROW)
     chk("做空收盤表", TABLE_SHORT_SELL == "ridge_then_pb_short_sell")
     chk("做空池表", TABLE_SHORT_ROW == "ridge_then_pb_short_row")
     chk("做空日標", TABLE_SHORT_ASOF == "ridge_then_pb_short_asof")

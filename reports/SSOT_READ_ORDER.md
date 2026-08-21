@@ -1,8 +1,8 @@
 ---
 title: Augur 精要讀序（現行 SSOT 索引）
 status: current_index
-date: 2026-08-20
-viewpoint: 2026-08-20T10:11+08:00
+date: 2026-08-21
+viewpoint: 2026-08-21T11:47+08:00
 layer: "[I]"
 role: 把 475 份 reports／1122 份 audits **合併為精要讀序**；不取代 [N]；不拼接全文
 companion_understanding: reports/augur_deep_understanding_and_opt_plan_r21_20260820.md
@@ -13,12 +13,12 @@ exec_prior_locked: reports/augur_opt_stepwise_all_problems_r19_20260819.md
 self_reported: true
 ---
 
-# Augur 精要讀序（2026-08-20）
+# Augur 精要讀序（2026-08-21）
 
 > **一句**：不要從 475 份 `reports/` 或 1122 份 `audits/` 從頭讀。先讀下面 **≤15** 條現行入口；其餘是紙本／歷史，不是開工 SSOT。  
 > **性質**：[I] 索引。治權義務仍住 `constitution/`／`specs/`／`docs/`／`CLAUDE.md`。  
 > **不是**：把所有 md 拼成一份；不是授權刪歷史帳。  
-> **LIVE**：價／fv／core＝**08-19**；出門＝**08-18** H20+H60；日曆 08-20＝假 B3。r21 執行板＝建議開工地基（貼 `OPT-R21-ALL` 後升鎖）。r19 LIVE 已過期。
+> **LIVE**：價頂＝**08-20**；日曆 08-21＝假 B3。出門仍 **H20+H60**。FinMind Sponsor 帳號頁到期 **2026-09-14**（到期前不改 L0）。r21 執行板仍為開工地基。
 
 ---
 
@@ -55,7 +55,9 @@ self_reported: true
 ## D. 碼熱路徑（改行為才讀）
 
 14. `src/augur/core/closed_horizons.py` · `src/augur/core/asof_ready.py`  
-15. 日更殼：`scripts/run_daily_asof_predict.sh` · `scripts/run_l0_hotpath_daily.sh` · `scripts/run_daily_retrain_l2_all_rank.sh` · `scripts/run_retrain_all_asof_daily.sh` · `scripts/run_asof_collect_train_verify.sh` · `scripts/check_asof_ready.py` · `scripts/train_ranker.py` · `scripts/predict_asof.py` · 本槍月尾河：`scripts/run_hist_ridge_wf.sh` · `scripts/run_hist_ridge_wf_batch.py` · `reports/augur_hist_ridge_wf_plan_r21_20260820.md`
+15. 日更殼：`scripts/run_daily_asof_predict.sh` · `scripts/run_l0_hotpath_daily.sh` · `scripts/run_daily_retrain_l2_all_rank.sh` · `scripts/run_retrain_all_asof_daily.sh` · `scripts/run_asof_collect_train_verify.sh` · `scripts/check_asof_ready.py` · `scripts/train_ranker.py` · `scripts/predict_asof.py` · 本槍月尾河：`scripts/run_hist_ridge_wf.sh` · `scripts/run_hist_ridge_wf_batch.py` · `reports/augur_hist_ridge_wf_plan_r21_20260820.md`  
+    條件帳（另表、不覆寫 v1）：`scripts/run_ridge_then_pb_long_{buy,w10,ma10,ma20}.py` · `scripts/run_ridge_then_pb_short_sell.py`  
+    FinMind free（P0 基線，未改 L0）：[`reports/augur_finmind_free_rankridge_plan_r21_20260821.md`](augur_finmind_free_rankridge_plan_r21_20260821.md) · `scripts/probe_finmind_free_rankridge.py`
 
 ---
 
@@ -103,7 +105,7 @@ self_reported: true
 ## 硬門（讀序不放寬）
 
 ```text
-no-fake-B3@08-20 | no-promote | no-SIM-apply | NF-pause | standing=H20+H60
+no-fake-B3@08-21 | no-promote | no-SIM-apply | NF-pause | standing=H20+H60
 | 分數／p_beat／p_mkt／勝率 ≠ 報酬％ | 觀察≠進場 | 做空≠可融券
 | PATH-HIT-LIFT 河閉 | 重訓≠出門 | 世界齊≠名單已寫
 | 禁默刪 constitution／specs／heartbeat 殼／GO 紙本

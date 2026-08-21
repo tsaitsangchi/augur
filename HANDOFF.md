@@ -137,7 +137,7 @@ PYTHONPATH=src python -c "from augur.core import db; print('smoke', db.ping())"
   | 通道/層 | 鍵 | 漏了會怎樣 |
   |---|---|---|
   | DB(一切之本) | `DB_HOST/PORT/NAME/USER/PASSWORD`、`DB_SUPERUSER_*`（⚠ `augur` 已為 superuser、此組現屬冗餘）;~~`DB_PREDICT_PASSWORD`~~（**2026-07-31 `augur_predict` 已退役、此鍵可移除**） | 全系統不動 |
-  | 市場資料(預測管線) | `FINMIND_TOKEN`（Sponsor 已續訂 2026-07-12;過期降 free tier,錶=`/user_info`）、`FRED_API_KEY` | sync/audit 死 |
+  | 市場資料(預測管線) | `FINMIND_TOKEN`（Sponsor 已續訂 2026-07-12；帳號頁到期 **2026-09-14** 後降 free；錶=`/user_info`，勿猜秒級）、`FRED_API_KEY` | sync/audit 死 |
   | 知識抓取①(主題/全文/abstract) | `UNPAYWALL_EMAIL`、`FRASER_API_KEY`、`SEMANTIC_SCHOLAR_API_KEY`（有則提速,無則匿名慢速）、`GITHUB_TOKEN`(如用) | OA 全文/abstract 缺源 |
   | 本機匯入②之 ERP 重抓 | `ORACLE_HOST/…/DSN`（**2026-07-31：抽取工具隨 `~/project/ttai/` 刪除而消失，此五鍵現無對應工具、留存與否待裁**） | ERP 語料**無法重抓**；語料本身安全（`owned_local` item_text **150,772** 列在庫） |
   | 服務層 | `AUGUR_ADMIN_PASSWORD`、`AUGUR_INTERNAL_SECRET` | admin/advisor RBAC 死 |

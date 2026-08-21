@@ -10,7 +10,7 @@
 """
 from __future__ import annotations
 
-from typing import Mapping, Optional
+from typing import Any, Mapping, Optional
 
 VERSION = "UP-PULL-v1"
 POLICY_STRICT = "strict"
@@ -352,6 +352,70 @@ def format_window_pass(bits: Mapping[str, Optional[bool]]) -> str:
     return " ".join(parts)
 
 
+PATH_PCT_ABS_MAX = 10.0  # 八窗路徑％絕對值上限（含）
+
+
+def path_pct_within_abs(
+    path_pct: Optional[Mapping[str, Optional[float]]],
+    limit: float = PATH_PCT_ABS_MAX,
+) -> tuple[bool, str]:
+    """八窗路徑％皆有值且 |％|≤limit。缺窗／逾限 → (False, 原因)。path_pct 單位＝簡單報酬％。"""
+    missing = []
+    over = []
+    lim = float(limit)
+    for h in H_TRACK:
+        v = None if not path_pct else path_pct.get(str(h))
+        if v is None:
+            missing.append("H%s" % h)
+            continue
+        if abs(float(v)) > lim:
+            over.append("H%s" % h)
+    if missing:
+        return False, "缺窗 " + "／".join(missing)
+    if over:
+        lim_s = str(int(lim)) if lim == int(lim) else str(lim)
+        return False, "窗幅逾±%s%%（%s）" % (lim_s, "／".join(over))
+    return True, ""
+
+
+def apply_long_w10_row(row: Mapping[str, Any], *, limit: float = PATH_PCT_ABS_MAX) -> dict:
+    """池列不剔除；過齊做多四閘且八窗 |路徑％|≤limit 才可當進場條件。"""
+    r = dict(row)
+    ok, why = path_pct_within_abs(r.get("path_pct"), limit)
+    r["band10"] = ok
+    r["band10_why"] = why
+    r["band10_limit"] = float(limit)
+    gates_ok = bool((r.get("gates") or {}).get("pass"))
+    if gates_ok and ok:
+        r["tag"] = RIDGE_THEN_PB_ENTRY
+        r["reason_zh"] = ""
+    else:
+        r["tag"] = RIDGE_THEN_PB_WAIT
+        bits = []
+        if not gates_ok:
+            bits.append(str(row.get("reason_zh") or "未過做多閘"))
+        if not ok:
+            bits.append(why)
+        r["reason_zh"] = "；".join(b for b in bits if b)
+    return r
+
+
+def apply_long_w10_payload(payload: Mapping[str, Any], *, limit: float = PATH_PCT_ABS_MAX) -> dict:
+    """池不剔除；重標做多列：四閘＋八窗 |路徑％|≤limit 才可當進場條件。"""
+    out = dict(payload)
+    pack = dict(out.get("long") or {})
+    rows = [apply_long_w10_row(r, limit=limit) for r in (pack.get("rows") or [])]
+    n_entry = sum(1 for r in rows if r.get("tag") == RIDGE_THEN_PB_ENTRY)
+    pack["rows"] = rows
+    pack["n_pool"] = len(rows)
+    pack["n_entry"] = n_entry
+    pack["n_wait"] = len(rows) - n_entry
+    out["long"] = pack
+    out["n_entry"] = n_entry
+    out["n_wait"] = pack["n_wait"]
+    return out
+
+
 WATCH_PB_VERSION = "WATCH-PB-v1"
 WATCH_PB_LONG_TAG = "等回撤，不是進場"
 WATCH_PB_SHORT_TAG = "等反彈，不是進場"
@@ -488,6 +552,32 @@ def _selftest() -> int:
     chk("進場空不是觀察空", not is_watch_short(pass_short(dn, 0.08, 0.2, 0.7)))
     chk("觀察空標等反彈", watch_short_tag() == WATCH_PB_SHORT_TAG)
     chk("WATCH 版號", WATCH_PB_VERSION == "WATCH-PB-v1")
+    tight = {str(h): 8.0 if h >= 40 else -4.0 for h in H_TRACK}
+    tight["20"] = -1.0
+    ok10, _w = path_pct_within_abs(tight, 10.0)
+    chk("八窗 |％|≤10 過", ok10)
+    wide = dict(tight)
+    wide["240"] = 181.0
+    nok, why = path_pct_within_abs(wide, 10.0)
+    chk("H240 逾 10 拒", (not nok) and "H240" in why)
+    chk("恰 ±10 含", path_pct_within_abs({str(h): 10.0 for h in H_TRACK})[0])
+    wrow = apply_long_w10_row({
+        "sid": "1533", "path_pct": wide, "gates": {"pass": True},
+        "reason_zh": "", "tag": RIDGE_THEN_PB_ENTRY,
+    })
+    chk("四閘過但窗幅大仍等回撤", wrow["tag"] == RIDGE_THEN_PB_WAIT and wrow["band10"] is False)
+    okrow = apply_long_w10_row({
+        "sid": "3624", "path_pct": tight, "gates": {"pass": True},
+        "reason_zh": "", "tag": RIDGE_THEN_PB_WAIT,
+    })
+    chk("四閘＋窗幅過才進場", okrow["tag"] == RIDGE_THEN_PB_ENTRY)
+    packed = apply_long_w10_payload({
+        "long": {"rows": [
+            {"sid": "1533", "path_pct": wide, "gates": {"pass": True}, "reason_zh": "", "tag": RIDGE_THEN_PB_ENTRY},
+            {"sid": "3624", "path_pct": tight, "gates": {"pass": True}, "reason_zh": "", "tag": RIDGE_THEN_PB_WAIT},
+        ]},
+    })
+    chk("w10 payload 只 1 檔進場", packed["n_entry"] == 1 and packed["long"]["n_wait"] == 1)
     z = log_to_pct(0.0)
     chk("pct 0 log=0", z is not None and abs(z) < 1e-12)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))

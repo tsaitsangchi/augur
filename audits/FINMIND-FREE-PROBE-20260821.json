@@ -1,0 +1,47 @@
+{
+  "asof_probe_day": "2026-08-20",
+  "price_tip": "2026-08-20",
+  "quota": {
+    "user_count": 0,
+    "api_request_limit": 6000
+  },
+  "n_data_calls": 3,
+  "aborted": false,
+  "scenario": "A",
+  "rows": [
+    {
+      "dataset": "TaiwanStockPriceAdj",
+      "day": "2026-08-20",
+      "calls": 1,
+      "by_date_ok": true,
+      "by_date_n": 2802,
+      "per_stock_ok": null,
+      "per_stock_n": null,
+      "mode": "by-date",
+      "msg": ""
+    },
+    {
+      "dataset": "TaiwanStockInstitutionalInvestorsBuySell",
+      "day": "2026-08-20",
+      "calls": 1,
+      "by_date_ok": true,
+      "by_date_n": 102023,
+      "per_stock_ok": null,
+      "per_stock_n": null,
+      "mode": "by-date",
+      "msg": ""
+    },
+    {
+      "dataset": "TaiwanStockSecuritiesLending",
+      "day": "2026-08-20",
+      "calls": 1,
+      "by_date_ok": true,
+      "by_date_n": 1171,
+      "per_stock_ok": null,
+      "per_stock_n": null,
+      "mode": "by-date",
+      "msg": ""
+    }
+  ],
+  "note": "P0 現況地圖；若 limit≠600 則尚非 free 終局。不寫 raw。≠解凍。"
+}
