@@ -2,23 +2,24 @@
 title: Augur 精要讀序（現行 SSOT 索引）
 status: current_index
 date: 2026-08-21
-viewpoint: 2026-08-21T11:47+08:00
+viewpoint: 2026-08-21T14:45+08:00
 layer: "[I]"
-role: 把 475 份 reports／1122 份 audits **合併為精要讀序**；不取代 [N]；不拼接全文
-companion_understanding: reports/augur_deep_understanding_and_opt_plan_r21_20260820.md
-companion_charter: reports/augur_project_charter_plain_zh_r21_20260820.md
+role: 把 482 份 reports／1189 份 audits **合併為精要讀序**；不取代 [N]；不拼接全文
+companion_understanding: reports/augur_deep_understanding_and_opt_plan_r22_20260821.md
+companion_charter: reports/augur_project_charter_plain_zh_r22_20260821.md
 slim_plan: reports/augur_repo_slim_opt_plan_r20_20260819.md
-exec_nav_market: reports/augur_opt_stepwise_all_problems_r21_20260820.md
-exec_prior_locked: reports/augur_opt_stepwise_all_problems_r19_20260819.md
+exec_nav_market: reports/augur_opt_stepwise_all_problems_r22_20260821.md
+exec_nav_kh: reports/augur_kh_opt_stepwise_all_problems_r22_20260821.md
+exec_prior_locked: reports/augur_opt_stepwise_all_problems_r21_20260820.md
 self_reported: true
 ---
 
 # Augur 精要讀序（2026-08-21）
 
-> **一句**：不要從 475 份 `reports/` 或 1122 份 `audits/` 從頭讀。先讀下面 **≤15** 條現行入口；其餘是紙本／歷史，不是開工 SSOT。  
+> **一句**：不要從 482 份 `reports/` 或 1189 份 `audits/` 從頭讀。先讀下面 **≤15** 條現行入口；其餘是紙本／歷史，不是開工 SSOT。  
 > **性質**：[I] 索引。治權義務仍住 `constitution/`／`specs/`／`docs/`／`CLAUDE.md`。  
 > **不是**：把所有 md 拼成一份；不是授權刪歷史帳。  
-> **LIVE**：價頂＝**08-20**；日曆 08-21＝假 B3。出門仍 **H20+H60**。FinMind Sponsor 帳號頁到期 **2026-09-14**（到期前不改 L0）。r21 執行板仍為開工地基。
+> **LIVE**：價頂／出門 tip＝**08-20** H20+H60 各 237。08-19 補帳各 285。日曆 08-21＝假 B3。FinMind Sponsor 到期 **2026-09-14**（到期前不改 L0）。**r22 執行板＝現行開工鎖**。
 
 ---
 
@@ -36,13 +37,13 @@ self_reported: true
 
 ## B. 人話＋理解＋開工（市場／知識／路徑）
 
-6. [`reports/augur_project_charter_plain_zh_r21_20260820.md`](augur_project_charter_plain_zh_r21_20260820.md) — **現行人話憲章**（不創 [N]）  
-7. [`reports/augur_deep_understanding_and_opt_plan_r21_20260820.md`](augur_deep_understanding_and_opt_plan_r21_20260820.md) — **現行理解**  
-8. [`reports/augur_opt_stepwise_all_problems_r21_20260820.md`](augur_opt_stepwise_all_problems_r21_20260820.md) — **市場／知識／路徑開工地基**（繼承 r19 硬門；LIVE 已刷新；貼 OPT-R21-ALL 後升鎖）  
+6. [`reports/augur_project_charter_plain_zh_r22_20260821.md`](augur_project_charter_plain_zh_r22_20260821.md) — **現行人話憲章**（不創 [N]）  
+7. [`reports/augur_deep_understanding_and_opt_plan_r22_20260821.md`](augur_deep_understanding_and_opt_plan_r22_20260821.md) — **現行理解**  
+8. [`reports/augur_opt_stepwise_all_problems_r22_20260821.md`](augur_opt_stepwise_all_problems_r22_20260821.md) — **現行開工鎖**（全問題板＋最佳下一步＋可先／可同步；繼承 r21／r19 硬門）  
 9. [`reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md`](augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md) — S1→S5 心跳契約  
 10. [`reports/augur_s1s5_asof_verify_best_next_r19_20260819.md`](augur_s1s5_asof_verify_best_next_r19_20260819.md) — 歷史 as-of 刀  
 11. [`reports/augur_path_timing_opt_ops_plan_r18_20260819.md`](augur_path_timing_opt_ops_plan_r18_20260819.md) — 路徑／進出操作手冊（HIT-LIFT 列＝P5 墓碑）  
-12. KH：[`reports/augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md`](augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md) ＋ [`reports/augur_kh_opt_stepwise_best_next_plan_20260813.md`](augur_kh_opt_stepwise_best_next_plan_20260813.md)
+12. KH 選刀：[`reports/augur_kh_opt_stepwise_all_problems_r22_20260821.md`](augur_kh_opt_stepwise_all_problems_r22_20260821.md)（現行）；長冊 [`augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md`](augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md)；08-13 板 LIVE 過期
 
 ---
 
@@ -66,7 +67,7 @@ self_reported: true
 | 區 | 為什麼留著 | 何時才打開 |
 |---|---|---|
 | `audits/*-GO/FIRED/EXECUTED` | 紙本；禁默刪 | 對某一槍的證據 |
-| r19 人話／執行板、r20 理解 | 繼承鏈；LIVE 過期 | 查「當時怎麼寫」；開工跟 r21 |
+| r21 人話／執行板／理解 | 繼承鏈；LIVE 過期 | 查「當時怎麼寫」；開工跟 r22 |
 | PATH-HIT-LIFT 計畫＋墓碑 | 已停的勝率河 | 對帳；**不准當續集再開** |
 | `archive/slim-t2/`（31 份舊輪報告） | 繼承鏈；T2 自 reports/ 搬來 | 查「當時怎麼寫」 |
 | `archive/slim-t3/`（14 份祖先計畫） | T3 封存；08-04 閉環 GO 仍在 reports/ | 查 08-03～08-13 優化祖先 |
@@ -76,7 +77,7 @@ self_reported: true
 | `archive/slim-t7/`（1 專章草案） | T7 封存；final 仍在 reports/ | 查 2026-07-31 未生效繕打稿 |
 | `handoff_memory/` | 跨對話記憶碎片 | Agent 檢索；人不必讀完 |
 | `GROUNDING-MAP.md` | 2026-07-17 快照 [I] | 查當時 schema 盤點；**不是** 2026-08 LIVE |
-| `HANDOFF.md` §4 | 多數過期 | 換機手續；現況以理解 r21 LIVE 為準 |
+| `HANDOFF.md` §4 | 多數過期 | 換機手續；現況以理解 r22 LIVE 為準 |
 
 ---
 

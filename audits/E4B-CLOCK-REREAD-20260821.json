@@ -1,0 +1,61 @@
+{
+  "origin": "2026-08-14",
+  "h": 60,
+  "k_required": 4,
+  "already_realized_nonoverlap": 0,
+  "next_due_date": "2026-11-13",
+  "clock": "WAIT",
+  "priceadj_tip": "2026-08-20",
+  "trading_cal_max": "2026-12-31",
+  "nonoverlap_need_days": 78.3,
+  "origin_emit_rows": {
+    "20": 286,
+    "60": 286
+  },
+  "origin_emitted_h": true,
+  "gate": {
+    "id": "egate_H_60_ridge_LO_prodset_r17",
+    "status": "approved",
+    "approved_at": "2026-08-17 08:57:49.626148+08:00"
+  },
+  "verdict": [
+    [
+      20,
+      "dead"
+    ],
+    [
+      60,
+      "thin_unestablished"
+    ]
+  ],
+  "periods": [
+    {
+      "k": 1,
+      "asof": "2026-08-14",
+      "entry": "2026-08-17",
+      "exit": "2026-11-13",
+      "emitted": true,
+      "status": "waiting_exit"
+    },
+    {
+      "k": 2,
+      "asof": "2026-11-02",
+      "entry": null,
+      "exit": null,
+      "emitted": false,
+      "status": "window_beyond_calendar"
+    }
+  ],
+  "h20_disclosure": [
+    {
+      "k": 1,
+      "asof": "2026-08-14",
+      "entry": "2026-08-17",
+      "exit": "2026-09-14",
+      "emitted": true,
+      "status": "waiting_exit"
+    }
+  ],
+  "cal_days_approx": 87,
+  "no_realized_pnl": true
+}
