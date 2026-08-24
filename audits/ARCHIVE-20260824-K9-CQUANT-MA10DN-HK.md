@@ -3,7 +3,7 @@ status: archive_checkpoint
 date: 2026-08-24
 kind: archive_checkpoint
 tag: archive-20260824-k9-cquant-ma10dn-hk
-sha: pending
+sha: "d4fb680048aacec0d9833d1b4ffcd772b7e18a63"
 remote: https://github.com/tsaitsangchi/augur
 auth: "Steward：更新全部檔案上傳到 https://github.com/tsaitsangchi/augur 並做封存點"
 prior: archive-20260821-r22-b3-kh-s0
@@ -16,7 +16,7 @@ layer: "[I]"
 date: 2026-08-24  
 kind: archive_checkpoint  
 tag: `archive-20260824-k9-cquant-ma10dn-hk`  
-sha: pending（打 tag 後回填）  
+sha: `d4fb680048aacec0d9833d1b4ffcd772b7e18a63`  
 remote: https://github.com/tsaitsangchi/augur
 
 上一封存：`archive-20260821-r22-b3-kh-s0`（commit `63a2fc9`；回填 `9da7bd3`）。
@@ -42,6 +42,6 @@ remote: https://github.com/tsaitsangchi/augur
 
 ## 驗收
 
-- `git rev-parse` 封存 commit＝pending（tag 打在此；回填為後一 commit）
+- `git rev-parse` 封存 commit＝`d4fb680048aacec0d9833d1b4ffcd772b7e18a63`（tag 打在此；本回填為後一 commit）
 - `git show archive-20260824-k9-cquant-ma10dn-hk` 可取註解
 - origin/main 已含本 commit；tag 已 push
