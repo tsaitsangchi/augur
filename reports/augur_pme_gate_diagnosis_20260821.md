@@ -1,6 +1,6 @@
 # PME 閘診斷帳 [I]（2026-08-21）
 
-* run_id=35 · as_of=2026-08-21T06:43:57Z · 唯讀 · FZ-keep／GATE-keep
+* run_id=35 · as_of=2026-08-21T15:00:02Z · 唯讀 · FZ-keep／GATE-keep
 * coverage_tallies={'missing': 14, 'mapped': 36, 'blocked_div': 1}
 * gate_cross={'FAIL×FAIL': 30, 'FAIL×PASS': 16, 'FAIL_SIGN×FAIL': 8, 'PASS×FAIL': 17, 'PASS×PASS': 5, 'SKIP×SKIP': 15}
 * unmapped_in_fv n=1

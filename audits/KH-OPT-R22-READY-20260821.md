@@ -13,4 +13,4 @@ self_reported: true
 
 Steward：本地 AI KH 閉環自我進化計畫書 → 列出所有問題最佳下一步／可先／可同步。
 
-LIVE：`--check` S0–S9 ok；S0 本窗已 drain 0；問法 `--offline` PASS。未 K9 訓、未 KH8 L3、未 K10。
+LIVE：`--check` S0–S9 ok；S0 本窗已 drain 0；問法 `--offline` PASS。K9 **plan-adopt 已閉、未訓**。未 KH8 L3、未 K10。

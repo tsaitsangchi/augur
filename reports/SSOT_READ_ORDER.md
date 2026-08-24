@@ -43,7 +43,7 @@ self_reported: true
 9. [`reports/augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md`](augur_local_ai_predict_sim_self_evolve_opt_plan_r16_20260813.md) — S1→S5 心跳契約  
 10. [`reports/augur_s1s5_asof_verify_best_next_r19_20260819.md`](augur_s1s5_asof_verify_best_next_r19_20260819.md) — 歷史 as-of 刀  
 11. [`reports/augur_path_timing_opt_ops_plan_r18_20260819.md`](augur_path_timing_opt_ops_plan_r18_20260819.md) — 路徑／進出操作手冊（HIT-LIFT 列＝P5 墓碑）  
-12. KH 選刀：[`reports/augur_kh_opt_stepwise_all_problems_r22_20260821.md`](augur_kh_opt_stepwise_all_problems_r22_20260821.md)（現行）；長冊 [`augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md`](augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md)；08-13 板 LIVE 過期
+12. KH 選刀：[`reports/augur_kh_opt_stepwise_all_problems_r22_20260821.md`](augur_kh_opt_stepwise_all_problems_r22_20260821.md)（現行）；長冊 [`augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md`](augur_local_ai_kh_loop_evolve_opt_plan_20260806_readout.md)；K9 分隊已 adopt／未訓 [`augur_k9_domain_ft_go_plan_20260813.md`](augur_k9_domain_ft_go_plan_20260813.md)；08-13 板 LIVE 過期
 
 ---
 
@@ -57,7 +57,7 @@ self_reported: true
 
 14. `src/augur/core/closed_horizons.py` · `src/augur/core/asof_ready.py`  
 15. 日更殼：`scripts/run_daily_asof_predict.sh` · `scripts/run_l0_hotpath_daily.sh` · `scripts/run_daily_retrain_l2_all_rank.sh` · `scripts/run_retrain_all_asof_daily.sh` · `scripts/run_asof_collect_train_verify.sh` · `scripts/check_asof_ready.py` · `scripts/train_ranker.py` · `scripts/predict_asof.py` · 本槍月尾河：`scripts/run_hist_ridge_wf.sh` · `scripts/run_hist_ridge_wf_batch.py` · `reports/augur_hist_ridge_wf_plan_r21_20260820.md`  
-    條件帳（另表、不覆寫 v1）：`scripts/run_ridge_then_pb_long_{buy,w10,ma10,ma20}.py` · `scripts/run_ridge_then_pb_short_sell.py`  
+    條件帳（另表、不覆寫 v1）：`scripts/run_ridge_then_pb_long_{buy,w10,ma10,ma20,ma10dn,ma10hk}.py` · `scripts/run_ridge_then_pb_short_sell.py`  
     FinMind free（P0 基線，未改 L0）：[`reports/augur_finmind_free_rankridge_plan_r21_20260821.md`](augur_finmind_free_rankridge_plan_r21_20260821.md) · `scripts/probe_finmind_free_rankridge.py`
 
 ---

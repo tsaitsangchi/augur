@@ -4,7 +4,7 @@ status: current_kh_exec_nav
 series: kh_optimization_plan
 round: r22
 date: 2026-08-21
-viewpoint: 2026-08-21T15:25+08:00
+viewpoint: 2026-08-21T15:35+08:00
 layer: "[I]"
 role: KH **長板選刀**（與市場 B3／tip **分軌**）；後續 KH 開工跟本檔
 ssot_code: KH-OPT-R22-20260821
@@ -16,12 +16,13 @@ inherits_exec:
   - reports/augur_kh_opt_stepwise_best_next_plan_20260813.md
 market_orthogonal: reports/augur_opt_stepwise_all_problems_r22_20260821.md
 k9_plan: reports/augur_k9_domain_ft_go_plan_20260813.md
+k9_adopted: audits/K9-DOMAIN-FT-PLAN-ADOPTED-20260821.md
 kh8_plan: reports/augur_kh8_discrim_plan_first_20260813.md
 s0_executed: audits/KH-S0-APPLY-EXECUTED-20260821.md
 self_reported: true
 ---
 
-# 本地 AI·KH 閉環自我進化——全問題逐步執行 r22（2026-08-21 15:25）
+# 本地 AI·KH 閉環自我進化——全問題逐步執行 r22（2026-08-21 15:35）
 
 > **一句**：S0–S9 全 ok（本窗 drain 63→0）。KH 最佳下一步＝**守穩態**，不是加深、不是他域開訓。  
 > **分軌**：不等 08-21 價、不讓 B3 指揮 KH；B3 開火時只讓 `augur_llm.lock`。  
@@ -52,7 +53,7 @@ FZ/GATE-keep(知識) | T0 no-web-dialog-approve | T2-system-ok
 
 ## §1 決策卡｜現在該做什麼？（KH）
 
-LIVE **2026-08-21 15:25+08**（親查 `--check`）：
+LIVE **2026-08-21 15:35+08**（親查 `--check`）：
 
 | 錨 | 值 |
 |---|---|
@@ -64,13 +65,14 @@ LIVE **2026-08-21 15:25+08**（親查 `--check`）：
 | admit_depth | 0:139 613 · 7:146 001 · **9:2**（預存；≠本槍抬層） |
 | 問法矩陣 `--offline` | **PASS**（本窗） |
 | KH8 disc | 仍 **ok=False**（08-13 plan-first；本窗未重跑母體） |
+| K9 分隊 | **adopted** A–E；**未訓**；S8 仍 not_auto |
 
 | 問 | 答 |
 |---|---|
-| **KH 全線最佳下一步** | **守穩態。** `--check` 保持 ∅。不開 K8／K9／K10。S0 再 FIRE 才另 `KH-S0-apply-go`。 |
+| **KH 全線最佳下一步** | **守穩態。** `--check` 保持 ∅。不開 K8／K9 訓／K10。S0 再 FIRE 才另 `KH-S0-apply-go`。 |
 | **可先（此刻、不等價）** | 問法 `--offline`（已 PASS）；可選 `kh_private_smoke` 輕抽；T0 抽樣守；compact 運維。 |
 | **可同步** | 上列彼此可並行；B3／長 LLM 開火則讓路。 |
-| **不要做** | 默 `--apply`；放寬 θ；假 depth≥8；他域 FT 無 adopt；C1 灌預測；空包當進化；PDF-C 接 ASR |
+| **不要做** | 默 `--apply`；放寬 θ；假 depth≥8；他域 FT 無單隊 GO；C1 灌預測；空包當進化；PDF-C 接 ASR |
 
 ```text
 paste（KH 選刀鎖，不是市場 B3、不是 K9 開訓）:
@@ -88,9 +90,9 @@ paste（KH 選刀鎖，不是市場 B3、不是 K9 開訓）:
 | 槍 | 要貼的句 | 做完 |
 |---|---|---|
 | S0 再破口 | `KH-S0-apply-go` | kh0_breach→0；`up_to=0` |
-| S3 lag | 點名 concordance catch-up | 游標追上；本窗 lag=0 **不開** |
-| K9 adopt | `K9-DOMAIN-FT-plan-adopt` | 分隊生效；**仍不訓** |
-| K9 首隊 FT | `K9-DOMAIN-FT-C-quant-go` | 有界；stop-at-7 |
+| S3 lag | 點名 concordance catch-up | **本窗已跑** pending=0（zh／en 游標已頂） |
+| K9 adopt | `K9-DOMAIN-FT-plan-adopt` | **本窗已閉**；分隊 A–E 生效；**仍不訓** |
+| K9 首隊 FT | `K9-DOMAIN-FT-C-quant-go` | 本窗兩槍 limit=1000×2；累計落地 91；depth=7；殘 5444 另句 |
 | KH8 下一刀 | `KH8-DISCRIM-A3-…-go` 或雙明示 L3 | 母體仍可能 ok=False |
 | K10 C1 | 另 GO；標隔離 | 禁默加權 predict |
 | 問法 LIVE 矩陣 | 明示（連庫／可碰 LLM） | FAIL→修問法，不整庫回填 |
@@ -126,7 +128,7 @@ KH10；放寬 MIN_MINORITY_MASS；宣稱 depth≥8 進化成功；日曆假進�
 | # | 對應 | 問題 | 最佳下一步 | 可先？ | 可同步？ | 狀態 |
 |---|---|---|---|---|---|---|
 | **K0** | S0／K-01 | D-Data 破口 | `--check`；FIRE 才 `KH-S0-apply-go` | check＝是 | 避開長 LLM | 🟢 0 |
-| **K1** | S3 | items 游標 lag | 追上另句 | 本窗＝否 | — | 🟢 0 |
+| **K1** | S3 | items 游標 lag | 追上另句 | 本窗＝否 | — | 🟢 0；本窗 catch-up 確認 |
 | **K2** | 階 A–C | ingest 階梯 | 守 apply 選開 | — | — | 🟢 |
 | **S1** | 新 item | 擴大入庫 | 有界 QUAL；不日曆進化 | 監看＝是 | 是 | 🟢 delta=0 |
 | **S2** | 新 eligible | 命中池擴大 | 可選 readout 抽 1 | 監看＝是 | 是 | 🟢 delta=0 |
@@ -150,7 +152,7 @@ KH10；放寬 MIN_MINORITY_MASS；宣稱 depth≥8 進化成功；日曆假進�
 | # | 對應 | 問題 | 最佳下一步 | 可先？ | 可同步？ | 狀態 |
 |---|---|---|---|---|---|---|
 | **K8** | S9／K-03 | KH8 鑑別 | **E-keep／stop-at-7**；plan-first 仍 ok=False | **否** | **否** | ❄ |
-| **K9** | S8／K-04 | 他域 FT | 先 adopt 再單隊 GO；首隊 C=`quant_finance` | **否** | **否** | 🔴 plan-only |
+| **K9** | S8／K-04 | 他域 FT | 殘 DOI 5444 另 limit；**本窗兩槍已跑** | **否** | **否** | 🟡 C 2×1000 已閉 |
 | **K10** | K-08 | C1→feat | 另 GO；禁默加權 predict | **否** | **否** | 🔴 隔離 |
 | **K11** | parse | `.msg`／rar | skip-hold | **否** | **否** | 🔴 |
 | **K12** | K-10 | KH10 | — | **否** | **否** | 禁（≠市場 H10） |
@@ -210,11 +212,12 @@ DONT: 放寬 θ；無雙明示 L3；宣稱 depth≥8
 RETRY: 新 KH8-DISCRIM-*-go
 ```
 
-### WP-K9｜plan-only
+### WP-K9｜C 有界 FT 已閉
 
 ```text
-WHEN: K9-DOMAIN-FT-plan-adopt 之後才考慮 C-quant-go
-DONT: 把本檔當開訓
+WHEN: 再灌須另貼 K9-DOMAIN-FT-C-quant-go | limit=N
+DONT: 把 skip 當綠；admit>7；全域同時灌
+DONE: 槍1落地42 kip-45；槍2落地49 kip-46；depth=7；殘 DOI 5444
 ```
 
 ---
@@ -228,7 +231,7 @@ DONT: 把本檔當開訓
 
 ## §6 何時刷新（KH r23）
 
-S0 再 FIRE；K9 adopt／FT-go；KH8 新 GO；K10 GO；問法 LIVE 矩陣失敗。  
+S0 再 FIRE；K9 FT-go；KH8 新 GO；K10 GO；問法 LIVE 矩陣失敗。  
 **不因**市場 08-21 心跳單獨改本檔（除非搶 LLM 要記一筆）。
 
 ---

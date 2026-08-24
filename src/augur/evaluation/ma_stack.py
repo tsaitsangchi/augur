@@ -1,7 +1,8 @@
 """MA-STACK-v1 做多均線排列＋均價壓縮（純函式；探針與自測共用）。
 
 🎯 這支在做什麼（白話）：還原收盤 SMA5>SMA10>SMA20>SMA40>SMA60>SMA90>SMA120>SMA240
-   （嚴格大於），且八條均價 (最高−最低)/最低 ≤limit（預設 10%，另有 20% 閘），才標可當進場條件。
+   （嚴格大於；`descending=True` 則改為嚴格小於），且八條均價 (最高−最低)/最低 ≤limit
+   （預設 10%，另有 20% 閘），才標可當進場條件。
    缺窗不編造。不是做多四閘、不是路徑％、不是可交易。
 
 執行指令矩陣（本檔=library #18；自測免 DB 免 API）:
@@ -48,8 +49,10 @@ def sma_map(
 def ma_strict_stack(
     smas: Optional[Mapping[str, Optional[float]]],
     windows: Sequence[int] = MA_WINDOWS,
+    *,
+    descending: bool = False,
 ) -> tuple[bool, str]:
-    """SMA 短窗嚴格大於下一檔長窗。缺或非嚴格 → False。"""
+    """預設：SMA 短窗嚴格大於下一檔長窗（多頭）。descending＝短窗嚴格小於長窗。缺或非嚴格 → False。"""
     prev = None
     prev_h = None
     for h in windows:
@@ -57,8 +60,12 @@ def ma_strict_stack(
         if v is None:
             return False, "缺 SMA%s" % h
         x = float(v)
-        if prev is not None and not (prev > x):
-            return False, "SMA%s≯SMA%s" % (prev_h, h)
+        if prev is not None:
+            if descending:
+                if not (prev < x):
+                    return False, "SMA%s≮SMA%s" % (prev_h, h)
+            elif not (prev > x):
+                return False, "SMA%s≯SMA%s" % (prev_h, h)
         prev, prev_h = x, h
     return True, ""
 
@@ -95,17 +102,49 @@ def ma_spread_within(
     return True, spread, ""
 
 
+def ma_hook_stack(
+    smas: Optional[Mapping[str, Optional[float]]],
+    windows: Sequence[int] = MA_WINDOWS,
+) -> tuple[bool, str]:
+    """SMA5>SMA10，且 SMA10<SMA20<…<SMA240。缺或非嚴格 → False。"""
+    wins = [int(h) for h in windows]
+    if len(wins) < 2 or wins[0] != 5 or wins[1] != 10:
+        return False, "鉤形須 SMA5、SMA10 起"
+    st_gt, why_gt = ma_strict_stack(smas, windows=wins[:2], descending=False)
+    if not st_gt:
+        return False, why_gt
+    st_lt, why_lt = ma_strict_stack(smas, windows=wins[1:], descending=True)
+    if not st_lt:
+        return False, why_lt
+    return True, ""
+
+
+def _stack_mode(*, descending: bool, mode: Optional[str]) -> str:
+    if mode in ("up", "dn", "hook"):
+        return str(mode)
+    return "dn" if descending else "up"
+
+
 def apply_ma_stack_row(
     row: Mapping[str, Any],
     closes: Optional[Sequence[Optional[float]]],
     *,
     limit: float = MA_SPREAD_MAX,
+    descending: bool = False,
+    mode: Optional[str] = None,
 ) -> dict:
-    """池列不剔除；均線多頭排列且均價差≤limit 才可當進場條件。"""
+    """池列不剔除；均線排列（多頭／倒排／5>10且10起倒排）且均價差≤limit 才可當進場條件。"""
     r = dict(row)
     smas = sma_map(closes)
     r["sma"] = {k: (None if v is None else round(float(v), 6)) for k, v in smas.items()}
-    stack_ok, stack_why = ma_strict_stack(smas)
+    md = _stack_mode(descending=descending, mode=mode)
+    r["ma_mode"] = md
+    r["ma_descending"] = md == "dn"
+    r["ma_hook"] = md == "hook"
+    if md == "hook":
+        stack_ok, stack_why = ma_hook_stack(smas)
+    else:
+        stack_ok, stack_why = ma_strict_stack(smas, descending=(md == "dn"))
     band_ok, spread, spread_why = ma_spread_within(smas, limit)
     r["ma_stack"] = stack_ok
     r["ma_band"] = band_ok
@@ -132,6 +171,8 @@ def apply_ma_stack_payload(
     closes_by_sid: Mapping[str, Sequence[Optional[float]]],
     *,
     limit: float = MA_SPREAD_MAX,
+    descending: bool = False,
+    mode: Optional[str] = None,
 ) -> dict:
     """重標做多列。closes_by_sid 缺股＝均線缺，不編造。"""
     out = dict(payload)
@@ -139,7 +180,9 @@ def apply_ma_stack_payload(
     rows = []
     for r in pack.get("rows") or []:
         sid = str(r.get("sid") or "")
-        rows.append(apply_ma_stack_row(r, closes_by_sid.get(sid), limit=limit))
+        rows.append(apply_ma_stack_row(
+            r, closes_by_sid.get(sid), limit=limit, descending=descending, mode=mode,
+        ))
     n_entry = sum(1 for r in rows if r.get("tag") == MA_STACK_ENTRY)
     pack["rows"] = rows
     pack["n_pool"] = len(rows)
@@ -179,6 +222,20 @@ def _selftest() -> int:
     dn = list(reversed(up))
     st3, why3 = ma_strict_stack(sma_map(dn))
     chk("下跌非多頭", st3 is False and "≯" in why3)
+    st_dn, _ = ma_strict_stack(sma_map(dn), descending=True)
+    bd_dn, sp_dn, _ = ma_spread_within(sma_map(dn), 0.10)
+    chk("緩跌倒排列", st_dn is True)
+    chk("緩跌均價差≤10%", bd_dn is True and sp_dn is not None and sp_dn <= 0.10)
+    st_up_dn, why_up_dn = ma_strict_stack(sma_map(up), descending=True)
+    chk("緩升非倒排", st_up_dn is False and "≮" in why_up_dn)
+    row_dn = apply_ma_stack_row({"sid": "2330"}, dn, descending=True)
+    chk("緩跌倒排可當進場", row_dn["tag"] == MA_STACK_ENTRY and row_dn["ma_descending"] is True)
+    packed_dn = apply_ma_stack_payload(
+        {"long": {"rows": [{"sid": "a"}, {"sid": "b"}]}},
+        {"a": dn, "b": up},
+        descending=True,
+    )
+    chk("倒排 payload 只 1 檔進場", packed_dn["n_entry"] == 1)
     flat = {str(h): 100.0 for h in MA_WINDOWS}
     chk("均價相等非嚴格大於", ma_strict_stack(flat)[0] is False)
     tight = {str(h): 100.0 - 0.1 * i for i, h in enumerate(MA_WINDOWS)}
@@ -214,6 +271,15 @@ def _selftest() -> int:
     )
     chk("payload 只 1 檔進場", packed["n_entry"] == 1 and packed["long"]["n_wait"] == 1)
     chk("進場文案", MA_STACK_ENTRY == "可當進場條件")
+    hook = {"5": 102.0, "10": 100.0, "20": 100.5, "40": 101.0,
+            "60": 101.5, "90": 102.0, "120": 102.5, "240": 103.0}
+    chk("鉤形 5>10 且 10 起倒排", ma_hook_stack(hook)[0] is True)
+    chk("鉤形均價差≤10%", ma_spread_within(hook, 0.10)[0] is True)
+    chk("多頭非鉤形", ma_hook_stack(tight)[0] is False)
+    dn_sma = {str(h): 100.0 + 0.1 * i for i, h in enumerate(MA_WINDOWS)}
+    chk("純倒排非鉤形", ma_hook_stack(dn_sma)[0] is False)
+    row_hk = apply_ma_stack_row({"sid": "x"}, None, mode="hook")
+    chk("鉤形缺價等閘", row_hk["tag"] == MA_STACK_WAIT and row_hk["ma_hook"] is True)
     print("自測:" + ("全通過 ✓" if ok else "有 FAIL ✗"))
     return 0 if ok else 1
 
