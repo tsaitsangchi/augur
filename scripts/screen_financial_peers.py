@@ -316,7 +316,24 @@ def fetch_mops_bs(year_roc: str, season: str, typek: str) -> dict[str, dict]:
 
 def load_json(url: str, cache_name: str):
     raw = cached_get(cache_name, url)
-    return json.loads(raw.decode("utf-8"))
+    text = raw.decode("utf-8-sig", "replace").lstrip()
+    if not text or text[0] not in "{[":
+        raise ValueError(f"{cache_name} is not JSON (head={text[:40]!r})")
+    return json.loads(text)
+
+
+def _pick_key(keys, *cands):
+    lower = {k.lower(): k for k in keys}
+    for c in cands:
+        if c in keys:
+            return c
+        if c.lower() in lower:
+            return lower[c.lower()]
+    for k in keys:
+        for c in cands:
+            if c.lower() in k.lower():
+                return k
+    return None
 
 
 def listed_profiles() -> dict[str, dict]:
@@ -353,20 +370,19 @@ def otc_profiles() -> dict[str, dict]:
     if not arr:
         print(f"WARN OTC profiles unavailable: {last}", file=sys.stderr)
         return {}
+    keys = list(arr[0].keys())
+    id_key = _pick_key(keys, "SecuritiesCompanyCode", "公司代號", "代號")
+    name_key = _pick_key(keys, "CompanyAbbreviation", "公司簡稱", "CompanyName", "公司名稱")
+    share_key = _pick_key(keys, "IssueShares", "已發行普通股數或TDR原股發行股數")
     out = {}
-    sample_keys = list(arr[0].keys())
-    id_key = next((k for k in sample_keys if "代號" in k or k.lower() in {"code", "secid", "securitiescompanycode"}), sample_keys[0])
-    name_key = next((k for k in sample_keys if "簡稱" in k or k == "公司名稱"), None)
-    ind_key = next((k for k in sample_keys if "產業" in k), None)
-    share_key = next((k for k in sample_keys if "發行" in k and "股" in k), None)
     for x in arr:
-        sid = str(x.get(id_key, "")).strip()
+        sid = str(x.get(id_key, "")).strip() if id_key else ""
         if not re.fullmatch(r"\d{4}", sid):
             continue
         out[sid] = {
             "name": x.get(name_key) if name_key else "",
-            "industry_code": str(x.get(ind_key, "")).strip() if ind_key else "",
-            "industry_name": str(x.get(ind_key, "")).strip() if ind_key else "",
+            "industry_code": str(x.get("SecuritiesIndustryCode") or x.get("產業別") or "").strip(),
+            "industry_name": "",
             "market": "TPEx",
             "shares": fnum(x.get(share_key)) if share_key else None,
         }
@@ -396,8 +412,8 @@ def industry_names_otc() -> dict[str, str]:
         if not isinstance(arr, list) or not arr:
             continue
         keys = list(arr[0].keys())
-        id_key = next((k for k in keys if "代號" in k or k.lower() in {"code", "secid"}), None)
-        ind_key = next((k for k in keys if "產業" in k), None)
+        id_key = _pick_key(keys, "SecuritiesCompanyCode", "公司代號", "代號")
+        ind_key = _pick_key(keys, "產業別", "產業")
         if not id_key:
             continue
         for x in arr:
@@ -458,55 +474,78 @@ def tpex_pe() -> dict[str, dict]:
             sid = str(x.get(id_key, "")).strip()
             if not re.fullmatch(r"\d{4}", sid):
                 continue
-            close = fnum(x.get("收盤") or x.get("收盤價") or x.get("Close") or x.get("ClosingPrice"))
-            yld = fnum(x.get("殖利率") or x.get("殖利率(%)") or x.get("DividendYield"))
+            close = fnum(
+                x.get("收盤") or x.get("收盤價") or x.get("Close") or x.get("ClosingPrice")
+            )
+            yld = fnum(
+                x.get("YieldRatio")
+                or x.get("殖利率")
+                or x.get("殖利率(%)")
+                or x.get("DividendYield")
+            )
             pe = fnum(x.get("本益比") or x.get("PE") or x.get("PriceEarningRatio"))
             pb = fnum(x.get("股價淨值比") or x.get("PBR") or x.get("PriceBookRatio"))
             out[sid] = {"close": close, "yield": yld, "pe": pe, "pb": pb}
     return out
 
 
-def twse_day_all(date_yyyymmdd: str) -> dict[str, float]:
-    url = f"https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY_ALL?response=json&date={date_yyyymmdd}"
-    j = load_json(url, f"twse_day_{date_yyyymmdd}.json")
-    fields = j.get("fields") or []
-    out = {}
-    if j.get("stat") not in (None, "OK") and not j.get("data"):
+def twse_mi_closes(date_yyyymmdd: str) -> dict[str, float]:
+    """上市個股收盤：MI_INDEX 歷史日（STOCK_DAY_ALL 的 date 參數無效）。"""
+    url = (
+        "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX"
+        f"?response=json&date={date_yyyymmdd}&type=ALLBUT0999"
+    )
+    try:
+        j = load_json(url, f"twse_mi_{date_yyyymmdd}.json")
+    except Exception as e:
+        print(f"WARN TWSE MI_INDEX {date_yyyymmdd}: {e}", file=sys.stderr)
         return {}
-    for row in j.get("data") or []:
-        rec = dict(zip(fields, row))
-        sid = str(rec.get("證券代號") or rec.get("代號") or "").strip()
-        px = fnum(rec.get("收盤價") or rec.get("收盤"))
-        if sid and px is not None:
-            out[sid] = px
+    out = {}
+    for tbl in j.get("tables") or []:
+        fields = tbl.get("fields") or []
+        if "證券代號" not in fields or "收盤價" not in fields:
+            continue
+        i_id = fields.index("證券代號")
+        i_px = fields.index("收盤價")
+        for row in tbl.get("data") or []:
+            if not isinstance(row, list) or len(row) <= max(i_id, i_px):
+                continue
+            sid = str(row[i_id]).strip()
+            px = fnum(row[i_px])
+            if sid and px is not None:
+                out[sid] = px
     return out
 
 
-def tpex_day(date_slash: str, cache_tag: str) -> dict[str, float]:
-    url = f"https://www.tpex.org.tw/www/zh-tw/afterTrading/dailyQuotes?date={date_slash}&response=json"
+def tpex_wn1430(roc_date: str, cache_tag: str) -> dict[str, float]:
+    url = (
+        "https://www.tpex.org.tw/web/stock/aftertrading/otc_quotes_no1430/"
+        f"stk_wn1430_result.php?l=zh-tw&d={roc_date}&se=EW&o=json"
+    )
     try:
-        raw = cached_get(f"tpex_day_{cache_tag}.json", url)
-        j = json.loads(raw.decode("utf-8"))
-    except Exception:
+        j = load_json(url, f"tpex_wn1430_{cache_tag}.json")
+    except Exception as e:
+        print(f"WARN TPEx wn1430 {roc_date}: {e}", file=sys.stderr)
         return {}
-    tables = j.get("tables") if isinstance(j, dict) else None
-    rows = None
-    fields = None
-    if isinstance(tables, list) and tables:
-        t0 = tables[0]
-        fields = t0.get("fields")
-        rows = t0.get("data")
-    elif isinstance(j, dict):
-        fields = j.get("fields")
-        rows = j.get("aaData") or j.get("data")
     out = {}
-    if not rows:
-        return out
-    if fields:
+    tables = j.get("tables") if isinstance(j, dict) else None
+    tbls = tables if isinstance(tables, list) else [j]
+    for t0 in tbls:
+        if not isinstance(t0, dict):
+            continue
+        fields = [str(x).strip() for x in (t0.get("fields") or [])]
+        rows = t0.get("data") or t0.get("aaData") or []
+        if not fields or not rows:
+            continue
+        i_id = next((i for i, h in enumerate(fields) if h in {"代號", "證券代號"}), None)
+        i_px = next((i for i, h in enumerate(fields) if h.replace(" ", "") in {"收盤", "收盤價"}), None)
+        if i_id is None or i_px is None:
+            continue
         for row in rows:
-            rec = dict(zip(fields, row)) if not isinstance(row, dict) else row
-            sid = str(rec.get("證券代號") or rec.get("代號") or "").strip()
-            px = fnum(rec.get("收盤") or rec.get("收盤價"))
+            if not isinstance(row, list) or len(row) <= max(i_id, i_px):
+                continue
+            sid = str(row[i_id]).strip()
+            px = fnum(row[i_px])
             if sid and px is not None:
                 out[sid] = px
     return out
@@ -703,13 +742,14 @@ def run_screen() -> dict:
 
     print("fetch year-end / latest prices …", flush=True)
     px_2021 = merge_maps(
-        twse_day_all("20211230"),
-        tpex_day("2021/12/30", "20211230"),
+        twse_mi_closes("20211230"),
+        tpex_wn1430("110/12/30", "20211230"),
     )
     px_now = merge_maps(
-        twse_day_all("20260826"),
-        tpex_day("2026/08/26", "20260826"),
+        twse_mi_closes("20260826"),
+        tpex_wn1430("115/08/26", "20260826"),
     )
+    print(f"  px2021={len(px_2021)} px_now={len(px_now)}", flush=True)
 
     annual_is: dict[str, dict] = {}
     annual_bs: dict[str, dict] = {}
@@ -722,6 +762,9 @@ def run_screen() -> dict:
         annual_is[y] = merge_maps(is_otc, is_sii)
         annual_bs[y] = merge_maps(bs_otc, bs_sii)
         print(f"  IS {len(annual_is[y])}  BS {len(annual_bs[y])}", flush=True)
+        if y == "114" and ANCHOR_ID in annual_is[y]:
+            a114 = annual_is[y][ANCHOR_ID]
+            print(f"  9930 114 rev={a114.get('revenue')} ni={a114.get('ni_parent')} eps={a114.get('eps')}", flush=True)
 
     print("fetch MOPS H1 114/115 …", flush=True)
     h1_prev = merge_maps(fetch_mops_is("114", "02", "otc"), fetch_mops_is("114", "02", "sii"))
@@ -758,7 +801,8 @@ def run_screen() -> dict:
         "twse_profile": "https://openapi.twse.com.tw/v1/opendata/t187ap03_L",
         "twse_industry": "https://openapi.twse.com.tw/v1/opendata/t187ap14_L",
         "twse_bwibbu": "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d",
-        "twse_day": "https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY_ALL",
+        "twse_mi": "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX",
+        "tpex_wn1430": "https://www.tpex.org.tw/web/stock/aftertrading/otc_quotes_no1430/stk_wn1430_result.php",
         "quote_date": (quotes.get(ANCHOR_ID) or {}).get("date"),
         "n_feature_rows": len(rows),
         "n_electronics": len(elec),
@@ -875,6 +919,7 @@ def _selftest() -> int:
     html_comma = html_is.replace("1000", "13,991,384")
     p2 = parse_mops_income(html_comma)
     chk("comma thousands", p2.get("1234", {}).get("revenue") == 13991384)
+    chk("pick SecuritiesCompanyCode", _pick_key(["Date", "SecuritiesCompanyCode"], "SecuritiesCompanyCode", "公司代號") == "SecuritiesCompanyCode")
     return 0 if ok else 1
 
 
