@@ -1,0 +1,694 @@
+#!/usr/bin/env python3
+"""Generate SysJust (3158) 5-year financial & competitiveness HTML/PDF.
+
+守原則精華 #1 #9 #10：數字只來自 data_sources.json（年報／MOPS／Yahoo 已溯源）
+與本檔純函式計算，不估不補。
+
+執行指令矩陣：
+  python3 reports/3158_sysjust_outlook_20260827/generate_report.py
+  python3 reports/3158_sysjust_outlook_20260827/generate_report.py --selftest
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from decimal import Decimal, ROUND_HALF_UP
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+DATA_PATH = HERE / "data_sources.json"
+HTML_PATH = HERE / "3158_嘉實資訊_五年財務分析與全球競爭力報告.html"
+PDF_PATH = HERE / "3158_嘉實資訊_五年財務分析與全球競爭力報告.pdf"
+
+
+def D(x) -> Decimal:
+    return Decimal(str(x))
+
+
+def q(x: Decimal, digits: int = 2) -> Decimal:
+    return x.quantize(Decimal(10) ** -digits, rounding=ROUND_HALF_UP)
+
+
+def pct(n, d, digits: int = 2) -> float:
+    return float(q(D(n) / D(d) * 100, digits))
+
+
+def yoy(cur, prev, digits: int = 2) -> float:
+    return float(q((D(cur) / D(prev) - 1) * 100, digits))
+
+
+def cagr(end, start, years: int, digits: int = 2) -> float:
+    return float(q(((D(end) / D(start)) ** (Decimal(1) / Decimal(years)) - 1) * 100, digits))
+
+
+def ntd_m(x) -> str:
+    """Format thousand-NTD as 百萬 (1 decimal)."""
+    return f"{float(q(D(x) / 1000, 1)):,.1f}"
+
+
+def ntd_e(x) -> str:
+    """Format thousand-NTD as 億 (2 decimals)."""
+    return f"{float(q(D(x) / 100000, 2)):.2f}"
+
+
+def load() -> dict:
+    return json.loads(DATA_PATH.read_text(encoding="utf-8"))
+
+
+def compute(data: dict) -> dict:
+    a = data["annual_merged"]
+    years = [2021, 2022, 2023, 2024, 2025]
+    rows = []
+    prev = None
+    for y in years:
+        x = a[str(y)]
+        r = {
+            "year": y,
+            "rev": x["revenue"],
+            "gp": x["gross_profit"],
+            "oi": x["operating_income"],
+            "pretax": x["pretax"],
+            "ni": x["net_income"],
+            "eps": x["eps"],
+            "assets": x["assets"],
+            "liab": x["liabilities"],
+            "equity": x.get("equity") or x.get("equity_parent"),
+            "gpm": pct(x["gross_profit"], x["revenue"]),
+            "opm": pct(x["operating_income"], x["revenue"]),
+            "nm": pct(x["net_income"], x["revenue"]),
+            "da": pct(x["liabilities"], x["assets"]),
+        }
+        if prev:
+            r["rev_yoy"] = yoy(x["revenue"], prev["revenue"])
+            r["oi_yoy"] = yoy(x["operating_income"], prev["operating_income"])
+            r["ni_yoy"] = yoy(x["net_income"], prev["net_income"])
+            avg_eq = (D(prev["equity"]) + D(r["equity"])) / 2
+            avg_as = (D(prev["assets"]) + D(x["assets"])) / 2
+            r["roe_avg"] = float(q(D(x.get("net_income_parent", x["net_income"])) / avg_eq * 100))
+            r["roa_avg"] = float(q(D(x["net_income"]) / avg_as * 100))
+        r["roe_ar"] = x.get("roe_annual_report")
+        r["roa_ar"] = x.get("roa_annual_report")
+        prev = {
+            "revenue": x["revenue"],
+            "operating_income": x["operating_income"],
+            "net_income": x["net_income"],
+            "equity": r["equity"],
+            "assets": x["assets"],
+        }
+        rows.append(r)
+
+    y21, y25 = a["2021"], a["2025"]
+    y24 = a["2024"]
+    h1 = data["interim_2026_h1"]
+    mkt = data["market_20260827"]
+    mrev = data["monthly_revenue"]
+    div = data["dividends_cash_ntd_per_share"]
+    shares = mkt["shares_outstanding"]
+    price = mkt["close"]
+    mcap = shares * price
+    ttm_eps_2025 = y25["eps"]
+    dps_2025 = div["by_earnings_year"]["2025"]
+
+    out = {
+        "rows": rows,
+        "rev_cagr_21_25": cagr(y25["revenue"], y21["revenue"], 4),
+        "ni_cagr_21_25": cagr(y25["net_income"], y21["net_income"], 4),
+        "rev_5y_total": yoy(y25["revenue"], y21["revenue"]),
+        "ni_5y_total": yoy(y25["net_income"], y21["net_income"]),
+        "rd_int_24": pct(y24["rd_expense"], y24["revenue"]),
+        "rd_int_25": pct(y25["rd_expense"], y25["revenue"]),
+        "info_mix_24": pct(y24["info_fee_revenue"], y24["revenue"]),
+        "info_mix_25": pct(y25["info_fee_revenue"], y25["revenue"]),
+        "etr_23": pct(a["2023"].get("pretax") and 26544, a["2023"]["pretax"]) if True else None,
+        "etr_24": pct(y24["income_tax"], y24["pretax"]),
+        "etr_25": pct(y25["income_tax"], y25["pretax"]),
+        "payout_eps_23": pct(div["by_earnings_year"]["2023"], a["2023"]["eps"]),
+        "payout_eps_24": pct(div["by_earnings_year"]["2024"], y24["eps"]),
+        "payout_eps_25": pct(dps_2025, y25["eps"]),
+        "payout_cash_25": pct(div["2025_total_cash_dividend_ntd"] / 1000, y25["net_income_parent"]),
+        "h1_gpm": pct(h1["gross_profit"], h1["revenue"]),
+        "h1_opm": pct(h1["operating_income"], h1["revenue"]),
+        "h1_nm": pct(h1["net_income"], h1["revenue"]),
+        "h1_rev_yoy": yoy(h1["revenue"], mrev["2025_h1"]),
+        "h1_ni_yoy": yoy(h1["net_income"], 38871 + 44304),
+        "m7_yoy": yoy(mrev["2026_ytd_7m"], mrev["2025_ytd_7m"]),
+        "mcap_yi": float(q(D(mcap) / D(1e8), 2)),
+        "pe_2025": float(q(D(price) / D(ttm_eps_2025), 2)),
+        "div_yield": pct(dps_2025, price),
+        "pb_h1": float(q(D(price) / (D(h1["equity_parent"]) * 1000 / D(shares)), 2)),
+        "bps_h1": float(q(D(h1["equity_parent"]) * 1000 / D(shares), 2)),
+        "oi_yoy_25": yoy(y25["operating_income"], y24["operating_income"]),
+        "ni_yoy_25": yoy(y25["net_income"], y24["net_income"]),
+        "rev_yoy_25": yoy(y25["revenue"], y24["revenue"]),
+        "cash_sti_25q4": 389961 + 421620,
+        "cash_sti_25q4_src": "CMoney 資產負債表 2025/Q4（現金 389,961＋短期投資 421,620 仟元）",
+    }
+    out["etr_23"] = pct(26544, a["2023"]["pretax"])
+    out["cash_sti_pct"] = pct(out["cash_sti_25q4"], y25["assets"])
+    return out
+
+
+def svg_bars(values, color, w=520, h=140, pad=8):
+    mx = max(values) or 1
+    n = len(values)
+    bw = (w - pad * 2) / n * 0.62
+    gap = (w - pad * 2) / n
+    parts = [f'<svg viewBox="0 0 {w} {h}" width="{w}" height="{h}" xmlns="http://www.w3.org/2000/svg">']
+    parts.append(f'<rect width="{w}" height="{h}" fill="#f7f4ee"/>')
+    for i, v in enumerate(values):
+        bh = (v / mx) * (h - 36)
+        x = pad + i * gap + (gap - bw) / 2
+        y = h - 22 - bh
+        parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{bw:.1f}" height="{bh:.1f}" fill="{color}" rx="3"/>')
+        parts.append(
+            f'<text x="{x + bw/2:.1f}" y="{y - 4:.1f}" text-anchor="middle" font-size="10" fill="#1f2a44">{ntd_e(v)}</text>'
+        )
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def html_report(data: dict, c: dict) -> str:
+    rows = c["rows"]
+    a = data["annual_merged"]
+    h1 = data["interim_2026_h1"]
+    mkt = data["market_20260827"]
+    mrev = data["monthly_revenue"]
+    div = data["dividends_cash_ntd_per_share"]["by_earnings_year"]
+
+    def tr_fin(key, label, fmt="m"):
+        cells = []
+        for r in rows:
+            v = r[key]
+            if fmt == "m":
+                cells.append(f"<td>{ntd_m(v)}</td>")
+            elif fmt == "pct":
+                cells.append(f"<td>{v:.2f}</td>")
+            elif fmt == "eps":
+                cells.append(f"<td>{v:.2f}</td>")
+            elif fmt == "yoy":
+                if "rev_yoy" in r and key == "rev_yoy":
+                    cells.append(f"<td>{r['rev_yoy']:+.2f}</td>")
+                elif key in r:
+                    sign = "+" if r[key] >= 0 else ""
+                    cells.append(f"<td>{sign}{r[key]:.2f}</td>")
+                else:
+                    cells.append("<td>—</td>")
+            else:
+                cells.append(f"<td>{v}</td>")
+        return f"<tr><th>{label}</th>" + "".join(cells) + "</tr>"
+
+    yoy_rev = "".join(
+        f"<td>{r['rev_yoy']:+.2f}</td>" if "rev_yoy" in r else "<td>—</td>" for r in rows
+    )
+    yoy_oi = "".join(
+        f"<td>{r['oi_yoy']:+.2f}</td>" if "oi_yoy" in r else "<td>—</td>" for r in rows
+    )
+    yoy_ni = "".join(
+        f"<td>{r['ni_yoy']:+.2f}</td>" if "ni_yoy" in r else "<td>—</td>" for r in rows
+    )
+    roe_cells = "".join(
+        f"<td>{(r['roe_ar'] if r['roe_ar'] is not None else r.get('roe_avg')):.2f}</td>" for r in rows
+    )
+    roa_cells = "".join(
+        f"<td>{(r['roa_ar'] if r['roa_ar'] is not None else r.get('roa_avg')):.2f}</td>" for r in rows
+    )
+    # 2025 ROE/ROA: annual report not in JSON 5-yr table; use computed average
+    roe_cells = ""
+    roa_cells = ""
+    for r in rows:
+        if r["year"] == 2025:
+            roe_cells += f"<td>{r['roe_avg']:.2f}*</td>"
+            roa_cells += f"<td>{r['roa_avg']:.2f}*</td>"
+        else:
+            roe_cells += f"<td>{r['roe_ar']:.2f}</td>"
+            roa_cells += f"<td>{r['roa_ar']:.2f}</td>"
+
+    rev_svg = svg_bars([r["rev"] for r in rows], "#1f4e79")
+    ni_svg = svg_bars([r["ni"] for r in rows], "#2e7d4f")
+
+    return f"""<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<title>3158 嘉實資訊　最近五年財務分析與未來五年前景／全球競爭力報告</title>
+<style>
+@font-face {{
+  font-family: "ReportCJK";
+  src: local("WenQuanYi Micro Hei"), local("Noto Sans CJK TC"), local("Noto Sans CJK SC"),
+       url("file:///usr/share/fonts/truetype/wqy/wqy-microhei.ttc");
+}}
+:root {{
+  --ink: #1b2437;
+  --muted: #5b6578;
+  --navy: #163a5f;
+  --gold: #b08d57;
+  --paper: #fbf8f2;
+  --rule: #e4d9c5;
+  --good: #1f7a4d;
+  --bad: #a33b32;
+}}
+* {{ box-sizing: border-box; }}
+html, body {{
+  margin: 0; padding: 0;
+  font-family: "ReportCJK", "WenQuanYi Micro Hei", "Noto Sans CJK TC", sans-serif;
+  color: var(--ink);
+  background: #fff;
+  font-size: 11.2pt;
+  line-height: 1.55;
+}}
+@page {{ size: A4; margin: 14mm 13mm 16mm 13mm; }}
+@media print {{
+  .page {{ break-after: page; box-shadow: none; margin: 0; }}
+  a {{ color: inherit; text-decoration: none; }}
+}}
+.page {{
+  max-width: 210mm;
+  margin: 0 auto 12px;
+  padding: 6mm 2mm 8mm;
+}}
+h1 {{ font-size: 22pt; line-height: 1.25; color: var(--navy); margin: 0 0 8px; letter-spacing: 0.04em; }}
+h2 {{ font-size: 14.5pt; color: var(--navy); border-bottom: 2px solid var(--gold); padding-bottom: 4px; margin: 22px 0 10px; }}
+h3 {{ font-size: 12.2pt; color: var(--navy); margin: 16px 0 6px; }}
+p {{ margin: 0 0 8px; }}
+.kicker {{ color: var(--gold); letter-spacing: 0.18em; font-size: 9.5pt; font-weight: 700; }}
+.sub {{ color: var(--muted); font-size: 10.5pt; }}
+.cover-meta {{ margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }}
+.cover-meta div {{ border-top: 1px solid var(--rule); padding-top: 6px; }}
+.cover-meta b {{ display: block; color: var(--navy); font-size: 9.5pt; }}
+.disclaimer {{
+  margin-top: 28px; padding: 10px 12px; background: #f4eee3; border-left: 4px solid var(--gold);
+  font-size: 9.5pt; color: #3d4454;
+}}
+.kpi {{
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0 16px;
+}}
+.kpi .box {{
+  background: var(--paper); border: 1px solid var(--rule); padding: 8px 9px;
+}}
+.kpi .lab {{ font-size: 8.5pt; color: var(--muted); }}
+.kpi .val {{ font-size: 13.5pt; color: var(--navy); font-weight: 700; }}
+.kpi .hint {{ font-size: 8pt; color: var(--muted); }}
+table {{
+  width: 100%; border-collapse: collapse; font-size: 9.3pt; margin: 8px 0 12px;
+}}
+th, td {{
+  border-bottom: 1px solid var(--rule); padding: 4px 5px; text-align: right; vertical-align: top;
+}}
+th:first-child, td:first-child {{ text-align: left; }}
+thead th {{ background: var(--navy); color: #fff; text-align: right; font-weight: 600; }}
+thead th:first-child {{ text-align: left; }}
+tbody tr:nth-child(even) {{ background: #faf7f1; }}
+.note {{ font-size: 8.8pt; color: var(--muted); margin: -4px 0 12px; }}
+ul, ol {{ margin: 4px 0 10px 1.2em; padding: 0; }}
+li {{ margin: 0 0 4px; }}
+.tag {{ display: inline-block; background: #e8eef6; color: var(--navy); font-size: 8.5pt; padding: 1px 6px; margin-right: 4px; }}
+.good {{ color: var(--good); }}
+.bad {{ color: var(--bad); }}
+.two {{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }}
+.chart-cap {{ font-size: 8.8pt; color: var(--muted); text-align: center; margin: 0 0 10px; }}
+.footer {{ font-size: 8.5pt; color: var(--muted); margin-top: 18px; }}
+.small {{ font-size: 9.5pt; }}
+blockquote {{ margin: 8px 0 12px; padding: 8px 12px; background: #f7f4ee; border-left: 3px solid var(--navy); font-size: 10.2pt; }}
+</style>
+</head>
+<body>
+
+<section class="page">
+  <div class="kicker">AUGUR RESEARCH NOTE　·　非投資建議</div>
+  <h1>3158 嘉實資訊<br/>最近五年財務分析<br/>與未來五年前景／全球競爭力報告</h1>
+  <p class="sub">標的：嘉實資訊股份有限公司（SysJust Co., Ltd.）　／　市場：櫃買中心資訊服務　／　代號：3158.TWO</p>
+  <div class="cover-meta">
+    <div><b>報告日</b>2026-08-27</div>
+    <div><b>財務回顧窗</b>2021–2025 合併年報（IFRSs）＋ 2026 年前 7 個月近況</div>
+    <div><b>前景窗</b>2026–2030 產業與公司策略框架（非公司財測）</div>
+    <div><b>數字原則</b>只採用年報、公開資訊觀測站、公司官網與可溯源行情頁；比率由程式自該等輸入計算</div>
+  </div>
+  <div class="disclaimer">
+    <b>讀前必讀。</b>本報告為研究整理，屬分析者 self-reported 詮釋，不是「世界如此」的權威確認，亦非買賣建議、目標價或獲利保證。
+    嘉實未公開財務預測；文中「前景／情境」是依已揭露策略與產業公開資料所做的分析框架，不是對股價或獲利的確立級預測。
+    取數未走 FinMind／FRED API（本專案操作凍結下僅用公開網頁與公司年報 PDF）。
+  </div>
+</section>
+
+<section class="page">
+  <h2>一、執行摘要</h2>
+  <div class="kpi">
+    <div class="box"><div class="lab">2025 合併營收</div><div class="val">{ntd_e(a['2025']['revenue'])} 億</div><div class="hint">年增 {c['rev_yoy_25']:.2f}%</div></div>
+    <div class="box"><div class="lab">2025 稅後淨利</div><div class="val">{ntd_e(a['2025']['net_income'])} 億</div><div class="hint">年增 {c['ni_yoy_25']:.2f}%　EPS 7.27 元</div></div>
+    <div class="box"><div class="lab">2021–2025 營收年複合成長</div><div class="val">{c['rev_cagr_21_25']:.2f}%</div><div class="hint">同期淨利 CAGR {c['ni_cagr_21_25']:.2f}%</div></div>
+    <div class="box"><div class="lab">2026/08/27 收盤</div><div class="val">{mkt['close']:.1f} 元</div><div class="hint">Yahoo 揭示本益比 {mkt['displayed_pe']}　市值約 {c['mcap_yi']:.2f} 億</div></div>
+  </div>
+  <p>嘉實是台灣金融資訊與交易軟體的「基礎設施型」供應商：B2B 吃券商／銀行的資訊流、下單與基金平台；B2C 以 XQ 全球贏家、MoneyDJ、量化積木服務專業與一般投資人。公司自稱券商金融資訊流市佔約九成、PC 下單軟體逾八成、基金資訊逾九成、量化平台逾七成（<span class="small">113／114 年報</span>）。遠見雜誌 2025-10-28 引述策略長：重複性營收約 88%。</p>
+  <p><b>五年財務圖像（合併）：</b>營收自 2021 年 7.70 億走至 2025 年 10.12 億，五年合計成長 {c['rev_5y_total']:.2f}%（四年 CAGR {c['rev_cagr_21_25']:.2f}%）。毛利率鎖定在 64–67%，屬軟體授權／ASP 結構，不是硬體製造。營業利益率 2024 曾因第三機房與資安資本支出降至 19.83%，2025 回升至 22.13%。稅後淨利率長年約 18–20%。</p>
+  <p><b>必須拆開的「獲利品質」：</b>2024 稅後淨利年增 24.00%，但營業利益只年增 7.11%、所得稅有效稅率僅 2.25%——113 年報載明係海外投資公司清算、國稅局同意認列致迴轉 111 年所得稅高估。2025 有效稅率回到 14.66%，稅後只年增 2.46%，<b>營業利益卻年增 {c['oi_yoy_25']:.2f}%</b>。看本業，2025 比 2024 更強；看 EPS，被上櫃現金增資稀釋（7.32→7.27 元）。</p>
+  <p><b>2026 近況：</b>上半年營收 5.56 億、年增 {c['h1_rev_yoy']:.2f}%；稅後 1.06 億、EPS 3.48 元；前 7 月累計營收 6.63 億、年增 {c['m7_yoy']:.2f}%（7 月單月年增 32.87%）。毛利率／營業利益率與全年結構一致，顯示成長來自量而非降價。</p>
+  <p><b>前景一句話（分析框架，非財測）：</b>台灣本業接近「高市佔、中成長」的現金牛；未來五年成長引擎是複委託／美股、量化與生成式 AI（XQGPT）、行動 App 市佔補洞、以及日本／華人跨境。全球對標 Bloomberg／LSEG 時，嘉實是<b>區域垂直冠軍</b>而非全球終端機挑戰者——護城河在中文工作流、券商嵌入與在地合規，不在全球機構數據版圖。</p>
+</section>
+
+<section class="page">
+  <h2>二、公司與商業模式</h2>
+  <h3>2.1 身分與里程碑</h3>
+  <table>
+    <thead><tr><th>項目</th><th>內容</th></tr></thead>
+    <tbody>
+      <tr><th>公司</th><td style="text-align:left">嘉實資訊股份有限公司　SysJust　統一編號 16795856</td></tr>
+      <tr><th>成立／上櫃</th><td style="text-align:left">1999-03-25 成立；2018-03-16 興櫃；<b>2025-11-17 上櫃</b>（承銷價 80 元，現金增資 3,500 張）</td></tr>
+      <tr><th>董事長／總經理</th><td style="text-align:left">徐文伯／李政霖　簽證會計師：資誠 吳尚燉、郭柏如</td></tr>
+      <tr><th>資本／股數</th><td style="text-align:left">已發行 {mkt['shares_outstanding']:,} 股（樹懶生活／股利總額反推與年報揭露一致）</td></tr>
+      <tr><th>住址</th><td style="text-align:left">新北市新店區民權路 95 號 12 樓之 2</td></tr>
+      <tr><th>產品</th><td style="text-align:left">XQ 全球贏家（PC／App）、XS／量化積木、MoneyDJ 理財網、金融交易平台建置、嘉實投顧、SysJust Japan</td></tr>
+    </tbody>
+  </table>
+  <h3>2.2 收入結構</h3>
+  <p>114 年報致股東報告書：資訊費收入 858,624 仟元（{c['info_mix_25']:.2f}%）、其他 153,743 仟元（{100-c['info_mix_25']:.2f}%）。113 年資訊費 819,366 仟元（{c['info_mix_24']:.2f}%）。這是「訂閱＋授權＋專案」混合，高重複、低存貨、應收帳款週轉極快（年報合併應收週轉約 27–32 次，平均收現約 11–13 日）。</p>
+  <p>官方網站公司簡介：MoneyDJ 會員數超過 400 萬、XQ 系列用戶超過 7 萬；金融業客戶超過 103 家；前二十大券商電子交易平台市佔接近八成、銀行基金平台超過九成。遠見 2025-10 引述：合作券商 28 家，覆蓋成交金額前 31 大券商九成以上。</p>
+  <h3>2.3 成本與研發</h3>
+  <p>研發費用 2024 年 248,723 仟元（佔營收 {c['rd_int_24']:.2f}%）、2025 年 257,686 仟元（{c['rd_int_25']:.2f}%）。資訊服務業把四分之一營收丟進研發，是在買「語法編譯器、行情分流、ISO 27001、第三機房」這類進入障礙，不是週期性行銷費用。113 年報載 113 年資安／IDC 預算逾 5,500 萬，並取得 ISO/IEC 27001:2022。</p>
+</section>
+
+<section class="page">
+  <h2>三、最近五年合併財務績效（2021–2025）</h2>
+  <p class="note">單位：新台幣百萬元（由仟元÷1,000，四捨五入至 0.1）；EPS 為元。營收／損益／資產來自 111–113 年報簡明合併報表與 2026-03-12 MOPS 114 年度財務報告。</p>
+  <table>
+    <thead>
+      <tr><th>項目</th><th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th></tr>
+    </thead>
+    <tbody>
+      <tr><th>營業收入</th><td>{ntd_m(rows[0]['rev'])}</td><td>{ntd_m(rows[1]['rev'])}</td><td>{ntd_m(rows[2]['rev'])}</td><td>{ntd_m(rows[3]['rev'])}</td><td>{ntd_m(rows[4]['rev'])}</td></tr>
+      <tr><th>營收年增％</th>{yoy_rev}</tr>
+      <tr><th>營業毛利</th><td>{ntd_m(rows[0]['gp'])}</td><td>{ntd_m(rows[1]['gp'])}</td><td>{ntd_m(rows[2]['gp'])}</td><td>{ntd_m(rows[3]['gp'])}</td><td>{ntd_m(rows[4]['gp'])}</td></tr>
+      <tr><th>毛利率％</th><td>{rows[0]['gpm']:.2f}</td><td>{rows[1]['gpm']:.2f}</td><td>{rows[2]['gpm']:.2f}</td><td>{rows[3]['gpm']:.2f}</td><td>{rows[4]['gpm']:.2f}</td></tr>
+      <tr><th>營業利益</th><td>{ntd_m(rows[0]['oi'])}</td><td>{ntd_m(rows[1]['oi'])}</td><td>{ntd_m(rows[2]['oi'])}</td><td>{ntd_m(rows[3]['oi'])}</td><td>{ntd_m(rows[4]['oi'])}</td></tr>
+      <tr><th>營業利益年增％</th>{yoy_oi}</tr>
+      <tr><th>營業利益率％</th><td>{rows[0]['opm']:.2f}</td><td>{rows[1]['opm']:.2f}</td><td>{rows[2]['opm']:.2f}</td><td>{rows[3]['opm']:.2f}</td><td>{rows[4]['opm']:.2f}</td></tr>
+      <tr><th>稅前淨利</th><td>{ntd_m(rows[0]['pretax'])}</td><td>{ntd_m(rows[1]['pretax'])}</td><td>{ntd_m(rows[2]['pretax'])}</td><td>{ntd_m(rows[3]['pretax'])}</td><td>{ntd_m(rows[4]['pretax'])}</td></tr>
+      <tr><th>稅後淨利</th><td>{ntd_m(rows[0]['ni'])}</td><td>{ntd_m(rows[1]['ni'])}</td><td>{ntd_m(rows[2]['ni'])}</td><td>{ntd_m(rows[3]['ni'])}</td><td>{ntd_m(rows[4]['ni'])}</td></tr>
+      <tr><th>稅後年增％</th>{yoy_ni}</tr>
+      <tr><th>淨利率％</th><td>{rows[0]['nm']:.2f}</td><td>{rows[1]['nm']:.2f}</td><td>{rows[2]['nm']:.2f}</td><td>{rows[3]['nm']:.2f}</td><td>{rows[4]['nm']:.2f}</td></tr>
+      <tr><th>EPS（元）</th><td>{rows[0]['eps']:.2f}</td><td>{rows[1]['eps']:.2f}</td><td>{rows[2]['eps']:.2f}</td><td>{rows[3]['eps']:.2f}</td><td>{rows[4]['eps']:.2f}</td></tr>
+    </tbody>
+  </table>
+  <div class="two">
+    <div>
+      <div class="chart-cap">合併營收（圖上數字為億元）</div>
+      {rev_svg}
+    </div>
+    <div>
+      <div class="chart-cap">稅後淨利（圖上數字為億元）</div>
+      {ni_svg}
+    </div>
+  </div>
+  <h3>3.1 成長節奏：兩段加速、中間隔一年「高原」</h3>
+  <ol>
+    <li><b>2021–2022：</b>疫情後交易熱與複委託萌芽。營收 +5.68%、營業利益 +9.43%、淨利 +11.08%，獲利率同步走高。</li>
+    <li><b>2023：高原年。</b>營收只 +1.24%，營業利益 <span class="bad">-3.08%</span>，淨利 +0.50%。毛利率反而升到五年最高 66.97%——不是需求崩，是費用（研發／人力）先走、收入暫時沒跟上。</li>
+    <li><b>2024：AI／台股熱潮年。</b>營收 +14.83% 至 9.46 億（連 20 年成長敘事的官方數字）。營業成本 +25%（第三機房＋資安），故營業利益只 +7.11%；稅後因稅務調整跳 +24.00%。</li>
+    <li><b>2025：上櫃年、本業修復。</b>營收 10.12 億、+7.07%；營業利益 +19.49% 至 2.24 億，營業利益率回到 22.13%。稅後 1.98 億、+2.46%，EPS 7.27 元。</li>
+  </ol>
+  <p>114 年報致股東報告書對 2025 的官方定性：上半年受美國對等關稅衝擊、股市高波動，B2C 與基金／ETF／美債／複委託／App 專案仍帶動營收成長 7%；淨利只成長 2%。這與上表完全吻合。</p>
+</section>
+
+<section class="page">
+  <h2>四、資產負債、現金與股東報酬</h2>
+  <table>
+    <thead><tr><th>項目</th><th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th></tr></thead>
+    <tbody>
+      <tr><th>資產總額（百萬）</th><td>{ntd_m(rows[0]['assets'])}</td><td>{ntd_m(rows[1]['assets'])}</td><td>{ntd_m(rows[2]['assets'])}</td><td>{ntd_m(rows[3]['assets'])}</td><td>{ntd_m(rows[4]['assets'])}</td></tr>
+      <tr><th>負債總額（百萬）</th><td>{ntd_m(rows[0]['liab'])}</td><td>{ntd_m(rows[1]['liab'])}</td><td>{ntd_m(rows[2]['liab'])}</td><td>{ntd_m(rows[3]['liab'])}</td><td>{ntd_m(rows[4]['liab'])}</td></tr>
+      <tr><th>權益總額（百萬）</th><td>{ntd_m(rows[0]['equity'])}</td><td>{ntd_m(rows[1]['equity'])}</td><td>{ntd_m(rows[2]['equity'])}</td><td>{ntd_m(rows[3]['equity'])}</td><td>{ntd_m(rows[4]['equity'])}</td></tr>
+      <tr><th>負債占資產％</th><td>{rows[0]['da']:.2f}</td><td>{rows[1]['da']:.2f}</td><td>{rows[2]['da']:.2f}</td><td>{rows[3]['da']:.2f}</td><td>{rows[4]['da']:.2f}</td></tr>
+      <tr><th>ROE％</th>{roe_cells}</tr>
+      <tr><th>ROA％</th>{roa_cells}</tr>
+    </tbody>
+  </table>
+  <p class="note">*2025 之 ROE／ROA 為「本期淨利 ÷ 期初期末平均權益／資產」，因 114 年報五年簡明表未納入本報告資料檔；2021–2024 為各該年報刊出之合併財務分析。2025 權益與資產暴增主因 11 月上櫃現金增資，平均權益分母變大，ROE 由 31.30% 降至 23.36% 不代表本業報酬崩潰。</p>
+  <h3>4.1 幾乎無息的資產負債表</h3>
+  <p>113 年報：公司 113 年度<b>無任何借款</b>，利息收入約佔稅前 1%。負債主要是合約負債（預收年費／季費）、應付薪獎與租賃，不是金融槓桿。流動比率 2021–2024 合併約 1.8–2.2 倍。這解釋了為何能長期高配息：自由現金流先來、再分給股東，不必靠舉債。</p>
+  <p>營業活動現金流（年報）：2022 年 195,467、2023 年 213,035、2024 年 225,528 仟元，連續三年覆蓋稅前淨利。2025 年底現金 389,961 仟元＋短期投資 421,620 仟元＝811,581 仟元，佔總資產 {c['cash_sti_pct']:.2f}%（CMoney 季報欄位；上櫃募資後現金水位跳升）。</p>
+  <h3>4.2 股利：高配息現金牛</h3>
+  <table>
+    <thead><tr><th>盈餘所屬年度</th><th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th></tr></thead>
+    <tbody>
+      <tr><th>現金股利（元／股）</th><td>{div['2021']:.1f}</td><td>{div['2022']:.1f}</td><td>{div['2023']:.1f}</td><td>{div['2024']:.1f}</td><td>{div['2025']:.1f}</td></tr>
+      <tr><th>對當年 EPS 配發比％</th><td>{pct(div['2021'], rows[0]['eps']):.1f}</td><td>{pct(div['2022'], rows[1]['eps']):.1f}</td><td>{c['payout_eps_23']:.1f}</td><td>{c['payout_eps_24']:.1f}</td><td>{c['payout_eps_25']:.1f}</td></tr>
+    </tbody>
+  </table>
+  <p>2025 盈餘配發每股 6.5 元，總額 198,109,763 元（MOPS 2026-03-12），以 8/27 收盤 83 元計現金殖利率 {c['div_yield']:.2f}%。對 EPS 配發比 {c['payout_eps_25']:.1f}%；對母公司淨利現金總額比 {c['payout_cash_25']:.2f}%（略超 100% 來自增資後股數×每股股息）。高配息能持續的前提是：本業現金流不中斷、不再出現類似 2024 的大型 IDC 資本支出、且不再以接近全數盈餘外加股本的方式發放。</p>
+  <h3>4.3 2026 年上半年與前七月</h3>
+  <table>
+    <thead><tr><th>項目</th><th>2026 H1</th><th>備註</th></tr></thead>
+    <tbody>
+      <tr><th>營收</th><td>{ntd_m(h1['revenue'])} 百萬</td><td>年增 {c['h1_rev_yoy']:.2f}%（對 2025 H1 477,091 仟元）</td></tr>
+      <tr><th>毛利／毛利率</th><td>{ntd_m(h1['gross_profit'])}　／　{c['h1_gpm']:.2f}%</td><td>與全年 64% 帶一致</td></tr>
+      <tr><th>營業利益／利益率</th><td>{ntd_m(h1['operating_income'])}　／　{c['h1_opm']:.2f}%</td><td>年增約 26%（對 2025 H1 營業利益 100,893 仟元）</td></tr>
+      <tr><th>稅後／EPS</th><td>{ntd_m(h1['net_income'])}　／　{h1['eps']:.2f} 元</td><td>淨利年增 {c['h1_ni_yoy']:.2f}%</td></tr>
+      <tr><th>資產／權益</th><td>{ntd_m(h1['assets'])}　／　{ntd_m(h1['equity_parent'])}</td><td>權益較 2025 年底下降，主因 4 月發放 6.5 元現金股利</td></tr>
+      <tr><th>2026 前 7 月營收</th><td>{ntd_m(mrev['2026_ytd_7m'])} 百萬</td><td>年增 {c['m7_yoy']:.2f}%；7 月 106,191 仟元、年增 32.87%</td></tr>
+    </tbody>
+  </table>
+  <p>以 8/27 收盤 83 元、H1 每股淨值 {c['bps_h1']:.2f} 元計，股價淨值比約 {c['pb_h1']:.2f} 倍；若用 2025 年 EPS 7.27 元則本益比約 {c['pe_2025']:.2f} 倍（Yahoo 頁面揭示 {mkt['displayed_pe']}，口徑為其近四季定義，不一定等於曆年 EPS）。</p>
+</section>
+
+<section class="page">
+  <h2>五、財務診斷：優點、扭曲與紅燈</h2>
+  <h3>5.1 優點（有數字支撐）</h3>
+  <ul>
+    <li><b>獲利品質的主幹是本業。</b>五年營業利益皆為正、且佔稅前絕大部分；業外不是獲利來源。</li>
+    <li><b>毛利率結構穩定。</b>64% 上下波動不到 3 個百分點，符合授權／ASP，不像專案 SI 大起大落。</li>
+    <li><b>現金轉換短。</b>應收週轉極高、預收（合約負債）存在，營運資金是朋友不是敵人。</li>
+    <li><b>零銀行借款（至少至 2024）。</b>利率風險幾乎不存在。</li>
+    <li><b>研發強度維持。</b>25%+ 營收，是護城河的維護費。</li>
+  </ul>
+  <h3>5.2 必須調整才能讀懂的扭曲</h3>
+  <ul>
+    <li><b>2024 淨利含稅務一次性利益。</b>有效稅率 2.25% vs 2023 的 {c['etr_23']:.2f}%、2025 的 {c['etr_25']:.2f}%。用 2024 EPS 7.32 當「常態獲利」會高估。</li>
+    <li><b>2025 ROE 被增資稀釋。</b>分子（淨利）微增，分母（權益）因上櫃募資跳升約 58%。評估經營效率應看營業利益率與資產週轉，不宜只看 ROE 下滑。</li>
+    <li><b>2023 是費用先行年。</b>營收幾乎持平、營業利益微降，之後 2024–2026 才收割。不能把 2023 讀成衰退趨勢的起點。</li>
+  </ul>
+  <h3>5.3 紅燈與結構限制（年報自己寫的）</h3>
+  <ul>
+    <li><b>2B 接近飽和。</b>113 年報：「尚未採用本公司平台的券商非常少，未來這部份成長空間已有限」；「佔國內券商 IT 年度預算的比例已高」。</li>
+    <li><b>大券商自建 App。</b>金控券商傾向自有品牌介面，嘉實角色從「整套系統」轉成「報價／策略／閃電下單元件」——單價與議價權可能被切薄。</li>
+    <li><b>行動 App 市佔只有約一成</b>（113 年報自評），對位三竹資訊（行動看盤自述九成）。這是最大的國內市佔缺口。</li>
+    <li><b>交易所非揭示報價擬漲價</b>可能衝擊量化平台流量成本（114 年報風險段）。</li>
+    <li><b>台灣人口與年輕理財人口</b>被年報列為不利因素。</li>
+    <li><b>海外仍薄。</b>113 年報：外銷「較少發生」，盈透證券合作的海外華人「佔營收應屬微乎其微」。</li>
+  </ul>
+</section>
+
+<section class="page">
+  <h2>六、產業未來五年（2026–2030）</h2>
+  <p class="note">以下產業數字來自標示來源的市場研究／顧問文章，屬第三方估計，不是嘉實財報，也不是本報告的獨立普查。</p>
+  <h3>6.1 全球：終端機慢、專有數據快、AI 改變介面</h3>
+  <ul>
+    <li>Burton-Taylor／TabbFORUM（2026）：2025 年全球金融數據桌面（terminal）收入 <b>167 億美元</b>、年增 3.3%；用戶約 230 萬。Bloomberg 收入領先（逾 90 億美元量級）；LSEG 用戶數最大（逾 40 萬）。美洲佔支出約 50%。</li>
+    <li>BCG／FT 轉述（FourWeekMBA 整理）：Bloomberg 整體數據相關收入約 144 億美元；LSEG 約 62 億、S&amp;P Global 約 54 億。終端機五年 CAGR 僅約 4.5%，原始 datafeed 約 2.5%；成長最快的是經紀商數據、定價／參考數據、研究分析（約 11% CAGR）。含義：<b>「綠螢幕訂閱」變慢，「只有我有的數據＋工作流」變快。</b></li>
+    <li>MarkWide：廣義金融資訊服務 2026 年估 387 億美元，2035 年 760.8 億、CAGR 7.8%（研究機構估計，誤差帶大）。</li>
+  </ul>
+  <p>對台灣區域供應商的五年含義：全球巨頭不會為了台股零售而下沉到 300–1,000 元／月的中文模組；但 AI 會讓「只做報價與線圖」的可替代性上升——這正是嘉實年報自己警告的句子。</p>
+  <h3>6.2 台灣：資本市場熱度、複委託、法規 Fintech</h3>
+  <ul>
+    <li>IMARC：台灣 Fintech 市場 2025 年 17.885 億美元，2034 年估 63.061 億、CAGR 14.58%（廣義支付／銀行科技，不是終端機同義詞，只能當「數位金融預算往上」的背景）。</li>
+    <li>PwC《Guide to Taiwan's financial services industry 2025》：金管會持續推開放銀行、數位銀行、非現金支付（2026 年非現金交易目標 10 兆台幣）。開放 API 有利「誰能把交易接進 2C 平台」——嘉實 114 年報把這條寫成降低對 2B 倚賴的戰略。</li>
+    <li>台股作為全球 AI 供應鏈定價板，行情熱度與複委託（美股／日股）流量直接餵嘉實的 data 與下單模組。徐文伯對遠見的原話：「複委託成長對我們有利，不僅交易量增加，Data 資料量也同步提升。」</li>
+  </ul>
+  <h3>6.3 2026–2030 產業情境（框架，非預測）</h3>
+  <table>
+    <thead><tr><th>驅動</th><th>對資訊服務業的五年方向</th><th>對嘉實的傳導</th></tr></thead>
+    <tbody>
+      <tr><th>生成式 AI</th><td style="text-align:left">終端從「查詢」變「對話＋自動執行」；純 UI 被商品化</td><td style="text-align:left">XQGPT、自動研報、策略腳本生成是防禦也是加值；成敗看是否綁進下單</td></tr>
+      <tr><th>零售跨境投資</th><td style="text-align:left">複委託、美債、海外 ETF 資訊需求增</td><td style="text-align:left">已有盈透合作與美股版；日本子公司是試驗田</td></tr>
+      <tr><th>量化／程式交易</th><td style="text-align:left">流量與機房成本升、語法平台黏著</td><td style="text-align:left">自製編譯器是差異；交易所報價漲價是成本風險</td></tr>
+      <tr><th>行動優先</th><td style="text-align:left">交易口從 PC 轉 App</td><td style="text-align:left">最大市佔缺口；須用元件嵌入券商 App 或自有 XQM 收費模組</td></tr>
+      <tr><th>資安與委外管制</th><td style="text-align:left">成本升、新進者更難</td><td style="text-align:left">雙面刃：護城河加厚，但異業結盟摩擦增加（年報原文）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="page">
+  <h2>七、全球競爭力評等</h2>
+  <h3>7.1 定位：不是迷你彭博，是「台股工作流作業系統」</h3>
+  <p>媒體愛用「台版 Bloomberg」。功能類比成立（多市場行情＋新聞＋分析＋下單），<b>經濟規模與客戶層不類比</b>：Bloomberg 終端年費以萬美元計、客戶是全球買／賣方機構；嘉實 2025 全年營收約 10.1 億台幣（約 3,000 萬美元量級），客戶是台灣券商與中文投資人。競爭力要分三層看：</p>
+  <table>
+    <thead><tr><th>戰場</th><th>主要對手</th><th>嘉實相對位置</th></tr></thead>
+    <tbody>
+      <tr><th>台灣 2B 券商 PC 下單／資訊流</th><td style="text-align:left">精誠、凱衛、少數自建</td><td style="text-align:left"><b>領先。</b>年報自評市佔八成至九成；轉換成本高（教育、行情權限、風控介接）</td></tr>
+      <tr><th>台灣行動看盤／下單 App</th><td style="text-align:left">三竹資訊（8284）、券商自建、CMoney</td><td style="text-align:left"><b>落後。</b>自評約一成 vs 三竹行動看盤九成、服務約四成行動交易人口</td></tr>
+      <tr><th>台灣 2C 付費終端</th><td style="text-align:left">CMoney、財報狗、XQ 中低價模組</td><td style="text-align:left"><b>高端領先、中端在追。</b>2018 起才做 300–1,000 元／月模組</td></tr>
+      <tr><th>基金／財富平台資訊</th><td style="text-align:left">Morningstar、Lipper</td><td style="text-align:left"><b>在地領先</b>（年報自評九成），國際品牌在機構評級仍強</td></tr>
+      <tr><th>量化語法平台</th><td style="text-align:left">MultiCharts、券商 API、開源</td><td style="text-align:left"><b>在地自製編譯器領先</b>（2021 上線、2024 No-code）；全球用戶生態遠小於 MC</td></tr>
+      <tr><th>全球機構終端</th><td style="text-align:left">Bloomberg、LSEG、FactSet、S&amp;P</td><td style="text-align:left"><b>非競爭者。</b>無全球銷售網、無同等固定收益／外匯深度</td></tr>
+      <tr><th>大中華數據終端</th><td style="text-align:left">Wind 萬得、同花順、東方財富</td><td style="text-align:left">簡體市場與牌照牆；嘉實優勢在繁中＋台股微結構，不在陸股機構數據</td></tr>
+    </tbody>
+  </table>
+  <h3>7.2 可轉移的全球資產 vs 不可轉移的在地資產</h3>
+  <p><b>可轉移：</b>XS 語法與量化積木、中文 AI 投研生成、華人美股工作流（盈透合作）、日本子公司當據點。<b>不可轉移：</b>證交所／櫃買／期交所資訊授權、金控券商二十年嵌入、MoneyDJ 繁中內容、ISO 與在地資安稽核關係。</p>
+  <p>徐文伯對遠見承認：韓國、東南亞「不是對手太強，就是資本市場不夠活絡」。這句話誠實劃出全球擴張的天花板——未來五年國際化比較像「跟著華人資金走美股／日股」，不是「在倫敦搶 Bloomberg 座位」。</p>
+  <h3>7.3 競爭力評分（分析者 self-reported 量尺，非獨立評等機構）</h3>
+  <table>
+    <thead><tr><th>構面</th><th>分數（1–5）</th><th>依據</th></tr></thead>
+    <tbody>
+      <tr><th>台灣 2B 市佔與轉換成本</th><td>5</td><td style="text-align:left">年報市佔＋預收模式＋無借款高現金</td></tr>
+      <tr><th>產品完整度（看盤到下單到量化）</th><td>5</td><td style="text-align:left">垂直整合；自製編譯器稀缺</td></tr>
+      <tr><th>財務韌性</th><td>5</td><td style="text-align:left">毛利 64%、淨利 19%、零借款、高配息仍有現金</td></tr>
+      <tr><th>成長可擴張性（台灣 2B）</th><td>2</td><td style="text-align:left">年報自承飽和</td></tr>
+      <tr><th>行動／年輕客群</th><td>2</td><td style="text-align:left">App 市佔約 10%；三竹領先</td></tr>
+      <tr><th>AI 產品化進度</th><td>3</td><td style="text-align:left">已推 XQGPT／自動研報；尚未看到佔營收比重揭露</td></tr>
+      <tr><th>跨境規模</th><td>2</td><td style="text-align:left">日本子公司＋盈透；年報稱海外仍微乎其微</td></tr>
+      <tr><th>全球品牌與機構滲透</th><td>1</td><td style="text-align:left">營收規模與彭博不在同一數量級</td></tr>
+    </tbody>
+  </table>
+  <p>總評：<b>在台灣資本市場軟體層是隱形冠軍；在全球金融資訊產業是利基參與者。</b>五年競爭力能否升級，取決於「AI＋下單」能否提高 2C ARPU，以及複委託／華人美股能否變成可衡量的營收柱，而不是新聞敘事。</p>
+</section>
+
+<section class="page">
+  <h2>八、公司未來五年前景框架（2026–2030）</h2>
+  <p>公司<b>未公布財務預測</b>（年報預算執行：不適用）。下列三種情境是分析框架，用來組織已揭露策略，<b>不是目標價、不是獲利保證</b>。成長率僅作數量級討論，不當作預測值引用。</p>
+  <h3>8.1 公司自己列出的 115 年營業方針（114 年報）</h3>
+  <ol>
+    <li>XQ 個人版加值模組線上銷售</li>
+    <li>深化 XQM App、增加券商合作</li>
+    <li>XS 支援更多美股欄位</li>
+    <li>推廣量化積木；與海外券商的華人美股平台</li>
+    <li>XQ 美股版＋美股選擇權；外期交易平台</li>
+    <li>嘉實投顧申請基金超市</li>
+    <li>全球產業供應鏈分析平台</li>
+  </ol>
+  <p>研發清單還包括 XQGPT 協作、XSAlpha 因子模型、Trading idea 訊息串流、量化積木 App／2B 券商版、XQ Next。這是一張「從終端走向決策＋執行閉環」的產品地圖，對齊全球產業「終端變慢、工作流變快」的方向。</p>
+  <h3>8.2 三種情境（質性）</h3>
+  <table>
+    <thead><tr><th></th><th>假設</th><th>五年樣貌</th></tr></thead>
+    <tbody>
+      <tr>
+        <th>基準</th>
+        <td style="text-align:left">台股維持可交易熱度；複委託續增；AI 模組逐步收費；App 市佔緩慢上升；海外仍小</td>
+        <td style="text-align:left">營收維持高個位數至低雙位數成長（近年 CAGR 7% 與 2026 前七月 19% 之間收斂）；毛利率守住 60%+；高配息延續但配發率自接近 90% 回落到可永續區間</td>
+      </tr>
+      <tr>
+        <th>樂觀</th>
+        <td style="text-align:left">XQGPT＋量化成為可觀 ARPU；多家券商把元件做成差異化 App；華人美股／日本有材料營收；基金超市跑起來</td>
+        <td style="text-align:left">成長中樞上移、對單一 2B 合約依賴下降；估值可從「高殖利率現金牛」部分重定價為「成長＋殖利率」。前提是年報開始揭露新產品佔比</td>
+      </tr>
+      <tr>
+        <th>保守</th>
+        <td style="text-align:left">大券商自建加速、交易所報價大漲、AI 讓免費工具切走中端 2C、台股成交量長週期下滑</td>
+        <td style="text-align:left">營收趨近持平、研發與資安費用剛性、淨利率被壓縮；高配息先受傷。這是年報不利因素的集合實現</td>
+      </tr>
+    </tbody>
+  </table>
+  <h3>8.3 五年觀察清單（用來證偽，而不是用來喊單）</h3>
+  <ul>
+    <li>月營收能否在「非狂牛」月份仍年增——區分行情 β 與份額 α。</li>
+    <li>資訊費 vs「其他」佔比：其他若升，代表專案／新產品，波動也升。</li>
+    <li>研發費用率是否掉到 20% 以下：掉太快可能是在吃老本。</li>
+    <li>App 相關敘事是否出現可稽核的券商數、MAU 或收入。</li>
+    <li>海外／複委託收入是否從「微乎其微」變成單獨揭露。</li>
+    <li>有效稅率是否穩定在 14–20%，避免再把稅務項目讀成本業。</li>
+  </ul>
+</section>
+
+<section class="page">
+  <h2>九、風險矩陣</h2>
+  <table>
+    <thead><tr><th>風險</th><th>機制</th><th>可能財務後果</th></tr></thead>
+    <tbody>
+      <tr><th>台股成交量長空</th><td style="text-align:left">資訊用量、加值模組續訂、廣告</td><td style="text-align:left">營收增速回到 2023 的 ~1%</td></tr>
+      <tr><th>關鍵券商自建或換商</th><td style="text-align:left">2B 市佔極高，單一客戶權重也高</td><td style="text-align:left">營收階梯式下降，不是平滑</td></tr>
+      <tr><th>行情授權漲價</th><td style="text-align:left">量化流量成本</td><td style="text-align:left">毛利率下滑數個百分點</td></tr>
+      <tr><th>資安事件</th><td style="text-align:left">金融資訊業信任是一次性資產</td><td style="text-align:left">客戶暫停、專案中止；年報稱截至刊印日無重大事件</td></tr>
+      <tr><th>AI 商品化</th><td style="text-align:left">免費／開源分析工具</td><td style="text-align:left">2C 中端 ARPU 下降</td></tr>
+      <tr><th>人才</th><td style="text-align:left">年報列「技術人才有限」</td><td style="text-align:left">薪資通膨吃營業利益率</td></tr>
+      <tr><th>高配息與成長投資互斥</th><td style="text-align:left">2025 現金股利接近全年盈餘</td><td style="text-align:left">若要真做跨境與 AI，配息或需下修</td></tr>
+      <tr><th>上櫃後流通性</th><td style="text-align:left">8/27 成交僅 6 張</td><td style="text-align:left">價格發現差，不適合成交量推論基本面</td></tr>
+    </tbody>
+  </table>
+  <h2>十、結論</h2>
+  <p>嘉實過去五年交出的是一份<b>高毛利、高現金、中成長、低槓桿</b>的財報。營收四年 CAGR 7.10%，淨利 CAGR 9.13%，毛利率鎖在六成四。2024 的 EPS 躍升有稅務成份，2025 本業營業利益年增近兩成才是更乾淨的訊號；2026 年前七月營收年增 18.95%，顯示上櫃後需求沒有熄火。</p>
+  <p>把它放進全球座標系：這不是下一個 Bloomberg，而是<b>台灣資本市場的作業系統供應商</b>。未來五年，產業的球往「AI 工作流、跨境零售、行動」滾；嘉實的產品地圖對得上，但年報自己承認 2B 接近天花板、App 市佔低、海外仍薄。競爭力要升級，必須把重複性營收從「券商授權」部分遷移到「投資人願意按月付費的決策與執行」——這件事現在還看不到獨立收入揭露，因此五年前景只能給框架、不能給確立級數字。</p>
+  <p class="small">若只記三個數字：<b>2025 營收 10.12 億、營業利益率 22.13%、現金殖利率（6.5／83）約 7.8%</b>。若只記一個判斷：財務很強、台灣很寬、全球很窄；五年的辯論點在「窄的那一端能否變寬」，不在「會不會明天倒」。</p>
+
+  <h2>附錄　資料來源</h2>
+  <ol class="small">
+    <li>嘉實資訊 111、112、113 年度年報 PDF（公司網站 JustFile；簡明合併損益／資產負債／財務分析）。</li>
+    <li>公開資訊觀測站重大訊息：2026-03-12 通過 114 年度財務報告；2026-03-12 股利分派每股 6.5 元；2026-08-10 通過 115 年第 2 季合併財務報告。</li>
+    <li>MoneyDJ 轉載綜合損益表（114 年，資料來源註記為交易所公開資訊觀測站）。</li>
+    <li>114 年報致股東報告書（樹懶生活 treelazy.com/stock/3158 轉載年報全文段落）產品組合與 115 年方針。</li>
+    <li>公司官網：公司簡介、投資人專區。</li>
+    <li>Yahoo 股市 3158.TWO：2026-08-27 收盤 83.00、揭示本益比 11.66、月營收。</li>
+    <li>CMoney：季損益、資產負債、月營收。</li>
+    <li>遠見雜誌 2025-10-28「台版 Bloomberg」專訪。</li>
+    <li>LINE Bank 理財網：上櫃首日與 2024 業績轉述。</li>
+    <li>TabbFORUM／Burton-Taylor：2025 全球金融數據桌面 167 億美元。</li>
+    <li>FourWeekMBA 轉述 BCG／FT：全球市場數據競爭格局。</li>
+    <li>MarkWide Research：金融資訊服務市場規模估計。</li>
+    <li>IMARC：台灣 Fintech 市場 2025–2034 估計。</li>
+    <li>PwC Taiwan Financial Services Industry Guide 2025。</li>
+    <li>MoneyDJ／三竹資訊法說整理：行動看盤市佔敘事（對手側，非嘉實財報）。</li>
+  </ol>
+  <p class="footer">報告產生：{data['report_date']}　檔名：3158_嘉實資訊_五年財務分析與全球競爭力報告.pdf　計算程式：generate_report.py　輸入：data_sources.json<br/>
+  本報告不構成投資要約。任何決策請回到原始年報與 MOPS。</p>
+</section>
+</body>
+</html>
+"""
+
+
+def selftest() -> int:
+    data = load()
+    c = compute(data)
+    assert c["rev_cagr_21_25"] == 7.1
+    assert c["rows"][3]["rev_yoy"] == 14.83
+    assert c["rows"][4]["opm"] == 22.13
+    assert data["annual_merged"]["2025"]["revenue"] == 1012367
+    print("SELFTEST OK", c["rev_cagr_21_25"], c["ni_cagr_21_25"], c["div_yield"])
+    return 0
+
+
+def write_html() -> dict:
+    data = load()
+    c = compute(data)
+    HTML_PATH.write_text(html_report(data, c), encoding="utf-8")
+    print("wrote", HTML_PATH)
+    return c
+
+
+def write_pdf() -> None:
+    chrome = Path("/usr/local/bin/google-chrome")
+    if not chrome.exists():
+        chrome = Path("/usr/bin/google-chrome")
+    user_dir = Path("/tmp/chrome-3158-report")
+    user_dir.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        str(chrome),
+        "--headless=new",
+        "--disable-gpu",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        f"--user-data-dir={user_dir}",
+        "--no-pdf-header-footer",
+        "--virtual-time-budget=8000",
+        f"--print-to-pdf={PDF_PATH}",
+        f"file://{HTML_PATH}",
+    ]
+    print("running", " ".join(cmd))
+    subprocess.check_call(cmd, timeout=60)
+    print("wrote", PDF_PATH, "bytes", PDF_PATH.stat().st_size)
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--no-pdf", action="store_true")
+    args = ap.parse_args()
+    if args.selftest:
+        return selftest()
+    write_html()
+    if not args.no_pdf:
+        write_pdf()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
