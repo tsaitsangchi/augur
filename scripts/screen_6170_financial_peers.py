@@ -201,6 +201,47 @@ def passes_gates(row: dict) -> bool:
     return not gate_reasons(row)
 
 
+def valuation_twin_reasons(row: dict) -> list[str]:
+    """第二層：市場在付高配息、約 10 倍本益的小市值——不要求 2024 V 型跳升。"""
+    reasons: list[str] = []
+    sid = row.get("stock_id") or ""
+    if not STOCK_RE.match(sid):
+        reasons.append("not_4digit")
+    rev = row.get("rev_2025")
+    if rev is None or rev < 800_000 or rev > 8_000_000:
+        reasons.append("rev_scale")
+    if (row.get("eps_2025") or 0) <= 0:
+        reasons.append("eps_nonpos")
+    gm, opm = row.get("gm_2025"), row.get("opm_2025")
+    if gm is None or not (18.0 <= gm <= 45.0):
+        reasons.append("gm_band")
+    if opm is None or not (4.0 <= opm <= 18.0):
+        reasons.append("opm_band")
+    y26 = row.get("yoy_2026")
+    if y26 is None or abs(y26) > 10.0:
+        reasons.append("not_flat_2026")
+    y25 = row.get("yoy_2025")
+    if y25 is not None and not (-12.0 <= y25 <= 20.0):
+        reasons.append("yoy25_band")
+    mcap = row.get("mcap_yi")
+    if mcap is None or not (12.0 <= mcap <= 120.0):
+        reasons.append("mcap_band")
+    pe = row.get("pe")
+    if pe is None or not (6.0 <= pe <= 15.0):
+        reasons.append("pe_band")
+    dy = row.get("dy")
+    if dy is None or not (5.5 <= dy <= 12.0):
+        reasons.append("dy_band")
+    ind = row.get("industry") or ""
+    if any(x in ind for x in ("金融保險", "金控", "銀行", "證券", "期貨", "保險", "油電燃氣")):
+        reasons.append("industry_exclude")
+    return reasons
+
+
+def passes_valuation(row: dict) -> bool:
+    return not valuation_twin_reasons(row)
+
+
 def clean_cell(raw: str) -> str:
     t = htmlmod.unescape(re.sub(r"<[^>]+>", "", raw))
     return re.sub(r"\s+", " ", t).replace("\xa0", " ").strip()
@@ -346,7 +387,7 @@ def parse_bs_page(page: str) -> dict[str, dict]:
         hdr = None
         for row in table:
             hm = header_map(row)
-            if hm and ("流動資產" in hm or "資產總額" in hm or "資產合計" in hm):
+            if hm and ("流動資產" in hm or "資產總額" in hm or "資產合計" in hm or "資產總計" in hm):
                 hdr = hm
                 continue
             if not hdr:
@@ -356,10 +397,13 @@ def parse_bs_page(page: str) -> dict[str, dict]:
                 continue
             ca = parse_num(pick(hdr, row, "流動資產"))
             nca = parse_num(pick(hdr, row, "非流動資產"))
-            ta = parse_num(pick(hdr, row, "資產總額", "資產合計"))
+            ta = parse_num(pick(hdr, row, "資產總額", "資產合計", "資產總計"))
             cl = parse_num(pick(hdr, row, "流動負債"))
             ncl = parse_num(pick(hdr, row, "非流動負債"))
-            eq = parse_num(pick(hdr, row, "權益總額", "權益合計", "歸屬於母公司業主之權益"))
+            eq = parse_num(pick(
+                hdr, row, "權益總額", "權益合計", "權益總計",
+                "歸屬於母公司業主之權益", "歸屬於母公司業主之權益合計",
+            ))
             bps = parse_num(pick(hdr, row, "每股參考淨值", "每股淨值"))
             out[sid] = {
                 "ca": ca, "nca": nca, "ta": ta, "cl": cl, "ncl": ncl, "eq": eq, "bps": bps,
@@ -447,6 +491,8 @@ def enrich(row: dict) -> dict:
     o1, o5 = row.get("opm_2021"), row.get("opm_2025")
     row["opm_delta"] = (o5 - o1) if o1 is not None and o5 is not None else None
     row["cr"] = ratio(row.get("ca"), row.get("cl"))
+    if row.get("ta") is None and row.get("ca") is not None and row.get("nca") is not None:
+        row["ta"] = row["ca"] + row["nca"]
     row["ca_ratio"] = ratio(row.get("ca"), row.get("ta"))
     row["ncl_ratio"] = ratio(row.get("ncl"), row.get("ta"))
     row["roe"] = pct(row.get("ni_2025"), row.get("eq"))
@@ -585,6 +631,8 @@ def fetch_universe(cache_dir: Path) -> dict[str, dict]:
 
 def attach_yahoo(peers: list[dict]) -> None:
     for row in peers:
+        if row.get("yahoo_symbol"):
+            continue
         mkt = row.get("market")
         suffix = ".TW" if mkt == "sii" else ".TWO"
         sym = f"{row['stock_id']}{suffix}"
@@ -633,7 +681,23 @@ def write_csv(path: Path, rows: list[dict], fields: list[str]) -> None:
             w.writerow({k: r.get(k) for k in fields})
 
 
-def write_report(path: Path, anchor: dict, peers: list[dict], n_univ: int, n_gate: int, val_note: str) -> None:
+def write_report(
+    path: Path,
+    anchor: dict,
+    peers: list[dict],
+    val_peers: list[dict],
+    n_univ: int,
+    n_gate: int,
+    n_val: int,
+    val_note: str,
+) -> None:
+    a_top = [r for r in peers if r.get("stock_id") != "6170"][:2]
+    b_top = [r for r in val_peers if r.get("stock_id") != "6170"][:4]
+    overlap = {r["stock_id"] for r in peers} & {r["stock_id"] for r in val_peers} - {"6170"}
+    a_txt = "、".join(f"{r['stock_id']} {r.get('name')}" for r in a_top) or "（無）"
+    b_txt = "、".join(
+        f"{r['stock_id']} {r.get('name')}（息 {fmt(r.get('dy'))}%）" for r in b_top
+    ) or "（無）"
     lines = [
         "---",
         "title: 6170 統振財務指紋之台股同型篩選",
@@ -652,9 +716,10 @@ def write_report(path: Path, anchor: dict, peers: list[dict], n_univ: int, n_gat
         "",
         "## 0. 一句話",
         "",
-        "6170 的可對照指紋不是「全球跨境支付」，而是：**小市值服務業、2023 營收谷底、2024 跳升後 2025 仍增但降速、"
-        "2026 年迄今走平、毛利率／營益率五年走高、評價約 10 倍本益＋高現金殖利率。** "
-        f"全市場可組五年損益的上市櫃裡，硬閘後剩 **{n_gate}** 檔（宇宙 {n_univ} 檔有代號），下表為距 6170 最近者。",
+        "6170 的可對照指紋不是「全球跨境支付」，而是兩件幾乎不重疊的事："
+        "**（A）V 型營收＋毛利走高＋2026 走平**，與 **（B）約 10 倍本益＋6–8% 現金殖利率的小市值。** "
+        f"上市櫃宇宙 {n_univ} 檔中，（A）硬閘 **{n_gate}** 檔（含自己）、（B）評價閘 **{n_val}** 檔（含自己）。"
+        "通信網路硬體同業幾乎對不上這兩件；持照匯兌沒有第二家上市櫃。",
         "",
         "## 1. 錨點（6170 自己）",
         "",
@@ -669,23 +734,21 @@ def write_report(path: Path, anchor: dict, peers: list[dict], n_univ: int, n_gat
         f"| 2025 EPS／ROE | {fmt(anchor.get('eps_2025'),2)}／{fmt(anchor.get('roe'))} |",
         f"| 收盤／市值（億） | {fmt(anchor.get('price'),2)}／{fmt(anchor.get('mcap_yi'))} |",
         f"| 本益／淨值／殖利率 | {fmt(anchor.get('pe'))}×／{fmt(anchor.get('pb'),2)}×／{fmt(anchor.get('dy'))}% |",
+        f"| 淨利率 2025（％） | {fmt(anchor.get('npm_2025'))}（營益率 {fmt(anchor.get('opm_2025'))}；差額＝非營業） |",
         f"| 流動比／流動資產占比 | {fmt(anchor.get('cr'),2)}／{fmt((anchor.get('ca_ratio') or 0)*100 if anchor.get('ca_ratio') is not None else None)}% |",
         f"| 評價日 | {anchor.get('val_date') or '—'} |",
         "",
         val_note,
         "",
-        "## 2. 閘（必須同時成立才進名單）",
+        "## 2. 兩層閘",
         "",
-        "1. 2021–2025 年報營收齊；2025 營收 8–120 億。",
-        "2. 2025 水準高於 2023（真的從谷底爬上來，不是只看年增符號）。",
-        "3. 年增型：2023 ≤5%、2024 ≥10%、2025 介於 −5%～22%、2026 年迄今累計年增絕對值 ≤12%（月營收累計）。",
-        "4. 毛利率 18–45% 且高於 2021；營益率 4–18%（服務／通路帶，排除毛利過低的純買賣與過高的權利金極端）。",
-        "5. 2025 EPS>0；市值 8–200 億（有價才濾）；本益 5–20×（有官方或年報 EPS 推算才濾）。",
-        "6. 排除產業名含金融保險／金控／銀行／證券／期貨／保險／油電燃氣（會計與浮額結構與 6170 不可比）。",
+        "**A 成長閘（同時成立）**：五年營收齊、2025 營收 8–120 億且高於 2023；年增 2023≤5%、2024≥10%、2025 介於 −5%～22%、2026 年迄今累計年增絕對值 ≤12%；毛利率 18–45% 且高於 2021、營益率 4–18%；EPS>0；市值 8–200 億、本益 5–20×（有數字才濾）；排除金融保險／金控／銀行／證券／期貨／保險／油電燃氣。",
         "",
-        "分數是錨點距離（規模取 log、年增／利潤率／評價／流動性分項加權），**不是**預測報酬、**不是**可交易訊號。",
+        "**B 評價閘**：本益 6–15×、現金殖利率 5.5–12%、市值 12–120 億、2026 走平（累計年增絕對值 ≤10%）、毛利率／營益率同 A 的帶、營收 8–80 億。**不要求** 2024 跳升。上櫃無官方殖利率者進不了 B（資料缺口）。",
         "",
-        "## 3. 財務／成長同型（硬閘內，距 6170 近→遠）",
+        "A 的分數是錨點距離（規模取 log、年增／利潤率／評價分項加權），**不是**預測報酬。",
+        "",
+        "## 3. 成長軌跡同型（A 閘：V 型＋毛利走高＋2026 走平）",
         "",
         "| 名次 | 代號 | 簡稱 | 市場 | 產業 | 分數 | 2025營收億 | 年增24／25／26YTD | 毛利率21→25 | 營益率25 | 本益 | 殖利率 | 市值億 |",
         "|---:|---|---|---|---|---:|---:|---|---|---:|---:|---:|---:|",
@@ -704,29 +767,69 @@ def write_report(path: Path, anchor: dict, peers: list[dict], n_univ: int, n_gat
         )
     lines += [
         "",
-        "## 4. 股價路徑（短名單；Yahoo 月線未還原與還原混用，息另外給）",
+        "## 4. 評價同型（B 閘：本益 6–15×、殖利率 5.5–12%、2026 走平；不要求 2024 跳升）",
         "",
-        "| 代號 | 簡稱 | 2023年底 | 2025年底 | 最近月 | 23→25％ | 25→今％ | TTM現金股利 |",
-        "|---|---|---:|---:|---:|---:|---:|---:|",
+        "這層才對上「市場在付高配息、不付 FinTech 倍數」。",
+        "",
+        "| 名次 | 代號 | 簡稱 | 市場 | 產業 | 2025營收億 | 年增23／24／25／26YTD | 毛利率25 | 營益率25 | 本益 | 殖利率 | 市值億 |",
+        "|---:|---|---|---|---|---:|---|---:|---:|---:|---:|---:|",
     ]
-    for r in peers:
+    vrank = 0
+    for r in val_peers:
+        if r["stock_id"] == "6170":
+            continue
+        vrank += 1
         lines.append(
-            f"| {r['stock_id']} | {r.get('name') or ''} | {fmt(r.get('px_2023'),2)} | "
-            f"{fmt(r.get('px_2025'),2)} | {fmt(r.get('px_last'),2)} | {fmt(r.get('ret_23to25'))} | "
-            f"{fmt(r.get('ret_25to_now'))} | {fmt(r.get('dps_ttm'),2)} |"
+            f"| {vrank} | {r['stock_id']} | {r.get('name') or ''} | {r.get('market') or ''} | "
+            f"{r.get('industry') or ''} | {yi_from_k(r.get('rev_2025'))} | "
+            f"{fmt(r.get('yoy_2023'))}／{fmt(r.get('yoy_2024'))}／{fmt(r.get('yoy_2025'))}／{fmt(r.get('yoy_2026'))} | "
+            f"{fmt(r.get('gm_2025'))} | {fmt(r.get('opm_2025'))} | "
+            f"{fmt(r.get('pe'))} | {fmt(r.get('dy'))}% | {fmt(r.get('mcap_yi'))} |"
         )
     lines += [
         "",
-        "## 5. 怎麼讀（不是目標價）",
+        "## 5. 股價路徑（Yahoo 月線；息為 TTM 現金股利）",
         "",
-        "- **財務同型 ≠ 移工匯兌同業。** 台灣持照小額匯兌上市公司幾乎只有 6170；名單是「賺法在財報上長得像」，不是 Q Pay 對手。",
-        "- 與 6170 一樣要核對：**淨利率是否明顯高於營益率**（非營業／匯兌評價墊 EPS）。本篩以營益率為本業帶，不把 EPS 年增當成長。",
-        "- 2026 走平是指紋的一部分：2024 那種跳升若在 2026 還在，不會進閘。",
-        "- 股價：6170 是「盈餘與配息抬著、2026 未用價把息賺回來」的高殖利率服務股座標；同型若 23→25 股價已翻倍，評價座標就偏了。",
+        "| 代號 | 簡稱 | 層 | 2023年底 | 2025年底 | 最近月 | 23→25％ | 25→今％ | TTM現金股利 |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|",
+    ]
+    a_ids = {r["stock_id"] for r in peers}
+    b_ids = {r["stock_id"] for r in val_peers}
+    seen_px: set[str] = set()
+    for r in list(peers) + list(val_peers):
+        if r["stock_id"] in seen_px:
+            continue
+        seen_px.add(r["stock_id"])
+        layer = []
+        if r["stock_id"] in a_ids:
+            layer.append("A")
+        if r["stock_id"] in b_ids:
+            layer.append("B")
+        lines.append(
+            f"| {r['stock_id']} | {r.get('name') or ''} | {'+'.join(layer) or '—'} | "
+            f"{fmt(r.get('px_2023'),2)} | {fmt(r.get('px_2025'),2)} | {fmt(r.get('px_last'),2)} | "
+            f"{fmt(r.get('ret_23to25'))} | {fmt(r.get('ret_25to_now'))} | {fmt(r.get('dps_ttm'),2)} |"
+        )
+    lines += [
         "",
-        "## 6. 來源與重跑",
+        "## 6. 怎麼讀（不是目標價）",
         "",
-        "- MOPS `ajax_t51sb01` 基本資料；`ajax_t163sb04` 年報損益 2021–2025；`ajax_t163sb05` 2025 資產負債。",
+        "- **沒有第二家 6170。** A 閘進來的多是電子／機械／紡織製造：損益表的 V 型像，殖利率只有 3–5%，不是高配息服務股。B 閘進來的才是「本益約十倍、息 6% 以上」——成長軌常常是緩步或已過跳升年（例如觀光股 2023 已大增、數位雲端 2024 只有個位數年增）。",
+        "- **通信網路同業對不上。** 硬體同業不是虧損、就是本益數十倍、或 2026 仍雙位數成長。較近的 6486 互動：毛利率／營益率接近、市值接近，但 2026 年迄今年增仍約兩成、毛利沒有五年走擴，進不了 A／B 閘。",
+        "- **匯兌執照同業沒有上市櫃第二家。** 這份名單不是 Q Pay 對手盤。",
+        "- 與 6170 一樣要核對：**淨利率是否明顯高於營益率**（美元資產評價墊 EPS）。本篩以營益率為本業帶。",
+        "- 股價座標：6170 是 2023 年底後走平、靠息；A 閘若 2023→2025 股價翻倍，已經不是同一種價錢。B 閘較接近「高息橫盤」。",
+        "- Yahoo 月線的 TTM 息若為 0 但 B 閘殖利率非 0，**以證交所 BWIBBU 殖利率為準**；Yahoo 漏息不能讀成「沒配」。",
+        "",
+        "## 6.1 若只看幾檔對照（self-reported）",
+        "",
+        f"- **損益表最像**：{a_txt}。殖利率多半遠低於 6170 的約 8%。",
+        f"- **評價／配息最像**：{b_txt}。這層 2024 通常沒有 +28% 跳升。",
+        f"- **A∩B 不含 6170 的檔數**：{len(overlap)}。機械意思＝沒有第二家同時滿足成長軌與高息十倍本益。",
+        "",
+        "## 7. 來源與重跑",
+        "",
+        "- MOPS `ajax_t51sb01` 基本資料；`ajax_t163sb04` 年報損益 2021–2025；`ajax_t163sb05` 2025 資產負債（欄名含「總計」）。",
         "- 月營收：`/nas/t21/{sii,otc}/t21sc03_115_7.html`（2026 年 1–7 月累計年增）。",
         "- 上市評價：TWSE `BWIBBU_d`；上櫃價格／發行股數：TPEX `dailyQuotes`。上櫃本益／殖利率若缺，短名單用年報 EPS 與 Yahoo TTM 息補。",
         "- 重跑：`python scripts/screen_6170_financial_peers.py --run`",
@@ -750,42 +853,60 @@ def run(cache_dir: Path, top_n: int) -> int:
         row["score_parts"] = parts
         scored.append(row)
     scored.sort(key=lambda r: (-(r["score"]), r["stock_id"]))
-    print(f"universe={n_univ} gated={len(scored)}", flush=True)
+    print(f"universe={n_univ} gatedA={len(scored)}", flush=True)
+
+    val_scored: list[dict] = []
+    for row in rows.values():
+        if not passes_valuation(row):
+            continue
+        sc, _ = score_row(row)
+        row["score"] = row.get("score") or sc
+        val_scored.append(row)
+    val_scored.sort(key=lambda r: (abs((r.get("dy") or 0) - 8.22) + 0.4 * abs((r.get("pe") or 0) - 9.9), r["stock_id"]))
+    print(f"gatedB={len(val_scored)}", flush=True)
 
     anchor = rows.get("6170") or {"stock_id": "6170"}
     if "score" not in anchor:
         sc, _ = score_row(enrich(anchor))
         anchor["score"] = sc
     short = [r for r in scored if r["stock_id"] != "6170"][:top_n]
+    val_short = [r for r in val_scored if r["stock_id"] != "6170"][:top_n]
     pack = [anchor] + short
+    val_pack = [anchor] + val_short
     print("yahoo prices for shortlist", flush=True)
-    attach_yahoo(pack)
-    # 上櫃缺官方殖利率者，Yahoo 息補完後重算分數（閘已過，不重濾）
-    for r in pack:
+    attach_yahoo(pack + val_short)
+    for r in pack + val_short:
         if r.get("dps_ttm") and r.get("px_last") and r.get("dy") is None:
             r["dy"] = r["dps_ttm"] / r["px_last"] * 100.0
         r["score"], _ = score_row(r)
+    short.sort(key=lambda r: (-(r.get("score") or 0), r["stock_id"]))
+    pack = [anchor] + short
 
     fields = [
         "stock_id", "name", "market", "industry", "score",
         "rev_2021", "rev_2022", "rev_2023", "rev_2024", "rev_2025",
         "yoy_2022", "yoy_2023", "yoy_2024", "yoy_2025", "yoy_2026",
         "gm_2021", "gm_2025", "gm_delta", "opm_2021", "opm_2025", "opm_delta",
-        "eps_2025", "roe", "price", "pe", "pb", "dy", "mcap_yi", "cr", "ca_ratio",
+        "eps_2025", "roe", "npm_2025", "price", "pe", "pb", "dy", "mcap_yi", "cr", "ca_ratio",
         "px_2021", "px_2023", "px_2025", "px_last", "ret_23to25", "ret_25to_now", "dps_ttm",
     ]
     csv_path = REPO / "reports" / "augur_6170_welldone_peer_screen_20260827.csv"
     md_path = REPO / "reports" / "augur_6170_welldone_peer_screen_20260827.md"
-    gated_ids = {r["stock_id"] for r in pack}
-    csv_rows = pack + [r for r in scored if r["stock_id"] not in gated_ids]
+    seen = set()
+    csv_rows: list[dict] = []
+    for r in pack + val_short + scored + val_scored:
+        if r["stock_id"] in seen:
+            continue
+        seen.add(r["stock_id"])
+        csv_rows.append(r)
     write_csv(csv_path, csv_rows, fields)
     val_note = (
         f"資料時點：月營收 2026 年 1–7 月累計；年報至 2025；評價／收盤取抓取當日公開檔（{anchor.get('val_date') or '見 TWSE/TPEX'}）。"
     )
-    write_report(md_path, anchor, pack, n_univ, len(scored), val_note)
+    write_report(md_path, anchor, pack, val_pack, n_univ, len(scored), len(val_scored), val_note)
     print(f"wrote {md_path}")
     print(f"wrote {csv_path}")
-    print("--- shortlist ---")
+    print("--- A growth ---")
     for r in pack:
         print(
             f"{r['stock_id']} {r.get('name')} score={fmt(r.get('score'))} "
@@ -793,6 +914,15 @@ def run(cache_dir: Path, top_n: int) -> int:
             f"{fmt(r.get('yoy_2024'))}/{fmt(r.get('yoy_2025'))}/{fmt(r.get('yoy_2026'))} "
             f"gm={fmt(r.get('gm_2025'))} pe={fmt(r.get('pe'))} dy={fmt(r.get('dy'))} "
             f"mcap={fmt(r.get('mcap_yi'))}",
+            flush=True,
+        )
+    print("--- B valuation ---")
+    for r in val_pack:
+        print(
+            f"{r['stock_id']} {r.get('name')} "
+            f"rev25={yi_from_k(r.get('rev_2025'))} yoy23/24/25/26="
+            f"{fmt(r.get('yoy_2023'))}/{fmt(r.get('yoy_2024'))}/{fmt(r.get('yoy_2025'))}/{fmt(r.get('yoy_2026'))} "
+            f"pe={fmt(r.get('pe'))} dy={fmt(r.get('dy'))} mcap={fmt(r.get('mcap_yi'))}",
             flush=True,
         )
     return 0
@@ -853,6 +983,26 @@ def _selftest() -> int:
     flags_mut = v_recovery_flags({2023: -8.4, 2024: 28.5, 2025: 9.7, 2026: -1.42})
     chk("閾值未漂到 100%（28.5 仍算回升）", flags_mut["rebound_2024"] is True)
     chk("10% 以下不算回升", v_recovery_flags({2023: -8.4, 2024: 9.9, 2025: 9.7, 2026: -1.4})["rebound_2024"] is False)
+
+    bs_page = (
+        "<table><tr><th>公司代號</th><th>公司名稱</th><th>流動資產</th><th>非流動資產</th>"
+        "<th>資產總計</th><th>流動負債</th><th>非流動負債</th><th>權益總計</th>"
+        "<th>每股參考淨值</th></tr>"
+        "<tr><td>6170</td><td>統振</td><td>3,652,091</td><td>721,818</td>"
+        "<td>4,373,909</td><td>2,191,799</td><td>37,630</td><td>2,144,480</td>"
+        "<td>21.90</td></tr></table>"
+    )
+    bs = parse_bs_page(bs_page)
+    chk("資產總計別名", bs["6170"]["ta"] == 4_373_909)
+    chk("權益總計別名", bs["6170"]["eq"] == 2_144_480)
+    row_6170.update(bs["6170"])
+    enrich(row_6170)
+    chk("流動資產占比", abs((row_6170["ca_ratio"] or 0) - 0.835) < 0.01)
+    chk("評價閘 6170 應過", passes_valuation(row_6170))
+    row_low_dy = dict(row_6170)
+    row_low_dy["stock_id"] = "6117"
+    row_low_dy["dy"] = 3.2
+    chk("低殖利率不進評價層（紅證：若只看本益會把迎廣誤收進來）", not passes_valuation(row_low_dy))
 
     if failed:
         print("SELFTEST FAIL:")
