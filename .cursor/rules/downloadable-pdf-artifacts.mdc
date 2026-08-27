@@ -1,0 +1,26 @@
+---
+description: 產出 PDF 必須同步到可下載 artifacts；Cursor 網頁對 git 路徑 PDF 沒有下載鈕
+alwaysApply: true
+---
+
+# 產出 PDF 一律可下載（Cursor Cloud artifacts）
+
+> **位階**：[I] 工具護欄 · **不是** 憲章 [N]
+> **為何**：Cursor 網頁對 git 內 `reports/*.pdf` **沒有下載鈕**；GitHub blob 的 PDF 預覽也常顯示空白。檔案在 git 裡 ≠ 使用者下載得到。
+
+## 預設義務（產出任何 PDF 的當下，不是事後補）
+
+1. **git 住所不變**：研究報告 PDF 仍寫 `reports/`（CLAUDE.md #16）。
+2. **立刻發布下載面**：跑 `python3 scripts/publish_downloadable_pdf.py --path <pdf>`（無參數則掃 `reports/**/*.pdf`）。腳本會把 PDF（及旁路 HTML）複製到 `/opt/cursor/artifacts/`（若該目錄存在＝Cloud Agent）。
+3. **告訴使用者的連結**必須是 artifacts 路徑或腳本印出的清單，**禁止**只丟 `reports/foo.pdf` 就宣稱「可下載」。
+4. **PR 正文**用絕對路徑引用產物（系統會改寫成可開的 URL），至少含：
+   - PDF：`/opt/cursor/artifacts/<檔名>.pdf`
+   - 封面／逐頁 PNG（Cursor 網頁對無預覽的 PDF 常仍無下載鈕，PNG 才打得開）
+5. Cloud 環境若 `/opt/cursor/artifacts` 不存在，不得假裝已發布；改印 GitHub `raw` URL 並明說「本機／非 Cloud，無 artifacts 下載面」。
+
+## 硬邊界
+
+- **不**用把 PDF 提交進 git 來替代 artifacts 發布。
+- **不**為「方便下載」改把報告寫出 `reports/`。
+- PNG 預覽預設只進 artifacts，**不**塞進 git（體積大）。
+- 本規則不解凍 FinMind／FRED，也不改預測熱路徑。
