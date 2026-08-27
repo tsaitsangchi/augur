@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>6498 久禾光｜近五年財務分析與未來五年前景、全球競爭力</title>
+<style>
+  :root {
+    --ink: #1a2332;
+    --muted: #5c6b7a;
+    --line: #d5dde6;
+    --navy: #1e3a5f;
+    --gold: #b0863a;
+    --paper: #f7f4ee;
+    --good: #1f6b4a;
+    --bad: #9b2c2c;
+    --chip: #eef3f8;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: "WenQuanYi Micro Hei", "Noto Sans CJK TC", "Noto Sans TC",
+                 "Droid Sans Fallback", "Source Han Sans TC", "PingFang TC",
+                 "Microsoft JhengHei", "Heiti TC", sans-serif;
+    color: var(--ink);
+    background: #fff;
+    font-size: 12.2px;
+    line-height: 1.55;
+  }
+  @page { size: A4; margin: 16mm 16mm 18mm 16mm; }
+  @media print {
+    .page-break { break-before: page; page-break-before: always; }
+    a { color: inherit; text-decoration: none; }
+    .cover { min-height: auto; }
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 4px 24px; }
+  .cover {
+    background: linear-gradient(165deg, #16263d 0%, #1e3a5f 55%, #2c4d73 100%);
+    color: #f4efe6;
+    padding: 42px 40px 36px;
+    border-radius: 4px;
+    margin: 0 0 22px;
+  }
+  .cover .kicker {
+    letter-spacing: .22em;
+    font-size: 11px;
+    color: #d4b06a;
+    margin-bottom: 18px;
+  }
+  .cover h1 {
+    font-size: 28px;
+    line-height: 1.28;
+    font-weight: 700;
+    margin: 0 0 10px;
+  }
+  .cover .sub { color: #c9d4e0; font-size: 13.5px; margin: 0 0 22px; }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px 18px;
+    font-size: 11.5px;
+    border-top: 1px solid rgba(255,255,255,.18);
+    padding-top: 16px;
+  }
+  .meta-grid b { display: block; color: #d4b06a; font-weight: 600; font-size: 10px; letter-spacing: .08em; }
+  .disclaimer {
+    background: var(--paper);
+    border-left: 3px solid var(--gold);
+    padding: 10px 14px;
+    font-size: 11.5px;
+    color: #4a3f2e;
+    margin: 0 0 18px;
+  }
+  h2 {
+    font-size: 16.5px;
+    color: var(--navy);
+    border-bottom: 2px solid var(--navy);
+    padding-bottom: 5px;
+    margin: 26px 0 12px;
+  }
+  h3 { font-size: 13.5px; color: var(--navy); margin: 16px 0 8px; }
+  p { margin: 0 0 9px; }
+  ul, ol { margin: 0 0 10px; padding-left: 18px; }
+  li { margin-bottom: 3px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin: 8px 0 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 5px 6px;
+    vertical-align: top;
+  }
+  th {
+    background: var(--navy);
+    color: #fff;
+    font-weight: 600;
+    text-align: center;
+  }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  td.c { text-align: center; }
+  tr:nth-child(even) td { background: #f6f8fb; }
+  .kpi {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 10px 0 16px;
+  }
+  .kpi div {
+    background: var(--chip);
+    border: 1px solid var(--line);
+    padding: 8px 10px;
+    border-radius: 3px;
+  }
+  .kpi span { display: block; font-size: 10px; color: var(--muted); letter-spacing: .04em; }
+  .kpi b { font-size: 16px; color: var(--navy); font-variant-numeric: tabular-nums; }
+  .bars { display: flex; align-items: flex-end; gap: 10px; height: 118px; margin: 8px 0 4px; padding: 0 6px; }
+  .bar {
+    flex: 1;
+    background: #2c5f8a;
+    color: #fff;
+    text-align: center;
+    font-size: 10px;
+    border-radius: 3px 3px 0 0;
+    position: relative;
+    min-height: 8px;
+  }
+  .bar span {
+    position: absolute;
+    top: -16px;
+    left: 0; right: 0;
+    color: var(--navy);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .bar em {
+    position: absolute;
+    bottom: -16px;
+    left: 0; right: 0;
+    color: var(--muted);
+    font-style: normal;
+    font-size: 10px;
+  }
+  .bar.y26 { background: #b0863a; }
+  .chart-cap { font-size: 10.5px; color: var(--muted); margin: 18px 0 14px; }
+  .callout {
+    background: #f3f7fb;
+    border: 1px solid var(--line);
+    padding: 10px 12px;
+    margin: 8px 0 14px;
+    font-size: 12px;
+  }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  footer.note {
+    margin-top: 22px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+  .tag { display: inline-block; background: #e8eef5; color: var(--navy); font-size: 10px; padding: 1px 6px; border-radius: 2px; margin-right: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section class="cover">
+  <div class="kicker">AUGUR RESEARCH　｜　[I] 研究整理　｜　SELF-REPORTED</div>
+  <h1>6498 久禾光<br>近五年財務分析<br>與未來五年前景、全球競爭力</h1>
+  <p class="sub">POWERTIP IMAGE CORP.（PTIC）　上櫃光電　塑膠微型光學鏡頭</p>
+  <div class="meta-grid">
+    <div><b>報告時點</b>2026-08-27</div>
+    <div><b>收盤價／市值</b>78.70 元　／　約 37.4 億</div>
+    <div><b>近四季 EPS／本益比</b>7.57 元　／　約 10.4 倍</div>
+    <div><b>財報最新完整期</b>2026 上半年（08-07 董事會）</div>
+    <div><b>月營收</b>至 2026 年 7 月</div>
+    <div><b>現金殖利率</b>約 6.0%（股利 4.50 元）</div>
+  </div>
+</section>
+
+<div class="disclaimer">
+  <b>一句。</b>營收自 2022 谷底連三年創新高，毛利率站上 44–50%、本業現金轉換率高；成長靠筆電鏡頭規格升級（量價）而非產業總量。未來五年是「雙寡占裡搶高階份額＋非筆電從 5% 做上來」的執行題，不是爆發賽道。<br>
+  <b>不是。</b>進出場建議。本報告為研究整理，不得當作投資建議。本環境無本地 Augur 庫、未呼叫 FinMind／FRED API。
+</div>
+
+<div class="kpi">
+  <div><span>2025 營收</span><b>12.36 億</b></div>
+  <div><span>2025 稅後／EPS</span><b>2.92 億／6.51</b></div>
+  <div><span>2026H1 營收年增</span><b>+29.4%</b></div>
+  <div><span>毛利率帶（近三年）</span><b>44–50%</b></div>
+</div>
+
+<h2>0. 公司與資料範圍</h2>
+<p>久禾光電股份有限公司（TPEx 6498）。2003-11-03 設立，2015-01-27 興櫃、<b>2025-05-20 上櫃</b>。董事長王世岳、總經理鄭錫勳。實收資本約 4.75 億、流通股約 4,747.6 萬股。總部臺中工業區六路 8 號；中國廠江蘇句容。簽證：安侯建業。</p>
+<p>本業：塑膠光學鏡頭之光學設計、模具、射出、鍍膜、組裝（2P–6P，約 30 萬至 1,600 萬畫素）。營收約 <b>95% 來自筆記型電腦鏡頭</b>，約 5% 為醫療內視鏡、機器視覺、智慧家居、工業電腦、無人機、安防。公司自述全球筆電鏡頭市占約 <b>三成至 33%</b>；客戶結構約美系 30%、中系 40%、台系 20%。</p>
+<table>
+  <tr><th>層</th><th>內容</th><th>主要來源</th></tr>
+  <tr><td>A 官方</td><td>2023–2026H1 合併損益／資產負債、月營收、重大訊息</td><td>公開資訊觀測站、櫃買審議稿、公司月營收</td></tr>
+  <tr><td>B 彙整</td><td>2021–2022 損益率、部分資產、股利沿革</td><td>HiStock 季報加總、IPO贏家歷史表、公司官網</td></tr>
+  <tr><td>C 產業／訪談</td><td>市占、ASP、產能、五年目標、同業</td><td>2026-05-20 法說、工商時報／MoneyDJ、IDC</td></tr>
+</table>
+<p>IPO贏家「2025 營收 9.08 億」與官方全年 12.36 億不符，該列視為未完稿，不以之入表。</p>
+
+<h2>1. 近五年損益</h2>
+<p>單位新台幣億元。2021–2022 損益率取第三方歷史表；2022 起營收與月營收／官方公告交叉。</p>
+<table>
+  <tr>
+    <th>年</th><th class="n">營收</th><th class="n">年增</th><th class="n">毛利率</th><th class="n">營益率</th>
+    <th class="n">稅後</th><th class="n">淨利率</th><th class="n">EPS</th><th>來源</th>
+  </tr>
+  <tr><td class="c">2021</td><td class="n">8.41</td><td class="n">—</td><td class="n">37.0%</td><td class="n">22.9%</td><td class="n">1.43</td><td class="n">17.0%</td><td class="n">4.25</td><td>B</td></tr>
+  <tr><td class="c">2022</td><td class="n">6.78</td><td class="n">−19.4%</td><td class="n">39.6%</td><td class="n">22.7%</td><td class="n">1.47</td><td class="n">21.7%</td><td class="n">3.64</td><td>A/B　月營收 6.78 億</td></tr>
+  <tr><td class="c">2023</td><td class="n">8.82</td><td class="n">+30.1%</td><td class="n">49.8%</td><td class="n">34.5%</td><td class="n">2.52</td><td class="n">28.6%</td><td class="n">6.00</td><td>A 櫃買審議；率 B</td></tr>
+  <tr><td class="c">2024</td><td class="n">10.32</td><td class="n">+17.0%</td><td class="n">46.3%</td><td class="n">30.2%</td><td class="n">2.29</td><td class="n">22.2%</td><td class="n">5.57</td><td>A 官方</td></tr>
+  <tr><td class="c">2025</td><td class="n">12.36</td><td class="n">+19.8%</td><td class="n">47.8%</td><td class="n">31.2%</td><td class="n">2.92</td><td class="n">23.6%</td><td class="n">6.51</td><td>A 官方</td></tr>
+  <tr><td class="c">2026H1</td><td class="n">7.24</td><td class="n">+29.4%</td><td class="n">44.8%</td><td class="n">29.1%</td><td class="n">1.70</td><td class="n">23.5%</td><td class="n">3.60</td><td>A 官方</td></tr>
+</table>
+
+<div class="bars" aria-hidden="true">
+  <div class="bar" style="height:68%"><span>8.41</span><em>2021</em></div>
+  <div class="bar" style="height:55%"><span>6.78</span><em>2022</em></div>
+  <div class="bar" style="height:71%"><span>8.82</span><em>2023</em></div>
+  <div class="bar" style="height:83%"><span>10.32</span><em>2024</em></div>
+  <div class="bar" style="height:100%"><span>12.36</span><em>2025</em></div>
+  <div class="bar y26" style="height:59%"><span>7.24*</span><em>26H1</em></div>
+</div>
+<p class="chart-cap">合併營收（億元）。2026H1 為半年數，非全年年化。最高柱＝2025 年 12.36 億。</p>
+
+<div class="callout">
+  <b>讀法。</b>2022 是疫情後筆電去庫存谷底。2023–2025 連三年營收創新高；2021→2025 營收 CAGR 約 10%，谷底 2022→2025 約 22%，淨利 CAGR 約 20%。毛利率從 2021 的 37% 跳到 2023 近 50%，之後穩在 44–48%——這是高畫素／窄邊框／多鏡頭組合，不是一次性業外。2023 淨利率 28.6% 是五年高點；2024 回到 22% 是擴產、費用與稅負後的常態帶，不是崩壞。股本因盈餘轉增資與 2025-05 上櫃現金增資（面額 5,600 萬元）變大，故看規模用營收與淨利，看股東用 EPS 與配息。
+</div>
+<p>2025 官方細項（仟元）：營收 1,235,804、毛利 591,191、營業利益 385,007、稅前 411,128、稅後 291,941。資產 2,421,565、負債 860,620、權益 1,560,945。</p>
+
+<div class="page-break"></div>
+<h2>2. 2026 進度：量價仍在、年增正在收斂</h2>
+<table>
+  <tr><th>期間</th><th class="n">營收</th><th class="n">年增</th><th class="n">毛利率</th><th class="n">稅後</th><th class="n">EPS</th><th>來源</th></tr>
+  <tr><td>2026Q1</td><td class="n">3.45</td><td class="n">+34.7%</td><td class="n">45.7%</td><td class="n">0.83</td><td class="n">1.75</td><td>官方／季報</td></tr>
+  <tr><td>2026Q2</td><td class="n">3.79</td><td class="n">+24.9%</td><td class="n">44.0%</td><td class="n">0.87</td><td class="n">1.85</td><td>季報</td></tr>
+  <tr><td>2026H1</td><td class="n">7.24</td><td class="n">+29.4%</td><td class="n">44.8%</td><td class="n">1.70</td><td class="n">3.60</td><td>官方</td></tr>
+  <tr><td>2026 1–7 月</td><td class="n">8.35</td><td class="n">+23.5%</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td>月營收</td></tr>
+</table>
+<p>法說（2026-05-20）：第一季出貨量約 <b>+18%</b>、ASP 約 <b>+20%</b>；新開案以 5M／8M 為主，HD／FHD 減少。7 月單月年減 4.6%（1.11 億），累計仍 +23.5%。管理層全年目標「雙位數成長」，並警告下半年可能與去年同期持平（提前拉貨透支）。</p>
+<p>若全年只做到雙位數下限（約 +10–15%），2026 營收約 13.6–14.2 億；若把上半年 +29% 外插，會接近 15 億以上。7 月已經在減速，<b>不應把 H1 增速當成全年</b>。Q2 毛利率 44.0%，公司解釋為高階新品導入初期成本；營益率仍近 29%，本業沒有掉到「有營收沒利潤」。</p>
+
+<h2>3. 資產負債、現金、週轉</h2>
+<table>
+  <tr><th>時點</th><th class="n">資產</th><th class="n">權益</th><th class="n">負債比</th><th>備註</th></tr>
+  <tr><td>2022 年底</td><td class="n">11.49</td><td class="n">6.67</td><td class="n">42.0%</td><td>財報更正公告比較欄</td></tr>
+  <tr><td>2023 年底</td><td class="n">14.06</td><td class="n">8.12</td><td class="n">42.2%</td><td>同上</td></tr>
+  <tr><td>2024 年底</td><td class="n">16.44</td><td class="n">9.59</td><td class="n">41.7%</td><td>官方</td></tr>
+  <tr><td>2025 年底</td><td class="n">24.22</td><td class="n">15.61</td><td class="n">35.5%</td><td>官方；含上櫃增資</td></tr>
+  <tr><td>2026H1</td><td class="n">26.60</td><td class="n">15.46</td><td class="n">41.9%</td><td>官方；除息 4.50 元後權益略降</td></tr>
+</table>
+<p>2026Q1：流動資產 21.53 億、固定資產 3.58 億、總資產 25.82 億。富邦季表：流動比約 231%、借款依存度 0、利息保障倍數四位數——實質無息債務。存貨占資產僅約 2–5%（極瘦）；應收占資產約 21–25%，帳期偏長，要盯的是應收而非存貨。</p>
+<table>
+  <tr><th>年</th><th class="n">營業現金流</th><th class="n">投資現金流</th><th class="n">融資現金流</th><th class="n">營業CF／稅後</th></tr>
+  <tr><td>2024</td><td class="n">3.46 億</td><td class="n">−0.64 億</td><td class="n">−1.17 億</td><td class="n">1.51×</td></tr>
+  <tr><td>2025</td><td class="n">4.04 億</td><td class="n">−1.18 億</td><td class="n">+2.87 億</td><td class="n">1.38×</td></tr>
+  <tr><td>2026Q1</td><td class="n">1.73 億</td><td class="n">−0.05 億</td><td class="n">−0.02 億</td><td class="n">2.09×（單季）</td></tr>
+</table>
+<p>盈餘有現金跟著。2025 融資淨流入主要是上櫃現金增資。公司規劃未來兩年資本支出 <b>超過 10 億</b>（臺中新廠土地與設備約各半），以自有資金與保留盈餘支應、暫無外部籌資。這會讓未來兩年自由現金流變薄，屬計畫內。</p>
+<p>年 ROE（稅後／平均權益）：2023 約 34%、2024 約 26%、2025 約 23%（分母被增資墊高）、2026H1 年化約 22%。高 ROE 來自高淨利率＋低槓桿，不是靠借款放大。</p>
+<p>大陸投資：投審核准赴陸投資認列損益 2023／2024／2025 分別約 1.59／1.73／<b>2.49 億</b>。2025 合併稅後 2.92 億，江蘇子公司是獲利重心——競爭力來源，也是地緣風險濃度。</p>
+
+<h2>4. 股利、評價、價格</h2>
+<p>除息現金（元／股）：2022 0.99（另股票股利 1.98）、2023 2.48、2024 2.50、2025 2.64、<b>2026-06-29 4.50</b>。以 2025 EPS 6.51 計，配發率約 69%。上櫃後配息明顯提高。</p>
+<p>Yahoo Finance 年終收盤（6498.TWO）：2021 30.3 → 2022 21.6 → 2023 72.7 → 2024 131.5 → 2025 90.2 → 2026-08-27 <b>78.7</b>。52 週 67.2–115.5。價的大段在上櫃前後；2026 自高檔回落，評價回到約 10 倍 TTM 本益、淨值比約 2.4、現金殖利率約 6%。外資持股約 2.9%，前十大約 43.7%。日成交常僅百餘張，流動性薄。</p>
+<p>不要把「本益比看起來低」讀成便宜保證：小市值、客戶集中、專利訴訟、產能擴張期，折價裡含流動性與事件風險。</p>
+
+<div class="page-break"></div>
+<h2>5. 產業未來五年（2026–2030）</h2>
+<h3>5.1 終端：筆電總量不是朋友，規格才是</h3>
+<p>IDC（2026 年中）：2026 全球 PC 出貨預估年減約 <b>11%</b>，主因記憶體短缺延續至 2027 年底；筆電 ASP 上揚、低價帶受壓。中長期筆電出貨約 2026 年 1.81 億台 → 2030 年 2.08 億台，谷底後低個位數復甦，本質是換機週期而非新人口紅利。Gartner 同步警示記憶體漲價推遲 AI PC 滲透（50% 滲透可能延至 2028）、持有年限拉長。</p>
+<p>對鏡頭廠：<b>顆數成長有限，單顆價值才是成長帳戶。</b> 規格路徑已從 VGA 2P → HD 3P／4P → 微型 FHD → <b>5M／8M／部分 10M+</b>。ISP 內建降低成本與空間，反而加快往高畫素走。雙鏡頭、IR／生物辨識、窄邊框短 TTL 提高單機鏡頭含量。品牌在記憶體貴的年份更把預算集中在高階機——對已站在高階開案的供應商結構性偏多。</p>
+<p>第三方（WiseGuyReports）估筆記型電腦相機模組市場 2025 約 21.3 億美元、2035 約 38 億美元，2026–2035 CAGR 約 6%。這是模組口徑，鏡頭只是其中一段。</p>
+
+<h3>5.2 非筆電：機器視覺／醫療／穿戴是選擇權</h3>
+<p>公司目標：五年內非筆電營收占比從約 5% 拉到 <b>30%</b>。2026 法說更務實——開案數年增一倍、目標年增「三位數」，但因筆電成長更快，占比短期可能被稀釋。機器視覺至 2030 常被引述為數百億美元 TAM（公司引述「突破 500 億美元」）；那是終端市場，不是久禾光可吃下的營收。智慧眼鏡符合微型化能力，目前多為新創、一線大廠尚未切入；「2026 年內至少一個客戶量產」是管理層期望，不是已入帳。</p>
+
+<h3>5.3 產業結構：全球筆電鏡頭實質雙寡占</h3>
+<table>
+  <tr><th>公司</th><th>自述／報導市占</th><th class="n">2025 營收</th><th>2025 獲利</th><th>策略</th></tr>
+  <tr><td>先進光 3362</td><td>約 65–77%（場合不同）</td><td class="n">43.17 億</td><td>稅後虧 1.54 億、EPS −1.08</td><td>規模龍頭；指紋／車用／越南；大立光持股約 15%</td></tr>
+  <tr><td>久禾光 6498</td><td>約 30–33%，長線想挑戰 50%</td><td class="n">12.36 億</td><td>稅後 2.92 億、EPS 6.51</td><td>高階微型化、少量多樣、自動化</td></tr>
+</table>
+<p>兩家自述市占加總可超過 100%，<b>不可當獨立普查</b>。能確定的是：全球品牌筆電鏡頭供應高度集中在台灣兩家；中國紅色供應鏈持續以價格嘗試切入，尚未在高階客製化站穩。先進光 2025 營收幾乎持平且轉虧，久禾光同期間營收 +20%、獲利創新高——規模第二、獲利反而較穩。</p>
+<p>專利戰是產業常態：先進光曾對久禾光／江蘇久禾提侵權；2025–2026 又有大立光基礎專利轉讓後再訴的報導。這是雙寡占維持進入障礙的手段，也是久禾光的或有負債。</p>
+
+<h2>6. 全球競爭力判斷</h2>
+<h3>6.1 現在站在哪</h3>
+<p>久禾光不是光學總冠軍（那是手機鏡頭的大立光／舜宇等），而是 <b>筆電視訊鏡頭微型化這個窄市場的全球第二、獲利品質較高的挑戰者</b>。競爭力有五件公開言行與財報對得上的事：</p>
+<ol>
+  <li><b>規格卡位</b>：5M／8M／規劃 12M 大廣角年底量產；窄邊框、短 TTL、雙波段共焦、一體式鏡頭。與終端「高屏占比＋AI 視訊」同方向。</li>
+  <li><b>少量多樣＋與客戶共開案</b>：轉換成本高。法說稱客戶試過換供應商、因品質與服務回頭。</li>
+  <li><b>自動化與良率</b>：支撐 44%+ 毛利率，這是純價格競爭者最難複製的一段。</li>
+  <li><b>資產負債表</b>：低負債、高營業現金流、上櫃後現金更厚，有資格自費擴產。</li>
+  <li><b>江蘇製造＋台灣設計／擴廠</b>：貼近筆電組裝帶，同時用臺中新廠回應「非中國產能」詢問。法說稱若需泰國／越南，自動化產線可約三個月組起來——這是宣稱，尚未被出貨驗證。</li>
+</ol>
+
+<h3>6.2 相對同業</h3>
+<table>
+  <tr><th>構面</th><th>久禾光</th><th>先進光</th><th>手機光學巨頭</th></tr>
+  <tr><td>戰場</td><td>筆電鏡頭為主</td><td>筆電＋指紋＋車用</td><td>手機／高階塑膠鏡頭</td></tr>
+  <tr><td>規模</td><td>小（約龍頭營收 1/3）</td><td>大</td><td>大一個數量級</td></tr>
+  <tr><td>2025 獲利</td><td>高</td><td>虧損</td><td>視公司</td></tr>
+  <tr><td>多元程度</td><td>弱（95% NB）</td><td>較好</td><td>最好</td></tr>
+  <tr><td>流動性</td><td>小市值、量薄</td><td>較大</td><td>最大</td></tr>
+  <tr><td>專利武器</td><td>累計約 52 件（法說）</td><td>有大立光專利／持股後盾</td><td>專利池最深</td></tr>
+</table>
+<p><b>結論。</b>在筆電鏡頭利基，久禾光具備可出口的全球供應地位；在廣義光學，它不是全球平台型公司。未來五年競爭力能否上升，幾乎完全取決於：(a) 高階筆電開案是否繼續贏；(b) 非筆電有沒有變成雙位數營收占比；(c) 專利訴訟是否造成客戶轉向或權利金；(d) 10 億擴產是否變成稼動率而不是折舊包袱。</p>
+
+<h3>6.3 未來五年三情景（研究假設，非公司指引）</h3>
+<p>假設毛利率中長期落在 42–48%、有效稅率與 2025 相近、不發生敗訴禁制令。數字是數量級，不是目標價。</p>
+<table>
+  <tr><th>情景</th><th>前提</th><th>2030 營收數量級</th><th>含義</th></tr>
+  <tr><td>保守</td><td>筆電總量弱、市占原地、非筆電仍 5–8%、擴產消化慢</td><td>約 14–17 億</td><td>高配息、低成長的利基現金牛</td></tr>
+  <tr><td>基準</td><td>雙位數維持 1–2 年後降至高個位數；市占緩升；非筆電 12–18%</td><td>約 20–25 億</td><td>規格升級＋份額微增，跑贏產業約 6% CAGR</td></tr>
+  <tr><td>樂觀</td><td>市占朝 40%+；12M／多鏡頭普及；非筆電接近「五年 30%」</td><td>約 28–35 億</td><td>須同時打贏專利、產能、新應用三場</td></tr>
+</table>
+<p>基準情景下，若淨利率維持約 20%，2030 稅後約 4–5 億——前提是毛利率不因紅色供應鏈或敗訴而永久性下台階。這不是預測，是把已觀察到的結構往前推。2026 年本身：H1 已證明量價仍在；全年能否雙位數，7 月之後的拉貨與記憶體對品牌出貨的實質打擊是關鍵觀察點。</p>
+
+<div class="page-break"></div>
+<h2>7. 風險（已看到的）</h2>
+<ol>
+  <li><b>客戶與應用集中</b>：約 95% 筆電。NB 出貨若因記憶體短缺掉 10–20%，高階組合只能部分對沖。</li>
+  <li><b>雙寡占專利戰</b>：先進光／大立光專利軸。敗訴、禁制或客戶為避險分流，都會直接打市占。</li>
+  <li><b>中國廠獲利濃度</b>：2025 認列大陸投資損益約 2.49 億，接近合併獲利主體。關稅、出口管制、客戶「去中化」硬性要求，會逼遷廠與資本支出超支。</li>
+  <li><b>擴產執行</b>：兩年 &gt;10 億相對現有權益 15 億並不小。蓋好沒訂單＝折舊；訂單來了蓋太慢＝丟市占。</li>
+  <li><b>毛利率從 50% 回落到 44%</b>：高階新品良率與價格競爭若再滑，高 ROE 敘事會一起鬆。</li>
+  <li><b>流動性與評價波動</b>：日成交百張、52 週振幅大。</li>
+  <li><b>市占數字不可加總</b>：兩家自述加總可 &gt;100%。任何「全球第幾」只能當公司口徑。</li>
+  <li>把本益比 10 倍或殖利率 6% 當成下單理由——本報告不提供買賣建議。</li>
+</ol>
+
+<h2>8. 來源</h2>
+<ul>
+  <li>公開資訊觀測站重大訊息：2024／2025 全年合併財務報告、2026 第二季合併財務報告、大陸增資／投審核准</li>
+  <li>櫃買中心 2025-02 上櫃審議稿（112 年營收 881,952 千、稅後 251,913 千、EPS 6.00）</li>
+  <li>公司月營收（HiStock 轉載至 2026-07）、季損益／資產／現金流量（HiStock）</li>
+  <li>公司官網沿革 https://ptic.com.tw/</li>
+  <li>2026-05-20 法說整理（BigGo；毛利率逐字稿有誤植，本報告改用季報）</li>
+  <li>工商時報 2026-06-01、2026-07-20；MoneyDJ 市占／非 NB 五年 30% 目標（2025-04-25）</li>
+  <li>鉅亨網報價 2026-08-27；Yahoo Finance 6498.TWO</li>
+  <li>IDC PC 展望 2026；WiseGuyReports Notebook PC Camera 2025–2035</li>
+  <li>先進光對照：公司營收公告、鉅亨 2026-05、法說公開摘要</li>
+  <li>IPO贏家歷史損益表（僅 2021–2024 年與官方可交叉者採用）</li>
+</ul>
+<p>未使用：FinMind／FRED 即時 API；Goodinfo 遭 Cloudflare 擋下。</p>
+
+<footer class="note">
+  本檔為 Augur 研究整理（[I]），AI 產出標 self-reported。數字以 2026-08-27 可取得之公開資訊為準，後續以公司正式財報為準。不構成買賣、承銷或投資建議。<br>
+  檔名：reports/augur_6498_jiuheguang_5y_finance_outlook_20260827
+</footer>
+</div>
+</body>
+</html>
