@@ -1,0 +1,23 @@
+---
+description: 產出的 PDF 一律複製到 Cursor artifacts，讓用戶可在網頁直接下載
+alwaysApply: true
+---
+
+# 產出 PDF 預設可下載
+
+凡本專案 Cloud Agent／本機會話**新產出給用戶看的 PDF**（研究報告、法說整理、列印稿等），除寫入 repo（如 `reports/`）外，**一律再複製一份到 Cursor artifacts**，讓用戶在 Cursor 網頁（Agents）直接 Download，不必先 clone／checkout。
+
+## 必做
+
+1. 產出 PDF 後立刻複製到：
+   - `/opt/cursor/artifacts/<descriptive_snake_case>.pdf`
+   - 若該路徑不存在，改寫 `/cursor/stores/self/artifacts/`（兩者通常為同一目錄）
+2. 檔名短、可辨識、snake_case；**不覆寫**已上傳過的同名檔（artifacts 不可變，改加日期或後綴）。
+3. 回覆用戶時用 HTML 標出產物，例如：
+   `<a href="/opt/cursor/artifacts/chc_9930_financial_outlook_20260827.pdf">下載 PDF</a>`
+4. GitHub raw／blob 連結可當備援，**不得當唯一下載途徑**。
+
+## 不做
+
+- 不把內部除錯 dump、機密、`.env` 放進 artifacts
+- 不因此略過用戶已要求的 repo 存檔（`reports/` 等）
