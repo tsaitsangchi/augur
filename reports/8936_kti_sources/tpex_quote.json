@@ -1,0 +1,31 @@
+{
+  "quote": {
+    "Date": "1150826",
+    "SecuritiesCompanyCode": "8936",
+    "CompanyName": "國統",
+    "Close": "51.10",
+    "Change": "0.00",
+    "Open": "51.00",
+    "High": "51.30",
+    "Low": "50.90",
+    "TradingShares": "752000",
+    "TransactionAmount": "38387100",
+    "TransactionNumber": "470",
+    "LatestBidPrice": "51.00",
+    "LatesAskPrice": "51.10",
+    "Capitals": "248078157",
+    "NextLimitUp": "56.20",
+    "NextLimitDown": "46.00"
+  },
+  "per": {
+    "Date": "1150826",
+    "SecuritiesCompanyCode": "8936",
+    "CompanyName": "國統",
+    "PriceEarningRatio": "11.77",
+    "DividendPerShare": "3.00000000",
+    "YieldRatio": "5.87",
+    "PriceBookRatio": "2.00"
+  },
+  "quote_n": 1013,
+  "per_n": 887
+}
