@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<title>和康生（1783）五年財務分析與產業前景報告</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 18mm 14mm; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: "WenQuanYi Micro Hei", "Noto Sans CJK TC", "Source Han Sans TW", sans-serif;
+    color: #1e293b; font-size: 11.5pt; line-height: 1.55;
+    background: #fff;
+  }
+  .cover {
+    page-break-after: always; min-height: 240mm;
+    padding: 28mm 8mm 12mm; background: linear-gradient(165deg,#0b1f3a 0%,#123056 55%,#0f766e 140%);
+    color: #f8fafc;
+  }
+  .cover h1 { font-size: 28pt; line-height: 1.25; margin: 0 0 8px; font-weight: 800; }
+  .cover .sub { font-size: 14pt; opacity: .92; margin-bottom: 28px; }
+  .cover .meta { font-size: 11pt; opacity: .88; }
+  .kpis { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .kpi {
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
+    border-radius: 10px; padding: 12px 14px; min-width: 140px; flex: 1;
+  }
+  .kpi b { display: block; font-size: 18pt; }
+  .kpi span { font-size: 9.5pt; opacity: .85; }
+  h2 {
+    color: #0b1f3a; border-bottom: 3px solid #0f766e; padding-bottom: 4px;
+    font-size: 16pt; page-break-after: avoid; margin-top: 22px;
+  }
+  h3 { color: #1d4ed8; font-size: 13pt; page-break-after: avoid; margin-top: 16px; }
+  h4 { color: #334155; font-size: 11.5pt; margin-bottom: 4px; }
+  p { margin: 8px 0; }
+  .note, .warn, .src {
+    font-size: 9.5pt; padding: 8px 10px; border-radius: 6px; margin: 10px 0;
+  }
+  .note { background: #eff6ff; border-left: 4px solid #1d4ed8; }
+  .warn { background: #fff7ed; border-left: 4px solid #c2410c; }
+  .src { background: #f1f5f9; border-left: 4px solid #64748b; color: #475569; }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 9.2pt; margin: 8px 0 14px;
+    page-break-inside: auto;
+  }
+  th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: right; }
+  th { background: #0b1f3a; color: #fff; text-align: center; font-weight: 600; }
+  td:first-child, th:first-child { text-align: left; }
+  tr:nth-child(even) { background: #f8fafc; }
+  tr.hl { background: #ecfdf5; font-weight: 600; }
+  .chart { margin: 10px 0 16px; page-break-inside: avoid; }
+  ul { margin: 6px 0 10px 18px; }
+  li { margin: 3px 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; background: #f8fafc; }
+  .footer { font-size: 8.5pt; color: #64748b; margin-top: 18px; }
+  a { color: #1d4ed8; }
+  .toc a { text-decoration: none; color: #0b1f3a; }
+  .toc li { margin: 4px 0; }
+  .small { font-size: 9.5pt; color: #475569; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="small" style="letter-spacing:.2em;opacity:.7;">AUGUR RESEARCH NOTE · PUBLIC-SOURCE COMPILATION</div>
+  <h1>和康生物科技<br/>（1783.TW）</h1>
+  <div class="sub">最近五年財務分析 · 公司與產業未來五年前景<br/>全球競爭力評估報告</div>
+  <div class="meta">
+    報告日：2026-08-27（股價與市值以當日收盤）<br/>
+    標的：和康生物科技股份有限公司 Maxigen Biotech Inc.<br/>
+    資料截止：合併財報至 2026Q2；月營收至 2026-07；產業研調為 2024–2026 公開報告<br/>
+    性質：公開資訊彙編與財務分析；<strong>非投資建議、非目標價、非下單依據</strong>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><b>8.12 億</b><span>2025 合併營收</span></div>
+    <div class="kpi"><b>69.5%</b><span>2025 毛利率</span></div>
+    <div class="kpi"><b>2.96 元</b><span>2025 EPS</span></div>
+    <div class="kpi"><b>12.2%</b><span>營收 CAGR 2021–25</span></div>
+    <div class="kpi"><b>12.6×</b><span>本益比（TTM EPS 3.24）</span></div>
+    <div class="kpi"><b>4.9%</b><span>2025 現金殖利率（以 40.70 元）</span></div>
+  </div>
+  <p class="small" style="margin-top:36px;opacity:.8;">
+    本報告由公開財報與產業研調交叉核對後機械彙編。前瞻段落為情境與管理層口述整理，
+    定性判斷標示為 self-reported（分析者意見），不得讀成「世界必然如此」。
+  </p>
+</section>
+
+<h2>目錄</h2>
+<ol class="toc">
+  <li>摘要與結論</li>
+  <li>資料範圍、方法與限制</li>
+  <li>公司定位與商業模式</li>
+  <li>最近五年財務分析（2021–2025，並含 2026 上半年）</li>
+  <li>台股同業對照（科妍 1786、雙美 4728）</li>
+  <li>產業未來五年前景</li>
+  <li>公司和康生未來五年前景（管理層目標 vs 情境）</li>
+  <li>全球競爭力評估</li>
+  <li>風險、觀察清單與誠實缺口</li>
+  <li>附錄：季報明細與來源</li>
+</ol>
+
+<h2>1. 摘要與結論</h2>
+<p>
+和康生是台灣少數同時掌握<strong>醫療級膠原蛋白</strong>與<strong>交聯玻尿酸</strong>兩條生物高分子平台、
+並以植入／填補醫材為主力的上市公司。2021 年大江生醫入主後，營收結構已轉為生醫產品為主；
+2025 年產品組合約膠原蛋白 53%、玻尿酸 47%（2026-03-30 法說口述）。
+</p>
+<p>
+<strong>過去五年（可核對數字）</strong>：合併營收由 2021 年 <strong>5.12 億</strong>升至 2025 年
+<strong>8.12 億</strong>（CAGR 12.2%）；稅後淨利由
+<strong>0.88 億</strong>升至 <strong>2.65 億</strong>（CAGR 31.9%）；
+基本 EPS 由 1.14 元升至 2.96 元（CAGR 26.9%）。毛利率由 51.0% 升至
+69.5%，顯示產品組合與定價權改善，而非單純「做大營收」。
+2025 年負債比僅 18.8%、流動比 3.21 倍，財務槓桿極低。
+</p>
+<p>
+<strong>最近一期</strong>：2026 上半年營收 4.12 億、年增 6.7%；
+稅後 1.32 億、EPS 1.47 元（公開資訊觀測站 2026-08-10 公告，與季報加總一致）。
+截至 2026-07 累計營收約 4.76 億、年增約 5.35%，7 月單月年減 2.62%——相對於 2025 全年約 +19% 的增速，
+<strong>2026 年迄今成長已明顯降溫</strong>，與管理層「未來五年 CAGR 15–20%、營收翻倍」的口述目標存在落差。此為觀察項，不是已實現結果。
+</p>
+<p>
+<strong>產業與競爭力（self-reported 判斷）</strong>：膠原／玻尿酸醫材全球市場屬中個位數至高個位數成長的成熟賽道
+（膠原+HA 生醫材料約 2024 年 92 億美元→2030 年 130 億美元、CAGR 5.9%；真皮填補劑另一口徑 2026–2033 CAGR 9.7%）。
+和康生在全球填充劑龍頭（AbbVie/Allergan、Galderma、Merz）面前是利基挑戰者，但在
+<strong>美國 FDA 510(k) 膠原敷料／鼻腔／牙科耗材</strong>與台灣健保關節注射劑具差異化；台灣同業中，
+雙美以中國醫美膠原針劑體量與毛利明顯領先，科妍營收規模接近但 2025 獲利波動較大。
+和康生的全球競爭力來自「多科別醫材平台 + 取證密度 + 低槓桿現金」，弱項是品牌全球能見度、美國 Class III 臨床成本、以及醫美 HA 紅海價格壓力。
+</p>
+<div class="warn">
+本報告<strong>不構成投資建議</strong>。任何情境數字皆非承諾報酬。股價 40.70 元、市值約 36.4 億（Yahoo 2026-08-27）僅供估值快照。
+</div>
+
+<h2>2. 資料範圍、方法與限制</h2>
+<ul>
+  <li><strong>財務主表</strong>：HiStock 彙編之合併綜合損益／資產／負債權益／現金流量季報（擷取 2026-08-27）。2026H1 以公開資訊觀測站 2026-08-10 董事會公告交叉驗證，營收、毛利、營業利益、稅前、稅後、EPS、資產、負債、權益<strong>完全一致</strong>。</li>
+  <li><strong>年度 EPS</strong>：採用 Yahoo／富聯網公布之全年基本 EPS（2021 年有增資，四季 EPS 相加 ≠ 全年 EPS）。</li>
+  <li><strong>股利</strong>：HiStock 除權除息表（2026-08-27）。</li>
+  <li><strong>股價／市值／本益比</strong>：Yahoo 股市 2026-08-27 收盤。</li>
+  <li><strong>營運敘事</strong>：2026-03-30 法說會整理、經濟日報 2025-08-22、環球生技、公司官網 FDA 新聞、MoneyDJ 百科。</li>
+  <li><strong>產業</strong>：Persistence Market Research（真皮填補劑）、Research and Markets／GIA（膠原+HA 生醫材料，2026-08）、BCG 醫美白皮書（2026-05）、Future Market Insights（非 HA 填充劑）。</li>
+  <li><strong>未使用</strong>：FinMind／FRED 即時 API（專案取數凍結）；本環境無本地 PostgreSQL，故<strong>未引用 augur 庫內列</strong>。所有量化數字均可回溯至上述公開頁／公告。</li>
+</ul>
+<p class="small">單位：除另註，財務表為新台幣<strong>仟元</strong>加總後改以<strong>億元</strong>呈現（四捨五入到小數 2 位）。比率由仟元原值計算，避免二次捨入誤差。</p>
+
+<h2>3. 公司定位與商業模式</h2>
+<h3>3.1 基本資料</h3>
+<table>
+  <tr><th>項目</th><th style="text-align:left">內容</th></tr>
+  <tr><td>公司</td><td style="text-align:left">和康生物科技股份有限公司（Maxigen Biotech Inc.）</td></tr>
+  <tr><td>代號／市場</td><td style="text-align:left">1783.TW　台灣證券交易所　生技醫療</td></tr>
+  <tr><td>成立／上市</td><td style="text-align:left">1998-12-03／2013-12-20</td></tr>
+  <tr><td>資本額／股數</td><td style="text-align:left">8.97 億；已發行 89,698,115 股</td></tr>
+  <tr><td>董事長／總經理</td><td style="text-align:left">林詠翔／陳敬亭</td></tr>
+  <tr><td>地址</td><td style="text-align:left">桃園市龜山區科技一路 88 號</td></tr>
+  <tr><td>簽證會計師</td><td style="text-align:left">資誠聯合會計師事務所</td></tr>
+  <tr><td>主要股東脈絡</td><td style="text-align:left">2021 年加入大江生醫（TCI）集團；董監持股約 42%（Yahoo 2026-08-27）</td></tr>
+  <tr><td>業務一句話</td><td style="text-align:left">生物高分子（膠原蛋白、透明質酸）應用於植入式醫材與醫美填補之研發、製造、銷售</td></tr>
+</table>
+
+<h3>3.2 產品平台</h3>
+<p>MoneyDJ 百科與 TFDA 資料整理的主力線：</p>
+<ul>
+  <li><strong>關節腔注射（HA）</strong>：安節益 ArtiAid、優節益 ArtiAid Plus、樂節益 ArtiBest。MoneyDJ 載 2024 年健保特材用量口徑下，公司關節內注射劑台灣市占約 25%。</li>
+  <li><strong>皮膚填補劑（HA）</strong>：膚美登 Formaderm、芙媄亮 Formaderm Young、芙巧蜜 Formaderm Charming（衛部醫器製字第 006039 號）及含利多卡因劑型。</li>
+  <li><strong>膠原蛋白醫材</strong>：癒立安 HealiAid、速吉安 SurgiAid、鼻即安 NasoAid、敷美安 FormaAid 牙科再生膜等。</li>
+  <li><strong>骨科／牙科骨材</strong>：富茂骨 Formagraft（與 NuVasive 策略聯盟敘事見百科）、倍骨益、齦即安等。</li>
+  <li><strong>眼科 HA</strong>：維視愛 ViscAid、護視安 PreviscAid 等。</li>
+</ul>
+<p>
+2024-01 公司公告 HealiAid 牙科膠原傷口敷料取得美國 <strong>FDA 510(k)</strong>。
+2026 法說：累計約 <strong>131 項</strong>產品許可；加拿大牙科證、巴西皮膚填補劑證；NasoAid 計畫於 2026-04 美國 COSM 發表；
+歐盟 MDR 已續證。美國策略優先 Class II（510k），因 Class III 臨床估約新台幣 2 億元。
+</p>
+<h3>3.3 區域與組合（法說口述，非財報附註逐列）</h3>
+<ul>
+  <li>2025 產品：膠原蛋白約 53%、玻尿酸約 47%。</li>
+  <li>2025 區域約：台灣 37–40%、美國約 30%、中國出口 Q4 約 16%、歐洲約 10%、其他亞洲約 5%。</li>
+  <li>MoneyDJ 百科另載 2024 年銷售地：台灣 44%、美洲 29%、歐洲 9%、亞洲 11%（口徑年分不同，併列不混用）。</li>
+  <li>管理層稱台灣膠原相關醫材市占約 65%（經濟日報 2025-08-22，口徑為口述、未見獨立稽核市占研究）。</li>
+</ul>
+<div class="note">膠原蛋白線被管理層描述為技術門檻高、毛利最高；玻尿酸線競爭激烈、毛利較低，但台灣健保關節注射稼動率接近 100%。這解釋了「營收增速放緩時毛利率仍能維持高檔」的結構。</div>
+
+<h2>4. 最近五年財務分析</h2>
+<h3>4.1 損益：成長品質優於規模擴張</h3>
+<div class="chart"><svg viewBox="0 0 680 260" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="680" height="260" fill="#fff"/><text x="52" y="18" font-size="13" font-weight="700" fill="#1a365d">合併營收與稅後淨利（2021–2025）</text><text x="8" y="46" font-size="10" fill="#64748b">新台幣 億元</text><line x1="52" y1="36" x2="52" y2="220" stroke="#cbd5e1"/><line x1="52" y1="220" x2="664" y2="220" stroke="#cbd5e1"/><rect x="69.1" y="116.4" width="44.1" height="103.6" fill="#1d4ed8" rx="2"/><rect x="191.5" y="97.6" width="44.1" height="122.4" fill="#1d4ed8" rx="2"/><rect x="313.9" y="94.1" width="44.1" height="125.9" fill="#1d4ed8" rx="2"/><rect x="436.3" y="82.2" width="44.1" height="137.8" fill="#1d4ed8" rx="2"/><rect x="558.7" y="55.7" width="44.1" height="164.3" fill="#1d4ed8" rx="2"/><rect x="113.2" y="202.3" width="44.1" height="17.7" fill="#0f766e" rx="2"/><text x="135.2" y="198.3" text-anchor="middle" font-size="9" fill="#334155">0.9</text><rect x="235.6" y="191.8" width="44.1" height="28.2" fill="#0f766e" rx="2"/><text x="257.6" y="187.8" text-anchor="middle" font-size="9" fill="#334155">1.4</text><rect x="358.0" y="186.4" width="44.1" height="33.6" fill="#0f766e" rx="2"/><text x="380.0" y="182.4" text-anchor="middle" font-size="9" fill="#334155">1.7</text><rect x="480.4" y="181.5" width="44.1" height="38.5" fill="#0f766e" rx="2"/><text x="502.4" y="177.5" text-anchor="middle" font-size="9" fill="#334155">1.9</text><rect x="602.8" y="166.3" width="44.1" height="53.7" fill="#0f766e" rx="2"/><text x="624.8" y="162.3" text-anchor="middle" font-size="9" fill="#334155">2.7</text><text x="113.2" y="246" text-anchor="middle" font-size="11" fill="#334155">2021</text><text x="235.6" y="246" text-anchor="middle" font-size="11" fill="#334155">2022</text><text x="358.0" y="246" text-anchor="middle" font-size="11" fill="#334155">2023</text><text x="480.4" y="246" text-anchor="middle" font-size="11" fill="#334155">2024</text><text x="602.8" y="246" text-anchor="middle" font-size="11" fill="#334155">2025</text><rect x="504" y="10" width="10" height="10" fill="#1d4ed8" rx="1"/><text x="518" y="19" font-size="11" fill="#334155">營收</text><rect x="552" y="10" width="10" height="10" fill="#0f766e" rx="1"/><text x="566" y="19" font-size="11" fill="#334155">稅後淨利</text></svg></div>
+<div class="chart"><svg viewBox="0 0 680 250" width="100%" xmlns="http://www.w3.org/2000/svg"><rect width="680" height="250" fill="#fff"/><text x="48" y="18" font-size="13" font-weight="700" fill="#1a365d">獲利率走勢（年）</text><line x1="48" y1="36" x2="48" y2="214" stroke="#cbd5e1"/><line x1="48" y1="214" x2="664" y2="214" stroke="#cbd5e1"/><circle cx="48.0" cy="111.1" r="3.2" fill="#1d4ed8"/><text x="48.0" y="103.1" text-anchor="middle" font-size="9" fill="#334155">51.0</text><circle cx="202.0" cy="79.3" r="3.2" fill="#1d4ed8"/><text x="202.0" y="71.3" text-anchor="middle" font-size="9" fill="#334155">61.9</text><polyline fill="none" stroke="#1d4ed8" stroke-width="2.2" points="48.0,111.1 202.0,79.3 356.0,60.9 510.0,52.6 664.0,57.1"/><polyline fill="none" stroke="#c2410c" stroke-width="2.2" points="48.0,208.7 202.0,197.9 356.0,189.7 510.0,182.8 664.0,166.1"/><polyline fill="none" stroke="#0f766e" stroke-width="2.2" points="48.0,210.0 202.0,192.6 356.0,182.2 510.0,178.4 664.0,164.5"/><circle cx="356.0" cy="60.9" r="3.2" fill="#1d4ed8"/><text x="356.0" y="52.9" text-anchor="middle" font-size="9" fill="#334155">68.2</text><circle cx="510.0" cy="52.6" r="3.2" fill="#1d4ed8"/><text x="510.0" y="44.6" text-anchor="middle" font-size="9" fill="#334155">71.0</text><circle cx="664.0" cy="57.1" r="3.2" fill="#1d4ed8"/><text x="664.0" y="49.1" text-anchor="middle" font-size="9" fill="#334155">69.5</text><circle cx="48.0" cy="208.7" r="3.2" fill="#c2410c"/><text x="48.0" y="200.7" text-anchor="middle" font-size="9" fill="#334155">17.6</text><circle cx="202.0" cy="197.9" r="3.2" fill="#c2410c"/><text x="202.0" y="189.9" text-anchor="middle" font-size="9" fill="#334155">21.3</text><circle cx="356.0" cy="189.7" r="3.2" fill="#c2410c"/><text x="356.0" y="181.7" text-anchor="middle" font-size="9" fill="#334155">24.1</text><circle cx="510.0" cy="182.8" r="3.2" fill="#c2410c"/><text x="510.0" y="174.8" text-anchor="middle" font-size="9" fill="#334155">26.4</text><circle cx="664.0" cy="166.1" r="3.2" fill="#c2410c"/><text x="664.0" y="158.1" text-anchor="middle" font-size="9" fill="#334155">32.2</text><circle cx="48.0" cy="210.0" r="3.2" fill="#0f766e"/><text x="48.0" y="202.0" text-anchor="middle" font-size="9" fill="#334155">17.1</text><circle cx="202.0" cy="192.6" r="3.2" fill="#0f766e"/><text x="202.0" y="184.6" text-anchor="middle" font-size="9" fill="#334155">23.1</text><circle cx="356.0" cy="182.2" r="3.2" fill="#0f766e"/><text x="356.0" y="174.2" text-anchor="middle" font-size="9" fill="#334155">26.7</text><circle cx="510.0" cy="178.4" r="3.2" fill="#0f766e"/><text x="510.0" y="170.4" text-anchor="middle" font-size="9" fill="#334155">27.9</text><circle cx="664.0" cy="164.5" r="3.2" fill="#0f766e"/><text x="664.0" y="156.5" text-anchor="middle" font-size="9" fill="#334155">32.7</text><text x="48.0" y="238" text-anchor="middle" font-size="11" fill="#334155">2021</text><text x="202.0" y="238" text-anchor="middle" font-size="11" fill="#334155">2022</text><text x="356.0" y="238" text-anchor="middle" font-size="11" fill="#334155">2023</text><text x="510.0" y="238" text-anchor="middle" font-size="11" fill="#334155">2024</text><text x="664.0" y="238" text-anchor="middle" font-size="11" fill="#334155">2025</text><rect x="460" y="8" width="10" height="10" fill="#1d4ed8"/><text x="474" y="17" font-size="11" fill="#334155">毛利率</text><rect x="530" y="8" width="10" height="10" fill="#c2410c"/><text x="544" y="17" font-size="11" fill="#334155">營益率</text><rect x="600" y="8" width="10" height="10" fill="#0f766e"/><text x="614" y="17" font-size="11" fill="#334155">淨利率</text></svg></div>
+<table>
+  <tr>
+    <th>年</th><th>營收(億)</th><th>YoY%</th><th>毛利(億)</th><th>毛利率%</th>
+    <th>營業利益(億)</th><th>營益率%</th><th>稅後(億)</th><th>淨利率%</th><th>EPS</th>
+  </tr>
+  <tr><td>2021</td><td>5.12</td><td>—</td><td>2.61</td><td>51.0</td><td>0.90</td><td>17.6</td><td>0.88</td><td>17.1</td><td>1.14</td></tr>
+<tr><td>2022</td><td>6.04</td><td>18.1</td><td>3.74</td><td>61.9</td><td>1.29</td><td>21.3</td><td>1.39</td><td>23.1</td><td>1.65</td></tr>
+<tr><td>2023</td><td>6.22</td><td>2.9</td><td>4.24</td><td>68.2</td><td>1.50</td><td>24.1</td><td>1.66</td><td>26.7</td><td>1.86</td></tr>
+<tr><td>2024</td><td>6.81</td><td>9.4</td><td>4.83</td><td>71.0</td><td>1.80</td><td>26.4</td><td>1.90</td><td>27.9</td><td>2.13</td></tr>
+<tr><td>2025</td><td>8.12</td><td>19.2</td><td>5.64</td><td>69.5</td><td>2.61</td><td>32.2</td><td>2.65</td><td>32.7</td><td>2.96</td></tr>
+<tr class='hl'><td>2026 H1</td><td>4.12</td><td>6.7</td><td>2.85</td><td>69.2</td><td>1.15</td><td>28.0</td><td>1.32</td><td>32.0</td><td>1.47</td></tr>
+</table>
+<p>
+解讀（self-reported）：
+</p>
+<ul>
+  <li><strong>2021→2022</strong>：營收 +18.1%，毛利率跳升約 10 個百分點（51.0%→61.9%），對應大江入主後產品組合調整、保養品代工淡出（百科：2024 年生醫產品約 100%）。</li>
+  <li><strong>2023</strong>：營收僅 +2.9%，但毛利率再升至 68.2%。Q4 稅後明顯偏弱（0.18 億），需以業外／稅務波動理解，不宜單季外推。</li>
+  <li><strong>2024</strong>：營收 +9.4% 至 6.81 億，毛利率 71.0%，EPS 2.13 元，與 2026-03 法說及 Genet 筆記一致。</li>
+  <li><strong>2025</strong>：營收 +19.2% 至 8.12 億，營業利益 +45.1%，稅後 +39.5%，EPS 2.96 元——<strong>獲利增速快於營收</strong>，經營槓桿與組合優化同時出現。</li>
+  <li><strong>2026H1</strong>：營收年增 6.7%（MOPS 411,881／386,002 仟元），毛利率 69.2%，但營益率 28.0% 低於 2025 全年 32.2%。Q2 單季營益率 25.69%、毛利率 68.12%（較 Q1 70.50% 回落）。Q2 稅後 0.79 億高於稅前 0.64 億，含所得稅利益／遞延稅影響，解讀獲利品質時應以營業利益為錨。</li>
+</ul>
+
+<h3>4.2 資產負債：低槓桿、現金厚、2026Q2 負債跳升主因股利</h3>
+<table>
+  <tr>
+    <th>時點</th><th>流動資產</th><th>固定資產</th><th>總資產</th><th>流動負債</th><th>總負債</th>
+    <th>權益</th><th>負債比%</th><th>流動比</th><th>ROE%</th><th>ROA%</th>
+  </tr>
+  <tr><td>2021YE</td><td>7.84</td><td>4.56</td><td>12.65</td><td>1.16</td><td>1.23</td><td>11.42</td><td>9.8</td><td>6.75</td><td>7.7</td><td>6.9</td></tr>
+<tr><td>2022YE</td><td>9.93</td><td>4.35</td><td>14.48</td><td>1.51</td><td>1.52</td><td>12.96</td><td>10.5</td><td>6.56</td><td>11.4</td><td>10.3</td></tr>
+<tr><td>2023YE</td><td>6.20</td><td>4.24</td><td>14.93</td><td>1.31</td><td>1.32</td><td>13.61</td><td>8.8</td><td>4.72</td><td>12.5</td><td>11.3</td></tr>
+<tr><td>2024YE</td><td>8.30</td><td>4.30</td><td>15.82</td><td>2.06</td><td>2.07</td><td>13.75</td><td>13.1</td><td>4.03</td><td>13.9</td><td>12.4</td></tr>
+<tr><td>2025YE</td><td>11.21</td><td>4.43</td><td>18.93</td><td>3.49</td><td>3.56</td><td>15.38</td><td>18.8</td><td>3.21</td><td>18.2</td><td>15.3</td></tr>
+<tr><td>2026Q1</td><td>11.80</td><td>4.48</td><td>19.91</td><td>3.56</td><td>3.64</td><td>16.27</td><td>18.3</td><td>3.32</td><td>—</td><td>—</td></tr>
+<tr class='hl'><td>2026Q2※</td><td>—</td><td>—</td><td>20.33</td><td>—</td><td>5.34</td><td>14.99</td><td>26.3</td><td>—</td><td>—</td><td>—</td></tr>
+</table>
+<p class="small">※2026Q2 資產／負債／權益取自公開資訊觀測站 2026-08-10 公告（仟元：2,032,933／534,022／1,498,911）。相對 Q1 權益下降約 1.28 億，約等於每股 2 元現金股利（≈1.79 億）入帳後、再加 Q2 淨利與其他綜合損益的淨結果；負債同步上升，符合「已宣告未發放股利」入流動負債。除息日 2026-09-01、發放日 2026-09-30。</p>
+<ul>
+  <li>2025 年底負債比 18.8% 、長期負債僅 0.06 億量級，實質近乎零有息債。</li>
+  <li>流動比五年均高於 3 倍（2024–2025 仍 4.03–3.21）。</li>
+  <li>2025 ROE 18.2%、ROA 15.3%（以年初年末平均權益／資產）。杜邦：淨利率 32.7% × 資產週轉 0.47 × 權益乘數 1.19 ≈ 18.2%。週轉偏低（醫材庫存＋現金占比高），ROE 主要靠高淨利率而非槓桿。</li>
+  <li>法說稱 2025Q4 現金及約當現金約 8.78 億、占總資產 46%。HiStock 同季流動資產 11.21 億，兩者相容（現金為流動資產子集；2025Q4 投資現金流 -3.45 億，可能含定存／金融資產重分類，自由現金流表面轉負<strong>不自動等於經營惡化</strong>）。</li>
+</ul>
+
+<h3>4.3 現金流量：本業現金穩定，大額投資流需分年解讀</h3>
+<table>
+  <tr><th>年</th><th>營業現金流(億)</th><th>投資現金流(億)</th><th>融資現金流(億)</th><th>自由現金流≈營業+投資(億)</th></tr>
+  <tr><td>2021</td><td>1.18</td><td>-0.03</td><td>1.89</td><td>1.15</td></tr>
+<tr><td>2022</td><td>2.68</td><td>0.10</td><td>-0.01</td><td>2.79</td></tr>
+<tr><td>2023</td><td>1.71</td><td>-4.90</td><td>-0.41</td><td>-3.19</td></tr>
+<tr><td>2024</td><td>2.98</td><td>-0.29</td><td>-0.60</td><td>2.69</td></tr>
+<tr><td>2025</td><td>2.90</td><td>-3.83</td><td>0.31</td><td>-0.93</td></tr>
+<tr class='hl'><td>2026Q1</td><td>0.79</td><td>-0.06</td><td>0.03</td><td>0.73</td></tr>
+</table>
+<ul>
+  <li>2021 融資 +1.91 億（Q3），對應大江入股／現金增資脈絡。</li>
+  <li>2022 營業現金流 2.68 億，幾乎無重大融資，現金轉換良好。</li>
+  <li>2023Q2 投資現金流 -5.02 億，拖累全年投資流；屬金融資產／理財配置的可能性高於「大舉蓋廠」（當年固定資產幾乎持平）。</li>
+  <li>2024 營業現金流 2.98 億，融資端可見股利流出（Q3 -0.86 億）。</li>
+  <li>2025 營業現金流仍 2.90 億，與稅後 2.65 億相當，盈餘現金含量高；Q4 投資 -3.45 億再次讓「自由現金流」轉負，解讀應結合現金餘額而非單看 FCF 標籤。</li>
+</ul>
+
+<h3>4.4 股利與股東報酬</h3>
+<table>
+  <tr><th>盈餘年度</th><th>現金股利</th><th>股票股利</th><th>EPS</th><th>現金配發率%</th><th>除息日</th></tr>
+  <tr><td>2021</td><td>0</td><td>1.00</td><td>1.14*</td><td>0</td><td>除權 2022-11-11</td></tr>
+  <tr><td>2022</td><td>0.50</td><td>0.50</td><td>1.65</td><td>30.3</td><td>2023-09-07</td></tr>
+  <tr><td>2023</td><td>0.9987</td><td>0</td><td>1.86</td><td>53.7</td><td>2024-07-23</td></tr>
+  <tr><td>2024</td><td>0.8300</td><td>0</td><td>2.13</td><td>39.0</td><td>2025-09-05</td></tr>
+  <tr><td>2025</td><td>1.9996</td><td>0</td><td>2.96</td><td>67.6</td><td>2026-09-01</td></tr>
+</table>
+<p class="small">*2021 全年 EPS 採富聯網 1.14；HiStock 四季合計 1.09（增資稀釋差異）。2025 配發率以 1.999598／2.96。殖利率 4.9%＝1.9996／收盤 40.70。</p>
+
+<h3>4.5 估值快照（2026-08-27，非目標價）</h3>
+<table>
+  <tr><th>指標</th><th>數值</th><th>算法／來源</th></tr>
+  <tr><td>收盤價</td><td>40.70 元</td><td>Yahoo 2026-08-27</td></tr>
+  <tr><td>市值</td><td>3,637.3 百萬（約 36.4 億）</td><td>Yahoo</td></tr>
+  <tr><td>TTM 營收</td><td>8.37 億</td><td>2025Q3–2026Q2 季報加總</td></tr>
+  <tr><td>TTM 稅後</td><td>2.91 億</td><td>同上</td></tr>
+  <tr><td>近四季 EPS</td><td>3.24 元</td><td>Yahoo：0.84+0.93+0.59+0.88</td></tr>
+  <tr><td>本益比</td><td>12.56×</td><td>40.70／3.24；Yahoo 列 12.48×</td></tr>
+  <tr><td>2026Q2 每股淨值</td><td>16.71 元</td><td>權益 1,498,911 仟元／89,698,115 股；Yahoo Q2 列 16.71</td></tr>
+  <tr><td>股淨比</td><td>2.44×</td><td>40.70／16.71</td></tr>
+  <tr><td>同業本益比（Yahoo）</td><td>34.40×</td><td>Yahoo 頁面括號「同業平均」；口徑為類股平均，含虧損股會失真，僅供參考</td></tr>
+</table>
+<p>
+以 TTM 本益比約 12.5 倍對照 2021–2025 EPS CAGR 26.9%，數學上 PEG&lt;1；
+但 2026 年迄今營收增速已降至高個位數，若全年僅個位數成長，12–13 倍並非「自動便宜」。
+這是估值框架，不是買賣結論。
+</p>
+
+<h2>5. 台股同業對照</h2>
+<p>
+選科妍（1786，HA／膠原醫材，營收規模最接近）與雙美（4728，豬源膠原植入劑、中國醫美為主）作同業尺，
+三者皆為公開財報加總，非市占研究。
+</p>
+<div class="chart"><svg viewBox="0 0 680 260" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="680" height="260" fill="#fff"/><text x="52" y="18" font-size="13" font-weight="700" fill="#1a365d">2025 年台股同業規模對照（營收／淨利）</text><text x="8" y="46" font-size="10" fill="#64748b">新台幣 億元</text><line x1="52" y1="36" x2="52" y2="220" stroke="#cbd5e1"/><line x1="52" y1="220" x2="664" y2="220" stroke="#cbd5e1"/><rect x="80.6" y="154.2" width="73.4" height="65.8" fill="#1d4ed8" rx="2"/><rect x="284.6" y="148.1" width="73.4" height="71.9" fill="#1d4ed8" rx="2"/><rect x="488.6" y="55.7" width="73.4" height="164.3" fill="#1d4ed8" rx="2"/><rect x="154.0" y="198.5" width="73.4" height="21.5" fill="#0f766e" rx="2"/><text x="190.7" y="194.5" text-anchor="middle" font-size="9" fill="#334155">2.7</text><rect x="358.0" y="206.8" width="73.4" height="13.2" fill="#0f766e" rx="2"/><text x="394.7" y="202.8" text-anchor="middle" font-size="9" fill="#334155">1.6</text><rect x="562.0" y="161.2" width="73.4" height="58.8" fill="#0f766e" rx="2"/><text x="598.7" y="157.2" text-anchor="middle" font-size="9" fill="#334155">7.3</text><text x="154.0" y="246" text-anchor="middle" font-size="11" fill="#334155">和康生 1783</text><text x="358.0" y="246" text-anchor="middle" font-size="11" fill="#334155">科妍 1786</text><text x="562.0" y="246" text-anchor="middle" font-size="11" fill="#334155">雙美 4728</text><rect x="504" y="10" width="10" height="10" fill="#1d4ed8" rx="1"/><text x="518" y="19" font-size="11" fill="#334155">營收</text><rect x="552" y="10" width="10" height="10" fill="#0f766e" rx="1"/><text x="566" y="19" font-size="11" fill="#334155">稅後淨利</text></svg></div>
+<table>
+  <tr>
+    <th>公司</th><th>2025營收</th><th>毛利率%</th><th>營益率%</th><th>2025稅後</th><th>淨利率%</th>
+    <th>2026H1營收</th><th>H1毛利率%</th><th>H1營益率%</th><th>H1稅後</th>
+  </tr>
+  <tr><td>和康生 1783</td><td>8.12</td><td>69.5</td><td>32.2</td><td>2.65</td><td>32.7</td><td>4.12</td><td>69.2</td><td>28.0</td><td>1.32</td></tr>
+<tr><td>科妍 1786</td><td>8.87</td><td>72.0</td><td>21.4</td><td>1.62</td><td>18.3</td><td>4.16</td><td>68.3</td><td>12.0</td><td>0.57</td></tr>
+<tr><td>雙美 4728</td><td>20.26</td><td>78.4</td><td>49.3</td><td>7.26</td><td>35.8</td><td>11.83</td><td>80.5</td><td>52.5</td><td>4.64</td></tr>
+</table>
+<ul>
+  <li><strong>雙美</strong>：2025 營收 20.26 億（約為和康生的 2.5 倍），毛利率 78.4%、營益率 49.3%，商業模式是高單價醫美膠原針劑、中國營收占比逾八成（百科 2024：中國 92%／台灣 8%）。2026H1 營收 11.83 億、EPS 8.52 元（MOPS 2026-08-13）。和康生在「純醫美膠原針」這條賽道的獲利密度明顯不如雙美。</li>
+  <li><strong>科妍</strong>：2025 營收 8.87 億，略高於和康生，毛利率 72.0% 接近，但 2025Q2 稅後虧損使全年淨利僅 1.62 億、淨利率 18.3%；2026H1 營益率僅 12.0%。和康生的獲利穩定度與營業利益率優於科妍近兩年。</li>
+  <li><strong>和康生的位置</strong>：規模小於雙美、與科妍同量級；獲利品質（營益率、淨利率、低槓桿）優於科妍、遜於雙美。差異化在「骨科＋牙科＋鼻科＋眼科＋醫美」多科別平台，以及美國 510(k) 耗材，而非單一中國醫美針劑。</li>
+</ul>
+
+<h2>6. 產業未來五年前景（約 2026–2030）</h2>
+<h3>6.1 市場規模（具名來源，口徑不同故並列）</h3>
+<table>
+  <tr><th>市場定義</th><th>最近值</th><th>預測期末</th><th>CAGR</th><th>來源</th></tr>
+  <tr><td>膠原蛋白 + HA 生醫材料（填補、黏彈、敷料等）</td><td>2024：92 億美元</td><td>2030：130 億美元</td><td>5.9%</td><td>GIA／Research and Markets（報告頁標 2026-08）</td></tr>
+  <tr><td>其中面部美學填補劑子段</td><td>—</td><td>2030：68 億美元</td><td>6.6%</td><td>同上</td></tr>
+  <tr><td>黏彈性補充劑（關節注射）子段</td><td>—</td><td>—</td><td>5.6%</td><td>同上</td></tr>
+  <tr><td>真皮填補劑（另一家口徑）</td><td>2026：68 億美元</td><td>2033：130 億美元</td><td>9.7%</td><td>Persistence Market Research</td></tr>
+  <tr><td>HA 成分佔真皮填補劑</td><td>2026 約 38% 市占</td><td>—</td><td>—</td><td>Persistence</td></tr>
+  <tr><td>非 HA 填補劑（膠原、CaHA、PLLA 等）</td><td>2025：4.241 億美元</td><td>2035：5.482 億美元</td><td>2.6%</td><td>Future Market Insights</td></tr>
+  <tr><td>其中膠原佔非 HA</td><td>2025：39.7%</td><td>—</td><td>—</td><td>FMI</td></tr>
+  <tr><td>HA 關節黏彈性補充</td><td>2023：38.72 億美元</td><td>2030：59 億美元</td><td>7.29%</td><td>DelveInsight</td></tr>
+  <tr><td>全球醫美製造市場</td><td>約 243 億美元（2025）</td><td>至 2030 年約 +5%/年</td><td>約 5%</td><td>BCG 白皮書 2026-05</td></tr>
+</table>
+<div class="note">
+各研調機構對「填補劑」邊界不同（含不含再生型、含不含中國未報價渠道），絕對金額不可橫向加總。
+可共同接受的方向是：<strong>未來五年產業是穩健成長而非爆發</strong>；HA 仍是填補劑主流，但 BCG 指出 HA 填補劑<strong>銷量趨於平台期</strong>，增量轉向再生型／複合型填補劑，以及 GLP-1 減重後的面部容量重建需求。
+</div>
+
+<h3>6.2 結構趨勢（未來五年）</h3>
+<ol>
+  <li><strong>人口老化 → 骨科／牙科耗材剛性</strong>：關節黏彈性補充、牙科再生膜、骨填補屬醫療必要或準必要，管理層亦稱總經敏感度低於醫美。全球黏彈性補充 CAGR 約 5.6–7.3%（上表）。</li>
+  <li><strong>醫美：從「填充」到「再生」</strong>：HA 可逆、透明質酸酶可溶，仍是安全金標準；但 BCG 稱臨床差異化窗口只剩 18–24 個月。膠原、CaHA、PLLA、複合填補劑是敘事焦點，但 FMI 顯示非 HA 填補劑整體僅 2.6% CAGR——<strong>敘事熱度 ≠  TAM 爆發</strong>。</li>
+  <li><strong>法規門檻上升即競爭壁壘</strong>：歐盟 MDR、中國 NMPA 臨床要求提高，有證者可收割無證者退出。和康生已取得 MDR 續證，屬利多結構，但續證與臨床成本也會壓費用率。</li>
+  <li><strong>地緣與關稅</strong>：美國為和康生約三成營收。對等關稅促使「台灣研發製造＋美國銷售／後段包裝／CDMO」的區域樞紐（經濟日報、法說）。這是未來五年資本配置的主軸，不是可選項。</li>
+  <li><strong>通路權力下移</strong>：BCG 強調消費者與診所協議主導品牌選擇，中低價競爭者壓縮價格。OBM 品牌投入（法說：行銷約營收 0.5%、估 4,000 萬）是必要但規模仍小。</li>
+</ol>
+
+<h3>6.3 產業五年前景判斷（self-reported）</h3>
+<p>
+基準看法：膠原／HA 醫材產業 2026–2030 全球產值以 <strong>約 6–10% 名目 CAGR</strong> 擴張（視是否納入醫美填補劑寬口徑）。
+台灣廠商能吃到的是：(a) 美國 Class II 耗材替代 Integra 等高價品牌；(b) 東南亞／中南美中價醫美；(c) 歐盟 MDR 後的缺口；
+(d) 中國 NMPA 已取證劑型。不能假設「全球填補劑 9.7% CAGR」會等比例落到 1783 的營收。
+</p>
+
+<h2>7. 公司和康生未來五年前景</h2>
+<h3>7.1 管理層已公開的目標（口述，須當目標而非事實）</h3>
+<ul>
+  <li>經濟日報 2025-08-22：未來五年營收 CAGR <strong>15–20%</strong>、營收翻倍、市值挑戰 100 億；自有品牌營收占比由約 60% 拉至 2030 年 80%。</li>
+  <li>法說 2026-03-30：HA 產線擴充 2026 年投入（當時稼動率近 100%）；美國成立 MBI US；東南亞價格競爭策略；NasoAid 美國上市；NaturalAir 北榮／台大等三中心臨床；細胞／外泌體與大江基因合作屬早期。</li>
+  <li>設備更新與產能「足以支撐未來五年成長」（經濟日報）。</li>
+</ul>
+<p>
+以 2025 營收 8.12 億為底，CAGR 15% → 2030 約 16.32 億；
+20% → 約 20.19 億。市值 100 億相對於 2026-08-27 約 36 億，隱含約 2.8 倍；
+若 2030 淨利隨營收等比、本益比不變，需要獲利接近翻倍以上——與營收翻倍敘事同方向，但依賴倍數不壓縮。
+</p>
+
+<h3>7.2 與 2026 年迄今軌跡的對照</h3>
+<p>
+2026H1 營收年增 6.7%，1–7 月累計約 +5.35%。
+這低於 15–20% 目標帶。可能解釋（假說，非已證）：高基期（2025 +19%）、HA 產能瓶頸尚未釋放、美國團隊尚在招募、醫美通路庫存、匯率。
+<strong>2026 全年能否回到雙位數，是檢驗「五年翻倍」敘事可信度的第一道關。</strong>
+</p>
+<div class="chart"><svg viewBox="0 0 680 250" width="100%" xmlns="http://www.w3.org/2000/svg"><rect width="680" height="250" fill="#fff"/><text x="48" y="18" font-size="13" font-weight="700" fill="#1a365d">營收情境（自 2025 年 8.12 億起算，非預測承諾）</text><line x1="48" y1="36" x2="48" y2="214" stroke="#cbd5e1"/><line x1="48" y1="214" x2="664" y2="214" stroke="#cbd5e1"/><circle cx="48.0" cy="204.1" r="3.2" fill="#64748b"/><text x="48.0" y="196.1" text-anchor="middle" font-size="9" fill="#334155">8.5</text><circle cx="202.0" cy="197.9" r="3.2" fill="#64748b"/><text x="202.0" y="189.9" text-anchor="middle" font-size="9" fill="#334155">8.9</text><polyline fill="none" stroke="#64748b" stroke-width="2.2" points="48.0,204.1 202.0,197.9 356.0,191.3 510.0,184.5 664.0,177.3"/><polyline fill="none" stroke="#1d4ed8" stroke-width="2.2" points="48.0,195.8 202.0,179.9 356.0,162.1 510.0,142.1 664.0,119.8"/><polyline fill="none" stroke="#0f766e" stroke-width="2.2" points="48.0,189.3 202.0,165.0 356.0,136.4 510.0,102.8 664.0,63.3"/><polyline fill="none" stroke="#c2410c" stroke-width="2.2" points="48.0,188.7 202.0,163.6 356.0,133.9 510.0,98.9 664.0,57.6"/><circle cx="356.0" cy="191.3" r="3.2" fill="#64748b"/><text x="356.0" y="183.3" text-anchor="middle" font-size="9" fill="#334155">9.4</text><circle cx="510.0" cy="184.5" r="3.2" fill="#64748b"/><text x="510.0" y="176.5" text-anchor="middle" font-size="9" fill="#334155">9.9</text><circle cx="664.0" cy="177.3" r="3.2" fill="#64748b"/><text x="664.0" y="169.3" text-anchor="middle" font-size="9" fill="#334155">10.4</text><circle cx="48.0" cy="195.8" r="3.2" fill="#1d4ed8"/><text x="48.0" y="187.8" text-anchor="middle" font-size="9" fill="#334155">9.1</text><circle cx="202.0" cy="179.9" r="3.2" fill="#1d4ed8"/><text x="202.0" y="171.9" text-anchor="middle" font-size="9" fill="#334155">10.2</text><circle cx="356.0" cy="162.1" r="3.2" fill="#1d4ed8"/><text x="356.0" y="154.1" text-anchor="middle" font-size="9" fill="#334155">11.4</text><circle cx="510.0" cy="142.1" r="3.2" fill="#1d4ed8"/><text x="510.0" y="134.1" text-anchor="middle" font-size="9" fill="#334155">12.8</text><circle cx="664.0" cy="119.8" r="3.2" fill="#1d4ed8"/><text x="664.0" y="111.8" text-anchor="middle" font-size="9" fill="#334155">14.3</text><circle cx="48.0" cy="189.3" r="3.2" fill="#0f766e"/><text x="48.0" y="181.3" text-anchor="middle" font-size="9" fill="#334155">9.5</text><circle cx="202.0" cy="165.0" r="3.2" fill="#0f766e"/><text x="202.0" y="157.0" text-anchor="middle" font-size="9" fill="#334155">11.2</text><circle cx="356.0" cy="136.4" r="3.2" fill="#0f766e"/><text x="356.0" y="128.4" text-anchor="middle" font-size="9" fill="#334155">13.2</text><circle cx="510.0" cy="102.8" r="3.2" fill="#0f766e"/><text x="510.0" y="94.8" text-anchor="middle" font-size="9" fill="#334155">15.5</text><circle cx="664.0" cy="63.3" r="3.2" fill="#0f766e"/><text x="664.0" y="55.3" text-anchor="middle" font-size="9" fill="#334155">18.2</text><circle cx="48.0" cy="188.7" r="3.2" fill="#c2410c"/><text x="48.0" y="180.7" text-anchor="middle" font-size="9" fill="#334155">9.6</text><circle cx="202.0" cy="163.6" r="3.2" fill="#c2410c"/><text x="202.0" y="155.6" text-anchor="middle" font-size="9" fill="#334155">11.3</text><circle cx="356.0" cy="133.9" r="3.2" fill="#c2410c"/><text x="356.0" y="125.9" text-anchor="middle" font-size="9" fill="#334155">13.3</text><circle cx="510.0" cy="98.9" r="3.2" fill="#c2410c"/><text x="510.0" y="90.9" text-anchor="middle" font-size="9" fill="#334155">15.7</text><circle cx="664.0" cy="57.6" r="3.2" fill="#c2410c"/><text x="664.0" y="49.6" text-anchor="middle" font-size="9" fill="#334155">18.6</text><text x="48.0" y="238" text-anchor="middle" font-size="11" fill="#334155">2026E</text><text x="202.0" y="238" text-anchor="middle" font-size="11" fill="#334155">2027E</text><text x="356.0" y="238" text-anchor="middle" font-size="11" fill="#334155">2028E</text><text x="510.0" y="238" text-anchor="middle" font-size="11" fill="#334155">2029E</text><text x="664.0" y="238" text-anchor="middle" font-size="11" fill="#334155">2030E</text><rect x="460" y="8" width="10" height="10" fill="#64748b"/><text x="474" y="17" font-size="11" fill="#334155">保守 5%</text><rect x="530" y="8" width="10" height="10" fill="#1d4ed8"/><text x="544" y="17" font-size="11" fill="#334155">基準 12%</text><rect x="600" y="8" width="10" height="10" fill="#0f766e"/><text x="614" y="17" font-size="11" fill="#334155">管理層中位 17.5%</text><rect x="670" y="8" width="10" height="10" fill="#c2410c"/><text x="684" y="17" font-size="11" fill="#334155">樂觀 18%+</text></svg></div>
+<table>
+  <tr><th>年底</th><th>保守 CAGR 5%</th><th>基準 12%</th><th>管理層中位 17.5%</th><th>樂觀 18%</th></tr>
+  <tr><td>2026E</td><td>8.52</td><td>9.09</td><td>9.54</td><td>9.58</td></tr>
+<tr><td>2027E</td><td>8.95</td><td>10.18</td><td>11.20</td><td>11.30</td></tr>
+<tr><td>2028E</td><td>9.39</td><td>11.40</td><td>13.17</td><td>13.33</td></tr>
+<tr><td>2029E</td><td>9.86</td><td>12.77</td><td>15.47</td><td>15.73</td></tr>
+<tr><td>2030E</td><td>10.36</td><td>14.30</td><td>18.18</td><td>18.57</td></tr>
+</table>
+<div class="warn">
+上表為以 2025 年營收為單一起點的複利算術，<strong>未建模費用、稅、匯率、併購、產能與取證時程</strong>，不得視為預測或目標價輸入。
+保守情境對應「維持產業平均、美國放緩」；基準對應「產能釋放+取證貢獻、增速介於 2021–25 CAGR 與管理層目標之間」；
+管理層中位僅為 15–20% 帶的中點圖示。
+</p>
+
+<h3>7.3 五年成長引擎與各自不確定性</h3>
+<table>
+  <tr><th>引擎</th><th>機制</th><th>時間窗</th><th>不確定性</th></tr>
+  <tr><td>HA 產能</td><td>稼動率已近滿載，新產線 2026 投產</td><td>2026–2027</td><td>需求是否接得住；毛利率可能被東南亞價格策略稀釋</td></tr>
+  <tr><td>美國 510(k) 耗材</td><td>HealiAid、NasoAid vs Integra／明膠填塞替代</td><td>2026–2028</td><td>臨床習慣轉換慢；關稅與在地化進度</td></tr>
+  <tr><td>巴西／南半球填補劑</td><td>已取證，2026Q3 發表會</td><td>2026–2029</td><td>新興市場法規與付款能力</td></tr>
+  <tr><td>歐盟 MDR 收割</td><td>無證者退出</td><td>2026–2030</td><td>臨床與維證成本</td></tr>
+  <tr><td>品牌化 60%→80%</td><td>提高 OBM、降低純代工</td><td>至 2030</td><td>行銷僅約 0.5% 營收，品牌戰預算遠低於國際龍頭</td></tr>
+  <tr><td>策略併購</td><td>眼科／骨科／含藥醫材</td><td>中期「至少一件」</td><td>尚未成交；溢價與整合風險</td></tr>
+  <tr><td>細胞／外泌體</td><td>與大江基因</td><td>法規未明</td><td>屬選擇權，五年內不應計入基準營收</td></tr>
+</table>
+
+<h2>8. 全球競爭力評估</h2>
+<h3>8.1 競爭版圖</h3>
+<table>
+  <tr><th>層級</th><th>代表</th><th>與和康生的關係</th></tr>
+  <tr><td>全球醫美填補劑龍頭</td><td>AbbVie（Juvéderm）、Galderma（Restylane）、Merz（Radiesse）</td><td>品牌、臨床證據、醫師教育碾壓；和康生不在同一量級</td></tr>
+  <tr><td>全球膠原／外科耗材</td><td>Integra、Zimmer、Stryker／Polyganics（鼻填塞）</td><td>法說點名美國牙科／鼻科對標 Integra，以價格與術中便利性挑戰</td></tr>
+  <tr><td>亞洲 HA 醫美</td><td>LG Chem（YVOIRE）、Bloomage、愛美客（中國）</td><td>HA 紅海；和康生以利基劑型與已取證市場切入</td></tr>
+  <tr><td>台灣同業</td><td>雙美（豬膠原醫美）、科妍（HA／膠原）</td><td>雙美贏在中國醫美利潤池；和康生贏在多科別與美國 Class II</td></tr>
+</table>
+
+<h3>8.2 競爭力評分卡（self-reported 質性，0–5，非計量模型）</h3>
+<table>
+  <tr><th>構面</th><th>分</th><th>依據</th></tr>
+  <tr><td>產品技術深度（膠原純化＋HA 交聯＋陶瓷複合）</td><td>4</td><td>牛筋非疫區原料、510(k)、MDR、多科別 SKU；非全球原創新材料</td></tr>
+  <tr><td>法規資產（證照密度）</td><td>4</td><td>約 131 項許可；FDA／MDR／NMPA／巴西／加拿大</td></tr>
+  <tr><td>全球品牌與醫師心智</td><td>2</td><td>MBI 品牌預算小；美國仍在建團隊</td></tr>
+  <tr><td>成本／價格帶</td><td>4</td><td>對 Integra 有價格彈性；毛利率 69.5% 顯示不是低價傾銷者</td></tr>
+  <tr><td>財務耐力（併購、臨床、關稅緩衝）</td><td>5</td><td>淨現金、負債比 18.8%、本業現金流覆蓋股利</td></tr>
+  <tr><td>通路（美國／中國／歐盟）</td><td>3</td><td>美國約 30% 已有基礎；中國有歷史經銷（譽衡）；歐盟 MDR 剛續</td></tr>
+  <tr><td>規模經濟 vs 龍頭</td><td>2</td><td>年營收約 0.25 億美元量級，對全球填補劑市場是利基</td></tr>
+  <tr><td>治理與集團綜效</td><td>3</td><td>大江通道、基因／外泌體選擇權；集團本身也在轉型，非無條件資源管線</td></tr>
+</table>
+<p>平均約 3.4／5：<strong>區域利基冠軍、全球挑戰者</strong>——在美國 Class II 膠原耗材與台灣骨科 HA 有真實競爭力；在全球醫美品牌戰沒有對等武器。</p>
+
+<h3>8.3 SWOT（精煉）</h3>
+<div class="grid2">
+  <div class="box"><h4>優勢</h4>
+    <ul>
+      <li>雙平台（膠原+HA）+ 多科別，降低單一醫美週期風險</li>
+      <li>五年毛利率趨勢向上、獲利增速快於營收</li>
+      <li>淨現金、低負債、高盈餘現金含量</li>
+      <li>FDA 510(k)／MDR 續證構成五年入場券</li>
+    </ul>
+  </div>
+  <div class="box"><h4>劣勢</h4>
+    <ul>
+      <li>絕對規模小，研發／DT C 預算無法與 Allergan 級對手比</li>
+      <li>美國 Class III（長效填補、高階骨科）臨床太貴，主動放棄</li>
+      <li>資產週轉低，現金過厚也壓 ROE</li>
+      <li>品牌國際化仍早期</li>
+    </ul>
+  </div>
+  <div class="box"><h4>機會</h4>
+    <ul>
+      <li>美國鼻科／牙科膠原耗材替代高價品牌</li>
+      <li>MDR 淘汰賽、南半球新證</li>
+      <li>GLP-1 面部容量重建對填補劑的結構需求（產業層，非公司獨享）</li>
+      <li>產能瓶頸解除後的出貨彈性</li>
+    </ul>
+  </div>
+  <div class="box"><h4>威脅</h4>
+    <ul>
+      <li>HA 填補劑價格戰與 BCG 所述平台期</li>
+      <li>美國關稅與供應鏈被迫重複投資</li>
+      <li>雙美等同業在膠原醫美的品牌／利潤優勢</li>
+      <li>匯率（美元營收、台幣報表）與原料（牛筋、包材）</li>
+    </ul>
+  </div>
+</div>
+
+<h3>8.4 五年競爭力路徑（self-reported）</h3>
+<p>
+若執行面達標，和康生較合理的全球位置是：<strong>「美國中價位膠原手術耗材＋台灣／東南亞 HA 醫材」的專業品牌</strong>，
+而不是亞洲版 Allergan。市值百億敘事依賴 (1) 營收接近翻倍、(2) 品牌化守住 69.5% 附近毛利、
+(3) 本益比不因生技股殺估值而壓縮。三者任一落空，競爭力仍在、資本市場定價可以不跟上。
+</p>
+
+<h2>9. 風險、觀察清單與誠實缺口</h2>
+<h3>9.1 主要風險</h3>
+<ol>
+  <li><strong>成長承諾風險</strong>：2026 年迄今增速已低於五年 15–20% 帶。</li>
+  <li><strong>單季獲利品質</strong>：業外、所得稅利益、金融資產評價會讓淨利率比營益率更吵（2023Q4、2026Q2）。</li>
+  <li><strong>集中度</strong>：台灣+美國約七成；美國關稅與台灣健保給付調整都是真實風險。</li>
+  <li><strong>法規臨床現金</strong>：四項海外臨床＋潛在併購，低負債不代表費用率不會走高。</li>
+  <li><strong>關鍵人／集團</strong>：策略綁大江集團轉型；集團資源配置改變會影響美國建廠時程。</li>
+  <li><strong>生物來源原料</strong>：牛筋限非 BSE 疫區，供應與認證中斷屬低頻高損。</li>
+</ol>
+<h3>9.2 未來 12–24 個月可驗證觀察清單</h3>
+<ul>
+  <li>月營收是否回到連續雙位數年增（HA 新產能訊號）。</li>
+  <li>NasoAid 美國出貨是否出現在營收地區註或法說量化。</li>
+  <li>2025 股利 2 元除息（2026-09-01）後的配發政策是否維持 ≥50%。</li>
+  <li>美國實體資本支出是否從「今年尚無實質 CAPEX」轉為財報可見。</li>
+  <li>毛利率是否守在 66–72% 帶；跌破 65% 需檢查價格戰或組合劣化。</li>
+</ul>
+<h3>9.3 本報告做不到的事</h3>
+<ul>
+  <li>無本地資料庫，未用 augur 庫內原始 long-form 財報列做獨立重算（已用 MOPS 2026H1 交叉驗證 HiStock）。</li>
+  <li>未取得 2025 年報附註完整產品／地區營收表（法說為口述區間）。</li>
+  <li>未對管理層 15–20% 做獨立渠道檢查（經銷庫存、醫院招標）。</li>
+  <li>產業 CAGR 來自商業研調摘要頁，非購買全文模型。</li>
+</ul>
+
+<h2>10. 附錄</h2>
+<h3>10.1 和康生合併損益季報明細（仟元）</h3>
+<table>
+  <tr><th>季</th><th>營收</th><th>毛利</th><th>毛利率%</th><th>營業利益</th><th>營益率%</th><th>稅後</th><th>淨利率%</th></tr>
+  <tr><td>2021Q1</td><td>111,009</td><td>60,085</td><td>54.1</td><td>21,522</td><td>19.4</td><td>21,620</td><td>19.5</td></tr>
+<tr><td>2021Q2</td><td>121,074</td><td>63,305</td><td>52.3</td><td>20,825</td><td>17.2</td><td>21,390</td><td>17.7</td></tr>
+<tr><td>2021Q3</td><td>138,566</td><td>68,552</td><td>49.5</td><td>30,995</td><td>22.4</td><td>30,879</td><td>22.3</td></tr>
+<tr><td>2021Q4</td><td>141,327</td><td>69,085</td><td>48.9</td><td>16,605</td><td>11.7</td><td>13,778</td><td>9.7</td></tr>
+<tr><td>2022Q1</td><td>123,261</td><td>65,807</td><td>53.4</td><td>13,141</td><td>10.7</td><td>20,547</td><td>16.7</td></tr>
+<tr><td>2022Q2</td><td>154,226</td><td>90,591</td><td>58.7</td><td>26,574</td><td>17.2</td><td>33,485</td><td>21.7</td></tr>
+<tr><td>2022Q3</td><td>162,637</td><td>107,742</td><td>66.2</td><td>38,692</td><td>23.8</td><td>42,099</td><td>25.9</td></tr>
+<tr><td>2022Q4</td><td>164,307</td><td>109,852</td><td>66.9</td><td>50,209</td><td>30.6</td><td>43,273</td><td>26.3</td></tr>
+<tr><td>2023Q1</td><td>143,027</td><td>96,694</td><td>67.6</td><td>37,418</td><td>26.2</td><td>44,449</td><td>31.1</td></tr>
+<tr><td>2023Q2</td><td>170,919</td><td>116,219</td><td>68.0</td><td>53,216</td><td>31.1</td><td>62,349</td><td>36.5</td></tr>
+<tr><td>2023Q3</td><td>159,427</td><td>108,623</td><td>68.1</td><td>25,820</td><td>16.2</td><td>41,366</td><td>25.9</td></tr>
+<tr><td>2023Q4</td><td>148,742</td><td>102,558</td><td>69.0</td><td>33,396</td><td>22.5</td><td>17,664</td><td>11.9</td></tr>
+<tr><td>2024Q1</td><td>127,058</td><td>87,750</td><td>69.1</td><td>25,337</td><td>19.9</td><td>28,416</td><td>22.4</td></tr>
+<tr><td>2024Q2</td><td>174,017</td><td>116,196</td><td>66.8</td><td>40,375</td><td>23.2</td><td>59,733</td><td>34.3</td></tr>
+<tr><td>2024Q3</td><td>173,941</td><td>128,380</td><td>73.8</td><td>49,946</td><td>28.7</td><td>49,522</td><td>28.5</td></tr>
+<tr><td>2024Q4</td><td>205,635</td><td>150,999</td><td>73.4</td><td>64,248</td><td>31.2</td><td>52,496</td><td>25.5</td></tr>
+<tr><td>2025Q1</td><td>177,181</td><td>125,240</td><td>70.7</td><td>52,030</td><td>29.4</td><td>47,088</td><td>26.6</td></tr>
+<tr><td>2025Q2</td><td>208,821</td><td>138,170</td><td>66.2</td><td>69,379</td><td>33.2</td><td>58,948</td><td>28.2</td></tr>
+<tr><td>2025Q3</td><td>200,856</td><td>135,037</td><td>67.2</td><td>53,138</td><td>26.5</td><td>75,535</td><td>37.6</td></tr>
+<tr><td>2025Q4</td><td>224,706</td><td>165,275</td><td>73.6</td><td>86,495</td><td>38.5</td><td>83,741</td><td>37.3</td></tr>
+<tr><td>2026Q1</td><td>190,868</td><td>134,561</td><td>70.5</td><td>58,409</td><td>30.6</td><td>52,793</td><td>27.7</td></tr>
+<tr><td>2026Q2</td><td>221,013</td><td>150,558</td><td>68.1</td><td>56,776</td><td>25.7</td><td>79,130</td><td>35.8</td></tr>
+</table>
+
+<h3>10.2 來源清單</h3>
+<ol class="small">
+  <li>HiStock 1783 損益／資產／負債權益／現金流量／除權除息（擷取 2026-08-27）https://histock.tw/stock/1783/</li>
+  <li>公開資訊觀測站：和康生 2026Q2 合併財報提報董事會（2026-08-10）</li>
+  <li>MoneyDJ：1783 2026Q2 綜合損益表（2026-08-11）</li>
+  <li>Yahoo 股市 1783.TW 基本資料（2026-08-27 收盤 40.70、市值、四季 EPS、同業本益比）</li>
+  <li>富聯網 1783 五年營收／EPS</li>
+  <li>公司法說整理（2026-03-30）https://vocus.cc/article/69e61016fd89780001ceced2 ；法說 PDF：https://mopsov.twse.com.tw/nas/STR/178320260330M001.pdf</li>
+  <li>經濟日報 2025-08-22「和康轉型邁向品牌大廠」</li>
+  <li>環球生技：MAXIGen 品牌與併購策略</li>
+  <li>公司官網：HealiAid FDA 510(k)（2024-01-03）https://mbi-bio.com/</li>
+  <li>TFDA 芙巧蜜皮膚填補劑上市後安全監視計畫（許可證 衛部醫器製字第 006039 號）</li>
+  <li>MoneyDJ 百科：和康生、雙美產品與地區比重</li>
+  <li>HiStock 1786、4728 損益表（同日擷取）；雙美 2026H1 MOPS 公告</li>
+  <li>Persistence Market Research: Dermal Fillers 2026–2033</li>
+  <li>Research and Markets / GIA: Collagen and HA-Based Biomaterials（頁面標 2026-08，2024–2030）</li>
+  <li>BCG, May 2026, “The Convergence of Aesthetics, Wellness, and Nutrition”</li>
+  <li>Future Market Insights: Non-Hyaluronic Acid Dermal Filler</li>
+  <li>DelveInsight: HA Viscosupplementation</li>
+  <li>Win 投資：1783 2026-07 月營收與 1–7 月累計（頁面文字；表身動態未擷取到逐月列）</li>
+</ol>
+<p class="footer">
+報告檔名：augur_1783_maxigen_financial_outlook_20260827.pdf<br/>
+計算腳本對 2026H1 五項損益與 MOPS 公告做相等斷言後才產出本頁。<br/>
+© 整理僅供研究。禁止把本文件當作證券投資顧問意見。
+</p>
+</body>
+</html>
